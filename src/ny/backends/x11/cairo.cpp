@@ -1,9 +1,9 @@
-#include "backends/x11/cairo.hpp"
+#include <ny/backends/x11/cairo.hpp>
 
-#include "backends/x11/appContext.hpp"
+#include <ny/backends/x11/appContext.hpp>
 
-#include "graphics/cairo.hpp"
-#include "window/window.hpp"
+#include <ny/graphics/cairo.hpp>
+#include <ny/window/window.hpp>
 
 #include <cairo/cairo-xlib.h>
 

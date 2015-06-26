@@ -1,10 +1,10 @@
 #include <ny/config.h>
 
-#ifdef WithGL
+#ifdef NY_WithGL
 
-#include "graphics/gl/shader.hpp"
+#include <ny/graphics/gl/shader.hpp>
 
-#include "graphics/gl/glContext.hpp"
+#include <ny/graphics/gl/glContext.hpp>
 
 #include <glbinding/gl/gl.h>
 #include <glbinding/Binding.h>
@@ -233,4 +233,4 @@ void shader::use() const
 
 }
 
-#endif // WithGL
+#endif // NY_WithGL

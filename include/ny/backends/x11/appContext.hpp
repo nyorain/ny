@@ -1,7 +1,7 @@
 #pragma once
 
-#include "x11Include.hpp"
-#include "backends/appContext.hpp"
+#include <ny/backends/x11/x11Include.hpp>
+#include <ny/backends/appContext.hpp>
 
 #include <X11/Xlib.h>
 #include <map>

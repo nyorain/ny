@@ -1,8 +1,8 @@
 #pragma once
 
-#include "app/surface.hpp"
-#include "backends/wayland/windowContext.hpp"
-#include "window/windowDefs.hpp"
+#include <ny/app/surface.hpp>
+#include <ny/backends/wayland/windowContext.hpp>
+#include <ny/window/windowDefs.hpp>
 
 #include <cairo/cairo.h>
 

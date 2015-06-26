@@ -1,7 +1,8 @@
 #pragma once
 
-#include "x11Include.hpp"
-#include "windowContext.hpp"
+#include <ny/backends/x11/x11Include.hpp>
+#include <ny/backends/x11/windowContext.hpp>
+
 #include <cairo/cairo.h>
 
 namespace ny

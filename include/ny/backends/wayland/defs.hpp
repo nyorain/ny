@@ -1,6 +1,6 @@
 #pragma once
 
-#include "waylandInclude.hpp"
+#include <ny/backends/wayland/waylandInclude.hpp>
 
 namespace ny
 {
@@ -15,10 +15,10 @@ namespace ny
     waylandCairoChildWindowContext* asWaylandCairo(childWindowContext* c);
     waylandCairoContext* asWaylandCairo(windowContext* c);
 
-    #ifdef WithGL
+    #ifdef NY_WithGL
     waylandGLToplevelWindowContext* asWaylandGL(toplevelWindowContext* c);
     waylandGLChildWindowContext* asWaylandGL(childWindowContext* c);
     waylandGLContext* asWaylandGL(windowContext* c);
-    #endif // WithGL
+    #endif // NY_WithGL
 
 }

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "include.hpp"
-#include "drawContext.hpp"
+#include <ny/include.hpp>
+#include <ny/graphics/drawContext.hpp>
 
 #include <cairo/cairo.h>
 

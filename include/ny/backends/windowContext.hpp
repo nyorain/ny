@@ -1,11 +1,11 @@
 #pragma once
 
-#include "include.hpp"
+#include <ny/include.hpp>
 
-#include "window/windowDefs.hpp"
+#include <ny/window/windowDefs.hpp>
 
-#include "utils/nonCopyable.hpp"
-#include "utils/vec.hpp"
+#include <ny/utils/nonCopyable.hpp>
+#include <ny/utils/vec.hpp>
 
 namespace ny
 {

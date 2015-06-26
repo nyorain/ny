@@ -1,9 +1,10 @@
 #pragma once
 
-#include <set>
+#include <ny/include.hpp>
+#include <ny/utils/vec.hpp>
+#include <ny/utils/time.hpp>
 
-#include "utils/vec.hpp"
-#include "utils/time.hpp"
+#include <set>
 
 namespace ny
 {

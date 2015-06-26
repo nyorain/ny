@@ -89,7 +89,7 @@ public:
     virtual bool optionRegistered(std::string option, std::string arg = "");
 
     //functions inherited from eventHandler
-    virtual void removeChild(eventHandler* handler);
+    virtual void removeChild(eventHandler& handler);
     virtual void destroy();
     virtual void reparent(eventHandler& newParent){};
 

@@ -11,17 +11,14 @@ cursor::cursor(cursorType t) : type_(t), image_(nullptr)
 {
 }
 
-cursor::cursor(image* data) : type_(cursorType::Unknown), image_(data)
+cursor::cursor(image& data) : type_(cursorType::Unknown), image_(&data)
 {
 }
 
 
-void cursor::fromImage(image* data)
+void cursor::fromImage(image& data)
 {
-    if(!data)
-        return;
-
-    image_ = data;
+    image_ = &data;
     type_ = cursorType::Unknown;
 }
 

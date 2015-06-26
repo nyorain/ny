@@ -1,9 +1,9 @@
 #pragma once
 
-#include "app/keyboard.hpp"
-#include "app/mouse.hpp"
-#include "app/cursor.hpp"
-#include "app/dnd.hpp"
+#include <ny/app/keyboard.hpp>
+#include <ny/app/mouse.hpp>
+#include <ny/app/cursor.hpp>
+#include <ny/app/data.hpp>
 
 #include <map>
 

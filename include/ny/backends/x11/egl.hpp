@@ -1,8 +1,8 @@
 #pragma once
 
-#include "x11Include.hpp"
-#include "windowContext.hpp"
-#include "graphics/gl/glContext.hpp"
+#include <ny/backends/x11/x11Include.hpp>
+#include <ny/backends/x11/windowContext.hpp>
+#include <ny/graphics/gl/glContext.hpp>
 
 #include <EGL/egl.h>
 

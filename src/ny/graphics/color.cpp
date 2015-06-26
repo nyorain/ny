@@ -1,4 +1,4 @@
-#include "graphics/color.hpp"
+#include <ny/graphics/color.hpp>
 
 namespace ny
 {

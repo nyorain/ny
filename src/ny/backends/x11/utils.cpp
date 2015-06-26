@@ -1,5 +1,7 @@
-#include "backends/x11/utils.hpp"
-#include "window//windowEvents.hpp"
+#include <ny/backends/x11/x11Include.hpp>
+
+#include <ny/backends/x11/utils.hpp>
+#include <ny/window/windowEvents.hpp>
 
 #define XK_LATIN1
 #define XK_MISCELLANY
@@ -75,7 +77,6 @@ int cursorToX11(cursorType c)
     switch(c)
     {
         case cursorType::LeftPtr: return 68;
-        case cursorType::Move: return 52;
         case cursorType::SizeBottom: return 16;
         case cursorType::SizeBottomLeft: return 12;
         case cursorType::SizeBottomRight: return 14;
@@ -94,7 +95,6 @@ cursorType x11ToCursor(int xcID)
     switch(xcID)
     {
         case 68: return cursorType::LeftPtr;
-        case 52: return cursorType::Move;
         default: return cursorType::Unknown;
     }
 }

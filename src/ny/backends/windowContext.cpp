@@ -1,6 +1,6 @@
-#include "backends/windowContext.hpp"
-#include "graphics/drawContext.hpp"
-#include "window/window.hpp"
+#include <ny/backends/windowContext.hpp>
+#include <ny/graphics/drawContext.hpp>
+#include <ny/window/window.hpp>
 
 namespace ny
 {

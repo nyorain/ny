@@ -1,11 +1,11 @@
-#include "backends/winapi/appContext.hpp"
+#include <ny/backends/winapi/appContext.hpp>
 
-#include "backends/winapi/windowContext.hpp"
+#include <ny/backends/winapi/windowContext.hpp>
 
-#include "app/error.hpp"
-#include "app/app.hpp"
-#include "app/event.hpp"
-#include "window/windowEvents.hpp"
+#include <ny/app/error.hpp>
+#include <ny/app/app.hpp>
+#include <ny/app/event.hpp>
+#include <ny/window/windowEvents.hpp>
 
 #include <iostream>
 

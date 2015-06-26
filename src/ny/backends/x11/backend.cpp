@@ -1,12 +1,12 @@
-#include "backends/x11/backend.hpp"
+#include <ny/backends/x11/backend.hpp>
 
-#include "backends/x11/windowContext.hpp"
-#include "backends/x11/appContext.hpp"
-#include "backends/x11/cairo.hpp"
+#include <ny/backends/x11/windowContext.hpp>
+#include <ny/backends/x11/appContext.hpp>
+#include <ny/backends/x11/cairo.hpp>
 
-#ifdef WithGL
-#include "backends/x11/glx.hpp"
-#include "backends/x11/egl.hpp"
+#ifdef NY_WithGL
+#include <ny/backends/x11/glx.hpp>
+#include <ny/backends/x11/egl.hpp>
 #endif //WithGL
 
 #include <X11/Xlib.h>
@@ -54,7 +54,7 @@ toplevelWindowContext* x11Backend::createToplevelWindowContext(toplevelWindow& w
         settings.glPref = s.glPref;
     }
 
-    #ifdef WithGL
+    #ifdef NY_WithGL
     if(settings.glPref == preference::DontCare || settings.glPref == preference::Must || settings.glPref == preference::Should)
     {
         glxWindowContextSettings glxSettings;
@@ -76,7 +76,7 @@ toplevelWindowContext* x11Backend::createToplevelWindowContext(toplevelWindow& w
         //not av. now
         //return new x11EGLToplevelWindowContext(win, settings);
     }
-    #endif // WithGL
+    #endif // NY_WithGL
 
     return new x11CairoToplevelWindowContext(win, settings);
 }
@@ -102,7 +102,7 @@ childWindowContext* x11Backend::createChildWindowContext(childWindow& win, const
         settings.glPref = s.glPref;
     }
 
-    #ifdef WithGL
+    #ifdef NY_WithGL
     if(settings.glPref == preference::DontCare || settings.glPref == preference::Must || settings.glPref == preference::Should)
     {
         glxWindowContextSettings glxSettings;
@@ -124,7 +124,7 @@ childWindowContext* x11Backend::createChildWindowContext(childWindow& win, const
         //not av. now
         //return new x11EGLToplevelWindowContext(win, settings);
     }
-    #endif // WithGL
+    #endif // NY_WithGL
 
     return new x11CairoChildWindowContext(win, settings);
 }

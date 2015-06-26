@@ -10,20 +10,24 @@ set(NY_VMINOR 1)
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src")
 
-option(WithGL "Include GL functions and backends" ON)
-option(WithGLBinding "Use GLBinding Instead of static GL" ON)
-option(WithCairo "Include Cairo fuctions and drawContext" ON)
-option(WithFreeType "Enable FreeType for font handling" ON)
+option(NY_BUILD_EXAMPLES "build the ny examples" ON)
+option(NY_WithGL "Include GL functions and backends" ON)
+option(NY_WithGLBinding "Use GLBinding Instead of static GL" ON)
+option(NY_WithCairo "Include Cairo fuctions and drawContext" ON)
+option(NY_WithFreeType "Enable FreeType for font handling" ON)
 
 if(UNIX)
-	option(WithX11 "Include X11 functions and backends" ON)
-	option(WithWayland "Include Wayland functions and backends" ON)
+	option(NY_WithX11 "Include X11 functions and backends" ON)
+	option(NY_WithWayland "Include Wayland functions and backends" ON)
 endif(UNIX)
 
 if(Win32)
-	option(WithWinapi "Include Winapi functions and backends" ON)
+	option(NY_WithWinapi "Include Winapi functions and backends" ON)
 endif(Win32)
 
+#pch
+set (CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
+include(cotire)
 
 
 configure_file	( "${CMAKE_CURRENT_SOURCE_DIR}/src/ny/config.h.in"
@@ -36,26 +40,12 @@ add_subdirectory(examples)
 
 # uninstall target
 configure_file(
-	"${CMAKE_CURRENT_SOURCE_DIR}/uninstall.cmake.in"
-	"${CMAKE_CURRENT_BINARY_DIR}/uninstall.cmake"
+	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/uninstall.cmake.in"
+	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/moudles/uninstall.cmake"
 	IMMEDIATE @ONLY)
 
-add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/uninstall.cmake)
+add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/uninstall.cmake)
 
-# use, i.e. don't skip the full RPATH for the build tree
-SET(CMAKE_SKIP_BUILD_RPATH  FALSE)
-
-# when building, don't use the install RPATH already
-# (but later on when installing)
 SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE) 
-
 SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
-
-# add the automatically determined parts of the RPATH
-# which point to directories outside the build tree to the install RPATH
-SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-
-
-
-
 

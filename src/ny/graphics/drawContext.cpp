@@ -1,6 +1,6 @@
-#include "graphics/drawContext.hpp"
-#include "graphics/shape.hpp"
-#include "app/surface.hpp"
+#include <ny/graphics/drawContext.hpp>
+#include <ny/graphics/shape.hpp>
+#include <ny/app/surface.hpp>
 
 namespace ny
 {

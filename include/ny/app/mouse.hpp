@@ -1,10 +1,9 @@
 #pragma once
 
-#include "include.hpp"
+#include <ny/include.hpp>
 #include <bitset>
 
-#include <utils/vec.hpp>
-;
+#include <ny/utils/vec.hpp>
 
 
 namespace ny

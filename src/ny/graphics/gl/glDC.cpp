@@ -1,9 +1,9 @@
 #include <ny/config.h>
 
-#ifdef WithGL
+#ifdef NY_WithGL
 
-#include "graphics/gl/glDC.hpp"
-#include "app/surface.hpp"
+#include <ny/graphics/gl/glDC.hpp>
+#include <ny/app/surface.hpp>
 
 #include <glbinding/gl/gl.h>
 #include <glbinding/Binding.h>
@@ -55,4 +55,4 @@ void glDrawContext::resetClip()
 
 }
 
-#endif // WithGL
+#endif // NY_WithGL

@@ -1,15 +1,15 @@
 #include <ny/config.h>
 
-#ifdef WithGL
+#ifdef NY_WithGL
 
-#include "backends/wayland/gl.hpp"
-#include "backends/wayland/appContext.hpp"
-#include "backends/wayland/utils.hpp"
+#include <ny/backends/wayland/gl.hpp>
+#include <ny/backends/wayland/appContext.hpp>
+#include <ny/backends/wayland/utils.hpp>
 
-#include "app/error.hpp"
-#include "window/window.hpp"
-#include "graphics/gl/glDC.hpp"
-#include "graphics/gl/glContext.hpp"
+#include <ny/app/error.hpp>
+#include <ny/window/window.hpp>
+#include <ny/graphics/gl/glDC.hpp>
+#include <ny/graphics/gl/glContext.hpp>
 
 #include <wayland-egl.h>
 #include <EGL/egl.h>
@@ -111,4 +111,4 @@ void waylandGLChildWindowContext::setSize(vec2ui size, bool change)
 
 }
 
-#endif // WithGL
+#endif // NY_WithGL

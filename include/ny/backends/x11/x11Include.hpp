@@ -15,7 +15,7 @@ namespace ny
 	typedef x11ChildWindowContext x11ChildWC;
 	typedef x11ToplevelWindowContext x11ToplevelWC;
 
-#ifdef WithGL
+#ifdef NY_WithGL
 	class glxContext;
 	class glxWindowContext;
 	class glxToplevelWindowContext;

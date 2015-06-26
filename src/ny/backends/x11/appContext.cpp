@@ -1,12 +1,12 @@
-#include "backends/x11/appContext.hpp"
+#include <ny/backends/x11/appContext.hpp>
 
-#include "backends/x11/defs.hpp"
-#include "backends/x11/windowContext.hpp"
-#include "backends/x11/utils.hpp"
+#include <ny/backends/x11/defs.hpp>
+#include <ny/backends/x11/windowContext.hpp>
+#include <ny/backends/x11/utils.hpp>
 
-#include "app/app.hpp"
-#include "app/error.hpp"
-#include "window/window.hpp"
+#include <ny/app/app.hpp>
+#include <ny/app/error.hpp>
+#include <ny/window/window.hpp>
 
 #include <cstring>
 

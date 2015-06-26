@@ -1,7 +1,7 @@
 #pragma once
 
-#include "include.hpp"
-#include "backends/windowContext.hpp"
+#include <ny/include.hpp>
+#include <ny/backends/windowContext.hpp>
 
 #include <vector>
 

@@ -2,16 +2,16 @@
 
 #include <ny/app/app.hpp>
 
-#ifdef WithWayland
-#include "backends/wayland/backend.hpp"
-#endif // WithGL
+#ifdef NY_WithWayland
+#include <ny/backends/wayland/backend.hpp>
+#endif // NY_WithGL
 
-#ifdef WithX11
-#include "backends/x11/backend.hpp"
+#ifdef NY_WithX11
+#include <ny/backends/x11/backend.hpp>
 #endif // WithX11
 
-#ifdef WithWinapi
-#include "backends/winapi/backend.hpp"
+#ifdef NY_WithWinapi
+#include <ny/backends/winapi/backend.hpp>
 #endif // WithWinapi
 
 namespace ny
@@ -21,15 +21,15 @@ std::vector<backend*> initBackends()
 {
     std::vector<backend*> ret;
 
-    #ifdef WithWayland
+    #ifdef NY_WithWayland
     ret.push_back(new waylandBackend());
     #endif // WithWayland
 
-    #ifdef WithX11
+    #ifdef NY_WithX11
     ret.push_back(new x11Backend());
     #endif // WithX11
 
-    #ifdef WithWinapi
+    #ifdef NY_WithWinapi
     ret.push_back(new winapiBackend());
     #endif // WithWinpi
 

@@ -27,13 +27,13 @@ void eventHandler::create(eventHandler& parent)
 {
     parent_ = &parent;
 
-    parent_->addChild(this);
+    parent_->addChild(*this);
 }
 
 void eventHandler::reparent(eventHandler& newParent)
 {
     if(!parent_)
-        parent_->removeChild(this);
+        parent_->removeChild(*this);
 
     create(newParent);
 }
@@ -49,7 +49,7 @@ void eventHandler::destroy()
     }
 
     if(!parent_)
-        parent_->removeChild(this);
+        parent_->removeChild(*this);
 
     parent_ = nullptr;
 }

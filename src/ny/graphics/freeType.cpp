@@ -1,6 +1,6 @@
-#include "graphics/freeType.hpp"
+#include <ny/graphics/freeType.hpp>
 
-#include "app/error.hpp"
+#include <ny/app/error.hpp>
 
 namespace ny
 {

@@ -3,7 +3,7 @@
 #include <windows.h>
 #include <gdiplus.h>
 
-#include "../include/include.hpp"
+#include <ny/include.hpp>
 
 using namespace Gdiplus;
 

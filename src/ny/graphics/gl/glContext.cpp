@@ -1,8 +1,8 @@
 #include <ny/config.h>
 
-#ifdef WithGL
+#ifdef NY_WithGL
 
-#include "graphics/gl/glContext.hpp"
+#include <ny/graphics/gl/glContext.hpp>
 
 #include <glbinding/Binding.h>
 #include <glbinding/gl/gl.h>

@@ -1,9 +1,8 @@
 #pragma once
 
-#include <utils/mat.hpp>
-#include <utils/vec.hpp>
-#include <utils/rect.hpp>
-;
+#include <ny/utils/mat.hpp>
+#include <ny/utils/vec.hpp>
+#include <ny/utils/rect.hpp>
 
 namespace ny
 {

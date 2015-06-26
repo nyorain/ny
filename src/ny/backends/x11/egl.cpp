@@ -1,12 +1,12 @@
 #include <ny/config.h>
 
-#ifdef WithGL
-#include "backends/x11/egl.hpp"
+#ifdef NY_WithGL
+#include <ny/backends/x11/egl.hpp>
 
-#include "backends/x11/appContext.hpp"
-#include "backends/x11/windowContext.hpp"
+#include <ny/backends/x11/appContext.hpp>
+#include <ny/backends/x11/windowContext.hpp>
 
-#include "graphics/gl/glDC.hpp"
+#include <ny/graphics/gl/glDC.hpp>
 
 
 namespace ny
@@ -66,4 +66,4 @@ void x11EGLChildWindowContext::setSize(vec2ui size, bool change)
 
 }
 
-#endif // WithGL
+#endif // NY_WithGL

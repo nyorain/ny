@@ -1,7 +1,7 @@
 #pragma once
 
-#include "include.hpp"
-#include "graphics/drawContext.hpp"
+#include <ny/include.hpp>
+#include <ny/graphics/drawContext.hpp>
 
 namespace ny
 {

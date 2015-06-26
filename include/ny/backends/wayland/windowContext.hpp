@@ -1,17 +1,17 @@
 #pragma once
 
-#include "waylandInclude.hpp"
+#include <ny/backends/wayland/waylandInclude.hpp>
 
-#include "app/cursor.hpp"
-#include "backends/windowContext.hpp"
-#include "window/windowEvents.hpp"
+#include <ny/app/cursor.hpp>
+#include <ny/backends/windowContext.hpp>
+#include <ny/window/windowEvents.hpp>
 
 #include <wayland-client-protocol.h>
 
-#ifdef WithGL
+#ifdef NY_WithGL
 #include <wayland-egl.h>
 #include <EGL/egl.h>
-#endif // WithGL
+#endif // NY_WithGL
 
 namespace ny
 {

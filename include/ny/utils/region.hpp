@@ -1,7 +1,9 @@
 #pragma once
 
-#include "vec.hpp"
-#include "rect.hpp"
+#include <ny/include.hpp>
+
+#include <ny/utils/vec.hpp>
+#include <ny/utils/rect.hpp>
 
 #include <vector>
 

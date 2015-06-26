@@ -1,6 +1,7 @@
 #pragma once
 
-#include "nonCopyable.hpp"
+#include <ny/include.hpp>
+#include <ny/utils/nonCopyable.hpp>
 
 #include <functional>
 #include <vector>

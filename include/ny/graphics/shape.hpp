@@ -1,14 +1,15 @@
 #pragma once
 
-#include "include.hpp"
-#include "color.hpp"
-#include "transformable.hpp"
-#include "font.hpp"
+#include <ny/include.hpp>
+#include <ny/graphics/color.hpp>
+#include <ny/graphics/transformable.hpp>
+#include <ny/graphics/font.hpp>
+
+#include <ny/utils/vec.hpp>
+#include <ny/utils/mat.hpp>
+#include <ny/utils/rect.hpp>
+
 #include <vector>
-#include <utils/vec.hpp>
-#include <utils/mat.hpp>
-#include <utils/rect.hpp>
-;
 
 namespace ny
 {

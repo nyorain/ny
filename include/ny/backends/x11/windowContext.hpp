@@ -1,10 +1,10 @@
 #pragma once
 
-#include "x11Include.hpp"
-#include "backends/appContext.hpp"
-#include "backends/windowContext.hpp"
-#include "backends/backend.hpp"
-#include "window/windowEvents.hpp"
+#include <ny/backends/x11/x11Include.hpp>
+#include <ny/backends/appContext.hpp>
+#include <ny/backends/windowContext.hpp>
+#include <ny/backends/backend.hpp>
+#include <ny/window/windowEvents.hpp>
 
 #include <X11/Xutil.h>
 

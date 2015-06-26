@@ -1,6 +1,7 @@
 #pragma once
 
-#include "time.hpp"
+#include <ny/include.hpp>
+#include <ny/utils/time.hpp>
 
 #include <thread>
 #include <mutex>

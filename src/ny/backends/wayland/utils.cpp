@@ -1,11 +1,11 @@
-#include "backends/wayland/utils.hpp"
+#include <ny/backends/wayland/utils.hpp>
 
-#include "backends/wayland/appContext.hpp"
-#include "backends/wayland/windowContext.hpp"
+#include <ny/backends/wayland/appContext.hpp>
+#include <ny/backends/wayland/windowContext.hpp>
 
-#include "app/app.hpp"
-#include "app/event.hpp"
-#include "app/cursor.hpp"
+#include <ny/app/app.hpp>
+#include <ny/app/event.hpp>
+#include <ny/app/cursor.hpp>
 
 #include <wayland-cursor.h>
 
@@ -359,8 +359,6 @@ std::string cursorToWayland(const cursorType c)
 {
     switch(c)
     {
-    case cursorType::Move:
-        return "fleur";
     case cursorType::LeftPtr:
         return "left_ptr";
     case cursorType::SizeBottom:
@@ -388,7 +386,7 @@ std::string cursorToWayland(const cursorType c)
 
 cursorType waylandToCursor(std::string id)
 {
-    if(id == "fleur") return cursorType::Move;
+    //if(id == "fleur") return cursorType::Move;
     if(id == "left_ptr") return cursorType::LeftPtr;
     if(id == "bottom_side") return cursorType::SizeBottom;
     if(id == "left_side") return cursorType::SizeLeft;

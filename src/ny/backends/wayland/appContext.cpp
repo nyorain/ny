@@ -1,12 +1,12 @@
-#include "backends/wayland/appContext.hpp"
+#include <ny/backends/wayland/appContext.hpp>
 
-#include "backends/wayland/utils.hpp"
-#include "backends/wayland/windowContext.hpp"
+#include <ny/backends/wayland/utils.hpp>
+#include <ny/backends/wayland/windowContext.hpp>
 
-#include "app/error.hpp"
-#include "app/app.hpp"
+#include <ny/app/error.hpp>
+#include <ny/app/app.hpp>
 
-#include "utils/misc.hpp"
+#include <ny/utils/misc.hpp>
 
 #include <wayland-egl.h>
 
@@ -68,14 +68,14 @@ void waylandAppContext::init()
 
     wlCursorSurface_ = wl_compositor_create_surface(wlCompositor_);
 
-#ifdef WithGL
+#ifdef NY_WithGL
     eglContext_ = new waylandEGLAppContext(this);
     if(!eglContext_->init())
     {
         throw error(error::Critical, "could not find initialize wayland eglContext");
         return;
     }
-#endif // WithGL
+#endif // NY_WithGL
 }
 
 bool waylandAppContext::mainLoopCall()
@@ -347,7 +347,7 @@ void waylandAppContext::setCursor(image* img, unsigned int serial)
     */
 }
 
-#ifdef WithGL
+#ifdef NY_WithGL
 //waylandEGLContext
 waylandEGLAppContext::waylandEGLAppContext(waylandAppContext* ac) : appContext_(ac)
 {
@@ -417,7 +417,7 @@ bool waylandEGLAppContext::init()
     //eglBindAPI(EGL_OPENGL_API);
     return 1;
 }
-#endif // WithGL
+#endif // NY_WithGL
 
 
 }

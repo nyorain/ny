@@ -1,11 +1,11 @@
 #pragma once
 
-#include "include.hpp"
+#include <ny/include.hpp>
 
-#include "app/surface.hpp"
-#include "app/file.hpp"
+#include <ny/app/surface.hpp>
+#include <ny/app/file.hpp>
 
-#include "graphics/drawContext.hpp"
+#include <ny/graphics/drawContext.hpp>
 
 namespace ny
 {

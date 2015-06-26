@@ -1,7 +1,4 @@
 #include 1. subdir cmake
-if(WithX11)
-	Message("x11 yoo")
-endif(WithX11)
 
 #window___________________________________________________________________________________
 set(H_WINDOW 
@@ -28,13 +25,13 @@ set(H_GRAPHICS
 	graphics/transformable.hpp
 	)
 
-if(WithGL)
+if(NY_WithGL)
 	set(H_GRAPHICS ${H_GRAPHICS}
 	graphics/gl/glContext.hpp
 	graphics/gl/glDC.hpp
 	graphics/gl/shader.hpp
 	)
-endif(WithGL)
+endif(NY_WithGL)
 
 #backends___________________________________________________________________________________
 set(H_BACKENDS 
@@ -44,7 +41,7 @@ set(H_BACKENDS
 	)
 
 #x11___________________________________________________________________________________
-if(WithX11)
+if(NY_WithX11)
 	set(H_BACKENDS ${H_BACKENDS}
 		backends/x11/appContext.hpp
 		backends/x11/backend.hpp
@@ -53,17 +50,17 @@ if(WithX11)
 		backends/x11/utils.hpp
 		backends/x11/windowContext.hpp
 		)
-	if(WithGL)
+	if(NY_WithGL)
 		set(H_BACKENDS ${H_BACKENDS}
 			backends/x11/egl.hpp
 			backends/x11/glx.hpp
 			)		
-	endif(WithGL)
-endif(WithX11)
+	endif(NY_WithGL)
+endif(NY_WithX11)
 
 
 #wayland___________________________________________________________________________________
-if(WithWayland)
+if(NY_WithWayland)
 	set(H_BACKENDS ${H_BACKENDS}
 		backends/wayland/appContext.hpp
 		backends/wayland/backend.hpp
@@ -72,18 +69,18 @@ if(WithWayland)
 		backends/wayland/utils.hpp
 		backends/wayland/windowContext.hpp
 	)
-	if(WithGL)
+	if(NY_WithGL)
 		set(H_BACKENDS ${H_BACKENDS}
 			backends/wayland/gl.hpp
 			)		
-	endif(WithGL)
-endif(WithWayland)
+	endif(NY_WithGL)
+endif(NY_WithWayland)
 
 #app___________________________________________________________________________________
 set(H_APP 
 	app/app.hpp
 	app/cursor.hpp
-	app/dnd.hpp
+	app/data.hpp
 	app/error.hpp
 	app/event.hpp
 	app/eventHandler.hpp
@@ -101,7 +98,6 @@ set(H_UTILS
 	utils/thread.hpp
 	utils/time.hpp
 	utils/region.hpp
-	utils/proto.hpp
 	utils/misc.hpp
 	utils/animation.hpp
 	utils/refVec.hpp

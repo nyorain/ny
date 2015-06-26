@@ -2,10 +2,10 @@
 
 #include <ny/include.hpp>
 
-#include <ny/mouse.hpp>
-#include <ny/keyboard.hpp>
+#include <ny/app/mouse.hpp>
+#include <ny/app/keyboard.hpp>
 
-#include <utils/vec.hpp>
+#include <ny/utils/vec.hpp>
 
 namespace ny
 {

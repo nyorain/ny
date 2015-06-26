@@ -1,13 +1,13 @@
 #include <ny/config.h>
 
-#ifdef WithGL
+#ifdef NY_WithGL
 
-#include "backends/x11/glx.hpp"
+#include <ny/backends/x11/glx.hpp>
 
-#include "backends/x11/appContext.hpp"
+#include <ny/backends/x11/appContext.hpp>
 
-#include "graphics/gl/glDC.hpp"
-#include "app/error.hpp"
+#include <ny/graphics/gl/glDC.hpp>
+#include <ny/app/error.hpp>
 
 //from X11, not compatible with glbindijng from include/gl.h
 #ifdef None
@@ -297,4 +297,4 @@ void glxChildWindowContext::setSize(vec2ui size, bool change)
 
 }
 
-#endif // WithGL
+#endif // NY_WithGL

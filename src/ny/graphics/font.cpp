@@ -1,11 +1,11 @@
-#include "graphics/font.hpp"
+#include <ny/graphics/font.hpp>
 
-#include "graphics/freeType.hpp"
-#include "graphics/cairo.hpp"
-#include "app/error.hpp"
+#include <ny/graphics/freeType.hpp>
+#include <ny/graphics/cairo.hpp>
+#include <ny/app/error.hpp>
 
 #ifdef WithWinapi
-#include "backends/winapi/gdi.hpp"
+#include <ny/backends/winapi/gdi.hpp>
 #endif //Winapi
 
 namespace ny

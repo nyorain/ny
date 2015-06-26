@@ -34,8 +34,8 @@ public:
     virtual eventHandler* getParent() const { return parent_; };
     virtual std::vector<eventHandler*> getChildren() const { return children_; }
 
-    virtual void addChild(eventHandler* child);
-    virtual void removeChild(eventHandler* child);
+    virtual void addChild(eventHandler& child);
+    virtual void removeChild(eventHandler& child);
 
     virtual bool isValid() const { return (parent_); }
 };

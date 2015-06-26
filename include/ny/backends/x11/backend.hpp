@@ -1,7 +1,7 @@
 #pragma once
 
-#include "x11Include.hpp"
-#include "backends/backend.hpp"
+#include <ny/backends/x11/x11Include.hpp>
+#include <ny/backends/backend.hpp>
 
 namespace ny
 {

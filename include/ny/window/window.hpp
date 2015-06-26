@@ -3,16 +3,16 @@
 #include <map>
 #include <functional>
 
-#include "include.hpp"
-#include "app/eventHandler.hpp"
-#include "app/surface.hpp"
-#include "app/cursor.hpp"
-#include "app/dnd.hpp"
-#include "window/windowEvents.hpp"
-#include "window/windowDefs.hpp"
+#include <ny/include.hpp>
+#include <ny/app/eventHandler.hpp>
+#include <ny/app/surface.hpp>
+#include <ny/app/cursor.hpp>
+#include <ny/app/data.hpp>
+#include <ny/window/windowEvents.hpp>
+#include <ny/window/windowDefs.hpp>
 
-#include "utils/callback.hpp"
-#include "utils/vec.hpp"
+#include <ny/utils/callback.hpp>
+#include <ny/utils/vec.hpp>
 
 namespace ny
 {

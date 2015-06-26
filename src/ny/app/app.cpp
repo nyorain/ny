@@ -222,10 +222,10 @@ bool app::optionRegistered(std::string option, std::string arg)
 }
 
 
-void app::removeChild(eventHandler* child)
+void app::removeChild(eventHandler& child)
 {
-    if(focus_ == child) focus_ = nullptr;
-    if(mouseOver_ == child) mouseOver_ = nullptr;
+    if(focus_ == &child) focus_ = nullptr;
+    if(mouseOver_ == &child) mouseOver_ = nullptr;
 
     eventHandler::removeChild(child);
 

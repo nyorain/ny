@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../include/include.hpp"
-#include "../include/windowContext.hpp"
+#include <ny//include.hpp"
+#include <ny/backends/windowContext.hpp"
 
-#include "gdiDrawContext.hpp"
+#include <ny/backends/winapi/gdiDrawContext.hpp>
 
 #include <windows.h>
 

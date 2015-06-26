@@ -1,11 +1,11 @@
-#include "backends/wayland/backend.hpp"
+#include <ny/backends/wayland/backend.hpp>
 
-#include "backends/wayland/windowContext.hpp"
-#include "backends/wayland/appContext.hpp"
-#include "backends/wayland/cairo.hpp"
+#include <ny/backends/wayland/windowContext.hpp>
+#include <ny/backends/wayland/appContext.hpp>
+#include <ny/backends/wayland/cairo.hpp>
 
-#ifdef WithGL
-#include "backends/wayland/gl.hpp"
+#ifdef NY_WithGL
+#include <ny/backends/wayland/gl.hpp>
 #endif //WithGL
 
 #include <wayland-client.h>
@@ -48,12 +48,12 @@ toplevelWindowContext* waylandBackend::createToplevelWindowContext(toplevelWindo
         settings.glPref = s.glPref;
     }
 
-    #ifdef WithGL
+    #ifdef NY_WithGL
     if(settings.glPref == preference::DontCare || settings.glPref == preference::Must || settings.glPref == preference::Should)
     {
         return new waylandGLToplevelWindowContext(win, settings);
     }
-    #endif // WithGL
+    #endif // NY_WithGL
 
     return new waylandCairoToplevelWindowContext(win, settings);
 }
@@ -79,12 +79,12 @@ childWindowContext* waylandBackend::createChildWindowContext(childWindow& win, c
         settings.glPref = s.glPref;
     }
 
-    #ifdef WithGL
+    #ifdef NY_WithGL
     if(settings.glPref == preference::DontCare || settings.glPref == preference::Must || settings.glPref == preference::Should)
     {
         return new waylandGLChildWindowContext(win, settings);
     }
-    #endif // WithGL
+    #endif // NY_WithGL
 
     return new waylandCairoChildWindowContext(win, settings);
 }

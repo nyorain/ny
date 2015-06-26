@@ -1,13 +1,13 @@
-#include "backends/x11/defs.hpp"
+#include <ny/backends/x11/defs.hpp>
 
-#include "backends/x11/appContext.hpp"
-#include "backends/x11/windowContext.hpp"
-#include "backends/x11/cairo.hpp"
+#include <ny/backends/x11/appContext.hpp>
+#include <ny/backends/x11/windowContext.hpp>
+#include <ny/backends/x11/cairo.hpp>
 
-#ifdef WithGL
-#include "backends/x11/glx.hpp"
-#include "backends/x11/egl.hpp"
-#endif // WithGL
+#ifdef NY_WithGL
+#include <ny/backends/x11/glx.hpp>
+#include <ny/backends/x11/egl.hpp>
+#endif // NY_WithGL
 
 namespace ny
 {
@@ -23,7 +23,7 @@ x11CairoToplevelWindowContext* asX11Cairo(toplevelWindowContext* c){ return dyna
 x11CairoChildWindowContext* asX11Cairo(childWindowContext* c){ return dynamic_cast<x11CairoChildWindowContext*>(c); };
 x11CairoContext* asX11Cairo(windowContext* c){ return dynamic_cast<x11CairoContext*>(c); };
 
-#ifdef WithGL
+#ifdef NY_WithGL
 glxToplevelWindowContext* asGLX(toplevelWindowContext* c){ return dynamic_cast<glxToplevelWindowContext*>(c); };
 glxChildWindowContext* asGLX(childWindowContext* c){ return dynamic_cast<glxChildWindowContext*>(c); };
 glxWindowContext* asGLX(windowContext* c){ return dynamic_cast<glxWindowContext*>(c); };
@@ -32,7 +32,7 @@ glxContext* asGLX(glContext* c){ return dynamic_cast<glxContext*>(c); };
 x11EGLToplevelWindowContext* asX11EGL(toplevelWindowContext* c){ return dynamic_cast<x11EGLToplevelWindowContext*>(c); };
 x11EGLChildWindowContext* asX11EGL(childWindowContext* c){ return dynamic_cast<x11EGLChildWindowContext*>(c); };
 x11EGLContext* asX11EGL(windowContext* c){ return dynamic_cast<x11EGLContext*>(c); };
-#endif // WithGL
+#endif // NY_WithGL
 
 
 namespace x11

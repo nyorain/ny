@@ -1,6 +1,6 @@
 #pragma once
 
-#include "waylandInclude.hpp"
+#include <ny/backends/wayland/waylandInclude.hpp>
 
 #include <ny/backends/wayland/windowContext.hpp>
 #include <ny/graphics/gl/glContext.hpp>

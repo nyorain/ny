@@ -1,13 +1,12 @@
 #pragma once
 
-#include "include.hpp"
-#include "color.hpp"
+#include <ny/include.hpp>
+#include <ny/graphics/color.hpp>
 
-#include <utils/vec.hpp>
-#include <utils/rect.hpp>
-#include <utils/region.hpp>
-#include <utils/nonCopyable.hpp>
-;
+#include <ny/utils/vec.hpp>
+#include <ny/utils/rect.hpp>
+#include <ny/utils/region.hpp>
+#include <ny/utils/nonCopyable.hpp>
 
 namespace ny
 {

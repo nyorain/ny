@@ -1,10 +1,10 @@
-#include "windowContext.hpp"
-#include "appContext.hpp"
-#include "gdiDrawContext.hpp"
+#include <ny/backends/winapi/windowContext.hpp>
+#include <ny/backends/winapi/appContext.hpp"
+#include <ny/backends/winapi/gdiDrawContext.hpp"
 
-#include "../include/app.hpp"
-#include "../include/error.hpp"
-#include "../include/window.hpp"
+#include <ny/app/app.hpp"
+#include <ny/app/error.hpp"
+#include <ny/window/window.hpp"
 
 #include <tchar.h>
 

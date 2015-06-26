@@ -1,13 +1,13 @@
 #pragma once
 
-#include "waylandInclude.hpp"
+#include <ny/backends/wayland/waylandInclude.hpp>
 
-#include "app/mouse.hpp"
-#include "app/keyboard.hpp"
-#include "app/cursor.hpp"
-#include "backends/backend.hpp"
-#include "window/window.hpp"
-#include "window/windowEvents.hpp"
+#include <ny/app/mouse.hpp>
+#include <ny/app/keyboard.hpp>
+#include <ny/app/cursor.hpp>
+#include <ny/backends/backend.hpp>
+#include <ny/window/window.hpp>
+#include <ny/window/windowEvents.hpp>
 
 #include <wayland-client.h>
 

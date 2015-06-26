@@ -1,6 +1,6 @@
 #pragma once
 
-#include <include.hpp>
+#include <ny/include.hpp>
 
 namespace ny
 {
@@ -20,7 +20,7 @@ namespace ny
     typedef waylandCairoToplevelWindowContext waylandCairoToplevelWC;
     typedef waylandCairoChildWindowContext waylandCairoChildWC;
 
-    #ifdef WithGL
+    #ifdef NY_WithGL
     class waylandEGLAppContext;
 
     class waylandGLContext;
@@ -29,6 +29,6 @@ namespace ny
 
     typedef waylandGLToplevelWindowContext waylandGLToplevelWC;
     typedef waylandGLChildWindowContext waylandGLChildWC;
-    #endif // WithGL
+    #endif // NY_WithGL
 }
 

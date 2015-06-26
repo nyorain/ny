@@ -1,6 +1,6 @@
 #pragma once
 
-#include "x11Include.hpp"
+#include <ny/backends/x11/x11Include.hpp>
 #include <X11/Xutil.h>
 
 namespace ny
@@ -17,7 +17,7 @@ x11CairoToplevelWindowContext* asX11Cairo(toplevelWindowContext* c);
 x11CairoChildWindowContext* asX11Cairo(childWindowContext* c);
 x11CairoContext* asX11Cairo(windowContext* c);
 
-#ifdef WithGL
+#ifdef NY_WithGL
 glxToplevelWindowContext* asGLX(toplevelWindowContext* c);
 glxChildWindowContext* asGLX(childWindowContext* c);
 glxWindowContext* asGLX(windowContext* c);
@@ -26,7 +26,7 @@ glxContext* asGLX(glContext* c);
 x11EGLToplevelWindowContext* asx11EGL(toplevelWindowContext* c);
 x11EGLChildWindowContext* asx11EGL(childWindowContext* c);
 x11EGLContext* asx11EGL(windowContext* c);
-#endif // WithGL
+#endif // NY_WithGL
 
 namespace x11
 {

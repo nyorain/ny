@@ -1,12 +1,12 @@
-#include "backends/wayland/defs.hpp"
+#include <ny/backends/wayland/defs.hpp>
 
-#include "backends/wayland/appContext.hpp"
-#include "backends/wayland/windowContext.hpp"
-#include "backends/wayland/cairo.hpp"
+#include <ny/backends/wayland/appContext.hpp>
+#include <ny/backends/wayland/windowContext.hpp>
+#include <ny/backends/wayland/cairo.hpp>
 
-#ifdef WithGL
-#include "backends/wayland/gl.hpp"
-#endif // WithGL
+#ifdef NY_WithGL
+#include <ny/backends/wayland/gl.hpp>
+#endif // NY_WithGL
 
 namespace ny
 {
@@ -22,10 +22,10 @@ waylandCairoToplevelWindowContext* asWaylandCairo(toplevelWindowContext* c){ ret
 waylandCairoChildWindowContext* asWaylandCairo(childWindowContext* c){ return dynamic_cast<waylandCairoChildWindowContext*>(c); };
 waylandCairoContext* asWaylandCairo(windowContext* c){ return dynamic_cast<waylandCairoContext*>(c); };
 
-#ifdef WithGL
+#ifdef NY_WithGL
 waylandGLToplevelWindowContext* asWaylandGL(toplevelWindowContext* c){ return dynamic_cast<waylandGLToplevelWindowContext*>(c); };
 waylandGLChildWindowContext* asWaylandGL(childWindowContext* c){ return dynamic_cast<waylandGLChildWindowContext*>(c); };
 waylandGLContext* asWaylandGL(windowContext* c){ return dynamic_cast<waylandGLContext*>(c); };
-#endif // WithGL
+#endif // NY_WithGL
 
 }

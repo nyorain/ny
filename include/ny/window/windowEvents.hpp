@@ -1,7 +1,7 @@
 #pragma once
 
-#include "include.hpp"
-#include "app/event.hpp"
+#include <ny/include.hpp>
+#include <ny/app/event.hpp>
 
 namespace ny
 {

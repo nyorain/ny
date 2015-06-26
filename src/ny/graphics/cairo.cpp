@@ -1,9 +1,9 @@
 #include <ny/graphics/cairo.hpp>
 
-#include "graphics/shape.hpp"
-#include "graphics/drawContext.hpp"
-#include "backends/windowContext.hpp"
-#include "app/surface.hpp"
+#include <ny/graphics/shape.hpp>
+#include <ny/graphics/drawContext.hpp>
+#include <ny/backends/windowContext.hpp>
+#include <ny/app/surface.hpp>
 
 #include <iostream>
 #include <cmath>

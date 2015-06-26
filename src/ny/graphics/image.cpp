@@ -1,1 +1,1 @@
-#include "graphics/image.hpp"
+#include <ny/graphics/image.hpp>

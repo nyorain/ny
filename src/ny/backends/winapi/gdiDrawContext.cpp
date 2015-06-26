@@ -1,6 +1,6 @@
-#include "gdiDrawContext.hpp"
+#include <ny/backends/winapi/gdiDrawContext.hpp>
 
-#include "utils.hpp"
+#include <ny/backends/winapi/utils.hpp>
 
 namespace ny
 {

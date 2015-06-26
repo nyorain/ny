@@ -1,13 +1,13 @@
 #pragma once
 
-#include "waylandInclude.hpp"
-#include "backends/appContext.hpp"
+#include <ny/backends/wayland/waylandInclude.hpp>
+#include <ny/backends/appContext.hpp>
 
 #include <wayland-client.h>
 #include <wayland-cursor.h>
 #include <string>
 
-#ifdef WithGL
+#ifdef NY_WithGL
 #include <wayland-egl.h>
 #include <EGL/egl.h>
 #endif //GL
@@ -17,7 +17,7 @@ namespace ny
 {
 
 
-#ifdef WithGL
+#ifdef NY_WithGL
 class waylandEGLAppContext
 {
     friend waylandAppContext;
@@ -56,9 +56,9 @@ protected:
     wl_cursor_theme* wlCursorTheme_;
     wl_surface* wlCursorSurface_;
 
-    #ifdef WithGL
+    #ifdef NY_WithGL
     waylandEGLAppContext* eglContext_;
-    #endif // WithGL
+    #endif // NY_WithGL
 
 public:
     waylandAppContext();
@@ -99,11 +99,11 @@ public:
 
     void eventWindowResized(wl_shell_surface* shellSurface, unsigned int edges, unsigned int width, unsigned int height);
 
-    #ifdef WithGL
+    #ifdef NY_WithGL
     EGLDisplay getEGLDisplay() const { return eglContext_->eglDisplay_; };
     EGLConfig getEGLConfig() const { return eglContext_->eglConfig_; };
     EGLContext getEGLContext() const { return eglContext_->eglContext_; };
-    #endif // WithGL
+    #endif // NY_WithGL
 };
 
 }
