@@ -11,7 +11,7 @@ ny is built with cmake and ninja.
 
 `````````````
 cd ny/
-mkdir -f build
+mkdir build
 cd build
 cmake -G "Ninja" -DCMAKE_INSTALL_PREFIX=/usr ..
 ninja
