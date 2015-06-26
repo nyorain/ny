@@ -26,9 +26,9 @@ Like the backends, most of the other dependecies are optional, too. You can e.g.
 
 Here is a list for the optional or needed backends and dependencies on different platforms:
 
-<b> Windows: </b> winapi, gdi, openGL, cairo
-<b> Linux: </b> X11, Wayland, cairo, EGL, openGL, openGL ES
-<b> OS X: </b> No OS X Backend for the moment
+<b> Windows: </b> winapi, gdi, openGL, cairo <br>
+<b> Linux: </b> X11, wayland, cairo, EGL, openGL, openGL ES <br>
+<b> OS X: </b> No OS X Backend for the moment <br>
 
 
 <h2> Example </h2>
