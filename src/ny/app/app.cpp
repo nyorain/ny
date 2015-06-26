@@ -1,0 +1,405 @@
+#include <ny/app/app.hpp>
+
+#include <ny/app/eventHandler.hpp>
+#include <ny/app/event.hpp>
+#include <ny/app/error.hpp>
+#include <ny/backends/appContext.hpp>
+#include <ny/backends/backend.hpp>
+#include <ny/window/window.hpp>
+
+#include <ny/utils/thread.hpp>
+#include <ny/utils/time.hpp>
+#include <ny/utils/misc.hpp>
+
+#include <iostream>
+#include <thread>
+#include <chrono>
+
+
+namespace ny
+{
+
+app* app::mainApp = nullptr;
+std::vector<backend*> app::backends = initBackends();
+
+//app/////////////////////////////////////////7
+app::app() : eventHandler(), focus_(nullptr), mouseOver_(nullptr), appContext_(nullptr), existing_(1), valid_(0), mainLoop_(0), backend_(nullptr), threadpool_(nullptr), settings_(), backendThread_(nullptr)
+{
+    if(getMainApp() != nullptr)
+    {
+        sendWarning("there can be only one app");
+        return;
+    }
+
+    mainApp = this;
+}
+
+app::~app()
+{
+    exitApp();
+
+    mainApp = nullptr;
+}
+
+bool app::init()
+{
+    return init(appSettings());
+}
+
+bool app::init(unsigned int argCount, const char** args)
+{
+    appSettings a;
+
+    a.argc = argCount;
+    a.argv = args;
+
+    return init(a);
+}
+
+bool app::init(appSettings settings)
+{
+    settings_ = settings;
+
+    errorHandler = settings_.errorHandler;
+
+    if(!backend_)
+    {
+        for(unsigned int i(0); i < backends.size(); i++)
+        {
+            if(settings_.allBackends || contains(settings_.allowedBackends, backends[i]->id))
+            {
+                if(backends[i]->isAvailable())
+                {
+                    backend_ = backends[i];
+                    break;
+                }
+                else
+                {
+                    //not available
+                }
+            }
+        }
+
+        if(!backend_)
+        {
+            sendCritical("in app::init: No matching backend found.");
+            return false;
+        }
+    }
+
+    if(this != getMainApp())
+    {
+        sendWarning("Only getMainApp() can be initialized. There can be only one app");
+        return false;
+    }
+
+
+    for(unsigned int i(0); i < (unsigned int) settings_.argc; i++)
+    {
+        std::vector<std::string> vec = split(settings_.argv[i], '=');
+        if(vec.size() > 1) optionRegistered(vec[0], vec[1]);
+        else if(vec.size() > 0) optionRegistered(vec[0]);
+    }
+
+    try
+    {
+       appContext_ = backend_->createAppContext();
+    }
+
+    catch(error err)
+    {
+        sendError(err);
+
+        delete appContext_;
+        appContext_ = nullptr;
+        valid_ = 0;
+
+        return false;
+    }
+
+    threadpool_ = new threadpool(settings_.threadpoolSize);
+
+    valid_ = 1;
+    return 1;
+}
+
+int app::mainLoop()
+{
+    if(!valid_ || mainLoop_)
+        return 0;
+
+    mainThreadID_ = std::this_thread::get_id();
+
+    mainLoop_ = 1;
+
+    if(!settings_.backendThread)
+    {
+        while(existing_ && valid_)
+        {
+            if(!appContext_->mainLoopCall()) //should be blocking
+            {
+                valid_ = 0;
+            }
+        }
+    }
+    else
+    {
+        backendThread_ = new std::thread([this](){
+                                            while(this->existing_ && this->valid_)
+                                            {
+                                                if(!this->appContext_->mainLoopCall())
+                                                {
+                                                    this->valid_ = 0;
+                                                    return;
+                                                }
+                                            }
+                                         });
+        std::unique_lock<std::mutex> eventLck(eventMtx_);
+
+        while(existing_ && valid_)
+        {
+            while(events_.empty())
+                eventCV_.wait(eventLck);
+
+            if(!existing_ || !valid_)
+                break;
+
+            events_.front().first->lock();
+            events_.front().first->processEvent(*events_.front().second);
+            events_.front().first->unlock();
+
+            //delete events_.front().second;
+            events_.pop();
+        }
+    }
+
+
+    mainLoop_ = 0;
+    exitApp();
+
+    return 1;
+}
+
+
+void app::addTask(taskBase* b)
+{
+    if(!valid_)
+        return;
+
+    threadpool_->addTask(b);
+}
+
+
+void app::exitApp()
+{
+    existing_ = 0;
+    valid_ = 0;
+
+    if(threadpool_)
+    {
+        delete threadpool_;
+        threadpool_ = nullptr;
+    }
+
+    destroy(); //from eventHandler
+
+    if(appContext_)
+    {
+        delete appContext_;
+        appContext_ = nullptr;
+    }
+}
+
+bool app::optionRegistered(std::string option, std::string arg)
+{
+    if(option == "--nytest" || option == "-nt")
+    {
+        std::cout << "LoggingTest from Commandline option t" << std::endl;
+        return 1;
+    }
+
+    return 0;
+}
+
+
+void app::removeChild(eventHandler* child)
+{
+    if(focus_ == child) focus_ = nullptr;
+    if(mouseOver_ == child) mouseOver_ = nullptr;
+
+    eventHandler::removeChild(child);
+
+    if(children_.size() == 0 && settings_.exitWithoutChildren)
+    {
+        exitApp();
+    }
+}
+
+void app::destroy()
+{
+    eventHandler::destroy();
+}
+
+void app::sendEvent(event& ev, eventHandler& handler)
+{
+    handler.lock();
+    handler.processEvent(ev);
+    handler.unlock();
+}
+
+
+//keyboard Events
+void app::windowFocus(focusEvent& event)
+{
+    if(event.handler == nullptr)return;
+
+    if(event.state == focusState::gained)focus_ = event.handler;
+    else if(event.state == focusState::lost && event.handler == focus_)focus_ = nullptr;
+
+    sendEvent(event, *event.handler);
+}
+
+void app::keyboardKey(keyEvent& event)
+{
+    if(event.state == pressState::pressed)keyboard::pressKey(event.key);
+    else keyboard::releaseKey(event.key);
+
+    sendEvent(event, *focus_);
+}
+
+
+//mouseEvents
+void app::mouseMove(mouseMoveEvent& event)
+{
+    mouse::setPosition(event.position);
+
+    if(mouseOver_ != nullptr)
+    {
+        window* child = mouseOver_->getTopLevelParent()->getWindowAt(event.position);
+        if(child == nullptr) goto goOn;
+
+        if(child != mouseOver_)
+        {
+            mouseCrossEvent leaveEv;
+            leaveEv.handler = mouseOver_;
+            leaveEv.state = crossType::left;
+            mouseCross(leaveEv);
+
+            mouseCrossEvent enterEv;
+            enterEv.handler = child;
+            enterEv.state = crossType::entered;
+            mouseCross(enterEv);
+
+            mouseOver_ = child;
+        }
+    }
+
+    goOn:
+
+    sendEvent(event, *mouseOver_);
+}
+
+void app::mouseButton(mouseButtonEvent& event)
+{
+    if(event.state == pressState::pressed)mouse::pressButton(event.button);
+    else mouse::releaseButton(event.button);
+
+    sendEvent(event, *mouseOver_);
+}
+
+void app::mouseCross(mouseCrossEvent& event)
+{
+    if(event.handler == nullptr) return;
+
+    //if childWindow is directly at the edge
+    window* w = event.handler;
+    if(w && event.state == crossType::entered)
+    {
+        window* child = w->getWindowAt(event.position);
+        if(child) event.handler = child;
+    }
+
+    if(event.state == crossType::entered) mouseOver_ = event.handler;
+    else if(event.state == crossType::left && event.handler == mouseOver_) mouseOver_ = nullptr;
+
+    sendEvent(event, *event.handler);
+}
+
+void app::mouseWheel(mouseWheelEvent& event)
+{
+    sendEvent(event, *mouseOver_);
+}
+
+void app::windowSize(sizeEvent& event)
+{
+    sendEvent(event, *event.handler);
+}
+
+void app::windowPosition(positionEvent& event)
+{
+    sendEvent(event, *event.handler);
+}
+
+void app::windowDraw(drawEvent& event)
+{
+    sendEvent(event, *event.handler);
+}
+
+void app::destroyHandler(destroyEvent& event)
+{
+    sendEvent(event, *event.handler);
+}
+
+
+//
+/*
+void app::addListenerFor(unsigned int id, eventHandler* ev)
+{
+    listeners_[id].push_back(ev);
+}
+
+void app::removeListenerFor(unsigned int id, eventHandler* ev)
+{
+    for(unsigned int i(0); i < listeners_[id].size(); i++)
+    {
+        if(listeners_[id][i] == ev)
+        {
+            listeners_[id].erase(listeners_[id].begin() + i);
+        }
+    }
+}
+*/
+
+void app::errorRun(const error& e)
+{
+    if(settings_.onError == errorAction::Exit)
+    {
+        exit(-1);
+        //throw e;
+    }
+
+    std::cout << "continue?" << std::endl;
+
+    std::string s;
+    std::cin >> s;
+
+    if(s == "1" || s == "y" || s == "yes")
+    {
+        return;
+    }
+
+    else
+    {
+        exit(-1);
+        //throw e;
+    }
+}
+
+//getMainApp
+app* getMainApp()
+{
+    return app::getMainApp();
+}
+
+
+}

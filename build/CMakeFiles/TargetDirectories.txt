@@ -1,0 +1,3 @@
+/mnt/sda5/Programming/projects/libny-1/build/CMakeFiles/uninstall.dir
+/mnt/sda5/Programming/projects/libny-1/build/examples/test/CMakeFiles/test1.dir
+/mnt/sda5/Programming/projects/libny-1/build/src/CMakeFiles/ny.dir
