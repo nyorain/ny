@@ -19,7 +19,7 @@ ninja install
 ```````````
 
 <h2> Example </h2>
-This basic example demonstrate how to create an app which creates a toplevelWindow in just a few lines.
+This basic example demonstrate how to create a toplevelWindow in just a few lines.
 
 `````````````
 #include <ny/ny.hpp>
