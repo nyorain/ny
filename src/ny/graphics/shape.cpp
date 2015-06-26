@@ -1,4 +1,4 @@
-#include "graphics/shape.hpp"
+#include <ny/graphics/shape.hpp>
 
 
 namespace ny
