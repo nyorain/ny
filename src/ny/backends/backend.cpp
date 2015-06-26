@@ -1,7 +1,6 @@
-#include "backends/backend.hpp"
+#include <ny/backends/backend.hpp>
 
-#include "app/app.hpp"
-#include <ny/config.h>
+#include <ny/app/app.hpp>
 
 #ifdef WithWayland
 #include "backends/wayland/backend.hpp"

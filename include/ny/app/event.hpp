@@ -1,9 +1,10 @@
 #pragma once
 
-#include "include.hpp"
+#include <ny/include.hpp>
 
-#include "mouse.hpp"
-#include "keyboard.hpp"
+#include <ny/mouse.hpp>
+#include <ny/keyboard.hpp>
+
 #include <utils/vec.hpp>
 
 namespace ny

@@ -1,9 +1,9 @@
 #pragma once
 
-#include <set>
 #include <utils/vec.hpp>
 #include <utils/time.hpp>
-using namespace utils;
+
+#include <set>
 
 namespace ny
 {
@@ -42,7 +42,7 @@ template<class A, class B> void performOperation(operation o, A& a, const B& b)
     }
 }
 
-template<class T> struct animationPoint
+template<class T> class animationPoint
 {
     animationPoint(double p,T v) : point(p), value(v) {}
 

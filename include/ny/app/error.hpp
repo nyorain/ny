@@ -1,8 +1,8 @@
 #pragma once
 
-#include <string>
+#include <ny/include.hpp>
 
-#include "include.hpp"
+#include <string>
 
 namespace ny
 {

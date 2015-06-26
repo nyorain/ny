@@ -1,4 +1,4 @@
-#include "window/frame.hpp"
+#include <ny/window/frame.hpp>
 
 namespace ny
 {

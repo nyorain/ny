@@ -1,4 +1,4 @@
-#include "window/widget.hpp"
+#include <ny/window/widget.hpp>
 
 namespace ny
 {

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "include.hpp"
-#include "app/eventHandler.hpp"
+#include <ny/include.hpp>
+#include <ny/app/eventHandler.hpp>
 
 #include <vector>
 #include <string>

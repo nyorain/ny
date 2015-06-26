@@ -1,9 +1,9 @@
 #define NY_VMajor @NY_VMAJOR@
 #define NY_VMinor @NY_VMINOR@
 
-#cmakedefine WithGL
-#cmakedefine WithX11
-#cmakedefine WithWayland
-#cmakedefine WithWinapi
-#cmakedefine WithCairo
-#cmakedefine WithFreeType
+#cmakedefine NY_WithGL
+#cmakedefine NY_WithX11
+#cmakedefine NY_WithWayland
+#cmakedefine NY_WithWinapi
+#cmakedefine NY_WithCairo
+#cmakedefine NY_WithFreeType

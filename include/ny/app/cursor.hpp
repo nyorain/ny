@@ -15,7 +15,8 @@ enum class cursorType
 
     LeftPtr = 2,
     RightPtr,
-    Watch,
+    Load,
+	LoadPtr,
     Hand,
     Grab,
     Crosshair,
@@ -27,8 +28,7 @@ enum class cursorType
     SizeBottomRight,
     SizeBottomLeft,
     SizeTopRight,
-    SizeTopLeft,
-    Move
+    SizeTopLeft
 };
 
 class cursor
@@ -40,9 +40,9 @@ protected:
 public:
     cursor();
     cursor(cursorType t);
-    cursor(image* data);
+    cursor(image& data);
 
-    void fromImage(image* data);
+    void fromImage(image& data);
     void fromNativeType(cursorType t);
 
     bool isImage() const;

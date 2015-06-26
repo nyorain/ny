@@ -1,15 +1,15 @@
-#include "window/window.hpp"
+#include <ny/window/window.hpp>
 
-#include "app/event.hpp"
-#include "app/app.hpp"
-#include "app/error.hpp"
-#include "app/cursor.hpp"
-#include "backends/backend.hpp"
-#include "backends/windowContext.hpp"
-#include "graphics/drawContext.hpp"
-#include "window/style.hpp"
+#include <ny/app/event.hpp>
+#include <ny/app/app.hpp>
+#include <ny/app/error.hpp>
+#include <ny/app/cursor.hpp>
+#include <ny/backends/backend.hpp>
+#include <ny/backends/windowContext.hpp>
+#include <ny/graphics/drawContext.hpp>
+#include <ny/window/style.hpp>
 
-#include "utils/misc.hpp"
+#include <ny/utils/misc.hpp>
 
 #include <iostream>
 #include <climits>
@@ -19,10 +19,9 @@ namespace ny
 
 windowContextSettings::~windowContextSettings()
 {
-
 }
 
-//////
+//window//////////////////////////////////////////////////////////////////////////////
 window::window() : eventHandler(), surface(), position_(0,0), minSize_(0,0), maxSize_(UINT_MAX, UINT_MAX), focus_(0), valid_(0), mouseOver_(0), windowContext_(nullptr)
 {
 

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "include.hpp"
+#include <ny/include.hpp>
 
-#include "utils/nonCopyable.hpp"
-#include "utils/thread.hpp"
+#include <ny/utils/nonCopyable.hpp>
+#include <ny/utils/thread.hpp>
 
 #include <vector>
 #include <mutex>
