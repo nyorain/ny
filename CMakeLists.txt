@@ -45,7 +45,7 @@ endif(NY_BUILD_EXAMPLES)
 # uninstall target
 configure_file(
 	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/uninstall.cmake.in"
-	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/moudles/uninstall.cmake"
+	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/uninstall.cmake"
 	IMMEDIATE @ONLY)
 
 add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/uninstall.cmake)
