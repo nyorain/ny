@@ -22,7 +22,7 @@ ninja install
 <h3> Dependencies </h3>
 The dependencies for ny may differ for each platform and backend. On Linux you don't have to build it with X11, if you just want to build it with the Wayland backend (or even without any backend) it's fine too. Then you have to set the accordingly option when configuring cmake e.g. -DNY_WithX11=OFF
 
-Like the backends, most of the other dependecies are optional, too. You can e.g. use cairo or OoenGL to draw on Windows, but you don't have to, you can use gdi, too.
+Like the backends, most of the other dependecies are optional, too. You can use cairo or OpenGL to draw on Windows, but you don't have to, you can also just use gdi.
 
 Here is a list for the optional or needed backends and dependencies on different platforms:
 
@@ -32,7 +32,7 @@ Here is a list for the optional or needed backends and dependencies on different
 
 
 <h2> Example </h2>
-This basic example demonstrate how to create a toplevelWindow in just a few lines.
+This basic example demonstrates how to create a toplevelWindow in just a few lines.
 
 `````````````
 #include <ny/ny.hpp>
