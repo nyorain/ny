@@ -8,7 +8,9 @@
 
 #include <ny/utils/misc.hpp>
 
+#ifdef NY_WithGL
 #include <wayland-egl.h>
+#endif //NY_WithGL
 
 namespace ny
 {
@@ -18,15 +20,6 @@ using namespace wayland;
 //waylandAppContext//////////////////////////////////////////////////////////////////////////
 waylandAppContext::waylandAppContext() : appContext()
 {
-    wlDisplay_ = nullptr;
-    wlCompositor_ = nullptr;
-    wlShell_ = nullptr;
-    wlSeat_ = nullptr;
-    wlSubcompositor_ = nullptr;
-    wlShm_ = nullptr;
-    wlPointer_ = nullptr;
-    wlKeyboard_ = nullptr;
-
     init();
 }
 
@@ -86,6 +79,37 @@ bool waylandAppContext::mainLoopCall()
     return 1;
 }
 
+void waylandAppContext::startDataOffer(const dataSource& source, const image& img)
+{
+	dataSource_ = &source;
+
+	wlDataSource_ = wl_data_device_manager_create_data_source(wlDataManager_);
+	wl_data_source_set_user_data(wlDataSource_, &source);
+
+    std::vector<std::string> vec = dataTypesToString(source.getPossibleTypes(), 1);
+	for(size_t i(0); i < vec.size(); i++)
+        wl_data_source_offer(wlDataSource_, vec[i].c_str());
+
+    if(!wlDataDevice_)
+    {
+        wlDataDevice_ = wl_data_device_manager_get_data_device(wlDataManager_, wlSeat_);
+    }
+
+
+
+    wl_data_device_start_drag(wlDataDevice_, wlDataSource_, nullptr, nullptr, 0);
+}
+
+bool waylandAppContext::isOffering() const
+{
+	return (dataSource_ != nullptr);
+}
+
+void waylandAppContext::endDataOffer()
+{
+
+}
+
 void waylandAppContext::registryHandler(wl_registry* registry, unsigned int id, std::string interface, unsigned int version)
 {
     if (interface == "wl_compositor")
@@ -120,6 +144,7 @@ void waylandAppContext::registryHandler(wl_registry* registry, unsigned int id, 
     else if(interface == "wl_data_device_manager")
     {
         wlDataManager_ = (wl_data_device_manager*) wl_registry_bind(registry, id, &wl_data_device_manager_interface, version);
+        if(wlSeat_) wlDataDevice_ = wl_data_device_manager_get_data_device(wlDataManager_, wlSeat);
     }
 
 }
@@ -314,6 +339,27 @@ void waylandAppContext::eventWindowResized(wl_shell_surface* shellSurface, unsig
     e.handler = &w->getWindow();
 
     getMainApp()->windowSize(e);
+}
+
+void waylandAppContext::shmFormat(wl_shm* shm, unsigned int format)
+{
+    supportedShm_.push_back(format);
+}
+
+bool waylandAppContext::bufferFormatSupported(unsigned int wlBufferType)
+{
+    for(size_t i(0); i < supportedShm_.size(); i++)
+    {
+        if(supportedShm_[i] == wlBufferType)
+            return 1;
+    }
+
+    return 0;
+}
+
+bool waylandAppContext::bufferFormatSupported(bufferFormat format)
+{
+    return bufferFormatSupported(bufferFormatToWayland(format));
 }
 
 void waylandAppContext::setCursor(std::string curse, unsigned int serial)

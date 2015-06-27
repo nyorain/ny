@@ -12,7 +12,7 @@ void dataTypes::addType(unsigned char type)
 		types_.push_back(dataType::image::png);
 		types_.push_back(dataType::image::jpeg);
 		types_.push_back(dataType::image::gif);
-		types_.push_back(dataType::image::svg);		
+		types_.push_back(dataType::image::svg);
 		return;
 	}
 
@@ -59,7 +59,13 @@ unsigned char stringToDataType(const std::string& type)
     return 0;
 }
 
-std::vector<std::string> dataTypeToString(unsigned char type)
+std::vector<std::string> dataTypeToString(unsigned char type, bool onlyMime)
+{
+    std::vector<std::string> ret;
+    return ret;
+}
+
+std::vector<std::string> dataTypesToString(dataTypes types, bool onlyMime)
 {
     std::vector<std::string> ret;
     return ret;

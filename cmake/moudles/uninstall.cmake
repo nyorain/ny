@@ -1,8 +1,8 @@
-if(NOT EXISTS "/mnt/sda5/Programming/projects/libny/build/install_manifest.txt")
-	message(FATAL_ERROR "Cannot find install manifest: /mnt/sda5/Programming/projects/libny/build/install_manifest.txt")
-endif(NOT EXISTS "/mnt/sda5/Programming/projects/libny/build/install_manifest.txt")
+if(NOT EXISTS "/home/nyorain/Programming/projects/libny/build/install_manifest.txt")
+	message(FATAL_ERROR "Cannot find install manifest: /home/nyorain/Programming/projects/libny/build/install_manifest.txt")
+endif(NOT EXISTS "/home/nyorain/Programming/projects/libny/build/install_manifest.txt")
 
-file(READ "/mnt/sda5/Programming/projects/libny/build/install_manifest.txt" files)
+file(READ "/home/nyorain/Programming/projects/libny/build/install_manifest.txt" files)
 string(REGEX REPLACE "\n" ";" files "${files}")
 foreach(file ${files})
 	message(STATUS "Uninstalling $ENV{DESTDIR}${file}")

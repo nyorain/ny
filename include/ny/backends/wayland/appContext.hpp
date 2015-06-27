@@ -18,6 +18,7 @@ namespace ny
 
 
 #ifdef NY_WithGL
+//waylandEGLAppContext////////////////////////////////////////////////////////////////////////////////////////////////////
 class waylandEGLAppContext
 {
     friend waylandAppContext;
@@ -42,19 +43,27 @@ public:
 class waylandAppContext : public appContext
 {
 protected:
-    wl_display* wlDisplay_;
-    wl_compositor* wlCompositor_;
-    wl_subcompositor* wlSubcompositor_;
-    wl_shell* wlShell_;
-    wl_shm* wlShm_;
-    wl_data_device_manager* wlDataManager_;
+    wl_display* wlDisplay_ = nullptr;
+    wl_compositor* wlCompositor_ = nullptr;
+    wl_subcompositor* wlSubcompositor_ = nullptr;
+    wl_shell* wlShell_ = nullptr;
+    wl_shm* wlShm_ = nullptr;
+    wl_data_device_manager* wlDataManager_ = nullptr;
+    wl_data_device* wlDataDevice_ = nullptr;
 
-    wl_seat* wlSeat_;
-    wl_pointer* wlPointer_;
-    wl_keyboard* wlKeyboard_;
+    wl_seat* wlSeat_ = nullptr;
+    wl_pointer* wlPointer_ = nullptr;
+    wl_keyboard* wlKeyboard_ = nullptr;
 
-    wl_cursor_theme* wlCursorTheme_;
-    wl_surface* wlCursorSurface_;
+    wl_cursor_theme* wlCursorTheme_ = nullptr;
+    wl_surface* wlCursorSurface_ = nullptr;
+
+    wl_surface* dataSourceSurface_ = nullptr;
+    wl_buffer* dataSourceBuffer_ = nullptr;
+	const dataSource* dataSource_ = nullptr;
+	wl_data_source* wlDataSource_ = nullptr;
+
+	std::vector<unsigned int> supportedShm_;
 
     #ifdef NY_WithGL
     waylandEGLAppContext* eglContext_;
@@ -70,6 +79,13 @@ public:
 
     void setCursor(std::string curs, unsigned int serial = 0);
     void setCursor(image* img, unsigned int serial = 0);
+
+	void startDataOffer(const dataSource& source, const image& img);
+	bool isOffering() const;
+	void endDataOffer();
+
+	dataOffer* getClipboard();
+	void setClipboard(const dataSource& source);
 
     void registryHandler(wl_registry *registry, unsigned int id, std::string interface, unsigned int version);
     void registryRemover(wl_registry *registry, unsigned int id);
@@ -98,6 +114,11 @@ public:
     void eventKeyboardModifiers(wl_keyboard *keyboard, unsigned int serial, unsigned int mods_depressed, unsigned int mods_latched, unsigned int mods_locked, unsigned int group);
 
     void eventWindowResized(wl_shell_surface* shellSurface, unsigned int edges, unsigned int width, unsigned int height);
+
+    void shmFormat(wl_shm* shm, unsigned int format);
+
+    bool bufferFormatSupported(unsigned int wlBufferType);
+    bool bufferFormatSupported(bufferFormat format);
 
     #ifdef NY_WithGL
     EGLDisplay getEGLDisplay() const { return eglContext_->eglDisplay_; };

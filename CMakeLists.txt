@@ -1,6 +1,6 @@
 #toplevel cmake
 
-cmake_minimum_required (VERSION 2.6)
+cmake_minimum_required (VERSION 2.8)
 
 project(ny)
 
@@ -11,6 +11,7 @@ include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src")
 
 option(NY_BUILD_EXAMPLES "build the ny examples" ON)
+
 option(NY_WithGL "Include GL functions and backends" ON)
 option(NY_WithGLBinding "Use GLBinding Instead of static GL" ON)
 option(NY_WithCairo "Include Cairo fuctions and drawContext" ON)
@@ -36,7 +37,10 @@ configure_file	( "${CMAKE_CURRENT_SOURCE_DIR}/src/ny/config.h.in"
 
 add_subdirectory(src/ny)
 add_subdirectory(include/ny)
-add_subdirectory(examples)
+
+if(NY_BUILD_EXAMPLES)
+	add_subdirectory(examples)
+endif(NY_BUILD_EXAMPLES)
 
 # uninstall target
 configure_file(
@@ -47,5 +51,3 @@ configure_file(
 add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/uninstall.cmake)
 
 SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE) 
-SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
-

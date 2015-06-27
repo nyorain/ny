@@ -6,6 +6,7 @@
 #include <iostream>
 #include <vector>
 #include <functional>
+#include <fstream>
 
 namespace ny
 {
@@ -83,19 +84,28 @@ public:
 
 //dataObject
 //used by the backends to send other applications data
+class dataObject
+{
+public:
+    void* data;
+    unsigned int size; //size in bytes
+};
+
 class dataSource
 {
 protected:
-	dataTypes types_;
+	std::function<dataObject(unsigned char)> converter_;
+    dataTypes types_;
+
+    dataSource() : converter_([](unsigned char){ return dataObject {nullptr, 0}; }) {};
 
 public:
+    dataSource(std::function<dataObject(unsigned char)> convertCB, const dataTypes& types = dataTypes()) : converter_(convertCB), types_(types) {}
     virtual ~dataSource(){}
 
-    virtual dataTypes getPossibleTypes() = 0;
+    virtual dataTypes getPossibleTypes(){ return types_; };
 
-    virtual bool getAsString(unsigned char type, std::function<void(const std::string&)> func) = 0;
-    virtual bool getAsImage(unsigned char type, std::function<void(const image&)> func) = 0;
-    template<class T> bool get(unsigned char type, std::function<void(const T&)> func){ return getData(type, [func](void* d){ func(*((T*)d)); }); }
+	virtual dataObject getData(unsigned char type){ return converter_(type); };
 };
 
 //dataOffer
@@ -111,7 +121,7 @@ public:
 	virtual bool getData(unsigned char format, std::function<void(const std::string&)> func) = 0;
 	virtual bool getData(unsigned char format, std::function<void(const image&)> func) = 0;
 	virtual bool getData(unsigned char format, std::function<void(const file&)> func) = 0;
-	virtual bool getData(unsigned char format, std::function<void(void*)> func) = 0;
+	virtual bool getData(unsigned char format, std::function<void(const dataObject&)> func) = 0;
 };
 
 //event
@@ -125,8 +135,8 @@ public:
 };
 
 unsigned char stringToDataType(const std::string& type);
-std::vector<std::string> dataTypeToString(unsigned char type);
-std::vector<std::string> dataTypesToString(dataTypes types);
+std::vector<std::string> dataTypeToString(unsigned char type, bool onlyMime = 0);
+std::vector<std::string> dataTypesToString(dataTypes types, bool onlyMime = 0);
 
 }
 

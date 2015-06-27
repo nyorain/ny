@@ -18,6 +18,8 @@ enum class bufferFormat
     bit
 };
 
+unsigned getBufferFormatSize(bufferFormat format);
+
 class surface
 {
 public:

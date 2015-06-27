@@ -119,6 +119,16 @@ int osCreateAnonymousFile(off_t size);
 int createTmpfileCloexec(char *tmpname);
 int setCloexecOrClose(int fd);
 
+class shmBuffer
+{
+public:
+    shmBuffer(wl_shm* shm, unsigned int size, bufferFormat format = bufferFormat::argb8888);
+    ~shmBuffer();
+
+    wl_buffer* const buffer;
+    void* const data;
+    const unsigned int size;
+};
 
 }//wayland
 
@@ -130,5 +140,8 @@ keyboard::key waylandToKey(unsigned int id);
 
 std::string cursorToWayland(cursorType c);
 cursorType waylandToCursor(std::string id);
+
+unsigned int bufferFormatToWayland(bufferFormat format);
+bufferFormat waylandToBufferFormat(unsigned int wlFormat);
 
 }

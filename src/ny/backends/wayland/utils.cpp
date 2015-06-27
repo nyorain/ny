@@ -2,6 +2,11 @@
 
 #include <ny/backends/wayland/appContext.hpp>
 #include <ny/backends/wayland/windowContext.hpp>
+#include <ny/backends/wayland/cairo.hpp>
+
+#ifdef NY_WithGL
+#include <ny/backends/wayland/gl.hpp>
+#endif // NY_WithGL
 
 #include <ny/app/app.hpp>
 #include <ny/app/event.hpp>
@@ -71,6 +76,9 @@ void globalRegistryHandleRemove(void* data,  wl_registry* registry, uint32_t id)
 //shm////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void shmHandleFormat(void* data,  wl_shm* shm, uint32_t format)
 {
+    waylandAppContext* a = (waylandAppContext*) data;
+
+    a->shmFormat(shm, format);
 }
 
 //seat///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -228,6 +236,36 @@ err:
     return -1;
 }
 
+shmBuffer::shmBuffer(wl_shm* shm, unsigned int size, bufferFormat format)
+{
+    unsigned int stride = size.x * 4; // 4 bytes per pixel
+    int fd;
+
+    fd = osCreateAnonymousFile(size);
+    if (fd < 0)
+    {
+        std::cout << "creating a buffer file failed" << std::endl;
+        return 0;
+    }
+
+    pixels_ = (unsigned char*) mmap(nullptr, 100000000, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (pixels_ == MAP_FAILED)
+    {
+        std::cout << "mmap failed" << std::endl;
+        close(fd);
+        return 0;
+    }
+
+    wlShmPool_ = wl_shm_create_pool(shm, fd, 100000000);
+    wlBuffer_ = wl_shm_pool_create_buffer(wlShmPool_, 0, size.x, size.y, stride, WL_SHM_FORMAT_ARGB8888);
+
+    return 1;
+}
+
+shmBuffer::~shmBuffer()
+{
+    wl_buffer_destroy(buffer);
+}
 
 }//end namespace wayland
 
@@ -400,6 +438,43 @@ cursorType waylandToCursor(std::string id)
     if(id == "grabbing") return cursorType::Grab;
     return cursorType::Unknown;
 }
+
+unsigned int bufferFormatToWayland(bufferFormat format)
+{
+    switch(format)
+    {
+        case bufferFormat::argb8888: return WL_SHM_FORMAT_ARGB8888;
+        default: return 0;
+    }
+}
+
+bufferFormat waylandToBufferFormat(unsigned int wlFormat)
+{
+    switch(wlFormat)
+    {
+        case WL_SHM_FORMAT_ABGR8888: return bufferFormat::argb8888;
+        default: return bufferFormat::Unknown;
+    }
+}
+
+
+//conversions from waylandInclude
+waylandAppContext* asWayland(appContext* c){ return dynamic_cast<waylandAppContext*>(c); };
+waylandWindowContext* asWayland(windowContext* c){ return dynamic_cast<waylandWindowContext*>(c); };
+waylandToplevelWindowContext* asWayland(toplevelWindowContext* c){ return dynamic_cast<waylandToplevelWindowContext*>(c); };
+waylandChildWindowContext* asWayland(childWindowContext* c){ return dynamic_cast<waylandChildWindowContext*>(c); };
+waylandChildWindowContext* asWaylandChild(windowContext* c){ return dynamic_cast<waylandChildWindowContext*>(c); };
+waylandToplevelWindowContext* asWaylandToplevel(windowContext* c){ return dynamic_cast<waylandToplevelWindowContext*>(c); };
+
+waylandCairoToplevelWindowContext* asWaylandCairo(toplevelWindowContext* c){ return dynamic_cast<waylandCairoToplevelWindowContext*>(c); };
+waylandCairoChildWindowContext* asWaylandCairo(childWindowContext* c){ return dynamic_cast<waylandCairoChildWindowContext*>(c); };
+waylandCairoContext* asWaylandCairo(windowContext* c){ return dynamic_cast<waylandCairoContext*>(c); };
+
+#ifdef NY_WithGL
+waylandGLToplevelWindowContext* asWaylandGL(toplevelWindowContext* c){ return dynamic_cast<waylandGLToplevelWindowContext*>(c); };
+waylandGLChildWindowContext* asWaylandGL(childWindowContext* c){ return dynamic_cast<waylandGLChildWindowContext*>(c); };
+waylandGLContext* asWaylandGL(windowContext* c){ return dynamic_cast<waylandGLContext*>(c); };
+#endif // NY_WithGL
 
 
 }

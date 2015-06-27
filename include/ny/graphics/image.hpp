@@ -19,19 +19,26 @@ enum class imageType
     GIF
 };
 
+class imageHandle;
+
 class image : public file, public surface
 {
 protected:
- unsigned char* m_data;
+ unsigned char* data_;
+ imageHandle* handle_;
 
 public:
  image();
+ image(const std::string& path);
  virtual ~image();
 
- virtual unsigned char* getData() const;
+ virtual unsigned char* getData();
+ const virtual unsigned char* getData() const;
  virtual void setData(unsigned char*);
 
- virtual void convert(bufferFormat);
+ virtual void convert(bufferFormat){};
+
+ virtual vec2ui getSize() const;
 };
 
 }

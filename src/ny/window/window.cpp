@@ -24,7 +24,6 @@ windowContextSettings::~windowContextSettings()
 //window//////////////////////////////////////////////////////////////////////////////
 window::window() : eventHandler(), surface(), position_(0,0), minSize_(0,0), maxSize_(UINT_MAX, UINT_MAX), focus_(0), valid_(0), mouseOver_(0), windowContext_(nullptr)
 {
-
 }
 
 window::window(eventHandler* parent, vec2ui position, vec2ui size) : eventHandler(), surface(), position_(0,0), minSize_(0,0), maxSize_(UINT_MAX, UINT_MAX), focus_(0), valid_(0), mouseOver_(0), windowContext_(nullptr)
@@ -731,7 +730,8 @@ void toplevelWindow::create(vec2i position, vec2ui size, std::string name, const
 
     valid_ = 1;
 
-    hints_ |= newWC->getAdditionalHints();
+    unsigned long addHints = newWC->getAdditionalWindowHints();
+	hints_ |= addHints;
 
     windowContext_ = newWC;
 
@@ -988,7 +988,8 @@ void childWindow::create(window* parent, vec2i position, vec2ui size, windowCont
         return;
     }
 
-    hints_ |= windowContext_->getAdditionalHints();
+    unsigned long wHints = windowContext_->getAdditionalWindowHints();
+    hints_ |= wHints;
 
     valid_ = 1;
 }

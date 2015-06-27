@@ -10,7 +10,7 @@
 namespace ny
 {
 
-/////
+//windowContex///////////////////////////////////////////////////////////////////////////////////////////////////////
 class windowContext : public nonCopyable
 {
 protected:
@@ -24,8 +24,7 @@ public:
 
     window& getWindow() const { return window_; }
     unsigned long getContextHints() const { return hints_; }
-
-    virtual unsigned long getAdditionalHints() const { return 0; }
+    virtual unsigned long getAdditionalWindowHints() const { return 0; }
 
     virtual bool isVirtual() const { return 0; }
     virtual bool hasGL() const { return 0; }
@@ -48,7 +47,6 @@ public:
     virtual void addDropType(unsigned char type){};
     virtual void removeDropType(unsigned char type){};
 
-    //virtual void setShape(shape*) = 0;
 
     //just window hints
     virtual void addWindowHints(unsigned long hints) = 0;
@@ -94,6 +92,10 @@ public:
     virtual void setName(std::string name){};
 
     virtual bool isVirtual() const final { return 0; }
+
+	virtual void setTitle() {}
+	virtual void setIcon(const image& img) {}
+	virtual void setTaskbarIcon(const image& img) {}
 };
 
 class childWindowContext : public virtual windowContext

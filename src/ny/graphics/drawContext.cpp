@@ -7,6 +7,7 @@ namespace ny
 
 drawContext::drawContext(surface& s) : surface_(s)
 {
+
 }
 
 drawContext::~drawContext()

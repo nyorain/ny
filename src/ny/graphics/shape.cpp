@@ -14,7 +14,7 @@ std::vector<vec2f> bakePoints(const std::vector<point>& vec)
         ret.push_back(vec[i].position);
     }
 
-    return std::move(ret);
+    return ret;
 }
 
 

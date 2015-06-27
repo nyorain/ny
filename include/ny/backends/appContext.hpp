@@ -17,12 +17,16 @@ public:
     virtual bool mainLoopCall() = 0;
     virtual bool mainLoopNonBlocking(){ return mainLoopCall(); }
 
-    //virtual void startDataOffer(const image& img, const dataObject& offer){}
-    //virtual bool isOffering(){ return 0; }
-    //virtual void endDataOffer(){}
+    virtual void startDataOffer(const dataSource& source, const image& img){}
+    virtual bool isOffering() const { return 0; }
+    virtual void endDataOffer(){}
 
-    //virtual bool getClipboard(dataTypes types, std::function<void(dataObject*)> callback){};
-    //virtual void setClipboard(dataObject& obj){ }
+    virtual dataOffer* getClipboard(){ return nullptr; };
+    virtual void setClipboard(const dataSource& source){}
+
+    //data specifications
+    void setClipboard(const std::string& str);
+    void setClipboard(const image& str);
 
     virtual void exit(){}
 };
