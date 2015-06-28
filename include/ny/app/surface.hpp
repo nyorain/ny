@@ -8,7 +8,7 @@ namespace ny
 {
 
 //buffer
-enum class bufferFormat
+enum class bufferFormat : unsigned char
 {
     Unknown = 0,
 

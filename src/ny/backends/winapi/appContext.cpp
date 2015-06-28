@@ -18,7 +18,7 @@ winapiAppContext::winapiAppContext() : appContext(), m_instance(0)
 
     if(m_instance == NULL)
     {
-        throw error(error::Critical, "winapiAppContext: could not get hInstance");
+        throw std::runtime_error("winapiAppContext: could not get hInstance");
         return;
     }
 

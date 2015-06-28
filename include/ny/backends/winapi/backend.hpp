@@ -8,6 +8,8 @@ namespace ny
 
 class winapiBackend : public backend
 {
+protected:
+    static const winapiBackend object;
 public:
     winapiBackend();
 

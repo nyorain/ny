@@ -121,13 +121,29 @@ int setCloexecOrClose(int fd);
 
 class shmBuffer
 {
+protected:
+    static const unsigned int defaultSize_ = 1024*1024*10; //10MB
+
+    vec2ui size_;
+    wl_buffer* buffer_;
+    wl_shm_pool* pool_;
+    void* data_;
+
+    void create();
+    void destroy();
+
 public:
-    shmBuffer(wl_shm* shm, unsigned int size, bufferFormat format = bufferFormat::argb8888);
+    shmBuffer(vec2ui size, bufferFormat form = bufferFormat::argb8888);
     ~shmBuffer();
 
-    wl_buffer* const buffer;
-    void* const data;
-    const unsigned int size;
+    const bufferFormat format;
+
+    vec2ui getSize() const { return size_; }
+    unsigned int getAbsSize() const { return size_.x * getBufferFormatSize(format) * size_.y; }
+    wl_buffer* getWlBuffer() const { return buffer_; }
+    void* getData(){ return data_; }
+
+    void setSize(const vec2ui& size);
 };
 
 }//wayland

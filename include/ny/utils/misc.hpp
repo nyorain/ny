@@ -12,6 +12,9 @@
 namespace ny
 {
 
+template<class... T> void unused(T&&...)
+{ }
+
 template<class U, class V, class ...t> std::function<U(t...)> memberCallback(U (V::*func)(t ...), V* obj)
 {
     return std::bind(func, obj);
@@ -28,6 +31,13 @@ template<class U, class ... t, class ... o> std::function<U(t..., o...)> addPara
     {
         return (func(params ...));
     });
+}
+
+
+template<class ... Args> void printVar(std::ostream& out, Args ... args)
+{
+    int a[sizeof...(Args)] = { (out << args, 0)... };
+    unused(a);
 }
 
 

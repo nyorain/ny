@@ -49,5 +49,10 @@ namespace ny
     #endif // NY_WithGL
 
     waylandAppContext* getWaylandAppContext();
+
+    namespace wayland
+    {
+        class shmBuffer;
+    }
 }
 

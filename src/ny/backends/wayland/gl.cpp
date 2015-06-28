@@ -26,14 +26,14 @@ waylandGLContext::waylandGLContext(waylandWindowContext& wc)
     wlEGLWindow_ = wl_egl_window_create(wc.getWlSurface(), wc.getWindow().getWidth(), wc.getWindow().getHeight());
     if(wlEGLWindow_ == EGL_NO_SURFACE)
     {
-        throw error(error::Critical, "could not initialize waylandEGLWindow");
+        throw std::runtime_error("could not initialize waylandEGLWindow");
         return;
     }
 
     eglSurface_ = eglCreateWindowSurface(context->getEGLDisplay(), context->getEGLConfig(), wlEGLWindow_, nullptr);
     if(!eglMakeCurrent(context->getEGLDisplay(), eglSurface_, eglSurface_, context->getEGLContext()))
     {
-        throw error(error::Critical, "could not make eglContext for eglSurface current");
+        throw std::runtime_error("could not make eglContext for eglSurface current");
         return;
     }
 

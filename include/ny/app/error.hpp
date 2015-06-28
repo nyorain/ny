@@ -1,40 +1,30 @@
 #pragma once
 
 #include <ny/include.hpp>
+#include <ny/utils/misc.hpp>
 
 #include <string>
+#include <stdexcept>
+#include <ostream>
 
 namespace ny
 {
 
-class error : std::exception
-{
-public:
-    enum errorType
-    {
-        Warning = (1 << 3),
-        Critical = (1 << 4),
-        Std = (1 << 6),
-    };
+extern std::ostream& warningStream;
+extern std::ostream& debugStream;
+extern std::ostream& errorStream;
 
-    error(errorType xtype, std::string xmsg);
-    error(std::exception ex);
+template<class ... Args> void sendWarning(Args ... info){ printVar(warningStream, info ...); warningStream << std::endl; }
+template<class ... Args> void sendDebug(Args ... info){
+    #ifdef NY_DEBUG
+        printVar(debugStream, info ,,,); debugStream << std::endl;
+    #endif // NY_DEBUG
+}
 
-    errorType type;
+void sendError();
 
-    std::string msg;
-
-    const char * what () const throw ();
-};
-
-std::string errTypeToString(error::errorType);
-void defaultErrorHandler(const error&);
-
-void sendError(error err);
-void sendWarning(std::string msg);
-void sendCritical(std::string msg);
-void sendException(std::exception ex);
-
-extern void(*errorHandler)(const error&);
+inline void sendError(const std::exception& err){ errorStream << err.what() << std::endl; sendError(); }
+template<class ... Args> void sendError(Args ... info){ printVar(errorStream, info ...); errorStream << std::endl; sendError(); }
+template<class ... Args> void sendError(Args ... info, const std::exception& err){ printVar(errorStream, info ...); errorStream << "\n" << err.what() << std::endl; sendError(); }
 
 }

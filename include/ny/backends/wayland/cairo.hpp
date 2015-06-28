@@ -1,5 +1,7 @@
 #pragma once
 
+#include <ny/backends/wayland/waylandInclude.hpp>
+
 #include <ny/app/surface.hpp>
 #include <ny/backends/wayland/windowContext.hpp>
 #include <ny/window/windowDefs.hpp>
@@ -18,10 +20,8 @@ protected:
     cairoDrawContext* drawContext_;
 
     unsigned char* pixels_;
-    wl_buffer* wlBuffer_;
-    wl_shm_pool* wlShmPool_;
+    wayland::shmBuffer* buffer_;
     cairo_surface_t* cairoSurface_;
-    bufferFormat format_;
 
     bool createBuffer(vec2ui size, wl_shm* shm);
     void cairoSetSize(window& w, vec2ui size);

@@ -100,7 +100,7 @@ glxContext::glxContext(Drawable d, glxFBC* conf) : drawable_(d)
 
     if(!glxContext_->context || errorOccured)
     {
-        throw error(error::Critical, "could not create glx Context");
+        throw std::runtime_error("could not create glx Context");
         return;
     }
 
@@ -172,7 +172,7 @@ XVisualInfo* glxWindowContext::initFBConfig(const glxWindowContextSettings& s)
     int glxMajor, glxMinor;
     if (!glXQueryVersion(getXDisplay(), &glxMajor, &glxMinor) || ((glxMajor == 1) && (glxMinor < 3) ) || (glxMajor < 1)) //glx must be > 1.3
     {
-        throw error(error::Critical, "Invalid glx version. glx Version must be > 1.3");
+        throw std::runtime_error("Invalid glx version. glx Version must be > 1.3");
         return nullptr;
     }
 
@@ -180,7 +180,7 @@ XVisualInfo* glxWindowContext::initFBConfig(const glxWindowContextSettings& s)
     GLXFBConfig* fbc = glXChooseFBConfig(getXDisplay(), DefaultScreen(getXDisplay()), attribs, &fbcount);
     if (!fbc || !fbcount)
     {
-        throw error(error::Critical, "failed to retrieve fbconfig");
+        throw std::runtime_error("failed to retrieve fbconfig");
         return nullptr;
     }
 

@@ -19,7 +19,7 @@ winapiWindowContext::winapiWindowContext(window* win, const winapiWindowContextS
 
     if(!ac)
     {
-        throw error(error::Critical, "winapiWindowContext::create: winapiAppContext not correctly set");
+        throw std::runtime_error("winapiWindowContext::create: winapiAppContext not correctly set");
         return;
     }
 
@@ -27,7 +27,7 @@ winapiWindowContext::winapiWindowContext(window* win, const winapiWindowContextS
 
     if(!m_instance)
     {
-        throw error(error::Critical, "winapiWindowContext::create: hInstance invalid");
+        throw std::runtime_error("winapiWindowContext::create: hInstance invalid");
         return;
     }
 
@@ -142,7 +142,7 @@ winapiToplevelWindowContext::winapiToplevelWindowContext(toplevelWindow* win, co
 
     if (!RegisterClassEx(&m_wndClass))
     {
-        throw error(error::Critical, "winapiWindowContext::create: could not register window class");
+        throw std::runtime_error("winapiWindowContext::create: could not register window class");
         return;
     }
 
@@ -151,7 +151,7 @@ winapiToplevelWindowContext::winapiToplevelWindowContext(toplevelWindow* win, co
 
     if(!m_handle)
     {
-        throw error(error::Critical, "winapiWindowContext::create: could not create window");
+        throw std::runtime_error("winapiWindowContext::create: could not create window");
         return;
     }
 

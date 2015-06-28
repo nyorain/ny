@@ -9,8 +9,11 @@
 #include <ny/app/event.hpp>
 #include <ny/app/error.hpp>
 #include <ny/app/cursor.hpp>
+#include <ny/graphics/image.hpp>
 
 #include <X11/Xatom.h>
+
+#include <cairo/cairo-xlib.h>
 
 #include <memory.h>
 #include <iostream>
@@ -26,7 +29,7 @@ x11WindowContext::x11WindowContext(window& win, const x11WindowContextSettings& 
 
     if(!context_)
     {
-        throw error(error::Critical, "x11 App was not correctly initialized");
+        throw std::runtime_error("x11 App was not correctly initialized");
         return;
     }
 
@@ -34,7 +37,7 @@ x11WindowContext::x11WindowContext(window& win, const x11WindowContextSettings& 
 
     if(!xDisplay_)
     {
-        throw error(error::Critical, "x11 App was not correctly initialized");
+        throw std::runtime_error("x11 App was not correctly initialized");
         return;
     }
 
@@ -54,7 +57,7 @@ void x11WindowContext::create(unsigned int winType)
     {
         if(!matchVisualInfo())
         {
-            throw error(error::Critical, "could not match visual");
+            throw std::runtime_error("could not match visual");
             return;
         }
     }
@@ -568,7 +571,7 @@ void x11ToplevelWindowContext::create(unsigned int winType, unsigned long attrMa
     {
         if(!matchVisualInfo())
         {
-            throw error(error::Critical, "could not match visual");
+            throw std::runtime_error("could not match visual");
             return;
         }
     }
@@ -682,6 +685,42 @@ void x11ToplevelWindowContext::setBorderSize(unsigned int size)
     XSetWindowBorderWidth(xDisplay_, xWindow_, size);
 }
 
+void x11ToplevelWindowContext::setIcon(const image* img)
+{
+    //TODO
+    if(img)
+    {
+        unsigned int length =  2 + img->getSize().x * img->getSize().y;
+        unsigned int size = img->getSize().x * img->getSize().y;
+
+        unsigned long buffer[length];
+        buffer[0] = img->getSize().x;
+        buffer[1] = img->getSize().x;
+
+        const unsigned char* imageData = img->getData();
+
+
+        for(unsigned int i(0); i < length - 2; i++)
+        {
+            buffer[i + 2] = (imageData[size * 3 + i] << 24) | (imageData[i] << 16) | (imageData[size + i] << 8) | (imageData[size * 2 + i] << 0);
+        }
+
+
+        XChangeProperty(getXDisplay(), xWindow_, x11::WMIcon, x11::Cardinal, 32, PropModeReplace, (const unsigned char*) buffer, length);
+
+        return;
+    }
+
+    unsigned long buffer[2];
+
+    buffer[0] = 0;
+    buffer[1] = 0;
+
+    XChangeProperty(getXDisplay(), xWindow_, x11::WMIcon, x11::Cardinal, 32, PropModeReplace, (const unsigned char*) buffer, 2);
+
+
+}
+
 //x11ChildWC////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////77
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 x11ChildWindowContext::x11ChildWindowContext(childWindow& win, const x11WindowContextSettings& settings, bool pcreate) : windowContext(win, settings), childWindowContext(win, settings), x11WindowContext(win, settings)
@@ -696,7 +735,7 @@ void x11ChildWindowContext::create(unsigned int winType, unsigned long attrMask,
     {
         if(!matchVisualInfo())
         {
-            throw error(error::Critical, "could not match visual");
+            throw std::runtime_error("could not match visual");
             return;
         }
     }

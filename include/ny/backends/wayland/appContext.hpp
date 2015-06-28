@@ -12,6 +12,8 @@
 #include <EGL/egl.h>
 #endif //GL
 
+#include <vector>
+
 
 namespace ny
 {
@@ -80,12 +82,12 @@ public:
     void setCursor(std::string curs, unsigned int serial = 0);
     void setCursor(image* img, unsigned int serial = 0);
 
-	void startDataOffer(const dataSource& source, const image& img);
+	void startDataOffer(dataSource& source, const image& img);
 	bool isOffering() const;
 	void endDataOffer();
 
 	dataOffer* getClipboard();
-	void setClipboard(const dataSource& source);
+	void setClipboard(dataSource& source);
 
     void registryHandler(wl_registry *registry, unsigned int id, std::string interface, unsigned int version);
     void registryRemover(wl_registry *registry, unsigned int id);

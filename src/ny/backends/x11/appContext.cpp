@@ -36,7 +36,7 @@ void x11AppContext::init()
     xDisplay_ = XOpenDisplay(nullptr);
     if(!xDisplay_)
     {
-        throw error(error::Critical, "could not connect to X Server");
+        throw std::runtime_error("could not connect to X Server");
         return;
     }
 
@@ -121,10 +121,14 @@ void x11AppContext::init()
         "TARGETS",
 
         "Text",
-        "UTF8_STRING"
+        "UTF8_STRING",
+
+        "_NET_WM_ICON",
+
+        "CARDINAL"
     };
 
-    unsigned int count = 64;
+    unsigned int count = sizeof(names) / sizeof(char*);
     Atom ret[count];
 
     XInternAtoms(xDisplay_, (char**) names, count, False, ret);
@@ -202,6 +206,10 @@ void x11AppContext::init()
 
     x11::TypeText = ret[i++];
     x11::TypeUTF8 = ret[i++];
+
+    x11::WMIcon = ret[i++];
+
+    x11::Cardinal = ret[i++];
 }
 
 void x11AppContext::sendRedrawEvent(Window w)

@@ -20,10 +20,10 @@ namespace ny
 {
 
 app* app::mainApp = nullptr;
-std::vector<backend*> app::backends = initBackends();
+std::vector<backend*> app::backends;
 
 //app/////////////////////////////////////////7
-app::app() : eventHandler(), focus_(nullptr), mouseOver_(nullptr), appContext_(nullptr), existing_(1), valid_(0), mainLoop_(0), backend_(nullptr), threadpool_(nullptr), settings_(), backendThread_(nullptr)
+app::app() : eventHandler(), focus_(nullptr), mouseOver_(nullptr), appContext_(nullptr), existing_(1), valid_(0), mainLoop_(0), backend_(nullptr), threadpool_(nullptr), settings_()
 {
     if(getMainApp() != nullptr)
     {
@@ -39,6 +39,11 @@ app::~app()
     exitApp();
 
     mainApp = nullptr;
+}
+
+void app::registerBackend(backend& b)
+{
+    backends.push_back(&b);
 }
 
 bool app::init()
@@ -60,8 +65,6 @@ bool app::init(appSettings settings)
 {
     settings_ = settings;
 
-    errorHandler = settings_.errorHandler;
-
     if(!backend_)
     {
         for(unsigned int i(0); i < backends.size(); i++)
@@ -82,7 +85,7 @@ bool app::init(appSettings settings)
 
         if(!backend_)
         {
-            sendCritical("in app::init: No matching backend found.");
+            sendError("in app::init: No matching backend found.");
             return false;
         }
     }
@@ -106,7 +109,7 @@ bool app::init(appSettings settings)
        appContext_ = backend_->createAppContext();
     }
 
-    catch(error err)
+    catch(std::exception& err)
     {
         sendError(err);
 
@@ -132,47 +135,13 @@ int app::mainLoop()
 
     mainLoop_ = 1;
 
-    if(!settings_.backendThread)
+    while(existing_ && valid_)
     {
-        while(existing_ && valid_)
+        if(!appContext_->mainLoopCall()) //should be blocking
         {
-            if(!appContext_->mainLoopCall()) //should be blocking
-            {
-                valid_ = 0;
-            }
+            valid_ = 0;
         }
     }
-    else
-    {
-        backendThread_ = new std::thread([this](){
-                                            while(this->existing_ && this->valid_)
-                                            {
-                                                if(!this->appContext_->mainLoopCall())
-                                                {
-                                                    this->valid_ = 0;
-                                                    return;
-                                                }
-                                            }
-                                         });
-        std::unique_lock<std::mutex> eventLck(eventMtx_);
-
-        while(existing_ && valid_)
-        {
-            while(events_.empty())
-                eventCV_.wait(eventLck);
-
-            if(!existing_ || !valid_)
-                break;
-
-            events_.front().first->lock();
-            events_.front().first->processEvent(*events_.front().second);
-            events_.front().first->unlock();
-
-            //delete events_.front().second;
-            events_.pop();
-        }
-    }
-
 
     mainLoop_ = 0;
     exitApp();
@@ -370,15 +339,14 @@ void app::removeListenerFor(unsigned int id, eventHandler* ev)
 }
 */
 
-void app::errorRun(const error& e)
+void app::error()
 {
     if(settings_.onError == errorAction::Exit)
     {
         exit(-1);
-        //throw e;
     }
 
-    std::cout << "continue?" << std::endl;
+    std::cout << "Error occured. Continue? (y/n)" << std::endl;
 
     std::string s;
     std::cin >> s;

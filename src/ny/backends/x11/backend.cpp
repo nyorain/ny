@@ -14,6 +14,7 @@
 namespace ny
 {
 
+const x11Backend x11Backend::object;
 
 x11Backend::x11Backend() : backend(X11)
 {

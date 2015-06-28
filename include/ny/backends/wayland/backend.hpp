@@ -5,23 +5,28 @@
 
 namespace ny
 {
-    class waylandBackend : public backend
-    {
-    public:
-        waylandBackend();
 
-        virtual bool isAvailable() const;
+class waylandBackend : public backend
+{
+protected:
+    static const waylandBackend object;
 
-        virtual appContext* createAppContext();
+public:
+    waylandBackend();
 
-        virtual toplevelWindowContext* createToplevelWindowContext(toplevelWindow& win, const windowContextSettings& s = windowContextSettings());
-        virtual childWindowContext* createChildWindowContext(childWindow& win, const windowContextSettings& s = windowContextSettings());
-        //virtual windowContext* createCustomWindowContext(window* win, const windowContextSettings& s = windowContextSettings());
+    virtual bool isAvailable() const;
 
-        virtual bool hasNativeHandling() const { return 0; };
-        virtual bool hasNativeDecoration() const { return 0; };
+    virtual appContext* createAppContext();
 
-        virtual bool hasCustomHandling() const { return 1; };
-        virtual bool hasCustomDecoration() const { return 1; };
-    };
+    virtual toplevelWindowContext* createToplevelWindowContext(toplevelWindow& win, const windowContextSettings& s = windowContextSettings());
+    virtual childWindowContext* createChildWindowContext(childWindow& win, const windowContextSettings& s = windowContextSettings());
+    //virtual windowContext* createCustomWindowContext(window* win, const windowContextSettings& s = windowContextSettings());
+
+    virtual bool hasNativeHandling() const { return 0; };
+    virtual bool hasNativeDecoration() const { return 0; };
+
+    virtual bool hasCustomHandling() const { return 1; };
+    virtual bool hasCustomDecoration() const { return 1; };
+};
+
 }

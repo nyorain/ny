@@ -14,7 +14,6 @@
 namespace ny
 {
 
-void defaultErrorHandler(const error& err);
 app* getMainApp();
 
 enum class errorAction
@@ -35,21 +34,23 @@ public:
     std::vector<unsigned int> allowedBackends;
     bool allBackends = 1;
     size_t threadpoolSize = 4;
-    bool backendThread = 0;
 
     int argc = 0;
     const char** argv = nullptr;
-
-    void(*errorHandler)(const error&) = &defaultErrorHandler;
 };
 
 class app : public eventHandler
 {
+
+friend backend; //calls registerBackend on init
+
 protected:
     static app* mainApp;
     static std::vector<backend*> backends; //ALL built in backends. from these one available backend is chose in init()
+    static void registerBackend(backend& e);
 
-    eventHandler* focus_; //eventHandler which has current focus
+protected:
+    window* focus_; //eventHandler which has current focus
     window* mouseOver_; //eventHandler on which is the mouse
 
     appContext* appContext_;
@@ -62,12 +63,6 @@ protected:
     threadpool* threadpool_;
     std::thread::id mainThreadID_; //holds the thread id that is executing the mainLoop. only valid if(mainLoop_)
     appSettings settings_;
-
-    std::thread* backendThread_;
-
-    std::condition_variable eventCV_;
-    std::mutex eventMtx_;
-    std::queue<std::pair<eventHandler*, event*>> events_;
 
     //replace from eventHandler
     virtual void create(eventHandler& parent){};
@@ -111,7 +106,7 @@ public:
     virtual void destroyHandler(destroyEvent& event);
 
     virtual window* getMouseOver() const { return mouseOver_; };
-    virtual eventHandler* getFocus() const { return focus_; };
+    virtual window* getFocus() const { return focus_; };
 
     virtual appContext* getAppContext() const { return appContext_; };
     ac* getAC() const { return getAppContext(); };
@@ -122,7 +117,7 @@ public:
     //virtual void addListenerFor(unsigned int, eventHandler*);
     //virtual void removeListenerFor(unsigned int, eventHandler*);
 
-    virtual void errorRun(const error& e);
+    virtual void error();
 
     virtual void addTask(taskBase* b);
 

@@ -41,8 +41,10 @@ freeTypeFont* font::getFreeTypeHandle(bool cr)
         {
             ftFont_ = new freeTypeFont(name_, fromFile_);
         }
-        catch(error)
+        catch(const std::exception& err)
         {
+            sendWarning(err.what());
+
             delete ftFont_;
             ftFont_ = nullptr;
             return nullptr;

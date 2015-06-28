@@ -113,6 +113,12 @@ extern Atom TypeText;
 extern Atom TypeTextPlain;
 extern Atom TypeUTF8;
 
+extern Atom WMIcon;
+
+extern Atom Cardinal;
+
+
+
 const unsigned long MwmDecoBorder = (1L << 1);
 const unsigned long MwmDecoResize = (1L << 2);
 const unsigned long MwmDecoTitle = (1L << 3);

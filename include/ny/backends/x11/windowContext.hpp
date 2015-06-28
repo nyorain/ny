@@ -154,6 +154,8 @@ public:
     virtual void beginResize(mouseButtonEvent* ev, windowEdge wedge);
 
     virtual void setBorderSize(unsigned int size);
+
+    virtual void setIcon(const image* img);
 };
 
 

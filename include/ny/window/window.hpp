@@ -314,6 +314,8 @@ public:
     std::string getName() const { return name_; }
     void setName(std::string n);
 
+    void setIcon(const image* icon);
+
     const toplevelWindow* getTopLevelParent() const { return this; };
     toplevelWindow* getTopLevelParent() { return this; };
 

@@ -45,13 +45,13 @@ void window::create(eventHandler* parent, vec2i position, vec2ui size)
 
     if(!getMainApp() || !getMainApp()->getBackend())
     {
-        throw error(error::Critical, "window::create(): window can only be created when mainApp exists and is initialized");
+        throw std::runtime_error("window::create(): window can only be created when mainApp exists and is initialized");
         return;
     }
 
     if(!parent)
     {
-        throw error(error::Critical, "window::create(): invalid parent.");
+        throw std::runtime_error("window::create(): invalid parent.");
         return;
     }
 
@@ -716,7 +716,7 @@ void toplevelWindow::create(vec2i position, vec2ui size, std::string name, const
         window::create(getMainApp(), position, size);
         newWC = getMainApp()->getBackend()->createToplevelWindowContext(*this, settings);
     }
-    catch(error& e)
+    catch(const std::exception& e)
     {
         sendError(e);
         return;
@@ -724,7 +724,7 @@ void toplevelWindow::create(vec2i position, vec2ui size, std::string name, const
 
     if(!newWC)
     {
-        sendCritical("toplevelWindow::toplevelWindow(): could not create windowContext.");
+        sendError("toplevelWindow::toplevelWindow(): could not create windowContext.");
         return;
     }
 
@@ -751,6 +751,11 @@ void toplevelWindow::setBorderSize(unsigned int size)
     getWindowContext()->setBorderSize(size);
 
     borderSize_ = size;
+}
+
+void toplevelWindow::setIcon(const image* icon)
+{
+    getWindowContext()->setIcon(icon);
 }
 
 void toplevelWindow::mouseButton(mouseButtonEvent& ev)
@@ -976,7 +981,7 @@ void childWindow::create(window* parent, vec2i position, vec2ui size, windowCont
         window::create(parent, position, size);
         windowContext_ = getMainApp()->getBackend()->createChildWindowContext(*this, settings);
     }
-    catch(error& e)
+    catch(std::exception& e)
     {
         sendError(e);
         return;
@@ -984,7 +989,7 @@ void childWindow::create(window* parent, vec2i position, vec2ui size, windowCont
 
     if(!windowContext_)
     {
-        sendCritical("toplevelWindow::toplevelWindow(): could not create windowContext.");
+        sendError("toplevelWindow::toplevelWindow(): could not create windowContext.");
         return;
     }
 

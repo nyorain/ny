@@ -47,11 +47,11 @@ class showEvent;
 class destroyEvent;
 class contextEvent;
 
-class error;
 class file;
 
 enum class preference : unsigned char;
 enum class windowEdge : unsigned char;
+enum class bufferFormat : unsigned char;
 
 class drawContext;
 class cairoDrawContext;

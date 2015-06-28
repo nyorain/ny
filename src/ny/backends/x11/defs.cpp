@@ -117,6 +117,10 @@ Atom TypeText = 0;
 Atom TypeTextPlain = 0;
 Atom TypeUTF8 = 0;
 
+Atom WMIcon = 0;
+
+Atom Cardinal = 0;
+
 /////////////////////////////////////////////////
 
 property getWindowProperty(Window w, Atom prop)

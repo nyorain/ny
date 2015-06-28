@@ -11,6 +11,7 @@
 #include <ny/app/app.hpp>
 #include <ny/app/event.hpp>
 #include <ny/app/cursor.hpp>
+#include <ny/app/error.hpp>
 
 #include <wayland-cursor.h>
 
@@ -236,35 +237,87 @@ err:
     return -1;
 }
 
-shmBuffer::shmBuffer(wl_shm* shm, unsigned int size, bufferFormat format)
+shmBuffer::shmBuffer(vec2ui size, bufferFormat form) : size_(size), format(form)
 {
-    unsigned int stride = size.x * 4; // 4 bytes per pixel
-    int fd;
-
-    fd = osCreateAnonymousFile(size);
-    if (fd < 0)
-    {
-        std::cout << "creating a buffer file failed" << std::endl;
-        return 0;
-    }
-
-    pixels_ = (unsigned char*) mmap(nullptr, 100000000, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    if (pixels_ == MAP_FAILED)
-    {
-        std::cout << "mmap failed" << std::endl;
-        close(fd);
-        return 0;
-    }
-
-    wlShmPool_ = wl_shm_create_pool(shm, fd, 100000000);
-    wlBuffer_ = wl_shm_pool_create_buffer(wlShmPool_, 0, size.x, size.y, stride, WL_SHM_FORMAT_ARGB8888);
-
-    return 1;
+    create();
 }
 
 shmBuffer::~shmBuffer()
 {
-    wl_buffer_destroy(buffer);
+    destroy();
+}
+
+void shmBuffer::create()
+{
+    waylandAppContext* ac;
+    if(!(ac = getWaylandAppContext()))
+    {
+        throw std::runtime_error("need wayland appContext to create wayland shm buffer");
+        return;
+    }
+
+    if(!ac->bufferFormatSupported(format))
+    {
+        throw std::runtime_error("wayland shm buffer: format not supported");
+        return;
+    }
+
+    wl_shm* shm = ac->getWlShm();
+
+    unsigned int stride = size_.x * getBufferFormatSize(format);
+
+    unsigned int vecSize = stride * size_.y;
+    unsigned int mmapSize = defaultSize_;
+
+    if(vecSize > defaultSize_)
+    {
+        mmapSize = vecSize;
+    }
+
+    int fd;
+
+    fd = osCreateAnonymousFile(mmapSize);
+    if (fd < 0)
+    {
+        throw std::runtime_error("wayland shm buffer: could not create file");
+        return;
+    }
+
+    data_ = mmap(nullptr, mmapSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (data_ == MAP_FAILED)
+    {
+        close(fd);
+        throw std::runtime_error("wayland shm buffer: could not mmap file");
+        return;
+    }
+
+    pool_ = wl_shm_create_pool(shm, fd, mmapSize);
+    buffer_ = wl_shm_pool_create_buffer(pool_, 0, size_.x, size_.y, stride, bufferFormatToWayland(format));
+}
+
+void shmBuffer::destroy()
+{
+    wl_buffer_destroy(buffer_);
+    wl_shm_pool_destroy(pool_);
+}
+
+void shmBuffer::setSize(const vec2ui& size)
+{
+    size_ = size;
+
+    unsigned int stride = size_.x * getBufferFormatSize(format);
+    unsigned int vecSize = stride * size_.y;
+
+    if(vecSize > defaultSize_)
+    {
+        destroy();
+        create();
+    }
+    else
+    {
+        wl_buffer_destroy(buffer_);
+        buffer_ = wl_shm_pool_create_buffer(pool_, 0, size_.x, size_.y, stride, bufferFormatToWayland(format));
+    }
 }
 
 }//end namespace wayland
@@ -475,6 +528,19 @@ waylandGLToplevelWindowContext* asWaylandGL(toplevelWindowContext* c){ return dy
 waylandGLChildWindowContext* asWaylandGL(childWindowContext* c){ return dynamic_cast<waylandGLChildWindowContext*>(c); };
 waylandGLContext* asWaylandGL(windowContext* c){ return dynamic_cast<waylandGLContext*>(c); };
 #endif // NY_WithGL
+
+
+waylandAppContext* getWaylandAppContext()
+{
+    waylandAppContext* ret = nullptr;
+
+    if(getMainApp())
+    {
+        ret = dynamic_cast<waylandAppContext*>(getMainApp()->getAppContext());
+    }
+
+    return ret;
+}
 
 
 }

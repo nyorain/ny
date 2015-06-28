@@ -48,7 +48,7 @@ void eventHandler::destroy()
         children[i]->destroy();
     }
 
-    if(!parent_)
+    if(parent_)
         parent_->removeChild(*this);
 
     parent_ = nullptr;

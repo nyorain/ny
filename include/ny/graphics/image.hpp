@@ -10,6 +10,7 @@
 namespace ny
 {
 
+/*
 enum class imageType
 {
     Unknown = 0,
@@ -18,27 +19,30 @@ enum class imageType
     PNG,
     GIF
 };
+*/
 
 class imageHandle;
 
+//image/////////////////////////////////////////////////////////
 class image : public file, public surface
 {
 protected:
- unsigned char* data_;
- imageHandle* handle_;
+    unsigned char* data_;
+    imageHandle* handle_;
 
 public:
- image();
- image(const std::string& path);
- virtual ~image();
+    image();
+    image(const std::string& path);
+    virtual ~image();
 
- virtual unsigned char* getData();
- const virtual unsigned char* getData() const;
- virtual void setData(unsigned char*);
+    virtual unsigned char* getData();
+    const virtual unsigned char* getData() const;
 
- virtual void convert(bufferFormat){};
+    vec2ui getSize() const;
 
- virtual vec2ui getSize() const;
+    bool loadFromFile(const std::string& path);
+    bool saveToFile(const std::string& path) const;
 };
+
 
 }

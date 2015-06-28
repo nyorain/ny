@@ -93,9 +93,7 @@ public:
 
     virtual bool isVirtual() const final { return 0; }
 
-	virtual void setTitle() {}
-	virtual void setIcon(const image& img) {}
-	virtual void setTaskbarIcon(const image& img) {}
+	virtual void setIcon(const image* img) {}
 };
 
 class childWindowContext : public virtual windowContext

@@ -1,7 +1,6 @@
 #include <ny/backends/wayland/windowContext.hpp>
 
 #include <ny/backends/wayland/utils.hpp>
-#include <ny/backends/wayland/defs.hpp>
 #include <ny/backends/wayland/appContext.hpp>
 
 #include <ny/app/event.hpp>
@@ -28,21 +27,21 @@ waylandWindowContext::waylandWindowContext(window& win, const waylandWindowConte
     context_ = asWayland(getMainApp()->getAppContext());
     if(!context_)
     {
-        throw error(error::Critical, "wayland App Context not correctly initialized");
+        throw std::runtime_error("wayland App Context not correctly initialized");
         return;
     }
 
     wl_compositor* compositor = context_->getWlCompositor();
     if(!compositor)
     {
-        throw error(error::Critical, "wayland App Context not correctly initialized");
+        throw std::runtime_error("wayland App Context not correctly initialized");
         return;
     }
 
     wlSurface_ = wl_compositor_create_surface(compositor);
     if(!wlSurface_)
     {
-        throw error(error::Critical, "could not create wayland Surface");
+        throw std::runtime_error("could not create wayland Surface");
         return;
     }
 

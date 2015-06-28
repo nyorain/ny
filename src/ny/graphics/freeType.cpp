@@ -34,7 +34,7 @@ freeTypeFont::freeTypeFont(const std::string& name, bool fromFile)
 
     if(ftErr)
     {
-        throw error(error::Critical, "could lot load font");
+        throw std::runtime_error("could lot load font");
         return;
     }
 }

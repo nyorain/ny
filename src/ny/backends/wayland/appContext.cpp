@@ -38,7 +38,7 @@ void waylandAppContext::init()
 
     if(!wlDisplay_)
     {
-        throw error(error::Critical, "could not connect to wayland display");
+        throw std::runtime_error("could not connect to wayland display");
         return;
     }
 
@@ -52,7 +52,7 @@ void waylandAppContext::init()
     //compositor added by registry callback listener
     if(!wlCompositor_)
     {
-        throw error(error::Critical, "could not find wayland compositor");
+        throw std::runtime_error("could not find wayland compositor");
         return;
     }
 
@@ -65,7 +65,7 @@ void waylandAppContext::init()
     eglContext_ = new waylandEGLAppContext(this);
     if(!eglContext_->init())
     {
-        throw error(error::Critical, "could not find initialize wayland eglContext");
+        throw std::runtime_error("could not find initialize wayland eglContext");
         return;
     }
 #endif // NY_WithGL
@@ -79,7 +79,7 @@ bool waylandAppContext::mainLoopCall()
     return 1;
 }
 
-void waylandAppContext::startDataOffer(const dataSource& source, const image& img)
+void waylandAppContext::startDataOffer(dataSource& source, const image& img)
 {
 	dataSource_ = &source;
 
@@ -106,6 +106,16 @@ bool waylandAppContext::isOffering() const
 }
 
 void waylandAppContext::endDataOffer()
+{
+
+}
+
+dataOffer* waylandAppContext::getClipboard()
+{
+    return nullptr;
+}
+
+void waylandAppContext::setClipboard(ny::dataSource& source)
 {
 
 }
@@ -144,7 +154,7 @@ void waylandAppContext::registryHandler(wl_registry* registry, unsigned int id, 
     else if(interface == "wl_data_device_manager")
     {
         wlDataManager_ = (wl_data_device_manager*) wl_registry_bind(registry, id, &wl_data_device_manager_interface, version);
-        if(wlSeat_) wlDataDevice_ = wl_data_device_manager_get_data_device(wlDataManager_, wlSeat);
+        if(wlSeat_) wlDataDevice_ = wl_data_device_manager_get_data_device(wlDataManager_, wlSeat_);
     }
 
 }
