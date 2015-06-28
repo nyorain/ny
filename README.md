@@ -42,13 +42,17 @@ int main()
 {
   app myApp;
   
-  if(!app.init())
+  if(!myApp.init())
   {
     return 0;
   }
   
   toplevelWindow win(vec2i(100, 100), vec2ui(800, 500), "Hello World");
-  win. show();
+  win.show();
+
+  win.onDraw([](dc& context){
+  		context.clear(color::white);
+  	});
   
   return myApp.mainLoop();
 }
