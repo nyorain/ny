@@ -27,8 +27,8 @@ if(Win32)
 endif(Win32)
 
 #pch
-set (CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
-include(cotire)
+#set (CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
+#include(cotire)
 
 
 configure_file	( "${CMAKE_CURRENT_SOURCE_DIR}/src/ny/config.h.in"

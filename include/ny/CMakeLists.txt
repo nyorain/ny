@@ -1,121 +1,117 @@
 #include 1. subdir cmake
 
-#window___________________________________________________________________________________
-set(H_WINDOW 
-	window/window.hpp
-	window/frame.hpp
-	window/widget.hpp
-	window/widgets.hpp
-	window/dialog.hpp
-	window/style.hpp
-	window/windowDefs.hpp
-	window/windowEvents.hpp
+#general
+set(H_GENERAL
+	config.h
+	ny.hpp
+	include.hpp
+	window.hpp
+	frame.hpp
+	widget.hpp
+	widgets.hpp
+	dialog.hpp
+	style.hpp
+	windowDefs.hpp
+	windowEvents.hpp
+	drawContext.hpp
+	shape.hpp
+	color.hpp
+	cairo.hpp
+	font.hpp
+	freeType.hpp
+	image.hpp
+	texture.hpp
+	app.hpp
+	cursor.hpp
+	data.hpp
+	error.hpp
+	event.hpp
+	eventHandler.hpp
+	file.hpp
+	keyboard.hpp
+	mouse.hpp
+	surface.hpp
+	backend.hpp
+	appContext.hpp
+	windowContext.hpp
 	)
 
-#graphics___________________________________________________________________________________
-set(H_GRAPHICS 
-	graphics/drawContext.hpp
-	graphics/shape.hpp
-	graphics/color.hpp
-	graphics/cairo.hpp
-	graphics/font.hpp
-	graphics/freeType.hpp
-	graphics/image.hpp
-	graphics/texture.hpp
-	graphics/transformable.hpp
+install(FILES ${H_GENERAL} DESTINATION include/ny)
+
+#utils
+set(H_UTIL
+	util/transformable.hpp
+	util/vec.hpp
+	util/mat.hpp
+	util/rect.hpp
+	util/callback.hpp
+	util/thread.hpp
+	util/time.hpp
+	util/region.hpp
+	util/misc.hpp
+	util/animation.hpp
+	util/refVec.hpp
+	util/nonCopyable.hpp
 	)
 
+install(FILES ${H_UTIL} DESTINATION include/util)
+
+#specific backends
+#gl___________________________________________________________________________________
 if(NY_WithGL)
-	set(H_GRAPHICS ${H_GRAPHICS}
-	graphics/gl/glContext.hpp
-	graphics/gl/glDC.hpp
-	graphics/gl/shader.hpp
+	set(H_GL
+	gl/glContext.hpp
+	gl/glDC.hpp
+	gl/shader.hpp
 	)
+
+	install(FILES ${H_GL} DESTINATION include/ny/gl)
+
 endif(NY_WithGL)
 
-#backends___________________________________________________________________________________
-set(H_BACKENDS 
-	backends/backend.hpp
-	backends/appContext.hpp
-	backends/windowContext.hpp
-	)
 
 #x11___________________________________________________________________________________
 if(NY_WithX11)
-	set(H_BACKENDS ${H_BACKENDS}
-		backends/x11/appContext.hpp
-		backends/x11/backend.hpp
-		backends/x11/cairo.hpp
-		backends/x11/defs.hpp
-		backends/x11/utils.hpp
-		backends/x11/windowContext.hpp
+	set(H_X11
+		x11/x11AppContext.hpp
+		x11/x11Backend.hpp
+		x11/x11Cairo.hpp
+		x11/x11Utils.hpp
+		x11/x11WindowContext.hpp
+		x11/x11Include.hpp
 		)
+
 	if(NY_WithGL)
-		set(H_BACKENDS ${H_BACKENDS}
-			backends/x11/egl.hpp
-			backends/x11/glx.hpp
+		set(H_X11 ${H_X11}
+			x11/x11Egl.hpp
+			x11/glx.hpp
 			)		
 	endif(NY_WithGL)
+
+	install(FILES ${H_X11} DESTINATION include/ny/x11)
+
 endif(NY_WithX11)
 
 
 #wayland___________________________________________________________________________________
 if(NY_WithWayland)
-	set(H_BACKENDS ${H_BACKENDS}
-		backends/wayland/appContext.hpp
-		backends/wayland/backend.hpp
-		backends/wayland/cairo.hpp
-		backends/wayland/defs.hpp
-		backends/wayland/utils.hpp
-		backends/wayland/windowContext.hpp
+	set(H_WAYLAND
+		wayland/waylandAppContext.hpp
+		wayland/waylandBackend.hpp
+		wayland/waylandCairo.hpp
+		wayland/waylandUtils.hpp
+		wayland/waylandWindowContext.hpp
+		wayland/waylandInclude.hpp
 	)
 	if(NY_WithGL)
-		set(H_BACKENDS ${H_BACKENDS}
-			backends/wayland/gl.hpp
+		set(H_WAYLAND ${H_WAYLAND}
+			wayland/waylandEgl.hpp
 			)		
 	endif(NY_WithGL)
+
+	install(FILES ${H_WAYLAND} DESTINATION include/ny/wayland)
+
 endif(NY_WithWayland)
-
-#app___________________________________________________________________________________
-set(H_APP 
-	app/app.hpp
-	app/cursor.hpp
-	app/data.hpp
-	app/error.hpp
-	app/event.hpp
-	app/eventHandler.hpp
-	app/file.hpp
-	app/keyboard.hpp
-	app/mouse.hpp
-	app/surface.hpp
-	)
-
-set(H_UTILS 
-	utils/vec.hpp
-	utils/mat.hpp
-	utils/rect.hpp
-	utils/callback.hpp
-	utils/thread.hpp
-	utils/time.hpp
-	utils/region.hpp
-	utils/misc.hpp
-	utils/animation.hpp
-	utils/refVec.hpp
-	utils/nonCopyable.hpp
-	)
-
-set(H_NYFILES
-	config.h
-	ny.hpp
-	include.hpp
-	)
-
-install(FILES ${H_NYFILES} DESTINATION include/ny)
-install(FILES ${H_APP} DESTINATION include/ny/app)
-install(FILES ${H_WINDOW} DESTINATION include/ny/window)
-install(FILES ${H_UTILS} DESTINATION include/ny/utils)
-install(FILES ${H_BACKENDS} DESTINATION include/ny/backends)
-install(FILES ${H_GRAPHICS} DESTINATION include/ny/graphics)
 
 
 
