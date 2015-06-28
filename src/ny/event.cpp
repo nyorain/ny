@@ -1,4 +1,4 @@
-#include <ny/app/event.hpp>
+#include <ny/event.hpp>
 
 namespace ny
 {

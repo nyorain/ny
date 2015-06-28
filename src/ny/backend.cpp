@@ -1,17 +1,17 @@
-#include <ny/backends/backend.hpp>
+#include <ny/backend.hpp>
 
-#include <ny/app/app.hpp>
+#include <ny/app.hpp>
 
 #ifdef NY_WithWayland
-#include <ny/backends/wayland/backend.hpp>
+#include <ny/wayland/waylandBackend.hpp>
 #endif // NY_WithGL
 
 #ifdef NY_WithX11
-#include <ny/backends/x11/backend.hpp>
+#include <ny/x11/x11Backend.hpp>
 #endif // WithX11
 
 #ifdef NY_WithWinapi
-#include <ny/backends/winapi/backend.hpp>
+#include <ny/winapi/winapiBackend.hpp>
 #endif // WithWinapi
 
 namespace ny

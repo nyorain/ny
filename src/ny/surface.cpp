@@ -1,4 +1,4 @@
-#include <ny/app/surface.hpp>
+#include <ny/surface.hpp>
 
 namespace ny
 {

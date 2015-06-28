@@ -1,8 +1,8 @@
-#include <ny/app/eventHandler.hpp>
+#include <ny/eventHandler.hpp>
 
-#include <ny/app/app.hpp>
-#include <ny/app/error.hpp>
-#include <ny/app/event.hpp>
+#include <ny/app.hpp>
+#include <ny/error.hpp>
+#include <ny/event.hpp>
 
 #include <iostream>
 

@@ -1,11 +1,11 @@
-#include <ny/backends/wayland/backend.hpp>
+#include <ny/wayland/waylandBackend.hpp>
 
-#include <ny/backends/wayland/windowContext.hpp>
-#include <ny/backends/wayland/appContext.hpp>
-#include <ny/backends/wayland/cairo.hpp>
+#include <ny/wayland/waylandWindowContext.hpp>
+#include <ny/wayland/waylandAppContext.hpp>
+#include <ny/wayland/waylandCairo.hpp>
 
 #ifdef NY_WithGL
-#include <ny/backends/wayland/gl.hpp>
+#include <ny/wayland/waylandEgl.hpp>
 #endif //WithGL
 
 #include <wayland-client.h>

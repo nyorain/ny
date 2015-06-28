@@ -1,11 +1,11 @@
-#include <ny/backends/wayland/cairo.hpp>
+#include <ny/wayland/waylandCairo.hpp>
 
-#include <ny/backends/wayland/utils.hpp>
-#include <ny/backends/wayland/appContext.hpp>
-#include <ny/app/error.hpp>
-#include <ny/graphics/cairo.hpp>
+#include <ny/wayland/waylandUtil.hpp>
+#include <ny/wayland/waylandAppContext.hpp>
+#include <ny/error.hpp>
+#include <ny/cairo.hpp>
 
-#include <ny/utils/rect.hpp>
+#include <ny/util/rect.hpp>
 
 #include <sys/mman.h>
 #include <sys/types.h>

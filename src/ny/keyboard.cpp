@@ -1,4 +1,4 @@
-#include <ny/app/keyboard.hpp>
+#include <ny/keyboard.hpp>
 
 namespace ny
 {

@@ -1,12 +1,12 @@
-#include <ny/backends/wayland/windowContext.hpp>
+#include <ny/wayland/waylandWindowContext.hpp>
 
-#include <ny/backends/wayland/utils.hpp>
-#include <ny/backends/wayland/appContext.hpp>
+#include <ny/wayland/waylandUtil.hpp>
+#include <ny/wayland/waylandAppContext.hpp>
 
-#include <ny/app/event.hpp>
-#include <ny/app/app.hpp>
-#include <ny/app/error.hpp>
-#include <ny/app/cursor.hpp>
+#include <ny/event.hpp>
+#include <ny/app.hpp>
+#include <ny/error.hpp>
+#include <ny/cursor.hpp>
 
 #include <iostream>
 #include <fcntl.h>

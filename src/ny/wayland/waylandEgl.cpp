@@ -2,14 +2,14 @@
 
 #ifdef NY_WithGL
 
-#include <ny/backends/wayland/gl.hpp>
-#include <ny/backends/wayland/appContext.hpp>
-#include <ny/backends/wayland/utils.hpp>
+#include <ny/wayland/waylandEgl.hpp>
+#include <ny/wayland/waylandAppContext.hpp>
+#include <ny/wayland/waylandUtil.hpp>
 
-#include <ny/app/error.hpp>
-#include <ny/window/window.hpp>
-#include <ny/graphics/gl/glDC.hpp>
-#include <ny/graphics/gl/glContext.hpp>
+#include <ny/error.hpp>
+#include <ny/window.hpp>
+#include <ny/gl/glDrawContext.hpp>
+#include <ny/gl/glContext.hpp>
 
 #include <wayland-egl.h>
 #include <EGL/egl.h>

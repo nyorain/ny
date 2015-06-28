@@ -2,12 +2,12 @@
 
 #ifdef NY_WithGL
 
-#include <ny/backends/x11/glx.hpp>
+#include <ny/x11/glx.hpp>
 
-#include <ny/backends/x11/appContext.hpp>
+#include <ny/x11/x11AppContext.hpp>
 
-#include <ny/graphics/gl/glDC.hpp>
-#include <ny/app/error.hpp>
+#include <ny/gl/glDrawContext.hpp>
+#include <ny/error.hpp>
 
 //from X11, not compatible with glbindijng from include/gl.h
 #ifdef None

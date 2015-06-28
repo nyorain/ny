@@ -1,12 +1,12 @@
-#include <ny/backends/wayland/appContext.hpp>
+#include <ny/wayland/waylandAppContext.hpp>
 
-#include <ny/backends/wayland/utils.hpp>
-#include <ny/backends/wayland/windowContext.hpp>
+#include <ny/wayland/waylandUtil.hpp>
+#include <ny/wayland/waylandWindowContext.hpp>
 
-#include <ny/app/error.hpp>
-#include <ny/app/app.hpp>
+#include <ny/error.hpp>
+#include <ny/app.hpp>
 
-#include <ny/utils/misc.hpp>
+#include <ny/util/misc.hpp>
 
 #ifdef NY_WithGL
 #include <wayland-egl.h>

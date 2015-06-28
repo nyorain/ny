@@ -1,5 +1,5 @@
-#include <ny/app/error.hpp>
-#include <ny/app/app.hpp>
+#include <ny/error.hpp>
+#include <ny/app.hpp>
 
 #include <iostream>
 

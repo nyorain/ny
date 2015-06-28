@@ -1,15 +1,15 @@
-#include <ny/app/app.hpp>
+#include <ny/app.hpp>
 
-#include <ny/app/eventHandler.hpp>
-#include <ny/app/event.hpp>
-#include <ny/app/error.hpp>
-#include <ny/backends/appContext.hpp>
-#include <ny/backends/backend.hpp>
-#include <ny/window/window.hpp>
+#include <ny/eventHandler.hpp>
+#include <ny/event.hpp>
+#include <ny/error.hpp>
+#include <ny/appContext.hpp>
+#include <ny/backend.hpp>
+#include <ny/window.hpp>
 
-#include <ny/utils/thread.hpp>
-#include <ny/utils/time.hpp>
-#include <ny/utils/misc.hpp>
+#include <ny/util/thread.hpp>
+#include <ny/util/time.hpp>
+#include <ny/util/misc.hpp>
 
 #include <iostream>
 #include <thread>

@@ -1,4 +1,4 @@
-#include <ny/app/data.hpp>
+#include <ny/data.hpp>
 
 namespace ny
 {

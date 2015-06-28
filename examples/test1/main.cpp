@@ -1,25 +1,8 @@
 #include <iostream>
 #include <ny/ny.hpp>
-#include <ny/config.h>
-//#include <ny/backends/backend.hpp>
-//#include <ny/backends/x11/backend.hpp>
 
 int main()
 {
-	std::cout << "hw" << std::endl;
-#ifdef WithWayland
-	std::cout << "Wayland" << std::endl;
-#endif
-#ifdef WithX11
-	std::cout << "X11" << std::endl;
-#endif
-
-	ny::appSettings settings;
-	settings.allBackends = 1;
-	settings.backendThread = 0;
-	settings.threadSafe = 1;
-	settings.onError = ny::errorAction::AskConsole;
-
 	ny::app myApp;
 
 	if(myApp.init())
@@ -28,11 +11,11 @@ int main()
 		//return 1;
 	}
 
-	ny::toplevelWindow win(ny::vec2ui(100, 100), ny::vec2ui(100, 100), "TEST");
+	ny::toplevelWindow win(ny::vec2ui(100, 100), ny::vec2ui(800, 500), "Test");
 	win.show();
 
 	win.onDraw([](ny::drawContext& dc){
-			dc.clear(ny::color::blue);
+			dc.clear(ny::color::white);
 			});
 
 	return myApp.mainLoop();
