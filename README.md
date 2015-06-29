@@ -65,4 +65,4 @@ int main()
 }
 ````````````
 
-The line in which we specify the draw-procedure for the window `win.onDraw(...)` shows the possibilities of c++11 features like std::function. Where other gui-libraries rely on custom implemented or preprocessed signal-slots methods, ny simply uses callbacks. You could also specify a member function of you own class in `win.onDraw(...)`.
+The line in which we specify the draw-procedure for the window `win.onDraw(...)` shows the possibilities of c++11 features like std::function. Where other gui-libraries rely on custom implemented or preprocessed signal-slot methods, ny simply uses callbacks. You could also specify a member function of your own class in `win.onDraw(...)`.
