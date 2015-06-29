@@ -1,17 +1,17 @@
 # ny
 
 <h2> Introduction </h2>
-ny is a modern c++11 cross-platform gui toolkit. It tries to use modern c++ features like templates, namespaces, type-safety, enum classes, lambdas, c++11 concurrency and other new stl features e.g. std::function or std::chrono instead of relying on macros and custom implementations.
+ny is a modern c++11 cross-platform gui toolkit. It uses modern c++ features like templates, namespaces, non-trival and type-safe unions, enum classes, lambdas, c++11 concurrency and other new stl features e.g. std::function or std::chrono instead of relying on macros and custom implementations.
 
-At the moment, ny is in a pre-alpha and under heavy developement, <b> it is not ready to use. </b>
-The windows backend is broken at the moment, there is no os x backend (but there will be porbably one in the future) and the linux backends are really unstable and have not yet implemented most of the functionality they should have.
+At the moment, ny is in a pre-alpha version and under heavy developement, <b> it is not ready to use. </b>
+The winapi backend is broken, there is no os x backend (but there will be porbably one in the future) and the linux backends are really unstable and missing lots of features.
 
 
 <h2> Installation </h2>
-ny is built with cmake and ninja.
+Clone ny from this repository and cd to the toplevel-folder of it (.../ny/).
 
+Buidling ny with cmake and ninja: (recommended)
 `````````````
-cd ny/
 mkdir build
 cd build
 cmake -G "Ninja" -DCMAKE_INSTALL_PREFIX=/usr ..
@@ -19,15 +19,22 @@ ninja
 ninja install
 ```````````
 
-<h3> Dependencies </h3>
-The dependencies for ny may differ for each platform and backend. On Linux you don't have to build it with X11, if you just want to build it with the Wayland backend (or even without any backend) it's fine too. Then you have to set the accordingly option when configuring cmake e.g. -DNY_WithX11=OFF
+Alternativley you can use gnu Makefiles to build it (might not work):
+``````````````
+cmake -DCMAKE_INSTALL_PREFIX=/usr
+make
+make install
+``````````````
 
-Like the backends, most of the other dependecies are optional, too. You can use cairo or OpenGL to draw on Windows, but you don't have to, you can also just use gdi.
+<h3> Dependencies </h3>
+The dependencies for ny may differ for each platform and backend. On Linux you don't have to build it with X11, if you just want to build it with the Wayland backend (or even without any backend) it's fine, too. Then you have to set the according option when configuring cmake e.g. -DNY_WithX11=OFF
+
+Like the backends, most of the other dependecies are optional, too. You can use cairo or OpenGL to draw on windows, FreeType to load and render fonts, but you don't have to.
 
 Here is a list for the optional or needed backends and dependencies on different platforms:
 
-<b> Windows: </b> winapi, gdi, openGL, cairo <br>
-<b> Linux: </b> X11, wayland, cairo, EGL, openGL, openGL ES <br>
+<b> Windows: </b> winapi, gdi, openGL, cairo, freetype <br>
+<b> Linux: </b> X11, wayland, cairo, EGL, openGL, openGL ES, freetype <br>
 <b> OS X: </b> No OS X Backend for the moment <br>
 
 
@@ -57,3 +64,5 @@ int main()
   return myApp.mainLoop();
 }
 ````````````
+
+The line in which we specify the draw-procedure for the window `win.onDraw(...)` shows the possibilities of c++11 features like std::function. Where other gui-libraries rely on custom implemented or preprocessed signal-slots methods, ny simply uses callbacks. You could also specify a member function of you own class in `win.onDraw(...)`.
