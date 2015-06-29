@@ -20,7 +20,7 @@ unsigned int color::toInt()
     return ret;
 }
 
-void color::normalized(float& pr, float& pg, float& pb, float& pa)
+void color::normalized(float& pr, float& pg, float& pb, float& pa) const
 {
     pr = r / 255.f;
     pg = g / 255.f;
@@ -28,7 +28,7 @@ void color::normalized(float& pr, float& pg, float& pb, float& pa)
     pa = a / 255.f;
 }
 
-void color::normalized(float& pr, float& pg, float& pb)
+void color::normalized(float& pr, float& pg, float& pb) const
 {
     pr = r / 255.f;
     pg = g / 255.f;

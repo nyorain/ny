@@ -82,7 +82,7 @@ public:
 	point(float x, float y) : position(x,y) {}
 
 	drawStyle getDrawStyle() const { return style_; }
-	bezierData getTangentData() const { if(style_ == drawStyle::bezier) return bezier_; return bezierData(); }
+	bezierData getBezierData() const { if(style_ == drawStyle::bezier) return bezier_; return bezierData(); }
 	arcData getArcData() const { if(style_ == drawStyle::arc) return arc_; return arcData(); }
 
 	void setLinearDraw() { style_ = drawStyle::linear; }
@@ -115,6 +115,8 @@ public:
 };
 
 //path//////////////////////////////7
+//pathType of the first point will be ignored, its a startpoint
+//the pathType of every point shows how to draw the line BEFORE the point
 class customPath : public transformable2
 {
 protected:
@@ -152,6 +154,7 @@ public:
     rect2f getExtents() const { return getBaked().getExtents(); }
 
     void bake(int precision = -1) const; //default: use previous precision
+    const std::vector<point>& getPoints() const { return points_; }
     const pointArray& getBaked() const { if(needBake_)bake(); return baked_; }
     unsigned int getBakedPrecision() const { return precision_; }
 };

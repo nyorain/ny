@@ -129,6 +129,8 @@ void cairoDrawContext::mask(const text& obj)
     }
 
     cairo_set_font_face(cairoCR_, obj.getFont()->getCairoHandle(1)->handle);
+    cairo_set_font_size(cairoCR_, obj.getSize());
+    cairo_show_text(cairoCR_, obj.getString().c_str());
 }
 
 void cairoDrawContext::mask(const customPath& obj)
@@ -138,18 +140,13 @@ void cairoDrawContext::mask(const customPath& obj)
         sendWarning("drawing with uninitialized cairoDC");
         return;
     }
-    /*
-    if(!cairoCR_)
-        return;
 
     cairo_matrix_t cMatrix;
     cairo_get_matrix(cairoCR_, &cMatrix);
 
-    //cairo_save(cairoCR_);
-
-    cairo_translate(cairoCR_, obj.getTranslation().x, obj.getTranslation().y);
-    cairo_scale(cairoCR_, obj.getScale().x, obj.getScale().y);
-    cairo_rotate(cairoCR_, obj.getRotation());
+    //cairo_translate(cairoCR_, obj.getTranslation().x, obj.getTranslation().y);
+    //cairo_scale(cairoCR_, obj.getScale().x, obj.getScale().y);
+    //cairo_rotate(cairoCR_, obj.getRotation());
 
     cairo_new_path(cairoCR_);
 
@@ -157,21 +154,38 @@ void cairoDrawContext::mask(const customPath& obj)
 
     for(unsigned int i(0); i < points.size(); i++)
     {
-        if(points[i].getDrawStyle() == drawStyle::Linear)
-            cairo_line_to(cairoCR_, points[i].position.x, points[i].position.y);
-
-        else if(points[i].getDrawStyle() == drawStyle::Tangent)
-            cairo_curve_to(cairoCR_, points[i].getTangentData().startT.x, points[i].getTangentData().startT.y, points[i].getTangentData().endT.x, points[i].getTangentData().startT.y, points[i].position.x, points[i].position.y);
-
-        else if(points[i].getDrawStyle() == drawStyle::Arc)
+        //beginning
+        if(i == 0)
         {
-            vec2d p1;
-            cairo_get_current_point(cairoCR_, &p1.x, &p1.y);
+            cairo_move_to(cairoCR_, points[0].position.x, points[0].position.y);
+            continue;
+        }
+
+
+        //linear
+        if(points[i].getDrawStyle() == drawStyle::linear)
+        {
+            cairo_line_to(cairoCR_, points[i].position.x, points[i].position.y);
+        }
+
+        //tangent
+        else if(points[i].getDrawStyle() == drawStyle::bezier)
+        {
+            bezierData data = points[i].getBezierData();
+            cairo_curve_to(cairoCR_, data.start.x, data.start.y, data.end.x, data.start.y, points[i].position.x, points[i].position.y);
+        }
+
+        //arc
+        else if(points[i].getDrawStyle() == drawStyle::arc)
+        {
+            //TODO
+
+            vec2f p1 = points[i - 1].position;
 
             vec2f center;
             double angle1 = 0, angle2 = 0;
 
-            if(points[i].getArcData().type ==  arcType::Left || points[i].getArcData().type == arcType::LeftInverted)
+            if(points[i].getArcData().type ==  arcType::left || points[i].getArcData().type == arcType::leftInverted)
             {
                 center = circleCenter((vec2f) p1, points[i].position, points[i].getArcData().radius, direction::Left);
 
@@ -186,19 +200,19 @@ void cairoDrawContext::mask(const customPath& obj)
             if(p1.y != center.y) angle1 += asin((p1.y - center.y) / points[i].getArcData().radius);
             if(points[i].position.y != center.y) angle2 += asin((points[i].position.y - center.y) / points[i].getArcData().radius);
 
-            if(points[i].getArcData().type == arcType::Left)
+            if(points[i].getArcData().type == arcType::left)
             {
                 std::swap(angle1, angle2);
                 cairo_arc_negative(cairoCR_, center.x, center.y, points[i].getArcData().radius, angle1, angle2);
             }
 
-            else if(points[i].getArcData().type == arcType::LeftInverted)
+            else if(points[i].getArcData().type == arcType::leftInverted)
             {
                 std::swap(angle1, angle2);
                 cairo_arc(cairoCR_, center.x, center.y, points[i].getArcData().radius, angle1, angle2);
             }
 
-            else if(points[i].getArcData().type == arcType::RightInverted)
+            else if(points[i].getArcData().type == arcType::rightInverted)
             {
                 cairo_arc_negative(cairoCR_, center.x, center.y, points[i].getArcData().radius, angle1, angle2);
             }
@@ -211,27 +225,25 @@ void cairoDrawContext::mask(const customPath& obj)
         }
     }
 
-    //cairo_close_path(cairoCR_);
-    //cairo_restore(cairoCR_);
-
+    cairo_close_path(cairoCR_);
     cairo_set_matrix(cairoCR_, &cMatrix);
-    */
 }
 
 void cairoDrawContext::resetMask()
 {
-
+    //todo
 }
 
 void cairoDrawContext::outline(const brush& col)
 {
     if(!cairoCR_)
+    {
+        sendWarning("drawing with uninitialized cairoDC");
         return;
+    }
 
-    float r = (float) col.r / 255;
-    float g = (float) col.g / 255;
-    float b = (float) col.b / 255;
-    float a = (float) col.a / 255;
+    float r, g, b, a = 0;
+    col.normalized(r, g, b, a);
 
     cairo_set_source_rgba(cairoCR_, r, g, b, a);
     cairo_stroke(cairoCR_);
@@ -240,12 +252,13 @@ void cairoDrawContext::outline(const brush& col)
 void cairoDrawContext::fill(const pen& col)
 {
     if(!cairoCR_)
+    {
+        sendWarning("drawing with uninitialized cairoDC");
         return;
+    }
 
-    float r = (float) col.r / 255;
-    float g = (float) col.g / 255;
-    float b = (float) col.b / 255;
-    float a = (float) col.a / 255;
+    float r, g, b, a = 0;
+    col.normalized(r, g, b, a);
 
     cairo_set_source_rgba(cairoCR_, r, g, b, a);
     cairo_fill(cairoCR_);
@@ -390,41 +403,3 @@ void cairoText(cairo_t* cr,const  text& obj)
 
 }
 
-
-/*
-std::vector<rect2d> cairoDrawContext::getClip()
-{
-    std::vector<rect2d> ret;
-
-    if(!cairoCR_)
-        return ret;
-
-    cairo_rectangle_list_t* recList = cairo_copy_clip_rectangle_list(cairoCR_);
-
-    for(unsigned int i = 0; i < (unsigned int)recList->num_rectangles; i++)
-    {
-        cairo_rectangle_t& r = recList->rectangles[i];
-        ret.push_back(rect2d(r.x, r.y, r.width, r.height));
-    }
-
-    return ret;
-}
-
-
-void cairoDrawContext::clip(const std::vector<rect2d>& clipVec)
-{
-    if(!cairoCR_ || clipVec.empty())
-        return;
-
-    //std::cout << "cliip " << obj.getTranslation() << std::endl;
-
-    for(unsigned int i(0); i < clipVec.size(); i++)
-    {
-        const rect2d& obj = clipVec[i];
-
-        cairo_rectangle(cairoCR_, obj.position.x, obj.position.y, obj.size.x, obj.size.y);
-    }
-
-    cairo_clip(cairoCR_);
-}
-*/

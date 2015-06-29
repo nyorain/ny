@@ -119,21 +119,34 @@ customPath rectangle::getAsCustomPath() const
 {
     rect2f me = *this;
 
-    customPath p(me.topLeft() + vec2f(0, borderRadius_[0]));
-    p.addArc(me.topLeft() + vec2f(borderRadius_[0], 0), borderRadius_[0], arcType::right);
+    if(allValuesLessOrEqual(borderRadius_, vec4f(0,0,0,0)))
+    {
+        customPath p(me.topLeft());
+        p.addLine(me.topRight());
+        p.addLine(me.bottomRight());
+        p.addLine(me.bottomLeft());
 
-    p.addLine(me.topRight() - vec2f(borderRadius_[1], 0));
-    p.addArc(me.topRight() + vec2f(0, borderRadius_[1]), borderRadius_[1], arcType::right);
+        return p;
+    }
 
-    p.addLine(me.bottomRight() - vec2f(0, borderRadius_[2]));
-    p.addArc(me.bottomRight() - vec2f(borderRadius_[2], 0), borderRadius_[2], arcType::right);
+    else
+    {
+        customPath p(me.topLeft() + vec2f(0, borderRadius_[0]));
+        p.addArc(me.topLeft() + vec2f(borderRadius_[0], 0), borderRadius_[0], arcType::right);
 
-    p.addLine(me.bottomLeft() + vec2f(borderRadius_[3], 0));
-    p.addArc(me.bottomLeft() - vec2f(0, borderRadius_[3]), borderRadius_[3], arcType::right);
+        p.addLine(me.topRight() - vec2f(borderRadius_[1], 0));
+        p.addArc(me.topRight() + vec2f(0, borderRadius_[1]), borderRadius_[1], arcType::right);
 
-    //p.close();
+        p.addLine(me.bottomRight() - vec2f(0, borderRadius_[2]));
+        p.addArc(me.bottomRight() - vec2f(borderRadius_[2], 0), borderRadius_[2], arcType::right);
 
-    return p;
+        p.addLine(me.bottomLeft() + vec2f(borderRadius_[3], 0));
+        p.addArc(me.bottomLeft() - vec2f(0, borderRadius_[3]), borderRadius_[3], arcType::right);
+
+        //p.close();
+
+        return p;
+    }
 }
 
 customPath circle::getAsCustomPath() const
