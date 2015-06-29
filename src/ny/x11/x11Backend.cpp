@@ -56,7 +56,7 @@ toplevelWindowContext* x11Backend::createToplevelWindowContext(toplevelWindow& w
     }
 
     #ifdef NY_WithGL
-    if(settings.glPref == preference::DontCare || settings.glPref == preference::Must || settings.glPref == preference::Should)
+    if(settings.glPref == preference::Must || settings.glPref == preference::Should)
     {
         glxWindowContextSettings glxSettings;
         const glxWindowContextSettings* glxws = dynamic_cast<const glxWindowContextSettings*> (&s);
@@ -104,7 +104,7 @@ childWindowContext* x11Backend::createChildWindowContext(childWindow& win, const
     }
 
     #ifdef NY_WithGL
-    if(settings.glPref == preference::DontCare || settings.glPref == preference::Must || settings.glPref == preference::Should)
+    if(settings.glPref == preference::Must || settings.glPref == preference::Should)
     {
         glxWindowContextSettings glxSettings;
         const glxWindowContextSettings* glxws = dynamic_cast<const glxWindowContextSettings*> (&s);

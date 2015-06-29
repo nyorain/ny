@@ -94,6 +94,8 @@ public:
 
     virtual void setBorderSize(unsigned int size){ };
 
+    virtual unsigned long getAdditionalWindowHints() const;
+
 
     wl_shell_surface* getWlShellSurface() const { return wlShellSurface_; };
 };

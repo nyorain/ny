@@ -13,6 +13,8 @@
 namespace ny
 {
 
+const waylandBackend waylandBackend::object;
+
 waylandBackend::waylandBackend() : backend(Wayland)
 {
 
@@ -49,7 +51,7 @@ toplevelWindowContext* waylandBackend::createToplevelWindowContext(toplevelWindo
     }
 
     #ifdef NY_WithGL
-    if(settings.glPref == preference::DontCare || settings.glPref == preference::Must || settings.glPref == preference::Should)
+    if(settings.glPref == preference::Must || settings.glPref == preference::Should)
     {
         return new waylandGLToplevelWindowContext(win, settings);
     }
@@ -80,7 +82,7 @@ childWindowContext* waylandBackend::createChildWindowContext(childWindow& win, c
     }
 
     #ifdef NY_WithGL
-    if(settings.glPref == preference::DontCare || settings.glPref == preference::Must || settings.glPref == preference::Should)
+    if(settings.glPref == preference::Must || settings.glPref == preference::Should)
     {
         return new waylandGLChildWindowContext(win, settings);
     }

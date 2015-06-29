@@ -124,17 +124,17 @@ void waylandAppContext::registryHandler(wl_registry* registry, unsigned int id, 
 {
     if (interface == "wl_compositor")
     {
-        wlCompositor_ = (wl_compositor*) wl_registry_bind(registry, id, &wl_compositor_interface, version);
+        wlCompositor_ = (wl_compositor*) wl_registry_bind(registry, id, &wl_compositor_interface, 1);
     }
 
     else if (interface == "wl_shell")
     {
-        wlShell_ = (wl_shell*) wl_registry_bind(registry, id, &wl_shell_interface, version);
+        wlShell_ = (wl_shell*) wl_registry_bind(registry, id, &wl_shell_interface, 1);
     }
 
     else if (interface == "wl_shm")
     {
-        wlShm_ = (wl_shm*) wl_registry_bind(registry, id, &wl_shm_interface, version);
+        wlShm_ = (wl_shm*) wl_registry_bind(registry, id, &wl_shm_interface, 1);
         wl_shm_add_listener(wlShm_, &shmListener, this);
 
         wlCursorTheme_ = wl_cursor_theme_load(nullptr, 32, wlShm_);
@@ -142,18 +142,18 @@ void waylandAppContext::registryHandler(wl_registry* registry, unsigned int id, 
 
     else if(interface == "wl_subcompositor")
     {
-        wlSubcompositor_ = (wl_subcompositor*) wl_registry_bind(registry, id, &wl_subcompositor_interface, version);
+        wlSubcompositor_ = (wl_subcompositor*) wl_registry_bind(registry, id, &wl_subcompositor_interface, 1);
     }
 
     else if(interface == "wl_seat")
     {
-        wlSeat_ = (wl_seat*) wl_registry_bind(registry, id, &wl_seat_interface, version);
+        wlSeat_ = (wl_seat*) wl_registry_bind(registry, id, &wl_seat_interface, 1);
         wl_seat_add_listener(wlSeat_, &seatListener, this);
     }
 
     else if(interface == "wl_data_device_manager")
     {
-        wlDataManager_ = (wl_data_device_manager*) wl_registry_bind(registry, id, &wl_data_device_manager_interface, version);
+        wlDataManager_ = (wl_data_device_manager*) wl_registry_bind(registry, id, &wl_data_device_manager_interface, 1);
         if(wlSeat_) wlDataDevice_ = wl_data_device_manager_get_data_device(wlDataManager_, wlSeat_);
     }
 

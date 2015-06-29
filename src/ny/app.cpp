@@ -242,12 +242,23 @@ void app::mouseMove(mouseMoveEvent& event)
 {
     mouse::setPosition(event.position);
 
+    if(!mouseOver_)
+    {
+        if(event.handler)
+        {
+            mouseOver_ = event.handler;
+        }
+        else
+        {
+            return;
+        }
+    }
+
     if(mouseOver_ != nullptr)
     {
         window* child = mouseOver_->getTopLevelParent()->getWindowAt(event.position);
-        if(child == nullptr) goto goOn;
 
-        if(child != mouseOver_)
+        if(child && child != mouseOver_)
         {
             mouseCrossEvent leaveEv;
             leaveEv.handler = mouseOver_;

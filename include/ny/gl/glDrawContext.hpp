@@ -11,15 +11,18 @@ class glDrawContext : public drawContext
 {
 protected:
     rect2f clip_;
-    glContext& context_;
+    //glContext& context_;
 
 public:
     glDrawContext(surface& s, glContext& ctx);
+    glDrawContext(surface& s);
 
     void clear(color col = color::none);
 
-    virtual void mask(const path& obj){};
+    virtual void mask(const customPath& obj){};
+    virtual void mask(const text& obj){};
     virtual void resetMask(){};
+
 	virtual void fill(const brush& col){};
 	virtual void outline(const pen& col){};
 

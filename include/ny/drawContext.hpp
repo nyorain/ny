@@ -26,11 +26,19 @@ public:
 	const surface& getSurface() const { return surface_; }
 
 	virtual void apply(){}
-	virtual void clear(color = color::none) = 0;
+	virtual void clear(color = color::none);
 
 	virtual void mask(const ny::mask& obj);
-	virtual void mask(const path& obj) = 0;
+	virtual void mask(const path& obj);
 	virtual void resetMask() = 0;
+
+
+    virtual void mask(const customPath& obj) = 0;
+	virtual void mask(const text& obj) = 0;
+
+	virtual void mask(const rectangle& obj);
+	virtual void mask(const circle& obj);
+
 
 	virtual void fill(const brush& col) = 0;
 	virtual void outline(const pen& col) = 0;
@@ -60,8 +68,10 @@ public:
 	virtual void apply();
 	virtual void clear(color col = color::none);
 
-	virtual void mask(const path& obj);
+	virtual void mask(const customPath& obj);
+	virtual void mask(const text& obj);
 	virtual void resetMask();
+
 	virtual void fill(const pen& col);
 	virtual void outline(const brush& col);
 

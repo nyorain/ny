@@ -19,7 +19,6 @@ private:
 protected:
     cairoDrawContext* drawContext_;
 
-    unsigned char* pixels_;
     wayland::shmBuffer* buffer_;
     cairo_surface_t* cairoSurface_;
 

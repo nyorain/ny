@@ -70,9 +70,8 @@ class pointArray;
 
 class rectangle;
 class circle;
-class triangle;
 class text;
-class path;
+class customPath;
 
 //todo
 typedef color brush;
@@ -90,6 +89,11 @@ typedef toplevelWindowContext toplevelWC;
 typedef childWindowContext childWC;
 
 typedef appContext ac;
+
+//todo: fix NY_With*
+class freeTypeFont;
+class cairoFont;
+class gdiFont;
 
 #ifdef NY_WithGL
 class shader;

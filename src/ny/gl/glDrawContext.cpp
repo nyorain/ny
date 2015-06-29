@@ -5,15 +5,23 @@
 #include <ny/gl/glDrawContext.hpp>
 #include <ny/surface.hpp>
 
+/*
 #include <glbinding/gl/gl.h>
 #include <glbinding/Binding.h>
 using namespace gl;
+*/
+
+#include <GL/gl.h>
 
 namespace ny
 {
 
 //glDC
-glDrawContext::glDrawContext(surface& s, glContext& ctx) : drawContext(s), context_(ctx)
+glDrawContext::glDrawContext(surface& s, glContext& ctx) : drawContext(s)
+{
+}
+
+glDrawContext::glDrawContext(surface& s) : drawContext(s)
 {
 }
 
@@ -23,7 +31,7 @@ void glDrawContext::clear(color col)
     col.normalized(r, g, b, a);
 
     glClearColor(r, g, b, a);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT);
 }
 
 rect2f glDrawContext::getClip()

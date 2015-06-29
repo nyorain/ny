@@ -252,6 +252,8 @@ bool x11AppContext::mainLoopCall()
         e.screenPosition = vec2i(ev.xmotion.x_root, ev.xmotion.y_root);
         e.delta = e.position - mouse::getPosition();
         e.data = new x11EventData(ev);
+        x11WindowContext* w = getWindowContext(ev.xmotion.window);
+        if(w) e.handler = &w->getWindow();
         getMainApp()->mouseMove(e);
         return 1;
     }

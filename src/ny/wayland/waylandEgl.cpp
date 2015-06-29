@@ -37,7 +37,7 @@ waylandGLContext::waylandGLContext(waylandWindowContext& wc)
         return;
     }
 
-    //drawContext_ = new glDrawContext(wc.getWindow());
+    drawContext_ = new glDrawContext(wc.getWindow());
 }
 
 waylandGLContext::~waylandGLContext()

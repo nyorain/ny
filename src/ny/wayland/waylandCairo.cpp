@@ -20,14 +20,13 @@ namespace ny
 using namespace wayland;
 
 //cairo/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-waylandCairoContext::waylandCairoContext(const waylandWindowContext& wc) : drawContext_(nullptr), pixels_(nullptr), buffer_(nullptr), cairoSurface_(nullptr)
+waylandCairoContext::waylandCairoContext(const waylandWindowContext& wc) : drawContext_(nullptr), buffer_(nullptr), cairoSurface_(nullptr)
 {
     vec2ui size = wc.getWindow().getSize();
     buffer_ = new wayland::shmBuffer(size, bufferFormat::argb8888);
 
     //todo: correct dynamic format
-    cairoSurface_ = cairo_image_surface_create_for_data(pixels_, CAIRO_FORMAT_ARGB32, size.x, size.y, size.x * 4);
-
+    cairoSurface_ = cairo_image_surface_create_for_data((unsigned char*) buffer_->getData(), CAIRO_FORMAT_ARGB32, size.x, size.y, size.x * 4);
     drawContext_ = new cairoDrawContext(wc.getWindow(), *cairoSurface_);
 }
 
@@ -48,7 +47,7 @@ void waylandCairoContext::cairoSetSize(window& w, vec2ui size)
 
     buffer_->setSize(size);
 
-    cairoSurface_ = cairo_image_surface_create_for_data(pixels_, CAIRO_FORMAT_ARGB32, size.x, size.y, size.x * 4);
+    cairoSurface_ = cairo_image_surface_create_for_data((unsigned char*) buffer_->getData(), CAIRO_FORMAT_ARGB32, size.x, size.y, size.x * 4);
     drawContext_ = new cairoDrawContext(w, *cairoSurface_);
 }
 

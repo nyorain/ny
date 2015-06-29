@@ -1,10 +1,16 @@
 #include <ny/font.hpp>
 
-#include <ny/freeType.hpp>
-#include <ny/cairo.hpp>
 #include <ny/error.hpp>
 
-#ifdef WithWinapi
+#ifdef NY_WithFreeType
+#include <ny/freeType.hpp>
+#endif // NY_WithFreeType
+
+#ifdef NY_WithCairo
+#include <ny/cairo.hpp>
+#endif // NY_WithCairo
+
+#ifdef NY_WithWinapi
 #include <ny/winapi/gdi.hpp>
 #endif //Winapi
 
@@ -15,10 +21,15 @@ font font::defaultFont;
 
 font::~font()
 {
+    #ifdef NY_WithFreeType
     if(ftFont_) delete ftFont_;
-    //if(cairoFont_) delete cairoFont_;
+    #endif // NY_WithFreeType
 
-    #ifdef WithWinapi
+    #ifdef NY_WithCairo
+    if(cairoFont_) delete cairoFont_;
+    #endif
+
+    #ifdef NY_WithWinapi
     if(gdiFont_) delete gdiFont_;
     #endif //Winapi
 }
@@ -33,6 +44,7 @@ void font::loadFromName(const std::string& fontname)
     fromFile_ = 0;
 }
 
+#ifdef NY_WithFreeType
 freeTypeFont* font::getFreeTypeHandle(bool cr)
 {
     if(cr && !ftFont_ && !name_.empty())
@@ -53,7 +65,9 @@ freeTypeFont* font::getFreeTypeHandle(bool cr)
 
     return ftFont_;
 }
+#endif
 
+#ifdef NY_WithCairo
 cairoFont* font::getCairoHandle(bool cr)
 {
     //if(cr && !cairoFont_ && !name_.empty())
@@ -61,6 +75,7 @@ cairoFont* font::getCairoHandle(bool cr)
 
     return cairoFont_;
 }
+#endif
 
 #ifdef WithWinapi
 gdiFont* font::getGDIHandle(bool cr)

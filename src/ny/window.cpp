@@ -733,6 +733,9 @@ void toplevelWindow::create(vec2i position, vec2ui size, std::string name, const
     unsigned long addHints = newWC->getAdditionalWindowHints();
 	hints_ |= addHints;
 
+	hints_ |= windowHints::Resize;
+	hints_ |= windowHints::Move;
+
     windowContext_ = newWC;
 
     cursor c;
@@ -843,10 +846,7 @@ void toplevelWindow::mouseMove(mouseMoveEvent& ev)
         else t = cursorType::SizeLeft;
     }
 
-    cursor c;
-    c.fromNativeType(t);
-
-    windowContext_->setCursor(c);
+    cursor_.fromNativeType(t);
     windowContext_->updateCursor(nullptr);
 }
 

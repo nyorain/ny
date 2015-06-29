@@ -14,6 +14,17 @@ drawContext::~drawContext()
 {
 }
 
+void drawContext::mask(const path& obj)
+{
+    switch(obj.getPathType())
+    {
+        case pathType::text: mask(obj.getText()); return;
+        case pathType::rectangle: mask(obj.getRectangle()); return;
+        case pathType::custom: mask(obj.getCustom()); return;
+        case pathType::circle: mask(obj.getCircle()); return;
+    }
+}
+
 void drawContext::mask(const ny::mask& m)
 {
     auto vec = m.paths();
@@ -22,11 +33,30 @@ void drawContext::mask(const ny::mask& m)
         mask(vec[i]);
 }
 
+void drawContext::mask(const rectangle& obj)
+{
+    mask(obj.getAsCustomPath());
+}
+
+void drawContext::mask(const circle& obj)
+{
+    mask(obj.getAsCustomPath());
+}
+
 void drawContext::draw(const shape& obj)
 {
     mask(obj.getMask());
     fill(obj.getBrush());
     outline(obj.getPen());
+    resetMask();
+}
+
+void drawContext::clear(color col)
+{
+    rectangle r(vec2f(0,0), surface_.getSize());
+    mask(r);
+    fill(col);
+    resetMask();
 }
 
 
@@ -47,9 +77,16 @@ void redirectDrawContext::clear(color col)
     redirect_.clear(col);
 }
 
-void redirectDrawContext::mask(const path& obj)
+void redirectDrawContext::mask(const customPath& obj)
 {
-    path scopy = obj;
+    customPath scopy = obj;
+    scopy.translate(position_);
+    redirect_.mask(scopy);
+}
+
+void redirectDrawContext::mask(const text& obj)
+{
+    text scopy = obj;
     scopy.translate(position_);
     redirect_.mask(scopy);
 }

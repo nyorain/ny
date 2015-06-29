@@ -194,6 +194,11 @@ void waylandToplevelWindowContext::beginResize(mouseButtonEvent* ev, windowEdge 
     wl_shell_surface_resize(wlShellSurface_, context_->getWlSeat(), e->serial, wlEdge);
 }
 
+unsigned long waylandToplevelWindowContext::getAdditionalWindowHints() const
+{
+    return (windowHints::CustomDecorated | windowHints::CustomMoved | windowHints::CustomResized);
+}
+
 
 
 ////////////////////////////////////////////////////////////////////////////////////

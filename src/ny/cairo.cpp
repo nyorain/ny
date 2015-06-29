@@ -1,8 +1,7 @@
 #include <ny/cairo.hpp>
 
 #include <ny/shape.hpp>
-#include <ny/drawContext.hpp>
-#include <ny/windowContext.hpp>
+#include <ny/error.hpp>
 #include <ny/surface.hpp>
 
 #include <iostream>
@@ -54,13 +53,16 @@ cairoDrawContext::cairoDrawContext(surface& surf, cairo_surface_t& cairoSurface)
 cairoDrawContext::~cairoDrawContext()
 {
     if(cairoCR_) cairo_destroy(cairoCR_);
-    if(cairoSurface_) cairo_surface_destroy(cairoSurface_);
+    if(cairoSurface_) cairo_surface_destroy(cairoSurface_); //can be done, in constructor reference is called
 }
 
 void cairoDrawContext::clear(color col)
 {
     if(!cairoCR_)
+    {
+        sendWarning("drawing with uninitialized cairoDC");
         return;
+    }
 
     float r, g, b, a = 0;
     col.normalized(r, g, b, a);
@@ -71,16 +73,71 @@ void cairoDrawContext::clear(color col)
 
 rect2f cairoDrawContext::getClip()
 {
-    return rect2f();
+    rect2f ret;
+
+    if(!cairoCR_)
+    {
+        sendWarning("drawing with uninitialized cairoDC");
+        return ret;
+    }
+
+    cairo_rectangle_list_t* recList = cairo_copy_clip_rectangle_list(cairoCR_);
+
+    cairo_rectangle_t& r = recList->rectangles[0];
+    ret.position = vec2f(r.x, r.y);
+    ret.size =  vec2f(r.width, r.height);
+
+    return ret;
 }
 
 void cairoDrawContext::clip(const rect2f& obj)
 {
+    if(!cairoCR_)
+    {
+        sendWarning("drawing with uninitialized cairoDC");
+        return;
+    }
 
+    cairo_rectangle(cairoCR_, obj.left(), obj.top(), obj.width(), obj.height());
+    cairo_clip(cairoCR_);
 }
 
-void cairoDrawContext::mask(const path& obj)
+void cairoDrawContext::resetClip()
 {
+    if(!cairoCR_)
+    {
+        sendWarning("drawing with uninitialized cairoDC");
+        return;
+    }
+
+    cairo_reset_clip(cairoCR_);
+}
+
+
+void cairoDrawContext::mask(const text& obj)
+{
+    if(!cairoCR_)
+    {
+        sendWarning("drawing with uninitialized cairoDC");
+        return;
+    }
+
+    if(!obj.getFont())
+    {
+        sendWarning("drawing text with no font");
+        return;
+    }
+
+    cairo_set_font_face(cairoCR_, obj.getFont()->getCairoHandle(1)->handle);
+}
+
+void cairoDrawContext::mask(const customPath& obj)
+{
+    if(!cairoCR_)
+    {
+        sendWarning("drawing with uninitialized cairoDC");
+        return;
+    }
     /*
     if(!cairoCR_)
         return;
@@ -192,16 +249,6 @@ void cairoDrawContext::fill(const pen& col)
 
     cairo_set_source_rgba(cairoCR_, r, g, b, a);
     cairo_fill(cairoCR_);
-}
-
-void cairoDrawContext::resetClip()
-{
-    if(!cairoCR_)
-        return;
-
-    cairo_reset_clip(cairoCR_);
-    //cairo_rectangle(cairoCR_, 0, 0, surface_.getSize().x, surface_.getSize().y);
-    //cairo_clip(cairoCR_);
 }
 
 

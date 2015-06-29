@@ -17,7 +17,7 @@ extern std::ostream& errorStream;
 template<class ... Args> void sendWarning(Args ... info){ printVar(warningStream, info ...); warningStream << std::endl; }
 template<class ... Args> void sendDebug(Args ... info){
     #ifdef NY_DEBUG
-        printVar(debugStream, info ,,,); debugStream << std::endl;
+        printVar(debugStream, info ...); debugStream << std::endl;
     #endif // NY_DEBUG
 }
 

@@ -115,6 +115,47 @@ public:
 };
 
 //path//////////////////////////////7
+class customPath : public transformable2
+{
+protected:
+    std::vector<point> points_;
+    mutable pointArray baked_;
+    mutable unsigned int precision_ = 10;
+    mutable bool needBake_ = 0;
+
+public:
+    customPath(vec2f start = vec2f());
+    customPath(const customPath& other) = default;
+    customPath(customPath&& other) = default;
+    ~customPath() = default;
+
+    customPath& operator=(const customPath& other) = default;
+
+    point& operator[](size_t i){ return points_[i]; }
+    const point& operator[](size_t i) const { return points_[i]; }
+
+    size_t size() const { return points_.size(); }
+
+    void addLine(vec2f p);
+	void addLine(float x, float y);
+
+	void addBezier(vec2f p, const bezierData& d);
+	void addBezier(vec2f p, vec2f a, vec2f b);
+
+	void addArc(vec2f p, const arcData& d);
+	void addArc(vec2f p, float radius, arcType type);
+
+	size_t addPoint(point p){ points_.push_back(p); return points_.size() - 1; }
+	void removePoint(size_t pos){ points_.erase(points_.begin() + pos - 1); }
+
+    //inherited from transformable
+    rect2f getExtents() const { return getBaked().getExtents(); }
+
+    void bake(int precision = -1) const; //default: use previous precision
+    const pointArray& getBaked() const { if(needBake_)bake(); return baked_; }
+    unsigned int getBakedPrecision() const { return precision_; }
+};
+
 //rectangle
 class rectangle : public transformable2
 {
@@ -142,6 +183,8 @@ public:
     vec2f getPosition() const { return position_; }
     vec2f getSize() const { return size_; }
     vec4f getBorderRadius() const { return borderRadius_; }
+
+    customPath getAsCustomPath() const;
 
     template<class prec> operator rect2<prec>() const { return rect2<prec>(position_, size_); }
 
@@ -176,6 +219,8 @@ public:
     vec2f getPosition() const { return position_; }
     float getSize() const { return size_; }
 
+    font* getFont() const { return font_; }
+
     //inherited from transformable
     rect2f getExtents() const { rect2f ret; return ret; }
 };
@@ -204,44 +249,10 @@ public:
     float getRadius() const { return radius_; }
     unsigned int getPoints() const { return points_; }
 
+    customPath getAsCustomPath() const;
+
     //inherited from transformable
     rect2f getExtents() const { return rect2f(position_, radius_ * 2); }
-};
-
-class customPath : public transformable2
-{
-protected:
-    std::vector<point> points_;
-    mutable pointArray baked_;
-    mutable unsigned int precision_ = 10;
-    mutable bool needBake_ = 0;
-
-public:
-    customPath(vec2f start = vec2f());
-    customPath(const customPath& other) = default;
-    customPath(customPath&& other) = default;
-    ~customPath() = default;
-
-    customPath& operator=(const customPath& other) = default;
-
-    void addLine(vec2f p);
-	void addLine(float x, float y);
-
-	void addBezier(vec2f p, const bezierData& d);
-	void addBezier(vec2f p, vec2f a, vec2f b);
-
-	void addArc(vec2f p, const arcData& d);
-	void addArc(vec2f p, float radius, arcType type);
-
-	size_t addPoint(point p){ points_.push_back(p); return points_.size() - 1; }
-	void removePoint(size_t pos){ points_.erase(points_.begin() + pos - 1); }
-
-    //inherited from transformable
-    rect2f getExtents() const { return getBaked().getExtents(); }
-
-    void bake(int precision = -1) const; //default: use previous precision
-    const pointArray& getBaked() const { if(needBake_)bake(); return baked_; }
-    unsigned int getBakedPrecision() const { return precision_; }
 };
 
 //path///////////////////////////////////////////////////////////////
@@ -260,8 +271,14 @@ protected:
 
 public:
 	path() : type_(pathType::custom), custom_() {}
-	path(const path& other) : type_(other.type_) { if(type_ == pathType::text)text_ = other.text_; else if(type_ == pathType::rectangle)rectangle_ = other.rectangle_; else if(type_ == pathType::circle)circle_ = other.circle_; else if(type_ == pathType::custom)custom_ = other.custom_; }
-    ~path(){ }
+	path(const path& other);
+
+    path(const rectangle& obj) : type_(pathType::rectangle), rectangle_(obj) {}
+    path(const circle& obj) : type_(pathType::circle), circle_(obj) {}
+    path(const text& obj) : type_(pathType::text), text_(obj) {}
+    path(const customPath& obj) : type_(pathType::custom), custom_(obj) {}
+
+    ~path();
 
 	void setText(const text& obj){ type_ = pathType::text; text_ = obj; }
 	void setRectangle(const rectangle& obj){ type_ = pathType::rectangle; rectangle_ = obj; }
@@ -270,37 +287,37 @@ public:
 
 	pathType getPathType() const { return type_; }
 
-	const text& getText() const { if(type_ == pathType::text) return text_; }
-	const rectangle& getRectangle() const { if(type_ == pathType::rectangle) return rectangle_; }
-	const circle& getCircle() const { if(type_ == pathType::circle) return circle_; }
-	const customPath& getCustom() const { if(type_ == pathType::custom) return custom_; }
+	const text& getText() const { return text_; }
+	const rectangle& getRectangle() const { return rectangle_; }
+	const circle& getCircle() const { return circle_; }
+	const customPath& getCustom() const { return custom_; }
 
-	const transformable2& getObject() const { if(type_ == pathType::text) return text_; else if(type_ == pathType::rectangle) return rectangle_; else if(type_ == pathType::circle) return circle_; else return custom_;}
-	transformable2& getObject() { if(type_ == pathType::text) return text_; else if(type_ == pathType::rectangle) return rectangle_; else if(type_ == pathType::circle) return circle_; else return custom_;}
+	const transformable2& getTransformable() const;
+	transformable2& getTransformable();
 
-    ///transform//////////////
-    void rotate(float rotation){ getObject().rotate(rotation); }
-    void translate(const vec2f& translation){ getObject().translate(translation); }
-    void scale(const vec2f& pscale){ getObject().scale(pscale); }
+    ////transformable//////////////
+    void rotate(float rotation){ getTransformable().rotate(rotation); }
+    void translate(const vec2f& translation){ getTransformable().translate(translation); }
+    void scale(const vec2f& pscale){ getTransformable().scale(pscale); }
 
-    void setRotation(float rotation){ getObject().setRotation(rotation); }
-    void setTranslation(const vec2f& translation){ getObject().setTranslation(translation); }
-    void setScale(const vec2f& pscale){ getObject().setScale(pscale); }
+    void setRotation(float rotation){ getTransformable().setRotation(rotation); }
+    void setTranslation(const vec2f& translation){ getTransformable().setTranslation(translation); }
+    void setScale(const vec2f& pscale){ getTransformable().setScale(pscale); }
 
-    float getRotation() const { return getObject().getRotation(); }
-    const vec2f& getTranslation() const { return getObject().getTranslation(); }
-    const vec2f& getScale() const { return getObject().getScale(); }
+    float getRotation() const { return getTransformable().getRotation(); }
+    const vec2f& getTranslation() const { return getTransformable().getTranslation(); }
+    const vec2f& getScale() const { return getTransformable().getScale(); }
 
-	const vec2f& getOrigin() const { return getObject().getOrigin(); }
-	void setOrigin(const vec2f& origin) { getObject().setOrigin(origin); }
-	void moveOrigin(const vec2f& m) { getObject().moveOrigin(m); };
+	const vec2f& getOrigin() const { return getTransformable().getOrigin(); }
+	void setOrigin(const vec2f& origin) { getTransformable().setOrigin(origin); }
+	void moveOrigin(const vec2f& m) { getTransformable().moveOrigin(m); };
 
-	void copyTransform(const transformable2& other){ getObject().copyTransform(other); };
+	void copyTransform(const transformable2& other){ getTransformable().copyTransform(other); };
 
-    mat3f getTransformMatrix() const { return getObject().getTransformMatrix(); }
+    mat3f getTransformMatrix() const { return getTransformable().getTransformMatrix(); }
 
-	rect2f getExtents() const { return getObject().getExtents(); }
-	rect2f getTransformedExtents() const { return getObject().getTransformedExtents(); }
+	rect2f getExtents() const { return getTransformable().getExtents(); }
+	rect2f getTransformedExtents() const { return getTransformable().getTransformedExtents(); }
 
 };
 

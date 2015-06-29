@@ -8,6 +8,10 @@
 namespace ny
 {
 
+struct cairoFont
+{
+    cairo_font_face_t* handle;
+};
 
 class cairoDrawContext : public drawContext
 {
@@ -23,8 +27,10 @@ public:
 
     virtual void clear(color col = color::none);
 
-	virtual void mask(const path& obj);
+	virtual void mask(const customPath& obj);
+	virtual void mask(const text& obj);
 	virtual void resetMask();
+
 	virtual void fill(const brush& col);
 	virtual void outline(const pen& col);
 
