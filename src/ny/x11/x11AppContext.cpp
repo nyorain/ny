@@ -223,19 +223,7 @@ void x11AppContext::sendRedrawEvent(Window w)
     return;
 }
 
-bool x11AppContext::mainLoopCallNonBlocking()
-{
-    while(XPending(xDisplay_) > 0)
-    {
-        if(!mainLoopCall())
-            return 0;
-    }
-
-    return 1;
-}
-
-
-bool x11AppContext::mainLoopCall()
+bool x11AppContext::mainLoop()
 {
     XEvent ev;
 

@@ -14,8 +14,7 @@ public:
     appContext();
     virtual ~appContext();
 
-    virtual bool mainLoopCall() = 0;
-    virtual bool mainLoopNonBlocking(){ return mainLoopCall(); }
+    virtual bool mainLoop() = 0;
 
     virtual void startDataOffer(dataSource& source, const image& img){}
     virtual bool isOffering() const { return 0; }
