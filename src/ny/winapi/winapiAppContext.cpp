@@ -32,7 +32,7 @@ winapiAppContext::~winapiAppContext()
     GdiplusShutdown(m_gdiplusToken);
 }
 
-bool winapiAppContext::mainLoopCall()
+bool winapiAppContext::mainLoop()
 {
     MSG msg;
     BOOL ret = GetMessage(&msg,NULL,0,0);

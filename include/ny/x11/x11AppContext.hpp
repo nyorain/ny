@@ -46,8 +46,7 @@ public:
 
     virtual void init();
 
-    virtual bool mainLoopCall();
-    virtual bool mainLoopCallNonBlocking();
+    virtual bool mainLoop();
 
     //virtual void setClipboard(dataObject& obj);
     //virtual bool getClipboard(dataTypes types, std::function<void(dataObject*)> callback);

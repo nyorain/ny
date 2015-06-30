@@ -71,7 +71,7 @@ void waylandAppContext::init()
 #endif // NY_WithGL
 }
 
-bool waylandAppContext::mainLoopCall()
+bool waylandAppContext::mainLoop()
 {
     if(wl_display_dispatch(wlDisplay_) == -1)
         return 0;

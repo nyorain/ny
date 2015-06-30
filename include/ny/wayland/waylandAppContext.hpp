@@ -77,7 +77,7 @@ public:
 
     void init();
 
-    bool mainLoopCall();
+    bool mainLoop();
 
     void setCursor(std::string curs, unsigned int serial = 0);
     void setCursor(image* img, unsigned int serial = 0);

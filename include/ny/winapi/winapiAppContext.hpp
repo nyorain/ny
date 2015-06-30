@@ -33,7 +33,7 @@ public:
     winapiAppContext();
     ~winapiAppContext();
 
-    virtual bool mainLoopCall();
+    virtual bool mainLoop();
     virtual LRESULT eventProc(HWND, UINT, WPARAM, LPARAM);
 
     void registerContext(HWND w, winapiWindowContext* c);

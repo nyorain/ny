@@ -137,7 +137,7 @@ int app::mainLoop()
 
     while(existing_ && valid_)
     {
-        if(!appContext_->mainLoopCall()) //should be blocking
+        if(!appContext_->mainLoop()) //should be blocking
         {
             valid_ = 0;
         }
