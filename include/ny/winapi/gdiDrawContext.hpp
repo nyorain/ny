@@ -11,6 +11,11 @@ using namespace Gdiplus;
 namespace ny
 {
 
+struct gdiFont
+{
+
+};
+
 class winapiWindowContext;
 
 class gdiDrawContext : public drawContext<2, 2>

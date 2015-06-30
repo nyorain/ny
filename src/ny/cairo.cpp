@@ -1,3 +1,6 @@
+#include <ny/config.h>
+
+#ifdef NY_WithCairo
 #include <ny/cairo.hpp>
 
 #include <ny/shape.hpp>
@@ -428,3 +431,5 @@ void cairoDrawContext::clip(const std::vector<rect2d>& clipVec)
     cairo_clip(cairoCR_);
 }
 */
+
+#endif //NY_WithCairo

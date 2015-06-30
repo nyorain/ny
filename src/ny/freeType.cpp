@@ -1,3 +1,6 @@
+#include <ny/config.h>
+
+#ifdef NY_WithFreeType
 #include <ny/freeType.hpp>
 
 #include <ny/error.hpp>
@@ -45,3 +48,5 @@ freeTypeFont::~freeTypeFont()
 }
 
 }
+
+#endif //FreeType

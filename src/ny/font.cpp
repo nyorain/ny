@@ -14,6 +14,10 @@
 #include <ny/winapi/gdi.hpp>
 #endif //Winapi
 
+#ifdef NY_WithWinapi
+#include <ny/winapi/gdiDrawContext.hpp>
+#endif // NY_WithWinapi
+
 namespace ny
 {
 
@@ -77,7 +81,7 @@ cairoFont* font::getCairoHandle(bool cr)
 }
 #endif
 
-#ifdef WithWinapi
+#ifdef NY_WithWinapi
 gdiFont* font::getGDIHandle(bool cr)
 {
     if(cr && !gdiFont_ && !name_.empty())
