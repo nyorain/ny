@@ -406,46 +406,4 @@ void cairoText(cairo_t* cr,const  text& obj)
 
 }
 
-<<<<<<< HEAD
-=======
-
-/*
-std::vector<rect2d> cairoDrawContext::getClip()
-{
-    std::vector<rect2d> ret;
-
-    if(!cairoCR_)
-        return ret;
-
-    cairo_rectangle_list_t* recList = cairo_copy_clip_rectangle_list(cairoCR_);
-
-    for(unsigned int i = 0; i < (unsigned int)recList->num_rectangles; i++)
-    {
-        cairo_rectangle_t& r = recList->rectangles[i];
-        ret.push_back(rect2d(r.x, r.y, r.width, r.height));
-    }
-
-    return ret;
-}
-
-
-void cairoDrawContext::clip(const std::vector<rect2d>& clipVec)
-{
-    if(!cairoCR_ || clipVec.empty())
-        return;
-
-    //std::cout << "cliip " << obj.getTranslation() << std::endl;
-
-    for(unsigned int i(0); i < clipVec.size(); i++)
-    {
-        const rect2d& obj = clipVec[i];
-
-        cairo_rectangle(cairoCR_, obj.position.x, obj.position.y, obj.size.x, obj.size.y);
-    }
-
-    cairo_clip(cairoCR_);
-}
-*/
-
 #endif //NY_WithCairo
->>>>>>> a5a88d524f39b6eb752f4604bf3eed20b4699259

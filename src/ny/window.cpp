@@ -765,6 +765,7 @@ void toplevelWindow::mouseButton(mouseButtonEvent& ev)
 {
     window::mouseButton(ev);
 
+
     if(!isCustomResized() || !hasResizeHint())
         return;
 
@@ -809,6 +810,7 @@ void toplevelWindow::mouseButton(mouseButtonEvent& ev)
 
     if(found) getWindowContext()->beginResize(&ev, medge);
     else getWindowContext()->beginMove(&ev);
+
 }
 
 void toplevelWindow::mouseMove(mouseMoveEvent& ev)

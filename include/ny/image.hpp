@@ -11,15 +11,6 @@ namespace ny
 {
 
 
-enum class imageType
-{
-    Unknown = 0,
-
-    JPG,
-    PNG,
-    GIF
-};
-
 class imageHandle;
 
 //image/////////////////////////////
@@ -37,10 +28,10 @@ public:
     virtual unsigned char* getDataPlain();
     const virtual unsigned char* getDataPlain() const;
 
-    virtual unsigned char* getDataConvent();
-    const virtual unsigned char* getDataConvent() const;
+    virtual unsigned char* getDataConvent() const;
+    virtual void getDataConvent(unsigned char* data) const;
 
-    imageType getType() const;
+    unsigned int getBufferSize() const;
 
     //from surface
     vec2ui getSize() const;

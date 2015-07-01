@@ -14,7 +14,7 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
-
+#include <vector>
 
 namespace ny
 {
@@ -273,8 +273,6 @@ void app::mouseMove(mouseMoveEvent& event)
             mouseOver_ = child;
         }
     }
-
-    goOn:
 
     sendEvent(event, *mouseOver_);
 }

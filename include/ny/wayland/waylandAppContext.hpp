@@ -52,6 +52,7 @@ protected:
     wl_shm* wlShm_ = nullptr;
     wl_data_device_manager* wlDataManager_ = nullptr;
     wl_data_device* wlDataDevice_ = nullptr;
+    wl_output* wlOutput_ = nullptr;
 
     wl_seat* wlSeat_ = nullptr;
     wl_pointer* wlPointer_ = nullptr;
@@ -61,7 +62,8 @@ protected:
     wl_surface* wlCursorSurface_ = nullptr;
 
     wl_surface* dataSourceSurface_ = nullptr;
-    wl_buffer* dataSourceBuffer_ = nullptr;
+    wl_surface* dataIconSurface_ = nullptr;
+    wayland::shmBuffer* dataIconBuffer_ = nullptr;
 	const dataSource* dataSource_ = nullptr;
 	wl_data_source* wlDataSource_ = nullptr;
 
@@ -82,12 +84,12 @@ public:
     void setCursor(std::string curs, unsigned int serial = 0);
     void setCursor(image* img, unsigned int serial = 0);
 
-	void startDataOffer(dataSource& source, const image& img);
+	void startDataOffer(dataSource& source, const image& img, const window& w, const event* ev);
 	bool isOffering() const;
 	void endDataOffer();
 
 	dataOffer* getClipboard();
-	void setClipboard(dataSource& source);
+	void setClipboard(dataSource& source, const event* ev);
 
     void registryHandler(wl_registry *registry, unsigned int id, std::string interface, unsigned int version);
     void registryRemover(wl_registry *registry, unsigned int id);

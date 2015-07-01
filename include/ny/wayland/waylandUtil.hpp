@@ -31,8 +31,8 @@ public:
 
 //surfaceListener////////////////////////////////////////////////////////////////
 void shellSurfaceHandlePopupDone(void* data, wl_shell_surface* shellSurface);
-void shellSurfaceHandleConfigure(void* data, wl_shell_surface* shellSurface, uint32_t edges, int32_t width, int32_t height);
-void shellSurfaceHandlePing(void* data, wl_shell_surface* shellSurface, uint32_t serial);
+void shellSurfaceHandleConfigure(void* data, wl_shell_surface* shellSurface, unsigned int edges, int width, int height);
+void shellSurfaceHandlePing(void* data, wl_shell_surface* shellSurface, unsigned int serial);
 const wl_shell_surface_listener shellSurfaceListener =
 {
     shellSurfaceHandlePing,
@@ -41,15 +41,15 @@ const wl_shell_surface_listener shellSurfaceListener =
 };
 
 //frameCallback//////////////////////////////////////////////////////////////////
-void surfaceHandleFrame(void* data, wl_callback* callback, uint32_t time);
+void surfaceHandleFrame(void* data, wl_callback* callback, unsigned int time);
 const wl_callback_listener frameListener =
 {
     surfaceHandleFrame
 };
 
 //globalRegistry/////////////////////////////////////////////////////////////////
-void globalRegistryHandleAdd(void* data, wl_registry* registry, uint32_t id, const char* interface, uint32_t version);
-void globalRegistryHandleRemove(void* data, wl_registry* registry, uint32_t id);
+void globalRegistryHandleAdd(void* data, wl_registry* registry, unsigned int id, const char* interface, unsigned int version);
+void globalRegistryHandleRemove(void* data, wl_registry* registry, unsigned int id);
 
 const wl_registry_listener globalRegistryListener =
 {
@@ -58,7 +58,7 @@ const wl_registry_listener globalRegistryListener =
 };
 
 //shm////////////////////////////////////////////////////////////////////////
-void shmHandleFormat(void* data, wl_shm* shm, uint32_t format);
+void shmHandleFormat(void* data, wl_shm* shm, unsigned int format);
 const wl_shm_listener shmListener =
 {
     shmHandleFormat
@@ -73,11 +73,11 @@ const wl_seat_listener seatListener =
 
 ////////////////////////////////////////////////////////////////////////
 //pointer events
-void pointerHandleEnter(void* data, wl_pointer* pointer, uint32_t serial, wl_surface* surface, wl_fixed_t sx, wl_fixed_t sy);
-void pointerHandleLeave(void* data, wl_pointer* pointer, uint32_t serial, wl_surface* surface);
-void pointerHandleMotion(void* data, wl_pointer* pointer, uint32_t time, wl_fixed_t sx, wl_fixed_t sy);
-void pointerHandleButton(void* data, wl_pointer* pointer,  uint32_t serial, uint32_t time, uint32_t button, uint32_t state);
-void pointerHandleAxis(void* data, wl_pointer* pointer, uint32_t time, uint32_t axis, wl_fixed_t value);
+void pointerHandleEnter(void* data, wl_pointer* pointer, unsigned int serial, wl_surface* surface, wl_fixed_t sx, wl_fixed_t sy);
+void pointerHandleLeave(void* data, wl_pointer* pointer, unsigned int serial, wl_surface* surface);
+void pointerHandleMotion(void* data, wl_pointer* pointer, unsigned int time, wl_fixed_t sx, wl_fixed_t sy);
+void pointerHandleButton(void* data, wl_pointer* pointer,  unsigned int serial, unsigned int time, unsigned int button, unsigned int state);
+void pointerHandleAxis(void* data, wl_pointer* pointer, unsigned int time, unsigned int axis, wl_fixed_t value);
 
 const wl_pointer_listener pointerListener =
 {
@@ -91,11 +91,11 @@ const wl_pointer_listener pointerListener =
 
 ////////////////////////////////////////////////////////////////////////
 //keyboard events
-void keyboardHandleKeymap(void* data, wl_keyboard* keyboard, uint32_t format, int fd, uint32_t size);
-void keyboardHandleEnter(void* data, wl_keyboard* keyboard, uint32_t serial, wl_surface* surface, wl_array* keys);
-void keyboardHandleLeave(void* data, wl_keyboard* keyboard, uint32_t serial, wl_surface* surface);
-void keyboardHandleKey(void* data, wl_keyboard* keyboard, uint32_t serial, uint32_t time, uint32_t key, uint32_t state);
-void keyboardHandleModifiers(void* data, wl_keyboard* keyboard, uint32_t serial, uint32_t modsDepressed, uint32_t modsLatched, uint32_t modsLocked, uint32_t group);
+void keyboardHandleKeymap(void* data, wl_keyboard* keyboard, unsigned int format, int fd, unsigned int size);
+void keyboardHandleEnter(void* data, wl_keyboard* keyboard, unsigned int serial, wl_surface* surface, wl_array* keys);
+void keyboardHandleLeave(void* data, wl_keyboard* keyboard, unsigned int serial, wl_surface* surface);
+void keyboardHandleKey(void* data, wl_keyboard* keyboard, unsigned int serial, unsigned int time, unsigned int key, unsigned int state);
+void keyboardHandleModifiers(void* data, wl_keyboard* keyboard, unsigned int serial, unsigned int modsDepressed, unsigned int modsLatched, unsigned int modsLocked, unsigned int group);
 
 const wl_keyboard_listener keyboardListener =
 {
@@ -108,10 +108,58 @@ const wl_keyboard_listener keyboardListener =
 
 
 //display sync////////////////////////////////////////////////////////
-void displayHandleSync(void* data, wl_callback* callback, uint32_t  time);
+void displayHandleSync(void* data, wl_callback* callback, unsigned int  time);
 const wl_callback_listener displaySyncListener =
 {
     displayHandleSync
+};
+
+//dataSourceListener
+void dataSourceTarget(void* data, wl_data_source* wl_data_source, const char* mime_type);
+void dataSourceSend(void* data, wl_data_source* wl_data_source, const char* mime_type, int fd);
+void dataSourceCancelled(void* data, wl_data_source* wl_data_source);
+const wl_data_source_listener dataSourceListener =
+{
+    dataSourceTarget,
+    dataSourceSend,
+    dataSourceCancelled
+};
+
+//dataOffer
+void dataOfferOffer(void* data, wl_data_offer* wl_data_offer, const char* mime_type);
+const wl_data_offer_listener dataOfferListener =
+{
+    dataOfferOffer
+};
+
+//dataDevice
+void dataDeviceOffer(void* data, wl_data_device* wl_data_device, wl_data_offer* id);
+void dataDeviceEnter(void* data, wl_data_device* wl_data_device, unsigned int serial, wl_surface* surface, wl_fixed_t x, wl_fixed_t y, wl_data_offer* id);
+void dataDeviceLeave(void* data, wl_data_device* wl_data_device);
+void dataDeviceMotion(void* data, wl_data_device* wl_data_device, unsigned int time, wl_fixed_t x, wl_fixed_t y);
+void dataDeviceDrop(void* data, wl_data_device* wl_data_device);
+void dataDeviceSelection(void* data, wl_data_device* wl_data_device, wl_data_offer* id);
+const wl_data_device_listener dataDeviceListener =
+{
+    dataDeviceOffer,
+    dataDeviceEnter,
+    dataDeviceLeave,
+    dataDeviceMotion,
+    dataDeviceDrop,
+    dataDeviceSelection
+};
+
+//output
+void outputGeometry(void* data, wl_output* wl_output, int x, int y, int physical_width, int physical_height, int subpixel, const char* make, const char* model, int transform);
+void outputMode(void* data, wl_output* wl_output, unsigned int flags, int width, int height, int refresh);
+void outputDone(void* data, wl_output* wl_output);
+void outputScale(void* data, wl_output* wl_output, int factor);
+const wl_output_listener outputListener =
+{
+    outputGeometry,
+    outputMode,
+    outputDone,
+    outputScale
 };
 
 //bufferCreation//////////////////////////////////////////////////////////////

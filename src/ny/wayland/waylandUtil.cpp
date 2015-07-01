@@ -157,6 +157,71 @@ void displayHandleSync(void* data, wl_callback* callback, uint32_t time)
 {
 }
 
+/////////////
+//dataSource
+void dataSourceTarget(void* data, wl_data_source* wl_data_source, const char* mime_type)
+{
+    std::cout << "target" << std::endl;
+}
+void dataSourceSend(void* data, wl_data_source* wl_data_source, const char* mime_type, int fd)
+{
+    std::cout << "send" << std::endl;
+}
+void dataSourceCancelled(void* data, wl_data_source* wl_data_source)
+{
+    std::cout << "cancelled" << std::endl;
+}
+
+//dataOffer
+void dataOfferOffer(void* data, wl_data_offer* wl_data_offer, const char* mime_type)
+{
+    std::cout << "offer" << std::endl;
+}
+
+//dataDevice
+void dataDeviceOffer(void* data, wl_data_device* wl_data_device, wl_data_offer* id)
+{
+     std::cout << "deviceOffer" << std::endl;
+}
+void dataDeviceEnter(void* data, wl_data_device* wl_data_device, unsigned int serial, wl_surface* surface, wl_fixed_t x, wl_fixed_t y, wl_data_offer* id)
+{
+    std::cout << "deviceEnter" << std::endl;
+}
+void dataDeviceLeave(void* data, wl_data_device* wl_data_device)
+{
+    std::cout << "deviceLeave" << std::endl;
+}
+void dataDeviceMotion(void* data, wl_data_device* wl_data_device, unsigned int time, wl_fixed_t x, wl_fixed_t y)
+{
+    std::cout << "deviceMotion" << std::endl;
+}
+void dataDeviceDrop(void* data, wl_data_device* wl_data_device)
+{
+    std::cout << "deviceDrop" << std::endl;
+}
+void dataDeviceSelection(void* data, wl_data_device* wl_data_device, wl_data_offer* id)
+{
+    std::cout << "deviceSelection" << std::endl;
+}
+
+//output
+void outputGeometry(void* data, wl_output* wl_output, int x, int y, int physical_width, int physical_height, int subpixel, const char* make, const char* model, int transform)
+{
+
+}
+void outputMode(void* data, wl_output* wl_output, unsigned int flags, int width, int height, int refresh)
+{
+
+}
+void outputDone(void* data, wl_output* wl_output)
+{
+
+}
+void outputScale(void* data, wl_output* wl_output, int factor)
+{
+
+}
+
 
 //buffer///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int osCreateAnonymousFile(off_t size)

@@ -5,6 +5,7 @@
 
 #include <ny/error.hpp>
 #include <ny/app.hpp>
+#include <ny/image.hpp>
 
 #include <ny/util/misc.hpp>
 
@@ -79,25 +80,66 @@ bool waylandAppContext::mainLoop()
     return 1;
 }
 
-void waylandAppContext::startDataOffer(dataSource& source, const image& img)
+void waylandAppContext::startDataOffer(dataSource& source, const image& img, const window& w, const event* ev)
 {
-	dataSource_ = &source;
-
-	wlDataSource_ = wl_data_device_manager_create_data_source(wlDataManager_);
-	wl_data_source_set_user_data(wlDataSource_, &source);
-
-    std::vector<std::string> vec = dataTypesToString(source.getPossibleTypes(), 1);
-	for(size_t i(0); i < vec.size(); i++)
-        wl_data_source_offer(wlDataSource_, vec[i].c_str());
 
     if(!wlDataDevice_)
     {
+        if(!wlSeat_ || !wlDataManager_)
+            return;
+
         wlDataDevice_ = wl_data_device_manager_get_data_device(wlDataManager_, wlSeat_);
     }
 
+    if(!dataIconBuffer_)
+    {
+        dataIconBuffer_ = new shmBuffer(img.getSize());
+    }
+    else
+    {
+        dataIconBuffer_->setSize(img.getSize());
+    }
 
+    waylandWindowContext* wwc = dynamic_cast<waylandWindowContext*>(w.getWindowContext());
+    dataSourceSurface_ = wwc->getWlSurface();
 
-    wl_data_device_start_drag(wlDataDevice_, wlDataSource_, nullptr, nullptr, 0);
+    unsigned char* buffData = (unsigned char*) dataIconBuffer_->getData();
+    unsigned char imgData[img.getBufferSize()];
+
+    img.getDataConvent(imgData);
+
+    for(unsigned int i(0); i < img.getBufferSize(); i++)
+    {
+        buffData[i] = imgData[i];
+        //buffData[i] = 0x66;
+    }
+
+    if(!dataIconSurface_)
+    {
+        dataIconSurface_ = wl_compositor_create_surface(wlCompositor_);
+
+    }
+
+	dataSource_ = &source;
+
+	wlDataSource_ = wl_data_device_manager_create_data_source(wlDataManager_);
+	wl_data_source_add_listener(wlDataSource_, &dataSourceListener, &source);
+
+    std::vector<std::string> vec = dataTypesToString(source.getPossibleTypes(), 1); //only mime
+	for(size_t i(0); i < vec.size(); i++)
+        wl_data_source_offer(wlDataSource_, vec[i].c_str());
+
+    waylandEventData* data;
+    if(!ev->data || !(data = dynamic_cast<waylandEventData*>(ev->data)))
+    {
+        return;
+    }
+
+    wl_data_device_start_drag(wlDataDevice_, wlDataSource_, dataSourceSurface_, dataIconSurface_, data->serial);
+
+    wl_surface_attach(dataIconSurface_, dataIconBuffer_->getWlBuffer(), 0, 0);
+    wl_surface_damage(dataIconSurface_, 0, 0, img.getSize().x, img.getSize().y);
+    wl_surface_commit(dataIconSurface_);
 }
 
 bool waylandAppContext::isOffering() const
@@ -107,7 +149,10 @@ bool waylandAppContext::isOffering() const
 
 void waylandAppContext::endDataOffer()
 {
-
+    if(isOffering())
+    {
+        //TODO
+    }
 }
 
 dataOffer* waylandAppContext::getClipboard()
@@ -115,7 +160,7 @@ dataOffer* waylandAppContext::getClipboard()
     return nullptr;
 }
 
-void waylandAppContext::setClipboard(ny::dataSource& source)
+void waylandAppContext::setClipboard(ny::dataSource& source, const event* ev)
 {
 
 }
@@ -145,22 +190,39 @@ void waylandAppContext::registryHandler(wl_registry* registry, unsigned int id, 
         wlSubcompositor_ = (wl_subcompositor*) wl_registry_bind(registry, id, &wl_subcompositor_interface, 1);
     }
 
+    else if(interface == "wl_output")
+    {
+        wlOutput_ = (wl_output*) wl_registry_bind(registry, id, &wl_output_interface, 1);
+        wl_output_add_listener(wlOutput_, &outputListener, this);
+    }
+
     else if(interface == "wl_seat")
     {
         wlSeat_ = (wl_seat*) wl_registry_bind(registry, id, &wl_seat_interface, 1);
         wl_seat_add_listener(wlSeat_, &seatListener, this);
+
+        if(wlDataManager_ && !wlDataDevice_)
+        {
+            wlDataDevice_ = wl_data_device_manager_get_data_device(wlDataManager_, wlSeat_);
+            wl_data_device_add_listener(wlDataDevice_, &dataDeviceListener, this);
+        }
     }
 
     else if(interface == "wl_data_device_manager")
     {
         wlDataManager_ = (wl_data_device_manager*) wl_registry_bind(registry, id, &wl_data_device_manager_interface, 1);
-        if(wlSeat_) wlDataDevice_ = wl_data_device_manager_get_data_device(wlDataManager_, wlSeat_);
+        if(wlSeat_ && !wlDataDevice_)
+        {
+            wlDataDevice_ = wl_data_device_manager_get_data_device(wlDataManager_, wlSeat_);
+            wl_data_device_add_listener(wlDataDevice_, &dataDeviceListener, this);
+        }
     }
 
 }
 
 void waylandAppContext::registryRemover(wl_registry* registry, unsigned int id)
 {
+    //TODO
 }
 
 void waylandAppContext::seatCapabilities(wl_seat* seat, unsigned int caps)

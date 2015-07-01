@@ -5,7 +5,6 @@ namespace ny
 
 appContext::appContext()
 {
-
 }
 
 appContext::~appContext()

@@ -32,11 +32,6 @@ image::~image()
 		delete handle_;
 }
 
-imageType image::getType() const
-{
-    return imageType::Unknown;
-}
-
 const unsigned char* image::getDataPlain() const
 {
     return handle_->img.data();
@@ -47,15 +42,32 @@ unsigned char* image::getDataPlain()
 	return handle_->img.data();
 }
 
-//todo
-const unsigned char* image::getDataConvent() const
+unsigned int image::getBufferSize() const
 {
-    return handle_->img.data();
+    return handle_->img.size();
 }
 
-unsigned char* image::getDataConvent()
+//todo
+unsigned char* image::getDataConvent() const
 {
-	return handle_->img.data();
+    unsigned char* ret = new unsigned char[handle_->img.size()];
+
+    cimg_forXYC(handle_->img, x, y, c)
+    {
+        unsigned int pos = (handle_->img.width() * y + x) * handle_->img.spectrum() + c;
+        ret[pos] = handle_->img(x,y,c);
+    }
+
+    return ret;
+}
+
+void image::getDataConvent(unsigned char* data) const
+{
+    cimg_forXYC(handle_->img, x, y, c)
+    {
+        unsigned int pos = (handle_->img.width() * y + x) * handle_->img.spectrum() + c;
+        data[pos] = handle_->img(x,y,c);
+    }
 }
 
 vec2ui image::getSize() const
