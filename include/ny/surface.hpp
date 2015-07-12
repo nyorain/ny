@@ -7,12 +7,13 @@
 namespace ny
 {
 
-//buffer
+//buffer////////////
 enum class bufferFormat : unsigned char
 {
     Unknown = 0,
 
     argb8888,
+    xrgb8888,
     rgba8888,
     rgb888,
     bit
@@ -20,6 +21,7 @@ enum class bufferFormat : unsigned char
 
 unsigned getBufferFormatSize(bufferFormat format);
 
+//surface///////////////
 class surface
 {
 public:

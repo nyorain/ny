@@ -1,6 +1,7 @@
 #include <ny/wayland/waylandAppContext.hpp>
 
 #include <ny/wayland/waylandUtil.hpp>
+#include <ny/wayland/waylandInterfaces.hpp>
 #include <ny/wayland/waylandWindowContext.hpp>
 
 #include <ny/error.hpp>
@@ -70,6 +71,7 @@ void waylandAppContext::init()
         return;
     }
 #endif // NY_WithGL
+
 }
 
 bool waylandAppContext::mainLoop()
@@ -192,8 +194,8 @@ void waylandAppContext::registryHandler(wl_registry* registry, unsigned int id, 
 
     else if(interface == "wl_output")
     {
-        wlOutput_ = (wl_output*) wl_registry_bind(registry, id, &wl_output_interface, 1);
-        wl_output_add_listener(wlOutput_, &outputListener, this);
+        //wlOutput_ = (wl_output*) wl_registry_bind(registry, id, &wl_output_interface, 1);
+        //wl_output_add_listener(wlOutput_, &outputListener, this);
     }
 
     else if(interface == "wl_seat")
@@ -420,6 +422,7 @@ void waylandAppContext::shmFormat(wl_shm* shm, unsigned int format)
 
 bool waylandAppContext::bufferFormatSupported(unsigned int wlBufferType)
 {
+    std::cout << wlBufferType << " " << supportedShm_.size() << std::endl;
     for(size_t i(0); i < supportedShm_.size(); i++)
     {
         if(supportedShm_[i] == wlBufferType)
@@ -532,7 +535,6 @@ bool waylandEGLAppContext::init()
     }
 
     eglContext_ = eglCreateContext(eglDisplay_, eglConfig_, EGL_NO_CONTEXT, context_attribs);
-    //eglBindAPI(EGL_OPENGL_API);
     return 1;
 }
 #endif // NY_WithGL

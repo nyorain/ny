@@ -2,6 +2,7 @@
 
 #include <ny/wayland/waylandUtil.hpp>
 #include <ny/wayland/waylandAppContext.hpp>
+#include <ny/wayland/waylandInterfaces.hpp>
 #include <ny/error.hpp>
 #include <ny/cairo.hpp>
 
@@ -54,7 +55,6 @@ void waylandCairoContext::cairoSetSize(window& w, vec2ui size)
 //cairoToplevel/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 waylandCairoToplevelWindowContext::waylandCairoToplevelWindowContext(toplevelWindow& win, const waylandWindowContextSettings& settings) : windowContext(win, settings), waylandToplevelWindowContext(win, settings), waylandCairoContext((waylandWindowContext&)*this)
 {
-    wl_surface_attach(wlSurface_, buffer_->getWlBuffer(), 0, 0);
     refresh();
 }
 

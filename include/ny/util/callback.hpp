@@ -18,7 +18,7 @@ template < class > class callback;
 class callbackBase
 {
 public:
-    virtual void remove(connection* con) = 0;
+    virtual void remove(const connection& con) = 0;
 };
 
 
@@ -41,7 +41,7 @@ public:
     connection(const connection&& mover) noexcept : callback_(mover.callback_), connected_(mover.connected_) {} //for callback
     connection& operator=(const connection&& mover) noexcept { callback_ = mover.callback_; connected_ = mover.connected_; return *this; } //for callback
 
-    void destroy(){ callback_.remove(this); } //will delete this object implicitly
+    void destroy(){ callback_.remove(*this); } //will delete this object implicitly
     bool isConnected() const { return connected_; };
 };
 
@@ -88,11 +88,11 @@ public:
     };
 
     //removes a callback identified by its connection. Functions (std::function) can't be compared => we need connections
-    void remove(connection* con)
+    void remove(const connection& con)
     {
         for(unsigned int i(0); i < callbacks_.size(); i++)
         {
-            if(callbacks_[i].first == con)
+            if(&(callbacks_[i].first) == &con)
             {
                 callbacks_[i].first.wasRemoved();
                 callbacks_.erase(callbacks_.begin() + i);
@@ -168,11 +168,11 @@ public:
         return callbacks_.back().first;
     };
 
-    void remove(connection* con)
+    void remove(const connection& con)
     {
         for(unsigned int i(0); i < callbacks_.size(); i++)
         {
-            if(&(callbacks_[i].first) == con)
+            if(&(callbacks_[i].first) == &con)
             {
                 callbacks_[i].first.wasRemoved();
                 callbacks_.erase(callbacks_.begin() + i);

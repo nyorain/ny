@@ -22,7 +22,6 @@ protected:
     wayland::shmBuffer* buffer_;
     cairo_surface_t* cairoSurface_;
 
-    bool createBuffer(vec2ui size, wl_shm* shm);
     void cairoSetSize(window& w, vec2ui size);
 
 public:

@@ -2,6 +2,7 @@
 
 #include <ny/wayland/waylandUtil.hpp>
 #include <ny/wayland/waylandAppContext.hpp>
+#include <ny/wayland/waylandInterfaces.hpp>
 
 #include <ny/event.hpp>
 #include <ny/app.hpp>

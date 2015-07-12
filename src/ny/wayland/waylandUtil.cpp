@@ -29,201 +29,49 @@ namespace ny
 namespace wayland
 {
 
-//shellSurface///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void shellSurfaceHandlePing(void* data,  wl_shell_surface *shellSurface, uint32_t serial)
-{
-    wl_shell_surface_pong(shellSurface, serial);
-}
-
-void shellSurfaceHandleConfigure(void* data,  wl_shell_surface *shellSurface, uint32_t edges, int32_t width, int32_t height)
-{
-    waylandAppContext* a = dynamic_cast<waylandAppContext*>(getMainApp()->getAppContext());
-
-    if(!a)
-        return;
-
-    a->eventWindowResized(shellSurface, edges, width, height);
-}
-
-void shellSurfaceHandlePopupDone(void* data, wl_shell_surface *shellSurface)
-{
-}
-
-//frame///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void surfaceHandleFrame(void* data,  wl_callback *callback, uint32_t time)
-{
-    waylandWC* wc =  (waylandWindowContext*)data;
-
-    waylandFrameEvent ev;
-    ev.handler = &wc->getWindow();
-    ev.backend = Wayland;
-
-    getMainApp()->sendEvent(ev, *ev.handler);
-}
-
-//global Registry/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void globalRegistryHandleAdd(void* data,  wl_registry* registry, uint32_t id, const char* interface, uint32_t version)
-{
-    waylandAppContext* a = (waylandAppContext*) data;
-    a->registryHandler(registry, id, interface, version);
-}
-
-void globalRegistryHandleRemove(void* data,  wl_registry* registry, uint32_t id)
-{
-    waylandAppContext* a = (waylandAppContext*) data;
-    a->registryRemover(registry, id);
-}
-
-//shm////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void shmHandleFormat(void* data,  wl_shm* shm, uint32_t format)
-{
-    waylandAppContext* a = (waylandAppContext*) data;
-
-    a->shmFormat(shm, format);
-}
-
-//seat///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void seatHandleCapabilities(void* data,  wl_seat* seat, unsigned int caps)
-{
-    waylandAppContext* a = (waylandAppContext*) data;
-    a->seatCapabilities(seat, caps);
-}
-
-//pointer////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void pointerHandleEnter(void* data, wl_pointer *pointer, uint32_t serial, wl_surface* surface, wl_fixed_t sx, wl_fixed_t sy)
-{
-    waylandAppContext* app = (waylandAppContext*) data;
-    app->eventMouseEnterSurface(pointer, serial, surface, sx, sy);
-}
-
-void pointerHandleLeave(void* data, wl_pointer* pointer, uint32_t serial, wl_surface* surface)
-{
-    waylandAppContext* app = (waylandAppContext*) data;
-    app->eventMouseLeaveSurface(pointer, serial, surface);
-}
-
-void pointerHandleMotion(void* data, wl_pointer* pointer, uint32_t time, wl_fixed_t sx, wl_fixed_t sy)
-{
-    waylandAppContext* app = (waylandAppContext*) data;
-    app->eventMouseMove(pointer, time, sx, sy);
-}
-
-void pointerHandleButton(void* data,  wl_pointer* pointer,  uint32_t serial, uint32_t time, uint32_t button, uint32_t state)
-{
-    waylandAppContext* app = (waylandAppContext*) data;
-    app->eventMouseButton(pointer,serial, time, button, state);
-}
-
-void pointerHandleAxis(void* data, wl_pointer* pointer, uint32_t time, uint32_t axis, wl_fixed_t value)
-{
-    waylandAppContext* app = (waylandAppContext*) data;
-    app->eventMouseAxis(pointer, time, axis, value);
-}
-
-
-//keyboard////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void keyboardHandleKeymap(void* data, wl_keyboard* keyboard, uint32_t format, int fd, uint32_t size)
-{
-    waylandAppContext* app = (waylandAppContext*) data;
-    app->eventKeyboardKeymap(keyboard, format, fd, size);
-}
-
-void keyboardHandleEnter(void* data, wl_keyboard* keyboard, uint32_t serial, wl_surface* surface, wl_array* keys)
-{
-    waylandAppContext* app = (waylandAppContext*) data;
-    app->eventKeyboardEnterSurface(keyboard, serial, surface, keys);
-}
-
-void keyboardHandleLeave(void* data, wl_keyboard* keyboard, uint32_t serial, wl_surface* surface)
-{
-    waylandAppContext* app = (waylandAppContext*) data;
-    app->eventKeyboardLeaveSurface(keyboard, serial, surface);
-}
-
-void keyboardHandleKey(void* data, wl_keyboard* keyboard, uint32_t serial, uint32_t time, uint32_t key, uint32_t state)
-{
-    waylandAppContext* app = (waylandAppContext*) data;
-    app->eventKeyboardKey(keyboard, serial, time, key, state);
-}
-
-void keyboardHandleModifiers(void* data, wl_keyboard* keyboard,uint32_t serial, uint32_t modsDepressed,uint32_t modsLatched, uint32_t modsLocked, uint32_t group)
-{
-    waylandAppContext* app = (waylandAppContext*) data;
-    app->eventKeyboardModifiers(keyboard, serial, modsDepressed, modsLatched, modsLocked, group);
-}
-
-//displaySnyc//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void displayHandleSync(void* data, wl_callback* callback, uint32_t time)
-{
-}
-
-/////////////
-//dataSource
-void dataSourceTarget(void* data, wl_data_source* wl_data_source, const char* mime_type)
-{
-    std::cout << "target" << std::endl;
-}
-void dataSourceSend(void* data, wl_data_source* wl_data_source, const char* mime_type, int fd)
-{
-    std::cout << "send" << std::endl;
-}
-void dataSourceCancelled(void* data, wl_data_source* wl_data_source)
-{
-    std::cout << "cancelled" << std::endl;
-}
-
-//dataOffer
-void dataOfferOffer(void* data, wl_data_offer* wl_data_offer, const char* mime_type)
-{
-    std::cout << "offer" << std::endl;
-}
-
-//dataDevice
-void dataDeviceOffer(void* data, wl_data_device* wl_data_device, wl_data_offer* id)
-{
-     std::cout << "deviceOffer" << std::endl;
-}
-void dataDeviceEnter(void* data, wl_data_device* wl_data_device, unsigned int serial, wl_surface* surface, wl_fixed_t x, wl_fixed_t y, wl_data_offer* id)
-{
-    std::cout << "deviceEnter" << std::endl;
-}
-void dataDeviceLeave(void* data, wl_data_device* wl_data_device)
-{
-    std::cout << "deviceLeave" << std::endl;
-}
-void dataDeviceMotion(void* data, wl_data_device* wl_data_device, unsigned int time, wl_fixed_t x, wl_fixed_t y)
-{
-    std::cout << "deviceMotion" << std::endl;
-}
-void dataDeviceDrop(void* data, wl_data_device* wl_data_device)
-{
-    std::cout << "deviceDrop" << std::endl;
-}
-void dataDeviceSelection(void* data, wl_data_device* wl_data_device, wl_data_offer* id)
-{
-    std::cout << "deviceSelection" << std::endl;
-}
-
-//output
-void outputGeometry(void* data, wl_output* wl_output, int x, int y, int physical_width, int physical_height, int subpixel, const char* make, const char* model, int transform)
-{
-
-}
-void outputMode(void* data, wl_output* wl_output, unsigned int flags, int width, int height, int refresh)
-{
-
-}
-void outputDone(void* data, wl_output* wl_output)
-{
-
-}
-void outputScale(void* data, wl_output* wl_output, int factor)
-{
-
-}
-
-
 //buffer///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+int setCloexecOrClose(int fd)
+{
+    long flags;
+
+    if (fd == -1)
+        return -1;
+
+    flags = fcntl(fd, F_GETFD);
+    if (flags == -1)
+        goto err;
+
+    if (fcntl(fd, F_SETFD, flags | FD_CLOEXEC) == -1)
+        goto err;
+
+    return fd;
+
+err:
+    close(fd);
+    std::cout << "error" << std::endl;
+    return -1;
+}
+
+int createTmpfileCloexec(char *tmpname)
+{
+    int fd;
+
+    #ifdef HAVE_MKOSTEMP
+    fd = mkostemp(tmpname, O_CLOEXEC);
+    if (fd >= 0)
+        unlink(tmpname);
+    #else
+    fd = mkstemp(tmpname);
+    if (fd >= 0)
+    {
+        fd = setCloexecOrClose(fd);
+        unlink(tmpname);
+    }
+    #endif
+
+    return fd;
+}
+
 int osCreateAnonymousFile(off_t size)
 {
     static const char template1[] = "/weston-shared-XXXXXX";
@@ -260,48 +108,7 @@ int osCreateAnonymousFile(off_t size)
     return fd;
 }
 
-int createTmpfileCloexec(char *tmpname)
-{
-    int fd;
-
-    #ifdef HAVE_MKOSTEMP
-    fd = mkostemp(tmpname, O_CLOEXEC);
-    if (fd >= 0)
-        unlink(tmpname);
-    #else
-    fd = mkstemp(tmpname);
-    if (fd >= 0)
-    {
-        fd = setCloexecOrClose(fd);
-        unlink(tmpname);
-    }
-    #endif
-
-    return fd;
-}
-
-int setCloexecOrClose(int fd)
-{
-    long flags;
-
-    if (fd == -1)
-        return -1;
-
-    flags = fcntl(fd, F_GETFD);
-    if (flags == -1)
-        goto err;
-
-    if (fcntl(fd, F_SETFD, flags | FD_CLOEXEC) == -1)
-        goto err;
-
-    return fd;
-
-err:
-    close(fd);
-    std::cout << "error" << std::endl;
-    return -1;
-}
-
+//shmBuffer
 shmBuffer::shmBuffer(vec2ui size, bufferFormat form) : size_(size), format(form)
 {
     create();
@@ -328,13 +135,18 @@ void shmBuffer::create()
     }
 
     wl_shm* shm = ac->getWlShm();
+    if(!shm)
+    {
+        throw std::runtime_error("no wayland shm initialized");
+        return;
+    }
 
     unsigned int stride = size_.x * getBufferFormatSize(format);
 
     unsigned int vecSize = stride * size_.y;
     unsigned int mmapSize = defaultSize_;
 
-    if(vecSize > defaultSize_)
+    if(vecSize > defaultSize_ || 1)
     {
         mmapSize = vecSize;
     }
@@ -383,6 +195,54 @@ void shmBuffer::setSize(const vec2ui& size)
         wl_buffer_destroy(buffer_);
         buffer_ = wl_shm_pool_create_buffer(pool_, 0, size_.x, size_.y, stride, bufferFormatToWayland(format));
     }
+}
+
+//callback////////////////////////////////////
+void callbackDone(void *data, struct wl_callback* callback, uint32_t callbackData)
+{
+    serverCallback* call = (serverCallback*) data;
+    call->done(callback, callbackData);
+}
+
+const wl_callback_listener callbackListener =
+{
+    &callbackDone,
+};
+
+//
+serverCallback::serverCallback(wl_callback* callback)
+{
+    wl_callback_add_listener(callback, &callbackListener, this);
+}
+
+connection& serverCallback::add(std::function<void(wl_callback*, unsigned int)> func)
+{
+    return callback_.add(func);
+}
+
+connection& serverCallback::add(std::function<void(unsigned int)> func)
+{
+    return callback_.add([=](wl_callback*, unsigned int i){
+                    func(i);
+                  });
+}
+
+connection& serverCallback::add(std::function<void()> func)
+{
+    return callback_.add([=](wl_callback*, unsigned int){
+                    func();
+                  });
+}
+
+
+void serverCallback::remove(const connection& conn)
+{
+    callback_.remove(conn);
+}
+
+void serverCallback::done(wl_callback* cb, unsigned int data)
+{
+    callback_(cb, data);
 }
 
 }//end namespace wayland
@@ -557,12 +417,14 @@ cursorType waylandToCursor(std::string id)
     return cursorType::Unknown;
 }
 
-unsigned int bufferFormatToWayland(bufferFormat format)
+int bufferFormatToWayland(bufferFormat format)
 {
     switch(format)
     {
         case bufferFormat::argb8888: return WL_SHM_FORMAT_ARGB8888;
-        default: return 0;
+        case bufferFormat::xrgb8888: return WL_SHM_FORMAT_XRGB8888;
+        case bufferFormat::rgb888: return WL_SHM_FORMAT_RGB888;
+        default: return -1;
     }
 }
 
@@ -571,6 +433,8 @@ bufferFormat waylandToBufferFormat(unsigned int wlFormat)
     switch(wlFormat)
     {
         case WL_SHM_FORMAT_ABGR8888: return bufferFormat::argb8888;
+        case WL_SHM_FORMAT_XRGB8888: return bufferFormat::xrgb8888;
+        case WL_SHM_FORMAT_RGB888: return bufferFormat::rgb888;
         default: return bufferFormat::Unknown;
     }
 }

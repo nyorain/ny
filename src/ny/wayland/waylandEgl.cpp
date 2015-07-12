@@ -5,6 +5,7 @@
 #include <ny/wayland/waylandEgl.hpp>
 #include <ny/wayland/waylandAppContext.hpp>
 #include <ny/wayland/waylandUtil.hpp>
+#include <ny/wayland/waylandInterfaces.hpp>
 
 #include <ny/error.hpp>
 #include <ny/window.hpp>
