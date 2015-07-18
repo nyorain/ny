@@ -7,9 +7,9 @@ namespace ny
 
 namespace windowHints
 {
-    const unsigned long GL = (1L << 6);
-    const unsigned long Toplevel = (1L << 7);
-    const unsigned long Child = (1L << 8);
+    const unsigned long GL = (1L << 1);
+    const unsigned long Toplevel = (1L << 2);
+    const unsigned long Child = (1L << 3);
 
     //toplevel specific
     const unsigned long Move = (1L << 1);
@@ -69,7 +69,7 @@ enum class preference : unsigned char
 };
 
 //toplevelState
-enum class toplevelState
+enum class toplevelState : unsigned char
 {
     Unknown = 0,
 

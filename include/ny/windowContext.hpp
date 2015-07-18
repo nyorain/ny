@@ -15,7 +15,7 @@ class windowContext : public nonCopyable
 {
 protected:
     window& window_;
-    unsigned long hints_;
+    unsigned long hints_; //specific context hints. can be declared by every backend
 
 public:
     windowContext(window& win, unsigned long hints = 0);
@@ -71,15 +71,9 @@ public:
 
     virtual void setCursor(const cursor& c) = 0;
     virtual void updateCursor(mouseCrossEvent* ev){}; //not needed in all
-};
 
-class toplevelWindowContext : public virtual windowContext
-{
-public:
-    toplevelWindowContext(toplevelWindow& win, const windowContextSettings& = windowContextSettings());
 
-    toplevelWindow& getToplevelWindow() const;
-
+    //toplevel-specific//////////////////////////////////////////////////////////////////////////////////////////////////////
     virtual void setMaximized() = 0;
     virtual void setMinimized() = 0;
     virtual void setFullscreen() = 0;
@@ -91,18 +85,9 @@ public:
     virtual void setBorderSize(unsigned int size) = 0;
     virtual void setName(std::string name){};
 
-    virtual bool isVirtual() const final { return 0; }
-
 	virtual void setIcon(const image* img) {}
 };
 
-class childWindowContext : public virtual windowContext
-{
-public:
-    childWindowContext(childWindow& win, const windowContextSettings& = windowContextSettings());
-
-    childWindow& getChildWindow() const;
-};
 
 //virtual////////////////////////////////////////////
 

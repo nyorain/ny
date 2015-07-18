@@ -321,8 +321,6 @@ public:
 
     window* getParent() const { return nullptr; };
 
-    virtual toplevelWindowContext* getWindowContext() const;
-
     bool isMaximized() const { return (state_ == toplevelState::Maximized); };
     bool isMinimized() const { return (state_ == toplevelState::Minimized); };
     bool isFullscreen() const { return (state_ == toplevelState::Fullscreen); };

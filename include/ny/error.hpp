@@ -10,6 +10,7 @@
 namespace ny
 {
 
+//todo÷ make pointer
 extern std::ostream& warningStream;
 extern std::ostream& debugStream;
 extern std::ostream& errorStream;

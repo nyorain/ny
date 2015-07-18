@@ -27,7 +27,7 @@ class waylandWindowContextSettings : public windowContextSettings{};
 
 //wc////////////////////////////////////////////////////////////
 //waylandWindowContext//////////////////////////////////////////////////
-class waylandWindowContext : public virtual windowContext
+class waylandWindowContext : public windowContext
 {
 protected:
     wl_surface* wlSurface_;
@@ -76,7 +76,7 @@ public:
 };
 
 //waylandToplevel////////////////////////////////////////////////////////
-class waylandToplevelWindowContext : public toplevelWindowContext, public waylandWindowContext
+class waylandToplevelWindowContext : public waylandWindowContext
 {
 protected:
     wl_shell_surface* wlShellSurface_;
@@ -101,7 +101,7 @@ public:
 };
 
 //waylandChild/////////////////////////////////////////////////////////
-class waylandChildWindowContext : public childWindowContext, public waylandWindowContext
+class waylandChildWindowContext : public waylandWindowContext
 {
 protected:
     wl_subsurface* wlSubsurface_;

@@ -852,14 +852,6 @@ void toplevelWindow::mouseMove(mouseMoveEvent& ev)
     windowContext_->updateCursor(nullptr);
 }
 
-toplevelWindowContext* toplevelWindow::getWindowContext() const
-{
-    if(valid_)
-        return dynamic_cast<toplevelWindowContext*>(windowContext_);
-
-    return nullptr;
-}
-
 void toplevelWindow::setName(std::string n)
 {
      name_ = n;

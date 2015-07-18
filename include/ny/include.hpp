@@ -24,8 +24,6 @@ class mouse;
 
 class appContext;
 class windowContext;
-class toplevelWindowContext;
-class childWindowContext;
 class windowContextSettings;
 
 class dataTypes;

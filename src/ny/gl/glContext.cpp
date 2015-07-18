@@ -15,18 +15,14 @@ namespace ny
 
 bool isExtensionSupported(const char* extList, const char* extension)
 {
-  const char *start;
-  const char *where, *terminator;
+    const char *start;
+    const char *where, *terminator;
 
-  /* Extension names should not have spaces. */
-  where = strchr(extension, ' ');
-  if (where || *extension == '\0')
+    where = strchr(extension, ' ');
+    if (where || *extension == '\0')
     return false;
 
-  /* It takes a bit of care to be fool-proof about parsing the
-     OpenGL extensions string. Don't be fooled by sub-strings,
-     etc. */
-  for (start=extList;;) {
+    for (start=extList;;) {
     where = strstr(start, extension);
 
     if (!where)
@@ -39,11 +35,10 @@ bool isExtensionSupported(const char* extList, const char* extension)
         return true;
 
     start = terminator;
-  }
+    }
 
-  return false;
+    return false;
 }
-
 
 
 //glContext
