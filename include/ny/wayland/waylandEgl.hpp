@@ -20,20 +20,18 @@ public:
 
 
 ////
-class waylandEGLContext: public eglContext
+class waylandEGLDrawContext: public eglDrawContext
 {
 protected:
     wl_egl_window* wlEGLWindow_ = nullptr;
-    glDrawContext* drawContext_ = nullptr;
 
     void setSize(vec2ui size);
 
 public:
-    waylandEGLContext(const waylandWindowContext& wc);
-    virtual ~waylandEGLContext();
+    waylandEGLDrawContext(const waylandWindowContext& wc);
+    virtual ~waylandEGLDrawContext();
 
     wl_egl_window& getWlEGLWindow() const { return *wlEGLWindow_; };
-    glDrawContext& getDC() const { return *drawContext_; }
 };
 
 

@@ -5,6 +5,7 @@
 #include <ny/x11/x11WindowContext.hpp>
 #include <ny/x11/x11Cairo.hpp>
 #include <ny/app.hpp>
+#include <ny/drawContext.hpp>
 
 #ifdef NY_WithGL
 #include <ny/x11/glx.hpp>
@@ -112,14 +113,17 @@ cursorType x11ToCursor(int xcID)
 ////////////////////////////////////////////////////////////////////////
 x11AppContext* asX11(appContext* c){ return dynamic_cast<x11AppContext*>(c); };
 x11WindowContext* asX11(windowContext* c){ return dynamic_cast<x11WindowContext*>(c); };
-x11CairoContext* asX11Cairo(windowContext* c){ return dynamic_cast<x11CairoContext*>(c); };
+
+#ifdef NY_WithCairo
+x11CairoDrawContext* asX11Cairo(drawContext* c){ return dynamic_cast<x11CairoDrawContext*>(c); };
+#endif //Cairo
 
 #ifdef NY_WithGL
-glxContext* asGLX(glContext* c){ return dynamic_cast<glxContext*>(c); };
+glxDrawContext* asGLX(drawContext* c){ return dynamic_cast<glxDrawContext*>(c); };
 #endif // NY_WithGL
 
 #ifdef NY_WithEGL
-x11EGLContext* asX11EGL(windowContext* c){ return dynamic_cast<x11EGLContext*>(c); };
+x11EGLDrawContext* asX11EGL(drawContext* c){ return dynamic_cast<x11EGLDrawContext*>(c); };
 #endif // NY_WithEGL
 
 

@@ -23,14 +23,17 @@ cursorType x11ToCursor(int xcID);
 
 x11AppContext* asX11(appContext* c);
 x11WindowContext* asX11(windowContext* c);
-x11CairoContext* asX11Cairo(windowContext* c);
+
+#ifdef NY_WithCairo
+x11CairoDrawContext* asX11Cairo(drawContext* c);
+#endif //Cairo
 
 #ifdef NY_WithGL
-glxContext* asGlx(glContext* c);
+glxDrawContext* asGlx(drawContext* c);
 #endif // NY_WithGL
 
 #ifdef NY_WithEGL
-x11EGLContext* asx11EGL(windowContext* c);
+x11EGLDrawContext* asx11EGL(drawContext* c);
 #endif // NY_WithEGL
 
 namespace x11

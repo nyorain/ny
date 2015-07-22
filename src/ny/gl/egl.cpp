@@ -15,7 +15,11 @@ eglAppContext* getEGLAppContext()
     return getMainApp()->getAppContext()->getEGLAppContext();
 }
 
-bool eglContext::makeCurrentImpl()
+eglDrawContext::eglDrawContext(surface& s) : glDrawContext(s)
+{
+}
+
+bool eglDrawContext::makeCurrentImpl()
 {
     if(!getEGLContext() || !eglSurface_ || !eglContext_)
         return 0;
@@ -23,7 +27,7 @@ bool eglContext::makeCurrentImpl()
     return eglMakeCurrent(getEGLAppContext()->getDisplay(), eglSurface_, eglSurface_,  eglContext_);
 }
 
-bool eglContext::makeNotCurrentImpl()
+bool eglDrawContext::makeNotCurrentImpl()
 {
     if(!getEGLContext())
         return 0;
@@ -31,7 +35,7 @@ bool eglContext::makeNotCurrentImpl()
     return eglMakeCurrent(getEGLAppContext()->getDisplay(),  EGL_NO_SURFACE,  EGL_NO_SURFACE,  EGL_NO_CONTEXT);
 }
 
-bool eglContext::swapBuffers()
+bool eglDrawContext::swapBuffers()
 {
     if(!getEGLContext() || !eglSurface_)
         return 0;

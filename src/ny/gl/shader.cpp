@@ -15,6 +15,8 @@ using namespace gl;
 namespace ny
 {
 
+bool validGLContext();
+
 //shader
 shader::shader()
 {

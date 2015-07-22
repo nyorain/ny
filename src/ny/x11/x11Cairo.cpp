@@ -1,6 +1,7 @@
 #include <ny/x11/x11Cairo.hpp>
 
 #include <ny/x11/x11AppContext.hpp>
+#include <ny/x11/x11WindowContext.hpp>
 
 #include <ny/cairo.hpp>
 #include <ny/window.hpp>
@@ -11,22 +12,20 @@ namespace ny
 {
 
 //x11CairoContext
-x11CairoContext::x11CairoContext(x11WindowContext& wc)
+x11CairoDrawContext::x11CairoDrawContext(x11WindowContext& wc) : cairoDrawContext(wc.getWindow())
 {
     cairoSurface_ = cairo_xlib_surface_create(getXDisplay(), wc.getXWindow(), wc.getXVinfo()->visual, wc.getWindow().getWidth(),wc.getWindow().getHeight());
-    drawContext_ = new cairoDrawContext(wc.getWindow(), *cairoSurface_);
+    cairoCR_ = cairo_create(cairoSurface_);
 }
 
-x11CairoContext::~x11CairoContext()
+x11CairoDrawContext::~x11CairoDrawContext()
 {
-    cairo_surface_destroy(cairoSurface_);
-    delete drawContext_;
 }
 
-void x11CairoContext::cairoSetSize(vec2ui size)
+void x11CairoDrawContext::setSize(vec2ui size)
 {
     cairo_xlib_surface_set_size(cairoSurface_, size.x, size.y);
-    drawContext_->resetClip();
+    resetClip();
 }
 
 /*

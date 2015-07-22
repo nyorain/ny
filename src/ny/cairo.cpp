@@ -45,7 +45,7 @@ vec2d circleCenter(vec2d p1, vec2d p2,double radius, direction m)
 
 
 //cairoDC////////////////////////////////////////////////////////////////////////////////////77
-cairoDrawContext::cairoDrawContext(surface& surf) : drawContext(surf), cairoCR_(nullptr)
+cairoDrawContext::cairoDrawContext(surface& surf) : drawContext(surf)
 {
 }
 

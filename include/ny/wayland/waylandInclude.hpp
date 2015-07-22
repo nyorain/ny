@@ -6,13 +6,18 @@ namespace ny
 {
     class waylandAppContext;
     class waylandWindowContext;
-    class waylandCairoContext;
+
+    #ifdef NY_WithCairo
+    class waylandCairoDrawContext;
+    typedef waylandCairoDrawContext waylandCairoDC;
+    #endif //Cairo
 
     #ifdef NY_WithGL
     class waylandEGLAppContext;
-    class waylandEGLContext;
+    class waylandEGLDrawContext;
 
     typedef waylandEGLAppContext waylandEGLAC;
+    typedef waylandEGLDrawContext waylandEGLDC;
     #endif // NY_WithGL
 
     typedef waylandAppContext waylandAC;

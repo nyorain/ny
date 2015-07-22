@@ -69,7 +69,7 @@ waylandEGLAppContext::~waylandEGLAppContext()
 }
 
 //waylandEGLContext
-waylandEGLContext::waylandEGLContext(const waylandWindowContext& wc)
+waylandEGLDrawContext::waylandEGLDrawContext(const waylandWindowContext& wc) : eglDrawContext(wc.getWindow())
 {
     eglAppContext* egl = getWaylandAppContext()->getEGLAppContext();
 
@@ -96,11 +96,10 @@ waylandEGLContext::waylandEGLContext(const waylandWindowContext& wc)
     eglBindAPI(EGL_OPENGL_ES_API);
     eglContext_ = eglCreateContext(egl->getDisplay(), egl->getConfig(), EGL_NO_CONTEXT, contextAttribs);
 
-    glContext::init(glApi::openGLES);
-    drawContext_ = new glDrawContext(wc.getWindow());
+    eglDrawContext::init(glApi::openGLES);
 }
 
-waylandEGLContext::~waylandEGLContext()
+waylandEGLDrawContext::~waylandEGLDrawContext()
 {
     eglAppContext* egl = getWaylandAppContext()->getEGLAppContext();
 
@@ -108,7 +107,7 @@ waylandEGLContext::~waylandEGLContext()
     if(eglSurface_) eglDestroySurface(egl->getDisplay(), eglSurface_);
 }
 
-void waylandEGLContext::setSize(vec2ui size)
+void waylandEGLDrawContext::setSize(vec2ui size)
 {
     wl_egl_window_resize(wlEGLWindow_, size.x, size.y, 0, 0);
 }

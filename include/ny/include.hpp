@@ -95,14 +95,11 @@ typedef cairoDrawContext cairoDC;
 
 #ifdef NY_WithGL
 class shader;
-class glContext;
-class legacyGLContext;
-class modernGLContext;
 class glDrawContext;
 typedef glDrawContext glDC;
 
 #ifdef NY_WithEGL
-class eglContext;
+class eglDrawContext;
 class eglAppContext;
 
 typedef eglAppContext eglAC;

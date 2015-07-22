@@ -134,12 +134,12 @@ waylandWindowContext::waylandWindowContext(window& win, const waylandWindowConte
     if(settings.glPref == preference::MustNot || settings.glPref == preference::ShouldNot)
     {
         drawType_ = waylandDrawType::cairo;
-        cairo_ = new waylandCairoContext(*this);
+        cairo_ = new waylandCairoDrawContext(*this);
     }
     else
     {
         drawType_ = waylandDrawType::egl;
-        egl_ = new waylandEGLContext(*this);
+        egl_ = new waylandEGLDrawContext(*this);
     }
 
     //Cairo, but no EGL
@@ -218,13 +218,13 @@ void waylandWindowContext::refresh()
 
 drawContext& waylandWindowContext::beginDraw()
 {
-    if(getCairo())
+    if(getCairo() && cairo_)
     {
-        return cairo_->getDC();
+        return *cairo_;
     }
-    else if(getEGL())
+    else if(getEGL() && egl_)
     {
-        return egl_->getDC();
+        return *egl_;
     }
     else
     {
@@ -234,9 +234,9 @@ drawContext& waylandWindowContext::beginDraw()
 
 void waylandWindowContext::finishDraw()
 {
-    if(getCairo())
+    if(getCairo() && cairo_)
     {
-        cairo_->getDC().apply();
+        cairo_->apply();
 
         wlFrameCallback_ = wl_surface_frame(wlSurface_);
         wl_callback_add_listener(wlFrameCallback_, &frameListener, this);
@@ -245,14 +245,12 @@ void waylandWindowContext::finishDraw()
         wl_surface_damage(wlSurface_, 0, 0, window_.getWidth(), window_.getHeight());
         wl_surface_commit(wlSurface_);
     }
-    else if(getEGL())
+    else if(getEGL() && egl_)
     {
-        egl_->getDC().apply();
+        egl_->apply();
 
         wlFrameCallback_ = wl_surface_frame(wlSurface_);
         wl_callback_add_listener(wlFrameCallback_, &frameListener, this);
-
-        egl_->swapBuffers();
     }
     else
     {

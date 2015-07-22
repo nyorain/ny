@@ -63,8 +63,8 @@ protected:
     waylandDrawType drawType_ = waylandDrawType::none;
     union
     {
-        waylandEGLContext* egl_ = nullptr;
-        waylandCairoContext* cairo_;
+        waylandEGLDrawContext* egl_ = nullptr;
+        waylandCairoDrawContext* cairo_;
     };
 
 public:
@@ -118,8 +118,8 @@ public:
     wl_shell_surface* getWlShellSurface() const { return (role_ == waylandSurfaceRole::shell) ? wlShellSurface_ : nullptr; }
     wl_subsurface* getWlSubsurface() const { return (role_ == waylandSurfaceRole::sub) ? wlSubsurface_ : nullptr; }
 
-    waylandCairoContext* getCairo() const { return (drawType_ == waylandDrawType::cairo) ? cairo_ : nullptr; }
-    waylandEGLContext* getEGL() const { return (drawType_ == waylandDrawType::egl) ? egl_ : nullptr; }
+    waylandCairoDrawContext* getCairo() const { return (drawType_ == waylandDrawType::cairo) ? cairo_ : nullptr; }
+    waylandEGLDrawContext* getEGL() const { return (drawType_ == waylandDrawType::egl) ? egl_ : nullptr; }
 };
 
 

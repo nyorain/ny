@@ -4,30 +4,24 @@
 
 #include <ny/util/nonCopyable.hpp>
 #include <ny/util/vec.hpp>
-
-#include <cairo/cairo.h>
+#include <ny/cairo.hpp>
 
 namespace ny
 {
 
 ////
-class waylandCairoContext: public nonCopyable
+class waylandCairoDrawContext: public cairoDrawContext
 {
 protected:
     const waylandWindowContext& wc_;
-    cairoDrawContext* drawContext_;
-
     wayland::shmBuffer* buffer_;
-    cairo_surface_t* cairoSurface_;
 
     void cairoSetSize(vec2ui size);
 
 public:
-    waylandCairoContext(const waylandWindowContext& wc);
-    virtual ~waylandCairoContext();
+    waylandCairoDrawContext(const waylandWindowContext& wc);
+    virtual ~waylandCairoDrawContext();
 
-    cairo_surface_t& getCairoSurface() const { return *cairoSurface_; }
-    cairoDrawContext& getDC() const { return *drawContext_; }
     wayland::shmBuffer& getShmBuffer() const { return *buffer_; }
 };
 

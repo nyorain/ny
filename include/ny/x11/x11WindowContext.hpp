@@ -71,11 +71,11 @@ protected:
     x11DrawType drawType_ = x11DrawType::none;
     union
     {
-        x11CairoContext* cairo_ = nullptr;
-        x11EGLContext* egl_;
+        x11CairoDrawContext* cairo_ = nullptr;
+        x11EGLDrawContext* egl_;
         struct
         {
-            glxContext* glx_;
+            glxDrawContext* glx_;
             glxFBC* glxFBC_;
         };
     };
@@ -135,9 +135,9 @@ public:
     x11DrawType getDrawType() const { return drawType_; }
     x11WindowType getWindowType() const { return windowType_; }
 
-    x11CairoContext* getCairo() const { return (drawType_ == x11DrawType::cairo) ? cairo_ : nullptr; }
-    x11EGLContext* getEGL() const { return (drawType_ == x11DrawType::egl) ? egl_ : nullptr; }
-    glxContext* getGLX() const { return (drawType_ == x11DrawType::glx) ? glx_ : nullptr; }
+    x11CairoDrawContext* getCairo() const { return (drawType_ == x11DrawType::cairo) ? cairo_ : nullptr; }
+    x11EGLDrawContext* getEGL() const { return (drawType_ == x11DrawType::egl) ? egl_ : nullptr; }
+    glxDrawContext* getGLX() const { return (drawType_ == x11DrawType::glx) ? glx_ : nullptr; }
     glxFBC* getGLXFBC() const { return (drawType_ == x11DrawType::glx) ? glxFBC_ : nullptr; }
 
     //general

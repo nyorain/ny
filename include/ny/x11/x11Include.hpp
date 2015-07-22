@@ -5,17 +5,23 @@ namespace ny
 
     class x11WindowContext;
     class x11AppContext;
-    class x11CairoContext;
 
     typedef x11WindowContext x11WC;
     typedef x11AppContext x11AC;
 
+    #ifdef NY_WithCairo
+    class x11CairoDrawContext;
+    typedef x11CairoDrawContext x11CairoDC;
+    #endif // Cairo
+
     #ifdef NY_WithGL
-    class glxContext;
+    class glxDrawContext;
+    typedef glxDrawContext glxDC;
     #endif //WithGL
 
     #ifdef NY_WithEGL
-    class x11EGLContext;
+    class x11EGLDrawContext;
+    typedef x11EGLDrawContext x11EGLDC;
     #endif //WithEGL
 
     namespace x11

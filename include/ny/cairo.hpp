@@ -16,8 +16,8 @@ struct cairoFont
 class cairoDrawContext : public drawContext
 {
 protected:
-    cairo_surface_t* cairoSurface_;
-    cairo_t* cairoCR_;
+    cairo_surface_t* cairoSurface_ = nullptr;
+    cairo_t* cairoCR_ = nullptr;
 
     cairoDrawContext(surface& surf);
 

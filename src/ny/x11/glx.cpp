@@ -8,6 +8,7 @@
 
 #include <ny/gl/glDrawContext.hpp>
 #include <ny/error.hpp>
+#include <ny/window.hpp>
 
 #include <GL/glx.h>
 
@@ -34,7 +35,7 @@ int ctxErrorHandler(Display *display, XErrorEvent *ev)
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
-glxContext::glxContext(const x11WindowContext& wc) : wc_(wc)
+glxDrawContext::glxDrawContext(const x11WindowContext& wc) : glDrawContext(wc.getWindow()), wc_(wc)
 {
     GLXFBConfig fbc = wc.getGLXFBC()->config;
     if(!fbc)
@@ -100,16 +101,16 @@ glxContext::glxContext(const x11WindowContext& wc) : wc_(wc)
     glXGetFBConfigAttrib(getXDisplay(), fbc, GLX_STENCIL_SIZE, &stencil);
     glXGetFBConfigAttrib(getXDisplay(), fbc, GLX_DEPTH_SIZE, &depth);
 
-    glContext::init(glApi::openGL, depth, stencil);
+    init(glApi::openGL, depth, stencil);
 }
 
-glxContext::~glxContext()
+glxDrawContext::~glxDrawContext()
 {
     if(glxContext_ && glxContext_->context) glXDestroyContext(getXDisplay(), glxContext_->context);
     if(glxContext_) delete glxContext_;
 }
 
-bool glxContext::makeCurrentImpl()
+bool glxDrawContext::makeCurrentImpl()
 {
     if(!glXMakeCurrent(getXDisplay(), wc_.getXWindow(), glxContext_->context))
         return 0;
@@ -117,11 +118,17 @@ bool glxContext::makeCurrentImpl()
     return 1;
 }
 
-bool glxContext::makeNotCurrentImpl()
+bool glxDrawContext::makeNotCurrentImpl()
 {
     if(!glXMakeCurrent(getXDisplay(), 0, nullptr))
         return 0;
 
+    return 1;
+}
+
+bool glxDrawContext::swapBuffers()
+{
+    glXSwapBuffers(getXDisplay(), wc_.getXWindow());
     return 1;
 }
 

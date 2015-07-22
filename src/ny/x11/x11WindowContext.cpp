@@ -169,12 +169,12 @@ x11WindowContext::x11WindowContext(window& win, const x11WindowContextSettings& 
     {
         //todo: egl
         drawType_ = x11DrawType::glx;
-        glx_ = new glxContext(*this);
+        glx_ = new glxDrawContext(*this);
     }
     else
     {
         drawType_ = x11DrawType::cairo;
-        cairo_ = new x11CairoContext(*this);
+        cairo_ = new x11CairoDrawContext(*this);
     }
 }
 
@@ -314,7 +314,18 @@ void x11WindowContext::refresh()
 
 drawContext& x11WindowContext::beginDraw()
 {
-    //TODO
+    if(drawType_ == x11DrawType::cairo && cairo_)
+    {
+        return *cairo_;
+    }
+    else if(drawType_ == x11DrawType::glx && glx_)
+    {
+        return *glx_;
+    }
+    else
+    {
+        throw std::runtime_error("x11WC::beginDraw: no valid draw context");
+    }
 }
 
 void x11WindowContext::finishDraw()

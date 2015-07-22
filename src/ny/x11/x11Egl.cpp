@@ -8,16 +8,18 @@
 
 #include <ny/gl/glDrawContext.hpp>
 
+#include <ny/window.hpp>
+
 
 namespace ny
 {
 
 //x11EGL
-x11EGLContext::x11EGLContext(const x11WindowContext& wc)
+x11EGLDrawContext::x11EGLDrawContext(const x11WindowContext& wc) : eglDrawContext(wc.getWindow())
 {
 }
 
-x11EGLContext::~x11EGLContext()
+x11EGLDrawContext::~x11EGLDrawContext()
 {
 }
 

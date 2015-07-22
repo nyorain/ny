@@ -6,7 +6,7 @@
 #ifdef NY_WithEGL
 
 #include <ny/include.hpp>
-#include <ny/gl/glContext.hpp>
+#include <ny/gl/glDrawContext.hpp>
 
 #include <ny/util/nonCopyable.hpp>
 
@@ -31,7 +31,7 @@ public:
 };
 
 //egl
-class eglContext : public glContext
+class eglDrawContext : public glDrawContext
 {
 protected:
     EGLContext eglContext_ = nullptr;
@@ -40,8 +40,10 @@ protected:
     virtual bool makeCurrentImpl() override;
     virtual bool makeNotCurrentImpl() override;
 
+    eglDrawContext(surface& s);
+
 public:
-    virtual bool swapBuffers();
+    virtual bool swapBuffers() override;
 
     EGLContext getEGLContext() const { return eglContext_; }
     EGLContext getEGLSurface() const { return eglSurface_; }

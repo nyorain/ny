@@ -6,11 +6,11 @@
 namespace ny
 {
 
-class x11EGLContext : public eglContext
+class x11EGLDrawContext : public eglDrawContext
 {
 public:
-    x11EGLContext(const x11WindowContext& wc);
-    virtual ~x11EGLContext();
+    x11EGLDrawContext(const x11WindowContext& wc);
+    virtual ~x11EGLDrawContext();
 };
 
 }
