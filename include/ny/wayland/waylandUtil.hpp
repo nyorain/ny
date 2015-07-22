@@ -72,8 +72,6 @@ public:
     connection& add(std::function<void(wl_callback*, unsigned int)> func);
     connection& add(std::function<void(unsigned int)> func);
     connection& add(std::function<void()> func);
-
-    void remove(const connection& conn);
 };
 
 }//wayland

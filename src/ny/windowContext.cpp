@@ -22,29 +22,8 @@ void windowContext::redraw()
     window_.processEvent(e);
 }
 
-
-//toplevel/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-toplevelWindowContext::toplevelWindowContext(toplevelWindow& win, const windowContextSettings& s) : windowContext(win, s)
-{
-}
-
-toplevelWindow& toplevelWindowContext::getToplevelWindow() const
-{
-    return static_cast<toplevelWindow&>(window_);
-}
-
-//child/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-childWindowContext::childWindowContext(childWindow& win, const windowContextSettings& s) : windowContext(win, s)
-{
-}
-
-childWindow& childWindowContext::getChildWindow() const
-{
-    return static_cast<childWindow&>(window_);
-}
-
 //virtual////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-virtualWindowContext::virtualWindowContext(childWindow& win, const windowContextSettings& s) : windowContext(win, s), childWindowContext(win, s), drawContext_(nullptr)
+virtualWindowContext::virtualWindowContext(childWindow& win, const windowContextSettings& s) : windowContext(win, s)
 {
 }
 

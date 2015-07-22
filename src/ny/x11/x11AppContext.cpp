@@ -217,7 +217,6 @@ void x11AppContext::sendRedrawEvent(Window w)
     x11WindowContext* wc = getWindowContext(w);
     if(!wc) return;
     e.handler = &wc->getWindow();
-    if(!e.handler->eventTypeMapped(eventType::windowDraw)) return;
     e.backend = X11;
     getMainApp()->windowDraw(e);
     return;

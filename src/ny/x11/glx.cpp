@@ -3,33 +3,27 @@
 #ifdef NY_WithGL
 
 #include <ny/x11/glx.hpp>
-
+#include <ny/x11/x11WindowContext.hpp>
 #include <ny/x11/x11AppContext.hpp>
 
 #include <ny/gl/glDrawContext.hpp>
 #include <ny/error.hpp>
 
-//from X11, not compatible with glbindijng from include/gl.h
-#ifdef None
-#undef None
-const unsigned char None = 0;
-#endif // None
-
-#include <glbinding/Binding.h>
 #include <GL/glx.h>
 
 namespace ny
 {
+
+struct glxc
+{
+    GLXContext context;
+};
 
 struct glxFBC
 {
     GLXFBConfig config;
 };
 
-struct glxc
-{
-    GLXContext context;
-};
 
 //errorHandler
 bool errorOccured = 0;
@@ -40,11 +34,9 @@ int ctxErrorHandler(Display *display, XErrorEvent *ev)
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
-glxContext::glxContext(Drawable d, glxFBC* conf) : drawable_(d)
+glxContext::glxContext(const x11WindowContext& wc) : wc_(wc)
 {
-    glxContext_ = new glxc;
-
-    GLXFBConfig fbc = conf->config;
+    GLXFBConfig fbc = wc.getGLXFBC()->config;
     if(!fbc)
         return;
 
@@ -113,123 +105,28 @@ glxContext::glxContext(Drawable d, glxFBC* conf) : drawable_(d)
 
 glxContext::~glxContext()
 {
-    glXDestroyContext(getXDisplay(), glxContext_->context);
+    if(glxContext_ && glxContext_->context) glXDestroyContext(getXDisplay(), glxContext_->context);
+    if(glxContext_) delete glxContext_;
 }
 
-bool glxContext::makeCurrent()
+bool glxContext::makeCurrentImpl()
 {
-    if(!glXMakeCurrent(getXDisplay(), drawable_, glxContext_->context))
+    if(!glXMakeCurrent(getXDisplay(), wc_.getXWindow(), glxContext_->context))
         return 0;
-
-    glbinding::Binding::useCurrentContext();
-    makeContextCurrent(*this);
 
     return 1;
 }
 
-bool glxContext::makeNotCurrent()
+bool glxContext::makeNotCurrentImpl()
 {
     if(!glXMakeCurrent(getXDisplay(), 0, nullptr))
         return 0;
 
-    makeContextNotCurrent(*this);
     return 1;
 }
 
-//x11GL/////////////////////////////////////////////////////////////////////////////
-glxWindowContext::glxWindowContext(x11WindowContext& wctx) : wc_(wctx)
-{
-}
 
-glxWindowContext::~glxWindowContext()
-{
-    if(fbc_) delete fbc_;
-    if(glContext_) delete glContext_;
-    if(drawContext_) delete drawContext_;
-}
-
-XVisualInfo* glxWindowContext::initFBConfig(const glxWindowContextSettings& s)
-{
-    const int attribs[] =
-    {
-      GLX_X_RENDERABLE    , True,
-      GLX_DRAWABLE_TYPE   , GLX_WINDOW_BIT,
-      GLX_RENDER_TYPE     , GLX_RGBA_BIT,
-      GLX_X_VISUAL_TYPE   , GLX_TRUE_COLOR,
-      GLX_RED_SIZE        , 8,
-      GLX_GREEN_SIZE      , 8,
-      GLX_BLUE_SIZE       , 8,
-      GLX_ALPHA_SIZE      , 8,
-      GLX_DEPTH_SIZE      , (int) s.depth,
-      GLX_STENCIL_SIZE    , (int) s.stencil,
-      GLX_DOUBLEBUFFER    , True,
-      //GLX_SAMPLE_BUFFERS  , 1,
-      //GLX_SAMPLES         , 4,
-      None
-    };
-
-
-    int glxMajor, glxMinor;
-    if (!glXQueryVersion(getXDisplay(), &glxMajor, &glxMinor) || ((glxMajor == 1) && (glxMinor < 3) ) || (glxMajor < 1)) //glx must be > 1.3
-    {
-        throw std::runtime_error("Invalid glx version. glx Version must be > 1.3");
-        return nullptr;
-    }
-
-    int fbcount = 0;
-    GLXFBConfig* fbc = glXChooseFBConfig(getXDisplay(), DefaultScreen(getXDisplay()), attribs, &fbcount);
-    if (!fbc || !fbcount)
-    {
-        throw std::runtime_error("failed to retrieve fbconfig");
-        return nullptr;
-    }
-
-    //get the config with the most samples
-    int best_fbc = -1, worst_fbc = -1, best_num_samp = 0, worst_num_samp = 0;
-    for(int i(0); i < fbcount; i++)
-    {
-        XVisualInfo *vi = glXGetVisualFromFBConfig(getXDisplay(), fbc[i]);
-
-        if(!vi)
-        {
-            XFree(vi);
-            continue;
-        }
-
-        int samp_buf, samples;
-        glXGetFBConfigAttrib(getXDisplay(), fbc[i], GLX_SAMPLE_BUFFERS, &samp_buf );
-        glXGetFBConfigAttrib(getXDisplay(), fbc[i], GLX_SAMPLES       , &samples  );
-
-        if ( best_fbc < 0 || (samp_buf && samples > best_num_samp))
-        {
-            best_fbc = i;
-            best_num_samp = samples;
-        }
-
-        if ( worst_fbc < 0 || (!samp_buf || samples < worst_num_samp))
-        {
-            worst_fbc = i;
-            worst_num_samp = samples;
-        }
-
-        XFree(vi);
-    }
-
-    fbc_ = new glxFBC;
-    fbc_->config = fbc[best_fbc];
-    XFree(fbc);
-
-    return glXGetVisualFromFBConfig(getXDisplay(), fbc_->config);
-}
-
-
-void glxWindowContext::init()
-{
-    glContext_ = new glxContext(wc_.getXWindow(), fbc_);
-    drawContext_ = new glDrawContext((surface&)wc_.getWindow(), *glContext_);
-}
-
-
+/*
 //toplevel
 glxToplevelWindowContext::glxToplevelWindowContext(toplevelWindow& win, const glxWindowContextSettings& s) : windowContext((window&)win, s), x11ToplevelWindowContext(win, s, 0), glxWindowContext((x11WindowContext&)*this)
 {
@@ -294,6 +191,7 @@ void glxChildWindowContext::setSize(vec2ui size, bool change)
     //glXMakeCurrent(xDisplay_, xWindow_, glContext_);
     //glViewport(0, 0, size.x, size.y);
 }
+*/
 
 }
 

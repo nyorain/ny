@@ -234,12 +234,6 @@ connection& serverCallback::add(std::function<void()> func)
                   });
 }
 
-
-void serverCallback::remove(const connection& conn)
-{
-    callback_.remove(conn);
-}
-
 void serverCallback::done(wl_callback* cb, unsigned int data)
 {
     callback_(cb, data);
@@ -375,25 +369,25 @@ std::string cursorToWayland(const cursorType c)
 {
     switch(c)
     {
-    case cursorType::LeftPtr:
+    case cursorType::leftPtr:
         return "left_ptr";
-    case cursorType::SizeBottom:
+    case cursorType::sizeBottom:
         return "bottom_side";
-    case cursorType::SizeBottomLeft:
+    case cursorType::sizeBottomLeft:
         return "bottom_left_corner";
-    case cursorType::SizeBottomRight:
+    case cursorType::sizeBottomRight:
         return "bottom_right_corner";
-    case cursorType::SizeTop:
+    case cursorType::sizeTop:
         return "top_side";
-    case cursorType::SizeTopLeft:
+    case cursorType::sizeTopLeft:
         return "top_left_corner";
-    case cursorType::SizeTopRight:
+    case cursorType::sizeTopRight:
         return "top_right_corner";
-    case cursorType::SizeLeft:
+    case cursorType::sizeLeft:
         return "left_side";
-    case cursorType::SizeRight:
+    case cursorType::sizeRight:
         return "right_side";
-    case cursorType::Grab:
+    case cursorType::grab:
         return "grabbing";
     default:
         return "";
@@ -403,18 +397,18 @@ std::string cursorToWayland(const cursorType c)
 cursorType waylandToCursor(std::string id)
 {
     //if(id == "fleur") return cursorType::Move;
-    if(id == "left_ptr") return cursorType::LeftPtr;
-    if(id == "bottom_side") return cursorType::SizeBottom;
-    if(id == "left_side") return cursorType::SizeLeft;
-    if(id == "right_side") return cursorType::SizeRight;
-    if(id == "top_side") return cursorType::SizeTop;
-    if(id == "top_side") return cursorType::SizeTop;
-    if(id == "top_left_corner") return cursorType::SizeTopLeft;
-    if(id == "top_right_corner") return cursorType::SizeTopRight;
-    if(id == "bottom_right_corner") return cursorType::SizeBottomRight;
-    if(id == "bottom_left_corner") return cursorType::SizeBottomLeft;
-    if(id == "grabbing") return cursorType::Grab;
-    return cursorType::Unknown;
+    if(id == "left_ptr") return cursorType::leftPtr;
+    if(id == "bottom_side") return cursorType::sizeBottom;
+    if(id == "left_side") return cursorType::sizeLeft;
+    if(id == "right_side") return cursorType::sizeRight;
+    if(id == "top_side") return cursorType::sizeTop;
+    if(id == "top_side") return cursorType::sizeTop;
+    if(id == "top_left_corner") return cursorType::sizeTopLeft;
+    if(id == "top_right_corner") return cursorType::sizeTopRight;
+    if(id == "bottom_right_corner") return cursorType::sizeBottomRight;
+    if(id == "bottom_left_corner") return cursorType::sizeBottomLeft;
+    if(id == "grabbing") return cursorType::grab;
+    return cursorType::unknown;
 }
 
 int bufferFormatToWayland(bufferFormat format)
@@ -443,21 +437,6 @@ bufferFormat waylandToBufferFormat(unsigned int wlFormat)
 //conversions from waylandInclude
 waylandAppContext* asWayland(appContext* c){ return dynamic_cast<waylandAppContext*>(c); };
 waylandWindowContext* asWayland(windowContext* c){ return dynamic_cast<waylandWindowContext*>(c); };
-waylandToplevelWindowContext* asWayland(toplevelWindowContext* c){ return dynamic_cast<waylandToplevelWindowContext*>(c); };
-waylandChildWindowContext* asWayland(childWindowContext* c){ return dynamic_cast<waylandChildWindowContext*>(c); };
-waylandChildWindowContext* asWaylandChild(windowContext* c){ return dynamic_cast<waylandChildWindowContext*>(c); };
-waylandToplevelWindowContext* asWaylandToplevel(windowContext* c){ return dynamic_cast<waylandToplevelWindowContext*>(c); };
-
-waylandCairoToplevelWindowContext* asWaylandCairo(toplevelWindowContext* c){ return dynamic_cast<waylandCairoToplevelWindowContext*>(c); };
-waylandCairoChildWindowContext* asWaylandCairo(childWindowContext* c){ return dynamic_cast<waylandCairoChildWindowContext*>(c); };
-waylandCairoContext* asWaylandCairo(windowContext* c){ return dynamic_cast<waylandCairoContext*>(c); };
-
-#ifdef NY_WithGL
-waylandGLToplevelWindowContext* asWaylandGL(toplevelWindowContext* c){ return dynamic_cast<waylandGLToplevelWindowContext*>(c); };
-waylandGLChildWindowContext* asWaylandGL(childWindowContext* c){ return dynamic_cast<waylandGLChildWindowContext*>(c); };
-waylandGLContext* asWaylandGL(windowContext* c){ return dynamic_cast<waylandGLContext*>(c); };
-#endif // NY_WithGL
-
 
 waylandAppContext* getWaylandAppContext()
 {
@@ -469,6 +448,11 @@ waylandAppContext* getWaylandAppContext()
     }
 
     return ret;
+}
+
+waylandAppContext* getWaylandAC()
+{
+    return getWaylandAppContext();
 }
 
 

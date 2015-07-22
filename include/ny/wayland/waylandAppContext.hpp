@@ -2,10 +2,10 @@
 
 #include <ny/wayland/waylandInclude.hpp>
 #include <ny/appContext.hpp>
+#include <ny/util/vec.hpp>
 
 #include <wayland-client.h>
 #include <wayland-cursor.h>
-#include <string>
 
 #ifdef NY_WithGL
 #include <wayland-egl.h>
@@ -13,33 +13,11 @@
 #endif //GL
 
 #include <vector>
+#include <string>
 
 
 namespace ny
 {
-
-
-#ifdef NY_WithGL
-//waylandEGLAppContext//////////////////////////////////////////////////
-class waylandEGLAppContext
-{
-    friend waylandAppContext;
-
-protected:
-    waylandAppContext* appContext_;
-
-    EGLDisplay eglDisplay_;
-    EGLConfig eglConfig_;
-    EGLContext eglContext_;
-
-public:
-    waylandEGLAppContext(waylandAppContext* ac);
-    ~waylandEGLAppContext();
-
-    bool init();
-};
-#endif //WithGL
-
 
 //waylandAppContext//////////////////////////////////////////////////
 class waylandAppContext : public appContext
@@ -61,6 +39,13 @@ protected:
     wl_cursor_theme* wlCursorTheme_ = nullptr;
     wl_surface* wlCursorSurface_ = nullptr;
 
+    bool cursorIsCustomImage_ = 0;
+    union
+    {
+        wl_buffer* wlCursorBuffer_ = nullptr;
+        wayland::shmBuffer* cursorImageBuffer_;
+    };
+
     wl_surface* dataSourceSurface_ = nullptr;
     wl_surface* dataIconSurface_ = nullptr;
     wayland::shmBuffer* dataIconBuffer_ = nullptr;
@@ -69,9 +54,9 @@ protected:
 
 	std::vector<unsigned int> supportedShm_;
 
-    #ifdef NY_WithGL
-    waylandEGLAppContext* eglContext_;
-    #endif // NY_WithGL
+    #ifdef NY_WithEGL
+    waylandEGLAppContext* egl_ = nullptr;
+    #endif // NY_WithEGL
 
 public:
     waylandAppContext();
@@ -81,8 +66,9 @@ public:
 
     bool mainLoop();
 
-    void setCursor(std::string curs, unsigned int serial = 0);
-    void setCursor(image* img, unsigned int serial = 0);
+    #ifdef NY_WithEGL
+    virtual eglAppContext* getEGLAppContext() const override;
+    #endif // NY_WithEGL
 
 	void startDataOffer(dataSource& source, const image& img, const window& w, const event* ev);
 	bool isOffering() const;
@@ -90,6 +76,10 @@ public:
 
 	dataOffer* getClipboard();
 	void setClipboard(dataSource& source, const event* ev);
+
+    //specific
+    void setCursor(std::string curs, unsigned int serial = 0);
+    void setCursor(image* img, vec2i hotspot, unsigned int serial = 0);
 
     void registryHandler(wl_registry *registry, unsigned int id, std::string interface, unsigned int version);
     void registryRemover(wl_registry *registry, unsigned int id);
@@ -123,12 +113,6 @@ public:
 
     bool bufferFormatSupported(unsigned int wlBufferType);
     bool bufferFormatSupported(bufferFormat format);
-
-    #ifdef NY_WithGL
-    EGLDisplay getEGLDisplay() const { return eglContext_->eglDisplay_; };
-    EGLConfig getEGLConfig() const { return eglContext_->eglConfig_; };
-    EGLContext getEGLContext() const { return eglContext_->eglContext_; };
-    #endif // NY_WithGL
 };
 
 }

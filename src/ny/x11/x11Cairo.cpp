@@ -13,7 +13,7 @@ namespace ny
 //x11CairoContext
 x11CairoContext::x11CairoContext(x11WindowContext& wc)
 {
-    cairoSurface_ = cairo_xlib_surface_create(wc.getXDisplay(), wc.getXWindow(), wc.getXVinfo()->visual, wc.getWindow().getWidth(),wc.getWindow().getHeight());
+    cairoSurface_ = cairo_xlib_surface_create(getXDisplay(), wc.getXWindow(), wc.getXVinfo()->visual, wc.getWindow().getWidth(),wc.getWindow().getHeight());
     drawContext_ = new cairoDrawContext(wc.getWindow(), *cairoSurface_);
 }
 
@@ -29,10 +29,11 @@ void x11CairoContext::cairoSetSize(vec2ui size)
     drawContext_->resetClip();
 }
 
+/*
 //x11CairoToplevel
 x11CairoToplevelWindowContext::x11CairoToplevelWindowContext(toplevelWindow& win, const x11WindowContextSettings& settings) : windowContext(win, settings), x11ToplevelWindowContext(win, settings), x11CairoContext((x11WindowContext&)*this)
 {
-    /*
+
     XVisualInfo vi;
     if(!XMatchVisualInfo(xDisplay_, 0, 32, TrueColor, &vi))
     {
@@ -52,7 +53,7 @@ x11CairoToplevelWindowContext::x11CairoToplevelWindowContext(toplevelWindow& win
     xWindow_ = XCreateWindow(xDisplay_, DefaultRootWindow(xDisplay_), win.getPositionX(), win.getPositionY(), win.getWidth(), win.getHeight(), 1, vi.depth, InputOutput, vi.visual, CWEventMask | CWColormap | CWBackPixel | CWBorderPixel, &attr1);
 
     context_->registerContext(xWindow_, this);
-    */
+
 
     //cairoSurface_ = cairo_xlib_surface_create(getXDisplay(), getXWindow(), getXVinfo()->visual, getWindow().getWidth(),getWindow().getHeight());
     //drawContext_ = new cairoDrawContext(getWindow(), *cairoSurface_);
@@ -86,6 +87,7 @@ void x11CairoChildWindowContext::setSize(vec2ui size, bool change)
 
     cairoSetSize(size);
 }
+*/
 
 
 }

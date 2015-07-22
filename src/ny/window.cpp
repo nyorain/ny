@@ -26,7 +26,7 @@ window::window() : eventHandler(), surface(), position_(0,0), minSize_(0,0), max
 {
 }
 
-window::window(eventHandler* parent, vec2ui position, vec2ui size) : eventHandler(), surface(), position_(0,0), minSize_(0,0), maxSize_(UINT_MAX, UINT_MAX), focus_(0), valid_(0), mouseOver_(0), windowContext_(nullptr)
+window::window(eventHandler* parent, vec2ui position, vec2ui size, const windowContextSettings& settings) : eventHandler(), surface(), position_(0,0), minSize_(0,0), maxSize_(UINT_MAX, UINT_MAX), focus_(0), valid_(0), mouseOver_(0), windowContext_(nullptr)
 {
     create(parent, size, position);
 }
@@ -36,33 +36,46 @@ window::~window()
     close();
 }
 
-
-
-void window::create(eventHandler* parent, vec2i position, vec2ui size)
+void window::create(eventHandler* parent, vec2i position, vec2ui size, const windowContextSettings& settings)
 {
     size_ = size;
     position_ = position;
 
     if(!getMainApp() || !getMainApp()->getBackend())
     {
-        throw std::runtime_error("window::create(): window can only be created when mainApp exists and is initialized");
+        sendError("window::create: window can only be created when mainApp exists and is initialized");
         return;
     }
 
     if(!parent)
     {
-        throw std::runtime_error("window::create(): invalid parent.");
+        sendError("window::create: invalid parent");
         return;
     }
 
-    eventHandler::create(*parent);
+    windowContext* newWC = nullptr;
+    try
+    {
+        eventHandler::create(*parent);
+        newWC = createWindowContext(*this, settings);
+    }
+    catch(const std::exception& err)
+    {
+        if(newWC) delete newWC;
+        sendError(err);
+        return;
+    }
 
-    mapEventType(eventType::destroy);
-    mapEventType(eventType::windowDraw);
-    mapEventType(eventType::windowSize);
-    mapEventType(eventType::windowShow);
-    mapEventType(eventType::windowPosition);
-    mapEventType(eventType::mouseCross);
+    if(!newWC)
+    {
+        sendError("window::create: failed to create windowContext");
+        return;
+    }
+
+    hints_ |= newWC->getAdditionalWindowHints();
+
+    windowContext_ = newWC;
+    valid_ = 1;
 }
 
 
@@ -83,9 +96,6 @@ void window::close()
 bool window::processEvent(event& ev)
 {
     if(!valid_)
-        return 0;
-
-    if(!eventMap_[ev.type] && ev.type != eventType::context) //contextEvents do not have to be mapped. they are sent always
         return 0;
 
     bool ret = false;
@@ -141,15 +151,7 @@ bool window::processEvent(event& ev)
         ret = false;
     }
 
-
-    if(customCallbacksMap_[ev.type])
-    {
-        customCallbacks_[ev.type](*this, ev);
-        ret = true;
-    }
-
     return ret;
-
 }
 
 void window::refresh()
@@ -158,22 +160,6 @@ void window::refresh()
         return;
 
     windowContext_->refresh();
-}
-
-void window::raise()
-{
-    if(!valid_)
-        return;
-
-    windowContext_->raise();
-}
-
-void window::lower()
-{
-    if(!valid_)
-        return;
-
-    windowContext_->lower();
 }
 
 void window::setSize(vec2ui size)
@@ -314,11 +300,6 @@ void window::windowFocus(focusEvent& e)
     focusCallback_(*this, e);
 }
 
-void window::requestFocus()
-{
-    windowContext_->requestFocus();
-}
-
 std::vector<childWindow*> window::getWindowChildren()
 {
     std::vector<childWindow*> ret;
@@ -358,26 +339,6 @@ window* window::getWindowAt(vec2i position)
 void window::setCursor(const cursor& curs)
 {
     windowContext_->setCursor(curs);
-}
-
-void window::mapEventType(unsigned int type)
-{
-    eventMap_[type] = 1;
-
-    if(!valid_)
-        return;
-
-    windowContext_->mapEventType(type);
-}
-
-void window::unmapEventType(unsigned int type)
-{
-    eventMap_[type] = 0;
-
-    if(!valid_)
-        return;
-
-    windowContext_->unmapEventType(type);
 }
 
 void window::addWindowHints(unsigned long hints)
@@ -706,54 +667,15 @@ void toplevelWindow::create(vec2i position, vec2ui size, std::string name, const
 {
     name_ = name;
 
-    mapEventType(eventType::mouseButton);
-    mapEventType(eventType::mouseMove);
-
-    toplevelWindowContext* newWC;
-
-    try
-    {
-        window::create(getMainApp(), position, size);
-        newWC = getMainApp()->getBackend()->createToplevelWindowContext(*this, settings);
-    }
-    catch(const std::exception& e)
-    {
-        sendError(e);
-        return;
-    }
-
-    if(!newWC)
-    {
-        sendError("toplevelWindow::toplevelWindow(): could not create windowContext.");
-        return;
-    }
-
-    valid_ = 1;
-
-    unsigned long addHints = newWC->getAdditionalWindowHints();
-	hints_ |= addHints;
-
-	hints_ |= windowHints::Resize;
+    hints_ |= windowHints::Toplevel;
+    hints_ |= windowHints::Resize;
 	hints_ |= windowHints::Move;
 
-    windowContext_ = newWC;
+    window::create(getMainApp(), position, size, settings);
 
     cursor c;
-    c.fromNativeType(cursorType::LeftPtr);
+    c.fromNativeType(cursorType::leftPtr);
     windowContext_->setCursor(c);
-
-    drawEvent e;
-    windowDraw(e);
-}
-
-void toplevelWindow::setBorderSize(unsigned int size)
-{
-    if(!valid_ || borderSize_ == size)
-        return;
-
-    getWindowContext()->setBorderSize(size);
-
-    borderSize_ = size;
 }
 
 void toplevelWindow::setIcon(const image* icon)
@@ -820,32 +742,32 @@ void toplevelWindow::mouseMove(mouseMoveEvent& ev)
     if(!isCustomResized() || !hasResizeHint())
         return;
 
-    cursorType t = cursorType::Grab;
+    cursorType t = cursorType::grab;
 
     int length = 100;
 
     if(ev.position.y > (int) size_.y - length)
     {
-        t = cursorType::SizeBottom;
+        t = cursorType::sizeBottom;
     }
 
     else if(ev.position.y < length)
     {
-        t = cursorType::SizeTop;
+        t = cursorType::sizeTop;
     }
 
     if(ev.position.x > (int) size_.x - length)
     {
-        if(t == cursorType::SizeTop) t = cursorType::SizeTopRight;
-        else if(t == cursorType::SizeBottom) t = cursorType::SizeBottomRight;
-        else t = cursorType::SizeRight;
+        if(t == cursorType::sizeTop) t = cursorType::sizeTopRight;
+        else if(t == cursorType::sizeBottom) t = cursorType::sizeBottomRight;
+        else t = cursorType::sizeRight;
     }
 
     if(ev.position.x < length)
     {
-        if(t == cursorType::SizeTop) t = cursorType::SizeTopLeft;
-        else if(t == cursorType::SizeBottom) t = cursorType::SizeBottomLeft;
-        else t = cursorType::SizeLeft;
+        if(t == cursorType::sizeTop) t = cursorType::sizeTopLeft;
+        else if(t == cursorType::sizeBottom) t = cursorType::sizeBottomLeft;
+        else t = cursorType::sizeLeft;
     }
 
     cursor_.fromNativeType(t);
@@ -966,31 +888,9 @@ childWindow::childWindow(window* parent, vec2i position, vec2ui size, windowCont
 
 void childWindow::create(window* parent, vec2i position, vec2ui size, windowContextSettings settings)
 {
-    mapEventType(eventType::mouseButton);
-    mapEventType(eventType::mouseMove);
-    mapEventType(eventType::mouseCross);
+    hints_ |= windowHints::Child;
 
-    try
-    {
-        window::create(parent, position, size);
-        windowContext_ = getMainApp()->getBackend()->createChildWindowContext(*this, settings);
-    }
-    catch(std::exception& e)
-    {
-        sendError(e);
-        return;
-    }
-
-    if(!windowContext_)
-    {
-        sendError("toplevelWindow::toplevelWindow(): could not create windowContext.");
-        return;
-    }
-
-    unsigned long wHints = windowContext_->getAdditionalWindowHints();
-    hints_ |= wHints;
-
-    valid_ = 1;
+    window::create(parent, position, size, settings);
 }
 
 bool childWindow::isVirtual() const

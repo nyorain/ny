@@ -89,25 +89,40 @@ void glContext::init(glApi api, unsigned int depth, unsigned int stencil)
     stencil_ = stencil;
 
     makeCurrent();
-
     glbinding::Binding::initialize();
 
-    glGetIntegerv(GL_MAJOR_VERSION, &major_);
-    glGetIntegerv(GL_MINOR_VERSION, &minor_);
+    int maj = 0, min = 0;
+    glGetIntegerv(GL_MAJOR_VERSION, &maj);
+    glGetIntegerv(GL_MINOR_VERSION, &min);
+
+    major_ = maj;
+    minor_ = min;
 
     makeNotCurrent();
 }
 
 bool glContext::makeCurrent()
 {
-    makeContextCurrent(*this);
-    return 1;
+    if(makeCurrentImpl())
+    {
+        glbinding::Binding::useCurrentContext();
+        makeContextCurrent(*this);
+        return 1;
+    }
+
+    return 0;
 }
 
 bool glContext::makeNotCurrent()
 {
-    makeContextNotCurrent(*this);
-    return 1;
+    if(makeNotCurrentImpl())
+    {
+        glbinding::Binding::useCurrentContext();
+        makeContextNotCurrent(*this);
+        return 1;
+    }
+
+    return 0;
 }
 
 bool glContext::isCurrent()

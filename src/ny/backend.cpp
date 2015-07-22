@@ -17,34 +17,15 @@
 namespace ny
 {
 
-toplevelWindowContext* createToplevelWindowContext(toplevelWindow& win, const windowContextSettings& s)
+windowContext* createWindowContext(window& win, const windowContextSettings& s)
 {
     if(!getMainApp() || !getMainApp()->getBackend())
         return nullptr;
 
-    return getMainApp()->getBackend()->createToplevelWindowContext(win, s);
+    return getMainApp()->getBackend()->createWindowContext(win, s);
 }
 
-childWindowContext* createChildWindowContext(childWindow& win, const windowContextSettings& s)
-{
-    if(!getMainApp() || !getMainApp()->getBackend())
-        return nullptr;
-
-    return getMainApp()->getBackend()->createChildWindowContext(win, s);
-}
-
-windowContext* createCustomWindowContext(window& win, const windowContextSettings& s)
-{
-    if(!getMainApp() || !getMainApp()->getBackend())
-        return nullptr;
-
-    return getMainApp()->getBackend()->createCustomWindowContext(win, s);
-}
-
-
-toplevelWC* createToplevelWC(toplevelWindow& win, const windowContextSettings& s){ return createToplevelWindowContext(win, s); };
-childWC* createChildWC(childWindow& win, const windowContextSettings& s){ return createChildWindowContext(win, s); };
-wc* createCustomWC(window& win, const windowContextSettings& s){ return createCustomWindowContext(win, s); };
+wc* createCustomWC(window& win, const windowContextSettings& s){ return createWindowContext(win, s); };
 
 
 backend::backend(unsigned int i) : id(i)

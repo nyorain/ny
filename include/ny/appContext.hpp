@@ -15,7 +15,14 @@ public:
     virtual ~appContext();
 
     virtual bool mainLoop() = 0;
+    virtual void exit(){} //may not be specified
 
+    //egl
+    #ifdef NY_WithEGL
+    virtual eglAppContext* getEGLAppContext() const { return nullptr; }
+    #endif //EGL
+
+    //data
     virtual void startDataOffer(dataSource& source, const image& img, const window& w, const event* ev){}
     virtual bool isOffering() const { return 0; }
     virtual void endDataOffer(){}
@@ -26,8 +33,6 @@ public:
     //data specifications
     void setClipboard(const std::string& str);
     void setClipboard(const image& str);
-
-    virtual void exit(){}
 };
 
 }

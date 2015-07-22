@@ -22,17 +22,18 @@ class glContext : public nonCopyable
 {
 protected:
     glApi api_;
-    int major_;
-    int minor_;
 
     unsigned int depth_;
     unsigned int stencil_;
 
-    modernGLContext* modern_ = nullptr;
-    legacyGLContext* legacy_ = nullptr;
+    unsigned int major_;
+    unsigned int minor_;
 
     glContext();
-    void init(glApi api, unsigned int depth, unsigned int stencil);
+    void init(glApi api, unsigned int depth = 0, unsigned int stencil = 0); //should be called at the end of constructor
+
+    virtual bool makeCurrentImpl() = 0;
+    virtual bool makeNotCurrentImpl() = 0;
 
 public:
     virtual ~glContext();
@@ -44,12 +45,13 @@ public:
     unsigned int getDepthBits() const { return depth_; }
     unsigned int getStencilBits() const { return stencil_; }
 
-    virtual bool makeCurrent() = 0; //specifed
-    virtual bool makeNotCurrent() = 0; //specified
+    bool makeCurrent(); //specifed
+    bool makeNotCurrent(); //specified
     bool isCurrent();
 
-    modernGLContext* getModernGL() { return modern_; }
-    legacyGLContext* getLegacyGL() { return legacy_; }
+    //todo
+    virtual modernGLContext* getModernGL() const { return nullptr; };
+    virtual legacyGLContext* getLegacyGL() const { return nullptr; };
 
 //static
 private:

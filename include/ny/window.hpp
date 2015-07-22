@@ -47,10 +47,6 @@ protected:
     //do NOT represent window states (as focus_, mouseOver_ etc) but general information about the window, which should not be changed by the window or its context after creation (of course they can be changed from the outside)
     unsigned long hints_ = 0;
 
-    //event mask, used as map, because there can be than 64 event types, map is more efficient than vector because inserting the elements is (probably) done on startup
-    //the backend (usually appContext/ callback functions) checks if an specific event type is mapped in the window, additionally the window usually checks too
-    std::map<unsigned int, bool> eventMap_;
-
     //files of the types listed in the dataType (basically vector of dataTypes) will generate a dataReceiveEvent when they are dropped on the window
     dataTypes dropAccept_;
 
@@ -69,9 +65,6 @@ protected:
 
     callback<void(window&, const keyEvent&)> keyCallback_;
 
-    std::map<unsigned int, bool> customCallbacksMap_;
-    std::map<unsigned int, callback<void(window&, event&)>> customCallbacks_;
-
     //events - have to be protected?
     virtual void mouseMove(mouseMoveEvent& e);
     virtual void mouseCross(mouseCrossEvent& e);
@@ -89,9 +82,8 @@ protected:
 
     //window is abstract class
     window();
-    window(eventHandler* parent, vec2ui position, vec2ui size);
-
-    void create(eventHandler* parent, vec2i position, vec2ui size);
+    window(eventHandler* parent, vec2ui position, vec2ui size, const windowContextSettings& settings = windowContextSettings());
+    void create(eventHandler* parent, vec2i position, vec2ui size, const windowContextSettings& settings = windowContextSettings());
 
     //windowContext functions are protected, derived classes can make public aliases if needed. User should not be able to change backend Hints for button e.g
     void setCursor(const cursor& curs);
@@ -103,9 +95,6 @@ protected:
     void setWindowHints(unsigned long hints);
     void addWindowHints(unsigned long hints);
     void removeWindowHints(unsigned int hints);
-
-    void mapEventType(unsigned int type);
-    void unmapEventType(unsigned int type);
 
     void setAcceptedDropTypes(const dataTypes& d);
     void addDropType(unsigned char type);
@@ -165,11 +154,6 @@ public:
     void show();
     void hide();
     void toggleShow();
-
-    void requestFocus();
-
-    void raise();
-    void lower();
 
     /////////////////////////////////////////////////////////////////////
     //callbacks
@@ -253,9 +237,6 @@ public:
     windowContext* getWindowContext() const             { return windowContext_; }
     wc* getWC() const                                   { return windowContext_; }
 
-    std::map<unsigned int, bool> getEventMap() const    { return eventMap_; }
-    bool eventTypeMapped(unsigned int type) const       { return eventMap_.at(type); }
-
     const cursor& getCursor() const                     { return cursor_; }
 
     dataTypes getAcceptedDropTypes() const              { return dropAccept_; }
@@ -307,10 +288,7 @@ public:
     bool setCustomMoved(bool set = 1);
     bool setCustomResized(bool set = 1);
 
-    //all ? if useful, turn out of windowContextSettings (or? think about windowContextSettings and what is should be used for!) and put generally into WC
-    void setBorderSize(unsigned int size);
-    unsigned int getBorderSize() const { return borderSize_; }
-
+    ////
     std::string getName() const { return name_; }
     void setName(std::string n);
 

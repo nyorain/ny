@@ -5,6 +5,7 @@
 #include <ny/wayland/waylandEgl.hpp>
 #include <ny/wayland/waylandAppContext.hpp>
 #include <ny/wayland/waylandUtil.hpp>
+#include <ny/wayland/waylandWindowContext.hpp>
 #include <ny/wayland/waylandInterfaces.hpp>
 
 #include <ny/error.hpp>
@@ -18,97 +19,99 @@
 namespace ny
 {
 
-
-//waylandGL
-waylandGLContext::waylandGLContext(waylandWindowContext& wc)
+waylandEGLAppContext::waylandEGLAppContext(waylandAppContext* ac)
 {
-    waylandAppContext* context = wc.getAppContext();
+    EGLint major, minor, count, n, size;
+    EGLConfig *configs;
+
+    EGLint config_attribs[] =
+    {
+        EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
+        EGL_RED_SIZE, 8,
+        EGL_GREEN_SIZE, 8,
+        EGL_BLUE_SIZE, 8,
+        EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+        EGL_NONE
+    };
+
+    eglDisplay_ = eglGetDisplay((EGLNativeDisplayType) ac->getWlDisplay());
+
+    if (eglDisplay_ == EGL_NO_DISPLAY)
+    {
+        throw std::runtime_error("Can't create egl display");
+        return;
+    }
+
+    if (eglInitialize(eglDisplay_, &major, &minor) != EGL_TRUE)
+    {
+        throw std::runtime_error("Can't initialise egl display");
+        return;
+    }
+
+    eglGetConfigs(eglDisplay_, nullptr, 0, &count);
+
+    configs = new EGLConfig;
+    eglChooseConfig(eglDisplay_, config_attribs, configs, count, &n);
+
+    for (int i = 0; i < n; i++)
+    {
+        eglGetConfigAttrib(eglDisplay_, configs[i], EGL_BUFFER_SIZE, &size);
+        eglGetConfigAttrib(eglDisplay_, configs[i], EGL_RED_SIZE, &size);
+
+        // just choose the first one
+        eglConfig_ = configs[i];
+        break;
+    }
+}
+
+waylandEGLAppContext::~waylandEGLAppContext()
+{
+}
+
+//waylandEGLContext
+waylandEGLContext::waylandEGLContext(const waylandWindowContext& wc)
+{
+    eglAppContext* egl = getWaylandAppContext()->getEGLAppContext();
 
     wlEGLWindow_ = wl_egl_window_create(wc.getWlSurface(), wc.getWindow().getWidth(), wc.getWindow().getHeight());
     if(wlEGLWindow_ == EGL_NO_SURFACE)
     {
-        throw std::runtime_error("could not initialize waylandEGLWindow");
+        throw std::runtime_error("waylandEglContext::waylandEglContext: wl_egl_window_create failed");
         return;
     }
 
-    eglSurface_ = eglCreateWindowSurface(context->getEGLDisplay(), context->getEGLConfig(), wlEGLWindow_, nullptr);
-    if(!eglMakeCurrent(context->getEGLDisplay(), eglSurface_, eglSurface_, context->getEGLContext()))
+    eglSurface_ = eglCreateWindowSurface(egl->getDisplay(), egl->getConfig(), (EGLNativeWindowType) wlEGLWindow_, nullptr);
+    if(eglSurface_ == EGL_NO_SURFACE)
     {
-        throw std::runtime_error("could not make eglContext for eglSurface current");
+        throw std::runtime_error("waylandEglContext::waylandEglContext: eglCreateWindowSurface failed");
         return;
     }
 
+    const EGLint contextAttribs[] =
+    {
+        EGL_CONTEXT_CLIENT_VERSION, 2,
+        EGL_NONE
+    };
+
+    eglBindAPI(EGL_OPENGL_ES_API);
+    eglContext_ = eglCreateContext(egl->getDisplay(), egl->getConfig(), EGL_NO_CONTEXT, contextAttribs);
+
+    glContext::init(glApi::openGLES);
     drawContext_ = new glDrawContext(wc.getWindow());
 }
 
-waylandGLContext::~waylandGLContext()
+waylandEGLContext::~waylandEGLContext()
 {
+    eglAppContext* egl = getWaylandAppContext()->getEGLAppContext();
+
+    if(wlEGLWindow_) wl_egl_window_destroy(wlEGLWindow_);
+    if(eglSurface_) eglDestroySurface(egl->getDisplay(), eglSurface_);
 }
 
-void waylandGLContext::glSetSize(vec2ui size)
+void waylandEGLContext::setSize(vec2ui size)
 {
     wl_egl_window_resize(wlEGLWindow_, size.x, size.y, 0, 0);
-    //glViewport(0, 0, size.x, size.y);
 }
-
-//toplevel
-waylandGLToplevelWindowContext::waylandGLToplevelWindowContext(toplevelWindow& win, const waylandWindowContextSettings& s) : windowContext((window&)win, s), waylandToplevelWindowContext(win, s), waylandGLContext((waylandWindowContext&)*this)
-{
-}
-
-drawContext& waylandGLToplevelWindowContext::beginDraw()
-{
-    eglMakeCurrent(context_->getEGLDisplay(), eglSurface_, eglSurface_, context_->getEGLContext());
-    return *drawContext_;
-}
-
-void waylandGLToplevelWindowContext::finishDraw()
-{
-    drawContext_->apply();
-
-    wlFrameCallback_ = wl_surface_frame(wlSurface_);
-    wl_callback_add_listener(wlFrameCallback_, &wayland::frameListener, this);
-    wl_surface_commit(wlSurface_);
-
-    eglSwapBuffers(context_->getEGLDisplay(), eglSurface_);
-
-}
-
-void waylandGLToplevelWindowContext::setSize(vec2ui size, bool change)
-{
-    eglMakeCurrent(context_->getEGLDisplay(), eglSurface_, eglSurface_, context_->getEGLContext());
-    glSetSize(size);
-    refresh();
-}
-
-//child
-waylandGLChildWindowContext::waylandGLChildWindowContext(childWindow& win, const waylandWindowContextSettings& s) : windowContext((window&)win, s), waylandChildWindowContext(win, s), waylandGLContext((waylandWindowContext&)*this)
-{
-}
-
-drawContext& waylandGLChildWindowContext::beginDraw()
-{
-    eglMakeCurrent(context_->getEGLDisplay(), eglSurface_, eglSurface_, context_->getEGLContext());
-    return *drawContext_;
-}
-
-void waylandGLChildWindowContext::finishDraw()
-{
-    drawContext_->apply();
-
-    wlFrameCallback_ = wl_surface_frame(wlSurface_);
-    wl_callback_add_listener(wlFrameCallback_, &wayland::frameListener, this);
-
-    eglSwapBuffers(context_->getEGLDisplay(), eglSurface_);
-}
-
-void waylandGLChildWindowContext::setSize(vec2ui size, bool change)
-{
-    eglMakeCurrent(context_->getEGLDisplay(), eglSurface_, eglSurface_, context_->getEGLContext());
-    glSetSize(size);
-    refresh();
-}
-
 
 }
 
