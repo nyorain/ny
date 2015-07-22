@@ -2,6 +2,10 @@
 
 #include <wayland-client-protocol.h>
 
+struct xdg_shell_listener;
+struct xdg_surface_listener;
+struct xdg_popup_listener;
+
 namespace ny
 {
 
@@ -19,8 +23,10 @@ extern const wl_callback_listener displaySyncListener;
 extern const wl_data_source_listener dataSourceListener;
 extern const wl_data_offer_listener dataOfferListener;
 extern const wl_data_device_listener dataDeviceListener;
-extern const wl_output_listener outputListener;
 
+extern const xdg_popup_listener xdgPopupListener;
+extern const xdg_shell_listener xdgShellListener;
+extern const xdg_surface_listener xdgSurfaceListener;
 }
 
 }

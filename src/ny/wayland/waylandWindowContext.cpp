@@ -9,7 +9,7 @@
 #include <ny/error.hpp>
 #include <ny/cursor.hpp>
 
-#include <iostream>
+#include <ny/wayland/xdg-shell-client-protocol.h>
 
 #ifdef NY_WithEGL
 #include <ny/gl/glDrawContext.hpp>
@@ -20,6 +20,8 @@
 #include <ny/cairo.hpp>
 #include <ny/wayland/waylandCairo.hpp>
 #endif // NY_WithCairo
+
+#include <iostream>
 
 namespace ny
 {
@@ -56,72 +58,17 @@ waylandWindowContext::waylandWindowContext(window& win, const waylandWindowConte
     //window role
     if(hints & windowHints::Toplevel)
     {
-        toplevelWindow* tw = dynamic_cast<toplevelWindow*>(&win);
-        if(!tw)
-        {
-            throw std::runtime_error("waylandWC::waylandWC: window has toplevel hint but is not a toplevelWindow");
-            return;
-        }
-
-
-        if(!ac->getWlShell())
-        {
-            throw std::runtime_error("wayland App Context has no shell");
-            return;
-        }
-
-        role_ = waylandSurfaceRole::shell;
-        wlShellSurface_ = wl_shell_get_shell_surface(ac->getWlShell(), wlSurface_);
-
-        if(!wlShellSurface_)
-        {
-            throw std::runtime_error("failed to create wl_shell_surface");
-            return;
-        }
-
-        wl_shell_surface_set_toplevel(wlShellSurface_);
-        wl_shell_surface_set_user_data(wlShellSurface_, this);
-
-        wl_shell_surface_set_class(wlShellSurface_, tw->getName().c_str());
-        wl_shell_surface_set_title(wlShellSurface_, tw->getName().c_str());
-
-        wl_shell_surface_add_listener(wlShellSurface_, &shellSurfaceListener, this);
+        if(ac->getXDGShell())
+            createXDGSurface();
+        else
+            createShellSurface();
     }
     else if(hints & windowHints::Child)
     {
-        if(!ac->getWlSubcompositor())
-        {
-            throw std::runtime_error("wayland App Context has no shell");
-            return;
-        }
-
-        childWindow* cw = dynamic_cast<childWindow*>(&win);
-        if(!cw)
-        {
-            throw std::runtime_error("waylandWC::waylandWC: window has child hint but is not a childWindow");
-            return;
-        }
-
-        wl_surface* wlParent = asWayland(cw->getParent()->getWC())->getWlSurface();
-        if(!wlParent)
-        {
-            throw std::runtime_error("waylandWC::waylandWC: could not find wayland parent for child window");
-            return;
-        }
-
-        role_ = waylandSurfaceRole::sub;
-        wlSubsurface_ = wl_subcompositor_get_subsurface(ac->getWlSubcompositor(), wlSurface_, wlParent);
-
-        if(!wlSubsurface_)
-        {
-            throw std::runtime_error("failed to create wl_subsurface");
-            return;
-        }
-
-        wl_subsurface_set_position(wlSubsurface_, win.getPositionX(), win.getPositionY());
-        wl_subsurface_set_user_data(wlSubsurface_, this);
-
-        wl_subsurface_set_desync(wlSubsurface_);
+        if(ac->getXDGShell())
+            createSubsurface();
+        else
+            createSubsurface();
     }
     else
     {
@@ -130,50 +77,47 @@ waylandWindowContext::waylandWindowContext(window& win, const waylandWindowConte
     }
 
     //drawContext
-    #if (defined NY_WithCairo && defined NY_WithEGL)
-    if(settings.glPref == preference::MustNot || settings.glPref == preference::ShouldNot)
+    #if (!defined NY_WithEGL && !defined NY_WithCairo)
+    throw std::runtime_error("waylandWC::waylandWC: no renderer available");
+    return;
+    #endif
+
+    bool gl = 0;
+
+    #if (!defined NY_WithEGL)
+    if(settings.glPref == preference::Must)
     {
-        drawType_ = waylandDrawType::cairo;
-        cairo_ = new waylandCairoDrawContext(*this);
+        throw std::runtime_error("glPref set to must, but no gl renderer available");
+        return;
     }
-    else
+
+    #else
+    gl = 1;
+
+    #endif //NoCairo
+
+    #if (!defined NY_WithCairo)
+    if(settings.glPref == preference::MustNot)
+    {
+        throw std::runtime_error("glPref set to mustNot, but no software renderer available");
+        return;
+    }
+    #else
+    if(settings.glPref != preference::Must && settings.glPref != preference::Should)
+        gl = 0;
+
+    #endif //NoCairo
+
+    if(gl)
     {
         drawType_ = waylandDrawType::egl;
         egl_ = new waylandEGLDrawContext(*this);
     }
-
-    //Cairo, but no EGL
-    #elif (defined NY_WithCairo && !defined NY_WithEGL)
-    if(settings.glPref == preference::Must)
-    {
-        throw std::runtime_error("waylandWC::waylandWC: no gl renderer available, glpref was set to <must>");
-        return;
-    }
     else
     {
         drawType_ = waylandDrawType::cairo;
-        cairo_ = new waylandCairoContext(*this);
+        cairo_ = new waylandCairoDrawContext(*this);
     }
-
-    //EGL, but no cairo
-    #elif (!defined NY_WithCairo && defined NY_WithEGL)
-    if(settings.glPref == preference::MustNot)
-    {
-        throw std::runtime_error("waylandWC::waylandWC: no software renderer available, glpref was set to <mustNot>");
-        return;
-    }
-    else
-    {
-        drawType_ = waylandDrawType::egl;
-        egl_ = new waylandEGLContext(*this);
-    }
-
-    //neither egl nor cairo
-    #else
-    throw std::runtime_error("waylandWC::waylandWC: no available renderer");
-    return;
-
-    #endif //renderer
 }
 
 waylandWindowContext::~waylandWindowContext()
@@ -181,15 +125,26 @@ waylandWindowContext::~waylandWindowContext()
     if(wlFrameCallback_ != nullptr)
         wl_callback_destroy(wlFrameCallback_); //needed? is it automatically destroy by the wayland server?
 
-    if(role_ == waylandSurfaceRole::shell && wlShellSurface_)
+    //role
+    if(getWlShellSurface())
     {
         wl_shell_surface_destroy(wlShellSurface_);
     }
-    else if(role_ == waylandSurfaceRole::sub && wlSubsurface_)
+    else if(getWlSubsurface())
     {
         wl_subsurface_destroy(wlSubsurface_);
     }
 
+    else if(getXDGSurface())
+    {
+        xdg_surface_destroy(xdgSurface_);
+    }
+    else if(getXDGPopup())
+    {
+        xdg_popup_destroy(xdgPopup_);
+    }
+
+    //dc
     if(drawType_ == waylandDrawType::cairo && cairo_)
     {
         delete cairo_;
@@ -200,6 +155,101 @@ waylandWindowContext::~waylandWindowContext()
     }
 
     wl_surface_destroy(wlSurface_);
+}
+
+void waylandWindowContext::createShellSurface()
+{
+    waylandAppContext* ac = getWaylandAppContext();
+    toplevelWindow* tw = dynamic_cast<toplevelWindow*>(&window_);
+    if(!tw)
+    {
+        throw std::runtime_error("waylandWC::waylandWC: window has toplevel hint but is not a toplevelWindow");
+        return;
+    }
+
+
+    if(!ac->getWlShell())
+    {
+        throw std::runtime_error("wayland App Context has no shell");
+        return;
+    }
+
+    role_ = waylandSurfaceRole::shell;
+    wlShellSurface_ = wl_shell_get_shell_surface(ac->getWlShell(), wlSurface_);
+
+    if(!wlShellSurface_)
+    {
+        throw std::runtime_error("failed to create wl_shell_surface");
+        return;
+    }
+
+    wl_shell_surface_set_toplevel(wlShellSurface_);
+    wl_shell_surface_set_user_data(wlShellSurface_, this);
+
+    wl_shell_surface_set_class(wlShellSurface_, tw->getName().c_str());
+    wl_shell_surface_set_title(wlShellSurface_, tw->getName().c_str());
+
+    wl_shell_surface_add_listener(wlShellSurface_, &shellSurfaceListener, this);
+}
+
+void waylandWindowContext::createXDGSurface()
+{
+    waylandAppContext* ac = getWaylandAppContext();
+    if(!ac->getXDGShell())
+    {
+        throw std::runtime_error("wayland App Context has no xdg_shell");
+        return;
+    }
+
+    xdgSurface_ = xdg_shell_get_xdg_surface(ac->getXDGShell(), wlSurface_);
+    if(xdgSurface_)
+    {
+        throw std::runtime_error("failed to create xdg_surface");
+        return;
+    }
+
+    xdg_surface_set_window_geometry(xdgSurface_, window_.getPositionX(), window_.getPositionY(), window_.getWidth(), window_.getHeight());
+    xdg_surface_set_user_data(xdgSurface_, this);
+
+    xdg_surface_add_listener(xdgSurface_, &wayland::xdgSurfaceListener, this);
+}
+
+void waylandWindowContext::createSubsurface()
+{
+    waylandAppContext* ac = getWaylandAppContext();
+    if(!ac->getWlSubcompositor())
+    {
+        throw std::runtime_error("wayland App Context has no shell");
+        return;
+    }
+
+    childWindow* cw = dynamic_cast<childWindow*>(&window_);
+    if(!cw)
+    {
+        throw std::runtime_error("waylandWC::waylandWC: window has child hint but is not a childWindow");
+        return;
+    }
+
+    wl_surface* wlParent = asWayland(cw->getParent()->getWC())->getWlSurface();
+    if(!wlParent)
+    {
+        throw std::runtime_error("waylandWC::waylandWC: could not find wayland parent for child window");
+        return;
+    }
+
+    role_ = waylandSurfaceRole::sub;
+    wlSubsurface_ = wl_subcompositor_get_subsurface(ac->getWlSubcompositor(), wlSurface_, wlParent);
+
+    if(!wlSubsurface_)
+    {
+        throw std::runtime_error("failed to create wl_subsurface");
+        return;
+    }
+
+    wl_subsurface_set_position(wlSubsurface_, window_.getPositionX(), window_.getPositionY());
+    wl_subsurface_set_user_data(wlSubsurface_, this);
+
+    wl_subsurface_set_desync(wlSubsurface_);
 }
 
 void waylandWindowContext::refresh()
@@ -251,6 +301,8 @@ void waylandWindowContext::finishDraw()
 
         wlFrameCallback_ = wl_surface_frame(wlSurface_);
         wl_callback_add_listener(wlFrameCallback_, &frameListener, this);
+
+        egl_->swapBuffers();
     }
     else
     {
@@ -288,22 +340,44 @@ void waylandWindowContext::removeContextHints(unsigned long hints)
 
 void waylandWindowContext::setSize(vec2ui size, bool change)
 {
-
+    if(getEGL())
+    {
+        egl_->setSize(size);
+    }
+    else if(getCairo())
+    {
+        cairo_->setSize(size);
+    }
 }
 
 void waylandWindowContext::setPosition(vec2i position, bool change)
 {
-
+    if(getWlSubsurface())
+    {
+        if(change) wl_subsurface_set_position(wlSubsurface_, position.x, position.y);
+    }
 }
 
 unsigned long waylandWindowContext::getAdditionalWindowHints() const
 {
-    return 0;
+    unsigned long ret = 0;
+
+    if(getWlShellSurface()) //toplevel
+    {
+        ret |= windowHints::CustomDecorated | windowHints::CustomMoved | windowHints::CustomResized;
+    }
+
+    if(getEGL())
+    {
+        ret |= windowHints::GL;
+    }
+
+    return ret;
 }
 
 void waylandWindowContext::setCursor(const cursor& c)
 {
-    // - nothing to do here probably
+    //window class still stores the cursor, just update it
     updateCursor(nullptr);
 }
 

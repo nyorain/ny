@@ -17,11 +17,13 @@ protected:
 
     virtual bool makeCurrentImpl() override;
     virtual bool makeNotCurrentImpl() override;
-    virtual bool swapBuffers() override;
 
 public:
     glxDrawContext(const x11WindowContext& wc);
     ~glxDrawContext();
+
+    void setSize(vec2ui size);
+    virtual bool swapBuffers() override;
 };
 
 }

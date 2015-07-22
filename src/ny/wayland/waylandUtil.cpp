@@ -108,6 +108,16 @@ int osCreateAnonymousFile(off_t size)
     return fd;
 }
 
+//buffer interface
+void bufferRelease(void* data, wl_buffer* wl_buffer)
+{
+
+}
+const wl_buffer_listener bufferListener =
+{
+    bufferRelease
+};
+
 //shmBuffer
 shmBuffer::shmBuffer(vec2ui size, bufferFormat form) : size_(size), format(form)
 {
@@ -237,6 +247,43 @@ connection& serverCallback::add(std::function<void()> func)
 void serverCallback::done(wl_callback* cb, unsigned int data)
 {
     callback_(cb, data);
+}
+
+
+//output
+void outputGeometry(void* data, wl_output* wl_output, int x, int y, int physical_width, int physical_height, int subpixel, const char* make, const char* model, int transform)
+{
+
+}
+void outputMode(void* data, wl_output* wl_output, unsigned int flags, int width, int height, int refresh)
+{
+
+}
+void outputDone(void* data, wl_output* wl_output)
+{
+
+}
+void outputScale(void* data, wl_output* wl_output, int factor)
+{
+
+}
+const wl_output_listener outputListener =
+{
+    outputGeometry,
+    outputMode,
+    outputDone,
+    outputScale
+};
+
+//output
+output::output(wl_output* outp) : wlOutput_(outp)
+{
+    wl_output_add_listener(outp, &outputListener, this);
+}
+
+output::~output()
+{
+    wl_output_destroy(wlOutput_);
 }
 
 }//end namespace wayland

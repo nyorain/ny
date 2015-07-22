@@ -13,6 +13,10 @@
 #include <EGL/egl.h>
 #endif // NY_WithGL
 
+
+struct xdg_surface;
+struct xdg_popup;
+
 namespace ny
 {
 
@@ -30,7 +34,9 @@ enum class waylandSurfaceRole : unsigned char
     none,
 
     shell,
-    sub
+    sub,
+    xdg,
+    xdgPopup
 };
 
 enum class waylandDrawType : unsigned char
@@ -45,6 +51,13 @@ enum class waylandDrawType : unsigned char
 //waylandWindowContext//////////////////////////////////////////////////
 class waylandWindowContext : public windowContext
 {
+private:
+    //util functions
+    void createShellSurface();
+    void createXDGSurface();
+    void createXDGPopup();
+    void createSubsurface();
+
 protected:
     wl_surface* wlSurface_ = nullptr;
     wl_callback* wlFrameCallback_ = nullptr; //if this is == nullptr, the window is ready to be redrawn, else wayland is rendering the framebuffer and it should not be redrawn directly
@@ -56,6 +69,8 @@ protected:
     union
     {
         wl_shell_surface* wlShellSurface_ = nullptr;
+        xdg_surface* xdgSurface_;
+        xdg_popup* xdgPopup_;
         wl_subsurface* wlSubsurface_;
     };
 
@@ -117,6 +132,8 @@ public:
 
     wl_shell_surface* getWlShellSurface() const { return (role_ == waylandSurfaceRole::shell) ? wlShellSurface_ : nullptr; }
     wl_subsurface* getWlSubsurface() const { return (role_ == waylandSurfaceRole::sub) ? wlSubsurface_ : nullptr; }
+    xdg_surface* getXDGSurface() const { return (role_ == waylandSurfaceRole::xdg) ? xdgSurface_ : nullptr; }
+    xdg_popup* getXDGPopup() const { return (role_ == waylandSurfaceRole::xdgPopup) ? xdgPopup_ : nullptr; }
 
     waylandCairoDrawContext* getCairo() const { return (drawType_ == waylandDrawType::cairo) ? cairo_ : nullptr; }
     waylandEGLDrawContext* getEGL() const { return (drawType_ == waylandDrawType::egl) ? egl_ : nullptr; }

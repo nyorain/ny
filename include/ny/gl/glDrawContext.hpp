@@ -10,6 +10,7 @@ namespace ny
 {
 
 bool isExtensionSupported(const char* extList, const char* extension);
+bool validGLContext();
 
 enum class glApi
 {
@@ -32,7 +33,6 @@ protected:
     void init(glApi api, unsigned int depth = 0, unsigned int stencil = 0); //should be called at the end of constructor
     virtual bool makeCurrentImpl() = 0;
     virtual bool makeNotCurrentImpl() = 0;
-    virtual bool swapBuffers() = 0;
 
     //dc
     rect2f clip_;
@@ -67,6 +67,8 @@ public:
     bool makeNotCurrent(); //specified
     bool isCurrent();
 
+    virtual bool swapBuffers() = 0;
+
 private:
     static std::map<std::thread::id, glDrawContext*> current_; //every thread can have 1 current context
 
@@ -77,7 +79,5 @@ protected:
 public:
     static glDrawContext* getCurrent();
 };
-
-bool validGLContext();
 
 }

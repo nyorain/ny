@@ -11,7 +11,6 @@
 #include <ny/error.hpp>
 #include <ny/window.hpp>
 #include <ny/gl/glDrawContext.hpp>
-#include <ny/gl/glContext.hpp>
 
 #include <wayland-egl.h>
 #include <EGL/egl.h>

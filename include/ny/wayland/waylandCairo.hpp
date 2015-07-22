@@ -16,13 +16,12 @@ protected:
     const waylandWindowContext& wc_;
     wayland::shmBuffer* buffer_;
 
-    void cairoSetSize(vec2ui size);
-
 public:
     waylandCairoDrawContext(const waylandWindowContext& wc);
     virtual ~waylandCairoDrawContext();
 
     wayland::shmBuffer& getShmBuffer() const { return *buffer_; }
+    void setSize(vec2ui size);
 };
 
 

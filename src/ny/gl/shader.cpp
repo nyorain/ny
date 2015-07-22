@@ -4,8 +4,6 @@
 
 #include <ny/gl/shader.hpp>
 
-#include <ny/gl/glContext.hpp>
-
 #include <glbinding/gl/gl.h>
 #include <glbinding/Binding.h>
 using namespace gl;

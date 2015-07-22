@@ -10,6 +10,8 @@
 
 #include <ny/util/misc.hpp>
 
+#include <ny/wayland/xdg-shell-client-protocol.h>
+
 #ifdef NY_WithEGL
 #include <ny/wayland/waylandEgl.hpp>
 #include <wayland-egl.h>
@@ -190,8 +192,8 @@ void waylandAppContext::registryHandler(wl_registry* registry, unsigned int id, 
 
     else if(interface == "wl_output")
     {
-        //wlOutput_ = (wl_output*) wl_registry_bind(registry, id, &wl_output_interface, 1);
-        //wl_output_add_listener(wlOutput_, &outputListener, this);
+        wl_output* out = (wl_output*) wl_registry_bind(registry, id, &wl_output_interface, 1);
+        wlOutputs_.push_back(wayland::output(out));
     }
 
     else if(interface == "wl_seat")
@@ -214,6 +216,12 @@ void waylandAppContext::registryHandler(wl_registry* registry, unsigned int id, 
             wlDataDevice_ = wl_data_device_manager_get_data_device(wlDataManager_, wlSeat_);
             wl_data_device_add_listener(wlDataDevice_, &dataDeviceListener, this);
         }
+    }
+
+    else if(interface == "xdg_shell")
+    {
+        xdgShell_ = (xdg_shell*) wl_registry_bind(registry, id, &xdg_shell_interface, 1);
+        xdg_shell_add_listener(xdgShell_, &xdgShellListener, this);
     }
 
 }

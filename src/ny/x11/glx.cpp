@@ -41,13 +41,15 @@ glxDrawContext::glxDrawContext(const x11WindowContext& wc) : glDrawContext(wc.ge
     if(!fbc)
         return;
 
+    glxContext_ = new glxc;
+
     int (*oldHandler)(Display*, XErrorEvent*) = XSetErrorHandler(&ctxErrorHandler);
 
     typedef GLXContext (*glXCreateContextAttribsARBProc)(Display*, GLXFBConfig, GLXContext, Bool, const int*);
     glXCreateContextAttribsARBProc glXCreateContextAttribsARB = (glXCreateContextAttribsARBProc) glXGetProcAddressARB( (const GLubyte *) "glXCreateContextAttribsARB" );
     const char *glxExts = glXQueryExtensionsString(getXDisplay(), DefaultScreen(getXDisplay()));
 
-    if(isExtensionSupported(glxExts,"GLX_ARB_create_context") && glXCreateContextAttribsARB) //supported
+    if(isExtensionSupported(glxExts, "GLX_ARB_create_context") && glXCreateContextAttribsARB) //supported
     {
         int contextAttribs[] =
         {
@@ -57,7 +59,7 @@ glxDrawContext::glxDrawContext(const x11WindowContext& wc) : glDrawContext(wc.ge
             None
         };
 
-        glxContext_->context = glXCreateContextAttribsARB(getXDisplay(), fbc, nullptr, True, contextAttribs );
+        glxContext_->context = glXCreateContextAttribsARB(getXDisplay(), fbc, nullptr, True, contextAttribs);
         XSync(getXDisplay(), False);
         if(!glxContext_->context|| errorOccured)
         {
@@ -128,8 +130,14 @@ bool glxDrawContext::makeNotCurrentImpl()
 
 bool glxDrawContext::swapBuffers()
 {
+    makeCurrent();
     glXSwapBuffers(getXDisplay(), wc_.getXWindow());
     return 1;
+}
+
+void glxDrawContext::setSize(vec2ui size)
+{
+
 }
 
 

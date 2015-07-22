@@ -33,6 +33,7 @@ namespace ny
     {
         class shmBuffer;
         class serverCallback;
+        class output;
     }
 }
 

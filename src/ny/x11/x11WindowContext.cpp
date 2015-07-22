@@ -165,6 +165,9 @@ x11WindowContext::x11WindowContext(window& win, const x11WindowContextSettings& 
 
     xWindow_ = XCreateWindow(getXDisplay(), xParent, win.getPositionX(), win.getPositionY(), win.getWidth(), win.getHeight(), 0, xVinfo_->depth, InputOutput, xVinfo_->visual, mask, &attr);
 
+    ac->registerContext(xWindow_, this);
+    if(hints & windowHints::Toplevel) XSetWMProtocols(getXDisplay(), xWindow_, &x11::WindowDelete, 1);
+
     if(gl)
     {
         //todo: egl
@@ -314,11 +317,11 @@ void x11WindowContext::refresh()
 
 drawContext& x11WindowContext::beginDraw()
 {
-    if(drawType_ == x11DrawType::cairo && cairo_)
+    if(getCairo())
     {
         return *cairo_;
     }
-    else if(drawType_ == x11DrawType::glx && glx_)
+    else if(getGLX())
     {
         return *glx_;
     }
@@ -330,6 +333,16 @@ drawContext& x11WindowContext::beginDraw()
 
 void x11WindowContext::finishDraw()
 {
+    if(getCairo())
+    {
+        cairo_->apply();
+    }
+    else if(getGLX())
+    {
+        glx_->apply();
+        glx_->swapBuffers();
+    }
+
     XFlush(getXDisplay());
 }
 
@@ -364,6 +377,14 @@ void x11WindowContext::setSize(vec2ui size, bool change)
     {
         XResizeWindow(getXDisplay(), xWindow_, size.x, size.y);
     }
+
+    if(getCairo())
+        cairo_->setSize(size);
+    else if(getGLX())
+        glx_->setSize(size);
+
+    refresh();
+
 }
 
 void x11WindowContext::setPosition(vec2i position, bool change)

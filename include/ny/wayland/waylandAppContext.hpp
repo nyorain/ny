@@ -15,6 +15,7 @@
 #include <vector>
 #include <string>
 
+struct xdg_shell;
 
 namespace ny
 {
@@ -30,7 +31,8 @@ protected:
     wl_shm* wlShm_ = nullptr;
     wl_data_device_manager* wlDataManager_ = nullptr;
     wl_data_device* wlDataDevice_ = nullptr;
-    wl_output* wlOutput_ = nullptr;
+
+    xdg_shell* xdgShell_ = nullptr;
 
     wl_seat* wlSeat_ = nullptr;
     wl_pointer* wlPointer_ = nullptr;
@@ -53,6 +55,7 @@ protected:
 	wl_data_source* wlDataSource_ = nullptr;
 
 	std::vector<unsigned int> supportedShm_;
+	std::vector<wayland::output> wlOutputs_;
 
     #ifdef NY_WithEGL
     waylandEGLAppContext* egl_ = nullptr;
@@ -86,14 +89,16 @@ public:
 
     void seatCapabilities(wl_seat* seat, unsigned int caps);
 
-    wl_display* getWlDisplay() const              { return wlDisplay_; };
-    wl_compositor* getWlCompositor() const        { return wlCompositor_; };
-    wl_subcompositor* getWlSubcompositor() const  { return wlSubcompositor_; };
-    wl_shm* getWlShm() const                      { return wlShm_; };
-    wl_shell* getWlShell() const                  { return wlShell_; };
-    wl_seat* getWlSeat() const                    { return wlSeat_; };
-    wl_pointer* getWlPointer() const              { return wlPointer_; };
-    wl_keyboard* getWlKeyboard() const            { return wlKeyboard_; };
+    wl_display* getWlDisplay() const                            { return wlDisplay_; };
+    wl_compositor* getWlCompositor() const                      { return wlCompositor_; };
+    wl_subcompositor* getWlSubcompositor() const                { return wlSubcompositor_; };
+    wl_shm* getWlShm() const                                    { return wlShm_; };
+    wl_shell* getWlShell() const                                { return wlShell_; };
+    wl_seat* getWlSeat() const                                  { return wlSeat_; };
+    wl_pointer* getWlPointer() const                            { return wlPointer_; };
+    wl_keyboard* getWlKeyboard() const                          { return wlKeyboard_; };
+    const std::vector<wayland::output>& getWlOutputs() const    { return wlOutputs_; }
+    xdg_shell* getXDGShell() const                              { return xdgShell_; }
 
     void eventMouseMove(wl_pointer *pointer, unsigned int time, int sx, int sy);
     void eventMouseEnterSurface(wl_pointer *pointer, unsigned int serial, wl_surface *surface, int sx, int sy);

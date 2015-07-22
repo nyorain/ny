@@ -108,6 +108,9 @@ void glDrawContext::init(glApi api, unsigned int depth, unsigned int stencil)
 
 bool glDrawContext::makeCurrent()
 {
+    if(isCurrent())
+        return 1;
+
     if(makeCurrentImpl())
     {
         glbinding::Binding::useCurrentContext();
@@ -120,6 +123,9 @@ bool glDrawContext::makeCurrent()
 
 bool glDrawContext::makeNotCurrent()
 {
+    if(!isCurrent())
+        return 1;
+
     if(makeNotCurrentImpl())
     {
         glbinding::Binding::useCurrentContext();

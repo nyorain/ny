@@ -8,12 +8,11 @@ namespace ny
 
 class x11CairoDrawContext : public cairoDrawContext
 {
-protected:
-    void setSize(vec2ui size);
-
 public:
     x11CairoDrawContext(x11WindowContext& wc);
     virtual ~x11CairoDrawContext();
+
+     void setSize(vec2ui size);
 };
 
 }
