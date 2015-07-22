@@ -21,31 +21,20 @@ keyboard::key x11ToKey(unsigned int id);
 int cursorToX11(cursorType c);
 cursorType x11ToCursor(int xcID);
 
-long eventTypeToX11(unsigned int evType);
-long eventMapToX11(const std::map<unsigned int,bool>& evMap);
-
-
 x11AppContext* asX11(appContext* c);
 x11WindowContext* asX11(windowContext* c);
-x11ToplevelWindowContext* asX11(toplevelWindowContext* c);
-x11ChildWindowContext* asX11(childWindowContext* c);
-x11ChildWindowContext* asX11Child(windowContext* c);
-x11ToplevelWindowContext* asX11Toplevel(windowContext* c);
 
-x11CairoToplevelWindowContext* asX11Cairo(toplevelWindowContext* c);
-x11CairoChildWindowContext* asX11Cairo(childWindowContext* c);
-x11CairoContext* asX11Cairo(windowContext* c);
+#ifdef NY_WithCairo
+x11CairoDrawContext* asX11Cairo(drawContext* c);
+#endif //Cairo
 
 #ifdef NY_WithGL
-glxToplevelWindowContext* asGLX(toplevelWindowContext* c);
-glxChildWindowContext* asGLX(childWindowContext* c);
-glxWindowContext* asGLX(windowContext* c);
-glxContext* asGLX(glContext* c);
-
-x11EGLToplevelWindowContext* asx11EGL(toplevelWindowContext* c);
-x11EGLChildWindowContext* asx11EGL(childWindowContext* c);
-x11EGLContext* asx11EGL(windowContext* c);
+glxDrawContext* asGlx(drawContext* c);
 #endif // NY_WithGL
+
+#ifdef NY_WithEGL
+x11EGLDrawContext* asx11EGL(drawContext* c);
+#endif // NY_WithEGL
 
 namespace x11
 {
@@ -185,8 +174,9 @@ struct mwmInfo
 };
 
 //Property
-struct property //ny::x11::property -> dont need to be called xproperty
+class property //ny::x11::property -> dont need to be called xproperty
 {
+public:
     unsigned char* data;
     unsigned int format;
     unsigned int count;

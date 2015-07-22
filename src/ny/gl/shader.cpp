@@ -4,8 +4,6 @@
 
 #include <ny/gl/shader.hpp>
 
-#include <ny/gl/glContext.hpp>
-
 #include <glbinding/gl/gl.h>
 #include <glbinding/Binding.h>
 using namespace gl;
@@ -14,6 +12,8 @@ using namespace gl;
 
 namespace ny
 {
+
+bool validGLContext();
 
 //shader
 shader::shader()

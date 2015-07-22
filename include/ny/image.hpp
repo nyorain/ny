@@ -7,6 +7,8 @@
 
 #include <ny/drawContext.hpp>
 
+#include <memory>
+
 namespace ny
 {
 
@@ -32,6 +34,9 @@ public:
     virtual void getDataConvent(unsigned char* data) const;
 
     unsigned int getBufferSize() const;
+
+    //drawing
+    std::unique_ptr<drawContext> getDrawContext();
 
     //from surface
     vec2ui getSize() const;

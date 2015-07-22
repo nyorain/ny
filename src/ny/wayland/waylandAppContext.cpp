@@ -10,7 +10,10 @@
 
 #include <ny/util/misc.hpp>
 
-#ifdef NY_WithGL
+#include <ny/wayland/xdg-shell-client-protocol.h>
+
+#ifdef NY_WithEGL
+#include <ny/wayland/waylandEgl.hpp>
 #include <wayland-egl.h>
 #endif //NY_WithGL
 
@@ -63,14 +66,9 @@ void waylandAppContext::init()
 
     wlCursorSurface_ = wl_compositor_create_surface(wlCompositor_);
 
-#ifdef NY_WithGL
-    eglContext_ = new waylandEGLAppContext(this);
-    if(!eglContext_->init())
-    {
-        throw std::runtime_error("could not find initialize wayland eglContext");
-        return;
-    }
-#endif // NY_WithGL
+    #ifdef NY_WithEGL
+    egl_ = new waylandEGLAppContext(this);
+    #endif // NY_WithGL
 
 }
 
@@ -194,8 +192,8 @@ void waylandAppContext::registryHandler(wl_registry* registry, unsigned int id, 
 
     else if(interface == "wl_output")
     {
-        //wlOutput_ = (wl_output*) wl_registry_bind(registry, id, &wl_output_interface, 1);
-        //wl_output_add_listener(wlOutput_, &outputListener, this);
+        wl_output* out = (wl_output*) wl_registry_bind(registry, id, &wl_output_interface, 1);
+        wlOutputs_.push_back(wayland::output(out));
     }
 
     else if(interface == "wl_seat")
@@ -218,6 +216,12 @@ void waylandAppContext::registryHandler(wl_registry* registry, unsigned int id, 
             wlDataDevice_ = wl_data_device_manager_get_data_device(wlDataManager_, wlSeat_);
             wl_data_device_add_listener(wlDataDevice_, &dataDeviceListener, this);
         }
+    }
+
+    else if(interface == "xdg_shell")
+    {
+        xdgShell_ = (xdg_shell*) wl_registry_bind(registry, id, &xdg_shell_interface, 1);
+        xdg_shell_add_listener(xdgShell_, &xdgShellListener, this);
     }
 
 }
@@ -439,105 +443,60 @@ bool waylandAppContext::bufferFormatSupported(bufferFormat format)
 
 void waylandAppContext::setCursor(std::string curse, unsigned int serial)
 {
+    /* //TODO
     wl_cursor* curs =  wl_cursor_theme_get_cursor(wlCursorTheme_, curse.c_str());
 
     if(!curs) return;
 
-    wl_buffer* buffer;
+    wl_buffer* del = nullptr;
+    if(cursorIsCustomImage_)
+    {
+        if(cursorImageBuffer_) delete cursorImageBuffer_;
+    }
+    else
+    {
+        del = wlCursorBuffer_;
+    }
+    cursorIsCustomImage_ = 0;
+
     wl_cursor_image* image;
 
     image = curs->images[0];
-    buffer = wl_cursor_image_get_buffer(image);
+    wlCursorBuffer_ = wl_cursor_image_get_buffer(image);
 
     if(serial != 0) wl_pointer_set_cursor(wlPointer_, serial, wlCursorSurface_, image->hotspot_x, image->hotspot_y);
-    wl_surface_attach(wlCursorSurface_, buffer, 0, 0);
+    wl_surface_attach(wlCursorSurface_, wlCursorBuffer_, 0, 0);
     wl_surface_damage(wlCursorSurface_, 0, 0, image->width, image->height);
+    wl_surface_commit(wlCursorSurface_);
+
+    if(del) wl_buffer_destroy(del);
+        */
+}
+
+void waylandAppContext::setCursor(image* img, vec2i hotspot, unsigned int serial)
+{
+    if(cursorIsCustomImage_)
+    {
+        if(cursorImageBuffer_) delete cursorImageBuffer_;
+    }
+    else
+    {
+        if(wlCursorBuffer_) wl_buffer_destroy(wlCursorBuffer_);
+    }
+    cursorIsCustomImage_ = 1;
+
+    cursorImageBuffer_ = new wayland::shmBuffer(img->getSize(), bufferFormat::argb8888);
+    //TODO: data
+    if(serial != 0) wl_pointer_set_cursor(wlPointer_, serial, wlCursorSurface_, hotspot.x, hotspot.y);
+    wl_surface_attach(wlCursorSurface_, cursorImageBuffer_->getWlBuffer(), 0, 0);
+    wl_surface_damage(wlCursorSurface_, 0, 0, cursorImageBuffer_->getSize().x, cursorImageBuffer_->getSize().y);
     wl_surface_commit(wlCursorSurface_);
 }
 
-void waylandAppContext::setCursor(image* img, unsigned int serial)
+eglAppContext* waylandAppContext::getEGLAppContext() const
 {
-    /*
-    //todo: implement
-
-    wl_buffer buffer = wl_cursor_image_get_buffer(image);
-    if(serial != 0) wl_pointer_set_cursor(wlPointer_, serial, m_cursorSurface, image.hotspot_x, image.hotspot_y);
-    wl_surface_attach(m_cursorSurface, buffer, 0, 0);
-    wl_surface_damage(m_cursorSurface, 0, 0, image.width, image.height);
-    wl_surface_commit(m_cursorSurface);
-    */
+    return egl_;
 }
-
-#ifdef NY_WithGL
-//waylandEGLContext
-waylandEGLAppContext::waylandEGLAppContext(waylandAppContext* ac) : appContext_(ac)
-{
-}
-
-waylandEGLAppContext::~waylandEGLAppContext()
-{
-}
-
-bool waylandEGLAppContext::init()
-{
-    //eglBindAPI(EGL_OPENGL_API);
-
-    EGLint major, minor, count, n, size;
-    EGLConfig *configs;
-
-    EGLint config_attribs[] =
-    {
-        EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-        EGL_RED_SIZE, 8,
-        EGL_GREEN_SIZE, 8,
-        EGL_BLUE_SIZE, 8,
-        EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
-        EGL_NONE
-    };
-
-    const EGLint context_attribs[] =
-    {
-        EGL_CONTEXT_CLIENT_VERSION, 2,
-        EGL_NONE
-    };
-
-
-    eglDisplay_ = eglGetDisplay((EGLNativeDisplayType) appContext_->getWlDisplay());
-
-    if (eglDisplay_ == EGL_NO_DISPLAY)
-    {
-        std::cout << "Can't create egl display" << std::endl;
-        return 0;
-    }
-
-    if (eglInitialize(eglDisplay_, &major, &minor) != EGL_TRUE)
-    {
-        std::cout << "Can't initialise egl display" << std::endl;
-        return 0;
-    }
-    //printf("EGL major: %d, minor %d\n", major, minor);
-
-    eglGetConfigs(eglDisplay_, nullptr, 0, &count);
-    //printf("EGL has %d configs\n", count);
-
-    configs = new EGLConfig;
-
-    eglChooseConfig(eglDisplay_, config_attribs, configs, count, &n);
-
-    for (int i = 0; i < n; i++)
-    {
-        eglGetConfigAttrib(eglDisplay_, configs[i], EGL_BUFFER_SIZE, &size);
-        eglGetConfigAttrib(eglDisplay_, configs[i], EGL_RED_SIZE, &size);
-
-        // just choose the first one
-        eglConfig_ = configs[i];
-        break;
-    }
-
-    eglContext_ = eglCreateContext(eglDisplay_, eglConfig_, EGL_NO_CONTEXT, context_attribs);
-    return 1;
-}
-#endif // NY_WithGL
 
 
 }

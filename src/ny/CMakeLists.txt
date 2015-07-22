@@ -41,6 +41,7 @@ if(NY_WithGL)
 	gl/glContext.cpp
 	gl/glDrawContext.cpp
 	gl/shader.cpp
+	gl/egl.cpp
 	)
 endif(NY_WithGL)
 

@@ -4,6 +4,8 @@
 #include <ny/x11/x11AppContext.hpp>
 #include <ny/x11/x11WindowContext.hpp>
 #include <ny/x11/x11Cairo.hpp>
+#include <ny/app.hpp>
+#include <ny/drawContext.hpp>
 
 #ifdef NY_WithGL
 #include <ny/x11/glx.hpp>
@@ -85,16 +87,16 @@ int cursorToX11(cursorType c)
 {
     switch(c)
     {
-        case cursorType::LeftPtr: return 68;
-        case cursorType::SizeBottom: return 16;
-        case cursorType::SizeBottomLeft: return 12;
-        case cursorType::SizeBottomRight: return 14;
-        case cursorType::SizeTop: return 138;
-        case cursorType::SizeTopLeft: return 134;
-        case cursorType::SizeTopRight: return 136;
-        case cursorType::SizeLeft: return 70;
-        case cursorType::SizeRight: return 96;
-        case cursorType::Grab: return 52;
+        case cursorType::leftPtr: return 68;
+        case cursorType::sizeBottom: return 16;
+        case cursorType::sizeBottomLeft: return 12;
+        case cursorType::sizeBottomRight: return 14;
+        case cursorType::sizeTop: return 138;
+        case cursorType::sizeTopLeft: return 134;
+        case cursorType::sizeTopRight: return 136;
+        case cursorType::sizeLeft: return 70;
+        case cursorType::sizeRight: return 96;
+        case cursorType::grab: return 52;
         default: return -1;
     }
 }
@@ -103,67 +105,26 @@ cursorType x11ToCursor(int xcID)
 {
     switch(xcID)
     {
-        case 68: return cursorType::LeftPtr;
-        default: return cursorType::Unknown;
+        case 68: return cursorType::leftPtr;
+        default: return cursorType::unknown;
     }
 }
-
-long eventTypeToX11(unsigned int evType)
-{
-    switch(evType)
-    {
-        case eventType::windowDraw: return ExposureMask;
-        case eventType::windowFocus: return FocusChangeMask;
-        case eventType::windowSize: return StructureNotifyMask;
-        case eventType::windowPosition: return StructureNotifyMask;
-        case eventType::windowShow: return StructureNotifyMask;
-        case eventType::mouseMove: return PointerMotionMask;
-        case eventType::mouseCross: return EnterWindowMask | LeaveWindowMask;
-        case eventType::mouseButton: return ButtonPressMask | ButtonReleaseMask;
-        case eventType::key: return KeyPressMask | KeyReleaseMask;
-        default: return -1;
-    }
-}
-
-long eventMapToX11(const std::map<unsigned int, bool>& evMap)
-{
-    long ret = 0;
-
-    for(std::map<unsigned int, bool>::const_iterator it = evMap.begin(); it != evMap.end(); it++)
-    {
-        if(!it->second) continue;
-        long xCode = eventTypeToX11(it->first);
-        if(xCode != -1) ret |= xCode;
-    }
-
-    return ret;
-}
-
-
-
 
 ////////////////////////////////////////////////////////////////////////
 x11AppContext* asX11(appContext* c){ return dynamic_cast<x11AppContext*>(c); };
 x11WindowContext* asX11(windowContext* c){ return dynamic_cast<x11WindowContext*>(c); };
-x11ToplevelWindowContext* asX11(toplevelWindowContext* c){ return dynamic_cast<x11ToplevelWindowContext*>(c); };
-x11ChildWindowContext* asX11(childWindowContext* c){ return dynamic_cast<x11ChildWindowContext*>(c); };
-x11ChildWindowContext* asX11Child(windowContext* c){ return dynamic_cast<x11ChildWindowContext*>(c); };
-x11ToplevelWindowContext* asX11Toplevel(windowContext* c){ return dynamic_cast<x11ToplevelWindowContext*>(c); };
 
-x11CairoToplevelWindowContext* asX11Cairo(toplevelWindowContext* c){ return dynamic_cast<x11CairoToplevelWindowContext*>(c); };
-x11CairoChildWindowContext* asX11Cairo(childWindowContext* c){ return dynamic_cast<x11CairoChildWindowContext*>(c); };
-x11CairoContext* asX11Cairo(windowContext* c){ return dynamic_cast<x11CairoContext*>(c); };
+#ifdef NY_WithCairo
+x11CairoDrawContext* asX11Cairo(drawContext* c){ return dynamic_cast<x11CairoDrawContext*>(c); };
+#endif //Cairo
 
 #ifdef NY_WithGL
-glxToplevelWindowContext* asGLX(toplevelWindowContext* c){ return dynamic_cast<glxToplevelWindowContext*>(c); };
-glxChildWindowContext* asGLX(childWindowContext* c){ return dynamic_cast<glxChildWindowContext*>(c); };
-glxWindowContext* asGLX(windowContext* c){ return dynamic_cast<glxWindowContext*>(c); };
-glxContext* asGLX(glContext* c){ return dynamic_cast<glxContext*>(c); };
-
-x11EGLToplevelWindowContext* asX11EGL(toplevelWindowContext* c){ return dynamic_cast<x11EGLToplevelWindowContext*>(c); };
-x11EGLChildWindowContext* asX11EGL(childWindowContext* c){ return dynamic_cast<x11EGLChildWindowContext*>(c); };
-x11EGLContext* asX11EGL(windowContext* c){ return dynamic_cast<x11EGLContext*>(c); };
+glxDrawContext* asGLX(drawContext* c){ return dynamic_cast<glxDrawContext*>(c); };
 #endif // NY_WithGL
+
+#ifdef NY_WithEGL
+x11EGLDrawContext* asX11EGL(drawContext* c){ return dynamic_cast<x11EGLDrawContext*>(c); };
+#endif // NY_WithEGL
 
 
 namespace x11
@@ -275,9 +236,25 @@ property getWindowProperty(Window w, Atom prop)
 	return {data, (unsigned int)actualFormat, (unsigned int)count, actualType};
 }
 
+}//x11
+
+
+x11AppContext* getX11AppContext()
+{
+    x11AppContext* ret = nullptr;
+
+    if(getMainApp())
+    {
+        ret = dynamic_cast<x11AppContext*>(getMainApp()->getAppContext());
+    }
+
+    return ret;
 }
 
-
+x11AppContext* getX11AC()
+{
+    return getX11AppContext();
+}
 
 
 }

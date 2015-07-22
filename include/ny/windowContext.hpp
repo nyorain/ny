@@ -15,7 +15,7 @@ class windowContext : public nonCopyable
 {
 protected:
     window& window_;
-    unsigned long hints_;
+    unsigned long hints_; //specific context hints. can be declared by every backend
 
 public:
     windowContext(window& win, unsigned long hints = 0);
@@ -27,7 +27,7 @@ public:
     virtual unsigned long getAdditionalWindowHints() const { return 0; }
 
     virtual bool isVirtual() const { return 0; }
-    virtual bool hasGL() const { return 0; }
+    virtual bool hasGL() const = 0;
 
     virtual void refresh() = 0;
     virtual void redraw();
@@ -38,27 +38,17 @@ public:
     virtual void show() = 0;
     virtual void hide() = 0;
 
-    virtual void raise() = 0;
-    virtual void lower() = 0;
-
-    virtual void requestFocus() = 0;
-
     virtual void setDroppable(const dataTypes& type){};
     virtual void addDropType(unsigned char type){};
     virtual void removeDropType(unsigned char type){};
 
-
-    //just window hints
+    //window hints
     virtual void addWindowHints(unsigned long hints) = 0;
     virtual void removeWindowHints(unsigned long hints) = 0;
 
     //context specific
     virtual void addContextHints(unsigned long hints) { hints_ |= hints; }
     virtual void removeContextHints(unsigned long hints) { hints_ &= ~hints; }
-
-
-    virtual void mapEventType(unsigned int t){};
-    virtual void unmapEventType(unsigned int t){};
 
     virtual void setMinSize(vec2ui size){};
     virtual void setMaxSize(vec2ui size){};
@@ -71,15 +61,9 @@ public:
 
     virtual void setCursor(const cursor& c) = 0;
     virtual void updateCursor(mouseCrossEvent* ev){}; //not needed in all
-};
 
-class toplevelWindowContext : public virtual windowContext
-{
-public:
-    toplevelWindowContext(toplevelWindow& win, const windowContextSettings& = windowContextSettings());
 
-    toplevelWindow& getToplevelWindow() const;
-
+    //toplevel-specific//////////////////////////////////////////////////////////////////////////////////////////////////////
     virtual void setMaximized() = 0;
     virtual void setMinimized() = 0;
     virtual void setFullscreen() = 0;
@@ -88,28 +72,18 @@ public:
     virtual void beginMove(mouseButtonEvent* ev) = 0;
     virtual void beginResize(mouseButtonEvent* ev, windowEdge edges) = 0;
 
-    virtual void setBorderSize(unsigned int size) = 0;
-    virtual void setName(std::string name){};
-
-    virtual bool isVirtual() const final { return 0; }
-
-	virtual void setIcon(const image* img) {}
+    virtual void setName(std::string name) = 0;
+	virtual void setIcon(const image* img){};
 };
 
-class childWindowContext : public virtual windowContext
-{
-public:
-    childWindowContext(childWindow& win, const windowContextSettings& = windowContextSettings());
-
-    childWindow& getChildWindow() const;
-};
 
 //virtual////////////////////////////////////////////
 
-class virtualWindowContext : public childWindowContext
+class virtualWindowContext : public windowContext
 {
 protected:
-    redirectDrawContext* drawContext_;
+    redirectDrawContext* drawContext_ = nullptr;
+
 public:
     virtualWindowContext(childWindow& win, const windowContextSettings& = windowContextSettings());
 
@@ -122,11 +96,6 @@ public:
 
     virtual void show(){}
     virtual void hide(){}
-
-    virtual void raise(){}
-    virtual void lower(){}
-
-    virtual void requestFocus(){}
 
     virtual void setCursor(const cursor& c){}
     virtual void updateCursor(mouseCrossEvent* ev);

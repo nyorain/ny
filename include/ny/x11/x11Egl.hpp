@@ -1,55 +1,16 @@
 #pragma once
 
 #include <ny/x11/x11Include.hpp>
-#include <ny/x11/x11WindowContext.hpp>
-#include <ny/gl/glContext.hpp>
-
-#include <EGL/egl.h>
+#include <ny/gl/egl.hpp>
 
 namespace ny
 {
 
-class x11EGLContext : public glContext
-{
-
-};
-
-////
-class x11EGLWindowContext
-{
-protected:
-    glDrawContext* drawContext_;
-
-public:
-    x11EGLWindowContext(x11WindowContext& wc);
-    virtual ~x11EGLWindowContext();
-};
-
-////
-class x11EGLToplevelWindowContext : public x11ToplevelWindowContext, public x11EGLWindowContext
+class x11EGLDrawContext : public eglDrawContext
 {
 public:
-    x11EGLToplevelWindowContext(toplevelWindow& win, const x11WindowContextSettings& s = x11WindowContextSettings());
-
-    virtual drawContext& beginDraw();
-    virtual void finishDraw();
-    virtual void setSize(vec2ui size, bool change = 1);
-
-    virtual bool hasGL() const { return 1; }
+    x11EGLDrawContext(const x11WindowContext& wc);
+    virtual ~x11EGLDrawContext();
 };
-
-////
-class x11EGLChildWindowContext : public x11ChildWindowContext, public x11EGLWindowContext
-{
-public:
-    x11EGLChildWindowContext(childWindow& win, const x11WindowContextSettings& s = x11WindowContextSettings());
-
-    virtual drawContext& beginDraw();
-    virtual void finishDraw();
-    virtual void setSize(vec2ui size, bool change = 1);
-
-    virtual bool hasGL() const { return 1; }
-};
-
 
 }

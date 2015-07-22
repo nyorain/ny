@@ -2,28 +2,33 @@
 
 namespace ny
 {
-	class x11WindowContext;
-	class x11AppContext;
-	class x11ToplevelWindowContext;
-	class x11ChildWindowContext;
-	class x11CairoChildWindowContext;
-	class x11CairoToplevelWindowContext;
-	class x11CairoContext;
 
-	typedef x11WindowContext x11WC;
-	typedef x11AppContext x11AC;
-	typedef x11ChildWindowContext x11ChildWC;
-	typedef x11ToplevelWindowContext x11ToplevelWC;
+    class x11WindowContext;
+    class x11AppContext;
 
-#ifdef NY_WithGL
-	class glxContext;
-	class glxWindowContext;
-	class glxToplevelWindowContext;
-	class glxChildWindowContext;
+    typedef x11WindowContext x11WC;
+    typedef x11AppContext x11AC;
 
-	class x11EGLContext;
-	class x11EGLWindowContext;
-	class x11EGLToplevelWindowContext;
-	class x11EGLChildWindowContext;
-#endif //WithGL
+    #ifdef NY_WithCairo
+    class x11CairoDrawContext;
+    typedef x11CairoDrawContext x11CairoDC;
+    #endif // Cairo
+
+    #ifdef NY_WithGL
+    class glxDrawContext;
+    typedef glxDrawContext glxDC;
+    #endif //WithGL
+
+    #ifdef NY_WithEGL
+    class x11EGLDrawContext;
+    typedef x11EGLDrawContext x11EGLDC;
+    #endif //WithEGL
+
+    namespace x11
+    {
+        class property;
+    }
+
+    x11AppContext* getX11AppContext();
+    x11AppContext* getX11AC();
 }

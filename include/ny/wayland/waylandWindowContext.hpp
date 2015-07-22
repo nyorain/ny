@@ -13,6 +13,10 @@
 #include <EGL/egl.h>
 #endif // NY_WithGL
 
+
+struct xdg_surface;
+struct xdg_popup;
+
 namespace ny
 {
 
@@ -25,91 +29,114 @@ public:
 
 class waylandWindowContextSettings : public windowContextSettings{};
 
+enum class waylandSurfaceRole : unsigned char
+{
+    none,
+
+    shell,
+    sub,
+    xdg,
+    xdgPopup
+};
+
+enum class waylandDrawType : unsigned char
+{
+    none,
+
+    cairo,
+    egl
+};
+
 //wc////////////////////////////////////////////////////////////
 //waylandWindowContext//////////////////////////////////////////////////
-class waylandWindowContext : public virtual windowContext
+class waylandWindowContext : public windowContext
 {
-protected:
-    wl_surface* wlSurface_;
-    wl_callback* wlFrameCallback_; //it this is == nullptr, the window is ready to be redrawn, else wayland is rendering the framebuffer and it should not be redrawn directly
+private:
+    //util functions
+    void createShellSurface();
+    void createXDGSurface();
+    void createXDGPopup();
+    void createSubsurface();
 
-    waylandAppContext* context_;
-    bool refreshFlag_;
+protected:
+    wl_surface* wlSurface_ = nullptr;
+    wl_callback* wlFrameCallback_ = nullptr; //if this is == nullptr, the window is ready to be redrawn, else wayland is rendering the framebuffer and it should not be redrawn directly
+
+    bool refreshFlag_ = 0; //signals, if window should be refreshed
+
+    //role
+    waylandSurfaceRole role_ = waylandSurfaceRole::none;
+    union
+    {
+        wl_shell_surface* wlShellSurface_ = nullptr;
+        xdg_surface* xdgSurface_;
+        xdg_popup* xdgPopup_;
+        wl_subsurface* wlSubsurface_;
+    };
+
+    //draw
+    waylandDrawType drawType_ = waylandDrawType::none;
+    union
+    {
+        waylandEGLDrawContext* egl_ = nullptr;
+        waylandCairoDrawContext* cairo_;
+    };
 
 public:
     waylandWindowContext(window& win, const waylandWindowContextSettings& s = waylandWindowContextSettings());
     virtual ~waylandWindowContext();
 
     //high level functions///////////////////////////////////////////////
-    virtual void refresh();
+    virtual void refresh() override;
 
-    virtual drawContext& beginDraw() = 0;
-    virtual void finishDraw() = 0;
+    virtual drawContext& beginDraw() override;
+    virtual void finishDraw() override;
 
-    virtual void show(){};
-    virtual void hide(){};
+    virtual void show() override;
+    virtual void hide() override;
 
-    virtual void raise(){};
-    virtual void lower(){};
+    virtual void addWindowHints(unsigned long hint) override;
+    virtual void removeWindowHints(unsigned long hint) override;
 
-    virtual void requestFocus(){};
+    virtual void addContextHints(unsigned long hints) override;
+    virtual void removeContextHints(unsigned long hints) override;
 
-    virtual void setWindowHints(unsigned long hints){};
-    virtual void addWindowHints(unsigned long hint){};
-    virtual void removeWindowHints(unsigned long hint){};
+    virtual void setSize(vec2ui size, bool change = 1) override;
+    virtual void setPosition(vec2i position, bool change = 1) override;
 
-    virtual void setContextHints(unsigned long hints){};
-    virtual void addContextHints(unsigned long hints){};
-    virtual void removeContextHints(unsigned long hints){};
+    virtual void setCursor(const cursor& c) override;
+    virtual void updateCursor(mouseCrossEvent* ev) override;
 
-    virtual void setSize(vec2ui size, bool change = 1) = 0;
-    virtual void setPosition(vec2i position, bool change = 1){};
+    virtual void sendContextEvent(contextEvent& e) override;
 
-    virtual void setCursor(const cursor& c);
-    virtual void updateCursor(mouseCrossEvent* ev);
+    virtual unsigned long getAdditionalWindowHints() const override;
 
-    virtual void sendContextEvent(contextEvent& e);
+    virtual bool hasGL() const override { return (drawType_ == waylandDrawType::egl); }
+
+    //toplevel
+    virtual void setMaximized() override;
+    virtual void setMinimized() override;
+    virtual void setFullscreen() override;
+    virtual void setNormal() override;
+
+    virtual void beginMove(mouseButtonEvent* ev) override;
+    virtual void beginResize(mouseButtonEvent* ev, ny::windowEdge edge) override;
+
+    virtual void setName(std::string str) override;
 
     //wayland specific functions///////////////////////////////////////////////
     wl_surface* getWlSurface() const { return wlSurface_; };
-    waylandAppContext* getAppContext() const { return context_; };
-};
 
-//waylandToplevel////////////////////////////////////////////////////////
-class waylandToplevelWindowContext : public toplevelWindowContext, public waylandWindowContext
-{
-protected:
-    wl_shell_surface* wlShellSurface_;
+    waylandDrawType getDrawType() const { return drawType_; }
+    waylandSurfaceRole getSurfaceRole() const { return role_; }
 
-public:
-    waylandToplevelWindowContext(toplevelWindow& win, const waylandWindowContextSettings& s = waylandWindowContextSettings());
+    wl_shell_surface* getWlShellSurface() const { return (role_ == waylandSurfaceRole::shell) ? wlShellSurface_ : nullptr; }
+    wl_subsurface* getWlSubsurface() const { return (role_ == waylandSurfaceRole::sub) ? wlSubsurface_ : nullptr; }
+    xdg_surface* getXDGSurface() const { return (role_ == waylandSurfaceRole::xdg) ? xdgSurface_ : nullptr; }
+    xdg_popup* getXDGPopup() const { return (role_ == waylandSurfaceRole::xdgPopup) ? xdgPopup_ : nullptr; }
 
-    virtual void setMaximized();
-    virtual void setMinimized();
-    virtual void setFullscreen();
-    virtual void setNormal();
-
-    virtual void beginMove(mouseButtonEvent* ev);
-    virtual void beginResize(mouseButtonEvent* ev, windowEdge edges);
-
-    virtual void setBorderSize(unsigned int size){ };
-
-    virtual unsigned long getAdditionalWindowHints() const;
-
-
-    wl_shell_surface* getWlShellSurface() const { return wlShellSurface_; };
-};
-
-//waylandChild/////////////////////////////////////////////////////////
-class waylandChildWindowContext : public childWindowContext, public waylandWindowContext
-{
-protected:
-    wl_subsurface* wlSubsurface_;
-
-public:
-    waylandChildWindowContext(childWindow& win, const waylandWindowContextSettings& s = waylandWindowContextSettings());
-
-    wl_subsurface* getWlSubsurface() const { return wlSubsurface_; };
+    waylandCairoDrawContext* getCairo() const { return (drawType_ == waylandDrawType::cairo) ? cairo_ : nullptr; }
+    waylandEGLDrawContext* getEGL() const { return (drawType_ == waylandDrawType::egl) ? egl_ : nullptr; }
 };
 
 

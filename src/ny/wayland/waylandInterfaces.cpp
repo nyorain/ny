@@ -4,6 +4,8 @@
 #include <ny/wayland/waylandUtil.hpp>
 #include <ny/app.hpp>
 
+#include <ny/wayland/xdg-shell-client-protocol.h>
+
 #include <iostream>
 
 namespace ny
@@ -255,31 +257,54 @@ const wl_data_device_listener dataDeviceListener =
     dataDeviceSelection
 };
 
-//output
-void outputGeometry(void* data, wl_output* wl_output, int x, int y, int physical_width, int physical_height, int subpixel, const char* make, const char* model, int transform)
+//xdg-shell
+void xdgShellPing(void *data, struct xdg_shell *xdg_shell, uint32_t serial)
 {
 
 }
-void outputMode(void* data, wl_output* wl_output, unsigned int flags, int width, int height, int refresh)
+const xdg_shell_listener xdgShellListener =
 {
-
-}
-void outputDone(void* data, wl_output* wl_output)
-{
-
-}
-void outputScale(void* data, wl_output* wl_output, int factor)
-{
-
-}
-const wl_output_listener outputListener =
-{
-    outputGeometry,
-    outputMode,
-    outputDone,
-    outputScale
+    xdgShellPing
 };
 
+//xdg-surface
+void xdgSurfaceConfigure(void *data, struct xdg_surface *xdg_surface, int32_t width, int32_t height, struct wl_array *states, uint32_t serial)
+{
+    waylandWindowContext* wc = (waylandWindowContext*) data;
+
+    sizeEvent ev;
+    ev.backend = Wayland;
+    ev.data = new waylandEventData(serial);
+    ev.size = vec2ui(width, height);
+    ev.handler = &wc->getWindow();
+
+    getMainApp()->sendEvent(ev, wc->getWindow());
+}
+void xdgSurfaceClose(void *data, struct xdg_surface *xdg_surface)
+{
+    waylandWindowContext* wc = (waylandWindowContext*) data;
+
+    destroyEvent ev;
+    ev.backend = Wayland;
+    ev.handler = &wc->getWindow();
+
+    getMainApp()->sendEvent(ev, wc->getWindow());
+}
+const xdg_surface_listener xdgSurfaceListener =
+{
+    xdgSurfaceConfigure,
+    xdgSurfaceClose
+};
+
+//xdg-popup
+void xdgPopupDone(void *data, struct xdg_popup *xdg_popup)
+{
+
+}
+const xdg_popup_listener xdgPopupListener =
+{
+    xdgPopupDone
+};
 
 } //namespace wayland
 

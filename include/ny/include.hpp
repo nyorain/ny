@@ -5,7 +5,6 @@
 
 namespace ny
 {
-
 class backend;
 class app;
 class eventHandler;
@@ -24,9 +23,8 @@ class mouse;
 
 class appContext;
 class windowContext;
-class toplevelWindowContext;
-class childWindowContext;
 class windowContextSettings;
+class drawContext;
 
 class dataTypes;
 class dataOffer;
@@ -53,10 +51,6 @@ enum class preference : unsigned char;
 enum class windowEdge : unsigned char;
 enum class bufferFormat : unsigned char;
 
-class drawContext;
-class cairoDrawContext;
-class gdiDrawContext;
-
 class mask;
 class shape;
 class path;
@@ -80,33 +74,37 @@ typedef color pen;
 //class pen;
 
 typedef drawContext dc;
-
-typedef cairoDrawContext cairoDC;
-typedef gdiDrawContext gdiDC;
-
 typedef windowContext wc;
-typedef toplevelWindowContext toplevelWC;
-typedef childWindowContext childWC;
-
 typedef appContext ac;
 
-//todo: fix NY_With*
+#ifdef NY_WithFreeType
 class freeTypeFont;
-class cairoFont;
+#endif //FreeType
+
+#ifdef NY_WithWinapi
 class gdiFont;
+class gdiDrawContext;
+typedef gdiDrawContext gdiDC;
+#endif //Winapi
+
+#ifdef NY_WithCairo
+class cairoFont;
+class cairoDrawContext;
+typedef cairoDrawContext cairoDC;
+#endif //Cairo
 
 #ifdef NY_WithGL
 class shader;
-
-class glContext;
-
-class legacyGLContext;
-class modernGLContext;
-
 class glDrawContext;
-
 typedef glDrawContext glDC;
-typedef glContext glc;
+
+#ifdef NY_WithEGL
+class eglDrawContext;
+class eglAppContext;
+
+typedef eglAppContext eglAC;
+#endif // NY_WithEGL
+
 #endif // NY_WithGL
 
 //utils

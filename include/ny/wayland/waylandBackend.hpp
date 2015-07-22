@@ -17,10 +17,7 @@ public:
     virtual bool isAvailable() const;
 
     virtual appContext* createAppContext();
-
-    virtual toplevelWindowContext* createToplevelWindowContext(toplevelWindow& win, const windowContextSettings& s = windowContextSettings());
-    virtual childWindowContext* createChildWindowContext(childWindow& win, const windowContextSettings& s = windowContextSettings());
-    //virtual windowContext* createCustomWindowContext(window* win, const windowContextSettings& s = windowContextSettings());
+    virtual windowContext* createWindowContext(window& win, const windowContextSettings& s = windowContextSettings());
 
     virtual bool hasNativeHandling() const { return 0; };
     virtual bool hasNativeDecoration() const { return 0; };

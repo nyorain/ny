@@ -92,4 +92,10 @@ bool image::loadFromFile(const std::string& path)
     return 1;
 }
 
+std::unique_ptr<drawContext> image::getDrawContext()
+{
+    std::unique_ptr<drawContext> ret;
+    return ret;
+}
+
 }

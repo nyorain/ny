@@ -72,8 +72,55 @@ public:
     connection& add(std::function<void(wl_callback*, unsigned int)> func);
     connection& add(std::function<void(unsigned int)> func);
     connection& add(std::function<void()> func);
+};
 
-    void remove(const connection& conn);
+//output
+class output
+{
+
+friend void outputGeometry(void*, wl_output*, int, int, int, int, int, const char*, const char*, int);
+friend void outputMode(void*, wl_output*, unsigned int, int, int, int);
+friend void outputDone(void*, wl_output*);
+friend void outputScale(void*, wl_output*, int);
+
+protected:
+    wl_output* wlOutput_ = nullptr;
+
+    vec2i position_;
+    vec2i size_;
+    vec2i physicalSize_;
+
+    int subpixel_;
+    int refreshRate_;
+
+    unsigned int flags_;
+
+    std::string make_;
+    std::string model_;
+
+    int transform_;
+    int scale_;
+
+public:
+    output(wl_output* outp);
+    ~output();
+
+    vec2i getPosition() const { return position_; }
+    vec2i getSize() const { return size_; }
+    vec2i getPhysicalSize() const { return physicalSize_; }
+
+    int getSubpixel() const { return subpixel_; }
+    int getRefreshRate() const { return refreshRate_; }
+
+    unsigned int getFlags() const { return flags_; }
+
+    std::string getMake() const { return make_; }
+    std::string getModel() const { return model_; }
+
+    int getTransform() const { return transform_; }
+    int getScale() const { return scale_; }
+
+    wl_output* getWlOutput() const { return wlOutput_; }
 };
 
 }//wayland
