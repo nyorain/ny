@@ -63,6 +63,7 @@ if(NY_WithGL)
 	gl/glContext.hpp
 	gl/glDC.hpp
 	gl/shader.hpp
+	gl/egl.hpp
 	)
 
 	install(FILES ${H_GL} DESTINATION include/ny/gl)
