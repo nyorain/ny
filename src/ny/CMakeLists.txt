@@ -38,7 +38,6 @@ set(SOURCE
 #gl___________________________________________________________________________________
 if(NY_WithGL)
 	set(SOURCE ${SOURCE}
-	gl/glContext.cpp
 	gl/glDrawContext.cpp
 	gl/shader.cpp
 	gl/egl.cpp
@@ -73,6 +72,8 @@ if(NY_WithWayland)
 		wayland/waylandCairo.cpp
 		wayland/waylandUtil.cpp
 		wayland/waylandWindowContext.cpp
+		wayland/waylandInterfaces.cpp
+		wayland/xdg-shell-protocol.c
 	)
 	if(NY_WithGL)
 		set(SOURCE ${SOURCE}

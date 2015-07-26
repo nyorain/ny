@@ -13,6 +13,7 @@ include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src")
 option(NY_BUILD_EXAMPLES "build the ny examples" ON)
 
 option(NY_WithGL "Include GL functions and backends" ON)
+option(NY_WithEGL "Include EGL functions and backends" ON)
 option(NY_WithGLBinding "Use GLBinding Instead of static GL" ON)
 option(NY_WithCairo "Include Cairo fuctions and drawContext" ON)
 option(NY_WithFreeType "Enable FreeType for font handling" ON)

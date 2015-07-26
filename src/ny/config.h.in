@@ -2,6 +2,7 @@
 #define NY_VMinor @NY_VMINOR@
 
 #cmakedefine NY_WithGL
+#cmakedefine NY_WithEGL
 #cmakedefine NY_WithX11
 #cmakedefine NY_WithWayland
 #cmakedefine NY_WithWinapi
