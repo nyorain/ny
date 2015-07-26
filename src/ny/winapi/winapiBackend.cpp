@@ -1,6 +1,6 @@
-#include <ny/winapi/backend.hpp>
-#include <ny/winapi/appContext.hpp>
-#include <ny/winapi/windowContext.hpp>
+#include <ny/winapi/winapiBackend.hpp>
+#include <ny/winapi/winapiAppContext.hpp>
+#include <ny/winapi/winapiWindowContext.hpp>
 
 namespace ny
 {
@@ -14,7 +14,7 @@ appContext* winapiBackend::createAppContext()
     return new winapiAppContext();
 }
 
-toplevelWindowContext* winapiBackend::createToplevelWindowContext(toplevelWindow* win, const windowContextSettings& settings)
+windowContext* winapiBackend::createWindowContext(window& win, const windowContextSettings& settings)
 {
     winapiWindowContextSettings s;
     const winapiWindowContextSettings* sTest = dynamic_cast<const winapiWindowContextSettings*>(&settings);
@@ -28,28 +28,7 @@ toplevelWindowContext* winapiBackend::createToplevelWindowContext(toplevelWindow
         s.hints = settings.hints;
     }
 
-    return new winapiToplevelWindowContext(win, s);
-}
-
-childWindowContext* winapiBackend::createChildWindowContext(childWindow* win, const windowContextSettings& settings)
-{
-    if(settings.virtualState == virtuality::Should || settings.virtualState == virtuality::Must || settings.virtualState == virtuality::DontCare)
-    {
-        return new virtualWindowContext(win, settings);
-    }
-
-    winapiWindowContextSettings s;
-    const winapiWindowContextSettings* sTest = dynamic_cast<const winapiWindowContextSettings*>(&settings);
-    if(sTest)
-    {
-        s = *sTest;
-    }
-    else
-    {
-        s.hints = settings.hints;
-    }
-
-    return new winapiChildWindowContext(win, s);
+    return new winapiWindowContext(win, s);
 }
 
 }

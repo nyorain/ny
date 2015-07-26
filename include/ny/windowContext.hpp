@@ -46,7 +46,6 @@ public:
     virtual void addWindowHints(unsigned long hints) = 0;
     virtual void removeWindowHints(unsigned long hints) = 0;
 
-    //context specific
     virtual void addContextHints(unsigned long hints) { hints_ |= hints; }
     virtual void removeContextHints(unsigned long hints) { hints_ &= ~hints; }
 

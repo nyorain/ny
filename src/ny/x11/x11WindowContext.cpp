@@ -183,6 +183,8 @@ x11WindowContext::x11WindowContext(window& win, const x11WindowContextSettings& 
 
 x11WindowContext::~x11WindowContext()
 {
+    //todo: unregister
+
     if(drawType_ == x11DrawType::cairo && cairo_)
     {
         delete cairo_;

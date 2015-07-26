@@ -21,13 +21,13 @@ public:
     typedef LRESULT CALLBACK (*wndProc)(HWND, UINT, WPARAM, LPARAM);
 
 protected:
-    HINSTANCE m_instance;
-    STARTUPINFO m_startupInfo;
+    HINSTANCE instance_ = nullptr;
+    STARTUPINFO startupInfo_;
 
-    std::map<HWND, winapiWindowContext*> m_contexts;
+    std::map<HWND, winapiWindowContext*> contexts_;
 
-    GdiplusStartupInput m_gdiplusStartupInput;
-    ULONG_PTR m_gdiplusToken;
+    GdiplusStartupInput gdiplusStartupInput_;
+    ULONG_PTR gdiplusToken_;
 
 public:
     winapiAppContext();
@@ -57,8 +57,8 @@ public:
     void setCursor(unsigned int cursorID);
     void setCursor(image* img);
 
-    const HINSTANCE& getInstance() const { return m_instance; };
-    const STARTUPINFO& getStartInfo() const { return m_startupInfo; };
+    const HINSTANCE& getInstance() const { return instance_; };
+    const STARTUPINFO& getStartInfo() const { return startupInfo_; };
 };
 
 LRESULT CALLBACK dummyWndProc(HWND a, UINT b, WPARAM c, LPARAM d);

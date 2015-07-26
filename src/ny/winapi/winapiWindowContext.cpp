@@ -1,10 +1,10 @@
-#include <ny/winapi/windowContext.hpp>
-#include <ny/winapi/appContext.hpp"
-#include <ny/winapi/gdiDrawContext.hpp"
+#include <ny/winapi/winapiWindowContext.hpp>
+#include <ny/winapi/winapiAppContext.hpp>
+#include <ny/winapi/gdiDrawContext.hpp>
 
-#include <ny/app.hpp"
-#include <ny/error.hpp"
-#include <ny/window.hpp"
+#include <ny/app.hpp>
+#include <ny/error.hpp>
+#include <ny/window.hpp>
 
 #include <tchar.h>
 
@@ -13,7 +13,7 @@ namespace ny
 
 unsigned int winapiWindowContext::highestID = 0;
 
-winapiWindowContext::winapiWindowContext(window* win, const winapiWindowContextSettings& settings) : windowContext(win, settings), m_instance(0)
+winapiWindowContext::winapiWindowContext(window& win, const winapiWindowContextSettings& settings) : windowContext(win, settings)
 {
     winapiAppContext* ac = dynamic_cast<winapiAppContext*> (getMainApp()->getAppContext());
 
@@ -23,9 +23,9 @@ winapiWindowContext::winapiWindowContext(window* win, const winapiWindowContextS
         return;
     }
 
-    m_instance = ac->getInstance();
+    instance_ = ac->getInstance();
 
-    if(!m_instance)
+    if(!instance_)
     {
         throw std::runtime_error("winapiWindowContext::create: hInstance invalid");
         return;
@@ -35,67 +35,42 @@ winapiWindowContext::winapiWindowContext(window* win, const winapiWindowContextS
 
     std::string name = "regName" + std::to_string(highestID);
 
-    m_wndClass.hInstance = m_instance;
-    m_wndClass.lpszClassName = _T(name.c_str());
-    m_wndClass.lpfnWndProc = &dummyWndProc;
-    m_wndClass.style = CS_DBLCLKS;
-    m_wndClass.cbSize = sizeof (WNDCLASSEX);
-    m_wndClass.hIcon = LoadIcon (NULL, IDI_APPLICATION);
-    m_wndClass.hIconSm = LoadIcon (NULL, IDI_APPLICATION);
-    m_wndClass.hCursor = LoadCursor (NULL, IDC_ARROW);
-    m_wndClass.lpszMenuName = NULL;
-    m_wndClass.cbClsExtra = 0;
-    m_wndClass.cbWndExtra = 0;
-    m_wndClass.hbrBackground = (HBRUSH) GetStockObject(BLACK_BRUSH);
+    wndClass_.hInstance = instance_;
+    wndClass_.lpszClassName = _T(name.c_str());
+    wndClass_.lpfnWndProc = &dummyWndProc;
+    wndClass_.style = CS_DBLCLKS;
+    wndClass_.cbSize = sizeof (WNDCLASSEX);
+    wndClass_.hIcon = LoadIcon (nullptr, IDI_APPLICATION);
+    wndClass_.hIconSm = LoadIcon (nullptr, IDI_APPLICATION);
+    wndClass_.hCursor = LoadCursor (nullptr, IDC_ARROW);
+    wndClass_.lpszMenuName = nullptr;
+    wndClass_.cbClsExtra = 0;
+    wndClass_.cbWndExtra = 0;
+    wndClass_.hbrBackground = (HBRUSH) GetStockObject(BLACK_BRUSH);
 
-    m_drawContext = new gdiDrawContext(this);
 }
 
 winapiWindowContext::~winapiWindowContext()
 {
-    CloseWindow(m_handle);
+    CloseWindow(handle_);
 }
 
 void winapiWindowContext::refresh()
 {
-    //beginDraw();
-    //m_window->draw(m_drawContext);
-    //finishDraw();
-
-    //RECT rect;
-    //HRGN rgn;
-    //GetWindowRect(m_handle, &rect);
-    //GetWindowRgn(m_handle, rgn);
-    //RedrawWindow(m_handle, &rect, rgn, 0);
-
-    RedrawWindow(m_handle, NULL, NULL, RDW_INVALIDATE | RDW_NOERASE);
+    RedrawWindow(handle_, nullptr, nullptr, RDW_INVALIDATE | RDW_NOERASE);
 }
 
 drawContext& winapiWindowContext::beginDraw()
 {
-    dynamic_cast<gdiDrawContext*>(m_drawContext)->beginDraw();
-    return *m_drawContext;
 }
 void winapiWindowContext::finishDraw()
 {
-    dynamic_cast<gdiDrawContext*>(m_drawContext)->finishDraw();
 }
 
 void winapiWindowContext::show()
 {
 }
 void winapiWindowContext::hide()
-{
-}
-
-void winapiWindowContext::raise()
-{
-}
-void winapiWindowContext::lower()
-{
-}
-
-void winapiWindowContext::requestFocus()
 {
 }
 
@@ -130,12 +105,13 @@ void winapiWindowContext::setPosition(vec2i position, bool change)
 {
 }
 
-void winapiWindowContext::setWindowCursor(const cursor& c)
+void winapiWindowContext::setCursor(const cursor& c)
 {
 }
 
 //////////////////////////////////////////////////
 //
+/*
 winapiToplevelWindowContext::winapiToplevelWindowContext(toplevelWindow* win, const winapiWindowContextSettings& settings) : windowContext(win, settings), toplevelWindowContext(win, settings), winapiWindowContext(win, settings)
 {
     winapiAppContext* ac = dynamic_cast<winapiAppContext*> (getMainApp()->getAppContext());
@@ -195,5 +171,5 @@ void winapiToplevelWindowContext::beginResize(mouseButtonEvent* ev, windowEdge e
 winapiChildWindowContext::winapiChildWindowContext(childWindow* win, const winapiWindowContextSettings& settings) : windowContext(win, settings), childWindowContext(win, settings), winapiWindowContext(win, settings)
 {
 }
-
+*/
 }

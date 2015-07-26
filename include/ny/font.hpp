@@ -25,7 +25,7 @@ protected:
 
 
     #ifdef NY_WithWinapi
-    gdiFont* gdiFont_ = 0;
+    gdiFont* gdiFont_ = nullptr;
     #endif //NY_Winapi
 
 public:

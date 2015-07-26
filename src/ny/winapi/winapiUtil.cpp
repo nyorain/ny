@@ -1,6 +1,6 @@
-#include "util.hpp"
+#include <ny/winapi/winapiUtil.hpp>
 
-#include "../include/color.hpp"
+#include <ny/color.hpp>
 
 namespace ny
 {
