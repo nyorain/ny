@@ -1,6 +1,9 @@
 #include <ny/image.hpp>
 
+#if (!defined NY_WithWinapi)
 #define cimg_use_png 1
+#endif //NOT Winapi
+
 #include <CImg.h>
 using namespace cimg_library;
 

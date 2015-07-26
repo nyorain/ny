@@ -1,7 +1,7 @@
 #pragma once
 
-#include <ny/include.hpp"
-#include <ny/windowContext.hpp"
+#include <ny/winapi/winapiInclude.hpp>
+#include <ny/windowContext.hpp>
 
 #include <ny/winapi/gdiDrawContext.hpp>
 
@@ -10,38 +10,42 @@
 namespace ny
 {
 
-class winapiWindowContext;
-class winapiToplevelWindowContext;
-class winapiChildWindowContext;
-class winapiAppContext;
-class winapiGdiDrawContext;
-
-typedef winapiWindowContext winapiWC;
-typedef winapiToplevelWindowContext winapiToplevelWC;
-typedef winapiChildWindowContext winapiChildWC;
-
 class winapiWindowContextSettings : public windowContextSettings
 {
-public:
-
 };
 
 typedef winapiWindowContextSettings winapiWS;
 
-/wc
+enum class winapiDrawType
+{
+    none,
+
+    gdi,
+    wgl
+};
+
+//windowContext
 class winapiWindowContext : public virtual windowContext
 {
 protected:
     static unsigned int highestID;
 
-    HWND m_handle;
-    HINSTANCE m_instance;
-    WNDCLASSEX m_wndClass;
+    HWND handle_;
+    HINSTANCE instance_;
+    WNDCLASSEX wndClass_;
 
-    drawContext* m_drawContext;
+    winapiDrawType drawType_ = winapiDrawType::none;
+    union
+    {
+        gdiDrawContext* gdi_ = nullptr;
+
+        #ifdef NY_WithGL
+        wglDrawContext* wgl_ = nullptr;
+        #endif //GL
+    };
 
 public:
-    winapiWindowContext(window* win, const winapiWindowContextSettings& settings = winapiWindowContextSettings());
+    winapiWindowContext(window& win, const winapiWindowContextSettings& settings = winapiWindowContextSettings());
     virtual ~winapiWindowContext();
 
     virtual void refresh();
@@ -51,11 +55,6 @@ public:
 
     virtual void show();
     virtual void hide();
-
-    virtual void raise();
-    virtual void lower();
-
-    virtual void requestFocus();
 
     virtual void setWindowHints(const unsigned long hints);
     virtual void addWindowHints(const unsigned long hint);
@@ -68,43 +67,33 @@ public:
     virtual void setSettings(const windowContextSettings& s);
 
     virtual void setSize(vec2ui size, bool change = 1);
-    virtual void setPosition(vec2i position, bool change = 1); /...
+    virtual void setPosition(vec2i position, bool change = 1);
 
-    virtual void setWindowCursor(const cursor& c);
+    virtual void setCursor(const cursor& c) override;
+
+    virtual bool hasGL() const override;
+
+    //toplevel
+    virtual void setMaximized() override;
+    virtual void setMinimized() override;
+    virtual void setFullscreen() override;
+    virtual void setNormal() override;
+
+    virtual void setMinSize(vec2ui size) override;
+    virtual void setMaxSize(vec2ui size) override;
+
+    virtual void beginMove(mouseButtonEvent* ev) override;
+    virtual void beginResize(mouseButtonEvent* ev, windowEdge edges) override;
+
+    virtual void setIcon(const image* img) override;
+    virtual void setName(std::string name) override;
 
     /////////////////////////////////////////
-    /winapi specific
+    //winapi specific
 
-    HWND getHandle() const { return m_handle; }
-    HINSTANCE getInstance() const { return m_instance; }
-    WNDCLASSEX getWndClassEx() const { return m_wndClass; }
-};
-
-/toplevel
-class winapiToplevelWindowContext : public toplevelWindowContext, public winapiWindowContext
-{
-public:
-    winapiToplevelWindowContext(toplevelWindow* win, const winapiWindowContextSettings& settings = winapiWindowContextSettings());
-
-    virtual void setMaximized();
-    virtual void setMinimized();
-    virtual void setFullscreen();
-    virtual void setNormal();
-
-    virtual void setMinSize();
-    virtual void setMaxSize();
-
-    virtual void beginMove(mouseButtonEvent* ev);
-    virtual void beginResize(mouseButtonEvent* ev, windowEdge edges);
-
-    virtual void setBorderSize(unsigned int size){};
-};
-
-/child
-class winapiChildWindowContext : public childWindowContext, public winapiWindowContext
-{
-public:
-    winapiChildWindowContext(childWindow* win, const winapiWindowContextSettings& settings = winapiWindowContextSettings());
+    HWND getHandle() const { return handle_; }
+    HINSTANCE getInstance() const { return instance_; }
+    WNDCLASSEX getWndClassEx() const { return wndClass_; }
 };
 
 

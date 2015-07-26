@@ -1,41 +1,43 @@
 #include <ny/winapi/gdiDrawContext.hpp>
 
-#include <ny/winapi/util.hpp>
+#include <ny/winapi/winapiUtil.hpp>
+#include <ny/winapi/winapiWindowContext.hpp>
+#include <ny/window.hpp>
 
 namespace ny
 {
 
-gdiDrawContext::gdiDrawContext(winapiWindowContext* wc) : drawContext( *((surface2*)wc->getWindow()) ), m_painting(0), m_hdc(0), m_graphics(0), m_windowContext(wc)
+gdiDrawContext::gdiDrawContext(winapiWindowContext& wc) : drawContext(wc.getWindow()), wc_(wc)
 {
 
 }
 
 void gdiDrawContext::clear(color col)
 {
-    if(!m_painting)
+    if(!painting_)
         return;
 
-    m_graphics->Clear(colorToWinapi(col));
+    graphics_->Clear(colorToWinapi(col));
 }
 
 void gdiDrawContext::beginDraw()
 {
-    m_hdc = BeginPaint(m_windowContext->getHandle(), &m_ps);
-    m_graphics = new Graphics(m_hdc);
+    hdc_ = BeginPaint(wc_.getHandle(), &ps_);
+    graphics_ = new Graphics(hdc_);
 
-    m_painting = 1;
+    painting_ = 1;
 }
 
 void gdiDrawContext::finishDraw()
 {
-    EndPaint(m_windowContext->getHandle(), &m_ps);
+    EndPaint(wc_.getHandle(), &ps_);
 
-    delete m_graphics;
+    delete graphics_;
 
-    m_graphics = 0;
-    m_hdc = 0;
+    graphics_ = nullptr;
+    hdc_ = nullptr;
 
-    m_painting = 0;
+    painting_ = 0;
 }
 
 }

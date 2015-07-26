@@ -30,10 +30,11 @@ endif(Win32)
 #set (CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
 #include(cotire)
 
-
+#config
 configure_file	( "${CMAKE_CURRENT_SOURCE_DIR}/src/ny/config.h.in"
 		  "${CMAKE_CURRENT_SOURCE_DIR}/include/ny/config.h"
 	     	)
+
 
 add_subdirectory(src/ny)
 add_subdirectory(include/ny)
@@ -42,10 +43,18 @@ if(NY_BUILD_EXAMPLES)
 	add_subdirectory(examples)
 endif(NY_BUILD_EXAMPLES)
 
+#pkg-config
+configure_file( 
+	"${CMAKE_CURRENT_SOURCE_DIR}/ny.pc.in"
+	"${CMAKE_CURRENT_BINARY_DIR}/ny.pc"
+	@ONLY)
+
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/ny.pc" DESTINATION lib/pkgconfig)
+
 # uninstall target
 configure_file(
 	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/uninstall.cmake.in"
-	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/uninstall.cmake"
+	"${CMAKE_CURRENT_BINARY_DIR}/cmake/modules/uninstall.cmake"
 	IMMEDIATE @ONLY)
 
 add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/uninstall.cmake)

@@ -1,7 +1,7 @@
 #pragma once
 
-#include <ny/include.hpp"
-#include <ny/drawContext.hpp"
+#include <ny/include.hpp>
+#include <ny/drawContext.hpp>
 
 #include <windows.h>
 #include <gdiplus.h>
@@ -18,42 +18,44 @@ struct gdiFont
 
 class winapiWindowContext;
 
-class gdiDrawContext : public drawContext<2, 2>
+class gdiDrawContext : public drawContext
 {
-
 friend winapiWindowContext;
 
 protected:
-    bool m_painting;
+    bool painting_ = 0;
 
-    HDC m_hdc;
-    PAINTSTRUCT m_ps;
-    Graphics* m_graphics;
+    HDC hdc_;
+    PAINTSTRUCT ps_;
+    Graphics* graphics_ = nullptr;
 
-    winapiWindowContext* m_windowContext;
+    winapiWindowContext& wc_;
 
 public:
-    gdiDrawContext(winapiWindowContext* wc);
+    gdiDrawContext(winapiWindowContext& wc);
 
-    virtual void resize(vec2ui size){};
-    virtual void clear(color col = color::none);
+    virtual void clear(color col = color::none) override;
 
-    virtual void mask(const shape2& obj){};
-	virtual void fill(color col){};
-	virtual void outline(color col){};
+	virtual void mask(const customPath& obj) override;
+	virtual void mask(const text& obj) override;
+	virtual void resetMask() override;
 
-    virtual std::vector<rectangle> getClip(){};
-    virtual void clip(const std::vector<rectangle>& clipVec){};
-	virtual void resetClip(){};
+	virtual void fill(const brush& col) override;
+	virtual void outline(const pen& col) override;
 
-    /specific
+    virtual rect2f getClip() override;
+    virtual void clip(const rect2f& obj) override;
+	virtual void resetClip() override;
+
+    //specific
+    void setSize(vec2ui size);
+
     void beginDraw();
     void finishDraw();
 
-    HDC getHDC() const { return m_hdc; }
-    PAINTSTRUCT getPS() const { return m_ps; }
-
-    Graphics& getGraphics() const { return *m_graphics; }
+    HDC getHDC() const { return hdc_; }
+    PAINTSTRUCT getPS() const { return ps_; }
+    Graphics& getGraphics() const { return *graphics_; }
 };
 
 }

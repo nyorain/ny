@@ -1,41 +1,41 @@
-#include <ny/winapi/appContext.hpp>
+#include <ny/winapi/winapiAppContext.hpp>
 
-#include <ny/winapi/windowContext.hpp>
+#include <ny/winapi/winapiWindowContext.hpp>
 
 #include <ny/error.hpp>
 #include <ny/app.hpp>
 #include <ny/event.hpp>
-#include <ny/windowEvents.hpp>
+#include <ny/window.hpp>
 
 #include <iostream>
 
 namespace ny
 {
 
-winapiAppContext::winapiAppContext() : appContext(), m_instance(0)
+winapiAppContext::winapiAppContext()
 {
-    m_instance = GetModuleHandle(NULL);
+    instance_ = GetModuleHandle(nullptr);
 
-    if(m_instance == NULL)
+    if(instance_ == nullptr)
     {
         throw std::runtime_error("winapiAppContext: could not get hInstance");
         return;
     }
 
-    GetStartupInfo(&m_startupInfo);
+    GetStartupInfo(&startupInfo_);
 
-    GdiplusStartup(&m_gdiplusToken, &m_gdiplusStartupInput, NULL);
+    GdiplusStartup(&gdiplusToken_, &gdiplusStartupInput_, nullptr);
 }
 
 winapiAppContext::~winapiAppContext()
 {
-    GdiplusShutdown(m_gdiplusToken);
+    if(gdiplusToken_) GdiplusShutdown(gdiplusToken_);
 }
 
 bool winapiAppContext::mainLoop()
 {
     MSG msg;
-    BOOL ret = GetMessage(&msg,NULL,0,0);
+    BOOL ret = GetMessage(&msg, nullptr, 0, 0);
 
     if(ret == -1)
     {
@@ -63,12 +63,12 @@ bool winapiAppContext::mainLoop()
 
 void winapiAppContext::registerContext(HWND w, winapiWindowContext* c)
 {
-    m_contexts[w] = c;
+    contexts_[w] = c;
 }
 
 void winapiAppContext::unregisterContext(HWND w)
 {
-    m_contexts.erase(w);
+    contexts_.erase(w);
 }
 
 void winapiAppContext::unregisterContext(winapiWindowContext* c)
@@ -78,8 +78,8 @@ void winapiAppContext::unregisterContext(winapiWindowContext* c)
 
 winapiWindowContext* winapiAppContext::getWindowContext(HWND w)
 {
-    if(m_contexts.find(w) != m_contexts.end())
-        return m_contexts[w];
+    if(contexts_.find(w) != contexts_.end())
+        return contexts_[w];
 
     return nullptr;
 }
@@ -101,11 +101,11 @@ LRESULT winapiAppContext::eventProc(HWND handler, UINT message, WPARAM wparam, L
             winapiWindowContext* w = getWindowContext(handler);
             if(!w) break;
 
-            mouseMoveEvent* e = new mouseMoveEvent();
-            e->handler = w->getWindow();
+            mouseMoveEvent ev;
+            ev.handler = &w->getWindow();
             //e->position = ;
             //e->delta = ;
-            getMainApp()->mouseMove(e);
+            getMainApp()->mouseMove(ev);
             break;
         }
 
@@ -124,9 +124,9 @@ LRESULT winapiAppContext::eventProc(HWND handler, UINT message, WPARAM wparam, L
             winapiWindowContext* w = getWindowContext(handler);
             if(!w) break;
 
-            drawEvent* e = new drawEvent();
-            e->handler = w->getWindow();
-            e->backend = Winapi;
+            drawEvent e;
+            e.handler = &w->getWindow();
+            e.backend = Winapi;
             getMainApp()->windowDraw(e);
             break;
         }
@@ -136,10 +136,10 @@ LRESULT winapiAppContext::eventProc(HWND handler, UINT message, WPARAM wparam, L
             winapiWindowContext* w = getWindowContext(handler);
             if(!w) break;
 
-            closeEvent* e = new closeEvent();
-            e->handler = w->getWindow();
-            e->backend = Winapi;
-            getMainApp()->windowClose(e);
+            destroyEvent e;
+            e.handler = &w->getWindow();
+            e.backend = Winapi;
+            getMainApp()->destroyHandler(e);
             break;
         }
 
@@ -148,9 +148,9 @@ LRESULT winapiAppContext::eventProc(HWND handler, UINT message, WPARAM wparam, L
             winapiWindowContext* w = getWindowContext(handler);
             if(!w) break;
 
-            sizeEvent* e = new sizeEvent();
-            e->handler = w->getWindow();
-            e->backend = Winapi;
+            sizeEvent e;
+            e.handler = &w->getWindow();
+            e.backend = Winapi;
             //e->size = ;
             getMainApp()->windowSize(e);
             break;
@@ -161,9 +161,9 @@ LRESULT winapiAppContext::eventProc(HWND handler, UINT message, WPARAM wparam, L
             winapiWindowContext* w = getWindowContext(handler);
             if(!w) break;
 
-            positionEvent* e = new positionEvent();
-            e->handler = w->getWindow();
-            e->backend = Winapi;
+            positionEvent e;
+            e.handler = &w->getWindow();
+            e.backend = Winapi;
             //e->position = ;
             getMainApp()->windowPosition(e);
             break;
