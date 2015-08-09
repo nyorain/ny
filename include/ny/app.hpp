@@ -50,19 +50,19 @@ protected:
     static void registerBackend(backend& e);
 
 protected:
-    window* focus_; //eventHandler which has current focus
-    window* mouseOver_; //eventHandler on which is the mouse
+    window* focus_{nullptr}; //eventHandler which has current focus
+    window* mouseOver_{nullptr}; //eventHandler on which is the mouse
 
-    appContext* appContext_;
+    appContext* appContext_{nullptr};
 
-    bool existing_ : 1; //if app wasnt exited
-    bool valid_ : 1; //if the app was initialized (correctly)
-    bool mainLoop_ : 1; //if the app is in mainLoop
+    bool existing_{0}; //if app wasnt exited
+    bool valid_{0}; //if the app was initialized (correctly)
+    bool mainLoop_{0}; //if the app is in mainLoop
 
-    backend* backend_; //the chosen backend. only existing if(valid_)
-    threadpool* threadpool_;
-    std::thread::id mainThreadID_; //holds the thread id that is executing the mainLoop. only valid if(mainLoop_)
-    appSettings settings_;
+    backend* backend_{nullptr}; //the chosen backend. only existing if(valid_)
+    threadpool* threadpool_{nullptr};
+    std::thread::id mainThreadID_{}; //holds the thread id that is executing the mainLoop. only valid if(mainLoop_)
+    appSettings settings_{};
 
     //replace from eventHandler
     virtual void create(eventHandler& parent){};

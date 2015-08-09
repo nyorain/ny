@@ -4,11 +4,10 @@
 
 #include <ny/gl/glDrawContext.hpp>
 #include <ny/surface.hpp>
+#include <ny/error.hpp>
 
 #include <glbinding/gl/gl.h>
 #include <glbinding/Binding.h>
-using namespace gl;
-
 #include <string.h>
 
 namespace ny
@@ -22,21 +21,21 @@ bool isExtensionSupported(const char* extList, const char* extension)
 
     where = strchr(extension, ' ');
     if (where || *extension == '\0')
-    return false;
+        return false;
 
     for (start=extList;;) {
-    where = strstr(start, extension);
+        where = strstr(start, extension);
 
-    if (!where)
-      break;
+        if (!where)
+          break;
 
-    terminator = where + strlen(extension);
+        terminator = where + strlen(extension);
 
-    if ( where == start || *(where - 1) == ' ' )
-      if ( *terminator == ' ' || *terminator == '\0' )
-        return true;
+        if ( where == start || *(where - 1) == ' ' )
+          if ( *terminator == ' ' || *terminator == '\0' )
+            return true;
 
-    start = terminator;
+        start = terminator;
     }
 
     return false;
@@ -44,34 +43,30 @@ bool isExtensionSupported(const char* extList, const char* extension)
 
 bool validGLContext()
 {
-    return (glDrawContext::getCurrent());
+    return glDrawContext::getCurrent();
 }
 
 //glDC
 //static
-std::map<std::thread::id, glDrawContext*> glDrawContext::current_;
+thread_local glDrawContext* glDrawContext::current_;
 
 
 void glDrawContext::makeContextCurrent(glDrawContext& ctx)
 {
-    current_[std::this_thread::get_id()] = &ctx;
+    current_ = &ctx;
 }
 
 void glDrawContext::makeContextNotCurrent(glDrawContext& ctx)
 {
-    if(&ctx == current_[std::this_thread::get_id()])
+    if(current_ == &ctx)
     {
-        current_[std::this_thread::get_id()] = nullptr;
+        current_ = nullptr;
     }
 }
 
 glDrawContext* glDrawContext::getCurrent()
 {
-    auto it = current_.find(std::this_thread::get_id());
-    if(it == current_.end())
-        return nullptr;
-
-    return it->second;
+    return current_;
 }
 
 //non-static
@@ -97,11 +92,24 @@ void glDrawContext::init(glApi api, unsigned int depth, unsigned int stencil)
     glbinding::Binding::initialize();
 
     int maj = 0, min = 0;
-    glGetIntegerv(GL_MAJOR_VERSION, &maj);
-    glGetIntegerv(GL_MINOR_VERSION, &min);
+    glGetIntegerv(gl::GL_MAJOR_VERSION, &maj);
+    glGetIntegerv(gl::GL_MINOR_VERSION, &min);
 
     major_ = maj;
     minor_ = min;
+
+    if(!impl_)
+    {
+        if(api_ == glApi::openGL)
+        {
+            if(major_ >= 3 && minor_ >= 3) impl_.reset(new modernGLDrawImpl());
+            else impl_.reset(new legacyGLDrawImpl());
+        }
+        else
+        {
+            impl_.reset(new glesDrawImpl());
+        }
+    }
 
     makeNotCurrent();
 }
@@ -136,46 +144,86 @@ bool glDrawContext::makeNotCurrent()
     return 0;
 }
 
-bool glDrawContext::isCurrent()
+bool glDrawContext::isCurrent() const
 {
-    return (getCurrent() == this);
+    return (current_ == this);
+}
+
+bool glDrawContext::assureValid(bool warning) const
+{
+    if(isCurrent() && impl_)
+        return 1;
+
+    if(warning) sendWarning("glDrawContext::clear: glDC not valid");
+    return 0;
 }
 
 //dc
 void glDrawContext::clear(color col)
 {
-    float r, g, b, a = 0;
-    col.normalized(r, g, b, a);
-
-    glClearColor(r, g, b, a);
-    glClear(GL_COLOR_BUFFER_BIT);
+    if(!assureValid()) return;
+    impl_->clear(col);
 }
 
 rect2f glDrawContext::getClip()
 {
-    if(glIsEnabled(GL_SCISSOR_TEST) == GL_TRUE) return clip_;
-
-    return rect2f();
+    if(!assureValid() || gl::glIsEnabled(gl::GL_SCISSOR_TEST) != gl::GL_TRUE) return rect2f();
+    return clip_;
 }
 
 void glDrawContext::clip(const rect2f& clip)
 {
-    glEnable(GL_SCISSOR_TEST);
+    if(!assureValid()) return;
+
+    glEnable(gl::GL_SCISSOR_TEST);
     rect2f ccopy = clip;
 
-    GLint vp[4];
-    glGetIntegerv(GL_VIEWPORT, vp);
+    gl::GLint vp[4];
+    gl::glGetIntegerv(gl::GL_VIEWPORT, vp);
     ccopy.position.y = vp[3] - clip.position.y - clip.size.y;
 
-    glScissor(ccopy.position.x, ccopy.position.y, ccopy.size.x, ccopy.size.y);
+    gl::glScissor(ccopy.position.x, ccopy.position.y, ccopy.size.x, ccopy.size.y);
 
     clip_ = clip;
 }
 
 void glDrawContext::resetClip()
 {
-    clip_ = rect2d(vec2d(0,0), surface_.getSize());
-    glDisable(GL_SCISSOR_TEST);
+    if(!assureValid()) return;
+
+    clip_ = rect2f(vec2f(0,0), surface_.getSize());
+    gl::glDisable(gl::GL_SCISSOR_TEST);
+}
+
+void glDrawContext::mask(const customPath& obj)
+{
+    store_.push_back(obj);
+}
+void glDrawContext::mask(const text& obj)
+{
+    store_.push_back(obj);
+}
+void glDrawContext::mask(const ny::mask& obj)
+{
+    store_.insert(store_.cend(), obj.cbegin(), obj.cend());
+}
+void glDrawContext::mask(const path& obj)
+{
+    store_.push_back(obj);
+}
+void glDrawContext::resetMask()
+{
+    store_.clear();
+}
+void glDrawContext::fill(const brush& col)
+{
+    if(!assureValid() || store_.empty()) return;
+    impl_->fill(store_, col);
+}
+void glDrawContext::outline(const pen& col)
+{
+    if(!assureValid() || store_.empty()) return;
+    impl_->outline(store_, col);
 }
 
 }

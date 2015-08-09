@@ -8,7 +8,7 @@
 #include <ny/app.hpp>
 #include <ny/image.hpp>
 
-#include <ny/util/misc.hpp>
+#include <nyutil/misc.hpp>
 
 #include <ny/wayland/xdg-shell-client-protocol.h>
 
@@ -207,7 +207,7 @@ void waylandAppContext::registryHandler(wl_registry* registry, unsigned int id, 
             wl_data_device_add_listener(wlDataDevice_, &dataDeviceListener, this);
         }
     }
-
+/*
     else if(interface == "wl_data_device_manager")
     {
         wlDataManager_ = (wl_data_device_manager*) wl_registry_bind(registry, id, &wl_data_device_manager_interface, 1);
@@ -217,7 +217,7 @@ void waylandAppContext::registryHandler(wl_registry* registry, unsigned int id, 
             wl_data_device_add_listener(wlDataDevice_, &dataDeviceListener, this);
         }
     }
-
+*/
     else if(interface == "xdg_shell")
     {
         xdgShell_ = (xdg_shell*) wl_registry_bind(registry, id, &xdg_shell_interface, 1);
@@ -443,11 +443,12 @@ bool waylandAppContext::bufferFormatSupported(bufferFormat format)
 
 void waylandAppContext::setCursor(std::string curse, unsigned int serial)
 {
-    /* //TODO
-    wl_cursor* curs =  wl_cursor_theme_get_cursor(wlCursorTheme_, curse.c_str());
+    //TODO
+    wl_cursor* curs = wl_cursor_theme_get_cursor(wlCursorTheme_, curse.c_str());
 
-    if(!curs) return;
+    if(!curs || !wlCursorSurface_ || !wlCursorBuffer_) return;
 
+/*
     wl_buffer* del = nullptr;
     if(cursorIsCustomImage_)
     {
@@ -458,23 +459,26 @@ void waylandAppContext::setCursor(std::string curse, unsigned int serial)
         del = wlCursorBuffer_;
     }
     cursorIsCustomImage_ = 0;
-
+*/
     wl_cursor_image* image;
 
     image = curs->images[0];
+    if(!image) return;
+
     wlCursorBuffer_ = wl_cursor_image_get_buffer(image);
+    if(!wlCursorBuffer_) return;
 
     if(serial != 0) wl_pointer_set_cursor(wlPointer_, serial, wlCursorSurface_, image->hotspot_x, image->hotspot_y);
     wl_surface_attach(wlCursorSurface_, wlCursorBuffer_, 0, 0);
     wl_surface_damage(wlCursorSurface_, 0, 0, image->width, image->height);
     wl_surface_commit(wlCursorSurface_);
 
-    if(del) wl_buffer_destroy(del);
-        */
+  //  if(del) wl_buffer_destroy(del);
 }
 
 void waylandAppContext::setCursor(image* img, vec2i hotspot, unsigned int serial)
 {
+    /*
     if(cursorIsCustomImage_)
     {
         if(cursorImageBuffer_) delete cursorImageBuffer_;
@@ -491,6 +495,7 @@ void waylandAppContext::setCursor(image* img, vec2i hotspot, unsigned int serial
     wl_surface_attach(wlCursorSurface_, cursorImageBuffer_->getWlBuffer(), 0, 0);
     wl_surface_damage(wlCursorSurface_, 0, 0, cursorImageBuffer_->getSize().x, cursorImageBuffer_->getSize().y);
     wl_surface_commit(wlCursorSurface_);
+    */
 }
 
 eglAppContext* waylandAppContext::getEGLAppContext() const

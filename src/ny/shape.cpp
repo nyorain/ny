@@ -71,15 +71,56 @@ void customPath::bake(int precision) const
 }
 
 ///////////////////////////////////////////////////////7
-path::path(const path& other) : type_(other.type_)
+path::path(const path& lhs) noexcept : type_(lhs.type_)
 {
     switch(type_)
     {
-        case pathType::text: text_ = other.text_; break;
-        case pathType::rectangle: rectangle_ = other.rectangle_; break;
-        case pathType::circle: circle_ = other.circle_; break;
-        case pathType::custom: custom_ = other.custom_; break;
+        case pathType::text: text_ = lhs.text_; break;
+        case pathType::rectangle: rectangle_ = lhs.rectangle_; break;
+        case pathType::circle: circle_ = lhs.circle_; break;
+        case pathType::custom: custom_ = lhs.custom_; break;
     }
+}
+
+path& path::operator=(const path& lhs) noexcept
+{
+    type_ = lhs.type_;
+
+    switch(type_)
+    {
+        case pathType::text: text_ = lhs.text_; break;
+        case pathType::rectangle: rectangle_ = lhs.rectangle_; break;
+        case pathType::circle: circle_ = lhs.circle_; break;
+        case pathType::custom: custom_ = lhs.custom_; break;
+    }
+
+    return *this;
+}
+
+path::path(path&& lhs) noexcept : type_(lhs.type_)
+{
+    switch(type_)
+    {
+        case pathType::text: text_ = std::move(lhs.text_); break;
+        case pathType::rectangle: rectangle_ = std::move(lhs.rectangle_); break;
+        case pathType::circle: circle_ = std::move(lhs.circle_); break;
+        case pathType::custom: custom_ = std::move(lhs.custom_); break;
+    }
+}
+
+path& path::operator=(path&& lhs) noexcept
+{
+    type_ = lhs.type_;
+
+    switch(type_)
+    {
+        case pathType::text: text_ = std::move(lhs.text_); break;
+        case pathType::rectangle: rectangle_ = std::move(lhs.rectangle_); break;
+        case pathType::circle: circle_ = std::move(lhs.circle_); break;
+        case pathType::custom: custom_ = std::move(lhs.custom_); break;
+    }
+
+    return *this;
 }
 
 path::~path()

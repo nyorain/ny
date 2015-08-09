@@ -2,7 +2,7 @@
 
 #include <ny/include.hpp>
 
-#include <ny/util/vec.hpp>
+#include <nyutil/vec.hpp>
 
 namespace ny
 {
@@ -10,7 +10,7 @@ namespace ny
 //buffer////////////
 enum class bufferFormat : unsigned char
 {
-    Unknown = 0,
+    unknown = 0,
 
     argb8888,
     xrgb8888,

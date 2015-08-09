@@ -4,8 +4,8 @@
 
 #include <ny/windowDefs.hpp>
 
-#include <ny/util/nonCopyable.hpp>
-#include <ny/util/vec.hpp>
+#include <nyutil/nonCopyable.hpp>
+#include <nyutil/vec.hpp>
 
 namespace ny
 {

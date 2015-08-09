@@ -11,8 +11,8 @@
 #include <ny/windowEvents.hpp>
 #include <ny/windowDefs.hpp>
 
-#include <ny/util/callback.hpp>
-#include <ny/util/vec.hpp>
+#include <nyutil/callback.hpp>
+#include <nyutil/vec.hpp>
 
 namespace ny
 {

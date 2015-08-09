@@ -27,10 +27,8 @@ void drawContext::mask(const path& obj)
 
 void drawContext::mask(const ny::mask& m)
 {
-    auto vec = m.paths();
-
-    for(size_t i(0); i < vec.size(); i++)
-        mask(vec[i]);
+    for(auto& pth : m)
+        mask(pth);
 }
 
 void drawContext::mask(const rectangle& obj)

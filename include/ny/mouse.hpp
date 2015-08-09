@@ -3,7 +3,7 @@
 #include <ny/include.hpp>
 #include <bitset>
 
-#include <ny/util/vec.hpp>
+#include <nyutil/vec.hpp>
 
 
 namespace ny

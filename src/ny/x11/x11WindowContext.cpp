@@ -172,19 +172,19 @@ x11WindowContext::x11WindowContext(window& win, const x11WindowContextSettings& 
     {
         //todo: egl
         drawType_ = x11DrawType::glx;
-        glx_ = new glxDrawContext(*this);
+        glx_.ctx.reset(new glxDrawContext(*this));
     }
     else
     {
         drawType_ = x11DrawType::cairo;
-        cairo_ = new x11CairoDrawContext(*this);
+        cairo_.reset(new x11CairoDrawContext(*this));
     }
 }
 
 x11WindowContext::~x11WindowContext()
 {
     //todo: unregister
-
+/*
     if(drawType_ == x11DrawType::cairo && cairo_)
     {
         delete cairo_;
@@ -198,6 +198,7 @@ x11WindowContext::~x11WindowContext()
         if(glx_) delete glx_;
         if(glxFBC_) delete glxFBC_;
     }
+*/
 
     getX11AppContext()->unregisterContext(xWindow_);
     XDestroyWindow(getXDisplay(), xWindow_);
@@ -288,11 +289,11 @@ void x11WindowContext::matchGLXVisualInfo()
         XFree(vi);
     }
 
-    glxFBC_ = new glxFBC;
-    glxFBC_->config = fbc[best_fbc];
+    glx_.fbc.reset(new glxFBC);
+    glx_.fbc->config = fbc[best_fbc];
     XFree(fbc);
 
-    xVinfo_ = glXGetVisualFromFBConfig(getXDisplay(), glxFBC_->config);
+    xVinfo_ = glXGetVisualFromFBConfig(getXDisplay(), glx_.fbc->config);
 }
 
 
@@ -319,13 +320,14 @@ void x11WindowContext::refresh()
 
 drawContext& x11WindowContext::beginDraw()
 {
-    if(getCairo())
+    if(getCairo().get())
     {
         return *cairo_;
     }
-    else if(getGLX())
+    else if(getGLX().get())
     {
-        return *glx_;
+        getGLX()->makeCurrent();
+        return *glx_.ctx;
     }
     else
     {
@@ -335,14 +337,15 @@ drawContext& x11WindowContext::beginDraw()
 
 void x11WindowContext::finishDraw()
 {
-    if(getCairo())
+    if(getCairo().get())
     {
         cairo_->apply();
     }
-    else if(getGLX())
+    else if(getGLX().get())
     {
-        glx_->apply();
-        glx_->swapBuffers();
+        getGLX()->apply();
+        getGLX()->swapBuffers();
+        getGLX()->makeNotCurrent();
     }
 
     XFlush(getXDisplay());
@@ -383,7 +386,7 @@ void x11WindowContext::setSize(vec2ui size, bool change)
     if(getCairo())
         cairo_->setSize(size);
     else if(getGLX())
-        glx_->setSize(size);
+        glx_.ctx->setSize(size);
 
     refresh();
 

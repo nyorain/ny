@@ -2,8 +2,8 @@
 
 #include <ny/wayland/waylandInclude.hpp>
 
-#include <ny/util/nonCopyable.hpp>
-#include <ny/util/vec.hpp>
+#include <nyutil/nonCopyable.hpp>
+#include <nyutil/vec.hpp>
 #include <ny/cairo.hpp>
 
 namespace ny

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <ny/util/vec.hpp>
+#include <nyutil/vec.hpp>
 
 namespace ny
 {

@@ -7,9 +7,9 @@
 #include <ny/backend.hpp>
 #include <ny/window.hpp>
 
-#include <ny/util/thread.hpp>
-#include <ny/util/time.hpp>
-#include <ny/util/misc.hpp>
+#include <nyutil/thread.hpp>
+#include <nyutil/time.hpp>
+#include <nyutil/misc.hpp>
 
 #include <iostream>
 #include <thread>
@@ -181,12 +181,6 @@ void app::exitApp()
 
 bool app::optionRegistered(std::string option, std::string arg)
 {
-    if(option == "--nytest" || option == "-nt")
-    {
-        std::cout << "LoggingTest from Commandline option t" << std::endl;
-        return 1;
-    }
-
     return 0;
 }
 
@@ -254,7 +248,7 @@ void app::mouseMove(mouseMoveEvent& event)
         }
     }
 
-    if(mouseOver_ != nullptr)
+    if(mouseOver_)
     {
         window* child = mouseOver_->getTopLevelParent()->getWindowAt(event.position);
 
@@ -282,7 +276,9 @@ void app::mouseButton(mouseButtonEvent& event)
     if(event.state == pressState::pressed)mouse::pressButton(event.button);
     else mouse::releaseButton(event.button);
 
-    sendEvent(event, *mouseOver_);
+    std::cout << "mousewButton " << event.button << " mo: " << mouseOver_ << std::endl;
+
+    if(mouseOver_) sendEvent(event, *mouseOver_);
 }
 
 void app::mouseCross(mouseCrossEvent& event)
@@ -299,6 +295,8 @@ void app::mouseCross(mouseCrossEvent& event)
 
     if(event.state == crossType::entered) mouseOver_ = event.handler;
     else if(event.state == crossType::left && event.handler == mouseOver_) mouseOver_ = nullptr;
+
+    std::cout << "mouseCross " << event.handler << "state: " << (int)event.state << " mo: " << mouseOver_ << std::endl;
 
     sendEvent(event, *event.handler);
 }

@@ -7,6 +7,7 @@
 #include <ny/windowEvents.hpp>
 
 #include <X11/Xutil.h>
+#include <memory>
 
 namespace ny
 {
@@ -71,13 +72,13 @@ protected:
     x11DrawType drawType_ = x11DrawType::none;
     union
     {
-        x11CairoDrawContext* cairo_ = nullptr;
-        x11EGLDrawContext* egl_;
+        std::shared_ptr<x11CairoDrawContext> cairo_ {};
+        std::shared_ptr<x11EGLDrawContext> egl_;
         struct
         {
-            glxDrawContext* glx_;
-            glxFBC* glxFBC_;
-        };
+            std::shared_ptr<glxDrawContext> ctx;
+            std::shared_ptr<glxFBC> fbc;
+        } glx_;
     };
 
     void matchVisualInfo();
@@ -135,10 +136,10 @@ public:
     x11DrawType getDrawType() const { return drawType_; }
     x11WindowType getWindowType() const { return windowType_; }
 
-    x11CairoDrawContext* getCairo() const { return (drawType_ == x11DrawType::cairo) ? cairo_ : nullptr; }
-    x11EGLDrawContext* getEGL() const { return (drawType_ == x11DrawType::egl) ? egl_ : nullptr; }
-    glxDrawContext* getGLX() const { return (drawType_ == x11DrawType::glx) ? glx_ : nullptr; }
-    glxFBC* getGLXFBC() const { return (drawType_ == x11DrawType::glx) ? glxFBC_ : nullptr; }
+    std::shared_ptr<x11CairoDrawContext> getCairo() const { return (drawType_ == x11DrawType::cairo) ? cairo_ : nullptr; }
+    std::shared_ptr<x11EGLDrawContext> getEGL() const { return (drawType_ == x11DrawType::egl) ? egl_ : nullptr; }
+    std::shared_ptr<glxDrawContext> getGLX() const { return (drawType_ == x11DrawType::glx) ? glx_.ctx : nullptr; }
+    std::shared_ptr<glxFBC> getGLXFBC() const { return (drawType_ == x11DrawType::glx) ? glx_.fbc : nullptr; }
 
     //general
     void setOverrideRedirect(bool redirect = 1);

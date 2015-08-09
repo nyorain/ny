@@ -58,16 +58,16 @@ waylandWindowContext::waylandWindowContext(window& win, const waylandWindowConte
     //window role
     if(hints & windowHints::Toplevel)
     {
-        if(ac->getXDGShell())
-            createXDGSurface();
-        else
+        //if(ac->getXDGShell())
+        //    createXDGSurface();
+        //else
             createShellSurface();
     }
     else if(hints & windowHints::Child)
     {
-        if(ac->getXDGShell())
-            createSubsurface();
-        else
+        //if(ac->getXDGShell())
+        //    createSubsurface();
+        //else
             createSubsurface();
     }
     else
@@ -348,6 +348,8 @@ void waylandWindowContext::setSize(vec2ui size, bool change)
     {
         cairo_->setSize(size);
     }
+
+    refresh();
 }
 
 void waylandWindowContext::setPosition(vec2i position, bool change)

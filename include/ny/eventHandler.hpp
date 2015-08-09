@@ -2,8 +2,8 @@
 
 #include <ny/include.hpp>
 
-#include <ny/util/nonCopyable.hpp>
-#include <ny/util/thread.hpp>
+#include <nyutil/nonCopyable.hpp>
+#include <nyutil/thread.hpp>
 
 #include <vector>
 #include <mutex>

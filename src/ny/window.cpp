@@ -9,7 +9,7 @@
 #include <ny/drawContext.hpp>
 #include <ny/style.hpp>
 
-#include <ny/util/misc.hpp>
+#include <nyutil/misc.hpp>
 
 #include <iostream>
 #include <climits>

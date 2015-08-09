@@ -10,13 +10,43 @@
 namespace ny
 {
 
-eglAppContext* getEGLAppContext()
+eglAppContext* eglAppContext::object_ = nullptr;
+
+//Ac
+eglAppContext::eglAppContext()
 {
-    return getMainApp()->getAppContext()->getEGLAppContext();
+    if(!object_)
+        object_ = this;
+    //else error
 }
 
+eglAppContext::eglAppContext(EGLDisplay dpy, EGLConfig conf) : eglDisplay_(dpy), eglConfig_(conf)
+{
+    if(!object_)
+        object_ = this;
+    //else error
+}
+
+eglAppContext::~eglAppContext()
+{
+    if(object_ == this)
+        object_ = nullptr;
+    //else error
+}
+
+eglAppContext* getEGLAppContext()
+{
+    return eglAppContext::getObject();
+}
+
+//DC
 eglDrawContext::eglDrawContext(surface& s) : glDrawContext(s)
 {
+}
+
+eglDrawContext::eglDrawContext(surface& s, EGLContext ctx, EGLSurface surf) : glDrawContext(s), eglContext_(ctx), eglSurface_(surf)
+{
+    init(glApi::openGL);
 }
 
 bool eglDrawContext::makeCurrentImpl()

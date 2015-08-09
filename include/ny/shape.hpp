@@ -5,9 +5,9 @@
 #include <ny/util/transformable.hpp>
 #include <ny/font.hpp>
 
-#include <ny/util/vec.hpp>
-#include <ny/util/mat.hpp>
-#include <ny/util/rect.hpp>
+#include <nyutil/vec.hpp>
+#include <nyutil/mat.hpp>
+#include <nyutil/rect.hpp>
 
 #include <vector>
 
@@ -274,12 +274,17 @@ protected:
 
 public:
 	path() : type_(pathType::custom), custom_() {}
-	path(const path& other);
 
     path(const rectangle& obj) : type_(pathType::rectangle), rectangle_(obj) {}
     path(const circle& obj) : type_(pathType::circle), circle_(obj) {}
     path(const text& obj) : type_(pathType::text), text_(obj) {}
     path(const customPath& obj) : type_(pathType::custom), custom_(obj) {}
+
+	path(const path& lhs) noexcept;
+    path& operator=(const path& lhs) noexcept;
+
+	path(path&& lhs) noexcept;
+    path& operator=(path&& lhs) noexcept;
 
     ~path();
 
@@ -325,15 +330,17 @@ public:
 };
 
 //shape///////////////////////////////////////
-class mask
+class mask : public std::vector<path>
 {
-protected:
-    std::vector<path> paths_;
-
 public:
 	mask() = default;
 
+/*
 	const std::vector<path>& paths() const { return paths_; }
+
+	void addPath(const path& p){ paths_.emplace_back(p); }
+	void addPath(path&& p){ paths_.push_back(std::move(p)); }
+*/
 };
 
 //shape//////////////////////////////////////

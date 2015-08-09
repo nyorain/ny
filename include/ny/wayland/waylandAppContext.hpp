@@ -2,7 +2,7 @@
 
 #include <ny/wayland/waylandInclude.hpp>
 #include <ny/appContext.hpp>
-#include <ny/util/vec.hpp>
+#include <nyutil/vec.hpp>
 
 #include <wayland-client.h>
 #include <wayland-cursor.h>

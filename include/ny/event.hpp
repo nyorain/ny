@@ -5,7 +5,7 @@
 #include <ny/mouse.hpp>
 #include <ny/keyboard.hpp>
 
-#include <ny/util/vec.hpp>
+#include <nyutil/vec.hpp>
 
 namespace ny
 {
@@ -69,7 +69,7 @@ class mouseButtonEvent : public event
 public:
     mouseButtonEvent() : event(eventType::mouseButton) {};
 
-    window* handler;
+    window* handler = nullptr;
     pressState state;
     mouse::button button;
     vec2i position;
@@ -80,7 +80,7 @@ class mouseMoveEvent : public event
 public:
     mouseMoveEvent() : event(eventType::mouseMove) {};
 
-    window* handler;
+    window* handler = nullptr;
     vec2i position;
     vec2i screenPosition;
     vec2i delta;
@@ -91,7 +91,7 @@ class mouseCrossEvent : public event
 public:
     mouseCrossEvent() : event(eventType::mouseCross) {};
 
-    window* handler;
+    window* handler = nullptr;
     crossType state;
     vec2i position;
 };
@@ -110,7 +110,7 @@ class keyEvent : public event
 public:
     keyEvent() : event(eventType::key) {};
 
-    eventHandler* handler;
+    eventHandler* handler = nullptr;
     pressState state;
     keyboard::key key;
 };

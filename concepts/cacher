@@ -1,0 +1,24 @@
+class multiCacher
+{
+friend class cacheAcessor;
+
+protected:
+	mutable std::vector<std::shared_ptr<cache>> cache_;	
+
+	std::shared_ptr<cache> getCache(unsigned int id) const;
+	void store(std::shared_ptr<cache> c, unsigned int id) const;
+}
+
+class cache
+{
+public:
+	virtual ~cache() = default;
+	virtual unsigned int getID() = 0;
+}
+
+template<unsigned int id> class cacheAcessor
+{
+protected:
+	void storeCache(const multiCacher& cacher, std::shared_ptr<cache> obj);
+	cache* getCache(const multiCache& cacher);
+}

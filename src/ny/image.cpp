@@ -80,7 +80,7 @@ vec2ui image::getSize() const
 
 bufferFormat image::getBufferFormat() const
 {
-    return bufferFormat::Unknown;
+    return bufferFormat::unknown;
 }
 
 bool image::saveToFile(const std::string& path) const

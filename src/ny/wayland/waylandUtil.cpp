@@ -476,7 +476,7 @@ bufferFormat waylandToBufferFormat(unsigned int wlFormat)
         case WL_SHM_FORMAT_ABGR8888: return bufferFormat::argb8888;
         case WL_SHM_FORMAT_XRGB8888: return bufferFormat::xrgb8888;
         case WL_SHM_FORMAT_RGB888: return bufferFormat::rgb888;
-        default: return bufferFormat::Unknown;
+        default: return bufferFormat::unknown;
     }
 }
 

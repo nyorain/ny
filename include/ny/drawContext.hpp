@@ -3,10 +3,10 @@
 #include <ny/include.hpp>
 #include <ny/color.hpp>
 
-#include <ny/util/vec.hpp>
-#include <ny/util/rect.hpp>
-#include <ny/util/region.hpp>
-#include <ny/util/nonCopyable.hpp>
+#include <nyutil/vec.hpp>
+#include <nyutil/rect.hpp>
+#include <nyutil/region.hpp>
+#include <nyutil/nonCopyable.hpp>
 
 namespace ny
 {

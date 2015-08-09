@@ -8,7 +8,7 @@
 #include <ny/include.hpp>
 #include <ny/gl/glDrawContext.hpp>
 
-#include <ny/util/nonCopyable.hpp>
+#include <nyutil/nonCopyable.hpp>
 
 typedef void* EGLConfig;
 typedef void* EGLContext;
@@ -25,9 +25,18 @@ protected:
     EGLDisplay eglDisplay_ = nullptr;
     EGLConfig eglConfig_ = nullptr;
 
+    eglAppContext();
+
+	static eglAppContext* object_;
+
 public:
+    eglAppContext(EGLDisplay dpy, EGLConfig conf);
+    virtual ~eglAppContext();
+
     EGLDisplay getDisplay() const { return eglDisplay_; }
     EGLConfig getConfig() const { return eglConfig_; }
+
+	static eglAppContext* getObject() { return object_; }
 };
 
 //egl
@@ -43,6 +52,8 @@ protected:
     eglDrawContext(surface& s);
 
 public:
+    eglDrawContext(surface& s, EGLContext ctx, EGLSurface surf);
+
     virtual bool swapBuffers() override;
 
     EGLContext getEGLContext() const { return eglContext_; }

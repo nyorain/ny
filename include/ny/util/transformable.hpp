@@ -2,9 +2,9 @@
 
 #include <ny/include.hpp>
 
-#include <ny/util/mat.hpp>
-#include <ny/util/vec.hpp>
-#include <ny/util/rect.hpp>
+#include <nyutil/mat.hpp>
+#include <nyutil/vec.hpp>
+#include <nyutil/rect.hpp>
 
 namespace ny
 {

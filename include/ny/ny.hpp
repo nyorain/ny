@@ -23,5 +23,3 @@
 #include <ny/appContext.hpp>
 #include <ny/windowContext.hpp>
 #include <ny/backend.hpp>
-
-#include <ny/util/utils.hpp>
