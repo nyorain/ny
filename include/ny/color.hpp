@@ -1,9 +1,16 @@
 #pragma once
 
 #include <ny/include.hpp>
+#include <nyutil/vec.hpp>
+
+#include <vector>
 
 namespace ny
 {
+
+//TODO_____________
+
+
 class colorBase
 {
 
@@ -30,6 +37,57 @@ public:
     const static color white;
     const static color black;
     const static color none;
+};
+
+template<size_t dim> class gradient
+{
+protected:
+    struct point
+    {
+        vec<dim, float> pos;
+        color col;
+    };
+
+    std::vector<point> points_;
+
+public:
+    void addPoint(const vec<dim, float>& pos, const color& col) {};
+    color getColorAt(const vec<dim, float>& pos) { return color(); };
+
+    template<size_t odim> operator gradient<odim>()
+    {
+        gradient<odim> ret;
+        for(auto& p : points_)
+            ret.addPoint(p.pos, p.col);
+        return ret;
+    }
+};
+
+class brush1
+{
+protected:
+    //some union stuff
+
+public:
+    brush1(const color& col) {}
+    brush1(const image& img, vec2i position, vec2ui size, int mode) {} //mode like gl mode. stretch, fill etc
+    brush1(const gradient<2>& grad) {}
+    //customBrush class stuff?
+
+    //some read stuff
+};
+
+class pen1
+{
+protected:
+    float width_;
+    //draw style
+    //union
+
+public:
+    pen1(const color& col) {}
+    pen1(const image& img, vec2i position, vec2ui size, int mode) {} //mode like gl mode. stretch, fill etc
+    pen1(const gradient<2>& grad) {}
 };
 
 }

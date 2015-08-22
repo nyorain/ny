@@ -243,9 +243,9 @@ x11AppContext* getX11AppContext()
 {
     x11AppContext* ret = nullptr;
 
-    if(getMainApp())
+    if(nyMainApp())
     {
-        ret = dynamic_cast<x11AppContext*>(getMainApp()->getAppContext());
+        ret = dynamic_cast<x11AppContext*>(nyMainApp()->getAppContext());
     }
 
     return ret;

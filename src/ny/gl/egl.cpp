@@ -10,33 +10,28 @@
 namespace ny
 {
 
-eglAppContext* eglAppContext::object_ = nullptr;
+eglAppContext* eglAppContext::global_ = nullptr;
 
 //Ac
 eglAppContext::eglAppContext()
 {
-    if(!object_)
-        object_ = this;
+    if(!global_)
+        global_ = this;
     //else error
 }
 
 eglAppContext::eglAppContext(EGLDisplay dpy, EGLConfig conf) : eglDisplay_(dpy), eglConfig_(conf)
 {
-    if(!object_)
-        object_ = this;
+    if(!global_)
+        global_ = this;
     //else error
 }
 
 eglAppContext::~eglAppContext()
 {
-    if(object_ == this)
-        object_ = nullptr;
+    if(global_ == this)
+        global_ = nullptr;
     //else error
-}
-
-eglAppContext* getEGLAppContext()
-{
-    return eglAppContext::getObject();
 }
 
 //DC

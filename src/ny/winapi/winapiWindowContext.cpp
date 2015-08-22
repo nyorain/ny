@@ -15,7 +15,7 @@ unsigned int winapiWindowContext::highestID = 0;
 
 winapiWindowContext::winapiWindowContext(window& win, const winapiWindowContextSettings& settings) : windowContext(win, settings)
 {
-    winapiAppContext* ac = dynamic_cast<winapiAppContext*> (getMainApp()->getAppContext());
+    winapiAppContext* ac = dynamic_cast<winapiAppContext*> (nyMainApp()->getAppContext());
 
     if(!ac)
     {
@@ -114,7 +114,7 @@ void winapiWindowContext::setCursor(const cursor& c)
 /*
 winapiToplevelWindowContext::winapiToplevelWindowContext(toplevelWindow* win, const winapiWindowContextSettings& settings) : windowContext(win, settings), toplevelWindowContext(win, settings), winapiWindowContext(win, settings)
 {
-    winapiAppContext* ac = dynamic_cast<winapiAppContext*> (getMainApp()->getAppContext());
+    winapiAppContext* ac = dynamic_cast<winapiAppContext*> (nyMainApp()->getAppContext());
 
     if (!RegisterClassEx(&m_wndClass))
     {

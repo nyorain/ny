@@ -22,7 +22,7 @@ void shellSurfaceHandlePing(void* data,  wl_shell_surface *shellSurface, uint32_
 
 void shellSurfaceHandleConfigure(void* data,  wl_shell_surface *shellSurface, uint32_t edges, int32_t width, int32_t height)
 {
-    waylandAppContext* a = dynamic_cast<waylandAppContext*>(getMainApp()->getAppContext());
+    waylandAppContext* a = dynamic_cast<waylandAppContext*>(nyMainApp()->getAppContext());
 
     if(!a)
         return;
@@ -50,7 +50,7 @@ void surfaceHandleFrame(void* data,  wl_callback *callback, uint32_t time)
     ev.handler = &wc->getWindow();
     ev.backend = Wayland;
 
-    getMainApp()->sendEvent(ev, *ev.handler);
+    nyMainApp()->sendEvent(ev, *ev.handler);
 }
 const wl_callback_listener frameListener =
 {
@@ -278,7 +278,7 @@ void xdgSurfaceConfigure(void *data, struct xdg_surface *xdg_surface, int32_t wi
     ev.size = vec2ui(width, height);
     ev.handler = &wc->getWindow();
 
-    getMainApp()->sendEvent(ev, wc->getWindow());
+    nyMainApp()->sendEvent(ev, wc->getWindow());
 }
 void xdgSurfaceClose(void *data, struct xdg_surface *xdg_surface)
 {
@@ -288,7 +288,7 @@ void xdgSurfaceClose(void *data, struct xdg_surface *xdg_surface)
     ev.backend = Wayland;
     ev.handler = &wc->getWindow();
 
-    getMainApp()->sendEvent(ev, wc->getWindow());
+    nyMainApp()->sendEvent(ev, wc->getWindow());
 }
 const xdg_surface_listener xdgSurfaceListener =
 {

@@ -17,15 +17,15 @@
 namespace ny
 {
 
-windowContext* createWindowContext(window& win, const windowContextSettings& s)
+std::unique_ptr<windowContext> createWindowContext(window& win, const windowContextSettings& s)
 {
-    if(!getMainApp() || !getMainApp()->getBackend())
+    if(!nyMainApp() || !nyMainApp()->getBackend())
         return nullptr;
 
-    return getMainApp()->getBackend()->createWindowContext(win, s);
+    return nyMainApp()->getBackend()->createWindowContext(win, s);
 }
 
-wc* createCustomWC(window& win, const windowContextSettings& s){ return createWindowContext(win, s); };
+std::unique_ptr<wc> createWC(window& win, const windowContextSettings& s){ return createWindowContext(win, s); };
 
 
 backend::backend(unsigned int i) : id(i)

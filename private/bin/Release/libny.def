@@ -1,0 +1,923 @@
+EXPORTS
+    _ZGVZN12cimg_library4cimg10Mutex_attrEvE3val @1 DATA
+    _ZGVZN12cimg_library4cimg10Win32_attrEvE3val @2 DATA
+    _ZGVZN12cimg_library4cimg10dcraw_pathEPKcbE6s_path @3 DATA
+    _ZGVZN12cimg_library4cimg11ffmpeg_pathEPKcbE6s_path @4 DATA
+    _ZGVZN12cimg_library4cimg11gunzip_pathEPKcbE6s_path @5 DATA
+    _ZGVZN12cimg_library4cimg11medcon_pathEPKcbE6s_path @6 DATA
+    _ZGVZN12cimg_library4cimg13strbuffersizeEmE3res @7 DATA
+    _ZGVZN12cimg_library4cimg14temporary_pathEPKcbE6s_path @8 DATA
+    _ZGVZN12cimg_library4cimg16imagemagick_pathEPKcbE6s_path @9 DATA
+    _ZGVZN12cimg_library4cimg17programfiles_pathEPKcbE6s_path @10 DATA
+    _ZGVZN12cimg_library4cimg19graphicsmagick_pathEPKcbE6s_path @11 DATA
+    _ZGVZN12cimg_library4cimg6outputEP6_iobufE3res @12 DATA
+    _ZGVZN12cimg_library4cimg9curl_pathEPKcbE6s_path @13 DATA
+    _ZGVZN12cimg_library4cimg9gzip_pathEPKcbE6s_path @14 DATA
+    _ZGVZN12cimg_library4cimg9wget_pathEPKcbE6s_path @15 DATA
+    _ZGVZN12cimg_library8CImgListIhE4fontEjbE10base_fonts @16 DATA
+    _ZGVZN12cimg_library8CImgListIhE4fontEjbE5fonts @17 DATA
+    _ZGVZN12cimg_library8CImgListIhE5emptyEvE6_empty @18 DATA
+    _ZN12cimg_library11CImgDisplay14_events_threadEPv @19
+    _ZN12cimg_library11CImgDisplay14_handle_eventsEP6HWND__jyx @20
+    _ZN12cimg_library11CImgDisplay14_render_resizeIjjEEvPKT0_jjPT_jj @21
+    _ZN12cimg_library11CImgDisplay4moveEii @22
+    _ZN12cimg_library11CImgDisplay6assignEv @23
+    _ZN12cimg_library11CImgDisplay6assignIhEERS0_RKNS_4CImgIT_EEPKcjbb @24
+    _ZN12cimg_library11CImgDisplay6renderIhEERS0_RKNS_4CImgIT_EE @25
+    _ZN12cimg_library11CImgDisplay7_assignEjjPKcjbb @26
+    _ZN12cimg_library11CImgDisplay7displayIhEERS0_RKNS_4CImgIT_EE @27
+    _ZN12cimg_library11CImgDisplay7set_keyEjb @28
+    _ZN12cimg_library13CImgExceptionD0Ev @29
+    _ZN12cimg_library13CImgExceptionD1Ev @30
+    _ZN12cimg_library13CImgExceptionD2Ev @31
+    _ZN12cimg_library15CImgIOExceptionC1EPKcz @32
+    _ZN12cimg_library15CImgIOExceptionD0Ev @33
+    _ZN12cimg_library15CImgIOExceptionD1Ev @34
+    _ZN12cimg_library21CImgArgumentExceptionC1EPKcz @35
+    _ZN12cimg_library21CImgArgumentExceptionD0Ev @36
+    _ZN12cimg_library21CImgArgumentExceptionD1Ev @37
+    _ZN12cimg_library21CImgInstanceExceptionC1EPKcz @38
+    _ZN12cimg_library21CImgInstanceExceptionD0Ev @39
+    _ZN12cimg_library21CImgInstanceExceptionD1Ev @40
+    _ZN12cimg_library4CImgIcE10draw_imageEiiiiRKS1_f @41
+    _ZN12cimg_library4CImgIcE17_system_strescapeEv @42
+    _ZN12cimg_library4CImgIcE6assignEPKcjjjj @43
+    _ZN12cimg_library4CImgIcE6assignEjjjj @44
+    _ZN12cimg_library4CImgIcE6assignEv @45
+    _ZN12cimg_library4CImgIcE6assignIcEERS1_RKNS0_IT_EEb @46
+    _ZN12cimg_library4CImgIcE6stringEPKcbb @47
+    _ZN12cimg_library4CImgIcE7move_toERS1_ @48
+    _ZN12cimg_library4CImgIcE7move_toIcEERNS_8CImgListIT_EES6_j @49
+    _ZN12cimg_library4CImgIcEC1EPKcjjjjb @50
+    _ZN12cimg_library4CImgIcEC1ERKS1_ @51
+    _ZN12cimg_library4CImgIcEC1Ejjjj @52
+    _ZN12cimg_library4CImgIfE6assignEjjjj @53
+    _ZN12cimg_library4CImgIfE6assignEv @54
+    _ZN12cimg_library4CImgIfE6assignIfEERS1_RKNS0_IT_EE @55
+    _ZN12cimg_library4CImgIfEC1Ejjjj @56
+    _ZN12cimg_library4CImgIfEC1EjjjjRKf @57
+    _ZN12cimg_library4CImgIhE10_draw_textIhhhEERS1_iiPKcPKT_PKT0_fRKNS_8CImgListIT1_EEb @58
+    _ZN12cimg_library4CImgIhE10draw_imageEiiiiRKS1_f @59
+    _ZN12cimg_library4CImgIhE10draw_imageIhhEERS1_iiiiRKNS0_IT_EERKNS0_IT0_EEff @60
+    _ZN12cimg_library4CImgIhE10load_otherEPKc @61
+    _ZN12cimg_library4CImgIhE11load_magickEPKc @62
+    _ZN12cimg_library4CImgIhE11load_parrecEPKccf @63
+    _ZN12cimg_library4CImgIhE13_load_analyzeEP6_iobufPKcPf @64
+    _ZN12cimg_library4CImgIhE13_load_pandoreEP6_iobufPKc @65
+    _ZN12cimg_library4CImgIhE14draw_rectangleIhEERS1_iiiiPKT_f @66
+    _ZN12cimg_library4CImgIhE16_load_inr_headerEP6_iobufPiPf @67
+    _ZN12cimg_library4CImgIhE17load_gif_externalEPKccf @68
+    _ZN12cimg_library4CImgIhE18load_gzip_externalEPKc @69
+    _ZN12cimg_library4CImgIhE19load_dcraw_externalEPKc @70
+    _ZN12cimg_library4CImgIhE20load_medcon_externalEPKc @71
+    _ZN12cimg_library4CImgIhE25load_imagemagick_externalEPKc @72
+    _ZN12cimg_library4CImgIhE28load_graphicsmagick_externalEPKc @73
+    _ZN12cimg_library4CImgIhE4fillERKh @74
+    _ZN12cimg_library4CImgIhE4loadEPKc @75
+    _ZN12cimg_library4CImgIhE6assignEPKhjjjj @76
+    _ZN12cimg_library4CImgIhE6assignEjjjj @77
+    _ZN12cimg_library4CImgIhE6assignEjjjjRKh @78
+    _ZN12cimg_library4CImgIhE6assignEv @79
+    _ZN12cimg_library4CImgIhE6assignIfEERS1_RKNS0_IT_EE @80
+    _ZN12cimg_library4CImgIhE6assignIhEERS1_RKNS0_IT_EE @81
+    _ZN12cimg_library4CImgIhE6assignIhEERS1_RKNS0_IT_EEb @82
+    _ZN12cimg_library4CImgIhE6mirrorEc @83
+    _ZN12cimg_library4CImgIhE6resizeEiiiiijffff @84
+    _ZN12cimg_library4CImgIhE7move_toERS1_ @85
+    _ZN12cimg_library4CImgIhE7move_toIhEERNS_8CImgListIT_EES6_j @86
+    _ZN12cimg_library4CImgIhE9_load_bmpEP6_iobufPKc @87
+    _ZN12cimg_library4CImgIhE9_load_inrEP6_iobufPKcPf @88
+    _ZN12cimg_library4CImgIhE9_load_pfmEP6_iobufPKc @89
+    _ZN12cimg_library4CImgIhE9_load_pnmEP6_iobufPKc @90
+    _ZN12cimg_library4CImgIhE9draw_lineIhEERS1_iiiiPKT_fjb @91
+    _ZN12cimg_library4CImgIhE9draw_textIhEERS1_iiPKcPKT_ifjz @92
+    _ZN12cimg_library4CImgIhE9draw_textIhhEERS1_iiPKcPKT_PKT0_fjz @93
+    _ZN12cimg_library4CImgIhE9load_cimgEPKccf @94
+    _ZN12cimg_library4CImgIhE9load_tiffEPKcjjjPfPNS0_IcEE @95
+    _ZN12cimg_library4CImgIhEC1EPKhjjjjb @96
+    _ZN12cimg_library4CImgIhEC1ERKS1_ @97
+    _ZN12cimg_library4CImgIhEC1ERKS1_b @98
+    _ZN12cimg_library4CImgIhEC1Ejjjj @99
+    _ZN12cimg_library4CImgIhEC1EjjjjRKh @100
+    _ZN12cimg_library4CImgIiE6assignEjjjj @101
+    _ZN12cimg_library4CImgIjE6assignEjjjj @102
+    _ZN12cimg_library4CImgIjE6assignIjEERS1_RKNS0_IT_EE @103
+    _ZN12cimg_library4CImgIjEC1Ejjjj @104
+    _ZN12cimg_library4CImgImE4fillERKm @105
+    _ZN12cimg_library4CImgImEC1Ejjjj @106
+    _ZN12cimg_library4CImgItE6assignEjjjj @107
+    _ZN12cimg_library4CImgItEC1Ejjjj @108
+    _ZN12cimg_library4cimg10Mutex_attrEv @109
+    _ZN12cimg_library4cimg10Win32_attrEv @110
+    _ZN12cimg_library4cimg10strcasecmpEPKcS2_ @111
+    _ZN12cimg_library4cimg11medcon_pathEPKcb @112
+    _ZN12cimg_library4cimg11strncasecmpEPKcS2_i @113
+    _ZN12cimg_library4cimg12filenamerandEv @114
+    _ZN12cimg_library4cimg12load_networkEPKcPc @115
+    _ZN12cimg_library4cimg13strbuffersizeEm @116
+    _ZN12cimg_library4cimg14split_filenameEPKcPc @117
+    _ZN12cimg_library4cimg14temporary_pathEPKcb @118
+    _ZN12cimg_library4cimg15_exception_modeEjb @119
+    _ZN12cimg_library4cimg16imagemagick_pathEPKcb @120
+    _ZN12cimg_library4cimg17programfiles_pathEPKcb @121
+    _ZN12cimg_library4cimg19graphicsmagick_pathEPKcb @122
+    _ZN12cimg_library4cimg4infoEv @123
+    _ZN12cimg_library4cimg4warnEPKcz @124
+    _ZN12cimg_library4cimg5fopenEPKcS2_ @125
+    _ZN12cimg_library4cimg5freadIcEEiPT_mP6_iobuf @126
+    _ZN12cimg_library4cimg5freadIdEEiPT_mP6_iobuf @127
+    _ZN12cimg_library4cimg5freadIfEEiPT_mP6_iobuf @128
+    _ZN12cimg_library4cimg5freadIhEEiPT_mP6_iobuf @129
+    _ZN12cimg_library4cimg5freadIiEEiPT_mP6_iobuf @130
+    _ZN12cimg_library4cimg5freadIjEEiPT_mP6_iobuf @131
+    _ZN12cimg_library4cimg5freadIlEEiPT_mP6_iobuf @132
+    _ZN12cimg_library4cimg5freadImEEiPT_mP6_iobuf @133
+    _ZN12cimg_library4cimg5freadItEEiPT_mP6_iobuf @134
+    _ZN12cimg_library4cimg6dialogEPKcS2_S2_S2_S2_S2_S2_S2_b @135
+    _ZN12cimg_library4cimg6dialogIhEEiPKcS3_S3_S3_S3_S3_S3_S3_RKNS_4CImgIT_EEb @136
+    _ZN12cimg_library4cimg6fcloseEP6_iobuf @137
+    _ZN12cimg_library4cimg6femptyEP6_iobufPKc @138
+    _ZN12cimg_library4cimg6fwriteIhEEiPKT_mP6_iobuf @139
+    _ZN12cimg_library4cimg6outputEP6_iobuf @140
+    _ZN12cimg_library4cimg6systemEPKcS2_ @141
+    _ZN12cimg_library4cimg9file_typeEP6_iobufPKc @142
+    _ZN12cimg_library8CImgListIcEC1IccEERKNS_4CImgIT_EERKNS3_IT0_EEb @143
+    _ZN12cimg_library8CImgListIhE10_load_cimgEP6_iobufPKc @144
+    _ZN12cimg_library8CImgListIhE11load_parrecEPKc @145
+    _ZN12cimg_library8CImgListIhE18_load_gif_externalEPKcb @146
+    _ZN12cimg_library8CImgListIhE20load_ffmpeg_externalEPKc @147
+    _ZN12cimg_library8CImgListIhE4fontEjb @148
+    _ZN12cimg_library8CImgListIhE6assignEj @149
+    _ZN12cimg_library8CImgListIhE6assignEjjjjj @150
+    _ZN12cimg_library8CImgListIhE6assignEv @151
+    _ZN12cimg_library8CImgListIhE6assignIhEERS1_RKNS_4CImgIT_EEb @152
+    _ZN12cimg_library8CImgListIhE6insertEjj @153
+    _ZN12cimg_library8CImgListIhE7move_toIhEERNS0_IT_EES5_ @154
+    _ZN2ny10appContext12endDataOfferEv @155
+    _ZN2ny10appContext12getClipboardEv @156
+    _ZN2ny10appContext12setClipboardERNS_10dataSourceEPKNS_5eventE @157
+    _ZN2ny10appContext14startDataOfferERNS_10dataSourceERKNS_5imageERKNS_6windowEPKNS_5eventE @158
+    _ZN2ny10appContext4exitEv @159
+    _ZN2ny10appContextC1Ev @160
+    _ZN2ny10appContextC2Ev @161
+    _ZN2ny10appContextD0Ev @162
+    _ZN2ny10appContextD1Ev @163
+    _ZN2ny10appContextD2Ev @164
+    _ZN2ny10bakePointsERKSt6vectorINS_5pointESaIS1_EE @165
+    _ZN2ny10connectionD0Ev @166
+    _ZN2ny10connectionD1Ev @167
+    _ZN2ny10customPath6addArcENS_3vecILy2EfEERKNS_7arcDataE @168
+    _ZN2ny10customPath6addArcENS_3vecILy2EfEEfNS_7arcTypeE @169
+    _ZN2ny10customPath7addLineENS_3vecILy2EfEE @170
+    _ZN2ny10customPath7addLineEff @171
+    _ZN2ny10customPath9addBezierENS_3vecILy2EfEERKNS_10bezierDataE @172
+    _ZN2ny10customPath9addBezierENS_3vecILy2EfEES2_S2_ @173
+    _ZN2ny10customPathC1ENS_3vecILy2EfEE @174
+    _ZN2ny10customPathC2ENS_3vecILy2EfEE @175
+    _ZN2ny10customPathD1Ev @176
+    _ZN2ny10getMainAppEv @177
+    _ZN2ny10threadpool10threadFuncEy @178
+    _ZN2ny11appSettingsD1Ev @179
+    _ZN2ny11childWindow17getTopLevelParentEv @180
+    _ZN2ny11childWindow6createEPNS_6windowENS_3vecILy2EiEENS3_ILy2EjEENS_21windowContextSettingsE @181
+    _ZN2ny11childWindowC1EPNS_6windowENS_3vecILy2EiEENS3_ILy2EjEENS_21windowContextSettingsE @182
+    _ZN2ny11childWindowC1Ev @183
+    _ZN2ny11childWindowC2EPNS_6windowENS_3vecILy2EiEENS3_ILy2EjEENS_21windowContextSettingsE @184
+    _ZN2ny11childWindowC2Ev @185
+    _ZN2ny11childWindowD0Ev @186
+    _ZN2ny11childWindowD1Ev @187
+    _ZN2ny11debugStreamE @188 DATA
+    _ZN2ny11drawContext4drawERKNS_5shapeE @189
+    _ZN2ny11drawContext4maskERKNS_4maskE @190
+    _ZN2ny11drawContext4maskERKNS_4pathE @191
+    _ZN2ny11drawContext4maskERKNS_6circleE @192
+    _ZN2ny11drawContext4maskERKNS_9rectangleE @193
+    _ZN2ny11drawContext5applyEv @194
+    _ZN2ny11drawContext5clearENS_5colorE @195
+    _ZN2ny11drawContextC1ERNS_7surfaceE @196
+    _ZN2ny11drawContextC2ERNS_7surfaceE @197
+    _ZN2ny11drawContextD0Ev @198
+    _ZN2ny11drawContextD1Ev @199
+    _ZN2ny11drawContextD2Ev @200
+    _ZN2ny11errorStreamE @201 DATA
+    _ZN2ny12destroyEventD0Ev @202
+    _ZN2ny12destroyEventD1Ev @203
+    _ZN2ny12dummyWndProcEP6HWND__jyx @204
+    _ZN2ny12eventHandler11removeChildERS0_ @205
+    _ZN2ny12eventHandler12processEventERNS_5eventE @206
+    _ZN2ny12eventHandler6createERS0_ @207
+    _ZN2ny12eventHandler7destroyEv @208
+    _ZN2ny12eventHandler8addChildERS0_ @209
+    _ZN2ny12eventHandler8reparentERS0_ @210
+    _ZN2ny12eventHandlerC1ERS0_ @211
+    _ZN2ny12eventHandlerC1Ev @212
+    _ZN2ny12eventHandlerC2ERS0_ @213
+    _ZN2ny12eventHandlerC2Ev @214
+    _ZN2ny12eventHandlerD0Ev @215
+    _ZN2ny12eventHandlerD1Ev @216
+    _ZN2ny12eventHandlerD2Ev @217
+    _ZN2ny13colorToWinapiERKNS_5colorE @218
+    _ZN2ny13positionEventD0Ev @219
+    _ZN2ny13positionEventD1Ev @220
+    _ZN2ny13warningStreamE @221 DATA
+    _ZN2ny13winapiBackend16createAppContextEv @222
+    _ZN2ny13winapiBackend19createWindowContextERNS_6windowERKNS_21windowContextSettingsE @223
+    _ZN2ny13winapiBackendC1Ev @224
+    _ZN2ny13winapiBackendC2Ev @225
+    _ZN2ny13windowContext10setMaxSizeENS_3vecILy2EjEE @226
+    _ZN2ny13windowContext10setMinSizeENS_3vecILy2EjEE @227
+    _ZN2ny13windowContext11addDropTypeEh @228
+    _ZN2ny13windowContext12setDroppableERKNS_9dataTypesE @229
+    _ZN2ny13windowContext12updateCursorEPNS_15mouseCrossEventE @230
+    _ZN2ny13windowContext14removeDropTypeEh @231
+    _ZN2ny13windowContext15addContextHintsEm @232
+    _ZN2ny13windowContext16sendContextEventERNS_12contextEventE @233
+    _ZN2ny13windowContext18removeContextHintsEm @234
+    _ZN2ny13windowContext6redrawEv @235
+    _ZN2ny13windowContext7setIconEPKNS_5imageE @236
+    _ZN2ny13windowContextC1ERNS_6windowERKNS_21windowContextSettingsE @237
+    _ZN2ny13windowContextC1ERNS_6windowEm @238
+    _ZN2ny13windowContextC2ERNS_6windowERKNS_21windowContextSettingsE @239
+    _ZN2ny13windowContextC2ERNS_6windowEm @240
+    _ZN2ny13windowContextD0Ev @241
+    _ZN2ny13windowContextD1Ev @242
+    _ZN2ny14createCustomWCERNS_6windowERKNS_21windowContextSettingsE @243
+    _ZN2ny14gdiDrawContext10finishDrawEv @244
+    _ZN2ny14gdiDrawContext5clearENS_5colorE @245
+    _ZN2ny14gdiDrawContext9beginDrawEv @246
+    _ZN2ny14gdiDrawContextC1ERNS_19winapiWindowContextE @247
+    _ZN2ny14gdiDrawContextC2ERNS_19winapiWindowContextE @248
+    _ZN2ny14gdiDrawContextD0Ev @249
+    _ZN2ny14gdiDrawContextD1Ev @250
+    _ZN2ny14mouseMoveEventD0Ev @251
+    _ZN2ny14mouseMoveEventD1Ev @252
+    _ZN2ny14toplevelWindow11mouseButtonERNS_16mouseButtonEventE @253
+    _ZN2ny14toplevelWindow11setMoveHintEb @254
+    _ZN2ny14toplevelWindow12setCloseHintEb @255
+    _ZN2ny14toplevelWindow13setResizeHintEb @256
+    _ZN2ny14toplevelWindow14setCustomMovedEb @257
+    _ZN2ny14toplevelWindow15setMaximizeHintEb @258
+    _ZN2ny14toplevelWindow15setMinimizeHintEb @259
+    _ZN2ny14toplevelWindow16setCustomResizedEb @260
+    _ZN2ny14toplevelWindow17getTopLevelParentEv @261
+    _ZN2ny14toplevelWindow18setCustomDecoratedEb @262
+    _ZN2ny14toplevelWindow6createENS_3vecILy2EiEENS1_ILy2EjEESsRKNS_21windowContextSettingsE @263
+    _ZN2ny14toplevelWindow7setIconEPKNS_5imageE @264
+    _ZN2ny14toplevelWindow7setNameESs @265
+    _ZN2ny14toplevelWindow9mouseMoveERNS_14mouseMoveEventE @266
+    _ZN2ny14toplevelWindowC1ENS_3vecILy2EiEENS1_ILy2EjEESsRKNS_21windowContextSettingsE @267
+    _ZN2ny14toplevelWindowC1Ev @268
+    _ZN2ny14toplevelWindowC2ENS_3vecILy2EiEENS1_ILy2EjEESsRKNS_21windowContextSettingsE @269
+    _ZN2ny14toplevelWindowC2Ev @270
+    _ZN2ny14toplevelWindowD0Ev @271
+    _ZN2ny14toplevelWindowD1Ev @272
+    _ZN2ny15mouseCrossEventD0Ev @273
+    _ZN2ny15mouseCrossEventD1Ev @274
+    _ZN2ny16dataTypeToStringEhb @275
+    _ZN2ny16stringToDataTypeERKSs @276
+    _ZN2ny16winapiAppContext12endDataOfferEv @277
+    _ZN2ny16winapiAppContext12getClipboardEv @278
+    _ZN2ny16winapiAppContext12setClipboardERNS_10dataSourceEPKNS_5eventE @279
+    _ZN2ny16winapiAppContext14startDataOfferERNS_10dataSourceERKNS_5imageERKNS_6windowEPKNS_5eventE @280
+    _ZN2ny16winapiAppContext15registerContextEP6HWND__PNS_19winapiWindowContextE @281
+    _ZN2ny16winapiAppContext16getWindowContextEP6HWND__ @282
+    _ZN2ny16winapiAppContext17unregisterContextEP6HWND__ @283
+    _ZN2ny16winapiAppContext17unregisterContextEPNS_19winapiWindowContextE @284
+    _ZN2ny16winapiAppContext8mainLoopEv @285
+    _ZN2ny16winapiAppContext9eventProcEP6HWND__jyx @286
+    _ZN2ny16winapiAppContextC1Ev @287
+    _ZN2ny16winapiAppContextC2Ev @288
+    _ZN2ny16winapiAppContextD0Ev @289
+    _ZN2ny16winapiAppContextD1Ev @290
+    _ZN2ny16winapiAppContextD2Ev @291
+    _ZN2ny17dataTypesToStringENS_9dataTypesEb @292
+    _ZN2ny19createWindowContextERNS_6windowERKNS_21windowContextSettingsE @293
+    _ZN2ny19getBufferFormatSizeENS_12bufferFormatE @294
+    _ZN2ny19redirectDrawContext10updateClipEv @295
+    _ZN2ny19redirectDrawContext11setPositionENS_3vecILy2EdEE @296
+    _ZN2ny19redirectDrawContext4clipERKNS_4rectILy2EfEE @297
+    _ZN2ny19redirectDrawContext4fillERKNS_5colorE @298
+    _ZN2ny19redirectDrawContext4maskERKNS_10customPathE @299
+    _ZN2ny19redirectDrawContext4maskERKNS_4textE @300
+    _ZN2ny19redirectDrawContext5applyEv @301
+    _ZN2ny19redirectDrawContext5clearENS_5colorE @302
+    _ZN2ny19redirectDrawContext7endClipEv @303
+    _ZN2ny19redirectDrawContext7getClipEv @304
+    _ZN2ny19redirectDrawContext7outlineERKNS_5colorE @305
+    _ZN2ny19redirectDrawContext7setSizeENS_3vecILy2EdEE @306
+    _ZN2ny19redirectDrawContext9resetClipEv @307
+    _ZN2ny19redirectDrawContext9resetMaskEv @308
+    _ZN2ny19redirectDrawContext9startClipEv @309
+    _ZN2ny19redirectDrawContextC1ERNS_11drawContextENS_3vecILy2EfEE @310
+    _ZN2ny19redirectDrawContextC1ERNS_11drawContextENS_3vecILy2EfEES4_ @311
+    _ZN2ny19redirectDrawContextC2ERNS_11drawContextENS_3vecILy2EfEE @312
+    _ZN2ny19redirectDrawContextC2ERNS_11drawContextENS_3vecILy2EfEES4_ @313
+    _ZN2ny19redirectDrawContextD0Ev @314
+    _ZN2ny19redirectDrawContextD1Ev @315
+    _ZN2ny19winapiWindowContext10finishDrawEv @316
+    _ZN2ny19winapiWindowContext11setPositionENS_3vecILy2EiEEb @317
+    _ZN2ny19winapiWindowContext11setSettingsERKNS_21windowContextSettingsE @318
+    _ZN2ny19winapiWindowContext14addWindowHintsEm @319
+    _ZN2ny19winapiWindowContext14setWindowHintsEm @320
+    _ZN2ny19winapiWindowContext15addContextHintsEm @321
+    _ZN2ny19winapiWindowContext15setContextHintsEm @322
+    _ZN2ny19winapiWindowContext17removeWindowHintsEm @323
+    _ZN2ny19winapiWindowContext18removeContextHintsEm @324
+    _ZN2ny19winapiWindowContext4hideEv @325
+    _ZN2ny19winapiWindowContext4showEv @326
+    _ZN2ny19winapiWindowContext7refreshEv @327
+    _ZN2ny19winapiWindowContext7setSizeENS_3vecILy2EjEEb @328
+    _ZN2ny19winapiWindowContext9beginDrawEv @329
+    _ZN2ny19winapiWindowContext9highestIDE @330 DATA
+    _ZN2ny19winapiWindowContext9setCursorERKNS_6cursorE @331
+    _ZN2ny19winapiWindowContextC1ERNS_6windowERKNS_27winapiWindowContextSettingsE @332
+    _ZN2ny19winapiWindowContextC2ERNS_6windowERKNS_27winapiWindowContextSettingsE @333
+    _ZN2ny19winapiWindowContextD0Ev @334
+    _ZN2ny19winapiWindowContextD1Ev @335
+    _ZN2ny19winapiWindowContextD2Ev @336
+    _ZN2ny20virtualWindowContext10finishDrawEv @337
+    _ZN2ny20virtualWindowContext11setPositionENS_3vecILy2EiEEb @338
+    _ZN2ny20virtualWindowContext11setSettingsERKNS_21windowContextSettingsE @339
+    _ZN2ny20virtualWindowContext12updateCursorEPNS_15mouseCrossEventE @340
+    _ZN2ny20virtualWindowContext14addWindowHintsEm @341
+    _ZN2ny20virtualWindowContext14setWindowHintsEm @342
+    _ZN2ny20virtualWindowContext15addContextHintsEm @343
+    _ZN2ny20virtualWindowContext15setContextHintsEm @344
+    _ZN2ny20virtualWindowContext17removeWindowHintsEm @345
+    _ZN2ny20virtualWindowContext18removeContextHintsEm @346
+    _ZN2ny20virtualWindowContext4hideEv @347
+    _ZN2ny20virtualWindowContext4showEv @348
+    _ZN2ny20virtualWindowContext7refreshEv @349
+    _ZN2ny20virtualWindowContext7setSizeENS_3vecILy2EjEEb @350
+    _ZN2ny20virtualWindowContext9beginDrawEv @351
+    _ZN2ny20virtualWindowContext9setCursorERKNS_6cursorE @352
+    _ZN2ny20virtualWindowContextC1ERNS_11childWindowERKNS_21windowContextSettingsE @353
+    _ZN2ny20virtualWindowContextC2ERNS_11childWindowERKNS_21windowContextSettingsE @354
+    _ZN2ny20virtualWindowContextD0Ev @355
+    _ZN2ny20virtualWindowContextD1Ev @356
+    _ZN2ny21windowContextSettingsD0Ev @357
+    _ZN2ny21windowContextSettingsD1Ev @358
+    _ZN2ny21windowContextSettingsD2Ev @359
+    _ZN2ny27winapiWindowContextSettingsD0Ev @360
+    _ZN2ny27winapiWindowContextSettingsD1Ev @361
+    _ZN2ny3app10mouseCrossERNS_15mouseCrossEventE @362
+    _ZN2ny3app10mouseWheelERNS_15mouseWheelEventE @363
+    _ZN2ny3app10windowDrawERNS_9drawEventE @364
+    _ZN2ny3app10windowSizeERNS_9sizeEventE @365
+    _ZN2ny3app11keyboardKeyERNS_8keyEventE @366
+    _ZN2ny3app11mouseButtonERNS_16mouseButtonEventE @367
+    _ZN2ny3app11removeChildERNS_12eventHandlerE @368
+    _ZN2ny3app11windowFocusERNS_10focusEventE @369
+    _ZN2ny3app14destroyHandlerERNS_12destroyEventE @370
+    _ZN2ny3app14windowPositionERNS_13positionEventE @371
+    _ZN2ny3app15registerBackendERNS_7backendE @372
+    _ZN2ny3app16optionRegisteredESsSs @373
+    _ZN2ny3app4initENS_11appSettingsE @374
+    _ZN2ny3app4initEjPPKc @375
+    _ZN2ny3app4initEv @376
+    _ZN2ny3app5errorEv @377
+    _ZN2ny3app6createERNS_12eventHandlerE @378
+    _ZN2ny3app7addTaskEPNS_8taskBaseE @379
+    _ZN2ny3app7destroyEv @380
+    _ZN2ny3app7exitAppEv @381
+    _ZN2ny3app7mainAppE @382 DATA
+    _ZN2ny3app8backendsE @383 DATA
+    _ZN2ny3app8mainLoopEv @384
+    _ZN2ny3app8reparentERNS_12eventHandlerE @385
+    _ZN2ny3app9mouseMoveERNS_14mouseMoveEventE @386
+    _ZN2ny3app9sendEventERNS_5eventERNS_12eventHandlerE @387
+    _ZN2ny3appC1Ev @388
+    _ZN2ny3appC2Ev @389
+    _ZN2ny3appD0Ev @390
+    _ZN2ny3appD1Ev @391
+    _ZN2ny3appD2Ev @392
+    _ZN2ny4file6reloadEv @393
+    _ZN2ny4fileC1ERKSs @394
+    _ZN2ny4fileC2ERKSs @395
+    _ZN2ny4font11defaultFontE @396 DATA
+    _ZN2ny4font12getGDIHandleEb @397
+    _ZN2ny4font12loadFromFileERKSs @398
+    _ZN2ny4font12loadFromNameERKSs @399
+    _ZN2ny4fontD1Ev @400
+    _ZN2ny4fontD2Ev @401
+    _ZN2ny4path16getTransformableEv @402
+    _ZN2ny4pathC1ERKS0_ @403
+    _ZN2ny4pathC2ERKS0_ @404
+    _ZN2ny4pathD1Ev @405
+    _ZN2ny4pathD2Ev @406
+    _ZN2ny5color3redE @407 DATA
+    _ZN2ny5color4blueE @408 DATA
+    _ZN2ny5color4noneE @409 DATA
+    _ZN2ny5color5blackE @410 DATA
+    _ZN2ny5color5greenE @411 DATA
+    _ZN2ny5color5toIntEv @412
+    _ZN2ny5color5whiteE @413 DATA
+    _ZN2ny5colorC1Ehhhh @414
+    _ZN2ny5colorC2Ehhhh @415
+    _ZN2ny5eventC1Ej @416
+    _ZN2ny5eventC2Ej @417
+    _ZN2ny5eventD0Ev @418
+    _ZN2ny5eventD1Ev @419
+    _ZN2ny5eventD2Ev @420
+    _ZN2ny5image12getDataPlainEv @421
+    _ZN2ny5image12loadFromFileERKSs @422
+    _ZN2ny5image14getDrawContextEv @423
+    _ZN2ny5imageC1ERKSs @424
+    _ZN2ny5imageC1Ev @425
+    _ZN2ny5imageC2ERKSs @426
+    _ZN2ny5imageC2Ev @427
+    _ZN2ny5imageD0Ev @428
+    _ZN2ny5imageD1Ev @429
+    _ZN2ny5imageD2Ev @430
+    _ZN2ny5mouse11getPositionEv @431
+    _ZN2ny5mouse11pressButtonENS0_6buttonE @432
+    _ZN2ny5mouse11setPositionENS_3vecILy2EiEE @433
+    _ZN2ny5mouse11setPositionEii @434
+    _ZN2ny5mouse13releaseButtonENS0_6buttonE @435
+    _ZN2ny5mouse15isButtonPressedENS0_6buttonE @436
+    _ZN2ny5mouse6statesE @437 DATA
+    _ZN2ny5mouse8positionE @438 DATA
+    _ZN2ny6cursor14fromNativeTypeENS_10cursorTypeE @439
+    _ZN2ny6cursor9fromImageERNS_5imageE @440
+    _ZN2ny6cursor9fromImageERNS_5imageENS_3vecILy2EiEE @441
+    _ZN2ny6cursorC1ENS_10cursorTypeE @442
+    _ZN2ny6cursorC1ERNS_5imageE @443
+    _ZN2ny6cursorC1Ev @444
+    _ZN2ny6cursorC2ENS_10cursorTypeE @445
+    _ZN2ny6cursorC2ERNS_5imageE @446
+    _ZN2ny6cursorC2Ev @447
+    _ZN2ny6window10mouseCrossERNS_15mouseCrossEventE @448
+    _ZN2ny6window10mouseWheelERNS_15mouseWheelEventE @449
+    _ZN2ny6window10setMaxSizeENS_3vecILy2EjEE @450
+    _ZN2ny6window10setMinSizeENS_3vecILy2EjEE @451
+    _ZN2ny6window10toggleShowEv @452
+    _ZN2ny6window10windowDrawERNS_9drawEventE @453
+    _ZN2ny6window10windowShowERNS_9showEventE @454
+    _ZN2ny6window10windowSizeERNS_9sizeEventE @455
+    _ZN2ny6window11getWindowAtENS_3vecILy2EiEE @456
+    _ZN2ny6window11keyboardKeyERNS_8keyEventE @457
+    _ZN2ny6window11mouseButtonERNS_16mouseButtonEventE @458
+    _ZN2ny6window11onMouseMoveESt8functionIFvRKNS_14mouseMoveEventEEE @459
+    _ZN2ny6window11onMouseMoveESt8functionIFvRS0_EE @460
+    _ZN2ny6window11onMouseMoveESt8functionIFvRS0_RKNS_14mouseMoveEventEEE @461
+    _ZN2ny6window11onMouseMoveESt8functionIFvvEE @462
+    _ZN2ny6window11setPositionENS_3vecILy2EiEE @463
+    _ZN2ny6window11windowFocusERNS_10focusEventE @464
+    _ZN2ny6window12onMouseCrossESt8functionIFvRKNS_15mouseCrossEventEEE @465
+    _ZN2ny6window12onMouseCrossESt8functionIFvRS0_EE @466
+    _ZN2ny6window12onMouseCrossESt8functionIFvRS0_RKNS_15mouseCrossEventEEE @467
+    _ZN2ny6window12onMouseCrossESt8functionIFvvEE @468
+    _ZN2ny6window12onMouseWheelESt8functionIFvRKNS_15mouseWheelEventEEE @469
+    _ZN2ny6window12onMouseWheelESt8functionIFvRS0_EE @470
+    _ZN2ny6window12onMouseWheelESt8functionIFvRS0_RKNS_15mouseWheelEventEEE @471
+    _ZN2ny6window12onMouseWheelESt8functionIFvvEE @472
+    _ZN2ny6window12processEventERNS_5eventE @473
+    _ZN2ny6window13onMouseButtonESt8functionIFvRKNS_16mouseButtonEventEEE @474
+    _ZN2ny6window13onMouseButtonESt8functionIFvRS0_EE @475
+    _ZN2ny6window13onMouseButtonESt8functionIFvRS0_RKNS_16mouseButtonEventEEE @476
+    _ZN2ny6window13onMouseButtonESt8functionIFvvEE @477
+    _ZN2ny6window13windowDestroyERNS_12destroyEventE @478
+    _ZN2ny6window14addWindowHintsEm @479
+    _ZN2ny6window14windowPositionERNS_13positionEventE @480
+    _ZN2ny6window17getWindowChildrenEv @481
+    _ZN2ny6window17removeWindowHintsEj @482
+    _ZN2ny6window4drawERNS_11drawContextE @483
+    _ZN2ny6window4hideEv @484
+    _ZN2ny6window4moveENS_3vecILy2EiEE @485
+    _ZN2ny6window4showEv @486
+    _ZN2ny6window5closeEv @487
+    _ZN2ny6window5onKeyESt8functionIFvRKNS_8keyEventEEE @488
+    _ZN2ny6window5onKeyESt8functionIFvRS0_EE @489
+    _ZN2ny6window5onKeyESt8functionIFvRS0_RKNS_8keyEventEEE @490
+    _ZN2ny6window5onKeyESt8functionIFvvEE @491
+    _ZN2ny6window6createEPNS_12eventHandlerENS_3vecILy2EiEENS3_ILy2EjEERKNS_21windowContextSettingsE @492
+    _ZN2ny6window6onDrawESt8functionIFvRNS_11drawContextEEE @493
+    _ZN2ny6window6onDrawESt8functionIFvRS0_EE @494
+    _ZN2ny6window6onDrawESt8functionIFvRS0_RNS_11drawContextEEE @495
+    _ZN2ny6window6onDrawESt8functionIFvvEE @496
+    _ZN2ny6window6onMoveESt8functionIFvRKNS_3vecILy2EiEEEE @497
+    _ZN2ny6window6onMoveESt8functionIFvRS0_EE @498
+    _ZN2ny6window6onMoveESt8functionIFvRS0_RKNS_3vecILy2EiEEEE @499
+    _ZN2ny6window6onMoveESt8functionIFvvEE @500
+    _ZN2ny6window7onFocusESt8functionIFvRKNS_10focusEventEEE @501
+    _ZN2ny6window7onFocusESt8functionIFvRS0_EE @502
+    _ZN2ny6window7onFocusESt8functionIFvRS0_RKNS_10focusEventEEE @503
+    _ZN2ny6window7onFocusESt8functionIFvvEE @504
+    _ZN2ny6window7refreshEv @505
+    _ZN2ny6window7setSizeENS_3vecILy2EjEE @506
+    _ZN2ny6window8onResizeESt8functionIFvRKNS_3vecILy2EjEEEE @507
+    _ZN2ny6window8onResizeESt8functionIFvRS0_EE @508
+    _ZN2ny6window8onResizeESt8functionIFvRS0_RKNS_3vecILy2EjEEEE @509
+    _ZN2ny6window8onResizeESt8functionIFvvEE @510
+    _ZN2ny6window9mouseMoveERNS_14mouseMoveEventE @511
+    _ZN2ny6window9onDestroyESt8functionIFvRKNS_12destroyEventEEE @512
+    _ZN2ny6window9onDestroyESt8functionIFvRS0_EE @513
+    _ZN2ny6window9onDestroyESt8functionIFvRS0_RKNS_12destroyEventEEE @514
+    _ZN2ny6window9onDestroyESt8functionIFvvEE @515
+    _ZN2ny6window9setCursorERKNS_6cursorE @516
+    _ZN2ny6windowC1EPNS_12eventHandlerENS_3vecILy2EjEES4_RKNS_21windowContextSettingsE @517
+    _ZN2ny6windowC1Ev @518
+    _ZN2ny6windowC2EPNS_12eventHandlerENS_3vecILy2EjEES4_RKNS_21windowContextSettingsE @519
+    _ZN2ny6windowC2Ev @520
+    _ZN2ny6windowD0Ev @521
+    _ZN2ny6windowD1Ev @522
+    _ZN2ny6windowD2Ev @523
+    _ZN2ny7backendC1Ej @524
+    _ZN2ny7backendC2Ej @525
+    _ZN2ny8callbackIFvRNS_6windowERKNS_10focusEventEEE6removeERKNS_10connectionE @526
+    _ZN2ny8callbackIFvRNS_6windowERKNS_12destroyEventEEE6removeERKNS_10connectionE @527
+    _ZN2ny8callbackIFvRNS_6windowERKNS_14mouseMoveEventEEE3addERKSt8functionIS6_E @528
+    _ZN2ny8callbackIFvRNS_6windowERKNS_14mouseMoveEventEEE6removeERKNS_10connectionE @529
+    _ZN2ny8callbackIFvRNS_6windowERKNS_15mouseCrossEventEEE6removeERKNS_10connectionE @530
+    _ZN2ny8callbackIFvRNS_6windowERKNS_15mouseWheelEventEEE6removeERKNS_10connectionE @531
+    _ZN2ny8callbackIFvRNS_6windowERKNS_16mouseButtonEventEEE6removeERKNS_10connectionE @532
+    _ZN2ny8callbackIFvRNS_6windowERKNS_3vecILy2EiEEEE6removeERKNS_10connectionE @533
+    _ZN2ny8callbackIFvRNS_6windowERKNS_3vecILy2EjEEEE6removeERKNS_10connectionE @534
+    _ZN2ny8callbackIFvRNS_6windowERKNS_8keyEventEEE6removeERKNS_10connectionE @535
+    _ZN2ny8callbackIFvRNS_6windowERNS_11drawContextEEE6removeERKNS_10connectionE @536
+    _ZN2ny8containsIjEEbSt6vectorIT_SaIS2_EES2_ @537
+    _ZN2ny8keyboard10ctrlActiveEv @538
+    _ZN2ny8keyboard10releaseKeyENS0_3keyE @539
+    _ZN2ny8keyboard11shiftActiveEv @540
+    _ZN2ny8keyboard12isKeyPressedENS0_3keyE @541
+    _ZN2ny8keyboard13capsLockStateE @542 DATA
+    _ZN2ny8keyboard6statesE @543 DATA
+    _ZN2ny8keyboard6toCharENS0_3keyE @544
+    _ZN2ny8keyboard8pressKeyENS0_3keyE @545
+    _ZN2ny8keyboard9altActiveEv @546
+    _ZN2ny9dataTypes10removeTypeEh @547
+    _ZN2ny9dataTypes7addTypeEh @548
+    _ZN2ny9drawEventD0Ev @549
+    _ZN2ny9drawEventD1Ev @550
+    _ZN2ny9sendErrorERKSt9exception @551
+    _ZN2ny9sendErrorEv @552
+    _ZN2ny9sendErrorIIPKcEEEvDpT_ @553
+    _ZN2ny9sizeEventD0Ev @554
+    _ZN2ny9sizeEventD1Ev @555
+    _ZN9__gnu_cxx12__to_xstringISscEET_PFiPT0_yPKS2_PcEyS5_z @556
+    _ZNK12cimg_library13CImgException4whatEv @557
+    _ZNK12cimg_library4CImgIhE10_save_rgbaEP6_iobufPKc @558
+    _ZNK12cimg_library4CImgIhE10get_resizeEiiiiijffff @559
+    _ZNK12cimg_library4CImgIhE10save_minc2EPKcS3_ @560
+    _ZNK12cimg_library4CImgIhE10save_otherEPKcj @561
+    _ZNK12cimg_library4CImgIhE10save_videoEPKcjS3_b @562
+    _ZNK12cimg_library4CImgIhE12save_analyzeEPKcPKf @563
+    _ZNK12cimg_library4CImgIhE13_save_pandoreEP6_iobufPKcj @564
+    _ZNK12cimg_library4CImgIhE17_get_permute_axesIhEENS0_IT_EEPKcRKS3_ @565
+    _ZNK12cimg_library4CImgIhE17get_projections2dEjjj @566
+    _ZNK12cimg_library4CImgIhE18save_gzip_externalEPKc @567
+    _ZNK12cimg_library4CImgIhE20save_medcon_externalEPKc @568
+    _ZNK12cimg_library4CImgIhE25save_imagemagick_externalEPKcj @569
+    _ZNK12cimg_library4CImgIhE28save_graphicsmagick_externalEPKcj @570
+    _ZNK12cimg_library4CImgIhE4saveEPKcij @571
+    _ZNK12cimg_library4CImgIhE8get_cropEiiiiiiiib @572
+    _ZNK12cimg_library4CImgIhE8is_emptyEv @573
+    _ZNK12cimg_library4CImgIhE8save_exrEPKc @574
+    _ZNK12cimg_library4CImgIhE8save_yuvEPKcb @575
+    _ZNK12cimg_library4CImgIhE9_save_inrEP6_iobufPKcPKf @576
+    _ZNK12cimg_library4CImgIhE9_save_pfmEP6_iobufPKc @577
+    _ZNK12cimg_library4CImgIhE9_save_pnmEP6_iobufPKcj @578
+    _ZNK12cimg_library4CImgIhE9get_splitEci @579
+    _ZNK12cimg_library4CImgIhE9save_cimgEPKcb @580
+    _ZNK12cimg_library4CImgIhE9save_tiffEPKcjPKfS3_ @581
+    _ZNK12cimg_library8CImgListIcE10get_appendEcf @582
+    _ZNK12cimg_library8CImgListIhE10get_appendEcf @583
+    _ZNK12cimg_library8CImgListIhE13get_crop_fontEv @584
+    _ZNK12cimg_library8CImgListIhE20save_ffmpeg_externalEPKcjS3_j @585
+    _ZNK2ny10appContext10isOfferingEv @586
+    _ZNK2ny10customPath10getExtentsEv @587
+    _ZNK2ny10customPath4bakeEi @588
+    _ZNK2ny10pointArray10getExtentsEv @589
+    _ZNK2ny11childWindow17getTopLevelParentEv @590
+    _ZNK2ny11childWindow9getParentEv @591
+    _ZNK2ny11childWindow9isVirtualEv @592
+    _ZNK2ny12eventHandler11getChildrenEv @593
+    _ZNK2ny12eventHandler7isValidEv @594
+    _ZNK2ny12eventHandler9getParentEv @595
+    _ZNK2ny13threadSafeObj4lockEv @596
+    _ZNK2ny13threadSafeObj6unlockEv @597
+    _ZNK2ny13threadSafeObj7tryLockEv @598
+    _ZNK2ny13transformableILy2EfE10getExtentsEv @599
+    _ZNK2ny13winapiBackend11isAvailableEv @600
+    _ZNK2ny13winapiBackend17hasCustomHandlingEv @601
+    _ZNK2ny13winapiBackend17hasNativeHandlingEv @602
+    _ZNK2ny13winapiBackend19hasCustomDecorationEv @603
+    _ZNK2ny13winapiBackend19hasNativeDecorationEv @604
+    _ZNK2ny13windowContext24getAdditionalWindowHintsEv @605
+    _ZNK2ny13windowContext9isVirtualEv @606
+    _ZNK2ny14toplevelWindow17getTopLevelParentEv @607
+    _ZNK2ny14toplevelWindow9getParentEv @608
+    _ZNK2ny14toplevelWindow9isVirtualEv @609
+    _ZNK2ny16winapiAppContext10isOfferingEv @610
+    _ZNK2ny20virtualWindowContext16getParentContextEv @611
+    _ZNK2ny20virtualWindowContext9isVirtualEv @612
+    _ZNK2ny3app10getBackendEv @613
+    _ZNK2ny3app12getMouseOverEv @614
+    _ZNK2ny3app12isThreadSafeEv @615
+    _ZNK2ny3app13getAppContextEv @616
+    _ZNK2ny3app7isValidEv @617
+    _ZNK2ny3app8getFocusEv @618
+    _ZNK2ny4file4saveEv @619
+    _ZNK2ny4path16getTransformableEv @620
+    _ZNK2ny4text10getExtentsEv @621
+    _ZNK2ny5color10normalizedERfS1_S1_ @622
+    _ZNK2ny5color10normalizedERfS1_S1_S1_ @623
+    _ZNK2ny5image10saveToFileERKSs @624
+    _ZNK2ny5image12getDataPlainEv @625
+    _ZNK2ny5image13getBufferSizeEv @626
+    _ZNK2ny5image14getDataConventEPh @627
+    _ZNK2ny5image14getDataConventEv @628
+    _ZNK2ny5image15getBufferFormatEv @629
+    _ZNK2ny5image7getSizeEv @630
+    _ZNK2ny6circle15getAsCustomPathEv @631
+    _ZNK2ny6cursor12isNativeTypeEv @632
+    _ZNK2ny6cursor13getNativeTypeEv @633
+    _ZNK2ny6cursor15getImageHotspotEv @634
+    _ZNK2ny6cursor7isImageEv @635
+    _ZNK2ny6cursor8getImageEv @636
+    _ZNK2ny6window7getSizeEv @637
+    _ZNK2ny6window7isValidEv @638
+    _ZNK2ny6window9isVirtualEv @639
+    _ZNK2ny7backend17hasCustomHandlingEv @640
+    _ZNK2ny7backend17hasNativeHandlingEv @641
+    _ZNK2ny7backend19hasCustomDecorationEv @642
+    _ZNK2ny7backend19hasNativeDecorationEv @643
+    _ZNK2ny9dataTypes8containsEh @644
+    _ZNK2ny9rectangle10getExtentsEv @645
+    _ZNK2ny9rectangle15getAsCustomPathEv @646
+    _ZNKSt8functionIFvRN2ny6windowEEEclES2_ @647
+    _ZNKSt8functionIFvvEEclEv @648
+    _ZNSt11unique_lockISt5mutexE6unlockEv @649
+    _ZNSt15basic_stringbufIcSt11char_traitsIcESaIcEED1Ev @650
+    _ZNSt16_Sp_counted_baseILN9__gnu_cxx12_Lock_policyE2EE10_M_destroyEv @651
+    _ZNSt16_Sp_counted_baseILN9__gnu_cxx12_Lock_policyE2EE10_M_releaseEv @652
+    _ZNSt16_Sp_counted_baseILN9__gnu_cxx12_Lock_policyE2EED0Ev @653
+    _ZNSt16_Sp_counted_baseILN9__gnu_cxx12_Lock_policyE2EED1Ev @654
+    _ZNSt23_Sp_counted_ptr_inplaceINSt6thread5_ImplISt12_Bind_simpleIFSt7_Mem_fnIMN2ny10threadpoolEFvyEEPS5_yEEEESaISC_ELN9__gnu_cxx12_Lock_policyE2EE10_M_destroyEv @655
+    _ZNSt23_Sp_counted_ptr_inplaceINSt6thread5_ImplISt12_Bind_simpleIFSt7_Mem_fnIMN2ny10threadpoolEFvyEEPS5_yEEEESaISC_ELN9__gnu_cxx12_Lock_policyE2EE10_M_disposeEv @656
+    _ZNSt23_Sp_counted_ptr_inplaceINSt6thread5_ImplISt12_Bind_simpleIFSt7_Mem_fnIMN2ny10threadpoolEFvyEEPS5_yEEEESaISC_ELN9__gnu_cxx12_Lock_policyE2EE14_M_get_deleterERKSt9type_info @657
+    _ZNSt23_Sp_counted_ptr_inplaceINSt6thread5_ImplISt12_Bind_simpleIFSt7_Mem_fnIMN2ny10threadpoolEFvyEEPS5_yEEEESaISC_ELN9__gnu_cxx12_Lock_policyE2EED0Ev @658
+    _ZNSt23_Sp_counted_ptr_inplaceINSt6thread5_ImplISt12_Bind_simpleIFSt7_Mem_fnIMN2ny10threadpoolEFvyEEPS5_yEEEESaISC_ELN9__gnu_cxx12_Lock_policyE2EED1Ev @659
+    _ZNSt6thread10_Impl_baseD0Ev @660
+    _ZNSt6thread10_Impl_baseD1Ev @661
+    _ZNSt6thread5_ImplISt12_Bind_simpleIFSt7_Mem_fnIMN2ny10threadpoolEFvyEEPS4_yEEE6_M_runEv @662
+    _ZNSt6thread5_ImplISt12_Bind_simpleIFSt7_Mem_fnIMN2ny10threadpoolEFvyEEPS4_yEEED0Ev @663
+    _ZNSt6thread5_ImplISt12_Bind_simpleIFSt7_Mem_fnIMN2ny10threadpoolEFvyEEPS4_yEEED1Ev @664
+    _ZNSt6vectorIN2ny3vecILy2EfEESaIS2_EE19_M_emplace_back_auxIIRKS2_EEEvDpOT_ @665
+    _ZNSt6vectorIN2ny3vecILy2EfEESaIS2_EEaSERKS4_ @666
+    _ZNSt6vectorIN2ny5pointESaIS1_EE12emplace_backIIS1_EEEvDpOT_ @667
+    _ZNSt6vectorIN2ny5pointESaIS1_EE19_M_emplace_back_auxIIS1_EEEvDpOT_ @668
+    _ZNSt6vectorIN2ny5pointESaIS1_EEaSERKS3_ @669
+    _ZNSt6vectorIPN2ny11childWindowESaIS2_EE19_M_emplace_back_auxIIRKS2_EEEvDpOT_ @670
+    _ZNSt6vectorIPN2ny12eventHandlerESaIS2_EE19_M_emplace_back_auxIIS2_EEEvDpOT_ @671
+    _ZNSt6vectorIPN2ny7backendESaIS2_EE19_M_emplace_back_auxIIS2_EEEvDpOT_ @672
+    _ZNSt6vectorIPN2ny8taskBaseESaIS2_EE19_M_emplace_back_auxIIRKS2_EEEvDpOT_ @673
+    _ZNSt6vectorISsSaISsEE19_M_emplace_back_auxIIRKSsEEEvDpOT_ @674
+    _ZNSt6vectorISsSaISsEED1Ev @675
+    _ZNSt6vectorISt4pairIN2ny10connectionESt8functionIFvRNS1_6windowERKNS1_10focusEventEEEESaISB_EE19_M_emplace_back_auxIISB_EEEvDpOT_ @676
+    _ZNSt6vectorISt4pairIN2ny10connectionESt8functionIFvRNS1_6windowERKNS1_10focusEventEEEESaISB_EE5eraseEN9__gnu_cxx17__normal_iteratorIPSB_SD_EE @677
+    _ZNSt6vectorISt4pairIN2ny10connectionESt8functionIFvRNS1_6windowERKNS1_12destroyEventEEEESaISB_EE19_M_emplace_back_auxIISB_EEEvDpOT_ @678
+    _ZNSt6vectorISt4pairIN2ny10connectionESt8functionIFvRNS1_6windowERKNS1_12destroyEventEEEESaISB_EE5eraseEN9__gnu_cxx17__normal_iteratorIPSB_SD_EE @679
+    _ZNSt6vectorISt4pairIN2ny10connectionESt8functionIFvRNS1_6windowERKNS1_14mouseMoveEventEEEESaISB_EE19_M_emplace_back_auxIISB_EEEvDpOT_ @680
+    _ZNSt6vectorISt4pairIN2ny10connectionESt8functionIFvRNS1_6windowERKNS1_14mouseMoveEventEEEESaISB_EE5eraseEN9__gnu_cxx17__normal_iteratorIPSB_SD_EE @681
+    _ZNSt6vectorISt4pairIN2ny10connectionESt8functionIFvRNS1_6windowERKNS1_15mouseCrossEventEEEESaISB_EE19_M_emplace_back_auxIISB_EEEvDpOT_ @682
+    _ZNSt6vectorISt4pairIN2ny10connectionESt8functionIFvRNS1_6windowERKNS1_15mouseCrossEventEEEESaISB_EE5eraseEN9__gnu_cxx17__normal_iteratorIPSB_SD_EE @683
+    _ZNSt6vectorISt4pairIN2ny10connectionESt8functionIFvRNS1_6windowERKNS1_15mouseWheelEventEEEESaISB_EE19_M_emplace_back_auxIISB_EEEvDpOT_ @684
+    _ZNSt6vectorISt4pairIN2ny10connectionESt8functionIFvRNS1_6windowERKNS1_15mouseWheelEventEEEESaISB_EE5eraseEN9__gnu_cxx17__normal_iteratorIPSB_SD_EE @685
+    _ZNSt6vectorISt4pairIN2ny10connectionESt8functionIFvRNS1_6windowERKNS1_16mouseButtonEventEEEESaISB_EE19_M_emplace_back_auxIISB_EEEvDpOT_ @686
+    _ZNSt6vectorISt4pairIN2ny10connectionESt8functionIFvRNS1_6windowERKNS1_16mouseButtonEventEEEESaISB_EE5eraseEN9__gnu_cxx17__normal_iteratorIPSB_SD_EE @687
+    _ZNSt6vectorISt4pairIN2ny10connectionESt8functionIFvRNS1_6windowERKNS1_3vecILy2EiEEEEESaISC_EE19_M_emplace_back_auxIISC_EEEvDpOT_ @688
+    _ZNSt6vectorISt4pairIN2ny10connectionESt8functionIFvRNS1_6windowERKNS1_3vecILy2EiEEEEESaISC_EE5eraseEN9__gnu_cxx17__normal_iteratorIPSC_SE_EE @689
+    _ZNSt6vectorISt4pairIN2ny10connectionESt8functionIFvRNS1_6windowERKNS1_3vecILy2EjEEEEESaISC_EE19_M_emplace_back_auxIISC_EEEvDpOT_ @690
+    _ZNSt6vectorISt4pairIN2ny10connectionESt8functionIFvRNS1_6windowERKNS1_3vecILy2EjEEEEESaISC_EE5eraseEN9__gnu_cxx17__normal_iteratorIPSC_SE_EE @691
+    _ZNSt6vectorISt4pairIN2ny10connectionESt8functionIFvRNS1_6windowERKNS1_8keyEventEEEESaISB_EE19_M_emplace_back_auxIISB_EEEvDpOT_ @692
+    _ZNSt6vectorISt4pairIN2ny10connectionESt8functionIFvRNS1_6windowERKNS1_8keyEventEEEESaISB_EE5eraseEN9__gnu_cxx17__normal_iteratorIPSB_SD_EE @693
+    _ZNSt6vectorISt4pairIN2ny10connectionESt8functionIFvRNS1_6windowERNS1_11drawContextEEEESaISA_EE19_M_emplace_back_auxIISA_EEEvDpOT_ @694
+    _ZNSt6vectorISt4pairIN2ny10connectionESt8functionIFvRNS1_6windowERNS1_11drawContextEEEESaISA_EE5eraseEN9__gnu_cxx17__normal_iteratorIPSA_SC_EE @695
+    _ZNSt6vectorISt6threadSaIS0_EE19_M_emplace_back_auxIIS0_EEEvDpOT_ @696
+    _ZNSt6vectorIjSaIjEEaSERKS1_ @697
+    _ZNSt8_Rb_treeIP6HWND__St4pairIKS1_PN2ny19winapiWindowContextEESt10_Select1stIS7_ESt4lessIS1_ESaIS7_EE22_M_emplace_hint_uniqueIIRKSt21piecewise_construct_tSt5tupleIIRS3_EESI_IIEEEEESt17_Rb_tree_iteratorIS7_ESt23_Rb_tree_const_iteratorIS7_EDpOT_ @698
+    _ZNSt8_Rb_treeIP6HWND__St4pairIKS1_PN2ny19winapiWindowContextEESt10_Select1stIS7_ESt4lessIS1_ESaIS7_EE24_M_get_insert_unique_posERS3_ @699
+    _ZNSt8_Rb_treeIP6HWND__St4pairIKS1_PN2ny19winapiWindowContextEESt10_Select1stIS7_ESt4lessIS1_ESaIS7_EE8_M_eraseEPSt13_Rb_tree_nodeIS7_E @700
+    _ZNSt8functionIFvRKN2ny10focusEventEEEC1ERKS5_ @701
+    _ZNSt8functionIFvRKN2ny12destroyEventEEEC1ERKS5_ @702
+    _ZNSt8functionIFvRKN2ny14mouseMoveEventEEEC1ERKS5_ @703
+    _ZNSt8functionIFvRKN2ny15mouseCrossEventEEEC1ERKS5_ @704
+    _ZNSt8functionIFvRKN2ny15mouseWheelEventEEEC1ERKS5_ @705
+    _ZNSt8functionIFvRKN2ny16mouseButtonEventEEEC1ERKS5_ @706
+    _ZNSt8functionIFvRKN2ny3vecILy2EiEEEEC1ERKS6_ @707
+    _ZNSt8functionIFvRKN2ny3vecILy2EjEEEEC1ERKS6_ @708
+    _ZNSt8functionIFvRKN2ny8keyEventEEEC1ERKS5_ @709
+    _ZNSt8functionIFvRN2ny11drawContextEEEC1ERKS4_ @710
+    _ZNSt8functionIFvRN2ny6windowEEEC1ERKS4_ @711
+    _ZNSt8functionIFvvEEC1ERKS1_ @712
+    _ZSt11__push_heapIN9__gnu_cxx17__normal_iteratorIPPN2ny8taskBaseESt6vectorIS4_SaIS4_EEEExS4_St7greaterIS4_EEvT_T0_SD_T1_T2_ @713
+    _ZSt13__adjust_heapIN9__gnu_cxx17__normal_iteratorIPPN2ny8taskBaseESt6vectorIS4_SaIS4_EEEExS4_St7greaterIS4_EEvT_T0_SD_T1_T2_ @714
+    _ZTIN12cimg_library13CImgExceptionE @715 DATA
+    _ZTIN12cimg_library15CImgIOExceptionE @716 DATA
+    _ZTIN12cimg_library21CImgArgumentExceptionE @717 DATA
+    _ZTIN12cimg_library21CImgInstanceExceptionE @718 DATA
+    _ZTIN2ny10appContextE @719 DATA
+    _ZTIN2ny10connectionE @720 DATA
+    _ZTIN2ny10customPathE @721 DATA
+    _ZTIN2ny10pointArrayE @722 DATA
+    _ZTIN2ny11childWindowE @723 DATA
+    _ZTIN2ny11drawContextE @724 DATA
+    _ZTIN2ny11nonCopyableE @725 DATA
+    _ZTIN2ny12callbackBaseE @726 DATA
+    _ZTIN2ny12destroyEventE @727 DATA
+    _ZTIN2ny12eventHandlerE @728 DATA
+    _ZTIN2ny13positionEventE @729 DATA
+    _ZTIN2ny13threadSafeObjE @730 DATA
+    _ZTIN2ny13transformableILy2EfEE @731 DATA
+    _ZTIN2ny13winapiBackendE @732 DATA
+    _ZTIN2ny13windowContextE @733 DATA
+    _ZTIN2ny14gdiDrawContextE @734 DATA
+    _ZTIN2ny14mouseMoveEventE @735 DATA
+    _ZTIN2ny14toplevelWindowE @736 DATA
+    _ZTIN2ny15mouseCrossEventE @737 DATA
+    _ZTIN2ny16winapiAppContextE @738 DATA
+    _ZTIN2ny19redirectDrawContextE @739 DATA
+    _ZTIN2ny19winapiWindowContextE @740 DATA
+    _ZTIN2ny20virtualWindowContextE @741 DATA
+    _ZTIN2ny21windowContextSettingsE @742 DATA
+    _ZTIN2ny27winapiWindowContextSettingsE @743 DATA
+    _ZTIN2ny3appE @744 DATA
+    _ZTIN2ny4fileE @745 DATA
+    _ZTIN2ny4textE @746 DATA
+    _ZTIN2ny5eventE @747 DATA
+    _ZTIN2ny5imageE @748 DATA
+    _ZTIN2ny6windowE @749 DATA
+    _ZTIN2ny7backendE @750 DATA
+    _ZTIN2ny7surfaceE @751 DATA
+    _ZTIN2ny8callbackIFvRNS_6windowERKNS_10focusEventEEEE @752 DATA
+    _ZTIN2ny8callbackIFvRNS_6windowERKNS_12destroyEventEEEE @753 DATA
+    _ZTIN2ny8callbackIFvRNS_6windowERKNS_14mouseMoveEventEEEE @754 DATA
+    _ZTIN2ny8callbackIFvRNS_6windowERKNS_15mouseCrossEventEEEE @755 DATA
+    _ZTIN2ny8callbackIFvRNS_6windowERKNS_15mouseWheelEventEEEE @756 DATA
+    _ZTIN2ny8callbackIFvRNS_6windowERKNS_16mouseButtonEventEEEE @757 DATA
+    _ZTIN2ny8callbackIFvRNS_6windowERKNS_3vecILy2EiEEEEE @758 DATA
+    _ZTIN2ny8callbackIFvRNS_6windowERKNS_3vecILy2EjEEEEE @759 DATA
+    _ZTIN2ny8callbackIFvRNS_6windowERKNS_8keyEventEEEE @760 DATA
+    _ZTIN2ny8callbackIFvRNS_6windowERNS_11drawContextEEEE @761 DATA
+    _ZTIN2ny9drawEventE @762 DATA
+    _ZTIN2ny9rectangleE @763 DATA
+    _ZTIN2ny9sizeEventE @764 DATA
+    _ZTINSt6thread10_Impl_baseE @765 DATA
+    _ZTINSt6thread5_ImplISt12_Bind_simpleIFSt7_Mem_fnIMN2ny10threadpoolEFvyEEPS4_yEEEE @766 DATA
+    _ZTISt11_Mutex_baseILN9__gnu_cxx12_Lock_policyE2EE @767 DATA
+    _ZTISt13runtime_error @768 DATA
+    _ZTISt16_Sp_counted_baseILN9__gnu_cxx12_Lock_policyE2EE @769 DATA
+    _ZTISt19_Sp_make_shared_tag @770 DATA
+    _ZTISt23_Sp_counted_ptr_inplaceINSt6thread5_ImplISt12_Bind_simpleIFSt7_Mem_fnIMN2ny10threadpoolEFvyEEPS5_yEEEESaISC_ELN9__gnu_cxx12_Lock_policyE2EE @771 DATA
+    _ZTISt9exception @772 DATA
+    _ZTSN12cimg_library13CImgExceptionE @773 DATA
+    _ZTSN12cimg_library15CImgIOExceptionE @774 DATA
+    _ZTSN12cimg_library21CImgArgumentExceptionE @775 DATA
+    _ZTSN12cimg_library21CImgInstanceExceptionE @776 DATA
+    _ZTSN2ny10appContextE @777 DATA
+    _ZTSN2ny10connectionE @778 DATA
+    _ZTSN2ny10customPathE @779 DATA
+    _ZTSN2ny10pointArrayE @780 DATA
+    _ZTSN2ny11childWindowE @781 DATA
+    _ZTSN2ny11drawContextE @782 DATA
+    _ZTSN2ny11nonCopyableE @783 DATA
+    _ZTSN2ny12callbackBaseE @784 DATA
+    _ZTSN2ny12destroyEventE @785 DATA
+    _ZTSN2ny12eventHandlerE @786 DATA
+    _ZTSN2ny13positionEventE @787 DATA
+    _ZTSN2ny13threadSafeObjE @788 DATA
+    _ZTSN2ny13transformableILy2EfEE @789 DATA
+    _ZTSN2ny13winapiBackendE @790 DATA
+    _ZTSN2ny13windowContextE @791 DATA
+    _ZTSN2ny14gdiDrawContextE @792 DATA
+    _ZTSN2ny14mouseMoveEventE @793 DATA
+    _ZTSN2ny14toplevelWindowE @794 DATA
+    _ZTSN2ny15mouseCrossEventE @795 DATA
+    _ZTSN2ny16winapiAppContextE @796 DATA
+    _ZTSN2ny19redirectDrawContextE @797 DATA
+    _ZTSN2ny19winapiWindowContextE @798 DATA
+    _ZTSN2ny20virtualWindowContextE @799 DATA
+    _ZTSN2ny21windowContextSettingsE @800 DATA
+    _ZTSN2ny27winapiWindowContextSettingsE @801 DATA
+    _ZTSN2ny3appE @802 DATA
+    _ZTSN2ny4fileE @803 DATA
+    _ZTSN2ny4textE @804 DATA
+    _ZTSN2ny5eventE @805 DATA
+    _ZTSN2ny5imageE @806 DATA
+    _ZTSN2ny6windowE @807 DATA
+    _ZTSN2ny7backendE @808 DATA
+    _ZTSN2ny7surfaceE @809 DATA
+    _ZTSN2ny8callbackIFvRNS_6windowERKNS_10focusEventEEEE @810 DATA
+    _ZTSN2ny8callbackIFvRNS_6windowERKNS_12destroyEventEEEE @811 DATA
+    _ZTSN2ny8callbackIFvRNS_6windowERKNS_14mouseMoveEventEEEE @812 DATA
+    _ZTSN2ny8callbackIFvRNS_6windowERKNS_15mouseCrossEventEEEE @813 DATA
+    _ZTSN2ny8callbackIFvRNS_6windowERKNS_15mouseWheelEventEEEE @814 DATA
+    _ZTSN2ny8callbackIFvRNS_6windowERKNS_16mouseButtonEventEEEE @815 DATA
+    _ZTSN2ny8callbackIFvRNS_6windowERKNS_3vecILy2EiEEEEE @816 DATA
+    _ZTSN2ny8callbackIFvRNS_6windowERKNS_3vecILy2EjEEEEE @817 DATA
+    _ZTSN2ny8callbackIFvRNS_6windowERKNS_8keyEventEEEE @818 DATA
+    _ZTSN2ny8callbackIFvRNS_6windowERNS_11drawContextEEEE @819 DATA
+    _ZTSN2ny9drawEventE @820 DATA
+    _ZTSN2ny9rectangleE @821 DATA
+    _ZTSN2ny9sizeEventE @822 DATA
+    _ZTSNSt6thread10_Impl_baseE @823 DATA
+    _ZTSNSt6thread5_ImplISt12_Bind_simpleIFSt7_Mem_fnIMN2ny10threadpoolEFvyEEPS4_yEEEE @824 DATA
+    _ZTSSt11_Mutex_baseILN9__gnu_cxx12_Lock_policyE2EE @825 DATA
+    _ZTSSt13runtime_error @826 DATA
+    _ZTSSt16_Sp_counted_baseILN9__gnu_cxx12_Lock_policyE2EE @827 DATA
+    _ZTSSt19_Sp_make_shared_tag @828 DATA
+    _ZTSSt23_Sp_counted_ptr_inplaceINSt6thread5_ImplISt12_Bind_simpleIFSt7_Mem_fnIMN2ny10threadpoolEFvyEEPS5_yEEEESaISC_ELN9__gnu_cxx12_Lock_policyE2EE @829 DATA
+    _ZTSSt9exception @830 DATA
+    _ZTTN2ny19winapiWindowContextE @831 DATA
+    _ZTVN12cimg_library13CImgExceptionE @832 DATA
+    _ZTVN12cimg_library15CImgIOExceptionE @833 DATA
+    _ZTVN12cimg_library21CImgArgumentExceptionE @834 DATA
+    _ZTVN12cimg_library21CImgInstanceExceptionE @835 DATA
+    _ZTVN2ny10appContextE @836 DATA
+    _ZTVN2ny10connectionE @837 DATA
+    _ZTVN2ny10customPathE @838 DATA
+    _ZTVN2ny10pointArrayE @839 DATA
+    _ZTVN2ny11childWindowE @840 DATA
+    _ZTVN2ny11drawContextE @841 DATA
+    _ZTVN2ny12callbackBaseE @842 DATA
+    _ZTVN2ny12destroyEventE @843 DATA
+    _ZTVN2ny12eventHandlerE @844 DATA
+    _ZTVN2ny13positionEventE @845 DATA
+    _ZTVN2ny13threadSafeObjE @846 DATA
+    _ZTVN2ny13transformableILy2EfEE @847 DATA
+    _ZTVN2ny13winapiBackendE @848 DATA
+    _ZTVN2ny13windowContextE @849 DATA
+    _ZTVN2ny14gdiDrawContextE @850 DATA
+    _ZTVN2ny14mouseMoveEventE @851 DATA
+    _ZTVN2ny14toplevelWindowE @852 DATA
+    _ZTVN2ny15mouseCrossEventE @853 DATA
+    _ZTVN2ny16winapiAppContextE @854 DATA
+    _ZTVN2ny19redirectDrawContextE @855 DATA
+    _ZTVN2ny19winapiWindowContextE @856 DATA
+    _ZTVN2ny20virtualWindowContextE @857 DATA
+    _ZTVN2ny21windowContextSettingsE @858 DATA
+    _ZTVN2ny27winapiWindowContextSettingsE @859 DATA
+    _ZTVN2ny3appE @860 DATA
+    _ZTVN2ny4fileE @861 DATA
+    _ZTVN2ny4textE @862 DATA
+    _ZTVN2ny5eventE @863 DATA
+    _ZTVN2ny5imageE @864 DATA
+    _ZTVN2ny6windowE @865 DATA
+    _ZTVN2ny7backendE @866 DATA
+    _ZTVN2ny7surfaceE @867 DATA
+    _ZTVN2ny8callbackIFvRNS_6windowERKNS_10focusEventEEEE @868 DATA
+    _ZTVN2ny8callbackIFvRNS_6windowERKNS_12destroyEventEEEE @869 DATA
+    _ZTVN2ny8callbackIFvRNS_6windowERKNS_14mouseMoveEventEEEE @870 DATA
+    _ZTVN2ny8callbackIFvRNS_6windowERKNS_15mouseCrossEventEEEE @871 DATA
+    _ZTVN2ny8callbackIFvRNS_6windowERKNS_15mouseWheelEventEEEE @872 DATA
+    _ZTVN2ny8callbackIFvRNS_6windowERKNS_16mouseButtonEventEEEE @873 DATA
+    _ZTVN2ny8callbackIFvRNS_6windowERKNS_3vecILy2EiEEEEE @874 DATA
+    _ZTVN2ny8callbackIFvRNS_6windowERKNS_3vecILy2EjEEEEE @875 DATA
+    _ZTVN2ny8callbackIFvRNS_6windowERKNS_8keyEventEEEE @876 DATA
+    _ZTVN2ny8callbackIFvRNS_6windowERNS_11drawContextEEEE @877 DATA
+    _ZTVN2ny9drawEventE @878 DATA
+    _ZTVN2ny9rectangleE @879 DATA
+    _ZTVN2ny9sizeEventE @880 DATA
+    _ZTVNSt6thread10_Impl_baseE @881 DATA
+    _ZTVNSt6thread5_ImplISt12_Bind_simpleIFSt7_Mem_fnIMN2ny10threadpoolEFvyEEPS4_yEEEE @882 DATA
+    _ZTVSt16_Sp_counted_baseILN9__gnu_cxx12_Lock_policyE2EE @883 DATA
+    _ZTVSt23_Sp_counted_ptr_inplaceINSt6thread5_ImplISt12_Bind_simpleIFSt7_Mem_fnIMN2ny10threadpoolEFvyEEPS5_yEEEESaISC_ELN9__gnu_cxx12_Lock_policyE2EE @884 DATA
+    _ZThn24_NK2ny5image7getSizeEv @885
+    _ZThn72_NK2ny6window7getSizeEv @886
+    _ZTv0_n128_N2ny19winapiWindowContext14addWindowHintsEm @887
+    _ZTv0_n136_N2ny19winapiWindowContext17removeWindowHintsEm @888
+    _ZTv0_n144_N2ny19winapiWindowContext15addContextHintsEm @889
+    _ZTv0_n152_N2ny19winapiWindowContext18removeContextHintsEm @890
+    _ZTv0_n184_N2ny19winapiWindowContext7setSizeENS_3vecILy2EjEEb @891
+    _ZTv0_n192_N2ny19winapiWindowContext11setPositionENS_3vecILy2EiEEb @892
+    _ZTv0_n200_N2ny19winapiWindowContext9setCursorERKNS_6cursorE @893
+    _ZTv0_n24_N2ny19winapiWindowContextD0Ev @894
+    _ZTv0_n24_N2ny19winapiWindowContextD1Ev @895
+    _ZTv0_n56_N2ny19winapiWindowContext7refreshEv @896
+    _ZTv0_n72_N2ny19winapiWindowContext9beginDrawEv @897
+    _ZTv0_n80_N2ny19winapiWindowContext10finishDrawEv @898
+    _ZTv0_n88_N2ny19winapiWindowContext4showEv @899
+    _ZTv0_n96_N2ny19winapiWindowContext4hideEv @900
+    _ZZN12cimg_library4CImgIhE9draw_lineIhEERS1_iiiiPKT_fjbE5hatch @901 DATA
+    _ZZN12cimg_library4cimg10Mutex_attrEvE3val @902 DATA
+    _ZZN12cimg_library4cimg10Win32_attrEvE3val @903 DATA
+    _ZZN12cimg_library4cimg10dcraw_pathEPKcbE6s_path @904 DATA
+    _ZZN12cimg_library4cimg11ffmpeg_pathEPKcbE6s_path @905 DATA
+    _ZZN12cimg_library4cimg11gunzip_pathEPKcbE6s_path @906 DATA
+    _ZZN12cimg_library4cimg11medcon_pathEPKcbE6s_path @907 DATA
+    _ZZN12cimg_library4cimg12filenamerandEvE8randomid @908 DATA
+    _ZZN12cimg_library4cimg13strbuffersizeEmE3res @909 DATA
+    _ZZN12cimg_library4cimg14temporary_pathEPKcbE6s_path @910 DATA
+    _ZZN12cimg_library4cimg15_exception_modeEjbE4mode @911 DATA
+    _ZZN12cimg_library4cimg16imagemagick_pathEPKcbE6s_path @912 DATA
+    _ZZN12cimg_library4cimg17programfiles_pathEPKcbE6s_path @913 DATA
+    _ZZN12cimg_library4cimg19graphicsmagick_pathEPKcbE6s_path @914 DATA
+    _ZZN12cimg_library4cimg6outputEP6_iobufE3res @915 DATA
+    _ZZN12cimg_library4cimg9curl_pathEPKcbE6s_path @916 DATA
+    _ZZN12cimg_library4cimg9gzip_pathEPKcbE6s_path @917 DATA
+    _ZZN12cimg_library4cimg9wget_pathEPKcbE6s_path @918 DATA
+    _ZZN12cimg_library8CImgListIhE4fontEjbE10base_fonts @919 DATA
+    _ZZN12cimg_library8CImgListIhE4fontEjbE18is_variable_widths @920 DATA
+    _ZZN12cimg_library8CImgListIhE4fontEjbE5fonts @921 DATA
+    _ZZN12cimg_library8CImgListIhE5emptyEvE6_empty @922 DATA

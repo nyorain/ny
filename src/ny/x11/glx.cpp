@@ -65,7 +65,7 @@ glxDrawContext::glxDrawContext(const x11WindowContext& wc) : glDrawContext(wc.ge
         {
             errorOccured = 0;
             glxContext_->context = nullptr;
-            sendWarning("modern GL context could not be created, creating legacy GL context");
+            nyWarning("modern GL context could not be created, creating legacy GL context");
         }
 
         if(!glxContext_->context)
@@ -80,7 +80,7 @@ glxDrawContext::glxDrawContext(const x11WindowContext& wc) : glDrawContext(wc.ge
             {
                 errorOccured = 0;
                 glxContext_->context = nullptr;
-                sendWarning("legacy GL context could not be created, trying old method");
+                nyWarning("legacy GL context could not be created, trying old method");
             }
         }
     }

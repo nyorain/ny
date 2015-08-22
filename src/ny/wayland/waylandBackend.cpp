@@ -34,7 +34,7 @@ bool waylandBackend::isAvailable() const
     return 1;
 }
 
-windowContext* waylandBackend::createWindowContext(window& win, const windowContextSettings& s)
+std::unique_ptr<windowContext> waylandBackend::createWindowContext(window& win, const windowContextSettings& s)
 {
     waylandWindowContextSettings settings;
     const waylandWindowContextSettings* ws = dynamic_cast<const waylandWindowContextSettings*> (&s);
@@ -50,12 +50,12 @@ windowContext* waylandBackend::createWindowContext(window& win, const windowCont
         settings.glPref = s.glPref;
     }
 
-    return new waylandWindowContext(win, settings);
+    return std::make_unique<waylandWindowContext>(win, settings);
 }
 
-appContext* waylandBackend::createAppContext()
+std::unique_ptr<appContext> waylandBackend::createAppContext()
 {
-    return new waylandAppContext;
+    return std::make_unique<waylandAppContext>();
 }
 
 

@@ -2,6 +2,7 @@
 
 #include <ny/include.hpp>
 #include <ny/eventHandler.hpp>
+#include <nyutil/eventLoop.hpp>
 
 #include <vector>
 #include <string>
@@ -14,7 +15,7 @@
 namespace ny
 {
 
-app* getMainApp();
+app* nyMainApp();
 
 enum class errorAction
 {
@@ -28,21 +29,34 @@ class appSettings
 {
 public:
     std::string name;
-    bool threadSafe = 0;
+    std::string defaultFont {"sans-serif"};
+
     bool exitWithoutChildren = 1;
     errorAction onError = errorAction::AskWindow;
+
     std::vector<unsigned int> allowedBackends;
     bool allBackends = 1;
-    size_t threadpoolSize = 4;
 
-    int argc = 0;
-    const char** argv = nullptr;
+    int threadpoolSize = -1; //auto size, 0 for no threadpool
 };
 
 class app : public eventHandler
 {
 
 friend backend; //calls registerBackend on init
+
+public:
+    enum exitReason : int
+    {
+        failure = EXIT_FAILURE,
+        success = EXIT_SUCCESS,
+
+        unknown = 1,
+        noChildren = 2,
+        noEventSources = 3,
+        userInput = 4,
+        signal = 10 // + signal number
+    };
 
 protected:
     static app* mainApp;
@@ -53,40 +67,42 @@ protected:
     window* focus_{nullptr}; //eventHandler which has current focus
     window* mouseOver_{nullptr}; //eventHandler on which is the mouse
 
-    appContext* appContext_{nullptr};
+    std::unique_ptr<appContext> appContext_;
 
-    bool existing_{0}; //if app wasnt exited
+    bool existing_{0}; //todo: exit
     bool valid_{0}; //if the app was initialized (correctly)
-    bool mainLoop_{0}; //if the app is in mainLoop
 
-    backend* backend_{nullptr}; //the chosen backend. only existing if(valid_)
-    threadpool* threadpool_{nullptr};
-    std::thread::id mainThreadID_{}; //holds the thread id that is executing the mainLoop. only valid if(mainLoop_)
-    appSettings settings_{};
+    int exitReason_{exitReason::unknown};
+
+    backend* backend_ {nullptr}; //the chosen backend. only existing if(valid_), one of backends
+    std::unique_ptr<threadpool> threadpool_;
+    std::thread::id mainThreadID_; //holds the thread id that is executing the mainLoop. only valid if(mainLoop_)
+    appSettings settings_;
+
+    eventLoop mainLoop_;
+
+    //todo
+    //nyutil::msgThread eventDispatcher_ {};
+    //std::deque<event*> events_ {};
 
     //replace from eventHandler
-    virtual void create(eventHandler& parent){};
+    virtual void create(eventHandler& parent) override {};
 
 public:
-    static app* getMainApp(){ return mainApp; };
+    static app* nyMainApp(){ return mainApp; };
 
     app();
     virtual ~app();
 
-    virtual bool init();
-    virtual bool init(unsigned int argCount, const char** args);
-    virtual bool init(appSettings settings);
+    virtual bool init(const appSettings& settings = appSettings());
 
     virtual int mainLoop();
-
-    virtual void exitApp();
-
-    virtual bool optionRegistered(std::string option, std::string arg = "");
+    virtual void exit(int exitReason = exitReason::unknown);
 
     //functions inherited from eventHandler
-    virtual void removeChild(eventHandler& handler);
-    virtual void destroy();
-    virtual void reparent(eventHandler& newParent){};
+    virtual void removeChild(eventHandler& handler) override;
+    virtual void destroy() override;
+    virtual void reparent(eventHandler& newParent) override {};
 
     //eventFunctions
     virtual void sendEvent(event& event, eventHandler& handler);
@@ -105,30 +121,26 @@ public:
 
     virtual void destroyHandler(destroyEvent& event);
 
-    virtual window* getMouseOver() const { return mouseOver_; };
-    virtual window* getFocus() const { return focus_; };
+    virtual void onError();
 
-    virtual appContext* getAppContext() const { return appContext_; };
+
+    window* getMouseOver() const { return mouseOver_; };
+    window* getFocus() const { return focus_; };
+
+    appContext* getAppContext() const { return appContext_.get(); };
     ac* getAC() const { return getAppContext(); };
 
-    virtual backend* getBackend() const { return backend_; };
-    void setBackend(backend* b) { backend_ = b; }
+    backend* getBackend() const { return backend_; }
+    void setBackend(backend& b) { if(!valid_) backend_ = &b; }
 
-    //virtual void addListenerFor(unsigned int, eventHandler*);
-    //virtual void removeListenerFor(unsigned int, eventHandler*);
-
-    virtual void error();
-
-    virtual void addTask(taskBase* b);
-
-    virtual bool isThreadSafe() const { return settings_.threadSafe; };
-    std::string getName() const { return settings_.name; };
-    errorAction getErrorAction() const { return settings_.onError; };
-    std::vector<unsigned int> getAllowedBackends() const { return settings_.allowedBackends; };
+    const appSettings& getSettings() const { return settings_; }
+    const std::string& getName() const { return settings_.name; }
 
     bool isValid() const { return valid_; };
+    bool mainThread() const { return std::this_thread::get_id() == mainThreadID_; };
 
-    bool isMainThread() const { return std::this_thread::get_id() == mainThreadID_; };
+    //loop
+    eventLoop& getEventLoop() { return mainLoop_; }
 };
 
 

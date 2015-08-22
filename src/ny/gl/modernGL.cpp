@@ -20,7 +20,7 @@ void modernGLDrawImpl::fill(const mask& m, const brush& b)
 
 }
 
-void modernGLDrawImpl::outline(const mask& m, const pen& b)
+void modernGLDrawImpl::stroke(const mask& m, const pen& b)
 {
 
 }

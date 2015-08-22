@@ -4,30 +4,26 @@
 namespace ny
 {
 
-cursor::cursor()
-{
-}
-
 cursor::cursor(cursorType t) : type_(t), image_(nullptr)
 {
 }
 
-cursor::cursor(image& data) : type_(cursorType::unknown), image_(&data)
+cursor::cursor(const image& data) : type_(cursorType::image), image_(data)
 {
 }
 
 
-void cursor::fromImage(image& data)
+void cursor::fromImage(const image& data)
 {
-    image_ = &data;
+    image_ = data;
     hotspot_ = - (data.getSize() / 2);
 
     type_ = cursorType::unknown;
 }
 
-void cursor::fromImage(image& data, vec2i hotspot)
+void cursor::fromImage(const image& data, vec2i hotspot)
 {
-    image_ = &data;
+    image_ = data;
     hotspot_ = hotspot;
 
     type_ = cursorType::unknown;
@@ -36,22 +32,21 @@ void cursor::fromImage(image& data, vec2i hotspot)
 void cursor::fromNativeType(cursorType t)
 {
     type_= t;
-    image_ = nullptr;
 }
 
 bool cursor::isImage() const
 {
-    return (!image_);
+    return (type_ == cursorType::image);
 }
 
 bool cursor::isNativeType() const
 {
-    return (type_ != cursorType::unknown);
+    return (type_ != cursorType::image);
 }
 
-image* cursor::getImage() const
+const image* cursor::getImage() const
 {
-    return image_;
+    return (type_ == cursorType::image) ? &image_ : nullptr;
 }
 
 vec2i cursor::getImageHotspot() const

@@ -11,71 +11,81 @@ namespace ny
 {
 
 //wrapper class
-class imageHandle
+class image::impl
 {
 public:
 	CImg<unsigned char> img;
 };
 
 //image
-image::image() : file(), surface(), handle_(nullptr)
+image::image() : file(), surface(), impl_(nullptr)
 {
-	handle_ = new imageHandle;
+	impl_ = std::make_unique<impl>();
 }
 
 image::image(const std::string& path) : file(path), surface()
 {
-	handle_ = new imageHandle;
-	handle_->img.load(path.c_str());
+	impl_ = std::make_unique<impl>();
+	impl_->img.load(path.c_str());
 }
 
 image::~image()
 {
-	if(handle_)
-		delete handle_;
+}
+
+image::image(const image& other) : file(), surface(), impl_(nullptr)
+{
+	impl_ = std::make_unique<impl>();
+	impl_->img = other.impl_->img;
+}
+
+image& image::operator=(const image& other)
+{
+	impl_->img = other.impl_->img;
+	return *this;
 }
 
 const unsigned char* image::getDataPlain() const
 {
-    return handle_->img.data();
+    return impl_->img.data();
 }
 
 unsigned char* image::getDataPlain()
 {
-	return handle_->img.data();
+	return impl_->img.data();
 }
 
 unsigned int image::getBufferSize() const
 {
-    return handle_->img.size();
+    return impl_->img.size();
 }
 
 //todo
-unsigned char* image::getDataConvent() const
+unsigned char* image::getData() const
 {
-    unsigned char* ret = new unsigned char[handle_->img.size()];
+    unsigned char* ret = new unsigned char[impl_->img.size()]; //todo: store
 
-    cimg_forXYC(handle_->img, x, y, c)
+    cimg_forXYC(impl_->img, x, y, c)
     {
-        unsigned int pos = (handle_->img.width() * y + x) * handle_->img.spectrum() + c;
-        ret[pos] = handle_->img(x,y,c);
+        unsigned int pos = (impl_->img.width() * y + x) * impl_->img.spectrum() + c;
+        ret[pos] = impl_->img(x,y,c);
     }
 
     return ret;
 }
 
-void image::getDataConvent(unsigned char* data) const
+void image::getData(unsigned char* data) const
 {
-    cimg_forXYC(handle_->img, x, y, c)
+    cimg_forXYC(impl_->img, x, y, c)
     {
-        unsigned int pos = (handle_->img.width() * y + x) * handle_->img.spectrum() + c;
-        data[pos] = handle_->img(x,y,c);
+        unsigned int pos = (impl_->img.width() * y + x) * impl_->img.spectrum() + c;
+        data[pos] = impl_->img(x,y,c);
     }
 }
 
 vec2ui image::getSize() const
 {
-	return vec2ui(handle_->img.width(), handle_->img.height());
+	return vec2ui(impl_->img.width(), impl_->img.height());
 }
 
 bufferFormat image::getBufferFormat() const
@@ -83,22 +93,21 @@ bufferFormat image::getBufferFormat() const
     return bufferFormat::unknown;
 }
 
+unsigned int image::getStride() const
+{
+    return getSize().x * impl_->img.spectrum();
+}
+
 bool image::saveToFile(const std::string& path) const
 {
-    handle_->img.save(path.c_str());
+    impl_->img.save(path.c_str());
     return 1;
 }
 
 bool image::loadFromFile(const std::string& path)
 {
-    handle_->img.load(path.c_str());
+    impl_->img.load(path.c_str());
     return 1;
-}
-
-std::unique_ptr<drawContext> image::getDrawContext()
-{
-    std::unique_ptr<drawContext> ret;
-    return ret;
 }
 
 }

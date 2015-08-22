@@ -105,7 +105,7 @@ LRESULT winapiAppContext::eventProc(HWND handler, UINT message, WPARAM wparam, L
             ev.handler = &w->getWindow();
             //e->position = ;
             //e->delta = ;
-            getMainApp()->mouseMove(ev);
+            nyMainApp()->mouseMove(ev);
             break;
         }
 
@@ -127,7 +127,7 @@ LRESULT winapiAppContext::eventProc(HWND handler, UINT message, WPARAM wparam, L
             drawEvent e;
             e.handler = &w->getWindow();
             e.backend = Winapi;
-            getMainApp()->windowDraw(e);
+            nyMainApp()->windowDraw(e);
             break;
         }
 
@@ -139,7 +139,7 @@ LRESULT winapiAppContext::eventProc(HWND handler, UINT message, WPARAM wparam, L
             destroyEvent e;
             e.handler = &w->getWindow();
             e.backend = Winapi;
-            getMainApp()->destroyHandler(e);
+            nyMainApp()->destroyHandler(e);
             break;
         }
 
@@ -152,7 +152,7 @@ LRESULT winapiAppContext::eventProc(HWND handler, UINT message, WPARAM wparam, L
             e.handler = &w->getWindow();
             e.backend = Winapi;
             //e->size = ;
-            getMainApp()->windowSize(e);
+            nyMainApp()->windowSize(e);
             break;
         }
 
@@ -165,13 +165,13 @@ LRESULT winapiAppContext::eventProc(HWND handler, UINT message, WPARAM wparam, L
             e.handler = &w->getWindow();
             e.backend = Winapi;
             //e->position = ;
-            getMainApp()->windowPosition(e);
+            nyMainApp()->windowPosition(e);
             break;
         }
 
         case WM_QUIT:
         {
-            getMainApp()->exitApp();
+            nyMainApp()->exitApp();
             break;
         }
 
@@ -187,7 +187,7 @@ LRESULT winapiAppContext::eventProc(HWND handler, UINT message, WPARAM wparam, L
 //////////////////////////////////////////////////////////////////////////////////////////
 LRESULT CALLBACK dummyWndProc(HWND a, UINT b, WPARAM c, LPARAM d)
 {
-    winapiAppContext* aco = (winapiAppContext*) getMainApp()->getAppContext();
+    winapiAppContext* aco = (winapiAppContext*) nyMainApp()->getAppContext();
     //return DefWindowProc(a,b,c,d);
     return aco->eventProc(a,b,c,d);
 }

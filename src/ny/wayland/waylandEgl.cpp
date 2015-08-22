@@ -70,7 +70,7 @@ waylandEGLAppContext::~waylandEGLAppContext()
 //waylandEGLContext
 waylandEGLDrawContext::waylandEGLDrawContext(const waylandWindowContext& wc) : eglDrawContext(wc.getWindow())
 {
-    eglAppContext* egl = getWaylandAppContext()->getEGLAppContext();
+    eglAppContext* egl = getEGLAppContext();
 
     wlEGLWindow_ = wl_egl_window_create(wc.getWlSurface(), wc.getWindow().getWidth(), wc.getWindow().getHeight());
     if(wlEGLWindow_ == EGL_NO_SURFACE)
@@ -100,7 +100,7 @@ waylandEGLDrawContext::waylandEGLDrawContext(const waylandWindowContext& wc) : e
 
 waylandEGLDrawContext::~waylandEGLDrawContext()
 {
-    eglAppContext* egl = getWaylandAppContext()->getEGLAppContext();
+    eglAppContext* egl = getEGLAppContext();
 
     if(wlEGLWindow_) wl_egl_window_destroy(wlEGLWindow_);
     if(eglSurface_) eglDestroySurface(egl->getDisplay(), eglSurface_);

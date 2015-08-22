@@ -10,11 +10,11 @@ std::ostream& warningStream = std::cout;
 std::ostream& debugStream = std::cout;
 std::ostream& errorStream = std::cerr;
 
-void sendError()
+void nyError()
 {
-    if(getMainApp())
+    if(nyMainApp())
     {
-        getMainApp()->error();
+        nyMainApp()->onError();
         return;
     }
 

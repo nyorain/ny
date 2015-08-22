@@ -24,7 +24,7 @@ class glDrawImpl
 public:
     virtual void clear(color col) = 0;
     virtual void fill(const mask& m, const brush& b) = 0;
-    virtual void outline(const mask& m, const pen& b) = 0;
+    virtual void stroke(const mask& m, const pen& b) = 0;
 };
 
 
@@ -34,7 +34,7 @@ class modernGLDrawImpl : public glDrawImpl
 public:
     virtual void clear(color col) override;
     virtual void fill(const mask& m, const brush& b) override;
-    virtual void outline(const mask& m, const pen& b) override;
+    virtual void stroke(const mask& m, const pen& b) override;
 };
 
 //legacy
@@ -43,7 +43,7 @@ class legacyGLDrawImpl : public glDrawImpl
 public:
     virtual void clear(color col) override;
     virtual void fill(const mask& m, const brush& b) override;
-    virtual void outline(const mask& m, const pen& b) override;
+    virtual void stroke(const mask& m, const pen& b) override;
 };
 
 //gles
@@ -52,7 +52,7 @@ class glesDrawImpl : public glDrawImpl
 public:
     virtual void clear(color col) override;
     virtual void fill(const mask& m, const brush& b) override;
-    virtual void outline(const mask& m, const pen& b) override;
+    virtual void stroke(const mask& m, const pen& b) override;
 };
 
 
@@ -94,8 +94,8 @@ public:
 
     virtual void resetMask() override;
 
-	virtual void fill(const brush& col) override;
-	virtual void outline(const pen& col) override;
+	virtual void fillPreserve(const brush& col) override;
+	virtual void strokePreserve(const pen& col) override;
 
     virtual rect2f getClip() override;
     virtual void clip(const rect2f& obj) override;

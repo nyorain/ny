@@ -13,7 +13,7 @@ void glesDrawImpl::fill(const mask& m, const brush& b)
 
 }
 
-void glesDrawImpl::outline(const mask& m, const pen& b)
+void glesDrawImpl::stroke(const mask& m, const pen& b)
 {
 
 }

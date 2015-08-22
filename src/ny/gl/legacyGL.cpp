@@ -20,7 +20,7 @@ void legacyGLDrawImpl::fill(const mask& m, const brush& b)
 
 }
 
-void legacyGLDrawImpl::outline(const mask& m, const pen& b)
+void legacyGLDrawImpl::stroke(const mask& m, const pen& b)
 {
 
 }

@@ -106,7 +106,7 @@ void waylandAppContext::startDataOffer(dataSource& source, const image& img, con
     unsigned char* buffData = (unsigned char*) dataIconBuffer_->getData();
     unsigned char imgData[img.getBufferSize()];
 
-    img.getDataConvent(imgData);
+    img.getData(imgData);
 
     for(unsigned int i(0); i < img.getBufferSize(); i++)
     {
@@ -266,7 +266,7 @@ void waylandAppContext::eventMouseMove(wl_pointer *pointer, unsigned int time, i
 
     e.backend = Wayland;
 
-    getMainApp()->mouseMove(e);
+    nyMainApp()->mouseMove(e);
 }
 
 void waylandAppContext::eventMouseEnterSurface(wl_pointer *pointer, unsigned int serial, wl_surface *surface, int sx, int sy)
@@ -288,7 +288,7 @@ void waylandAppContext::eventMouseEnterSurface(wl_pointer *pointer, unsigned int
     e.data = new waylandEventData(serial);
     e.position = vec2i(wl_fixed_to_int(sx), wl_fixed_to_int(sy));
 
-    getMainApp()->mouseCross(e);
+    nyMainApp()->mouseCross(e);
 }
 
 void waylandAppContext::eventMouseLeaveSurface(wl_pointer *pointer, unsigned int serial, wl_surface *surface)
@@ -309,7 +309,7 @@ void waylandAppContext::eventMouseLeaveSurface(wl_pointer *pointer, unsigned int
 
     e.data = new waylandEventData(serial);
 
-    getMainApp()->mouseCross(e);
+    nyMainApp()->mouseCross(e);
 }
 
 void waylandAppContext::eventMouseButton(wl_pointer *wl_pointer, unsigned int serial, unsigned int time, unsigned int button, unsigned int state)
@@ -324,7 +324,7 @@ void waylandAppContext::eventMouseButton(wl_pointer *wl_pointer, unsigned int se
     e.data = new waylandEventData(serial);
     e.position = mouse::getPosition();
 
-    getMainApp()->mouseButton(e);
+    nyMainApp()->mouseButton(e);
 }
 
 void waylandAppContext::eventMouseAxis(wl_pointer *pointer, unsigned int time, unsigned int axis, int value)
@@ -334,7 +334,7 @@ void waylandAppContext::eventMouseAxis(wl_pointer *pointer, unsigned int time, u
     e.value = value;
     e.backend = Wayland;
 
-    getMainApp()->mouseWheel(e);
+    nyMainApp()->mouseWheel(e);
 }
 
 //keyboard
@@ -360,7 +360,7 @@ void waylandAppContext::eventKeyboardEnterSurface(wl_keyboard *keyboard, unsigne
 
     e.data = new waylandEventData(serial);
 
-    getMainApp()->windowFocus(e);
+    nyMainApp()->windowFocus(e);
 }
 
 void waylandAppContext::eventKeyboardLeaveSurface(wl_keyboard *keyboard, unsigned int serial, wl_surface *surface)
@@ -381,7 +381,7 @@ void waylandAppContext::eventKeyboardLeaveSurface(wl_keyboard *keyboard, unsigne
     e.data = new waylandEventData(serial);
 
 
-    getMainApp()->windowFocus(e);
+    nyMainApp()->windowFocus(e);
 }
 
 void waylandAppContext::eventKeyboardKey(wl_keyboard *keyboard, unsigned int serial, unsigned int time, unsigned int key, unsigned int state)
@@ -394,7 +394,7 @@ void waylandAppContext::eventKeyboardKey(wl_keyboard *keyboard, unsigned int ser
     if(state == 1)e.state = pressState::pressed;
     else if(state == 0)e.state = pressState::released;
 
-    getMainApp()->keyboardKey(e);
+    nyMainApp()->keyboardKey(e);
 }
 
 void waylandAppContext::eventKeyboardModifiers(wl_keyboard *keyboard, unsigned int serial, unsigned int mods_depressed, unsigned int mods_latched, unsigned int mods_locked, unsigned int group)
@@ -416,7 +416,7 @@ void waylandAppContext::eventWindowResized(wl_shell_surface* shellSurface, unsig
 
     e.handler = &w->getWindow();
 
-    getMainApp()->windowSize(e);
+    nyMainApp()->windowSize(e);
 }
 
 void waylandAppContext::shmFormat(wl_shm* shm, unsigned int format)
@@ -476,7 +476,7 @@ void waylandAppContext::setCursor(std::string curse, unsigned int serial)
   //  if(del) wl_buffer_destroy(del);
 }
 
-void waylandAppContext::setCursor(image* img, vec2i hotspot, unsigned int serial)
+void waylandAppContext::setCursor(const image* img, vec2i hotspot, unsigned int serial)
 {
     /*
     if(cursorIsCustomImage_)
@@ -496,11 +496,6 @@ void waylandAppContext::setCursor(image* img, vec2i hotspot, unsigned int serial
     wl_surface_damage(wlCursorSurface_, 0, 0, cursorImageBuffer_->getSize().x, cursorImageBuffer_->getSize().y);
     wl_surface_commit(wlCursorSurface_);
     */
-}
-
-eglAppContext* waylandAppContext::getEGLAppContext() const
-{
-    return egl_;
 }
 
 

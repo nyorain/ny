@@ -43,9 +43,14 @@ void drawContext::mask(const circle& obj)
 
 void drawContext::draw(const shape& obj)
 {
+    if(obj.getMask().empty() || (!obj.getPen() && !obj.getBrush()))
+        return; //no result
+
     mask(obj.getMask());
-    fill(obj.getBrush());
-    outline(obj.getPen());
+
+    if(obj.getBrush()) fillPreserve(*obj.getBrush());
+    if(obj.getPen()) strokePreserve(*obj.getPen());
+
     resetMask();
 }
 
@@ -94,13 +99,13 @@ void redirectDrawContext::resetMask()
     redirect_.resetMask();
 }
 
-void redirectDrawContext::fill(const brush& col)
+void redirectDrawContext::fillPreserve(const brush& col)
 {
-    redirect_.fill(col);
+    redirect_.fillPreserve(col);
 }
-void redirectDrawContext::outline(const pen& col)
+void redirectDrawContext::strokePreserve(const pen& col)
 {
-    redirect_.outline(col);
+    redirect_.strokePreserve(col);
 }
 
 void redirectDrawContext::setSize(vec2d size)

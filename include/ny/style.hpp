@@ -6,8 +6,13 @@
 namespace ny
 {
 
-class style
+template <typename Widget>
+class widgetStyle
 {
+public:
+    void draw(Widget& wid, drawContext& dc) {};
 };
+
+//style-module?
 
 }

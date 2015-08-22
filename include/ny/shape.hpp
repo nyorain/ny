@@ -8,11 +8,14 @@
 #include <nyutil/vec.hpp>
 #include <nyutil/mat.hpp>
 #include <nyutil/rect.hpp>
+#include <nyutil/cache.hpp>
 
 #include <vector>
 
 namespace ny
 {
+
+//todo: match stl interface conventions
 
 //enums
 enum class drawStyle
@@ -27,7 +30,7 @@ enum class textBound
 {
     left,
     right,
-    middle
+    center
 };
 
 enum class pathType
@@ -93,35 +96,38 @@ public:
 };
 
 //posArray////////////////////////////////////////////////////////////
-class pointArray : public transformable2
+class vertexArray : public transformable2
 {
 protected:
     std::vector<vec2f> points_;
-public:
-    pointArray() = default;
-    pointArray(const pointArray& other) = default;
-    ~pointArray() = default;
 
+public:
     vec2f& operator[](size_t i){ return points_[i]; }
     const vec2f& operator[](size_t i) const { return points_[i]; }
 
     //inherited from transformable
-    rect2f getExtents() const { rect2f ret; for(size_t i (0); i < points_.size(); i++){
-        ret.position.x = std::min(ret.left(), points_[i].x);
-        ret.position.y = std::min(ret.top(), points_[i].y);
-        ret.size.x = std::max(ret.size.x, points_[i].x - ret.position.x);
-        ret.size.y = std::max(ret.size.y, points_[i].y - ret.position.y);
-        } return ret; }
+    rect2f getExtents() const
+    {
+        rect2f ret;
+        for(size_t i (0); i < points_.size(); i++)
+        {
+            ret.position.x = std::min(ret.left(), points_[i].x);
+            ret.position.y = std::min(ret.top(), points_[i].y);
+            ret.size.x = std::max(ret.size.x, points_[i].x - ret.position.x);
+            ret.size.y = std::max(ret.size.y, points_[i].y - ret.position.y);
+        }
+        return ret;
+    }
 };
 
-//path//////////////////////////////7
+//path///////////////////////////////
 //pathType of the first point will be ignored, its a startpoint
 //the pathType of every point shows how to draw the line BEFORE the point
 class customPath : public transformable2
 {
 protected:
     std::vector<point> points_;
-    mutable pointArray baked_;
+    mutable vertexArray baked_;
     mutable unsigned int precision_ = 10;
     mutable bool needBake_ = 0;
 
@@ -155,7 +161,7 @@ public:
 
     void bake(int precision = -1) const; //default: use previous precision
     const std::vector<point>& getPoints() const { return points_; }
-    const pointArray& getBaked() const { if(needBake_)bake(); return baked_; }
+    const vertexArray& getBaked() const { if(needBake_)bake(); return baked_; }
     unsigned int getBakedPrecision() const { return precision_; }
 };
 
@@ -198,20 +204,16 @@ public:
 class text : public transformable2
 {
 protected:
-    vec2f position_;
-    float size_;
-    std::string string_;
-    textBound bound_;
-    font* font_;
+    vec2f position_ {};
+    float size_ {14};
+    std::string string_ {};
+    textBound bound_ {textBound::left};
+    font* font_ {nullptr};
 
 public:
-    text() : size_(14), bound_(textBound::left), font_(font::getDefault()) {}
-    text(vec2f position, const std::string& s = "", float size = 14) : position_(position), size_(size), string_(s), font_(font::getDefault()) {};
-    text(float x, float y, float size) : position_(x,y), size_(size), font_(font::getDefault()) {}
-
-    ~text() = default;
-    text(const text& other) = default;
-
+    text(const std::string& s = "", float size = 14) : size_(size), string_(s), bound_(textBound::left), font_(&font::getDefault()) {}
+    text(vec2f position, const std::string& s = "", float size = 14) : position_(position), size_(size), string_(s), font_(&font::getDefault()) {};
+    text(float x, float y, float size) : position_(x,y), size_(size), font_(&font::getDefault()) {}
 
     void setPosition(vec2f position){ position_ = position; }
     void setPosition(float x, float y){ position_ = {x,y}; }
@@ -222,7 +224,11 @@ public:
     vec2f getPosition() const { return position_; }
     float getSize() const { return size_; }
 
+    textBound getBound() const { return bound_; }
+    void setBound(textBound b) { bound_ = b; }
+
     font* getFont() const { return font_; }
+    void setFont(font& f) { font_ = &f; }
 
     //inherited from transformable
     rect2f getExtents() const { rect2f ret; return ret; }
@@ -341,22 +347,33 @@ public:
 	void addPath(const path& p){ paths_.emplace_back(p); }
 	void addPath(path&& p){ paths_.push_back(std::move(p)); }
 */
+    rect2f getExtents() const { return rect2f(); }
 };
 
 //shape//////////////////////////////////////
-class shape : public transformable2
+class shape
 {
 protected:
     mask mask_;
     brush brush_;
     pen pen_;
 
+    bool hasBrush_ {0};
+    bool hasPen_ {0};
+
 public:
-    shape() = default;
+    shape(const mask& m = mask()) : mask_(m) {}
 
     const mask& getMask() const { return mask_; }
-    const brush& getBrush() const { return brush_; }
-    const pen& getPen() const { return pen_; }
+    const brush* getBrush() const { return (hasBrush_) ? &brush_ : nullptr; }
+    const pen* getPen() const { return (hasPen_) ? &pen_ : nullptr; }
+
+    mask& getMask() { return mask_; }
+    brush* getBrush() { return (hasBrush_) ? &brush_ : nullptr; }
+    pen* getPen() { return (hasPen_) ? &pen_ : nullptr; }
+
+    void setPen(const pen* p){ if(p){ hasPen_ = 1; pen_ = *p; } }
+    void setBrush(const brush* b){ if(b){ hasBrush_ = 1; brush_ = *b; } }
 };
 
 //customShape//////////////////////////////////

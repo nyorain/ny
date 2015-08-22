@@ -34,12 +34,12 @@ bool x11Backend::isAvailable() const
     return 1;
 }
 
-appContext* x11Backend::createAppContext()
+std::unique_ptr<appContext> x11Backend::createAppContext()
 {
-    return new x11AppContext();
+    return std::make_unique<x11AppContext>();
 }
 
-windowContext* x11Backend::createWindowContext(window& win, const windowContextSettings& s)
+std::unique_ptr<windowContext> x11Backend::createWindowContext(window& win, const windowContextSettings& s)
 {
     x11WindowContextSettings settings;
     const x11WindowContextSettings* ws = dynamic_cast<const x11WindowContextSettings*> (&s);
@@ -55,7 +55,7 @@ windowContext* x11Backend::createWindowContext(window& win, const windowContextS
         settings.glPref = s.glPref;
     }
 
-    return new x11WindowContext(win, settings);
+    return std::make_unique<x11WindowContext>(win, settings);
 }
 
 }

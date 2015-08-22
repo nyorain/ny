@@ -54,7 +54,7 @@ unsigned char stringToDataType(const std::string& type)
     if(type == "image/jpeg") return image::jpeg;
     if(type == "image/gif") return image::gif;
 
-    if(type == "text/plain") return dataType::text;
+    if(type == "text/plain") return text::plain;
 
     return 0;
 }

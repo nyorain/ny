@@ -18,6 +18,7 @@ class drawContext : public nonCopyable
 {
 protected:
 	surface& surface_;
+
 public:
 	drawContext(surface& s);
 	virtual ~drawContext();
@@ -40,9 +41,13 @@ public:
 	virtual void mask(const circle& obj);
 
 
-	virtual void fill(const brush& col) = 0;
-	virtual void outline(const pen& col) = 0;
+	virtual void fill(const brush& col); //will clear mask
+	virtual void stroke(const pen& col); //will clear mask
 
+	virtual void fillPreserve(const brush& col) = 0;
+	virtual void strokePreserve(const pen& col) = 0;
+
+    //todo
     virtual rect2f getClip() = 0;
     virtual void clip(const rect2f& obj) = 0;
 	virtual void resetClip() = 0;
@@ -65,19 +70,19 @@ public:
 	redirectDrawContext(drawContext& redirect, vec2f position, vec2f size);
     redirectDrawContext(drawContext& redirect, vec2f position = vec2f());
 
-	virtual void apply();
-	virtual void clear(color col = color::none);
+	virtual void apply() override;
+	virtual void clear(color col = color::none) override;
 
-	virtual void mask(const customPath& obj);
-	virtual void mask(const text& obj);
-	virtual void resetMask();
+	virtual void mask(const customPath& obj) override;
+	virtual void mask(const text& obj) override;
+	virtual void resetMask() override;
 
-	virtual void fill(const pen& col);
-	virtual void outline(const brush& col);
+	virtual void fillPreserve(const pen& col) override;
+	virtual void strokePreserve(const brush& col) override;
 
-    virtual rect2f getClip(){ return rect2f(); };
-    virtual void clip(const rect2f& obj){};
-	virtual void resetClip(){};
+    virtual rect2f getClip() override { return rect2f(); };
+    virtual void clip(const rect2f& obj) override {};
+	virtual void resetClip() override {};
 
 	void setSize(vec2d size);
 	void setPosition(vec2d position);

@@ -304,7 +304,7 @@ void x11WindowContext::refresh()
     drawEvent* e = new drawEvent;
     e->handler = &window_;
     e->backend = 0;
-    getMainApp()->windowDraw(e);
+    nyMainApp()->windowDraw(e);
     */
 
     XEvent ev;
@@ -320,28 +320,28 @@ void x11WindowContext::refresh()
 
 drawContext& x11WindowContext::beginDraw()
 {
-    if(getCairo().get())
+    if(getCairo())
     {
         return *cairo_;
     }
-    else if(getGLX().get())
+    else if(getGLX())
     {
         getGLX()->makeCurrent();
         return *glx_.ctx;
     }
     else
     {
-        throw std::runtime_error("x11WC::beginDraw: no valid draw context");
+        throw std::runtime_error("x11WC::beginDraw: no valid draw context"); //
     }
 }
 
 void x11WindowContext::finishDraw()
 {
-    if(getCairo().get())
+    if(getCairo())
     {
         cairo_->apply();
     }
-    else if(getGLX().get())
+    else if(getGLX())
     {
         getGLX()->apply();
         getGLX()->swapBuffers();
@@ -884,7 +884,7 @@ void x11WindowContext::setIcon(const image* img)
     XChangeProperty(getXDisplay(), xWindow_, x11::WMIcon, x11::Cardinal, 32, PropModeReplace, (const unsigned char*) buffer, 2);
 }
 
-void x11WindowContext::setName(std::string name)
+void x11WindowContext::setTitle(const std::string& name)
 {
 
 }

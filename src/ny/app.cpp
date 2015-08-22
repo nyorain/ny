@@ -6,6 +6,7 @@
 #include <ny/appContext.hpp>
 #include <ny/backend.hpp>
 #include <ny/window.hpp>
+#include <ny/font.hpp>
 
 #include <nyutil/thread.hpp>
 #include <nyutil/time.hpp>
@@ -22,12 +23,12 @@ namespace ny
 app* app::mainApp = nullptr;
 std::vector<backend*> app::backends;
 
-//app/////////////////////////////////////////7
-app::app() : eventHandler(), focus_(nullptr), mouseOver_(nullptr), appContext_(nullptr), existing_(1), valid_(0), mainLoop_(0), backend_(nullptr), threadpool_(nullptr), settings_()
+//app////////////////////////////////////////////////
+app::app() : eventHandler(), threadpool_{nullptr}
 {
-    if(getMainApp() != nullptr)
+    if(nyMainApp() != nullptr)
     {
-        sendWarning("there can be only one app");
+        nyWarning("there can be only one app");
         return;
     }
 
@@ -36,9 +37,10 @@ app::app() : eventHandler(), focus_(nullptr), mouseOver_(nullptr), appContext_(n
 
 app::~app()
 {
-    exitApp();
+    exit();
 
-    mainApp = nullptr;
+    if(nyMainApp() == this)
+        mainApp = nullptr;
 }
 
 void app::registerBackend(backend& b)
@@ -46,22 +48,7 @@ void app::registerBackend(backend& b)
     backends.push_back(&b);
 }
 
-bool app::init()
-{
-    return init(appSettings());
-}
-
-bool app::init(unsigned int argCount, const char** args)
-{
-    appSettings a;
-
-    a.argc = argCount;
-    a.argv = args;
-
-    return init(a);
-}
-
-bool app::init(appSettings settings)
+bool app::init(const appSettings& settings)
 {
     settings_ = settings;
 
@@ -85,42 +72,41 @@ bool app::init(appSettings settings)
 
         if(!backend_)
         {
-            sendError("in app::init: No matching backend found.");
+            nyError("in app::init: No matching backend found.");
             return false;
         }
     }
 
-    if(this != getMainApp())
+    if(this != nyMainApp())
     {
-        sendWarning("Only getMainApp() can be initialized. There can be only one app");
+        nyWarning("Only mainApp can be initialized. There can be only one app");
         return false;
-    }
-
-
-    for(unsigned int i(0); i < (unsigned int) settings_.argc; i++)
-    {
-        std::vector<std::string> vec = split(settings_.argv[i], '=');
-        if(vec.size() > 1) optionRegistered(vec[0], vec[1]);
-        else if(vec.size() > 0) optionRegistered(vec[0]);
     }
 
     try
     {
-       appContext_ = backend_->createAppContext();
+        appContext_ = backend_->createAppContext();
     }
-
     catch(std::exception& err)
     {
-        sendError(err);
-
-        delete appContext_;
-        appContext_ = nullptr;
+        nyError(err);
+        appContext_.reset();
         valid_ = 0;
-
         return false;
     }
 
-    threadpool_ = new threadpool(settings_.threadpoolSize);
+    font::getDefault().loadFromName(settings_.defaultFont);
+
+
+    if(settings_.threadpoolSize > 0)
+    {
+        threadpool_.reset(new threadpool(settings_.threadpoolSize));
+    }
+    else if(settings_.threadpoolSize < 0)
+    {
+         threadpool_.reset(new threadpool()); //auto size
+    }
+    //if threadpoolSize in appSetitngs == 0, no threadpool is created
 
     valid_ = 1;
     return 1;
@@ -128,6 +114,17 @@ bool app::init(appSettings settings)
 
 int app::mainLoop()
 {
+    if(!valid_)
+        return 0;
+
+    mainThreadID_ = std::this_thread::get_id();
+
+    exitReason_ = exitReason::noEventSources;
+    mainLoop_.run();
+
+    return exitReason_;
+
+    /*
     if(!valid_ || mainLoop_)
         return 0;
 
@@ -147,41 +144,24 @@ int app::mainLoop()
     exitApp();
 
     return 1;
+    */
 }
 
-
-void app::addTask(taskBase* b)
+void app::exit(int reason)
 {
-    if(!valid_)
-        return;
+    //todo
+    exitReason_ = reason;
 
-    threadpool_->addTask(b);
-}
+    mainLoop_.stop();
 
-
-void app::exitApp()
-{
     existing_ = 0;
     valid_ = 0;
 
-    if(threadpool_)
-    {
-        delete threadpool_;
-        threadpool_ = nullptr;
-    }
+    threadpool_.reset();
 
     destroy(); //from eventHandler
 
-    if(appContext_)
-    {
-        delete appContext_;
-        appContext_ = nullptr;
-    }
-}
-
-bool app::optionRegistered(std::string option, std::string arg)
-{
-    return 0;
+    appContext_->exit();
 }
 
 
@@ -194,7 +174,7 @@ void app::removeChild(eventHandler& child)
 
     if(children_.size() == 0 && settings_.exitWithoutChildren)
     {
-        exitApp();
+        exit();
     }
 }
 
@@ -214,7 +194,7 @@ void app::sendEvent(event& ev, eventHandler& handler)
 //keyboard Events
 void app::windowFocus(focusEvent& event)
 {
-    if(event.handler == nullptr)return;
+    if(event.handler == nullptr) return;
 
     if(event.state == focusState::gained)focus_ = event.handler;
     else if(event.state == focusState::lost && event.handler == focus_)focus_ = nullptr;
@@ -227,7 +207,7 @@ void app::keyboardKey(keyEvent& event)
     if(event.state == pressState::pressed)keyboard::pressKey(event.key);
     else keyboard::releaseKey(event.key);
 
-    sendEvent(event, *focus_);
+    if(focus_) sendEvent(event, *focus_);
 }
 
 
@@ -276,8 +256,6 @@ void app::mouseButton(mouseButtonEvent& event)
     if(event.state == pressState::pressed)mouse::pressButton(event.button);
     else mouse::releaseButton(event.button);
 
-    std::cout << "mousewButton " << event.button << " mo: " << mouseOver_ << std::endl;
-
     if(mouseOver_) sendEvent(event, *mouseOver_);
 }
 
@@ -295,8 +273,6 @@ void app::mouseCross(mouseCrossEvent& event)
 
     if(event.state == crossType::entered) mouseOver_ = event.handler;
     else if(event.state == crossType::left && event.handler == mouseOver_) mouseOver_ = nullptr;
-
-    std::cout << "mouseCross " << event.handler << "state: " << (int)event.state << " mo: " << mouseOver_ << std::endl;
 
     sendEvent(event, *event.handler);
 }
@@ -346,11 +322,11 @@ void app::removeListenerFor(unsigned int id, eventHandler* ev)
 }
 */
 
-void app::error()
+void app::onError()
 {
     if(settings_.onError == errorAction::Exit)
     {
-        exit(-1);
+        std::exit(-1);
     }
 
     std::cout << "Error occured. Continue? (y/n)" << std::endl;
@@ -365,15 +341,15 @@ void app::error()
 
     else
     {
-        exit(-1);
+        std::exit(-1);
         //throw e;
     }
 }
 
 //getMainApp
-app* getMainApp()
+app* nyMainApp()
 {
-    return app::getMainApp();
+    return app::nyMainApp();
 }
 
 

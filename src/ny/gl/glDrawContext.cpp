@@ -154,7 +154,7 @@ bool glDrawContext::assureValid(bool warning) const
     if(isCurrent() && impl_)
         return 1;
 
-    if(warning) sendWarning("glDrawContext::clear: glDC not valid");
+    if(warning) nyWarning("glDrawContext::clear: glDC not valid");
     return 0;
 }
 
@@ -215,15 +215,15 @@ void glDrawContext::resetMask()
 {
     store_.clear();
 }
-void glDrawContext::fill(const brush& col)
+void glDrawContext::fillPreserve(const brush& col)
 {
     if(!assureValid() || store_.empty()) return;
     impl_->fill(store_, col);
 }
-void glDrawContext::outline(const pen& col)
+void glDrawContext::strokePreserve(const pen& col)
 {
     if(!assureValid() || store_.empty()) return;
-    impl_->outline(store_, col);
+    impl_->stroke(store_, col);
 }
 
 }

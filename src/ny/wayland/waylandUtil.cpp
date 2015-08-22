@@ -225,19 +225,19 @@ serverCallback::serverCallback(wl_callback* callback)
     wl_callback_add_listener(callback, &callbackListener, this);
 }
 
-connection& serverCallback::add(std::function<void(wl_callback*, unsigned int)> func)
+std::unique_ptr<connection> serverCallback::add(std::function<void(wl_callback*, unsigned int)> func)
 {
     return callback_.add(func);
 }
 
-connection& serverCallback::add(std::function<void(unsigned int)> func)
+std::unique_ptr<connection> serverCallback::add(std::function<void(unsigned int)> func)
 {
     return callback_.add([=](wl_callback*, unsigned int i){
                     func(i);
                   });
 }
 
-connection& serverCallback::add(std::function<void()> func)
+std::unique_ptr<connection> serverCallback::add(std::function<void()> func)
 {
     return callback_.add([=](wl_callback*, unsigned int){
                     func();
@@ -489,9 +489,9 @@ waylandAppContext* getWaylandAppContext()
 {
     waylandAppContext* ret = nullptr;
 
-    if(getMainApp())
+    if(nyMainApp())
     {
-        ret = dynamic_cast<waylandAppContext*>(getMainApp()->getAppContext());
+        ret = dynamic_cast<waylandAppContext*>(nyMainApp()->getAppContext());
     }
 
     return ret;

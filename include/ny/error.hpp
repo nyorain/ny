@@ -15,17 +15,17 @@ extern std::ostream& warningStream;
 extern std::ostream& debugStream;
 extern std::ostream& errorStream;
 
-template<class ... Args> void sendWarning(Args ... info){ printVars(warningStream, info ...); warningStream << std::endl; }
-template<class ... Args> void sendDebug(Args ... info){
+template<class ... Args> void nyWarning(Args ... info){ printVars(warningStream, info ...); warningStream << std::endl; }
+template<class ... Args> void nyDebug(Args ... info){
     #ifdef NY_DEBUG
         printVars(debugStream, info ...); debugStream << std::endl;
     #endif // NY_DEBUG
 }
 
-void sendError();
+void nyError();
 
-inline void sendError(const std::exception& err){ errorStream << err.what() << std::endl; sendError(); }
-template<class ... Args> void sendError(Args ... info){ printVars(errorStream, info ...); errorStream << std::endl; sendError(); }
-template<class ... Args> void sendError(Args ... info, const std::exception& err){ printVars(errorStream, info ...); errorStream << "\n" << err.what() << std::endl; sendError(); }
+inline void nyError(const std::exception& err){ errorStream << err.what() << std::endl; nyError(); }
+template<class ... Args> void nyError(Args ... info){ printVars(errorStream, info ...); errorStream << std::endl; nyError(); }
+template<class ... Args> void nyError(Args ... info, const std::exception& err){ printVars(errorStream, info ...); errorStream << "\n" << err.what() << std::endl; nyError(); }
 
 }

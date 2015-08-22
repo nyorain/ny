@@ -186,8 +186,8 @@ void waylandWindowContext::createShellSurface()
     wl_shell_surface_set_toplevel(wlShellSurface_);
     wl_shell_surface_set_user_data(wlShellSurface_, this);
 
-    wl_shell_surface_set_class(wlShellSurface_, tw->getName().c_str());
-    wl_shell_surface_set_title(wlShellSurface_, tw->getName().c_str());
+    wl_shell_surface_set_class(wlShellSurface_, nyMainApp()->getName().c_str());
+    wl_shell_surface_set_title(wlShellSurface_, tw->getTitle().c_str());
 
     wl_shell_surface_add_listener(wlShellSurface_, &shellSurfaceListener, this);
 }
@@ -485,7 +485,7 @@ void waylandWindowContext::beginResize(mouseButtonEvent* ev, windowEdge edge)
     wl_shell_surface_resize(wlShellSurface_, getWaylandAC()->getWlSeat(), e->serial, wlEdge);
 }
 
-void waylandWindowContext::setName(std::string str)
+void waylandWindowContext::setTitle(const std::string& str)
 {
 
 }

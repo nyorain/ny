@@ -6,6 +6,7 @@
 #include <ny/shape.hpp>
 #include <ny/error.hpp>
 #include <ny/surface.hpp>
+#include <ny/image.hpp>
 
 #include <iostream>
 #include <cmath>
@@ -13,6 +14,20 @@
 namespace ny
 {
 
+//font
+cairoFont::cairoFont(const std::string& name, bool fromFile)
+{
+    handle_ = cairo_toy_font_face_create(name.c_str(), CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    if(!handle_)
+        nyWarning("failed to create cairo font");
+}
+
+cairoFont::~cairoFont()
+{
+    cairo_font_face_destroy(handle_);
+}
+
+//util
 enum class direction
 {
     Left,
@@ -53,6 +68,11 @@ cairoDrawContext::cairoDrawContext(surface& surf, cairo_surface_t& cairoSurface)
 {
 }
 
+cairoDrawContext::cairoDrawContext(image& img) : drawContext(img)
+{
+    cairo_image_surface_create_for_data(img.getData(), CAIRO_FORMAT_ARGB32, img.getSize().x, img.getSize().y, img.getStride());
+}
+
 cairoDrawContext::~cairoDrawContext()
 {
     if(cairoCR_) cairo_destroy(cairoCR_);
@@ -63,7 +83,7 @@ void cairoDrawContext::clear(color col)
 {
     if(!cairoCR_)
     {
-        sendWarning("drawing with uninitialized cairoDC");
+        nyWarning("drawing with uninitialized cairoDC");
         return;
     }
 
@@ -80,7 +100,7 @@ rect2f cairoDrawContext::getClip()
 
     if(!cairoCR_)
     {
-        sendWarning("drawing with uninitialized cairoDC");
+        nyWarning("drawing with uninitialized cairoDC");
         return ret;
     }
 
@@ -97,7 +117,7 @@ void cairoDrawContext::clip(const rect2f& obj)
 {
     if(!cairoCR_)
     {
-        sendWarning("drawing with uninitialized cairoDC");
+        nyWarning("drawing with uninitialized cairoDC");
         return;
     }
 
@@ -109,7 +129,7 @@ void cairoDrawContext::resetClip()
 {
     if(!cairoCR_)
     {
-        sendWarning("drawing with uninitialized cairoDC");
+        nyWarning("drawing with uninitialized cairoDC");
         return;
     }
 
@@ -121,26 +141,32 @@ void cairoDrawContext::mask(const text& obj)
 {
     if(!cairoCR_)
     {
-        sendWarning("drawing with uninitialized cairoDC");
+        nyWarning("drawing with uninitialized cairoDC");
         return;
     }
 
     if(!obj.getFont())
     {
-        sendWarning("drawing text with no font");
+        nyWarning("drawing text with no font");
         return;
     }
 
-    cairo_set_font_face(cairoCR_, obj.getFont()->getCairoHandle(1)->handle);
+    cairo_move_to(cairoCR_, obj.getPosition().x, obj.getPosition().y);
+
+    if(obj.getFont()->getCairoHandle(1) && obj.getFont()->getCairoHandle()->getFontFace())
+        cairo_set_font_face(cairoCR_, obj.getFont()->getCairoHandle()->getFontFace());
+    else
+        nyWarning("cairo: could not use selected font");
+
     cairo_set_font_size(cairoCR_, obj.getSize());
-    cairo_show_text(cairoCR_, obj.getString().c_str());
+    cairo_text_path(cairoCR_, obj.getString().c_str());
 }
 
 void cairoDrawContext::mask(const customPath& obj)
 {
     if(!cairoCR_)
     {
-        sendWarning("drawing with uninitialized cairoDC");
+        nyWarning("drawing with uninitialized cairoDC");
         return;
     }
 
@@ -237,11 +263,11 @@ void cairoDrawContext::resetMask()
     //todo
 }
 
-void cairoDrawContext::outline(const brush& col)
+void cairoDrawContext::strokePreserve(const brush& col)
 {
     if(!cairoCR_)
     {
-        sendWarning("drawing with uninitialized cairoDC");
+        nyWarning("drawing with uninitialized cairoDC");
         return;
     }
 
@@ -249,14 +275,14 @@ void cairoDrawContext::outline(const brush& col)
     col.normalized(r, g, b, a);
 
     cairo_set_source_rgba(cairoCR_, r, g, b, a);
-    cairo_stroke(cairoCR_);
+    cairo_stroke_preserve(cairoCR_);
 }
 
-void cairoDrawContext::fill(const pen& col)
+void cairoDrawContext::fillPreserve(const pen& col)
 {
     if(!cairoCR_)
     {
-        sendWarning("drawing with uninitialized cairoDC");
+        nyWarning("drawing with uninitialized cairoDC");
         return;
     }
 
@@ -264,7 +290,7 @@ void cairoDrawContext::fill(const pen& col)
     col.normalized(r, g, b, a);
 
     cairo_set_source_rgba(cairoCR_, r, g, b, a);
-    cairo_fill(cairoCR_);
+    cairo_fill_preserve(cairoCR_);
 }
 
 
