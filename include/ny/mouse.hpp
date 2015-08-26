@@ -9,15 +9,18 @@
 namespace ny
 {
 
+struct mouseGrab
+{
+    eventHandler* grabber_ {nullptr};
+    event* event_ {nullptr};
+};
 
 class mouse
 {
-protected:
-    static std::bitset<8> states;
-    static vec2ui position;
+
+friend class app;
 
 public:
-
     enum button
     {
         none = -1,
@@ -30,14 +33,17 @@ public:
         custom4,
     };
 
-    static bool isButtonPressed(button b);
+protected:
+    static std::bitset<8> states;
+    static vec2i position;
 
-    static void pressButton(button b);
-    static void releaseButton(button b);
-
-    static vec2ui getPosition();
+    static void buttonPressed(button b);
+    static void buttonReleased(button b);
     static void setPosition(vec2i pos);
-    static void setPosition(int x, int y);
+
+public:
+    static bool isButtonPressed(button b);
+    static vec2i getPosition();
 };
 
 }

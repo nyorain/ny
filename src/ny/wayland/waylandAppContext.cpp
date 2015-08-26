@@ -334,7 +334,7 @@ void waylandAppContext::eventMouseAxis(wl_pointer *pointer, unsigned int time, u
     e.value = value;
     e.backend = Wayland;
 
-    nyMainApp()->mouseWheel(e);
+    nyMainApp()->sendEvent(e);
 }
 
 //keyboard
@@ -416,7 +416,7 @@ void waylandAppContext::eventWindowResized(wl_shell_surface* shellSurface, unsig
 
     e.handler = &w->getWindow();
 
-    nyMainApp()->windowSize(e);
+    nyMainApp()->sendEvent(e);
 }
 
 void waylandAppContext::shmFormat(wl_shm* shm, unsigned int format)

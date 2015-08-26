@@ -81,6 +81,10 @@ class shape;
 class path;
 
 template<size_t dim, class prec = float> class transformable;
+using transformable2 = transformable<2, float>;
+using transformable3 = transformable<3, float>;
+using transformable4 = transformable<4, float>;
+
 class redirectDrawContext;
 
 class surface;

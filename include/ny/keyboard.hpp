@@ -7,12 +7,12 @@
 namespace ny
 {
 
+//keyboard grab?
 
 class keyboard
 {
-protected:
-    static std::bitset<255> states;
-    static bool capsLockState;
+
+friend class app;
 
 public:
     enum key
@@ -25,13 +25,18 @@ public:
                         space, enter, backspace, del, end, insert, pageUp, pageDown,  home,  back,  left, up, down, right, volumeup, volumedown, leftalt, rightalt, capsLock
     };
 
-    static char toChar(key);
-    static bool isKeyPressed(key);
+protected:
+    static std::bitset<255> states;
+    static bool capsLockState;
 
-    static void pressKey(key);
-    static void releaseKey(key);
+    static void keyPressed(key k);
+    static void keyReleased(key k);
 
-    static bool shiftActive();
+public:
+    static char toChar(key k);
+    static bool isKeyPressed(key k);
+
+    static bool capsActive(); //better sth. with capsActive
     static bool altActive();
     static bool ctrlActive();
 };

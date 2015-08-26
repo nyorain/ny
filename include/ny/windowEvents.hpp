@@ -28,7 +28,6 @@ class focusEvent : public event
 public:
     focusEvent() : event(eventType::windowFocus) { };
     focusState state;
-    window* handler;
 };
 
 class sizeEvent : public event
@@ -36,7 +35,6 @@ class sizeEvent : public event
 public:
     sizeEvent() : event(eventType::windowSize) {};
     vec2ui size;
-    window* handler;
 };
 
 class positionEvent : public event
@@ -44,21 +42,18 @@ class positionEvent : public event
 public:
     positionEvent() : event(eventType::windowPosition) {};
     vec2ui position;
-    window* handler;
 };
 
 class drawEvent : public event
 {
 public:
     drawEvent() : event(eventType::windowDraw) {};
-    window* handler;
 };
 
 class contextEvent : public event //own ContextEvents could be derived form this
 {
 public:
     contextEvent(unsigned int pbackend, unsigned int ptype) : event(eventType::context), contextEventType(ptype) { backend = pbackend; };
-    window* handler;
 
     unsigned int contextEventType; //type of the event from the context/backend
 };

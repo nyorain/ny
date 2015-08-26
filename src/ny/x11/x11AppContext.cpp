@@ -231,7 +231,7 @@ void x11AppContext::sendRedrawEvent(Window w)
     if(!wc) return;
     e.handler = &wc->getWindow();
     e.backend = X11;
-    nyMainApp()->windowDraw(e);
+    nyMainApp()->sendEvent(e);
     return;
 }
 
@@ -391,7 +391,7 @@ bool x11AppContext::processEvent(XEvent& ev)
             if(!con) return 1;
             e.handler = &con->getWindow();
             e.size = nsize;
-            nyMainApp()->windowSize(e);
+            nyMainApp()->sendEvent(e);
         }
 
         vec2i nposition = vec2ui(ev.xconfigure.x, ev.xconfigure.y); //positionEvent
@@ -405,7 +405,7 @@ bool x11AppContext::processEvent(XEvent& ev)
             if(!con) return 1;
             e.handler = &con->getWindow();
             e.position = nposition;
-            nyMainApp()->windowPosition(e);
+            nyMainApp()->sendEvent(e);
         }
 
         return 1;
@@ -526,7 +526,7 @@ bool x11AppContext::processEvent(XEvent& ev)
             if(!con) return 1;
             e.handler = &con->getWindow();
             e.backend = X11;
-            nyMainApp()->destroyHandler(e);
+            nyMainApp()->sendEvent(e);
             return 1;
         }
     }

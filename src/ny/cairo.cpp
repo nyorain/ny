@@ -14,6 +14,9 @@
 namespace ny
 {
 
+constexpr const double cPi = 3.141; //todo
+constexpr const double cDeg = cPi / 180.0;
+
 //font
 cairoFont::cairoFont(const std::string& name, bool fromFile)
 {
@@ -70,7 +73,7 @@ cairoDrawContext::cairoDrawContext(surface& surf, cairo_surface_t& cairoSurface)
 
 cairoDrawContext::cairoDrawContext(image& img) : drawContext(img)
 {
-    cairo_image_surface_create_for_data(img.getData(), CAIRO_FORMAT_ARGB32, img.getSize().x, img.getSize().y, img.getStride());
+    //cairo_image_surface_create_for_data(img.getData(), CAIRO_FORMAT_ARGB32, img.getSize().x, img.getSize().y, img.getStride());
 }
 
 cairoDrawContext::~cairoDrawContext()
@@ -136,6 +139,21 @@ void cairoDrawContext::resetClip()
     cairo_reset_clip(cairoCR_);
 }
 
+void cairoDrawContext::applyTransform(const transformable2& obj, vec2f pos)
+{
+    cairo_translate(cairoCR_, pos.x, pos.y);
+
+    cairo_scale(cairoCR_, obj.getScale().x, obj.getScale().y);
+    cairo_rotate(cairoCR_, obj.getRotation() * cDeg); //convert from degree
+    cairo_translate(cairoCR_, obj.getTranslation().x, obj.getTranslation().y);
+
+    cairo_translate(cairoCR_, -pos.x, -pos.y);
+}
+
+void cairoDrawContext::resetTransform()
+{
+    cairo_identity_matrix(cairoCR_);
+}
 
 void cairoDrawContext::mask(const text& obj)
 {
@@ -145,11 +163,11 @@ void cairoDrawContext::mask(const text& obj)
         return;
     }
 
-    if(!obj.getFont())
-    {
-        nyWarning("drawing text with no font");
+    if(!obj.getFont() || obj.getString().empty())
         return;
-    }
+
+
+    applyTransform(obj, obj.getPosition());
 
     cairo_move_to(cairoCR_, obj.getPosition().x, obj.getPosition().y);
 
@@ -160,6 +178,56 @@ void cairoDrawContext::mask(const text& obj)
 
     cairo_set_font_size(cairoCR_, obj.getSize());
     cairo_text_path(cairoCR_, obj.getString().c_str());
+
+    resetTransform();
+}
+
+void cairoDrawContext::mask(const rectangle& obj)
+{
+    if(!cairoCR_)
+    {
+        nyWarning("drawing with uninitialized cairoDC");
+        return;
+    }
+
+    if(obj.getSize() == vec2f())
+        return;
+
+    applyTransform(obj, obj.getPosition());
+
+    if(obj.getBorderRadius() == vec4f()) //no border radius
+    {
+        cairo_rectangle(cairoCR_, obj.getPosition().x, obj.getPosition().y, obj.getSize().x, obj.getSize().y);
+    }
+    else
+    {
+        vec2f pos123 = -obj.getOrigin();
+        cairo_move_to(cairoCR_, pos123.x, pos123.y);
+        cairo_arc(cairoCR_, pos123.x + obj.getSize().x - obj.getBorderRadius().x, pos123.y + obj.getBorderRadius().x, obj.getBorderRadius().x, -90 * cDeg, 0 * cDeg);
+        cairo_arc(cairoCR_, pos123.x + obj.getSize().x - obj.getBorderRadius().y, pos123.y + obj.getSize().y - obj.getBorderRadius().y, obj.getBorderRadius().y, 0 * cDeg, 90 * cDeg);
+        cairo_arc(cairoCR_, pos123.x + obj.getBorderRadius().z, pos123.y + obj.getSize().y - obj.getBorderRadius().z, obj.getBorderRadius().z, 90 * cDeg, 180 * cDeg);
+        cairo_arc(cairoCR_, pos123.x + obj.getBorderRadius().w, pos123.y + obj.getBorderRadius().w, obj.getBorderRadius().w, 180 * cDeg, 270 * cDeg);
+    }
+
+    resetTransform();
+}
+
+void cairoDrawContext::mask(const circle& obj)
+{
+    if(!cairoCR_)
+    {
+        nyWarning("drawing with uninitialized cairoDC");
+        return;
+    }
+
+    if(obj.getRadius() == 0)
+        return;
+
+    applyTransform(obj, obj.getPosition());
+
+    cairo_arc(cairoCR_, obj.getCenter().x, obj.getCenter().y, obj.getRadius(), 0, 360 * cDeg);
+
+    resetTransform();
 }
 
 void cairoDrawContext::mask(const customPath& obj)
@@ -170,17 +238,12 @@ void cairoDrawContext::mask(const customPath& obj)
         return;
     }
 
-    cairo_matrix_t cMatrix;
-    cairo_get_matrix(cairoCR_, &cMatrix);
+    if(obj.getPoints().size() <= 1)
+        return;
 
-    //cairo_translate(cairoCR_, obj.getTranslation().x, obj.getTranslation().y);
-    //cairo_scale(cairoCR_, obj.getScale().x, obj.getScale().y);
-    //cairo_rotate(cairoCR_, obj.getRotation());
-
-    cairo_new_path(cairoCR_);
+    applyTransform(obj, obj.getExtents().position);
 
     std::vector<point> points = obj.getPoints();
-
     for(unsigned int i(0); i < points.size(); i++)
     {
         //beginning
@@ -190,11 +253,11 @@ void cairoDrawContext::mask(const customPath& obj)
             continue;
         }
 
-
         //linear
         if(points[i].getDrawStyle() == drawStyle::linear)
         {
             cairo_line_to(cairoCR_, points[i].position.x, points[i].position.y);
+            continue;
         }
 
         //tangent
@@ -202,6 +265,7 @@ void cairoDrawContext::mask(const customPath& obj)
         {
             bezierData data = points[i].getBezierData();
             cairo_curve_to(cairoCR_, data.start.x, data.start.y, data.end.x, data.start.y, points[i].position.x, points[i].position.y);
+            continue;
         }
 
         //arc
@@ -253,14 +317,13 @@ void cairoDrawContext::mask(const customPath& obj)
 
         }
     }
-
-    cairo_close_path(cairoCR_);
-    cairo_set_matrix(cairoCR_, &cMatrix);
 }
 
 void cairoDrawContext::resetMask()
 {
     //todo
+    cairo_set_source_rgba(cairoCR_, 0, 0, 0, 0); //nothing
+    cairo_fill(cairoCR_); //just clean current mask
 }
 
 void cairoDrawContext::strokePreserve(const brush& col)
@@ -293,6 +356,35 @@ void cairoDrawContext::fillPreserve(const pen& col)
     cairo_fill_preserve(cairoCR_);
 }
 
+void cairoDrawContext::stroke(const brush& col)
+{
+    if(!cairoCR_)
+    {
+        nyWarning("drawing with uninitialized cairoDC");
+        return;
+    }
+
+    float r, g, b, a = 0;
+    col.normalized(r, g, b, a);
+
+    cairo_set_source_rgba(cairoCR_, r, g, b, a);
+    cairo_stroke(cairoCR_);
+}
+
+void cairoDrawContext::fill(const pen& col)
+{
+    if(!cairoCR_)
+    {
+        nyWarning("drawing with uninitialized cairoDC");
+        return;
+    }
+
+    float r, g, b, a = 0;
+    col.normalized(r, g, b, a);
+
+    cairo_set_source_rgba(cairoCR_, r, g, b, a);
+    cairo_fill(cairoCR_);
+}
 
 /*
 //general cairo functions//////////////////////////////////////////////////////////////////////////////////////////////

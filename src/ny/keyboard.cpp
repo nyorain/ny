@@ -8,7 +8,7 @@ bool keyboard::capsLockState = 0;
 
 char keyboard::toChar(keyboard::key k)
 {
-    if(shiftActive())
+    if(capsActive())
     {
         switch(k)
         {
@@ -111,7 +111,7 @@ bool keyboard::isKeyPressed(keyboard::key id)
     return states[(unsigned int)id];
 }
 
-void keyboard::pressKey(keyboard::key id)
+void keyboard::keyPressed(keyboard::key id)
 {
     if(id == keyboard::key::none) return;
 
@@ -123,14 +123,14 @@ void keyboard::pressKey(keyboard::key id)
     states[(unsigned int)id] = 1;
 }
 
-void keyboard::releaseKey(keyboard::key id)
+void keyboard::keyReleased(keyboard::key id)
 {
     if(id == keyboard::key::none) return;
 
     states[(unsigned int)id] = 0;
 }
 
-bool keyboard::shiftActive()
+bool keyboard::capsActive()
 {
     if(isKeyPressed(key::leftshift) + isKeyPressed(key::rightshift) + capsLockState == 1 || isKeyPressed(key::leftshift) + isKeyPressed(key::rightshift) + capsLockState == 3)
         return 1;

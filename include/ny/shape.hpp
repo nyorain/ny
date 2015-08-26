@@ -237,12 +237,13 @@ public:
 class circle : public transformable2
 {
 protected:
-    vec2f position_;
-    float radius_;
-    unsigned int points_;
+    vec2f position_ {};
+    float radius_ {0};
+    unsigned int points_ {0};
 
 public:
-    circle(float radius = 0, unsigned int points = 30) : radius_(radius), points_(points) {};
+    circle() = default;
+    circle(float radius) : radius_(radius) {}
     circle(vec2f position, float radius = 0, unsigned int points = 30) : position_(position), radius_(radius), points_(points) {}
     circle(float x, float y, float radius = 0, unsigned int points = 30) : position_(x,y), radius_(radius), points_(points) {}
 
@@ -257,6 +258,8 @@ public:
     vec2f getPosition() const { return position_; }
     float getRadius() const { return radius_; }
     unsigned int getPoints() const { return points_; }
+
+    vec2f getCenter() const { return position_ - origin_ + vec2f(radius_, radius_); } //todo?
 
     customPath getAsCustomPath() const;
 

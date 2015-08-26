@@ -43,7 +43,12 @@ public:
 class app : public eventHandler
 {
 
-friend backend; //calls registerBackend on init
+friend class backend; //calls registerBackend on init
+
+protected:
+    static app* mainApp;
+    static std::vector<backend*> backends; //ALL built in . from these one available backend is chose in init()
+    static void registerBackend(backend& e);
 
 public:
     enum exitReason : int
@@ -58,10 +63,7 @@ public:
         signal = 10 // + signal number
     };
 
-protected:
-    static app* mainApp;
-    static std::vector<backend*> backends; //ALL built in . from these one available backend is chose in init()
-    static void registerBackend(backend& e);
+    static app* nyMainApp(){ return mainApp; };
 
 protected:
     window* focus_{nullptr}; //eventHandler which has current focus
@@ -89,41 +91,22 @@ protected:
     virtual void create(eventHandler& parent) override {};
 
 public:
-    static app* nyMainApp(){ return mainApp; };
-
     app();
     virtual ~app();
 
+    //virtual core
     virtual bool init(const appSettings& settings = appSettings());
 
     virtual int mainLoop();
     virtual void exit(int exitReason = exitReason::unknown);
+    virtual void onError();
 
-    //functions inherited from eventHandler
+    //eventHandler
     virtual void removeChild(eventHandler& handler) override;
     virtual void destroy() override;
     virtual void reparent(eventHandler& newParent) override {};
 
-    //eventFunctions
-    virtual void sendEvent(event& event, eventHandler& handler);
-
-    virtual void keyboardKey(keyEvent& event);
-
-    virtual void mouseMove(mouseMoveEvent& event);
-    virtual void mouseButton(mouseButtonEvent& event);
-    virtual void mouseCross(mouseCrossEvent& event);
-    virtual void mouseWheel(mouseWheelEvent& event);
-
-    virtual void windowSize(sizeEvent& event);
-    virtual void windowPosition(positionEvent& event);
-    virtual void windowDraw(drawEvent& event);
-    virtual void windowFocus(focusEvent& event);
-
-    virtual void destroyHandler(destroyEvent& event);
-
-    virtual void onError();
-
-
+    //get/set
     window* getMouseOver() const { return mouseOver_; };
     window* getFocus() const { return focus_; };
 
@@ -139,8 +122,20 @@ public:
     bool isValid() const { return valid_; };
     bool mainThread() const { return std::this_thread::get_id() == mainThreadID_; };
 
-    //loop
+    threadpool* getThreadPool() const { return threadpool_.get(); }
+
     eventLoop& getEventLoop() { return mainLoop_; }
+    const eventLoop& getEventLoop() const { return mainLoop_; }
+
+public:
+    void sendEvent(event& ev, eventHandler& handler);
+    void sendEvent(event& ev);
+
+    void keyboardKey(keyEvent& event);
+    void mouseMove(mouseMoveEvent& event);
+    void mouseButton(mouseButtonEvent& event);
+    void mouseCross(mouseCrossEvent& event);
+    void windowFocus(focusEvent& event);
 };
 
 

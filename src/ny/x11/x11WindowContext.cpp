@@ -349,6 +349,7 @@ void x11WindowContext::finishDraw()
     }
 
     XFlush(getXDisplay());
+    XSync(getXDisplay(), False); //rlly needed?
 }
 
 void x11WindowContext::show()

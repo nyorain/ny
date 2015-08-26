@@ -51,8 +51,9 @@ public:
     };
 
     const unsigned int type;
-    unsigned int backend;
-    eventData* data; //place for the backend to transport data (e.g. serial numbers for custom resize / move)
+    unsigned int backend {0};
+    eventHandler* handler {nullptr};
+    eventData* data {nullptr}; //place for the backend to transport data (e.g. serial numbers for custom resize / move), todo: unique ptr
 };
 
 
@@ -60,8 +61,6 @@ class destroyEvent : public event
 {
 public:
     destroyEvent() : event(eventType::destroy){};
-
-    eventHandler* handler;
 };
 
 class mouseButtonEvent : public event
@@ -69,7 +68,6 @@ class mouseButtonEvent : public event
 public:
     mouseButtonEvent() : event(eventType::mouseButton) {};
 
-    window* handler = nullptr;
     pressState state;
     mouse::button button;
     vec2i position;
@@ -80,7 +78,6 @@ class mouseMoveEvent : public event
 public:
     mouseMoveEvent() : event(eventType::mouseMove) {};
 
-    window* handler = nullptr;
     vec2i position;
     vec2i screenPosition;
     vec2i delta;
@@ -91,7 +88,6 @@ class mouseCrossEvent : public event
 public:
     mouseCrossEvent() : event(eventType::mouseCross) {};
 
-    window* handler = nullptr;
     crossType state;
     vec2i position;
 };
@@ -101,7 +97,6 @@ class mouseWheelEvent : public event
 public:
     mouseWheelEvent() : event(eventType::mouseWheel) {};
 
-    window* handler;
     float value;
 };
 
@@ -110,7 +105,6 @@ class keyEvent : public event
 public:
     keyEvent() : event(eventType::key) {};
 
-    eventHandler* handler = nullptr;
     pressState state;
     keyboard::key key;
 };

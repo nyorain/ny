@@ -83,7 +83,7 @@ void window::close()
     e.backend = 0;
     e.handler = this;
 
-    nyMainApp()->destroyHandler(e);
+    nyMainApp()->sendEvent(e);
 }
 
 

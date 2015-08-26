@@ -62,6 +62,17 @@ void drawContext::clear(color col)
     resetMask();
 }
 
+void drawContext::fill(const brush& col)
+{
+    fillPreserve(col);
+    resetMask();
+}
+
+void drawContext::stroke(const pen& col)
+{
+    strokePreserve(col);
+    resetMask();
+}
 
 //redirectDrawContext//////////////////////////////////////////////////////////////////////////////////////////////////////
 redirectDrawContext::redirectDrawContext(drawContext& redirect, vec2f position, vec2f size) :

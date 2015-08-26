@@ -4,16 +4,11 @@ namespace ny
 {
 
 std::bitset<8> mouse::states;
-vec2ui mouse::position;
+vec2i mouse::position;
 
-vec2ui mouse::getPosition()
+vec2i mouse::getPosition()
 {
     return position;
-}
-
-void mouse::setPosition(int x, int y)
-{
-    position = vec2ui(x,y);
 }
 
 void mouse::setPosition(vec2i pos)
@@ -26,12 +21,12 @@ bool mouse::isButtonPressed(button b)
     return states[(unsigned int) b];
 }
 
-void mouse::pressButton(button b)
+void mouse::buttonPressed(button b)
 {
     states[(unsigned int) b] = 1;
 }
 
-void mouse::releaseButton(button b)
+void mouse::buttonReleased(button b)
 {
     states[(unsigned int) b] = 0;
 }

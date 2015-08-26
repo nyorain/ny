@@ -29,6 +29,9 @@ protected:
 
     cairoDrawContext(surface& surf);
 
+    void applyTransform(const transformable2& obj, vec2f pos = vec2f());
+    void resetTransform();
+
 public:
     cairoDrawContext(surface& surf, cairo_surface_t& cairoSurface);
     cairoDrawContext(image& img);
@@ -38,6 +41,8 @@ public:
 
 	virtual void mask(const customPath& obj) override;
 	virtual void mask(const text& obj) override;
+	virtual void mask(const rectangle& obj) override;
+	virtual void mask(const circle& obj) override;
 	virtual void resetMask() override;
 
 	virtual void fill(const brush& col) override;

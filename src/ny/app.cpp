@@ -190,13 +190,18 @@ void app::sendEvent(event& ev, eventHandler& handler)
     handler.unlock();
 }
 
+void app::sendEvent(event& ev)
+{
+    if(ev.handler)
+        sendEvent(ev, *ev.handler);
+}
 
 //keyboard Events
 void app::windowFocus(focusEvent& event)
 {
     if(event.handler == nullptr) return;
 
-    if(event.state == focusState::gained)focus_ = event.handler;
+    if(event.state == focusState::gained)focus_ = dynamic_cast<window*>(event.handler);
     else if(event.state == focusState::lost && event.handler == focus_)focus_ = nullptr;
 
     sendEvent(event, *event.handler);
@@ -204,8 +209,8 @@ void app::windowFocus(focusEvent& event)
 
 void app::keyboardKey(keyEvent& event)
 {
-    if(event.state == pressState::pressed)keyboard::pressKey(event.key);
-    else keyboard::releaseKey(event.key);
+    if(event.state == pressState::pressed)keyboard::keyPressed(event.key);
+    else keyboard::keyReleased(event.key);
 
     if(focus_) sendEvent(event, *focus_);
 }
@@ -220,7 +225,7 @@ void app::mouseMove(mouseMoveEvent& event)
     {
         if(event.handler)
         {
-            mouseOver_ = event.handler;
+            mouseOver_ = dynamic_cast<window*>(event.handler);
         }
         else
         {
@@ -253,8 +258,8 @@ void app::mouseMove(mouseMoveEvent& event)
 
 void app::mouseButton(mouseButtonEvent& event)
 {
-    if(event.state == pressState::pressed)mouse::pressButton(event.button);
-    else mouse::releaseButton(event.button);
+    if(event.state == pressState::pressed)mouse::buttonPressed(event.button);
+    else mouse::buttonReleased(event.button);
 
     if(mouseOver_) sendEvent(event, *mouseOver_);
 }
@@ -264,41 +269,16 @@ void app::mouseCross(mouseCrossEvent& event)
     if(event.handler == nullptr) return;
 
     //if childWindow is directly at the edge
-    window* w = event.handler;
+    window* w = dynamic_cast<window*>(event.handler);
     if(w && event.state == crossType::entered)
     {
         window* child = w->getWindowAt(event.position);
         if(child) event.handler = child;
     }
 
-    if(event.state == crossType::entered) mouseOver_ = event.handler;
+    if(event.state == crossType::entered) mouseOver_ = w;
     else if(event.state == crossType::left && event.handler == mouseOver_) mouseOver_ = nullptr;
 
-    sendEvent(event, *event.handler);
-}
-
-void app::mouseWheel(mouseWheelEvent& event)
-{
-    sendEvent(event, *mouseOver_);
-}
-
-void app::windowSize(sizeEvent& event)
-{
-    sendEvent(event, *event.handler);
-}
-
-void app::windowPosition(positionEvent& event)
-{
-    sendEvent(event, *event.handler);
-}
-
-void app::windowDraw(drawEvent& event)
-{
-    sendEvent(event, *event.handler);
-}
-
-void app::destroyHandler(destroyEvent& event)
-{
     sendEvent(event, *event.handler);
 }
 
