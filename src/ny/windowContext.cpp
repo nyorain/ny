@@ -35,17 +35,23 @@ void virtualWindowContext::refresh()
 drawContext& virtualWindowContext::beginDraw()
 {
     drawContext_ = new redirectDrawContext(getParentContext()->beginDraw(), window_.getPosition(), window_.getSize());
-
     drawContext_->startClip();
-
     return *drawContext_;
 };
+/*
+drawContext& virtualWindowContext::beginDraw(drawContext& dc)
+{
+    drawContext_ = new redirectDrawContext(dc, window_.getPosition(), window_.getSize());
+    drawContext_->startClip();
+    return *drawContext_;
+};
+*/
 
 void virtualWindowContext::finishDraw()
 {
     if(drawContext_)
     {
-        drawContext_->apply();
+        drawContext_->apply(); //needed here?
         drawContext_->endClip();
         delete drawContext_;
     }

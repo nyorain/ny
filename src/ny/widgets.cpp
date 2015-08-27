@@ -26,8 +26,6 @@ void button::cbDraw(drawContext& dc)
 
     dc.mask(txt);
     dc.fill(color::green);
-
-    dc.apply();
 }
 
 void button::cbButton(const mouseButtonEvent& ev)

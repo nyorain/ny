@@ -8,6 +8,7 @@
 
 #include <X11/Xutil.h>
 #include <memory>
+#include <mutex>
 
 namespace ny
 {

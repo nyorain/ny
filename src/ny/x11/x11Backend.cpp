@@ -39,7 +39,7 @@ std::unique_ptr<appContext> x11Backend::createAppContext()
     return std::make_unique<x11AppContext>();
 }
 
-std::unique_ptr<windowContext> x11Backend::createWindowContext(window& win, const windowContextSettings& s)
+std::unique_ptr<windowContext> x11Backend::createWindowContextImpl(window& win, const windowContextSettings& s)
 {
     x11WindowContextSettings settings;
     const x11WindowContextSettings* ws = dynamic_cast<const x11WindowContextSettings*> (&s);

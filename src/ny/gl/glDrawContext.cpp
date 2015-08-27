@@ -217,13 +217,13 @@ void glDrawContext::resetMask()
 }
 void glDrawContext::fillPreserve(const brush& col)
 {
-    if(!assureValid() || store_.empty()) return;
-    impl_->fill(store_, col);
+    //if(!assureValid() || store_.empty()) return;
+    //impl_->fill(store_, col);
 }
 void glDrawContext::strokePreserve(const pen& col)
 {
-    if(!assureValid() || store_.empty()) return;
-    impl_->stroke(store_, col);
+    //if(!assureValid() || store_.empty()) return;
+    //impl_->stroke(store_, col);
 }
 
 }

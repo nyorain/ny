@@ -24,12 +24,12 @@ public:
 class cairoDrawContext : public drawContext
 {
 protected:
-    cairo_surface_t* cairoSurface_ = nullptr;
+    cairo_surface_t* cairoSurface_ = nullptr; //both prob. better custom unique_ptr, to dont have to care about onwership (destruction) with derived classes
     cairo_t* cairoCR_ = nullptr;
 
     cairoDrawContext(surface& surf);
 
-    void applyTransform(const transformable2& obj, vec2f pos = vec2f());
+    void applyTransform(const transformable2& obj);
     void resetTransform();
 
 public:

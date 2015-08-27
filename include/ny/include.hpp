@@ -10,6 +10,10 @@ template<size_t dim, class T> class vec;
 template<size_t dim, class T> class refVec;
 template<size_t dim, class prec> class rect;
 
+template<size_t dim, typename prec> class transformable;
+using transformable2 = transformable<2, float>;
+using transformable3 = transformable<3, float>;
+
 template < class > class callback;
 class connection;
 class callbackBase;
@@ -79,11 +83,6 @@ enum class bufferFormat : unsigned char;
 class mask;
 class shape;
 class path;
-
-template<size_t dim, class prec = float> class transformable;
-using transformable2 = transformable<2, float>;
-using transformable3 = transformable<3, float>;
-using transformable4 = transformable<4, float>;
 
 class redirectDrawContext;
 

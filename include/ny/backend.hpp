@@ -23,11 +23,13 @@ class backend : public nonMoveable
 protected:
     backend(unsigned int i);
 
+    virtual std::unique_ptr<windowContext> createWindowContextImpl(window& win, const windowContextSettings& s) = 0;
+
 public:
     virtual bool isAvailable() const = 0;
 
     virtual std::unique_ptr<appContext> createAppContext() = 0;
-    virtual std::unique_ptr<windowContext> createWindowContext(window& win, const windowContextSettings& s = windowContextSettings()) = 0;
+    std::unique_ptr<windowContext> createWindowContext(window& win, const windowContextSettings& s = windowContextSettings());
 
     virtual bool hasNativeHandling() const { return 0; };
     virtual bool hasNativeDecoration() const { return 0; };

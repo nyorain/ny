@@ -220,7 +220,6 @@ void app::keyboardKey(keyEvent& event)
 void app::mouseMove(mouseMoveEvent& event)
 {
     mouse::setPosition(event.position);
-
     if(!mouseOver_)
     {
         if(event.handler)
@@ -229,6 +228,7 @@ void app::mouseMove(mouseMoveEvent& event)
         }
         else
         {
+            //warning
             return;
         }
     }

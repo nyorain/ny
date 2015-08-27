@@ -14,6 +14,9 @@
 #include <ny/winapi/winapiBackend.hpp>
 #endif // WithWinapi
 
+#include <ny/window.hpp>
+#include <ny/error.hpp>
+
 namespace ny
 {
 
@@ -31,6 +34,36 @@ std::unique_ptr<wc> createWC(window& win, const windowContextSettings& s){ retur
 backend::backend(unsigned int i) : id(i)
 {
     app::registerBackend(*this);
+}
+
+std::unique_ptr<windowContext> backend::createWindowContext(window& win, const windowContextSettings& settings)
+{
+    childWindow* w = dynamic_cast<childWindow*>(&win);
+    if(settings.virtualPref == preference::Must)
+    {
+        if(w)
+        {
+            return std::make_unique<virtualWindowContext>(*w, settings);
+        }
+        else
+        {
+            throw std::logic_error("backend::createWindowContext: virtual pref was set to Must for a toplevelWindow");
+            return nullptr;
+        }
+    }
+    else if(settings.virtualPref == preference::Should || settings.virtualPref == preference::DontCare)
+    {
+        if(w)
+        {
+            return std::make_unique<virtualWindowContext>(*w, settings);
+        }
+        else if(settings.virtualPref == preference::Should)
+        {
+            nyWarning("backend::createWindowContext: virtual pref was set to Should for a toplevelWindow");
+        }
+    }
+
+    return createWindowContextImpl(win, settings);
 }
 
 }

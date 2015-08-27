@@ -3,6 +3,7 @@
 #ifdef NY_WithGL
 
 #include <ny/gl/shader.hpp>
+#include <ny/error.hpp>
 
 #include <glbinding/gl/gl.h>
 #include <glbinding/Binding.h>
@@ -184,7 +185,7 @@ bool shader::compile(const std::string& vertexShader, const std::string& fragmen
             glGetShaderiv(vsID, GL_INFO_LOG_LENGTH, &infoLength);
             std::vector<char> info(infoLength);
             glGetShaderInfoLog(vsID, infoLength, nullptr, info.data());
-            std::cout << "failed to compile vertex shader:\n" << info.data() << std::endl;
+            nyWarning("failed to compile vertex shader:\n", info.data());
             vsID = 0;
         }
     }
@@ -205,7 +206,7 @@ bool shader::compile(const std::string& vertexShader, const std::string& fragmen
             glGetShaderiv(fsID, GL_INFO_LOG_LENGTH, &infoLength);
             std::vector<char> info(infoLength);
             glGetShaderInfoLog(fsID, infoLength, nullptr, info.data());
-            std::cout << "failed to compile fragment shader:\n" << info.data() << std::endl;
+            nyWarning("failed to compile fragment shader:\n", info.data());
             fsID = 0;
         }
     }

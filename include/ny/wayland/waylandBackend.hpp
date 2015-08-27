@@ -11,13 +11,14 @@ class waylandBackend : public backend
 protected:
     static const waylandBackend object;
 
+    virtual std::unique_ptr<windowContext> createWindowContextImpl(window& win, const windowContextSettings& s = windowContextSettings()) override;
+
 public:
     waylandBackend();
 
     virtual bool isAvailable() const override;
 
     virtual std::unique_ptr<appContext> createAppContext() override;
-    virtual std::unique_ptr<windowContext> createWindowContext(window& win, const windowContextSettings& s = windowContextSettings()) override;
 
     virtual bool hasNativeHandling() const override { return 0; };
     virtual bool hasNativeDecoration() const override { return 0; };

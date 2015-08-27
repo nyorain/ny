@@ -16,7 +16,7 @@ cursor::cursor(const image& data) : type_(cursorType::image), image_(data)
 void cursor::fromImage(const image& data)
 {
     image_ = data;
-    hotspot_ = - (data.getSize() / 2);
+    hotspot_ = -(data.getSize() / 2);
 
     type_ = cursorType::unknown;
 }

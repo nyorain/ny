@@ -48,7 +48,7 @@ protected:
     unsigned long hints_ = 0;
 
     //files of the types listed in the dataType (basically vector of dataTypes) will generate a dataReceiveEvent when they are dropped on the window
-    dataTypes dropAccept_;
+    dataTypes dropAccept_ {};
 
 
     //callbacks

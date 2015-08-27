@@ -11,13 +11,14 @@ class x11Backend : public backend
 protected:
     static const x11Backend object;
 
+    virtual std::unique_ptr<windowContext> createWindowContextImpl(window& win, const windowContextSettings& s) override;
+
 public:
     x11Backend();
 
     virtual bool isAvailable() const;
 
     virtual std::unique_ptr<appContext> createAppContext() override;
-    virtual std::unique_ptr<windowContext> createWindowContext(window& win, const windowContextSettings& s = windowContextSettings()) override;
 
     virtual bool hasNativeHandling() const override { return 1; };
     virtual bool hasNativeDecoration() const override { return 1; };

@@ -14,8 +14,7 @@
 namespace ny
 {
 
-constexpr const double cPi = 3.141; //todo
-constexpr const double cDeg = cPi / 180.0;
+
 
 //font
 cairoFont::cairoFont(const std::string& name, bool fromFile)
@@ -67,7 +66,7 @@ cairoDrawContext::cairoDrawContext(surface& surf) : drawContext(surf)
 {
 }
 
-cairoDrawContext::cairoDrawContext(surface& surf, cairo_surface_t& cairoSurface) : drawContext(surf), cairoSurface_(cairo_surface_reference(&cairoSurface)), cairoCR_(cairo_create(&cairoSurface))
+cairoDrawContext::cairoDrawContext(surface& surf, cairo_surface_t& cairoSurface) : drawContext(surf), cairoSurface_(&cairoSurface), cairoCR_(cairo_create(&cairoSurface))
 {
 }
 
@@ -78,8 +77,6 @@ cairoDrawContext::cairoDrawContext(image& img) : drawContext(img)
 
 cairoDrawContext::~cairoDrawContext()
 {
-    if(cairoCR_) cairo_destroy(cairoCR_);
-    if(cairoSurface_) cairo_surface_destroy(cairoSurface_); //can be done, in constructor reference is called
 }
 
 void cairoDrawContext::clear(color col)
@@ -139,15 +136,13 @@ void cairoDrawContext::resetClip()
     cairo_reset_clip(cairoCR_);
 }
 
-void cairoDrawContext::applyTransform(const transformable2& obj, vec2f pos)
+void cairoDrawContext::applyTransform(const transformable2& obj)
 {
-    cairo_translate(cairoCR_, pos.x, pos.y);
+    cairo_matrix_t tm {};
+    auto& om = obj.getTransformMatrix();
 
-    cairo_scale(cairoCR_, obj.getScale().x, obj.getScale().y);
-    cairo_rotate(cairoCR_, obj.getRotation() * cDeg); //convert from degree
-    cairo_translate(cairoCR_, obj.getTranslation().x, obj.getTranslation().y);
-
-    cairo_translate(cairoCR_, -pos.x, -pos.y);
+    cairo_matrix_init(&tm, om[0][0], om[0][1], om[1][0], om[1][1], om[0][2], om[1][2]);
+    cairo_set_matrix(cairoCR_, &tm);
 }
 
 void cairoDrawContext::resetTransform()
@@ -167,7 +162,7 @@ void cairoDrawContext::mask(const text& obj)
         return;
 
 
-    applyTransform(obj, obj.getPosition());
+    applyTransform(obj);
 
     cairo_move_to(cairoCR_, obj.getPosition().x, obj.getPosition().y);
 
@@ -193,11 +188,12 @@ void cairoDrawContext::mask(const rectangle& obj)
     if(obj.getSize() == vec2f())
         return;
 
-    applyTransform(obj, obj.getPosition());
+    applyTransform(obj);
 
     if(obj.getBorderRadius() == vec4f()) //no border radius
     {
-        cairo_rectangle(cairoCR_, obj.getPosition().x, obj.getPosition().y, obj.getSize().x, obj.getSize().y);
+        vec2f pos123 = -obj.getOrigin();
+        cairo_rectangle(cairoCR_, pos123.x, pos123.y, obj.getSize().x, obj.getSize().y);
     }
     else
     {
@@ -223,7 +219,7 @@ void cairoDrawContext::mask(const circle& obj)
     if(obj.getRadius() == 0)
         return;
 
-    applyTransform(obj, obj.getPosition());
+    applyTransform(obj);
 
     cairo_arc(cairoCR_, obj.getCenter().x, obj.getCenter().y, obj.getRadius(), 0, 360 * cDeg);
 
@@ -241,7 +237,7 @@ void cairoDrawContext::mask(const customPath& obj)
     if(obj.getPoints().size() <= 1)
         return;
 
-    applyTransform(obj, obj.getExtents().position);
+    applyTransform(obj);
 
     std::vector<point> points = obj.getPoints();
     for(unsigned int i(0); i < points.size(); i++)

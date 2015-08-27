@@ -94,14 +94,14 @@ void redirectDrawContext::clear(color col)
 void redirectDrawContext::mask(const customPath& obj)
 {
     customPath scopy = obj;
-    scopy.translate(position_);
+    scopy.move(position_);
     redirect_.mask(scopy);
 }
 
 void redirectDrawContext::mask(const text& obj)
 {
     text scopy = obj;
-    scopy.translate(position_);
+    scopy.move(position_);
     redirect_.mask(scopy);
 }
 
@@ -119,7 +119,7 @@ void redirectDrawContext::strokePreserve(const pen& col)
     redirect_.strokePreserve(col);
 }
 
-void redirectDrawContext::setSize(vec2d size)
+void redirectDrawContext::setSize(vec2f size)
 {
     size_ = size;
 }

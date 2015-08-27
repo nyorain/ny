@@ -17,6 +17,7 @@
 namespace ny
 {
 
+//wcSettings
 windowContextSettings::~windowContextSettings()
 {
 }
@@ -246,11 +247,9 @@ void window::windowPosition(positionEvent& e)
 void window::windowDraw(drawEvent& e)
 {
     drawContext& dc = windowContext_->beginDraw();
-
     draw(dc);
-
     windowContext_->finishDraw();
-}
+ }
 
 void window::draw(drawContext& dc)
 {

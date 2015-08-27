@@ -154,7 +154,7 @@ x11WindowContext::x11WindowContext(window& win, const x11WindowContextSettings& 
 
     XSetWindowAttributes attr;
     attr.colormap = XCreateColormap(getXDisplay(), DefaultRootWindow(getXDisplay()), xVinfo_->visual, AllocNone);
-    attr.event_mask = ExposureMask | StructureNotifyMask | MotionNotify | KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | EnterWindowMask | LeaveWindowMask;
+    attr.event_mask = ExposureMask | StructureNotifyMask | PointerMotionMask | KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | EnterWindowMask | LeaveWindowMask;
 
     if(!gl)
     {
@@ -299,14 +299,16 @@ void x11WindowContext::matchGLXVisualInfo()
 
 void x11WindowContext::refresh()
 {
-    //event-method
-    /*
-    drawEvent* e = new drawEvent;
-    e->handler = &window_;
-    e->backend = 0;
-    nyMainApp()->windowDraw(e);
-    */
+    //internal event method
+/*
+    drawEvent e;
+    e.handler = &window_;
+    e.backend = 0;
+    nyMainApp()->sendEvent(e);
+*/
 
+
+    //x11 method
     XEvent ev;
 
     memset(&ev, 0, sizeof(ev));
@@ -390,7 +392,6 @@ void x11WindowContext::setSize(vec2ui size, bool change)
         glx_.ctx->setSize(size);
 
     refresh();
-
 }
 
 void x11WindowContext::setPosition(vec2i position, bool change)

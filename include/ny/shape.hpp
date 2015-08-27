@@ -2,7 +2,7 @@
 
 #include <ny/include.hpp>
 #include <ny/color.hpp>
-#include <ny/util/transformable.hpp>
+#include <nyutil/transformable.hpp>
 #include <ny/font.hpp>
 
 #include <nyutil/vec.hpp>
@@ -126,8 +126,8 @@ public:
 class customPath : public transformable2
 {
 protected:
-    std::vector<point> points_;
-    mutable vertexArray baked_;
+    std::vector<point> points_ {};
+    mutable vertexArray baked_ {};
     mutable unsigned int precision_ = 10;
     mutable bool needBake_ = 0;
 
@@ -138,6 +138,7 @@ public:
     ~customPath() = default;
 
     customPath& operator=(const customPath& other) = default;
+    customPath& operator=(customPath&& other) = default;
 
     point& operator[](size_t i){ return points_[i]; }
     const point& operator[](size_t i) const { return points_[i]; }
@@ -169,18 +170,14 @@ public:
 class rectangle : public transformable2
 {
 protected:
-    vec2f position_;
     vec2f size_;
     vec4f borderRadius_;
 
 public:
-    rectangle(vec2f position = vec2f(), vec2f size = vec2f()) : position_(position), size_(size) {}
-    rectangle(float px, float py, float sx = 0, float sy = 0) : position_(px, py), size_(sx, sy) {}
+    rectangle(vec2f position = vec2f(), vec2f size = vec2f()) : size_(size) { setPosition(position); }
+    rectangle(float px, float py, float sx = 0, float sy = 0) : size_(sx, sy) { setPosition({px,py}); }
 
     rectangle(const rectangle& other) = default;
-
-    void setPosition(vec2f position){ position_ = position; }
-    void setPosition(float x, float y){ position_ = {x,y}; }
 
     void setSize(vec2f size){ size_ = size; }
     void setSize(float width, float height){ size_ = {width, height}; }
@@ -189,16 +186,15 @@ public:
     void setBorderRadius(float value){ borderRadius_.allTo(value); }
     void setBorderRadius(float leftTop, float rightTop, float rightBottom, float leftBottom){ borderRadius_ = {leftTop, rightTop, rightBottom, leftBottom}; }
 
-    vec2f getPosition() const { return position_; }
     vec2f getSize() const { return size_; }
     vec4f getBorderRadius() const { return borderRadius_; }
 
     customPath getAsCustomPath() const;
 
-    template<class prec> operator rect2<prec>() const { return rect2<prec>(position_, size_); }
+    template<class prec> operator rect2<prec>() const { return rect2<prec>(getPosition(), size_); }
 
     //inherited from transformable
-    rect2f getExtents() const { return *this; }
+    virtual rect2f getExtents() const override { return rect2f(getPosition(), size_); }
 };
 
 class text : public transformable2
@@ -259,7 +255,7 @@ public:
     float getRadius() const { return radius_; }
     unsigned int getPoints() const { return points_; }
 
-    vec2f getCenter() const { return position_ - origin_ + vec2f(radius_, radius_); } //todo?
+    vec2f getCenter() const { return getPosition() - getOrigin() + vec2f(radius_, radius_); } //todo?
 
     customPath getAsCustomPath() const;
 
@@ -314,20 +310,19 @@ public:
 
     ////transformable//////////////
     void rotate(float rotation){ getTransformable().rotate(rotation); }
-    void translate(const vec2f& translation){ getTransformable().translate(translation); }
+    void move(const vec2f& translation){ getTransformable().move(translation); }
     void scale(const vec2f& pscale){ getTransformable().scale(pscale); }
+    void moveOrigin(const vec2f& m) { getTransformable().moveOrigin(m); };
 
     void setRotation(float rotation){ getTransformable().setRotation(rotation); }
-    void setTranslation(const vec2f& translation){ getTransformable().setTranslation(translation); }
+    void setPosition(const vec2f& translation){ getTransformable().setPosition(translation); }
     void setScale(const vec2f& pscale){ getTransformable().setScale(pscale); }
+    void setOrigin(const vec2f& origin) { getTransformable().setOrigin(origin); }
 
     float getRotation() const { return getTransformable().getRotation(); }
-    const vec2f& getTranslation() const { return getTransformable().getTranslation(); }
+    const vec2f& getPosition() const { return getTransformable().getPosition(); }
     const vec2f& getScale() const { return getTransformable().getScale(); }
-
-	const vec2f& getOrigin() const { return getTransformable().getOrigin(); }
-	void setOrigin(const vec2f& origin) { getTransformable().setOrigin(origin); }
-	void moveOrigin(const vec2f& m) { getTransformable().moveOrigin(m); };
+    const vec2f& getOrigin() const { return getTransformable().getOrigin(); }
 
 	void copyTransform(const transformable2& other){ getTransformable().copyTransform(other); };
 

@@ -34,7 +34,7 @@ bool waylandBackend::isAvailable() const
     return 1;
 }
 
-std::unique_ptr<windowContext> waylandBackend::createWindowContext(window& win, const windowContextSettings& s)
+std::unique_ptr<windowContext> waylandBackend::createWindowContextImpl(window& win, const windowContextSettings& s)
 {
     waylandWindowContextSettings settings;
     const waylandWindowContextSettings* ws = dynamic_cast<const waylandWindowContextSettings*> (&s);

@@ -84,7 +84,7 @@ public:
     virtual void clip(const rect2f& obj) override {};
 	virtual void resetClip() override {};
 
-	void setSize(vec2d size);
+	void setSize(vec2f size);
 	void setPosition(vec2d position);
 
     void startClip();

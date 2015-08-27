@@ -7,6 +7,8 @@
 #include <nyutil/nonCopyable.hpp>
 #include <nyutil/vec.hpp>
 
+#include <mutex>
+
 namespace ny
 {
 
@@ -72,7 +74,7 @@ public:
     virtual void beginResize(mouseButtonEvent* ev, windowEdge edges) = 0;
 
     virtual void setTitle(const std::string& name) = 0;
-	virtual void setIcon(const image* img){};
+	virtual void setIcon(const image* img){}; //may be only important for client decoration
 };
 
 
@@ -86,32 +88,41 @@ protected:
 public:
     virtualWindowContext(childWindow& win, const windowContextSettings& = windowContextSettings());
 
-    virtual bool isVirtual() const { return 1; }
+    virtual bool isVirtual() const override { return 1; }
+    virtual bool hasGL() const override { return getParentContext()->hasGL(); };
 
-    virtual void refresh();
+    virtual void refresh() override;
 
-    virtual drawContext& beginDraw();
-    virtual void finishDraw();
+    virtual drawContext& beginDraw() override;
+    //drawContext& beginDraw(drawContext& dc); //custom overload
+    virtual void finishDraw() override;
 
-    virtual void show(){}
-    virtual void hide(){}
+    virtual void show() override {}
+    virtual void hide() override {}
 
-    virtual void setCursor(const cursor& c){}
-    virtual void updateCursor(mouseCrossEvent* ev);
+    virtual void setCursor(const cursor& c) override {}
+    virtual void updateCursor(mouseCrossEvent* ev) override;
 
-    virtual void setSize(vec2ui size, bool change = 1);
-    virtual void setPosition(vec2i position, bool change = 1);
+    virtual void setSize(vec2ui size, bool change = 1) override;
+    virtual void setPosition(vec2i position, bool change = 1) override;
 
     //
-    virtual void setWindowHints(unsigned long hints){}
-    virtual void addWindowHints(unsigned long hint){}
-    virtual void removeWindowHints(unsigned long hint){}
+    virtual void addWindowHints(unsigned long hint) override {}
+    virtual void removeWindowHints(unsigned long hint) override {}
 
-    virtual void setContextHints(unsigned long hints){}
-    virtual void addContextHints(unsigned long hints){}
-    virtual void removeContextHints(unsigned long hints){}
+    virtual void addContextHints(unsigned long hints) override {}
+    virtual void removeContextHints(unsigned long hints) override {}
 
-    virtual void setSettings(const windowContextSettings& s){}
+    //throw at these functions? warning at least?
+    virtual void setMaximized() override {}
+    virtual void setMinimized() override {}
+    virtual void setFullscreen() override {}
+    virtual void setNormal() override {} //or reset()?
+
+    virtual void beginMove(mouseButtonEvent* ev) override {}
+    virtual void beginResize(mouseButtonEvent* ev, windowEdge edges) override {}
+
+    virtual void setTitle(const std::string& name) override {};
 
     /////////
     windowContext* getParentContext() const;

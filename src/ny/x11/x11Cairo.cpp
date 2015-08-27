@@ -14,18 +14,44 @@ namespace ny
 //x11CairoContext
 x11CairoDrawContext::x11CairoDrawContext(x11WindowContext& wc) : cairoDrawContext(wc.getWindow())
 {
-    cairoSurface_ = cairo_xlib_surface_create(getXDisplay(), wc.getXWindow(), wc.getXVinfo()->visual, wc.getWindow().getWidth(),wc.getWindow().getHeight());
+    xlibSurface_ = cairo_xlib_surface_create(getXDisplay(), wc.getXWindow(), wc.getXVinfo()->visual, wc.getWindow().getWidth(),wc.getWindow().getHeight());
+    cairoSurface_ = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, wc.getWindow().getWidth(),wc.getWindow().getHeight());
     cairoCR_ = cairo_create(cairoSurface_);
 }
 
 x11CairoDrawContext::~x11CairoDrawContext()
 {
+    cairo_surface_destroy(xlibSurface_);
+    cairo_surface_destroy(cairoSurface_);
+    cairo_destroy(cairoCR_);
 }
 
 void x11CairoDrawContext::setSize(vec2ui size)
 {
-    cairo_xlib_surface_set_size(cairoSurface_, size.x, size.y);
+    cairo_surface_destroy(cairoSurface_);
+    cairo_destroy(cairoCR_);
+
+    cairoSurface_ = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, size.x, size.y);
+    cairoCR_ = cairo_create(cairoSurface_);
+
+    cairo_xlib_surface_set_size(xlibSurface_, size.x, size.y);
     resetClip();
+}
+
+void x11CairoDrawContext::apply()
+{
+    cairo_surface_flush(cairoSurface_);
+    cairo_surface_copy_page(cairoSurface_);
+
+    cairo_t* cr = cairo_create(xlibSurface_);
+
+    //cairo_set_source_rgba(cr, 1., 1., 1., 1.);
+    //cairo_paint(cr);
+
+    cairo_set_source_surface(cr, cairoSurface_, 0, 0);
+    cairo_paint(cr);
+
+    cairo_destroy(cr);
 }
 
 /*
