@@ -72,6 +72,7 @@ protected:
 
 	union
 	{
+	    int ign_dummy_ {0};
 		bezierData bezier_;
 		arcData arc_;
 	};
@@ -80,7 +81,7 @@ public:
 	vec2f position;
 
 	point() = default;
-	point(const point& other) = default;
+	point(const point& other) : style_(other.style_) { if(style_ == drawStyle::bezier) bezier_ = other.bezier_; else if(style_ == drawStyle::arc) arc_ = other.arc_; }
 	point(const vec2f& pos) : position(pos) {}
 	point(float x, float y) : position(x,y) {}
 
@@ -102,6 +103,16 @@ protected:
     std::vector<vec2f> points_;
 
 public:
+    vertexArray() = default;
+    ~vertexArray() = default;
+
+    explicit vertexArray(const vertexArray& other) = default;
+    explicit vertexArray(vertexArray&& other) = default;
+
+    vertexArray& operator=(const vertexArray& other) = default;
+    vertexArray& operator=(vertexArray&& other) = default;
+
+    ////
     vec2f& operator[](size_t i){ return points_[i]; }
     const vec2f& operator[](size_t i) const { return points_[i]; }
 
@@ -133,12 +144,12 @@ protected:
 
 public:
     customPath(vec2f start = vec2f());
-    customPath(const customPath& other) = default;
-    customPath(customPath&& other) = default;
+    customPath(const customPath& other) : points_(other.points_) {}
+    customPath(customPath&& other) noexcept : points_(std::move(other.points_)) {}
     ~customPath() = default;
 
-    customPath& operator=(const customPath& other) = default;
-    customPath& operator=(customPath&& other) = default;
+    customPath& operator=(const customPath& other){ points_ = other.points_; return *this; }
+    customPath& operator=(customPath&& other){ points_ = std::move(other.points_); return *this; }
 
     point& operator[](size_t i){ return points_[i]; }
     const point& operator[](size_t i) const { return points_[i]; }
@@ -210,6 +221,14 @@ public:
     text(const std::string& s = "", float size = 14) : size_(size), string_(s), bound_(textBound::left), font_(&font::getDefault()) {}
     text(vec2f position, const std::string& s = "", float size = 14) : position_(position), size_(size), string_(s), font_(&font::getDefault()) {};
     text(float x, float y, float size) : position_(x,y), size_(size), font_(&font::getDefault()) {}
+
+    ~text() = default;
+
+    text(const text& other){}
+    text(text&& other){}
+
+    text& operator=(const text& other) { return *this; }
+    text& operator=(text&& other) { return *this; }
 
     void setPosition(vec2f position){ position_ = position; }
     void setPosition(float x, float y){ position_ = {x,y}; }

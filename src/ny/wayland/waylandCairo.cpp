@@ -28,6 +28,8 @@ waylandCairoDrawContext::waylandCairoDrawContext(const waylandWindowContext& wc)
 
 waylandCairoDrawContext::~waylandCairoDrawContext()
 {
+    if(cairoCR_) cairo_destroy(cairoCR_);
+    if(cairoSurface_) cairo_surface_destroy(cairoSurface_);
     if(buffer_)delete buffer_;
 }
 
@@ -45,20 +47,5 @@ void waylandCairoDrawContext::setSize(vec2ui size)
     cairoCR_ = cairo_create(cairoSurface_);
 }
 
-
-/*
-void waylandCairoChildWindowContext::finishDraw()
-{
-    drawContext_->apply();
-
-    wlFrameCallback_ = wl_surface_frame(wlSurface_);
-    wl_callback_add_listener(wlFrameCallback_, &frameListener, this);
-
-    wl_surface_attach(wlSurface_, buffer_->getWlBuffer(), 0, 0);
-    wl_surface_damage(wlSurface_, 0, 0, window_.getWidth(), window_.getHeight());
-    wl_surface_commit(wlSurface_);
-    wl_display_flush(context_->getWlDisplay());
-}
-*/
 
 }

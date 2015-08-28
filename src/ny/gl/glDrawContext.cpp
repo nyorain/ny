@@ -154,7 +154,7 @@ bool glDrawContext::assureValid(bool warning) const
     if(isCurrent() && impl_)
         return 1;
 
-    if(warning) nyWarning("glDrawContext::clear: glDC not valid");
+    if(warning) nyWarning("glDrawContext: glDC not valid: isCurrent: ", isCurrent(), " impl: ", impl_.get(), " ctx: ", this);
     return 0;
 }
 

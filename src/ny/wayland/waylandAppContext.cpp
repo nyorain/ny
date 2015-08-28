@@ -9,6 +9,7 @@
 #include <ny/image.hpp>
 
 #include <nyutil/misc.hpp>
+#include <nyutil/eventLoop.hpp>
 
 #include <ny/wayland/xdg-shell-client-protocol.h>
 
@@ -16,6 +17,8 @@
 #include <ny/wayland/waylandEgl.hpp>
 #include <wayland-egl.h>
 #endif //NY_WithGL
+
+#include <cassert>
 
 namespace ny
 {
@@ -64,20 +67,19 @@ void waylandAppContext::init()
     wl_callback* syncer = wl_display_sync(wlDisplay_);
     wl_callback_add_listener(syncer, &displaySyncListener, this);
 
-    wlCursorSurface_ = wl_compositor_create_surface(wlCompositor_);
+    //wlCursorSurface_ = wl_compositor_create_surface(wlCompositor_);
 
     #ifdef NY_WithEGL
     egl_ = new waylandEGLAppContext(this);
     #endif // NY_WithGL
 
+    eventSource_.reset(new pollEventSource(nyMainApp()->getEventLoop(), wl_display_get_fd(wlDisplay_), UV_READABLE | UV_WRITABLE, 1));
+    eventSource_->onNotify.add(memberCallback(&waylandAppContext::dispatchCB, this));
 }
 
-bool waylandAppContext::mainLoop()
+void waylandAppContext::dispatchCB()
 {
-    if(wl_display_dispatch(wlDisplay_) == -1)
-        return 0;
-
-    return 1;
+    wl_display_dispatch(wlDisplay_);
 }
 
 void waylandAppContext::startDataOffer(dataSource& source, const image& img, const window& w, const event* ev)
@@ -180,9 +182,10 @@ void waylandAppContext::registryHandler(wl_registry* registry, unsigned int id, 
     else if (interface == "wl_shm")
     {
         wlShm_ = (wl_shm*) wl_registry_bind(registry, id, &wl_shm_interface, 1);
+        assert(wlShm_);
         wl_shm_add_listener(wlShm_, &shmListener, this);
 
-        wlCursorTheme_ = wl_cursor_theme_load(nullptr, 32, wlShm_);
+        wlCursorTheme_ = wl_cursor_theme_load("default", 32, wlShm_);
     }
 
     else if(interface == "wl_subcompositor")
@@ -426,7 +429,7 @@ void waylandAppContext::shmFormat(wl_shm* shm, unsigned int format)
 
 bool waylandAppContext::bufferFormatSupported(unsigned int wlBufferType)
 {
-    std::cout << wlBufferType << " " << supportedShm_.size() << std::endl;
+    //std::cout << wlBufferType << " " << supportedShm_.size() << std::endl;
     for(size_t i(0); i < supportedShm_.size(); i++)
     {
         if(supportedShm_[i] == wlBufferType)

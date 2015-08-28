@@ -274,6 +274,7 @@ drawContext& waylandWindowContext::beginDraw()
     }
     else if(getEGL() && egl_)
     {
+        egl_->makeCurrent();
         return *egl_;
     }
     else
@@ -303,6 +304,7 @@ void waylandWindowContext::finishDraw()
         wl_callback_add_listener(wlFrameCallback_, &frameListener, this);
 
         egl_->swapBuffers();
+        egl_->makeNotCurrent();
     }
     else
     {
@@ -404,8 +406,11 @@ void waylandWindowContext::sendContextEvent(contextEvent& e)
 {
     if(e.contextEventType == frameEvent)
     {
-        wl_callback_destroy(wlFrameCallback_);
-        wlFrameCallback_ = nullptr;
+        if(wlFrameCallback_)
+        {
+            wl_callback_destroy(wlFrameCallback_);
+            wlFrameCallback_ = nullptr;
+        }
 
         if(refreshFlag_)
         {

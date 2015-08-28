@@ -101,10 +101,10 @@ path::path(path&& lhs) noexcept : type_(lhs.type_)
 {
     switch(type_)
     {
-        case pathType::text: text_ = std::move(lhs.text_); break;
-        case pathType::rectangle: rectangle_ = std::move(lhs.rectangle_); break;
-        case pathType::circle: circle_ = std::move(lhs.circle_); break;
-        case pathType::custom: custom_ = std::move(lhs.custom_); break;
+        case pathType::text: text_ = lhs.text_; break;
+        case pathType::rectangle: rectangle_ = lhs.rectangle_; break;
+        case pathType::circle: circle_ = lhs.circle_; break;
+        case pathType::custom: custom_ = lhs.custom_; break;
     }
 }
 
@@ -114,10 +114,10 @@ path& path::operator=(path&& lhs) noexcept
 
     switch(type_)
     {
-        case pathType::text: text_ = std::move(lhs.text_); break;
-        case pathType::rectangle: rectangle_ = std::move(lhs.rectangle_); break;
-        case pathType::circle: circle_ = std::move(lhs.circle_); break;
-        case pathType::custom: custom_ = std::move(lhs.custom_); break;
+        case pathType::text: text_ = lhs.text_; break;
+        case pathType::rectangle: rectangle_ = lhs.rectangle_; break;
+        case pathType::circle: circle_ = lhs.circle_; break;
+        case pathType::custom: custom_ = lhs.custom_; break;
     }
 
     return *this;
@@ -125,6 +125,7 @@ path& path::operator=(path&& lhs) noexcept
 
 path::~path()
 {
+    /*
     switch (type_)
     {
         case pathType::text: text_.~text(); break;
@@ -132,6 +133,7 @@ path::~path()
         case pathType::circle: circle_.~circle(); break;
         case pathType::custom: custom_.~customPath(); break;
     }
+    */
 }
 
 const transformable2& path::getTransformable() const

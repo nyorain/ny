@@ -27,6 +27,11 @@ class threadpool;
 class task;
 class threadSafeObj;
 class nonCopyable;
+
+class eventLoop;
+class eventSource;
+class pollEventSource;
+
 }
 
 namespace ny

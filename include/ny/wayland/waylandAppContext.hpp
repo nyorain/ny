@@ -14,6 +14,7 @@
 
 #include <vector>
 #include <string>
+#include <memory>
 
 struct xdg_shell;
 
@@ -57,6 +58,8 @@ protected:
 	std::vector<unsigned int> supportedShm_;
 	std::vector<wayland::output> wlOutputs_;
 
+	std::unique_ptr<pollEventSource> eventSource_;
+
     #ifdef NY_WithEGL
     waylandEGLAppContext* egl_ = nullptr;
     #endif // NY_WithEGL
@@ -67,7 +70,7 @@ public:
 
     void init();
 
-    bool mainLoop();
+    void dispatchCB();
 
 	void startDataOffer(dataSource& source, const image& img, const window& w, const event* ev);
 	bool isOffering() const;

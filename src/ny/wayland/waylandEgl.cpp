@@ -15,21 +15,26 @@
 #include <wayland-egl.h>
 #include <EGL/egl.h>
 
+#include <GL/gl.h>
+
 namespace ny
 {
 
 waylandEGLAppContext::waylandEGLAppContext(waylandAppContext* ac)
 {
+    eglBindAPI(EGL_OPENGL_API);
+
     EGLint major, minor, count, n, size;
     EGLConfig *configs;
 
+    EGLint renderable = EGL_OPENGL_BIT; //todo
     EGLint config_attribs[] =
     {
         EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
         EGL_RED_SIZE, 8,
         EGL_GREEN_SIZE, 8,
         EGL_BLUE_SIZE, 8,
-        EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+        EGL_RENDERABLE_TYPE, renderable,
         EGL_NONE
     };
 
@@ -48,10 +53,15 @@ waylandEGLAppContext::waylandEGLAppContext(waylandAppContext* ac)
     }
 
     eglGetConfigs(eglDisplay_, nullptr, 0, &count);
+    eglChooseConfig(eglDisplay_, config_attribs, &eglConfig_, 1, &n); //todo
 
-    configs = new EGLConfig;
-    eglChooseConfig(eglDisplay_, config_attribs, configs, count, &n);
+    if(n < 1 || !eglConfig_)
+    {
+        throw std::runtime_error("Can't choose egl config");
+        return;
+    }
 
+/*
     for (int i = 0; i < n; i++)
     {
         eglGetConfigAttrib(eglDisplay_, configs[i], EGL_BUFFER_SIZE, &size);
@@ -61,6 +71,7 @@ waylandEGLAppContext::waylandEGLAppContext(waylandAppContext* ac)
         eglConfig_ = configs[i];
         break;
     }
+*/
 }
 
 waylandEGLAppContext::~waylandEGLAppContext()
@@ -92,10 +103,9 @@ waylandEGLDrawContext::waylandEGLDrawContext(const waylandWindowContext& wc) : e
         EGL_NONE
     };
 
-    eglBindAPI(EGL_OPENGL_ES_API);
     eglContext_ = eglCreateContext(egl->getDisplay(), egl->getConfig(), EGL_NO_CONTEXT, contextAttribs);
 
-    eglDrawContext::init(glApi::openGLES);
+    eglDrawContext::init(glApi::openGL);
 }
 
 waylandEGLDrawContext::~waylandEGLDrawContext()
@@ -109,6 +119,10 @@ waylandEGLDrawContext::~waylandEGLDrawContext()
 void waylandEGLDrawContext::setSize(vec2ui size)
 {
     wl_egl_window_resize(wlEGLWindow_, size.x, size.y, 0, 0);
+
+    makeCurrent();
+    glViewport(0, 0, size.x, size.y);
+    makeNotCurrent();
 }
 
 }

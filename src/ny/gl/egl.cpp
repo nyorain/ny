@@ -4,6 +4,7 @@
 #include <ny/gl/egl.hpp>
 #include <ny/app.hpp>
 #include <ny/appContext.hpp>
+#include <ny/error.hpp>
 
 #include <EGL/egl.h>
 
@@ -47,7 +48,11 @@ eglDrawContext::eglDrawContext(surface& s, EGLContext ctx, EGLSurface surf) : gl
 bool eglDrawContext::makeCurrentImpl()
 {
     if(!getEGLContext() || !eglSurface_ || !eglContext_)
+    {
+        nyWarning("eglDrawContext::makeCurrentImpl: invalid");
         return 0;
+    }
+
 
     return eglMakeCurrent(getEGLAppContext()->getDisplay(), eglSurface_, eglSurface_,  eglContext_);
 }
@@ -55,7 +60,10 @@ bool eglDrawContext::makeCurrentImpl()
 bool eglDrawContext::makeNotCurrentImpl()
 {
     if(!getEGLContext())
+    {
+        nyWarning("eglDrawContext::makeNotCurrentImpl: invalid");
         return 0;
+    }
 
     return eglMakeCurrent(getEGLAppContext()->getDisplay(),  EGL_NO_SURFACE,  EGL_NO_SURFACE,  EGL_NO_CONTEXT);
 }
@@ -63,7 +71,10 @@ bool eglDrawContext::makeNotCurrentImpl()
 bool eglDrawContext::swapBuffers()
 {
     if(!getEGLContext() || !eglSurface_)
+    {
+        nyWarning("eglDrawContext::swapBuffers: invalid");
         return 0;
+    }
 
     return eglSwapBuffers(getEGLAppContext()->getDisplay(), eglSurface_);
 }
