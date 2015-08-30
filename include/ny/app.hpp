@@ -3,12 +3,14 @@
 #include <ny/include.hpp>
 #include <ny/eventHandler.hpp>
 #include <nyutil/eventLoop.hpp>
+#include <nyutil/thread.hpp>
 
 #include <vector>
 #include <string>
 #include <map>
 #include <mutex>
 #include <thread>
+#include <atomic>
 #include <queue>
 #include <condition_variable>
 
@@ -56,23 +58,23 @@ public:
         failure = EXIT_FAILURE,
         success = EXIT_SUCCESS,
 
-        unknown = 1,
-        noChildren = 2,
-        noEventSources = 3,
-        userInput = 4,
+        unknown = 2,
+        noChildren = 3,
+        noEventSources = 4,
+        userInput = 5,
         signal = 10 // + signal number
     };
 
     static app* nyMainApp(){ return mainApp; };
 
 protected:
-    window* focus_{nullptr}; //eventHandler which has current focus
-    window* mouseOver_{nullptr}; //eventHandler on which is the mouse
+    window* focus_ {nullptr}; //eventHandler which has current focus
+    window* mouseOver_ {nullptr}; //eventHandler on which is the mouse
 
     std::unique_ptr<appContext> appContext_;
 
-    bool existing_{0}; //todo: exit
-    bool valid_{0}; //if the app was initialized (correctly)
+    std::atomic<bool> exit_ {0};
+    std::atomic<bool> valid_ {0}; //if the app was initialized (correctly)
 
     int exitReason_{exitReason::unknown};
 
@@ -83,12 +85,16 @@ protected:
 
     eventLoop mainLoop_;
 
-    //todo
-    //nyutil::msgThread eventDispatcher_ {};
-    //std::deque<event*> events_ {};
+    //todo, event dispatch system
+    std::thread dispatcher_;
+    std::deque<std::unique_ptr<event>> events_;
+    std::mutex eventMtx_;
+    std::condition_variable eventCV_;
+
+    void eventDispatcher();
 
     //replace from eventHandler
-    virtual void create(eventHandler& parent) override {};
+    //virtual void create(eventHandler& parent) override {};
 
 public:
     app();
@@ -102,9 +108,8 @@ public:
     virtual void onError();
 
     //eventHandler
-    virtual void removeChild(eventHandler& handler) override;
+    virtual bool removeChild(eventHandler& handler) override;
     virtual void destroy() override;
-    virtual void reparent(eventHandler& newParent) override {};
 
     //get/set
     window* getMouseOver() const { return mouseOver_; };
@@ -128,14 +133,14 @@ public:
     const eventLoop& getEventLoop() const { return mainLoop_; }
 
 public:
-    void sendEvent(event& ev, eventHandler& handler);
-    void sendEvent(event& ev);
+    void sendEvent(std::unique_ptr<event> ev);
 
-    void keyboardKey(keyEvent& event);
-    void mouseMove(mouseMoveEvent& event);
-    void mouseButton(mouseButtonEvent& event);
-    void mouseCross(mouseCrossEvent& event);
-    void windowFocus(focusEvent& event);
+    void keyboardKey(std::unique_ptr<keyEvent> event);
+    void mouseMove(std::unique_ptr<mouseMoveEvent> event);
+    void mouseButton(std::unique_ptr<mouseButtonEvent> event);
+    void mouseCross(std::unique_ptr<mouseCrossEvent> event);
+    void mouseWheel(std::unique_ptr<mouseWheelEvent> event);
+    void windowFocus(std::unique_ptr<focusEvent> event);
 };
 
 

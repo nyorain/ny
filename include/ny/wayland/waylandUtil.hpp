@@ -26,7 +26,8 @@ const unsigned int frameEvent = 11;
 class waylandFrameEvent : public contextEvent
 {
 public:
-    waylandFrameEvent() : contextEvent(Wayland, frameEvent) {};
+    waylandFrameEvent(eventHandler* h = nullptr) : contextEvent(h) {};
+    virtual unsigned int getContextEventType() const override { return frameEvent; }
 };
 
 

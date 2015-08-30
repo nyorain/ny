@@ -13,22 +13,37 @@ vec2i mouse::getPosition()
 
 void mouse::setPosition(vec2i pos)
 {
+    if(position == pos) return;
+
     position = pos;
+    moveCallback_(pos);
 }
 
 bool mouse::isButtonPressed(button b)
 {
-    return states[(unsigned int) b];
+    if(b == button::none) return 0;
+    return states[static_cast<unsigned int>(b)];
 }
 
 void mouse::buttonPressed(button b)
 {
-    states[(unsigned int) b] = 1;
+    if(b == button::none) return;
+    states[static_cast<unsigned int>(b)] = 1;
+
+    buttonCallback_(b, 1);
 }
 
 void mouse::buttonReleased(button b)
 {
-    states[(unsigned int) b] = 0;
+    if(b == button::none) return;
+    states[static_cast<unsigned int>(b)] = 0;
+
+    buttonCallback_(b, 0);
+}
+
+void mouse::wheelMoved(float value)
+{
+    wheelCallback_(value);
 }
 
 }

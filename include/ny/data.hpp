@@ -13,7 +13,7 @@ namespace ny
 
 namespace eventType
 {
-    const unsigned char dataReceive = 25;
+    constexpr unsigned int dataReceive = 25;
 }
 
 namespace dataType
@@ -134,13 +134,13 @@ public:
 };
 
 //event
-class dataReceiveEvent : public event
+class dataReceiveEvent : public eventBase<eventType::dataReceive>
 {
 public:
-    dataReceiveEvent(dataOffer& d) : event(eventType::dataReceive), data(d) {}
-    ~dataReceiveEvent(){ delete (&data); }
+    dataReceiveEvent(std::unique_ptr<dataOffer> d) : evBase(), data(std::move(d)) {}
+    ~dataReceiveEvent() = default;
 
-    dataOffer& data;
+    std::unique_ptr<dataOffer> data;
 };
 
 unsigned char stringToDataType(const std::string& type);

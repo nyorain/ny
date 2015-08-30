@@ -2,6 +2,7 @@
 
 #include <ny/include.hpp>
 #include <ny/widget.hpp>
+#include <nyutil/time.hpp>
 
 namespace ny
 {

@@ -1,113 +1,62 @@
 #pragma once
 
 #include <ny/include.hpp>
-
-#include <ny/mouse.hpp>
-#include <ny/keyboard.hpp>
-
-#include <nyutil/vec.hpp>
+#include <memory>
 
 namespace ny
 {
 
+//eventType
+//custom events should put their type id in this namespace
 namespace eventType
 {
-const unsigned char mouseMove = 1;
-const unsigned char mouseButton = 2;
-const unsigned char mouseWheel = 3;
-const unsigned char mouseCross = 4;
-const unsigned char key = 5;
-const unsigned char destroy = 6;
+constexpr unsigned int invalid = 0;
+constexpr unsigned int destroy = 1;
 }
 
-enum class pressState
-{
-    released = 0,
-    pressed = 1
-};
-
-enum class crossType
-{
-    left = 0,
-    entered = 1
-};
-
-
+//eventData, used by backends
 class eventData
 {
 public:
     virtual ~eventData(){}; //for dynamic cast
 };
 
+//event//////////////////
 class event
 {
 public:
-    event(unsigned int xtype);
-    virtual ~event();
+    event(eventHandler* xhandler = nullptr, eventData* xdata = nullptr) : handler(xhandler), data(xdata) {};
+    virtual ~event() = default;
 
-    template<class T> T& to()
-    {
-        return static_cast<T&>(*this);
-    };
-
-    const unsigned int type;
-    unsigned int backend {0};
     eventHandler* handler {nullptr};
-    eventData* data {nullptr}; //place for the backend to transport data (e.g. serial numbers for custom resize / move), todo: unique ptr
+    std::unique_ptr<eventData> data {nullptr}; //place for the backend to transport data (e.g. serial numbers for custom resize / move), todo: unique ptr
+
+    //cast
+    template<class T> T& to() { return static_cast<T&>(*this); };
+    template<class T> const T& to() const { return static_cast<const T&>(*this); };
+
+    //type
+    virtual unsigned int type() const = 0;
 };
 
+//eventBase
+template<unsigned int Type> class eventBase : public event
+{
+protected:
+    using evBase = eventBase<Type>;
 
-class destroyEvent : public event
+    eventBase(eventHandler* xhandler = nullptr, eventData* xdata = nullptr) : event(xhandler, xdata){};
+    virtual unsigned int type() const override { return Type; }
+};
+
+//destroy
+class destroyEvent : public eventBase<eventType::destroy>
 {
 public:
-    destroyEvent() : event(eventType::destroy){};
+    destroyEvent(eventHandler* h = nullptr, eventData* d = nullptr) : evBase(h, d) {};
+
 };
 
-class mouseButtonEvent : public event
-{
-public:
-    mouseButtonEvent() : event(eventType::mouseButton) {};
-
-    pressState state;
-    mouse::button button;
-    vec2i position;
-};
-
-class mouseMoveEvent : public event
-{
-public:
-    mouseMoveEvent() : event(eventType::mouseMove) {};
-
-    vec2i position;
-    vec2i screenPosition;
-    vec2i delta;
-};
-
-class mouseCrossEvent : public event
-{
-public:
-    mouseCrossEvent() : event(eventType::mouseCross) {};
-
-    crossType state;
-    vec2i position;
-};
-
-class mouseWheelEvent : public event
-{
-public:
-    mouseWheelEvent() : event(eventType::mouseWheel) {};
-
-    float value;
-};
-
-class keyEvent : public event
-{
-public:
-    keyEvent() : event(eventType::key) {};
-
-    pressState state;
-    keyboard::key key;
-};
 
 }
 

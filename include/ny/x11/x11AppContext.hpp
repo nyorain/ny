@@ -44,6 +44,8 @@ protected:
     void eventCallback(int, int);
     bool processEvent(XEvent& ev);
 
+    window* getHandler(Window w);
+
 public:
     x11AppContext();
     virtual ~x11AppContext();

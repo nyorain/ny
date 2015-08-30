@@ -224,14 +224,16 @@ void x11AppContext::eventCallback(int, int)
     }
 }
 
+window* x11AppContext::getHandler(Window w)
+{
+    x11WindowContext* wc = getWindowContext(w);
+    return wc ? &wc->getWindow() : nullptr;
+}
+
 void x11AppContext::sendRedrawEvent(Window w)
 {
-    drawEvent e;
     x11WindowContext* wc = getWindowContext(w);
-    if(!wc) return;
-    e.handler = &wc->getWindow();
-    e.backend = X11;
-    nyMainApp()->sendEvent(e);
+    if(wc) nyMainApp()->sendEvent(std::make_unique<drawEvent>(&wc->getWindow()));
     return;
 }
 
@@ -241,15 +243,11 @@ bool x11AppContext::processEvent(XEvent& ev)
     {
     case MotionNotify:
     {
-        mouseMoveEvent e;
-        e.backend = X11;
-        e.position = vec2i(ev.xmotion.x, ev.xmotion.y);
-        e.screenPosition = vec2i(ev.xmotion.x_root, ev.xmotion.y_root);
-        e.delta = e.position - mouse::getPosition();
-        e.data = new x11EventData(ev);
-        x11WindowContext* w = getWindowContext(ev.xmotion.window);
-        if(w) e.handler = &w->getWindow();
-        nyMainApp()->mouseMove(e);
+        auto pos = vec2i(ev.xmotion.x, ev.xmotion.y);
+        auto spos = vec2i(ev.xmotion.x_root, ev.xmotion.y_root);
+        auto delta = pos - mouse::getPosition();
+
+        nyMainApp()->mouseMove(std::make_unique<mouseMoveEvent>(getHandler(ev.xmotion.window), pos, spos, delta, new x11EventData(ev)));
         return 1;
     }
 
@@ -267,146 +265,85 @@ bool x11AppContext::processEvent(XEvent& ev)
 
     case ButtonPress:
     {
-        mouseButtonEvent e;
-        e.button = x11ToButton(ev.xbutton.button);
-        x11WindowContext* con = getWindowContext(ev.xbutton.window);
-        if(!con) return 1;
-        e.handler = &con->getWindow();
-        e.backend = X11;
-        e.data = new x11EventData(ev);
-        e.position = vec2i(ev.xbutton.x, ev.xbutton.y);
-        e.state = pressState::pressed;
-        nyMainApp()->mouseButton(e);
+        auto button = x11ToButton(ev.xbutton.button);
+        auto pos = vec2i(ev.xbutton.x, ev.xbutton.y);
+
+        nyMainApp()->mouseButton(std::make_unique<mouseButtonEvent>(getHandler(ev.xbutton.window), button, 1, pos, new x11EventData(ev)));
         return 1;
     }
 
     case ButtonRelease:
     {
-        mouseButtonEvent e;
-        e.button = x11ToButton(ev.xbutton.button);
-        x11WindowContext* con = getWindowContext(ev.xbutton.window);
-        if(!con) return 1;
-        e.handler = &con->getWindow();
-        e.backend = X11;
-        e.position = vec2i(ev.xbutton.x, ev.xbutton.y);
-        e.data = new x11EventData(ev);
-        e.state = pressState::released;
-        nyMainApp()->mouseButton(e);
+        auto button = x11ToButton(ev.xbutton.button);
+        auto pos = vec2i(ev.xbutton.x, ev.xbutton.y);
+
+        nyMainApp()->mouseButton(std::make_unique<mouseButtonEvent>(getHandler(ev.xbutton.window), button, 0, pos, new x11EventData(ev)));
         return 1;
     }
 
     case EnterNotify:
     {
-        mouseCrossEvent e;
-        e.backend = X11;
-        e.state = crossType::entered;
-        x11WindowContext* con = getWindowContext(ev.xcrossing.window);
-        if(!con) return 1;
-        e.handler = &con->getWindow();
-        e.position = vec2i(ev.xcrossing.x, ev.xcrossing.y);
-        nyMainApp()->mouseCross(e);
+        auto pos = vec2i(ev.xcrossing.x, ev.xcrossing.y);
+        nyMainApp()->mouseCross(std::make_unique<mouseCrossEvent>(getHandler(ev.xcrossing.window), 1, pos, new x11EventData(ev)));
+
         return 1;
     }
 
     case LeaveNotify:
     {
-        mouseCrossEvent e;
-        e.backend = X11;
-        e.state = crossType::left;
-        x11WindowContext* con = getWindowContext(ev.xcrossing.window);
-        if(!con) return 1;
-        e.handler = &con->getWindow();
-        e.position = vec2i(ev.xcrossing.x, ev.xcrossing.y);
-        nyMainApp()->mouseCross(e);
+        auto pos = vec2i(ev.xcrossing.x, ev.xcrossing.y);
+        nyMainApp()->mouseCross(std::make_unique<mouseCrossEvent>(getHandler(ev.xcrossing.window), 0, pos, new x11EventData(ev)));
+
         return 1;
     }
 
     case FocusIn:
     {
-        focusEvent e;
-        e.backend = X11;
-        e.state = focusState::gained;
-        x11WindowContext* con = getWindowContext(ev.xfocus.window);
-        if(!con) return 1;
-        e.handler = &con->getWindow();
-        nyMainApp()->windowFocus(e);
+        nyMainApp()->windowFocus(std::make_unique<focusEvent>(getHandler(ev.xfocus.window), 1, new x11EventData(ev)));
         return 1;
     }
 
     case FocusOut:
     {
-        focusEvent e;
-        e.backend = X11;
-        e.state = focusState::lost;
-        x11WindowContext* con = getWindowContext(ev.xfocus.window);
-        if(!con) return 1;
-        e.handler = &con->getWindow();
-        nyMainApp()->windowFocus(e);
+        nyMainApp()->windowFocus(std::make_unique<focusEvent>(getHandler(ev.xfocus.window), 0, new x11EventData(ev)));
         return 1;
     }
 
     case KeyPress:
     {
-        keyEvent e;
-        e.backend = X11;
-        e.state = pressState::pressed;
-
         KeySym keysym;
         char buffer[5];
-        XLookupString(&ev.xkey, buffer, 20, &keysym, nullptr);
-        e.key = x11ToKey(keysym);
+        XLookupString(&ev.xkey, buffer, 5, &keysym, nullptr);
+        auto key = x11ToKey(keysym);
 
-        nyMainApp()->keyboardKey(e);
+        nyMainApp()->keyboardKey(std::make_unique<keyEvent>(getHandler(ev.xkey.window), key, 1, new x11EventData(ev)));
         return 1;
     }
 
     case KeyRelease:
     {
-        keyEvent e;
-        e.backend = X11;
-        e.state = pressState::released;
-
         KeySym keysym;
         char buffer[5];
-        XLookupString(&ev.xkey, buffer, 20, &keysym, nullptr);
-        e.key = x11ToKey(keysym);
+        XLookupString(&ev.xkey, buffer, 5, &keysym, nullptr);
+        auto key = x11ToKey(keysym);
 
-        nyMainApp()->keyboardKey(e);
+        nyMainApp()->keyboardKey(std::make_unique<keyEvent>(getHandler(ev.xkey.window), key, 0, new x11EventData(ev)));
         return 1;
     }
 
     case ConfigureNotify:
     {
-        vec2ui nsize = vec2ui(ev.xconfigure.width, ev.xconfigure.height);
+        auto nsize = vec2ui(ev.xconfigure.width, ev.xconfigure.height);
+        auto npos = vec2ui(ev.xconfigure.x, ev.xconfigure.y); //positionEvent
 
-        if(!getWindowContext(ev.xconfigure.window))
+        if(!getHandler(ev.xconfigure.window))
             return 1;
 
         if(getWindowContext(ev.xconfigure.window)->getWindow().getSize() != nsize) //sizeEvent
-        {
-            sizeEvent e;
-            e.backend = X11;
-            e.data = new x11EventData(ev);
-            x11WindowContext* con = getWindowContext(ev.xconfigure.window);
-            if(!con) return 1;
-            e.handler = &con->getWindow();
-            e.size = nsize;
-            nyMainApp()->sendEvent(e);
-        }
+            nyMainApp()->sendEvent(std::make_unique<sizeEvent>(getHandler(ev.xconfigure.window), nsize, 0, new x11EventData(ev)));
 
-        vec2i nposition = vec2ui(ev.xconfigure.x, ev.xconfigure.y); //positionEvent
-
-        if(getWindowContext(ev.xconfigure.window)->getWindow().getPosition() != nposition)
-        {
-            positionEvent e;
-            e.backend = X11;
-            e.data = new x11EventData(ev);
-            x11WindowContext* con = getWindowContext(ev.xconfigure.window);
-            if(!con) return 1;
-            e.handler = &con->getWindow();
-            e.position = nposition;
-            nyMainApp()->sendEvent(e);
-        }
+        if(getWindowContext(ev.xconfigure.window)->getWindow().getPosition() != npos)
+            nyMainApp()->sendEvent(std::make_unique<positionEvent>(getHandler(ev.xconfigure.window), npos, new x11EventData(ev)));
 
         return 1;
 
@@ -415,10 +352,7 @@ bool x11AppContext::processEvent(XEvent& ev)
 
     case ReparentNotify: //nothing similar in other backend. done directly
     {
-        x11WindowContext* context = getWindowContext(ev.xreparent.window);
-        if(!context)return 1;
-        x11ReparentEvent e(ev.xreparent);
-        nyMainApp()->sendEvent(e, context->getWindow());
+        if(getHandler(ev.xreparent.window)) nyMainApp()->sendEvent(std::make_unique<x11ReparentEvent>(getHandler(ev.xreparent.window), ev.xreparent));
         return 1;
     }
 
@@ -521,12 +455,7 @@ bool x11AppContext::processEvent(XEvent& ev)
 
         else if((unsigned long)ev.xclient.data.l[0] == x11::WindowDelete)
         {
-            destroyEvent e;
-            x11WindowContext* con = getWindowContext(ev.xclient.window);
-            if(!con) return 1;
-            e.handler = &con->getWindow();
-            e.backend = X11;
-            nyMainApp()->sendEvent(e);
+            if(getHandler(ev.xclient.window)) nyMainApp()->sendEvent(std::make_unique<destroyEvent>(getHandler(ev.xclient.window)));
             return 1;
         }
     }

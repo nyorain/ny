@@ -391,7 +391,7 @@ void waylandWindowContext::updateCursor(mouseCrossEvent* ev)
 
     if(ev && ev->data)
     {
-        waylandEventData* e = dynamic_cast<waylandEventData*>(ev->data);
+        waylandEventData* e = dynamic_cast<waylandEventData*>(ev->data.get());
         if(e) serial = e->serial;
     }
 
@@ -404,7 +404,7 @@ void waylandWindowContext::updateCursor(mouseCrossEvent* ev)
 
 void waylandWindowContext::sendContextEvent(contextEvent& e)
 {
-    if(e.contextEventType == frameEvent)
+    if(e.getContextEventType() == frameEvent)
     {
         if(wlFrameCallback_)
         {
@@ -440,7 +440,7 @@ void waylandWindowContext::setNormal()
 }
 void waylandWindowContext::beginMove(mouseButtonEvent* ev)
 {
-    waylandEventData* e = dynamic_cast<waylandEventData*> (ev->data);
+    waylandEventData* e = dynamic_cast<waylandEventData*> (ev->data.get());
 
     if(!ev || !getWlShellSurface())
         return;
@@ -450,7 +450,7 @@ void waylandWindowContext::beginMove(mouseButtonEvent* ev)
 
 void waylandWindowContext::beginResize(mouseButtonEvent* ev, windowEdge edge)
 {
-    waylandEventData* e = dynamic_cast<waylandEventData*> (ev->data);
+    waylandEventData* e = dynamic_cast<waylandEventData*> (ev->data.get());
 
     if(!ev || !getWlShellSurface())
         return;

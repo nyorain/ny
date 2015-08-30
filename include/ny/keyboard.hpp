@@ -1,14 +1,14 @@
 #pragma once
 
 #include <ny/include.hpp>
+#include <ny/event.hpp>
 
 #include <bitset>
 
 namespace ny
 {
 
-//keyboard grab?
-
+//keyboard
 class keyboard
 {
 
@@ -41,5 +41,19 @@ public:
     static bool ctrlActive();
 };
 
+//events
+namespace eventType
+{
+constexpr unsigned int key = 6;
+}
+
+class keyEvent : public eventBase<eventType::key>
+{
+public:
+    keyEvent(eventHandler* h = nullptr, keyboard::key k = keyboard::none, bool p = 0, eventData* d = nullptr) : evBase(h, d), pressed(p), key(k) {}
+
+    bool pressed;
+    keyboard::key key;
+};
 
 }

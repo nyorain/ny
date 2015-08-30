@@ -1,5 +1,7 @@
 #include <ny/widgets.hpp>
 #include <ny/shape.hpp>
+#include <ny/mouse.hpp>
+#include <ny/keyboard.hpp>
 #include <ny/drawContext.hpp>
 
 namespace ny
@@ -30,14 +32,14 @@ void button::cbDraw(drawContext& dc)
 
 void button::cbButton(const mouseButtonEvent& ev)
 {
-    if(ev.button == mouse::left )
+    if(ev.button == mouse::left)
     {
-        if(ev.state == pressState::pressed)
+        if(ev.pressed)
         {
             pressed_ = 1;
             refresh();
         }
-        else if(ev.state == pressState::released)
+        else
         {
             if(pressed_)
                 clickCallback_(*this);

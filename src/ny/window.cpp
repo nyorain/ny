@@ -8,6 +8,8 @@
 #include <ny/windowContext.hpp>
 #include <ny/drawContext.hpp>
 #include <ny/style.hpp>
+#include <ny/mouse.hpp>
+#include <ny/keyboard.hpp>
 
 #include <nyutil/misc.hpp>
 
@@ -34,7 +36,6 @@ window::window(eventHandler& parent, vec2ui position, vec2ui size, const windowC
 
 window::~window()
 {
-    close();
 }
 
 void window::create(eventHandler& parent, vec2i position, vec2ui size, const windowContextSettings& settings)
@@ -74,79 +75,56 @@ void window::create(eventHandler& parent, vec2i position, vec2ui size, const win
 }
 
 
-void window::close()
+void window::destroy()
 {
-    if(!valid_)
-        return;
 
-    destroyEvent e;
-
-    e.backend = 0;
-    e.handler = this;
-
-    nyMainApp()->sendEvent(e);
 }
 
 
-bool window::processEvent(event& ev)
+bool window::processEvent(std::unique_ptr<event> ev)
 {
     if(!valid_)
         return 0;
 
     bool ret = false;
 
-    switch (ev.type)
+    switch (ev->type())
     {
+        /*
     case eventType::mouseButton:
         mouseButton(ev.to<mouseButtonEvent>());
-        ret = true;
-        break;
+        return true;
     case eventType::mouseMove:
         mouseMove(ev.to<mouseMoveEvent>());
-        ret = true;
-        break;
+        return true;
     case eventType::mouseCross:
         mouseCross(ev.to<mouseCrossEvent>());
-        ret = true;
-        break;
+        return true;
     case eventType::mouseWheel:
         mouseWheel(ev.to<mouseWheelEvent>());
-        ret = true;
-        break;
+        return true;
     case eventType::key:
         keyboardKey(ev.to<keyEvent>());
-        ret = true;
-        break;
+        return true;
     case eventType::windowFocus:
         windowFocus(ev.to<focusEvent>());
-        ret = true;
-        break;
+        return true;
     case eventType::windowSize:
         windowSize(ev.to<sizeEvent>());
-        ret = true;
-        break;
+        return true;
     case eventType::windowPosition:
         windowPosition(ev.to<positionEvent>());
-        ret = true;
-        break;
+        return true;
     case eventType::windowDraw:
         windowDraw(ev.to<drawEvent>());
-        ret = true;
-        break;
-    case eventType::destroy:
-        windowDestroy(ev.to<destroyEvent>());
-        ret = true;
-        break;
+        return true;
     case eventType::context:
         windowContext_->sendContextEvent(ev.to<contextEvent>());
-        ret = true;
-        break;
-
+        return true;
+*/
     default:
-        ret = false;
+        return false;
     }
-
-    return ret;
 }
 
 void window::refresh()
@@ -230,8 +208,7 @@ void window::setMinSize(vec2ui size)
 void window::windowSize(sizeEvent& e)
 {
     size_ = e.size;
-    if(e.backend == 0)windowContext_->setSize(size_, 1);
-    else windowContext_->setSize(size_, 0); //only informs the windowContext
+    windowContext_->setSize(size_, e.change);
 
     resizeCallback_.call(*this, size_);
 }
@@ -262,7 +239,6 @@ void window::draw(drawContext& dc)
         {
             drawEvent e;
             e.handler = wvec[i];
-            e.backend = 0;
             wvec[i]->windowDraw(e);
         }
     }
@@ -284,9 +260,13 @@ void window::windowShow(showEvent& e)
 
 void window::windowFocus(focusEvent& e)
 {
-    if(e.state == focusState::gained)
+    if(e.focusGained)
     {
         focus_ = 1;
+    }
+    else
+    {
+        focus_ = 0;
     }
 
     focusCallback_(*this, e);
@@ -296,13 +276,10 @@ std::vector<childWindow*> window::getWindowChildren()
 {
     std::vector<childWindow*> ret;
 
-    for(size_t i(0); i < children_.size(); i++)
+    for(auto child : getChildren())
     {
-        childWindow* w = dynamic_cast<childWindow*>(children_[i]);
-        if(w)
-        {
-            ret.push_back(w);
-        }
+        childWindow* w = dynamic_cast<childWindow*>(child);
+        if(w) ret.push_back(w);
     }
 
     return ret;
@@ -357,262 +334,6 @@ void window::removeWindowHints(unsigned int hints)
     windowContext_->removeWindowHints(hints);
 }
 
-
-std::unique_ptr<connection> window::onDraw(std::function<void(window&, drawContext&)> func)
-{
-    return drawCallback_.add(func);
-};
-std::unique_ptr<connection> window::onResize(std::function<void(window&, const vec2ui&)> func)
-{
-    return resizeCallback_.add(func);
-};
-std::unique_ptr<connection> window::onMove(std::function<void(window&, const vec2i&)> func)
-{
-    return moveCallback_.add(func);
-};
-std::unique_ptr<connection> window::onDestroy(std::function<void(window&, const destroyEvent&)> func)
-{
-    return destroyCallback_.add(func);
-};
-std::unique_ptr<connection> window::onFocus(std::function<void(window&, const focusEvent&)> func)
-{
-    return focusCallback_.add(func);
-};
-std::unique_ptr<connection> window::onMouseMove(std::function<void(window&, const mouseMoveEvent&)> func)
-{
-    return mouseMoveCallback_.add(func);
-};
-std::unique_ptr<connection> window::onMouseButton(std::function<void(window&, const mouseButtonEvent&)> func)
-{
-    return mouseButtonCallback_.add(func);
-};
-std::unique_ptr<connection> window::onMouseCross(std::function<void(window&, const mouseCrossEvent&)> func)
-{
-    return mouseCrossCallback_.add(func);
-};
-std::unique_ptr<connection> window::onMouseWheel(std::function<void(window&, const mouseWheelEvent&)> func)
-{
-    return mouseWheelCallback_.add(func);
-};
-std::unique_ptr<connection> window::onKey(std::function<void(window&, const keyEvent&)> func)
-{
-    return keyCallback_.add(func);
-};
-//////////////////////////////////////////////////////////////////////////////////////
-std::unique_ptr<connection> window::onDraw(std::function<void(drawContext&)> func)
-{
-    return drawCallback_.add([func](window&, drawContext& a)
-                                {
-                                    func(a);
-                                });
-};
-std::unique_ptr<connection> window::onResize(std::function<void(const vec2ui&)> func)
-{
-    return resizeCallback_.add([func](window&, const vec2ui& a)
-                                {
-                                    func(a);
-                                });
-};
-std::unique_ptr<connection> window::onMove(std::function<void(const vec2i&)> func)
-{
-    return moveCallback_.add([func](window&, const vec2i& a)
-                                {
-                                    func(a);
-                                });
-};
-std::unique_ptr<connection> window::onDestroy(std::function<void(const destroyEvent&)> func)
-{
-    return destroyCallback_.add([func](window&, const destroyEvent& a)
-                                {
-                                    func(a);
-                                });
-};
-std::unique_ptr<connection> window::onFocus(std::function<void(const focusEvent&)> func)
-{
-    return focusCallback_.add([func](window&, const focusEvent& a)
-                                {
-                                    func(a);
-                                });
-};
-std::unique_ptr<connection> window::onMouseMove(std::function<void(const mouseMoveEvent&)> func)
-{
-    return mouseMoveCallback_.add([func](window&, const mouseMoveEvent& a)
-                                {
-                                    func(a);
-                                });
-};
-std::unique_ptr<connection> window::onMouseButton(std::function<void(const mouseButtonEvent&)> func)
-{
-    return mouseButtonCallback_.add([func](window&, const mouseButtonEvent& a)
-                                {
-                                    func(a);
-                                });
-};
-std::unique_ptr<connection> window::onMouseCross(std::function<void(const mouseCrossEvent&)> func)
-{
-    return mouseCrossCallback_.add([func](window&, const mouseCrossEvent& a)
-                                {
-                                    func(a);
-                                });
-};
-std::unique_ptr<connection> window::onMouseWheel(std::function<void(const mouseWheelEvent&)> func)
-{
-    return mouseWheelCallback_.add([func](window&, const mouseWheelEvent& a)
-                                {
-                                    func(a);
-                                });
-};
-std::unique_ptr<connection> window::onKey(std::function<void(const keyEvent&)> func)
-{
-    return keyCallback_.add([func](window&, const keyEvent& a)
-                                {
-                                    func(a);
-                                });
-};
-///////////////////////////////////////////////////////////////////////////////
-std::unique_ptr<connection> window::onDraw(std::function<void(window&)> func)
-{
-    return drawCallback_.add([func](window& w, drawContext&)
-                                {
-                                    func(w);
-                                });
-};
-std::unique_ptr<connection> window::onResize(std::function<void(window&)> func)
-{
-    return resizeCallback_.add([func](window& w, const vec2ui&)
-                                {
-                                    func(w);
-                                });
-};
-std::unique_ptr<connection> window::onMove(std::function<void(window&)> func)
-{
-    return moveCallback_.add([func](window& w, const vec2i&)
-                                {
-                                    func(w);
-                                });
-};
-std::unique_ptr<connection> window::onDestroy(std::function<void(window&)> func)
-{
-    return destroyCallback_.add([func](window& w, const destroyEvent&)
-                                {
-                                    func(w);
-                                });
-};
-std::unique_ptr<connection> window::onFocus(std::function<void(window&)> func)
-{
-    return focusCallback_.add([func](window& w, const focusEvent&)
-                                {
-                                    func(w);
-                                });
-};
-std::unique_ptr<connection> window::onMouseMove(std::function<void(window&)> func)
-{
-    return mouseMoveCallback_.add([func](window& w, const mouseMoveEvent&)
-                                {
-                                    func(w);
-                                });
-};
-std::unique_ptr<connection> window::onMouseButton(std::function<void(window&)> func)
-{
-    return mouseButtonCallback_.add([func](window& w, const mouseButtonEvent&)
-                                {
-                                    func(w);
-                                });
-};
-std::unique_ptr<connection> window::onMouseCross(std::function<void(window&)> func)
-{
-    return mouseCrossCallback_.add([func](window& w, const mouseCrossEvent&)
-                                {
-                                    func(w);
-                                });
-};
-std::unique_ptr<connection> window::onMouseWheel(std::function<void(window&)> func)
-{
-    return mouseWheelCallback_.add([func](window& w, const mouseWheelEvent&)
-                                {
-                                    func(w);
-                                });
-};
-std::unique_ptr<connection> window::onKey(std::function<void(window&)> func)
-{
-    return keyCallback_.add([func](window& w, const keyEvent&)
-                                {
-                                    func(w);
-                                });
-};
-
-///////////////////////////////////////////////////////////////////////////////////////
-std::unique_ptr<connection> window::onDraw(std::function<void()> func)
-{
-    return drawCallback_.add([func](window&, const drawContext&)
-                                {
-                                    func();
-                                });
-};
-std::unique_ptr<connection> window::onResize(std::function<void()> func)
-{
-    return resizeCallback_.add([func](window&, const vec2ui)
-                                {
-                                    func();
-                                });
-};
-std::unique_ptr<connection> window::onMove(std::function<void()> func)
-{
-    return moveCallback_.add([func](window&, const vec2i)
-                                {
-                                    func();
-                                });
-};
-std::unique_ptr<connection> window::onDestroy(std::function<void()> func)
-{
-    return destroyCallback_.add([func](window&, const destroyEvent&)
-                                {
-                                    func();
-                                });
-};
-std::unique_ptr<connection> window::onFocus(std::function<void()> func)
-{
-    return focusCallback_.add([func](window&, const focusEvent&)
-                                {
-                                    func();
-                                });
-};
-std::unique_ptr<connection> window::onMouseMove(std::function<void()> func)
-{
-    return mouseMoveCallback_.add([func](window&, const mouseMoveEvent&)
-                                {
-                                    func();
-                                });
-};
-std::unique_ptr<connection> window::onMouseButton(std::function<void()> func)
-{
-    return mouseButtonCallback_.add([func](window&, const mouseButtonEvent&)
-                                {
-                                    func();
-                                });
-};
-std::unique_ptr<connection> window::onMouseCross(std::function<void()> func)
-{
-    return mouseCrossCallback_.add([func](window&, const mouseCrossEvent&)
-                                {
-                                    func();
-                                });
-};
-std::unique_ptr<connection> window::onMouseWheel(std::function<void()> func)
-{
-    return mouseWheelCallback_.add([func](window&, const mouseWheelEvent&)
-                                {
-                                    func();
-                                });
-};
-std::unique_ptr<connection> window::onKey(std::function<void()> func)
-{
-    return keyCallback_.add([func](window&, const keyEvent&)
-                                {
-                                    func();
-                                });
-};
-
 ///////////////////////////////////////////////////////////////////////////////////
 void window::mouseMove(mouseMoveEvent& e)
 {
@@ -621,7 +342,7 @@ void window::mouseMove(mouseMoveEvent& e)
 
 void window::mouseCross(mouseCrossEvent& e)
 {
-    if(e.state == crossType::entered)
+    if(e.entered)
     {
         windowContext_->updateCursor(&e);
         mouseOver_ = 1;

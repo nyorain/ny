@@ -440,7 +440,7 @@ void x11WindowContext::setMaxSize(vec2ui size)
 
 void x11WindowContext::sendContextEvent(contextEvent& e)
 {
-    if(e.contextEventType == X11Reparent)
+    if(e.getContextEventType() == X11Reparent)
     {
         wasReparented(e.to<x11ReparentEvent>());
     }
@@ -790,7 +790,7 @@ void x11WindowContext::setNormal()
 
 void x11WindowContext::beginMove(mouseButtonEvent* ev)
 {
-    x11EventData* xbev = dynamic_cast<x11EventData*>(ev->data);
+    x11EventData* xbev = dynamic_cast<x11EventData*>(ev->data.get());
     if(!xbev)
         return;
 
@@ -814,7 +814,7 @@ void x11WindowContext::beginMove(mouseButtonEvent* ev)
 
 void x11WindowContext::beginResize(mouseButtonEvent* ev, windowEdge edge)
 {
-    x11EventData* xbev = dynamic_cast<x11EventData*>(ev->data);
+    x11EventData* xbev = dynamic_cast<x11EventData*>(ev->data.get());
 
     if(!xbev)
         return;

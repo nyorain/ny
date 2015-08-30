@@ -1,43 +1,24 @@
 #pragma once
 
 #include <ny/include.hpp>
+#include <nyutil/hierachy.hpp>
 
-#include <nyutil/nonCopyable.hpp>
-#include <nyutil/thread.hpp>
-
-#include <vector>
-#include <mutex>
-#include <thread>
+#include <memory>
 
 namespace ny
 {
 
-class eventHandler : public nonCopyable, public threadSafeObj
+class eventHandler : public hierachyNode<eventHandler>
 {
 protected:
-    std::vector<eventHandler*> children_;
-    eventHandler* parent_;
-
-    virtual void create(eventHandler& parent);
-    virtual void reparent(eventHandler& newParent);
+    using hierachyBase = hierachyNode<eventHandler>;
 
     eventHandler();
-
 public:
     eventHandler(eventHandler& parent);
-    virtual ~eventHandler();
+    virtual ~eventHandler() = default;
 
-    virtual void destroy();
-
-    virtual bool processEvent(event& event); //return value defines if base class already cared about the object
-
-    virtual eventHandler* getParent() const { return parent_; };
-    virtual std::vector<eventHandler*> getChildren() const { return children_; }
-
-    virtual void addChild(eventHandler& child);
-    virtual void removeChild(eventHandler& child);
-
-    virtual bool isValid() const { return (parent_); }
+    virtual bool processEvent(std::unique_ptr<event> event); //returns if event was processed (1) or ignored (0)
 };
 
 }

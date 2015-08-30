@@ -7,6 +7,8 @@
 #include <ny/backend.hpp>
 #include <ny/window.hpp>
 #include <ny/font.hpp>
+#include <ny/keyboard.hpp>
+#include <ny/mouse.hpp>
 
 #include <nyutil/thread.hpp>
 #include <nyutil/time.hpp>
@@ -154,28 +156,29 @@ void app::exit(int reason)
 
     mainLoop_.stop();
 
-    existing_ = 0;
-    valid_ = 0;
+    exit_ = 1;
 
     threadpool_.reset();
-
     destroy(); //from eventHandler
 
     appContext_->exit();
+    valid_ = 0;
 }
 
 
-void app::removeChild(eventHandler& child)
+bool app::removeChild(eventHandler& child)
 {
     if(focus_ == &child) focus_ = nullptr;
     if(mouseOver_ == &child) mouseOver_ = nullptr;
 
-    eventHandler::removeChild(child);
+    bool ret = eventHandler::removeChild(child);
 
-    if(children_.size() == 0 && settings_.exitWithoutChildren)
+    if(getChildren().size() == 0 && settings_.exitWithoutChildren)
     {
         exit();
     }
+
+    return ret;
 }
 
 void app::destroy()
@@ -183,103 +186,151 @@ void app::destroy()
     eventHandler::destroy();
 }
 
-void app::sendEvent(event& ev, eventHandler& handler)
+void app::sendEvent(std::unique_ptr<event> ev)
 {
-    handler.lock();
-    handler.processEvent(ev);
-    handler.unlock();
+    //todo: check if old events can be overriden
+
+    {
+        std::lock_guard<std::mutex> lck(eventMtx_);
+        events_.emplace_back(std::move(ev));
+    }
+
+    eventCV_.notify_one();
 }
 
-void app::sendEvent(event& ev)
+void app::eventDispatcher()
 {
-    if(ev.handler)
-        sendEvent(ev, *ev.handler);
+    std::unique_lock<std::mutex> lck(eventMtx_);
+
+    while(!exit_.load())
+    {
+        while(events_.empty() && !exit_.load()) eventCV_.wait(lck);
+        if(exit_.load()) return;
+
+        auto ev = std::move(events_.front());
+        events_.pop_front();
+
+        lck.unlock();
+        if(ev->handler) ev->handler->processEvent(std::move(ev));
+        lck.lock();
+    }
 }
 
 //keyboard Events
-void app::windowFocus(focusEvent& event)
+void app::windowFocus(std::unique_ptr<focusEvent> event)
 {
-    if(event.handler == nullptr) return;
+    if(!event->handler) return;
 
-    if(event.state == focusState::gained)focus_ = dynamic_cast<window*>(event.handler);
-    else if(event.state == focusState::lost && event.handler == focus_)focus_ = nullptr;
+    if(event->focusGained)focus_ = dynamic_cast<window*>(event->handler);
+    else if(event->handler == focus_)focus_ = nullptr;
 
-    sendEvent(event, *event.handler);
+    sendEvent(std::move(event));
 }
 
-void app::keyboardKey(keyEvent& event)
+void app::keyboardKey(std::unique_ptr<keyEvent> event)
 {
-    if(event.state == pressState::pressed)keyboard::keyPressed(event.key);
-    else keyboard::keyReleased(event.key);
+    if(event->pressed) keyboard::keyPressed(event->key);
+    else keyboard::keyReleased(event->key);
 
-    if(focus_) sendEvent(event, *focus_);
+    if(!event->handler)
+    {
+        if(!focus_)
+            return;
+
+        event->handler = focus_;
+    }
+    else if(event->handler != focus_)
+    {
+        //strange, what do to here?
+    }
+
+    sendEvent(std::move(event));
 }
 
 
 //mouseEvents
-void app::mouseMove(mouseMoveEvent& event)
+void app::mouseMove(std::unique_ptr<mouseMoveEvent> event)
 {
-    mouse::setPosition(event.position);
+    mouse::setPosition(event->position);
     if(!mouseOver_)
     {
-        if(event.handler)
+        if(event->handler)
         {
-            mouseOver_ = dynamic_cast<window*>(event.handler);
-        }
-        else
-        {
-            //warning
-            return;
+            mouseOver_ = dynamic_cast<window*>(event->handler);
         }
     }
-
-    if(mouseOver_)
+    else if(!event->handler)
     {
-        window* child = mouseOver_->getTopLevelParent()->getWindowAt(event.position);
-
-        if(child && child != mouseOver_)
-        {
-            mouseCrossEvent leaveEv;
-            leaveEv.handler = mouseOver_;
-            leaveEv.state = crossType::left;
-            mouseCross(leaveEv);
-
-            mouseCrossEvent enterEv;
-            enterEv.handler = child;
-            enterEv.state = crossType::entered;
-            mouseCross(enterEv);
-
-            mouseOver_ = child;
-        }
+        event->handler = mouseOver_;
     }
 
-    sendEvent(event, *mouseOver_);
+    if(!event->handler)
+    {
+        nyWarning("app::mouseMove: unaware of current mouse-over window and received mouseMove event without valid handler");
+        return;
+    }
+
+
+    window* child = mouseOver_->getTopLevelParent()->getWindowAt(event->position);
+
+    if(child && child != mouseOver_)
+    {
+        mouseCross(std::make_unique<mouseCrossEvent>(mouseOver_, 0));
+        mouseCross(std::make_unique<mouseCrossEvent>(child, 1));
+
+        mouseOver_ = child;
+    }
+
+    sendEvent(std::move(event));
 }
 
-void app::mouseButton(mouseButtonEvent& event)
+void app::mouseButton(std::unique_ptr<mouseButtonEvent> event)
 {
-    if(event.state == pressState::pressed)mouse::buttonPressed(event.button);
-    else mouse::buttonReleased(event.button);
+    if(event->pressed)mouse::buttonPressed(event->button);
+    else mouse::buttonReleased(event->button);
 
-    if(mouseOver_) sendEvent(event, *mouseOver_);
+    if(!mouseOver_)
+    {
+        return;
+    }
+    else if(!event->handler)
+    {
+        event->handler = mouseOver_;
+    }
+    else if(event->handler != mouseOver_)
+    {
+        //strange
+    }
+
+    sendEvent(std::move(event));
 }
 
-void app::mouseCross(mouseCrossEvent& event)
+void app::mouseCross(std::unique_ptr<mouseCrossEvent> event)
 {
-    if(event.handler == nullptr) return;
+    if(event->handler == nullptr)
+    {
+        nyWarning("app::mouseCross: event with no handler");
+        return;
+    }
 
     //if childWindow is directly at the edge
-    window* w = dynamic_cast<window*>(event.handler);
-    if(w && event.state == crossType::entered)
+    window* w = dynamic_cast<window*>(event->handler);
+    if(w && event->entered)
     {
-        window* child = w->getWindowAt(event.position);
-        if(child) event.handler = child;
+        window* child = w->getWindowAt(event->position);
+        if(child) event->handler = child;
     }
 
-    if(event.state == crossType::entered) mouseOver_ = w;
-    else if(event.state == crossType::left && event.handler == mouseOver_) mouseOver_ = nullptr;
+    if(event->entered) mouseOver_ = w;
+    else if(event->handler == mouseOver_) mouseOver_ = nullptr;
 
-    sendEvent(event, *event.handler);
+    sendEvent(std::move(event));
+}
+
+void app::mouseWheel(std::unique_ptr<mouseWheelEvent> event)
+{
+    mouse::wheelMoved(event->value);
+    sendEvent(std::move(event));
 }
 
 

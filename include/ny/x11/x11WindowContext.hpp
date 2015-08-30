@@ -22,11 +22,13 @@ public:
 };
 
 ////
-const unsigned int X11Reparent = 1;
+constexpr unsigned int X11Reparent = 11;
 class x11ReparentEvent : public contextEvent
 {
 public:
-    x11ReparentEvent(const XReparentEvent& e) : contextEvent(X11, X11Reparent), ev(e) {};
+    x11ReparentEvent(eventHandler* h = nullptr, const XReparentEvent& e = XReparentEvent()) : contextEvent(h), ev(e) {};
+    virtual unsigned int getContextEventType() const override { return X11Reparent; }
+
     XReparentEvent ev;
 };
 

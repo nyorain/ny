@@ -132,7 +132,7 @@ void waylandAppContext::startDataOffer(dataSource& source, const image& img, con
         wl_data_source_offer(wlDataSource_, vec[i].c_str());
 
     waylandEventData* data;
-    if(!ev->data || !(data = dynamic_cast<waylandEventData*>(ev->data)))
+    if(!ev->data || !(data = dynamic_cast<waylandEventData*>(ev->data.get())))
     {
         return;
     }
@@ -262,82 +262,47 @@ void waylandAppContext::seatCapabilities(wl_seat* seat, unsigned int caps)
 
 void waylandAppContext::eventMouseMove(wl_pointer *pointer, unsigned int time, int sx, int sy)
 {
-    mouseMoveEvent e;
+    auto pos = vec2i(wl_fixed_to_int(sx), wl_fixed_to_int(sy));
+    auto delta = pos - mouse::getPosition();
 
-    e.position = vec2i(wl_fixed_to_int(sx), wl_fixed_to_int(sy));
-    e.delta = e.position - mouse::getPosition();
-
-    e.backend = Wayland;
-
-    nyMainApp()->mouseMove(e);
+    nyMainApp()->mouseMove(std::make_unique<mouseMoveEvent>(nullptr, pos, vec2i(), delta));
 }
 
 void waylandAppContext::eventMouseEnterSurface(wl_pointer *pointer, unsigned int serial, wl_surface *surface, int sx, int sy)
 {
-    if(!surface) return;
-
-    mouseCrossEvent e;
-    e.state = crossType::entered;
-
-    e.backend = Wayland;
+    assert(surface);
 
     void* data = wl_surface_get_user_data(surface);
-
     if(!data) return;
 
-    waylandWC* con = static_cast<waylandWC*>(data);
-    e.handler = &con->getWindow();
+    auto handler = &(static_cast<waylandWC*>(data))->getWindow();
+    auto pos = vec2i(wl_fixed_to_int(sx), wl_fixed_to_int(sy));
 
-    e.data = new waylandEventData(serial);
-    e.position = vec2i(wl_fixed_to_int(sx), wl_fixed_to_int(sy));
-
-    nyMainApp()->mouseCross(e);
+    nyMainApp()->mouseCross(std::make_unique<mouseCrossEvent>(handler, 1, pos, new waylandEventData(serial)));
 }
 
 void waylandAppContext::eventMouseLeaveSurface(wl_pointer *pointer, unsigned int serial, wl_surface *surface)
 {
-    if(!surface) return;
-
-    mouseCrossEvent e;
-    e.state = crossType::left;
-
-    e.backend = Wayland;
+    assert(surface);
 
     void* data = wl_surface_get_user_data(surface);
-
     if(!data) return;
 
-    waylandWC* con = static_cast<waylandWC*>(data);
-    e.handler = &con->getWindow();
+    auto handler = &(static_cast<waylandWC*>(data))->getWindow();
 
-    e.data = new waylandEventData(serial);
-
-    nyMainApp()->mouseCross(e);
+    nyMainApp()->mouseCross(std::make_unique<mouseCrossEvent>(handler, 0, vec2i(), new waylandEventData(serial)));
 }
 
 void waylandAppContext::eventMouseButton(wl_pointer *wl_pointer, unsigned int serial, unsigned int time, unsigned int button, unsigned int state)
 {
-    mouseButtonEvent e;
-
-    e.button = waylandToButton(button);
-    if(state == 1) e.state = pressState::pressed;
-    else if(state == 0) e.state = pressState::released;
-
-    e.backend = Wayland;
-    e.data = new waylandEventData(serial);
-    e.position = mouse::getPosition();
-
-    nyMainApp()->mouseButton(e);
+    auto buttn = waylandToButton(button);
+    nyMainApp()->mouseButton(std::make_unique<mouseButtonEvent>(nullptr, buttn, static_cast<bool>(state)));
 }
 
 void waylandAppContext::eventMouseAxis(wl_pointer *pointer, unsigned int time, unsigned int axis, int value)
 {
-    mouseWheelEvent e;
-
-    e.value = value;
-    e.backend = Wayland;
-
-    nyMainApp()->sendEvent(e);
+    //todo
+    nyMainApp()->sendEvent(std::make_unique<mouseWheelEvent>(nullptr, value));
 }
 
 //keyboard
@@ -348,56 +313,32 @@ void waylandAppContext::eventKeyboardKeymap(wl_keyboard *keyboard, unsigned int 
 
 void waylandAppContext::eventKeyboardEnterSurface(wl_keyboard *keyboard, unsigned int serial, wl_surface *surface, wl_array *keys)
 {
-    if(!surface) return;
-
-    focusEvent e;
-    e.state = focusState::gained;
-
-    e.backend = Wayland;
+    assert(surface);
 
     void* data = wl_surface_get_user_data(surface);
     if(!data) return;
 
-    waylandWC* con = static_cast<waylandWC*>(data);
-    e.handler = &con->getWindow();
+    auto handler = &(static_cast<waylandWC*>(data))->getWindow();
 
-    e.data = new waylandEventData(serial);
-
-    nyMainApp()->windowFocus(e);
+    nyMainApp()->windowFocus(std::make_unique<focusEvent>(handler, 1, new waylandEventData(serial)));
 }
 
 void waylandAppContext::eventKeyboardLeaveSurface(wl_keyboard *keyboard, unsigned int serial, wl_surface *surface)
 {
-    if(!surface) return;
-
-    focusEvent e;
-    e.state = focusState::lost;
-
-    e.backend = Wayland;
+    assert(surface);
 
     void* data = wl_surface_get_user_data(surface);
     if(!data) return;
 
-    waylandWC* con = static_cast<waylandWC*>(data);
-    e.handler = &con->getWindow();
+    auto handler = &(static_cast<waylandWC*>(data))->getWindow();
 
-    e.data = new waylandEventData(serial);
-
-
-    nyMainApp()->windowFocus(e);
+    nyMainApp()->windowFocus(std::make_unique<focusEvent>(handler, 0, new waylandEventData(serial)));
 }
 
 void waylandAppContext::eventKeyboardKey(wl_keyboard *keyboard, unsigned int serial, unsigned int time, unsigned int key, unsigned int state)
 {
-    keyEvent e;
-
-    e.backend = Wayland;
-
-    e.key = waylandToKey(key);
-    if(state == 1)e.state = pressState::pressed;
-    else if(state == 0)e.state = pressState::released;
-
-    nyMainApp()->keyboardKey(e);
+    auto ky = waylandToKey(key);
+    nyMainApp()->keyboardKey(std::make_unique<keyEvent>(nullptr, ky, static_cast<bool>(state), new waylandEventData(serial)));
 }
 
 void waylandAppContext::eventKeyboardModifiers(wl_keyboard *keyboard, unsigned int serial, unsigned int mods_depressed, unsigned int mods_latched, unsigned int mods_locked, unsigned int group)
@@ -407,19 +348,16 @@ void waylandAppContext::eventKeyboardModifiers(wl_keyboard *keyboard, unsigned i
 
 void waylandAppContext::eventWindowResized(wl_shell_surface* shellSurface, unsigned int edges, unsigned int width, unsigned int height)
 {
-    sizeEvent e;
+    if(!wl_shell_surface_get_user_data(shellSurface))
+    {
+        //warning
+        return;
+    }
 
-    e.backend = Wayland;
+    auto handler = &static_cast<waylandWindowContext*>(wl_shell_surface_get_user_data(shellSurface))->getWindow();
+    auto size = vec2ui(width, height);
 
-    e.size = vec2ui(width, height);
-    waylandWindowContext* w = static_cast<waylandWindowContext*> (wl_shell_surface_get_user_data(shellSurface));
-
-    if(!w)
-        return; //todo: warning or ciritcal error?
-
-    e.handler = &w->getWindow();
-
-    nyMainApp()->sendEvent(e);
+    nyMainApp()->sendEvent(std::make_unique<sizeEvent>(handler, size, 1));
 }
 
 void waylandAppContext::shmFormat(wl_shm* shm, unsigned int format)

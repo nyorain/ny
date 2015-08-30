@@ -42,15 +42,10 @@ const wl_shell_surface_listener shellSurfaceListener =
 };
 
 //frameCallback//////////////////////////////////////////////////////////////////
-void surfaceHandleFrame(void* data,  wl_callback *callback, uint32_t time)
+void surfaceHandleFrame(void* data, wl_callback *callback, uint32_t time)
 {
-    waylandWC* wc =  (waylandWindowContext*)data;
-
-    waylandFrameEvent ev;
-    ev.handler = &wc->getWindow();
-    ev.backend = Wayland;
-
-    nyMainApp()->sendEvent(ev, *ev.handler);
+    waylandWC* wc = (waylandWindowContext*)data;
+    nyMainApp()->sendEvent(std::make_unique<waylandFrameEvent>(&wc->getWindow()));
 }
 const wl_callback_listener frameListener =
 {
@@ -58,7 +53,7 @@ const wl_callback_listener frameListener =
 };
 
 //globalRegistry/////////////////////////////////////////////////////////////////
-void globalRegistryHandleAdd(void* data,  wl_registry* registry, uint32_t id, const char* interface, uint32_t version)
+void globalRegistryHandleAdd(void* data, wl_registry* registry, uint32_t id, const char* interface, uint32_t version)
 {
     waylandAppContext* a = (waylandAppContext*) data;
     a->registryHandler(registry, id, interface, version);
@@ -89,7 +84,7 @@ const wl_shm_listener shmListener =
 };
 
 //seat///////////////////////////////////////////////////////////////
-void seatHandleCapabilities(void* data,  wl_seat* seat, unsigned int caps)
+void seatHandleCapabilities(void* data, wl_seat* seat, unsigned int caps)
 {
     waylandAppContext* a = (waylandAppContext*) data;
     a->seatCapabilities(seat, caps);
@@ -271,24 +266,12 @@ const xdg_shell_listener xdgShellListener =
 void xdgSurfaceConfigure(void *data, struct xdg_surface *xdg_surface, int32_t width, int32_t height, struct wl_array *states, uint32_t serial)
 {
     waylandWindowContext* wc = (waylandWindowContext*) data;
-
-    sizeEvent ev;
-    ev.backend = Wayland;
-    ev.data = new waylandEventData(serial);
-    ev.size = vec2ui(width, height);
-    ev.handler = &wc->getWindow();
-
-    nyMainApp()->sendEvent(ev, wc->getWindow());
+    nyMainApp()->sendEvent(std::make_unique<sizeEvent>(&wc->getWindow(), vec2ui(width, height), 1, new waylandEventData(serial)));
 }
 void xdgSurfaceClose(void *data, struct xdg_surface *xdg_surface)
 {
     waylandWindowContext* wc = (waylandWindowContext*) data;
-
-    destroyEvent ev;
-    ev.backend = Wayland;
-    ev.handler = &wc->getWindow();
-
-    nyMainApp()->sendEvent(ev, wc->getWindow());
+    nyMainApp()->sendEvent(std::make_unique<destroyEvent>(&wc->getWindow()));
 }
 const xdg_surface_listener xdgSurfaceListener =
 {

@@ -110,11 +110,10 @@ public:
     //todo: which of them have to be virtual? rethink - maybe some of the <basic window functions> should be virtual, too
 
     //returns if the given event was processed by the window
-    virtual bool processEvent(event& event);
+    virtual bool processEvent(std::unique_ptr<event> event) override;
+    virtual void destroy() override;
 
-    virtual void close();
-
-    virtual window* getParent() const = 0;
+    virtual window* getParent() const override { return dynamic_cast<window*>(getParent()); }
 
     virtual toplevelWindow* getTopLevelParent() = 0;
     virtual const toplevelWindow* getTopLevelParent() const = 0;
@@ -157,53 +156,16 @@ public:
 
     /////////////////////////////////////////////////////////////////////
     //callbacks
-    //different overloads. accept different kind of functions
-    std::unique_ptr<connection> onDraw(std::function<void(window&, drawContext&)> func);
-    std::unique_ptr<connection> onResize(std::function<void(window&, const vec2ui&)> func);
-    std::unique_ptr<connection> onMove(std::function<void(window&, const vec2i&)> func);
-    std::unique_ptr<connection> onDestroy(std::function<void(window&, const destroyEvent&)> func);
-    std::unique_ptr<connection> onFocus(std::function<void(window&, const focusEvent&)> func);
-    std::unique_ptr<connection> onMouseMove(std::function<void(window&, const mouseMoveEvent&)> func);
-    std::unique_ptr<connection> onMouseButton(std::function<void(window&, const mouseButtonEvent&)> func);
-    std::unique_ptr<connection> onMouseCross(std::function<void(window&, const mouseCrossEvent&)> func);
-    std::unique_ptr<connection> onMouseWheel(std::function<void(window&, const mouseWheelEvent&)> func);
-    std::unique_ptr<connection> onKey(std::function<void(window&, const keyEvent&)> func);
-
-    //without window& parameter
-    std::unique_ptr<connection> onDraw(std::function<void(drawContext&)> func);
-    std::unique_ptr<connection> onResize(std::function<void(const vec2ui&)> func);
-    std::unique_ptr<connection> onMove(std::function<void(const vec2i&)> func);
-    std::unique_ptr<connection> onDestroy(std::function<void(const destroyEvent&)> func);
-    std::unique_ptr<connection> onFocus(std::function<void(const focusEvent&)> func);
-    std::unique_ptr<connection> onMouseMove(std::function<void(const mouseMoveEvent&)> func);
-    std::unique_ptr<connection> onMouseButton(std::function<void(const mouseButtonEvent&)> func);
-    std::unique_ptr<connection> onMouseCross(std::function<void(const mouseCrossEvent&)> func);
-    std::unique_ptr<connection> onMouseWheel(std::function<void(const mouseWheelEvent&)> func);
-    std::unique_ptr<connection> onKey(std::function<void(const keyEvent&)> func);
-
-    //only window& as parameter
-    std::unique_ptr<connection> onDraw(std::function<void(window&)> func);
-    std::unique_ptr<connection> onResize(std::function<void(window&)> func);
-    std::unique_ptr<connection> onMove(std::function<void(window&)> func);
-    std::unique_ptr<connection> onDestroy(std::function<void(window&)> func);
-    std::unique_ptr<connection> onFocus(std::function<void(window&)> func);
-    std::unique_ptr<connection> onMouseMove(std::function<void(window&)> func);
-    std::unique_ptr<connection> onMouseButton(std::function<void(window&)> func);
-    std::unique_ptr<connection> onMouseCross(std::function<void(window&)> func);
-    std::unique_ptr<connection> onMouseWheel(std::function<void(window&)> func);
-    std::unique_ptr<connection> onKey(std::function<void(window&)> func);
-
-    //without any parameters
-    std::unique_ptr<connection> onDraw(std::function<void()> func);
-    std::unique_ptr<connection> onResize(std::function<void()> func);
-    std::unique_ptr<connection> onMove(std::function<void()> func);
-    std::unique_ptr<connection> onDestroy(std::function<void()> func);
-    std::unique_ptr<connection> onFocus(std::function<void()> func);
-    std::unique_ptr<connection> onMouseMove(std::function<void()> func);
-    std::unique_ptr<connection> onMouseButton(std::function<void()> func);
-    std::unique_ptr<connection> onMouseCross(std::function<void()> func);
-    std::unique_ptr<connection> onMouseWheel(std::function<void()> func);
-    std::unique_ptr<connection> onKey(std::function<void()> func);
+    template<typename F> std::unique_ptr<connection> onDraw(F&& func){ return drawCallback_.add(func); }
+    template<typename F> std::unique_ptr<connection> onResize(F&& func){ return resizeCallback_.add(func); }
+    template<typename F> std::unique_ptr<connection> onMove(F&& func){ return moveCallback_.add(func); }
+    template<typename F> std::unique_ptr<connection> onDestroy(F&& func){ return destroyCallback_.add(func); }
+    template<typename F> std::unique_ptr<connection> onFocus(F&& func){ return focusCallback_.add(func); }
+    template<typename F> std::unique_ptr<connection> onMouseMove(F&& func){ return mouseMoveCallback_.add(func); }
+    template<typename F> std::unique_ptr<connection> onMouseButton(F&& func){ return mouseButtonCallback_.add(func); }
+    template<typename F> std::unique_ptr<connection> onMouseCross(F&& func){ return mouseCrossCallback_.add(func); }
+    template<typename F> std::unique_ptr<connection> onMouseWheel(F&& func){ return mouseWheelCallback_.add(func); }
+    template<typename F> std::unique_ptr<connection> onKey(F&& func){ return keyCallback_.add(func); }
 
     /////////////////////////////////////////////////////
     //const getters
@@ -311,8 +273,6 @@ protected:
 
 public:
     childWindow(window& parent, vec2i position, vec2ui size, windowContextSettings settings = windowContextSettings());
-
-    virtual window* getParent() const { return dynamic_cast<window*> (parent_); };
 
     const toplevelWindow* getTopLevelParent() const { return getParent()->getTopLevelParent(); };
     toplevelWindow* getTopLevelParent() { return getParent()->getTopLevelParent(); };
