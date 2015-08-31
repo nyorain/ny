@@ -20,23 +20,16 @@ namespace ny
 {
 
 //wcSettings
-windowContextSettings::~windowContextSettings()
-{
-}
+windowContextSettings::~windowContextSettings() = default;
 
 //window//////////////////////////////////////////////////////////////////////////////
-window::window() : eventHandler(), surface(), position_(0,0), minSize_(0,0), maxSize_(UINT_MAX, UINT_MAX), focus_(0), valid_(0), mouseOver_(0), windowContext_(nullptr)
-{
-}
-
-window::window(eventHandler& parent, vec2ui position, vec2ui size, const windowContextSettings& settings) : eventHandler(), surface(), position_(0,0), minSize_(0,0), maxSize_(UINT_MAX, UINT_MAX), focus_(0), valid_(0), mouseOver_(0), windowContext_(nullptr)
+window::window(eventHandler& parent, vec2ui position, vec2ui size, const windowContextSettings& settings) : eventHandler(), surface(), maxSize_(UINT_MAX, UINT_MAX)
 {
     create(parent, size, position);
 }
 
-window::~window()
-{
-}
+window::window() = default;
+window::~window() = default;
 
 void window::create(eventHandler& parent, vec2i position, vec2ui size, const windowContextSettings& settings)
 {
@@ -71,74 +64,88 @@ void window::create(eventHandler& parent, vec2i position, vec2ui size, const win
     hints_ |= newWC->getAdditionalWindowHints();
 
     windowContext_ = std::move(newWC);
-    valid_ = 1;
 }
-
 
 void window::destroy()
 {
-
+    destroyCallback_(*this);
+    eventHandler::destroy();
+    windowContext_.reset();
 }
-
 
 bool window::processEvent(std::unique_ptr<event> ev)
 {
-    if(!valid_)
-        return 0;
-
-    bool ret = false;
+    if(!checkValid()) return 0;
+    if(eventHandler::processEvent(ev->clone())) return 1;
 
     switch (ev->type())
     {
-        /*
     case eventType::mouseButton:
-        mouseButton(ev.to<mouseButtonEvent>());
+        mouseButton(event_cast<mouseButtonEvent>(std::move(ev)));
         return true;
     case eventType::mouseMove:
-        mouseMove(ev.to<mouseMoveEvent>());
+        mouseMove(event_cast<mouseMoveEvent>(std::move(ev)));
         return true;
     case eventType::mouseCross:
-        mouseCross(ev.to<mouseCrossEvent>());
+        mouseCross(event_cast<mouseCrossEvent>(std::move(ev)));
         return true;
     case eventType::mouseWheel:
-        mouseWheel(ev.to<mouseWheelEvent>());
+        mouseWheel(event_cast<mouseWheelEvent>(std::move(ev)));
         return true;
     case eventType::key:
-        keyboardKey(ev.to<keyEvent>());
+        keyboardKey(event_cast<keyEvent>(std::move(ev)));
         return true;
     case eventType::windowFocus:
-        windowFocus(ev.to<focusEvent>());
+        windowFocus(event_cast<focusEvent>(std::move(ev)));
         return true;
     case eventType::windowSize:
-        windowSize(ev.to<sizeEvent>());
+        windowSize(event_cast<sizeEvent>(std::move(ev)));
         return true;
     case eventType::windowPosition:
-        windowPosition(ev.to<positionEvent>());
+        windowPosition(event_cast<positionEvent>(std::move(ev)));
         return true;
     case eventType::windowDraw:
-        windowDraw(ev.to<drawEvent>());
+        windowDraw(event_cast<drawEvent>(std::move(ev)));
+        return true;
+    case eventType::windowShow:
+        windowShow(event_cast<showEvent>(std::move(ev)));
+        return true;
+    case eventType::windowRefresh:
+        refresh();
         return true;
     case eventType::context:
-        windowContext_->sendContextEvent(ev.to<contextEvent>());
+        windowContext_->sendContextEvent(event_cast<contextEvent>(std::move(ev)));
         return true;
-*/
+
     default:
         return false;
     }
 }
 
+bool window::valid() const
+{
+    return eventHandler::valid() && windowContext_.get();
+}
+
+
+//////////////////////////////////////////////
+bool window::checkValid() const
+{
+    if(valid()) return 1;
+
+    nyWarning("Used invalid window ", this, ", action will not be executed");
+    return 0;
+}
+
 void window::refresh()
 {
-    if(!valid_)
-        return;
-
+    if(!checkValid()) return;
     windowContext_->refresh();
 }
 
 void window::setSize(vec2ui size)
 {
-    if(!valid_)
-        return;
+    if(!checkValid()) return;
 
     size_ = size;
     windowContext_->setSize(size, 1);
@@ -148,7 +155,7 @@ void window::setSize(vec2ui size)
 
 void window::setPosition(vec2i position)
 {
-    if(!valid_) return;
+    if(!checkValid()) return;
 
     position_ = position;
     windowContext_->setPosition(position_);
@@ -158,7 +165,7 @@ void window::setPosition(vec2i position)
 
 void window::move(vec2i delta)
 {
-    if(!valid_) return;
+    if(!checkValid()) return;
 
     position_ += delta;
     windowContext_->setPosition(position_);
@@ -168,7 +175,7 @@ void window::move(vec2i delta)
 
 void window::show()
 {
-    if(!valid_) return;
+    if(!checkValid()) return;
 
     windowContext_->show();
     shown_ = 1;
@@ -176,7 +183,7 @@ void window::show()
 
 void window::hide()
 {
-    if(!valid_) return;
+    if(!checkValid()) return;
 
     windowContext_->hide();
     shown_ = false;
@@ -184,7 +191,7 @@ void window::hide()
 
 void window::toggleShow()
 {
-    if(!valid_) return;
+    if(!checkValid()) return;
 
     if(isShown())
         windowContext_->hide();
@@ -195,83 +202,79 @@ void window::toggleShow()
 
 void window::setMaxSize(vec2ui size)
 {
+    if(!checkValid()) return;
+
     maxSize_ = size;
     windowContext_->setMaxSize(size);
 }
 
 void window::setMinSize(vec2ui size)
 {
+    if(!checkValid()) return;
+
     minSize_ = size;
     windowContext_->setMinSize(size);
 }
 
-void window::windowSize(sizeEvent& e)
+//event callbacks
+void window::mouseMove(std::unique_ptr<mouseMoveEvent> e)
 {
-    size_ = e.size;
-    windowContext_->setSize(size_, e.change);
-
+    mouseMoveCallback_(*this, *e);
+}
+void window::mouseCross(std::unique_ptr<mouseCrossEvent> e)
+{
+    mouseOver_ = e->entered;
+    mouseCrossCallback_(*this, *e);
+}
+void window::mouseButton(std::unique_ptr<mouseButtonEvent> e)
+{
+    mouseButtonCallback_(*this, *e);
+}
+void window::mouseWheel(std::unique_ptr<mouseWheelEvent> e)
+{
+    mouseWheelCallback_(*this, *e);
+}
+void window::keyboardKey(std::unique_ptr<keyEvent> e)
+{
+    keyCallback_(*this, *e);
+}
+void window::windowSize(std::unique_ptr<sizeEvent> e)
+{
+    size_ = e->size;
+    windowContext_->setSize(size_, e->change);
     resizeCallback_.call(*this, size_);
 }
-
-void window::windowPosition(positionEvent& e)
+void window::windowPosition(std::unique_ptr<positionEvent> e)
 {
-    position_ = e.position;
-    windowContext_->setPosition(position_, 0);
-
+    position_ = e->position;
+    windowContext_->setPosition(position_, e->change);
     moveCallback_(*this, position_);
 }
-
-void window::windowDraw(drawEvent& e)
+void window::windowDraw(std::unique_ptr<drawEvent> e)
 {
     drawContext& dc = windowContext_->beginDraw();
     draw(dc);
     windowContext_->finishDraw();
- }
+}
+void window::windowShow(std::unique_ptr<showEvent> e)
+{
+    showCallback_(*this, *e);
+}
+void window::windowFocus(std::unique_ptr<focusEvent> e)
+{
+    focus_ = e->focusGained;
+    focusCallback_(*this, *e);
+}
 
 void window::draw(drawContext& dc)
 {
     drawCallback_(*this, dc);
 
-    std::vector<childWindow*> wvec = getWindowChildren();
-    for(unsigned int i(0); i < wvec.size(); i++)
-    {
-        if(wvec[i]->isVirtual())
-        {
-            drawEvent e;
-            e.handler = wvec[i];
-            wvec[i]->windowDraw(e);
-        }
-    }
+    for(auto win : getWindowChildren())
+        if(win->isVirtual()) win->windowDraw(std::make_unique<drawEvent>(win));
 }
 
-void window::windowDestroy(destroyEvent& e)
-{
-    windowContext_.reset();
-
-    eventHandler::destroy();
-    destroyCallback_(*this, e);
-    valid_ = 0;
-}
-
-void window::windowShow(showEvent& e)
-{
-
-}
-
-void window::windowFocus(focusEvent& e)
-{
-    if(e.focusGained)
-    {
-        focus_ = 1;
-    }
-    else
-    {
-        focus_ = 0;
-    }
-
-    focusCallback_(*this, e);
-}
-
+//util
 std::vector<childWindow*> window::getWindowChildren()
 {
     std::vector<childWindow*> ret;
@@ -307,17 +310,16 @@ window* window::getWindowAt(vec2i position)
 
 void window::setCursor(const cursor& curs)
 {
+    if(!checkValid()) return;
     windowContext_->setCursor(curs);
 }
 
 void window::addWindowHints(unsigned long hints)
 {
     hints &= ~hints_; //remove all the hints, which are still set to make it easier for windowContext
-
     hints_ |= hints;
 
-    if(!valid_)
-        return;
+    if(!checkValid()) return;
 
     windowContext_->addWindowHints(hints);
 }
@@ -325,49 +327,11 @@ void window::addWindowHints(unsigned long hints)
 void window::removeWindowHints(unsigned int hints)
 {
     hints &= hints_; //remove all the hints, which are not set and cant be removed to make it easier for windowContext
-
     hints_ &= ~hints;
 
-    if(!valid_)
-        return;
+    if(!checkValid()) return;
 
     windowContext_->removeWindowHints(hints);
-}
-
-///////////////////////////////////////////////////////////////////////////////////
-void window::mouseMove(mouseMoveEvent& e)
-{
-    mouseMoveCallback_(*this, e);
-}
-
-void window::mouseCross(mouseCrossEvent& e)
-{
-    if(e.entered)
-    {
-        windowContext_->updateCursor(&e);
-        mouseOver_ = 1;
-    }
-    else
-    {
-        mouseOver_ = 0;
-    }
-
-    mouseCrossCallback_(*this, e);
-}
-
-void window::mouseButton(mouseButtonEvent& e)
-{
-    mouseButtonCallback_(*this, e);
-}
-
-void window::mouseWheel(mouseWheelEvent& e)
-{
-    mouseWheelCallback_(*this, e);
-}
-
-void window::keyboardKey(keyEvent& e)
-{
-    keyCallback_(*this, e);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -398,14 +362,15 @@ void toplevelWindow::create(vec2i position, vec2ui size, std::string title, cons
 
 void toplevelWindow::setIcon(const image* icon)
 {
+    if(!checkValid()) return;
     getWindowContext()->setIcon(icon);
 }
 
-void toplevelWindow::mouseButton(mouseButtonEvent& ev)
+void toplevelWindow::mouseButton(std::unique_ptr<mouseButtonEvent> ev)
 {
-    window::mouseButton(ev);
+    //window::mouseButton(ev);
 
-
+    /*
     if(!isCustomResized() || !hasResizeHint())
         return;
 
@@ -450,13 +415,14 @@ void toplevelWindow::mouseButton(mouseButtonEvent& ev)
 
     if(found) getWindowContext()->beginResize(&ev, medge);
     else getWindowContext()->beginMove(&ev);
-
+    */
 }
 
-void toplevelWindow::mouseMove(mouseMoveEvent& ev)
+void toplevelWindow::mouseMove(std::unique_ptr<mouseMoveEvent> ev)
 {
-    window::mouseMove(ev);
+    //window::mouseMove(ev);
 
+    /*
     if(!isCustomResized() || !hasResizeHint())
         return;
 
@@ -490,20 +456,22 @@ void toplevelWindow::mouseMove(mouseMoveEvent& ev)
 
     cursor_.fromNativeType(t);
     windowContext_->updateCursor(nullptr);
+    */
 }
 
 void toplevelWindow::setTitle(const std::string& n)
 {
-     title_ = n;
-     if(valid_) getWindowContext()->setTitle(n);
+    title_ = n;
+    if(!checkValid()) return;
+
+    getWindowContext()->setTitle(n);
 };
 
 bool toplevelWindow::setCustomDecorated(bool set)
 {
-    if(!valid_)
-        return 0;
-
     hints_ |= windowHints::CustomDecorated;
+
+    if(!checkValid()) return 0;
 
     if(set)windowContext_->addWindowHints(windowHints::CustomDecorated);
     else windowContext_->removeWindowHints(windowHints::CustomDecorated);
@@ -513,10 +481,9 @@ bool toplevelWindow::setCustomDecorated(bool set)
 
 bool toplevelWindow::setCustomResized(bool set)
 {
-    if(!valid_)
-        return 0;
-
     hints_ |= windowHints::CustomResized;
+
+    if(!checkValid()) return 0;
 
     if(set)windowContext_->addWindowHints(windowHints::CustomResized);
     else windowContext_->removeWindowHints(windowHints::CustomResized);
@@ -526,10 +493,9 @@ bool toplevelWindow::setCustomResized(bool set)
 
 bool toplevelWindow::setCustomMoved(bool set)
 {
-    if(!valid_)
-        return 0;
-
     hints_ |= windowHints::CustomMoved;
+
+    if(!checkValid()) return 0;
 
     if(set)windowContext_->addWindowHints(windowHints::CustomMoved);
     else windowContext_->removeWindowHints(windowHints::CustomMoved);
@@ -539,10 +505,9 @@ bool toplevelWindow::setCustomMoved(bool set)
 
 void toplevelWindow::setMaximizeHint(bool hint)
 {
-    if(!valid_)
-        return;
-
     hints_ |= windowHints::Maximize;
+
+    if(!checkValid()) return;
 
     if(hint)windowContext_->addWindowHints(windowHints::Maximize);
     else windowContext_->removeWindowHints(windowHints::Maximize);
@@ -550,10 +515,9 @@ void toplevelWindow::setMaximizeHint(bool hint)
 
 void toplevelWindow::setMinimizeHint(bool hint)
 {
-    if(!valid_)
-        return;
-
     hints_ |= windowHints::Minimize;
+
+    if(!checkValid()) return;
 
     if(hint)windowContext_->addWindowHints(windowHints::Minimize);
     else windowContext_->removeWindowHints(windowHints::Minimize);
@@ -561,10 +525,9 @@ void toplevelWindow::setMinimizeHint(bool hint)
 
 void toplevelWindow::setResizeHint(bool hint)
 {
-    if(!valid_)
-        return;
-
     hints_ |= windowHints::Resize;
+
+    if(!checkValid()) return;
 
     if(hint)windowContext_->addWindowHints(windowHints::Resize);
     else windowContext_->removeWindowHints(windowHints::Resize);
@@ -572,10 +535,9 @@ void toplevelWindow::setResizeHint(bool hint)
 
 void toplevelWindow::setMoveHint(bool hint)
 {
-    if(!valid_)
-        return;
-
     hints_ |= windowHints::Move;
+
+    if(!checkValid()) return;
 
     if(hint)windowContext_->addWindowHints(windowHints::Move);
     else windowContext_->removeWindowHints(windowHints::Move);
@@ -583,10 +545,9 @@ void toplevelWindow::setMoveHint(bool hint)
 
 void toplevelWindow::setCloseHint(bool hint)
 {
-    if(!valid_)
-        return;
-
     hints_ |= windowHints::Close;
+
+    if(!checkValid()) return;
 
     if(hint)windowContext_->addWindowHints(windowHints::Close);
     else windowContext_->removeWindowHints(windowHints::Close);
@@ -611,9 +572,7 @@ void childWindow::create(window& parent, vec2i position, vec2ui size, windowCont
 
 bool childWindow::isVirtual() const
 {
-    if(!valid_)
-        return 0;
-
+    if(!checkValid()) return 0;
     return windowContext_->isVirtual();
 }
 

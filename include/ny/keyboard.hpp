@@ -47,7 +47,7 @@ namespace eventType
 constexpr unsigned int key = 6;
 }
 
-class keyEvent : public eventBase<eventType::key>
+class keyEvent : public eventBase<keyEvent, eventType::key>
 {
 public:
     keyEvent(eventHandler* h = nullptr, keyboard::key k = keyboard::none, bool p = 0, eventData* d = nullptr) : evBase(h, d), pressed(p), key(k) {}

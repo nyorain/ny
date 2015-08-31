@@ -183,25 +183,10 @@ x11WindowContext::x11WindowContext(window& win, const x11WindowContextSettings& 
 
 x11WindowContext::~x11WindowContext()
 {
-    //todo: unregister
-/*
-    if(drawType_ == x11DrawType::cairo && cairo_)
-    {
-        delete cairo_;
-    }
-    else if(drawType_ == x11DrawType::egl && egl_)
-    {
-        delete egl_;
-    }
-    else if(drawType_ == x11DrawType::glx)
-    {
-        if(glx_) delete glx_;
-        if(glxFBC_) delete glxFBC_;
-    }
-*/
-
     getX11AppContext()->unregisterContext(xWindow_);
+
     XDestroyWindow(getXDisplay(), xWindow_);
+    XFlush(getXDisplay());
 
     if(ownedXVinfo_ && xVinfo_) delete xVinfo_;
 }
@@ -438,12 +423,10 @@ void x11WindowContext::setMaxSize(vec2ui size)
     XSetWMNormalHints(getXDisplay(), xWindow_, &s);
 }
 
-void x11WindowContext::sendContextEvent(contextEvent& e)
+void x11WindowContext::sendContextEvent(std::unique_ptr<contextEvent> e)
 {
-    if(e.getContextEventType() == X11Reparent)
-    {
-        wasReparented(e.to<x11ReparentEvent>());
-    }
+    if(e->contextType() == X11Reparent)
+        wasReparented(event_cast<x11ReparentEvent>(std::move(e))->ev);
 }
 
 void x11WindowContext::addWindowHints(unsigned long hints)
@@ -756,7 +739,7 @@ void x11WindowContext::setCursor(unsigned int xCursorID)
     XDefineCursor(getXDisplay(), xWindow_, c);
 }
 
-void x11WindowContext::wasReparented(x11ReparentEvent& ev)
+void x11WindowContext::wasReparented(const XReparentEvent& ev)
 {
     setPosition(window_.getPosition()); //set position correctly
 }

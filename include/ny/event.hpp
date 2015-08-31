@@ -1,7 +1,9 @@
 #pragma once
 
 #include <ny/include.hpp>
+
 #include <memory>
+#include <type_traits>
 
 namespace ny
 {
@@ -18,44 +20,78 @@ constexpr unsigned int destroy = 1;
 class eventData
 {
 public:
-    virtual ~eventData(){}; //for dynamic cast
+    virtual ~eventData() = default; //for dynamic cast
+    virtual std::unique_ptr<eventData> clone() const = 0;
+};
+
+template <typename T>
+class eventDataBase : public eventData
+{
+public:
+    virtual std::unique_ptr<eventData> clone() const override
+        { return std::make_unique<T>(static_cast<const T&>(*this)); }
 };
 
 //event//////////////////
 class event
 {
 public:
-    event(eventHandler* xhandler = nullptr, eventData* xdata = nullptr) : handler(xhandler), data(xdata) {};
+    event(eventHandler* h = nullptr, eventData* d = nullptr) : handler(h), data(d) {};
     virtual ~event() = default;
 
-    eventHandler* handler {nullptr};
-    std::unique_ptr<eventData> data {nullptr}; //place for the backend to transport data (e.g. serial numbers for custom resize / move), todo: unique ptr
+    event(const event& other) : handler(other.handler), data(nullptr) { if(other.data.get()) data = other.data->clone(); }
+    event& operator=(const event& other)
+    {
+        handler = other.handler;
+        if(other.data.get()) data = other.data->clone();
+        else data.reset();
+        return *this;
+    }
 
-    //cast
-    template<class T> T& to() { return static_cast<T&>(*this); };
-    template<class T> const T& to() const { return static_cast<const T&>(*this); };
+    event(event&& other) : handler(other.handler), data(std::move(other.data)) {}
+    event& operator=(event&& other) { handler = other.handler; data = std::move(other.data); return *this; }
+
+    eventHandler* handler {nullptr};
+    std::unique_ptr<eventData> data {nullptr}; //place for the backend to transport data (e.g. serial numbers for custom resize / move)
 
     //type
+    virtual std::unique_ptr<event> clone() const = 0;
     virtual unsigned int type() const = 0;
 };
 
+using eventPtr = std::unique_ptr<event>;
+
 //eventBase
-template<unsigned int Type> class eventBase : public event
+template<typename T, unsigned int Type>
+class eventBase : public event
 {
 protected:
-    using evBase = eventBase<Type>;
+    using evBase = eventBase<T, Type>;
 
+public:
     eventBase(eventHandler* xhandler = nullptr, eventData* xdata = nullptr) : event(xhandler, xdata){};
-    virtual unsigned int type() const override { return Type; }
+
+    //event
+    virtual std::unique_ptr<event> clone() const override
+        { return std::make_unique<T>(static_cast<const T&>(*this)); }
+    virtual unsigned int type() const override final { return Type; }
 };
 
 //destroy
-class destroyEvent : public eventBase<eventType::destroy>
+class destroyEvent : public eventBase<destroyEvent, eventType::destroy>
 {
 public:
     destroyEvent(eventHandler* h = nullptr, eventData* d = nullptr) : evBase(h, d) {};
-
 };
+
+
+//event cast
+template<typename T>
+std::unique_ptr<T> event_cast(std::unique_ptr<event>&& ptr)
+{
+    static_assert(std::is_base_of<event, T>::value, "you can only cast into a derived event class");
+    return std::unique_ptr<T>(dynamic_cast<T*>(ptr.release())); //better static_cast?
+}
 
 
 }

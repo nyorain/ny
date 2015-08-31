@@ -334,7 +334,7 @@ bool x11AppContext::processEvent(XEvent& ev)
     case ConfigureNotify:
     {
         auto nsize = vec2ui(ev.xconfigure.width, ev.xconfigure.height);
-        auto npos = vec2ui(ev.xconfigure.x, ev.xconfigure.y); //positionEvent
+        auto npos = vec2i(ev.xconfigure.x, ev.xconfigure.y); //positionEvent
 
         if(!getHandler(ev.xconfigure.window))
             return 1;
@@ -343,7 +343,7 @@ bool x11AppContext::processEvent(XEvent& ev)
             nyMainApp()->sendEvent(std::make_unique<sizeEvent>(getHandler(ev.xconfigure.window), nsize, 0, new x11EventData(ev)));
 
         if(getWindowContext(ev.xconfigure.window)->getWindow().getPosition() != npos)
-            nyMainApp()->sendEvent(std::make_unique<positionEvent>(getHandler(ev.xconfigure.window), npos, new x11EventData(ev)));
+            nyMainApp()->sendEvent(std::make_unique<positionEvent>(getHandler(ev.xconfigure.window), npos, 0, new x11EventData(ev)));
 
         return 1;
 

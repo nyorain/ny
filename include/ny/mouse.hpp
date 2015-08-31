@@ -68,7 +68,7 @@ constexpr unsigned int mouseWheel = 4;
 constexpr unsigned int mouseCross = 5;
 }
 
-class mouseButtonEvent : public eventBase<eventType::mouseButton>
+class mouseButtonEvent : public eventBase<mouseButtonEvent, eventType::mouseButton>
 {
 public:
     mouseButtonEvent(eventHandler* h = nullptr, mouse::button but = mouse::none, bool prssd = 0, vec2i pos = vec2i(), eventData* d = nullptr)
@@ -79,7 +79,7 @@ public:
     vec2i position;
 };
 
-class mouseMoveEvent : public eventBase<eventType::mouseMove>
+class mouseMoveEvent : public eventBase<mouseMoveEvent, eventType::mouseMove>
 {
 public:
     mouseMoveEvent(eventHandler* h = nullptr, vec2i pos = vec2i(), vec2i spos = vec2i(), vec2i del = vec2i(), eventData* d = nullptr)
@@ -90,7 +90,7 @@ public:
     vec2i delta;
 };
 
-class mouseCrossEvent : public eventBase<eventType::mouseCross>
+class mouseCrossEvent : public eventBase<mouseCrossEvent, eventType::mouseCross>
 {
 public:
     mouseCrossEvent(eventHandler* h = nullptr, bool e = 0, vec2i pos = vec2i(), eventData* d = nullptr) : evBase(h, d), entered(e), position(pos) {};
@@ -99,7 +99,7 @@ public:
     vec2i position;
 };
 
-class mouseWheelEvent : public eventBase<eventType::mouseWheel>
+class mouseWheelEvent : public eventBase<mouseWheelEvent, eventType::mouseWheel>
 {
 public:
     mouseWheelEvent(eventHandler* h = nullptr, float val = 0.f, eventData* d = nullptr) : evBase(h, d), value(val) {};

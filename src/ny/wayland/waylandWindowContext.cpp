@@ -402,9 +402,9 @@ void waylandWindowContext::updateCursor(mouseCrossEvent* ev)
         getWaylandAC()->setCursor(window_.getCursor().getImage(), window_.getCursor().getImageHotspot(), serial);
 }
 
-void waylandWindowContext::sendContextEvent(contextEvent& e)
+void waylandWindowContext::sendContextEvent(std::unique_ptr<contextEvent> e)
 {
-    if(e.getContextEventType() == frameEvent)
+    if(e->contextType() == frameEvent)
     {
         if(wlFrameCallback_)
         {

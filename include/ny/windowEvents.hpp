@@ -11,14 +11,13 @@ namespace eventType
 constexpr unsigned int windowSize = 11;
 constexpr unsigned int windowPosition = 12;
 constexpr unsigned int windowDraw = 13;
-constexpr unsigned int windowClose = 14;
-constexpr unsigned int windowShow = 15;
-constexpr unsigned int windowFocus = 16;
-constexpr unsigned int windowRefresh = 17;
+constexpr unsigned int windowShow = 14;
+constexpr unsigned int windowFocus = 15;
+constexpr unsigned int windowRefresh = 16;
 constexpr unsigned int context = 20;
 }
 
-class focusEvent : public eventBase<eventType::windowFocus>
+class focusEvent : public eventBase<focusEvent, eventType::windowFocus>
 {
 public:
     focusEvent(eventHandler* h = nullptr, bool gain = 0, eventData* d = nullptr)
@@ -27,7 +26,7 @@ public:
     bool focusGained;
 };
 
-class sizeEvent : public eventBase<eventType::windowSize>
+class sizeEvent : public eventBase<sizeEvent, eventType::windowSize>
 {
 public:
     sizeEvent(eventHandler* h = nullptr, vec2ui s = vec2ui(), bool ch = 1, eventData* d = nullptr)
@@ -37,32 +36,47 @@ public:
     bool change;
 };
 
-class positionEvent : public eventBase<eventType::windowPosition>
+class showEvent : public eventBase<showEvent, eventType::windowShow>
 {
 public:
-    positionEvent(eventHandler* h = nullptr, vec2i pos = vec2i(), eventData* d = nullptr)
-        : evBase(h, d), position(pos) {}
+    showEvent(eventHandler* h = nullptr, bool ch = 1, eventData* d = nullptr)
+        : evBase(h, d), change(ch) {}
 
-    vec2i position {0, 0};
+    //showState here
+    bool change;
 };
 
-class drawEvent : public eventBase<eventType::windowDraw>
+class positionEvent : public eventBase<positionEvent, eventType::windowPosition>
+{
+public:
+    positionEvent(eventHandler* h = nullptr, vec2i pos = vec2i(), bool ch = 1, eventData* d = nullptr)
+        : evBase(h, d), position(pos), change(ch) {}
+
+    vec2i position {0, 0};
+    bool change;
+};
+
+class drawEvent : public eventBase<drawEvent, eventType::windowDraw>
 {
 public:
     drawEvent(eventHandler* h = nullptr, eventData* d = nullptr) : evBase(h, d) {}
 };
 
-class refreshEvent : public eventBase<eventType::windowRefresh>
+//better sth like "using refreshEvent = eventBase<eventType::windowRefresh>;"? since it has no additional members
+class refreshEvent : public eventBase<refreshEvent, eventType::windowRefresh>
 {
 public:
     refreshEvent(eventHandler* h = nullptr, eventData* d = nullptr) : evBase(h, d) {}
 };
 
-class contextEvent : public eventBase<eventType::context> //own ContextEvents could be derived form this
+class contextEvent : public event //own ContextEvents could be derived form this
 {
 public:
-    contextEvent(eventHandler* h = nullptr, eventData* d = nullptr) : evBase(h, d) {}
-    virtual unsigned int getContextEventType() const = 0;
+    contextEvent(eventHandler* h = nullptr, eventData* d = nullptr) : event(h, d) {}
+
+    virtual unsigned int type() const override final { return eventType::context; }
+    virtual unsigned int contextType() const = 0;
+    virtual std::unique_ptr<event> clone() const = 0;
 };
 
 

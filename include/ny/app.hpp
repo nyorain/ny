@@ -86,7 +86,7 @@ protected:
     eventLoop mainLoop_;
 
     //todo, event dispatch system
-    std::thread dispatcher_;
+    std::thread eventDispatcher_;
     std::deque<std::unique_ptr<event>> events_;
     std::mutex eventMtx_;
     std::condition_variable eventCV_;
@@ -110,6 +110,7 @@ public:
     //eventHandler
     virtual bool removeChild(eventHandler& handler) override;
     virtual void destroy() override;
+    virtual bool valid() const override;
 
     //get/set
     window* getMouseOver() const { return mouseOver_; };
@@ -124,7 +125,6 @@ public:
     const appSettings& getSettings() const { return settings_; }
     const std::string& getName() const { return settings_.name; }
 
-    bool isValid() const { return valid_; };
     bool mainThread() const { return std::this_thread::get_id() == mainThreadID_; };
 
     threadpool* getThreadPool() const { return threadpool_.get(); }

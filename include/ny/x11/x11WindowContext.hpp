@@ -14,7 +14,7 @@ namespace ny
 {
 
 //x11Event///////////////////////////////////////////
-class x11EventData : public eventData
+class x11EventData : public eventDataBase<x11EventData>
 {
 public:
     x11EventData(const XEvent& e) : ev(e) {};
@@ -27,7 +27,9 @@ class x11ReparentEvent : public contextEvent
 {
 public:
     x11ReparentEvent(eventHandler* h = nullptr, const XReparentEvent& e = XReparentEvent()) : contextEvent(h), ev(e) {};
-    virtual unsigned int getContextEventType() const override { return X11Reparent; }
+
+    virtual unsigned int contextType() const override { return X11Reparent; }
+    virtual std::unique_ptr<event> clone() const override { return std::make_unique<x11ReparentEvent>(*this); }
 
     XReparentEvent ev;
 };
@@ -114,7 +116,7 @@ public:
     virtual void addContextHints(unsigned long hints) override;
     virtual void removeContextHints(unsigned long hints) override;
 
-    virtual void sendContextEvent(contextEvent& e) override;
+    virtual void sendContextEvent(std::unique_ptr<contextEvent> e) override;
 
     //toplevel////////////////////
     virtual void setMaximized() override;
@@ -176,7 +178,7 @@ public:
     void removeAllowedAction(Atom action);
     std::vector<Atom> getAllowedAction();
 
-    void wasReparented(x11ReparentEvent& ev); //called from appContext through contextEvent
+    void wasReparented(const XReparentEvent& ev); //called from appContext through contextEvent
 };
 
 

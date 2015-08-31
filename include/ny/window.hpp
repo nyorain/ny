@@ -33,7 +33,6 @@ protected:
 
     //states saved in window, not in the context
     bool focus_ : 1;
-    bool valid_ : 1; //states if the windowContext and the eventHandler are correctly initialized
     bool mouseOver_ : 1;
     bool shown_ : 1;
 
@@ -55,8 +54,9 @@ protected:
     callback<void(window&, drawContext&)> drawCallback_;
     callback<void(window&, const vec2ui&)> resizeCallback_;
     callback<void(window&, const vec2i&)> moveCallback_;
-    callback<void(window&, const destroyEvent&)> destroyCallback_;
+    callback<void(window&)> destroyCallback_;
     callback<void(window&, const focusEvent&)> focusCallback_;
+    callback<void(window&, const showEvent&)> showCallback_;
 
     callback<void(window&, const mouseMoveEvent&)> mouseMoveCallback_;
     callback<void(window&, const mouseButtonEvent&)> mouseButtonCallback_;
@@ -66,19 +66,16 @@ protected:
     callback<void(window&, const keyEvent&)> keyCallback_;
 
     //events - have to be protected?
-    virtual void mouseMove(mouseMoveEvent& e);
-    virtual void mouseCross(mouseCrossEvent& e);
-    virtual void mouseButton(mouseButtonEvent& e);
-    virtual void mouseWheel(mouseWheelEvent& e);
-
-    virtual void keyboardKey(keyEvent&);
-
-    virtual void windowSize(sizeEvent&);
-    virtual void windowPosition(positionEvent&);
-    virtual void windowDraw(drawEvent&);
-    virtual void windowDestroy(destroyEvent&);
-    virtual void windowShow(showEvent&);
-    virtual void windowFocus(focusEvent&);
+    virtual void mouseMove(std::unique_ptr<mouseMoveEvent>);
+    virtual void mouseCross(std::unique_ptr<mouseCrossEvent>);
+    virtual void mouseButton(std::unique_ptr<mouseButtonEvent>);
+    virtual void mouseWheel(std::unique_ptr<mouseWheelEvent>);
+    virtual void keyboardKey(std::unique_ptr<keyEvent>);
+    virtual void windowSize(std::unique_ptr<sizeEvent>);
+    virtual void windowPosition(std::unique_ptr<positionEvent>);
+    virtual void windowDraw(std::unique_ptr<drawEvent>);
+    virtual void windowShow(std::unique_ptr<showEvent>);
+    virtual void windowFocus(std::unique_ptr<focusEvent>);
 
     //window is abstract class
     window();
@@ -101,6 +98,7 @@ protected:
     void removeDropType(unsigned char type);
 
     virtual void draw(drawContext& dc);
+    virtual bool checkValid() const;
 
 public:
     virtual ~window();
@@ -112,8 +110,9 @@ public:
     //returns if the given event was processed by the window
     virtual bool processEvent(std::unique_ptr<event> event) override;
     virtual void destroy() override;
+    virtual bool valid() const override;
 
-    virtual window* getParent() const override { return dynamic_cast<window*>(getParent()); }
+    virtual window* getParent() const override { return dynamic_cast<window*>(eventHandler::getParent()); }
 
     virtual toplevelWindow* getTopLevelParent() = 0;
     virtual const toplevelWindow* getTopLevelParent() const = 0;
@@ -161,6 +160,7 @@ public:
     template<typename F> std::unique_ptr<connection> onMove(F&& func){ return moveCallback_.add(func); }
     template<typename F> std::unique_ptr<connection> onDestroy(F&& func){ return destroyCallback_.add(func); }
     template<typename F> std::unique_ptr<connection> onFocus(F&& func){ return focusCallback_.add(func); }
+    template<typename F> std::unique_ptr<connection> onShow(F&& func){ return showCallback_.add(func); } //sth like onShowState
     template<typename F> std::unique_ptr<connection> onMouseMove(F&& func){ return mouseMoveCallback_.add(func); }
     template<typename F> std::unique_ptr<connection> onMouseButton(F&& func){ return mouseButtonCallback_.add(func); }
     template<typename F> std::unique_ptr<connection> onMouseCross(F&& func){ return mouseCrossCallback_.add(func); }
@@ -187,7 +187,6 @@ public:
 
     bool hasFocus() const                               { return focus_; }
     bool hasMouseOver() const                           { return mouseOver_; }
-    bool isValid() const                                { return valid_; }
     bool isShown () const                               { return shown_; }
 
     unsigned long getWindowHints() const                { return hints_; }
@@ -216,8 +215,8 @@ protected:
     std::string title_{};
     unsigned int borderSize_{};
 
-    void mouseButton(mouseButtonEvent& ev);
-    void mouseMove(mouseMoveEvent& ev);
+    void mouseButton(std::unique_ptr<mouseButtonEvent> ev);
+    void mouseMove(std::unique_ptr<mouseMoveEvent> ev);
 
     toplevelWindow();
     void create(vec2i position, vec2ui size, std::string title = " ", const windowContextSettings& settings = windowContextSettings());

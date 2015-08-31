@@ -7,7 +7,7 @@
 #include <nyutil/nonCopyable.hpp>
 #include <nyutil/vec.hpp>
 
-#include <mutex>
+#include <memory>
 
 namespace ny
 {
@@ -55,7 +55,7 @@ public:
     virtual void setMaxSize(vec2ui size){};
 
     //event
-    virtual void sendContextEvent(contextEvent& e){};
+    virtual void sendContextEvent(std::unique_ptr<contextEvent> e){};
 
     virtual void setSize(vec2ui size, bool change = 1) = 0; //change states if the window on the backend has to be resized
     virtual void setPosition(vec2i position, bool change = 1) = 0; //...

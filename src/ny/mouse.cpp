@@ -6,6 +6,10 @@ namespace ny
 std::bitset<8> mouse::states;
 vec2i mouse::position;
 
+callback<void(vec2i)> mouse::moveCallback_;
+callback<void(mouse::button, bool)> mouse::buttonCallback_;
+callback<void(float)> mouse::wheelCallback_;
+
 vec2i mouse::getPosition()
 {
     return position;

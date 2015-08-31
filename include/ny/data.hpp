@@ -134,13 +134,13 @@ public:
 };
 
 //event
-class dataReceiveEvent : public eventBase<eventType::dataReceive>
+class dataReceiveEvent : public eventBase<dataReceiveEvent, eventType::dataReceive>
 {
 public:
-    dataReceiveEvent(std::unique_ptr<dataOffer> d) : evBase(), data(std::move(d)) {}
-    ~dataReceiveEvent() = default;
+    //dataReceiveEvent(std::unique_ptr<dataOffer> d) : evBase(), data(std::move(d)) {}
+    //~dataReceiveEvent() = default;
 
-    std::unique_ptr<dataOffer> data;
+    //std::unique_ptr<dataOffer> data;
 };
 
 unsigned char stringToDataType(const std::string& type);

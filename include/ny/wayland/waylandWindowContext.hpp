@@ -20,7 +20,7 @@ struct xdg_popup;
 namespace ny
 {
 
-class waylandEventData : public eventData
+class waylandEventData : public eventDataBase<waylandEventData>
 {
 public:
     waylandEventData(unsigned int xserial) : serial(xserial) {};
@@ -107,7 +107,7 @@ public:
     virtual void setCursor(const cursor& c) override;
     virtual void updateCursor(mouseCrossEvent* ev) override;
 
-    virtual void sendContextEvent(contextEvent& e) override;
+    virtual void sendContextEvent(std::unique_ptr<contextEvent> e) override;
 
     virtual unsigned long getAdditionalWindowHints() const override;
 

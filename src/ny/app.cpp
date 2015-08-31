@@ -116,55 +116,55 @@ bool app::init(const appSettings& settings)
 
 int app::mainLoop()
 {
-    if(!valid_)
-        return 0;
+    if(!valid_) return 0;
 
     mainThreadID_ = std::this_thread::get_id();
+    eventDispatcher_ = std::thread(&app::eventDispatcher, this);
 
     exitReason_ = exitReason::noEventSources;
     mainLoop_.run();
 
+    //clean up
+    exit_ = 1;
+
+    threadpool_.reset();
+
+    eventCV_.notify_one();
+    eventDispatcher_.join();
+
+    destroy(); //from eventHandler
+
+    appContext_->exit();
+    valid_ = 0;
+
     return exitReason_;
-
-    /*
-    if(!valid_ || mainLoop_)
-        return 0;
-
-    mainThreadID_ = std::this_thread::get_id();
-
-    mainLoop_ = 1;
-
-    while(existing_ && valid_)
-    {
-        if(!appContext_->mainLoop()) //should be blocking
-        {
-            valid_ = 0;
-        }
-    }
-
-    mainLoop_ = 0;
-    exitApp();
-
-    return 1;
-    */
 }
 
 void app::exit(int reason)
 {
     //todo
     exitReason_ = reason;
-
     mainLoop_.stop();
 
+/*
     exit_ = 1;
 
     threadpool_.reset();
+
+    eventCV_.notify_one();
+    eventDispatcher_.join();
+
     destroy(); //from eventHandler
 
     appContext_->exit();
     valid_ = 0;
+*/
 }
 
+bool app::valid() const
+{
+    return valid_;
+}
 
 bool app::removeChild(eventHandler& child)
 {
@@ -189,10 +189,25 @@ void app::destroy()
 void app::sendEvent(std::unique_ptr<event> ev)
 {
     //todo: check if old events can be overriden
+    if(!ev.get())
+    {
+        nyWarning("app::sendEvent: invalid event");
+        return;
+    }
 
     {
         std::lock_guard<std::mutex> lck(eventMtx_);
-        events_.emplace_back(std::move(ev));
+
+        for(auto& stored : events_)
+        {
+            if(stored.get() && stored->type() == ev->type())
+            {
+                stored = std::move(ev);
+                break;
+            }
+        }
+
+        if(ev.get()) events_.emplace_back(std::move(ev));
     }
 
     eventCV_.notify_one();

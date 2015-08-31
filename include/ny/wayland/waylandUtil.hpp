@@ -26,8 +26,10 @@ const unsigned int frameEvent = 11;
 class waylandFrameEvent : public contextEvent
 {
 public:
-    waylandFrameEvent(eventHandler* h = nullptr) : contextEvent(h) {};
-    virtual unsigned int getContextEventType() const override { return frameEvent; }
+    using contextEvent::contextEvent;
+
+    virtual unsigned int contextType() const override { return frameEvent; }
+    virtual std::unique_ptr<event> clone() const override { return std::make_unique<waylandFrameEvent>(); }
 };
 
 
