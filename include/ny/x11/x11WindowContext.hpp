@@ -116,7 +116,7 @@ public:
     virtual void addContextHints(unsigned long hints) override;
     virtual void removeContextHints(unsigned long hints) override;
 
-    virtual void sendContextEvent(std::unique_ptr<contextEvent> e) override;
+    virtual void sendContextEvent(const contextEvent& e) override;
 
     //toplevel////////////////////
     virtual void setMaximized() override;
@@ -124,8 +124,8 @@ public:
     virtual void setFullscreen() override;
     virtual void setNormal() override;
 
-    virtual void beginMove(mouseButtonEvent* ev) override;
-    virtual void beginResize(mouseButtonEvent* ev, windowEdge edges) override;
+    virtual void beginMove(const mouseButtonEvent* ev) override;
+    virtual void beginResize(const mouseButtonEvent* ev, windowEdge edges) override;
 
     virtual void setTitle(const std::string& title) override;
 	virtual void setIcon(const image* img) override;

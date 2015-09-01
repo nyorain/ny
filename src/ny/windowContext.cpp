@@ -1,6 +1,7 @@
 #include <ny/windowContext.hpp>
 #include <ny/drawContext.hpp>
 #include <ny/window.hpp>
+#include <ny/app.hpp>
 
 namespace ny
 {
@@ -17,7 +18,7 @@ windowContext::windowContext(window& win, const windowContextSettings& s) : wind
 
 void windowContext::redraw()
 {
-    window_.processEvent(std::make_unique<drawEvent>(&getWindow()));
+    window_.processEvent(drawEvent(&window_));
 }
 
 //virtual////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

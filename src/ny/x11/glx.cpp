@@ -115,7 +115,11 @@ glxDrawContext::~glxDrawContext()
 bool glxDrawContext::makeCurrentImpl()
 {
     if(!glXMakeCurrent(getXDisplay(), wc_.getXWindow(), glxContext_->context))
+    {
+        nyWarning("glxmakecurrent failed");
         return 0;
+    }
+
 
     return 1;
 }
@@ -123,14 +127,18 @@ bool glxDrawContext::makeCurrentImpl()
 bool glxDrawContext::makeNotCurrentImpl()
 {
     if(!glXMakeCurrent(getXDisplay(), 0, nullptr))
+    {
+        nyWarning("glxmakecurrent failed");
         return 0;
+
+    }
 
     return 1;
 }
 
 bool glxDrawContext::swapBuffers()
 {
-    makeCurrent();
+    //makeCurrent();
     glXSwapBuffers(getXDisplay(), wc_.getXWindow());
     return 1;
 }

@@ -4,6 +4,7 @@
 
 #include <ny/gl/shader.hpp>
 #include <ny/error.hpp>
+#include <nyutil/mat.hpp>
 
 #include <glbinding/gl/gl.h>
 #include <glbinding/Binding.h>
@@ -121,7 +122,7 @@ void shader::setUniformParameter(const std::string& name, const vec3f& value)
 }
 void shader::setUniformParameter(const std::string& name, const vec4f& value)
 {
-    setUniformParameter(name, value.x, value.y, value.w);
+    setUniformParameter(name, value.x, value.y, value.z, value.w);
 }
 void shader::setUniformParameter(const std::string& name, const mat2f& value)
 {
@@ -129,7 +130,8 @@ void shader::setUniformParameter(const std::string& name, const mat2f& value)
 }
 void shader::setUniformParameter(const std::string& name, const mat3f& value)
 {
-
+    int location = glGetUniformLocation(program_, name.c_str());
+    glUniformMatrix3fv(location, 1, GL_FALSE, value.ptr());
 }
 void shader::setUniformParameter(const std::string& name, const mat4f& value)
 {
@@ -137,31 +139,6 @@ void shader::setUniformParameter(const std::string& name, const mat4f& value)
 }
 void shader::setUniformParameter(const std::string& name, const color& value)
 {
-
-}
-void shader::setUniformParameter(const std::string& name, const mat23f& value)
-{
-
-}
-void shader::setUniformParameter(const std::string& name, const mat24f& value)
-{
-
-}
-void shader::setUniformParameter(const std::string& name, const mat32f& value)
-{
-
-}
-void shader::setUniformParameter(const std::string& name, const mat34f& value)
-{
-
-}
-void shader::setUniformParameter(const std::string& name, const mat42f& value)
-{
-
-}
-void shader::setUniformParameter(const std::string& name, const mat43f& value)
-{
-
 }
 
 bool shader::compile(const std::string& vertexShader, const std::string& fragmentShader)

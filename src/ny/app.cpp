@@ -188,6 +188,9 @@ void app::destroy()
 
 void app::sendEvent(std::unique_ptr<event> ev)
 {
+    //if(ev && ev->handler) ev->handler->processEvent(*ev);
+    //return;
+
     //todo: check if old events can be overriden
     if(!ev.get())
     {
@@ -195,22 +198,30 @@ void app::sendEvent(std::unique_ptr<event> ev)
         return;
     }
 
-    {
+    { //critical begin
         std::lock_guard<std::mutex> lck(eventMtx_);
 
-        for(auto& stored : events_)
+        if(ev->overrideable())
         {
-            if(stored.get() && stored->type() == ev->type())
+            for(auto& stored : events_)
             {
-                stored = std::move(ev);
-                break;
+                if(stored.get() && stored->type() == ev->type())
+                {
+                    stored = std::move(ev);
+                    break;
+                }
             }
         }
 
         if(ev.get()) events_.emplace_back(std::move(ev));
-    }
+    } //critical end
 
     eventCV_.notify_one();
+}
+
+void app::sendEvent(const event& ev)
+{
+    sendEvent(ev.clone());
 }
 
 void app::eventDispatcher()
@@ -226,7 +237,7 @@ void app::eventDispatcher()
         events_.pop_front();
 
         lck.unlock();
-        if(ev->handler) ev->handler->processEvent(std::move(ev));
+        if(ev->handler) ev->handler->processEvent(*ev);
         lck.lock();
     }
 }
@@ -285,15 +296,18 @@ void app::mouseMove(std::unique_ptr<mouseMoveEvent> event)
         return;
     }
 
-
-    window* child = mouseOver_->getTopLevelParent()->getWindowAt(event->position);
-
-    if(child && child != mouseOver_)
+    if(mouseOver_)
     {
-        mouseCross(std::make_unique<mouseCrossEvent>(mouseOver_, 0));
-        mouseCross(std::make_unique<mouseCrossEvent>(child, 1));
+        window* child = mouseOver_->getTopLevelParent()->getWindowAt(event->position);
 
-        mouseOver_ = child;
+        if(child && child != mouseOver_)
+        {
+            mouseCross(std::make_unique<mouseCrossEvent>(mouseOver_, 0));
+            mouseCross(std::make_unique<mouseCrossEvent>(child, 1));
+
+            mouseOver_ = child;
+        }
+
     }
 
     sendEvent(std::move(event));
@@ -304,17 +318,14 @@ void app::mouseButton(std::unique_ptr<mouseButtonEvent> event)
     if(event->pressed)mouse::buttonPressed(event->button);
     else mouse::buttonReleased(event->button);
 
-    if(!mouseOver_)
+    if(!mouseOver_ && !event->handler)
     {
+        nyWarning("app::mouseButton: not able to send mouseButtonEvent, no valid handler");
         return;
     }
-    else if(!event->handler)
+    if(mouseOver_)
     {
-        event->handler = mouseOver_;
-    }
-    else if(event->handler != mouseOver_)
-    {
-        //strange
+        event->handler = mouseOver_; //needed because of virtual windows
     }
 
     sendEvent(std::move(event));

@@ -53,8 +53,13 @@ bool eglDrawContext::makeCurrentImpl()
         return 0;
     }
 
+    if(!eglMakeCurrent(getEGLAppContext()->getDisplay(), eglSurface_, eglSurface_, eglContext_))
+    {
+        nyWarning("caught error ", eglGetError(), " in eglDC::makeCurrent");
+        return 0;
+    }
 
-    return eglMakeCurrent(getEGLAppContext()->getDisplay(), eglSurface_, eglSurface_,  eglContext_);
+    return 1;
 }
 
 bool eglDrawContext::makeNotCurrentImpl()
@@ -65,18 +70,30 @@ bool eglDrawContext::makeNotCurrentImpl()
         return 0;
     }
 
-    return eglMakeCurrent(getEGLAppContext()->getDisplay(),  EGL_NO_SURFACE,  EGL_NO_SURFACE,  EGL_NO_CONTEXT);
+    if(!eglMakeCurrent(getEGLAppContext()->getDisplay(),  EGL_NO_SURFACE,  EGL_NO_SURFACE,  EGL_NO_CONTEXT))
+    {
+        nyWarning("caught error ", eglGetError(), " in eglDC::makeNotCurrent");
+        return 0;
+    }
+
+    return 1;
 }
 
 bool eglDrawContext::swapBuffers()
 {
-    if(!getEGLContext() || !eglSurface_)
+    if(!isCurrent() || !getEGLAppContext() || !eglSurface_)
     {
-        nyWarning("eglDrawContext::swapBuffers: invalid");
+        nyWarning("eglDrawContext::swapBuffers: invalid eglDrawContext");
         return 0;
     }
 
-    return eglSwapBuffers(getEGLAppContext()->getDisplay(), eglSurface_);
+    if(!eglSwapBuffers(getEGLAppContext()->getDisplay(), eglSurface_))
+    {
+        nyWarning("caught error ", eglGetError(), " in eglDC::swapBuffers");
+        return 0;
+    }
+
+    return 1;
 }
 
 }

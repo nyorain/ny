@@ -72,7 +72,6 @@ protected:
 
 	union
 	{
-	    int ign_dummy_ {0};
 		bezierData bezier_;
 		arcData arc_;
 	};
@@ -81,9 +80,11 @@ public:
 	vec2f position;
 
 	point() = default;
-	point(const point& other) : style_(other.style_) { if(style_ == drawStyle::bezier) bezier_ = other.bezier_; else if(style_ == drawStyle::arc) arc_ = other.arc_; }
 	point(const vec2f& pos) : position(pos) {}
 	point(float x, float y) : position(x,y) {}
+
+    point(const point& other) : style_(other.style_), position(other.position) { }
+    point& operator=(const point& other) { style_ = other.style_; position = other.position; return *this; }
 
 	drawStyle getDrawStyle() const { return style_; }
 	bezierData getBezierData() const { if(style_ == drawStyle::bezier) return bezier_; return bezierData(); }
@@ -144,12 +145,12 @@ protected:
 
 public:
     customPath(vec2f start = vec2f());
-    customPath(const customPath& other) : points_(other.points_) {}
-    customPath(customPath&& other) noexcept : points_(std::move(other.points_)) {}
+    customPath(const customPath& other) noexcept : transformable2(other), points_(other.points_) {}
+    customPath(customPath&& other) noexcept : transformable2(other), points_(std::move(other.points_)) {}
     ~customPath() = default;
 
-    customPath& operator=(const customPath& other){ points_ = other.points_; return *this; }
-    customPath& operator=(customPath&& other){ points_ = std::move(other.points_); return *this; }
+    customPath& operator=(const customPath& other){ copyTransform(other); points_ = other.points_; return *this; }
+    customPath& operator=(customPath&& other){ copyTransform(other); points_ = std::move(other.points_); return *this; }
 
     point& operator[](size_t i){ return points_[i]; }
     const point& operator[](size_t i) const { return points_[i]; }

@@ -1,6 +1,17 @@
 #pragma once
 
+namespace nyutil
+{
+}
+
+namespace ny
+{
+using namespace nyutil;
+}
+
 #include <ny/config.h>
+#include <ny/error.hpp> //to make nyDebug available everywhere for the moment. remove later
+#include <iostream> //same
 #include <cstdlib>
 
 namespace nyutil
@@ -36,8 +47,6 @@ class pollEventSource;
 
 namespace ny
 {
-
-using namespace nyutil;
 
 class backend;
 class app;

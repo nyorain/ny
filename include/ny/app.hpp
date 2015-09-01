@@ -134,6 +134,7 @@ public:
 
 public:
     void sendEvent(std::unique_ptr<event> ev);
+    void sendEvent(const event& ev);
 
     void keyboardKey(std::unique_ptr<keyEvent> event);
     void mouseMove(std::unique_ptr<mouseMoveEvent> event);

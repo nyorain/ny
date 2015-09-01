@@ -25,7 +25,7 @@ protected:
 public:
     button(window& parent, vec2ui position, vec2ui size, const std::string& label = "", const windowContextSettings& = windowContextSettings());
 
-    std::unique_ptr<connection> onClick(std::function<void(button&)> func){ return clickCallback_.add(func); };
+    template<typename F> connection onClick(F&& func){ return clickCallback_.add(func); };
 
     const std::string& getLabel() const { return label_; }
     void setLabel(const std::string& lbl) { label_ = lbl; refresh(); }
@@ -55,8 +55,8 @@ protected:
 public:
     textfield(window* parent, vec2ui size, vec2ui position, std::string label, const windowContextSettings& = windowContextSettings());
 
-    std::unique_ptr<connection> onEdit(std::function<void(textfield&, const std::string&)> func){ return editCallback_.add(func); };
-    std::unique_ptr<connection> onEnter(std::function<void(textfield&, const std::string&)> func){ return enterCallback_.add(func); };
+    template<typename F> connection onEdit(F&& func){ return editCallback_.add(func); };
+    template<typename F> connection onEnter(F&& func){ return enterCallback_.add(func); };
 
     const std::string& getLabel() const { return label_; }
     void setLabel(const std::string& lbl) { label_ = lbl; refresh(); }

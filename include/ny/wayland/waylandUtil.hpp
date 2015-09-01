@@ -72,9 +72,7 @@ protected:
 public:
     serverCallback(wl_callback* callback);
 
-    std::unique_ptr<connection> add(std::function<void(wl_callback*, unsigned int)> func);
-    std::unique_ptr<connection> add(std::function<void(unsigned int)> func);
-    std::unique_ptr<connection> add(std::function<void()> func);
+   template<typename F> connection add(F&& func){ return callback_.add(func); }
 };
 
 //output

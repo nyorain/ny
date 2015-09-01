@@ -24,8 +24,7 @@ waylandEGLAppContext::waylandEGLAppContext(waylandAppContext* ac)
 {
     eglBindAPI(EGL_OPENGL_API);
 
-    EGLint major, minor, count, n, size;
-    EGLConfig *configs;
+    EGLint major, minor, configSize;
 
     EGLint renderable = EGL_OPENGL_BIT; //todo
     EGLint config_attribs[] =
@@ -52,10 +51,9 @@ waylandEGLAppContext::waylandEGLAppContext(waylandAppContext* ac)
         return;
     }
 
-    eglGetConfigs(eglDisplay_, nullptr, 0, &count);
-    eglChooseConfig(eglDisplay_, config_attribs, &eglConfig_, 1, &n); //todo
+    eglChooseConfig(eglDisplay_, config_attribs, &eglConfig_, 1, &configSize); //todo
 
-    if(n < 1 || !eglConfig_)
+    if(!eglConfig_)
     {
         throw std::runtime_error("Can't choose egl config");
         return;
@@ -81,6 +79,23 @@ waylandEGLAppContext::~waylandEGLAppContext()
 //waylandEGLContext
 waylandEGLDrawContext::waylandEGLDrawContext(const waylandWindowContext& wc) : eglDrawContext(wc.getWindow())
 {
+}
+
+waylandEGLDrawContext::~waylandEGLDrawContext()
+{
+    eglAppContext* egl = getEGLAppContext();
+
+    if(wlEGLWindow_) wl_egl_window_destroy(wlEGLWindow_);
+    if(eglSurface_) eglDestroySurface(egl->getDisplay(), eglSurface_);
+}
+
+void waylandEGLDrawContext::initEGL(const waylandWindowContext& wc)
+{
+    if(wlEGLWindow_)
+        return;
+
+    eglBindAPI(EGL_OPENGL_API);
+
     eglAppContext* egl = getEGLAppContext();
 
     wlEGLWindow_ = wl_egl_window_create(wc.getWlSurface(), wc.getWindow().getWidth(), wc.getWindow().getHeight());
@@ -104,25 +119,17 @@ waylandEGLDrawContext::waylandEGLDrawContext(const waylandWindowContext& wc) : e
     };
 
     eglContext_ = eglCreateContext(egl->getDisplay(), egl->getConfig(), EGL_NO_CONTEXT, contextAttribs);
-
     eglDrawContext::init(glApi::openGL);
-}
 
-waylandEGLDrawContext::~waylandEGLDrawContext()
-{
-    eglAppContext* egl = getEGLAppContext();
-
-    if(wlEGLWindow_) wl_egl_window_destroy(wlEGLWindow_);
-    if(eglSurface_) eglDestroySurface(egl->getDisplay(), eglSurface_);
 }
 
 void waylandEGLDrawContext::setSize(vec2ui size)
 {
     wl_egl_window_resize(wlEGLWindow_, size.x, size.y, 0, 0);
 
-    makeCurrent();
-    glViewport(0, 0, size.x, size.y);
-    makeNotCurrent();
+    //makeCurrent();
+    //glViewport(0, 0, size.x, size.y);
+    //makeNotCurrent();
 }
 
 }

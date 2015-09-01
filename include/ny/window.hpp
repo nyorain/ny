@@ -66,16 +66,16 @@ protected:
     callback<void(window&, const keyEvent&)> keyCallback_;
 
     //events - have to be protected?
-    virtual void mouseMove(std::unique_ptr<mouseMoveEvent>);
-    virtual void mouseCross(std::unique_ptr<mouseCrossEvent>);
-    virtual void mouseButton(std::unique_ptr<mouseButtonEvent>);
-    virtual void mouseWheel(std::unique_ptr<mouseWheelEvent>);
-    virtual void keyboardKey(std::unique_ptr<keyEvent>);
-    virtual void windowSize(std::unique_ptr<sizeEvent>);
-    virtual void windowPosition(std::unique_ptr<positionEvent>);
-    virtual void windowDraw(std::unique_ptr<drawEvent>);
-    virtual void windowShow(std::unique_ptr<showEvent>);
-    virtual void windowFocus(std::unique_ptr<focusEvent>);
+    virtual void mouseMove(const mouseMoveEvent&);
+    virtual void mouseCross(const mouseCrossEvent&);
+    virtual void mouseButton(const mouseButtonEvent&);
+    virtual void mouseWheel(const mouseWheelEvent&);
+    virtual void keyboardKey(const keyEvent&);
+    virtual void windowSize(const sizeEvent&);
+    virtual void windowPosition(const positionEvent&);
+    virtual void windowDraw(const drawEvent&);
+    virtual void windowShow(const showEvent&);
+    virtual void windowFocus(const focusEvent&);
 
     //window is abstract class
     window();
@@ -108,7 +108,7 @@ public:
     //todo: which of them have to be virtual? rethink - maybe some of the <basic window functions> should be virtual, too
 
     //returns if the given event was processed by the window
-    virtual bool processEvent(std::unique_ptr<event> event) override;
+    virtual bool processEvent(const event& event) override;
     virtual void destroy() override;
     virtual bool valid() const override;
 
@@ -155,17 +155,17 @@ public:
 
     /////////////////////////////////////////////////////////////////////
     //callbacks
-    template<typename F> std::unique_ptr<connection> onDraw(F&& func){ return drawCallback_.add(func); }
-    template<typename F> std::unique_ptr<connection> onResize(F&& func){ return resizeCallback_.add(func); }
-    template<typename F> std::unique_ptr<connection> onMove(F&& func){ return moveCallback_.add(func); }
-    template<typename F> std::unique_ptr<connection> onDestroy(F&& func){ return destroyCallback_.add(func); }
-    template<typename F> std::unique_ptr<connection> onFocus(F&& func){ return focusCallback_.add(func); }
-    template<typename F> std::unique_ptr<connection> onShow(F&& func){ return showCallback_.add(func); } //sth like onShowState
-    template<typename F> std::unique_ptr<connection> onMouseMove(F&& func){ return mouseMoveCallback_.add(func); }
-    template<typename F> std::unique_ptr<connection> onMouseButton(F&& func){ return mouseButtonCallback_.add(func); }
-    template<typename F> std::unique_ptr<connection> onMouseCross(F&& func){ return mouseCrossCallback_.add(func); }
-    template<typename F> std::unique_ptr<connection> onMouseWheel(F&& func){ return mouseWheelCallback_.add(func); }
-    template<typename F> std::unique_ptr<connection> onKey(F&& func){ return keyCallback_.add(func); }
+    template<typename F> connection onDraw(F&& func){ return drawCallback_.add(func); }
+    template<typename F> connection onResize(F&& func){ return resizeCallback_.add(func); }
+    template<typename F> connection onMove(F&& func){ return moveCallback_.add(func); }
+    template<typename F> connection onDestroy(F&& func){ return destroyCallback_.add(func); }
+    template<typename F> connection onFocus(F&& func){ return focusCallback_.add(func); }
+    template<typename F> connection onShow(F&& func){ return showCallback_.add(func); } //sth like onShowState
+    template<typename F> connection onMouseMove(F&& func){ return mouseMoveCallback_.add(func); }
+    template<typename F> connection onMouseButton(F&& func){ return mouseButtonCallback_.add(func); }
+    template<typename F> connection onMouseCross(F&& func){ return mouseCrossCallback_.add(func); }
+    template<typename F> connection onMouseWheel(F&& func){ return mouseWheelCallback_.add(func); }
+    template<typename F> connection onKey(F&& func){ return keyCallback_.add(func); }
 
     /////////////////////////////////////////////////////
     //const getters
@@ -215,8 +215,8 @@ protected:
     std::string title_{};
     unsigned int borderSize_{};
 
-    void mouseButton(std::unique_ptr<mouseButtonEvent> ev);
-    void mouseMove(std::unique_ptr<mouseMoveEvent> ev);
+    virtual void mouseButton(const mouseButtonEvent& ev) override;
+    virtual void mouseMove(const mouseMoveEvent& ev) override;
 
     toplevelWindow();
     void create(vec2i position, vec2ui size, std::string title = " ", const windowContextSettings& settings = windowContextSettings());

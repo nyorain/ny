@@ -14,7 +14,7 @@ namespace ny
 //grab
 struct mouseGrab
 {
-    eventHandler* grabber_ {nullptr};
+    eventHandler* handler_ {nullptr};
     std::unique_ptr<event> event_ {nullptr};
 };
 
@@ -41,6 +41,9 @@ protected:
     static std::bitset<8> states;
     static vec2i position;
 
+    //static mouseGrab grab_ {};
+
+protected:
     static void buttonPressed(button b);
     static void buttonReleased(button b);
     static void wheelMoved(float value);
@@ -53,6 +56,10 @@ protected:
 public:
     static bool isButtonPressed(button b);
     static vec2i getPosition();
+
+    //static mouseGrab* grabbed() const { return grab_.handler ? &grab_ : nullptr; }
+    //static  grab(const event& ev);
+    //static bool ungrab
 
     template<typename F> static std::unique_ptr<connection> onMove(F&& func) { return moveCallback_.add(func); }
     template<typename F> static std::unique_ptr<connection> onButton(F&& func) { return buttonCallback_.add(func); }
@@ -79,7 +86,7 @@ public:
     vec2i position;
 };
 
-class mouseMoveEvent : public eventBase<mouseMoveEvent, eventType::mouseMove>
+class mouseMoveEvent : public eventBase<mouseMoveEvent, eventType::mouseMove, 1>
 {
 public:
     mouseMoveEvent(eventHandler* h = nullptr, vec2i pos = vec2i(), vec2i spos = vec2i(), vec2i del = vec2i(), eventData* d = nullptr)

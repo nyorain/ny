@@ -29,6 +29,8 @@ public:
     waylandEGLDrawContext(const waylandWindowContext& wc);
     virtual ~waylandEGLDrawContext();
 
+    void initEGL(const waylandWindowContext& wc);
+
     wl_egl_window& getWlEGLWindow() const { return *wlEGLWindow_; };
     void setSize(vec2ui size);
 };

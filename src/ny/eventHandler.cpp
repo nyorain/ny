@@ -17,9 +17,9 @@ eventHandler::eventHandler(eventHandler& parent) : hierachyBase(parent)
 {
 }
 
-bool eventHandler::processEvent(std::unique_ptr<event> event)
+bool eventHandler::processEvent(const event& event)
 {
-    if(event->type() == eventType::destroy)
+    if(event.type() == eventType::destroy)
     {
         destroy();
         return true;

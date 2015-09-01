@@ -73,48 +73,48 @@ void window::destroy()
     windowContext_.reset();
 }
 
-bool window::processEvent(std::unique_ptr<event> ev)
+bool window::processEvent(const event& ev)
 {
     if(!checkValid()) return 0;
-    if(eventHandler::processEvent(ev->clone())) return 1;
+    if(eventHandler::processEvent(ev)) return 1;
 
-    switch (ev->type())
+    switch (ev.type())
     {
     case eventType::mouseButton:
-        mouseButton(event_cast<mouseButtonEvent>(std::move(ev)));
+        mouseButton(event_cast<mouseButtonEvent>(ev));
         return true;
     case eventType::mouseMove:
-        mouseMove(event_cast<mouseMoveEvent>(std::move(ev)));
+        mouseMove(event_cast<mouseMoveEvent>(ev));
         return true;
     case eventType::mouseCross:
-        mouseCross(event_cast<mouseCrossEvent>(std::move(ev)));
+        mouseCross(event_cast<mouseCrossEvent>(ev));
         return true;
     case eventType::mouseWheel:
-        mouseWheel(event_cast<mouseWheelEvent>(std::move(ev)));
+        mouseWheel(event_cast<mouseWheelEvent>(ev));
         return true;
     case eventType::key:
-        keyboardKey(event_cast<keyEvent>(std::move(ev)));
+        keyboardKey(event_cast<keyEvent>(ev));
         return true;
     case eventType::windowFocus:
-        windowFocus(event_cast<focusEvent>(std::move(ev)));
+        windowFocus(event_cast<focusEvent>(ev));
         return true;
     case eventType::windowSize:
-        windowSize(event_cast<sizeEvent>(std::move(ev)));
+        windowSize(event_cast<sizeEvent>(ev));
         return true;
     case eventType::windowPosition:
-        windowPosition(event_cast<positionEvent>(std::move(ev)));
+        windowPosition(event_cast<positionEvent>(ev));
         return true;
     case eventType::windowDraw:
-        windowDraw(event_cast<drawEvent>(std::move(ev)));
+        windowDraw(event_cast<drawEvent>(ev));
         return true;
     case eventType::windowShow:
-        windowShow(event_cast<showEvent>(std::move(ev)));
+        windowShow(event_cast<showEvent>(ev));
         return true;
     case eventType::windowRefresh:
         refresh();
         return true;
     case eventType::context:
-        windowContext_->sendContextEvent(event_cast<contextEvent>(std::move(ev)));
+        windowContext_->sendContextEvent(event_cast<contextEvent>(ev));
         return true;
 
     default:
@@ -217,61 +217,62 @@ void window::setMinSize(vec2ui size)
 }
 
 //event callbacks
-void window::mouseMove(std::unique_ptr<mouseMoveEvent> e)
+void window::mouseMove(const mouseMoveEvent& e)
 {
-    mouseMoveCallback_(*this, *e);
+    mouseMoveCallback_(*this, e);
 }
-void window::mouseCross(std::unique_ptr<mouseCrossEvent> e)
+void window::mouseCross(const mouseCrossEvent& e)
 {
-    mouseOver_ = e->entered;
-    mouseCrossCallback_(*this, *e);
+    mouseOver_ = e.entered;
+    mouseCrossCallback_(*this, e);
 }
-void window::mouseButton(std::unique_ptr<mouseButtonEvent> e)
+void window::mouseButton(const mouseButtonEvent& e)
 {
-    mouseButtonCallback_(*this, *e);
+    mouseButtonCallback_(*this, e);
 }
-void window::mouseWheel(std::unique_ptr<mouseWheelEvent> e)
+void window::mouseWheel(const mouseWheelEvent& e)
 {
-    mouseWheelCallback_(*this, *e);
+    mouseWheelCallback_(*this, e);
 }
-void window::keyboardKey(std::unique_ptr<keyEvent> e)
+void window::keyboardKey(const keyEvent& e)
 {
-    keyCallback_(*this, *e);
+    keyCallback_(*this, e);
 }
-void window::windowSize(std::unique_ptr<sizeEvent> e)
+void window::windowSize(const sizeEvent& e)
 {
-    size_ = e->size;
-    windowContext_->setSize(size_, e->change);
+    size_ = e.size;
+    windowContext_->setSize(size_, e.change);
     resizeCallback_.call(*this, size_);
 }
-void window::windowPosition(std::unique_ptr<positionEvent> e)
+void window::windowPosition(const positionEvent& e)
 {
-    position_ = e->position;
-    windowContext_->setPosition(position_, e->change);
+    position_ = e.position;
+    windowContext_->setPosition(position_, e.change);
     moveCallback_(*this, position_);
 }
-void window::windowDraw(std::unique_ptr<drawEvent> e)
+void window::windowDraw(const drawEvent& e)
 {
     drawContext& dc = windowContext_->beginDraw();
     draw(dc);
     windowContext_->finishDraw();
 }
-void window::windowShow(std::unique_ptr<showEvent> e)
+void window::windowShow(const showEvent& e)
 {
-    showCallback_(*this, *e);
+    showCallback_(*this, e);
 }
-void window::windowFocus(std::unique_ptr<focusEvent> e)
+void window::windowFocus(const focusEvent& e)
 {
-    focus_ = e->focusGained;
-    focusCallback_(*this, *e);
+    focus_ = e.focusGained;
+    focusCallback_(*this, e);
 }
 
+//draw
 void window::draw(drawContext& dc)
 {
     drawCallback_(*this, dc);
 
     for(auto win : getWindowChildren())
-        if(win->isVirtual()) win->windowDraw(std::make_unique<drawEvent>(win));
+        if(win->isVirtual()) win->windowDraw(drawEvent(win));
 }
 
 //util
@@ -366,11 +367,11 @@ void toplevelWindow::setIcon(const image* icon)
     getWindowContext()->setIcon(icon);
 }
 
-void toplevelWindow::mouseButton(std::unique_ptr<mouseButtonEvent> ev)
+void toplevelWindow::mouseButton(const mouseButtonEvent& ev)
 {
-    //window::mouseButton(ev);
+    window::mouseButton(ev);
 
-    /*
+
     if(!isCustomResized() || !hasResizeHint())
         return;
 
@@ -415,14 +416,12 @@ void toplevelWindow::mouseButton(std::unique_ptr<mouseButtonEvent> ev)
 
     if(found) getWindowContext()->beginResize(&ev, medge);
     else getWindowContext()->beginMove(&ev);
-    */
 }
 
-void toplevelWindow::mouseMove(std::unique_ptr<mouseMoveEvent> ev)
+void toplevelWindow::mouseMove(const mouseMoveEvent& ev)
 {
-    //window::mouseMove(ev);
+    window::mouseMove(ev);
 
-    /*
     if(!isCustomResized() || !hasResizeHint())
         return;
 
@@ -456,7 +455,6 @@ void toplevelWindow::mouseMove(std::unique_ptr<mouseMoveEvent> ev)
 
     cursor_.fromNativeType(t);
     windowContext_->updateCursor(nullptr);
-    */
 }
 
 void toplevelWindow::setTitle(const std::string& n)

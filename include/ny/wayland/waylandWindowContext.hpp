@@ -107,7 +107,7 @@ public:
     virtual void setCursor(const cursor& c) override;
     virtual void updateCursor(mouseCrossEvent* ev) override;
 
-    virtual void sendContextEvent(std::unique_ptr<contextEvent> e) override;
+    virtual void sendContextEvent(const contextEvent& e) override;
 
     virtual unsigned long getAdditionalWindowHints() const override;
 
@@ -119,8 +119,8 @@ public:
     virtual void setFullscreen() override;
     virtual void setNormal() override;
 
-    virtual void beginMove(mouseButtonEvent* ev) override;
-    virtual void beginResize(mouseButtonEvent* ev, ny::windowEdge edge) override;
+    virtual void beginMove(const mouseButtonEvent* ev) override;
+    virtual void beginResize(const mouseButtonEvent* ev, ny::windowEdge edge) override;
 
     virtual void setTitle(const std::string& str) override;
 

@@ -32,7 +32,7 @@ public:
     virtual bool hasGL() const = 0;
 
     virtual void refresh() = 0;
-    virtual void redraw();
+    virtual void redraw(); //needed?
 
     virtual drawContext& beginDraw() = 0;
     virtual void finishDraw() = 0;
@@ -55,7 +55,7 @@ public:
     virtual void setMaxSize(vec2ui size){};
 
     //event
-    virtual void sendContextEvent(std::unique_ptr<contextEvent> e){};
+    virtual void sendContextEvent(const contextEvent& e){};
 
     virtual void setSize(vec2ui size, bool change = 1) = 0; //change states if the window on the backend has to be resized
     virtual void setPosition(vec2i position, bool change = 1) = 0; //...
@@ -70,8 +70,8 @@ public:
     virtual void setFullscreen() = 0;
     virtual void setNormal() = 0; //or reset()?
 
-    virtual void beginMove(mouseButtonEvent* ev) = 0;
-    virtual void beginResize(mouseButtonEvent* ev, windowEdge edges) = 0;
+    virtual void beginMove(const mouseButtonEvent* ev) = 0;
+    virtual void beginResize(const mouseButtonEvent* ev, windowEdge edges) = 0;
 
     virtual void setTitle(const std::string& name) = 0;
 	virtual void setIcon(const image* img){}; //may be only important for client decoration
@@ -119,8 +119,8 @@ public:
     virtual void setFullscreen() override {}
     virtual void setNormal() override {} //or reset()?
 
-    virtual void beginMove(mouseButtonEvent* ev) override {}
-    virtual void beginResize(mouseButtonEvent* ev, windowEdge edges) override {}
+    virtual void beginMove(const mouseButtonEvent* ev) override {}
+    virtual void beginResize(const mouseButtonEvent* ev, windowEdge edges) override {}
 
     virtual void setTitle(const std::string& name) override {};
 

@@ -160,14 +160,17 @@ transformable2& path::getTransformable()
 ///////////////////////////////////////////////////////////////7
 customPath rectangle::getAsCustomPath() const
 {
-    rect2f me = *this;
+    rect2f me;
+    me.size = size_;
 
     if(allValuesLessOrEqual(borderRadius_, vec4f(0,0,0,0)))
     {
-        customPath p(me.topLeft());
-        p.addLine(me.topRight());
-        p.addLine(me.bottomRight());
-        p.addLine(me.bottomLeft());
+        customPath p(vec2f(0,0));
+        p.addLine(vec2f(size_.x, 0));
+        p.addLine(size_);
+        p.addLine(vec2f(0, size_.y));
+
+        p.copyTransform(*this);
 
         return p;
     }
@@ -186,7 +189,7 @@ customPath rectangle::getAsCustomPath() const
         p.addLine(me.bottomLeft() + vec2f(borderRadius_[3], 0));
         p.addArc(me.bottomLeft() - vec2f(0, borderRadius_[3]), borderRadius_[3], arcType::right);
 
-        //p.close();
+        p.copyTransform(*this);
 
         return p;
     }

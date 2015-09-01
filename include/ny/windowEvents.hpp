@@ -46,7 +46,7 @@ public:
     bool change;
 };
 
-class positionEvent : public eventBase<positionEvent, eventType::windowPosition>
+class positionEvent : public eventBase<positionEvent, eventType::windowPosition, 1>
 {
 public:
     positionEvent(eventHandler* h = nullptr, vec2i pos = vec2i(), bool ch = 1, eventData* d = nullptr)
@@ -56,14 +56,14 @@ public:
     bool change;
 };
 
-class drawEvent : public eventBase<drawEvent, eventType::windowDraw>
+class drawEvent : public eventBase<drawEvent, eventType::windowDraw, 1>
 {
 public:
     drawEvent(eventHandler* h = nullptr, eventData* d = nullptr) : evBase(h, d) {}
 };
 
 //better sth like "using refreshEvent = eventBase<eventType::windowRefresh>;"? since it has no additional members
-class refreshEvent : public eventBase<refreshEvent, eventType::windowRefresh>
+class refreshEvent : public eventBase<refreshEvent, eventType::windowRefresh, 1>
 {
 public:
     refreshEvent(eventHandler* h = nullptr, eventData* d = nullptr) : evBase(h, d) {}

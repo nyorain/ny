@@ -27,16 +27,6 @@ public:
     virtual void stroke(const mask& m, const pen& b) = 0;
 };
 
-
-//modern
-class modernGLDrawImpl : public glDrawImpl
-{
-public:
-    virtual void clear(color col) override;
-    virtual void fill(const mask& m, const brush& b) override;
-    virtual void stroke(const mask& m, const pen& b) override;
-};
-
 //legacy
 class legacyGLDrawImpl : public glDrawImpl
 {
@@ -102,6 +92,8 @@ public:
 	virtual void resetClip() override;
 
     //gl
+    void updateViewport(vec2ui size);
+
     glApi getApi() const { return api_; }
     int getMajorVersion() const { return major_; }
     int getMinorVersion() const { return minor_; }

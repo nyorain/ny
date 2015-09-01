@@ -296,7 +296,7 @@ void waylandAppContext::eventMouseLeaveSurface(wl_pointer *pointer, unsigned int
 void waylandAppContext::eventMouseButton(wl_pointer *wl_pointer, unsigned int serial, unsigned int time, unsigned int button, unsigned int state)
 {
     auto buttn = waylandToButton(button);
-    nyMainApp()->mouseButton(std::make_unique<mouseButtonEvent>(nullptr, buttn, static_cast<bool>(state)));
+    nyMainApp()->mouseButton(std::make_unique<mouseButtonEvent>(nullptr, buttn, static_cast<bool>(state), mouse::getPosition(), new waylandEventData(serial)));
 }
 
 void waylandAppContext::eventMouseAxis(wl_pointer *pointer, unsigned int time, unsigned int axis, int value)

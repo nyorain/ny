@@ -3,6 +3,7 @@
 #ifdef NY_WithGL
 
 #include <ny/gl/glDrawContext.hpp>
+#include <ny/gl/modernGL.hpp>
 #include <ny/surface.hpp>
 #include <ny/error.hpp>
 
@@ -88,7 +89,7 @@ void glDrawContext::init(glApi api, unsigned int depth, unsigned int stencil)
     depth_ = depth;
     stencil_ = stencil;
 
-    makeCurrent();
+    makeCurrentImpl();
     glbinding::Binding::initialize();
 
     int maj = 0, min = 0;
@@ -102,7 +103,7 @@ void glDrawContext::init(glApi api, unsigned int depth, unsigned int stencil)
     {
         if(api_ == glApi::openGL)
         {
-            if(major_ >= 3 && minor_ >= 3) impl_.reset(new modernGLDrawImpl());
+            if(major_ >= 3 && minor_ >= 0) impl_.reset(new modernGLDrawImpl()); //better 3.3?
             else impl_.reset(new legacyGLDrawImpl());
         }
         else
@@ -111,7 +112,9 @@ void glDrawContext::init(glApi api, unsigned int depth, unsigned int stencil)
         }
     }
 
-    makeNotCurrent();
+    //nyDebug("ctx: ", glbinding::getCurrentContext());
+
+    makeNotCurrentImpl();
 }
 
 bool glDrawContext::makeCurrent()
@@ -136,7 +139,7 @@ bool glDrawContext::makeNotCurrent()
 
     if(makeNotCurrentImpl())
     {
-        glbinding::Binding::useCurrentContext();
+        //glbinding::Binding::releaseCurrentContext();
         makeContextNotCurrent(*this);
         return 1;
     }
@@ -163,6 +166,12 @@ void glDrawContext::clear(color col)
 {
     if(!assureValid()) return;
     impl_->clear(col);
+}
+
+void glDrawContext::updateViewport(vec2ui size)
+{
+    if(!assureValid()) return;
+    gl::glViewport(0, 0, size.x, size.y);
 }
 
 rect2f glDrawContext::getClip()
@@ -197,11 +206,11 @@ void glDrawContext::resetClip()
 
 void glDrawContext::mask(const customPath& obj)
 {
-    store_.push_back(obj);
+    store_.emplace_back(obj);
 }
 void glDrawContext::mask(const text& obj)
 {
-    store_.push_back(obj);
+    store_.emplace_back(obj);
 }
 void glDrawContext::mask(const ny::mask& obj)
 {
@@ -217,13 +226,13 @@ void glDrawContext::resetMask()
 }
 void glDrawContext::fillPreserve(const brush& col)
 {
-    //if(!assureValid() || store_.empty()) return;
-    //impl_->fill(store_, col);
+    if(!assureValid() || store_.empty()) return;
+    impl_->fill(store_, col);
 }
 void glDrawContext::strokePreserve(const pen& col)
 {
-    //if(!assureValid() || store_.empty()) return;
-    //impl_->stroke(store_, col);
+    if(!assureValid() || store_.empty()) return;
+    impl_->stroke(store_, col);
 }
 
 }

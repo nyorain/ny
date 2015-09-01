@@ -225,25 +225,6 @@ serverCallback::serverCallback(wl_callback* callback)
     wl_callback_add_listener(callback, &callbackListener, this);
 }
 
-std::unique_ptr<connection> serverCallback::add(std::function<void(wl_callback*, unsigned int)> func)
-{
-    return callback_.add(func);
-}
-
-std::unique_ptr<connection> serverCallback::add(std::function<void(unsigned int)> func)
-{
-    return callback_.add([=](wl_callback*, unsigned int i){
-                    func(i);
-                  });
-}
-
-std::unique_ptr<connection> serverCallback::add(std::function<void()> func)
-{
-    return callback_.add([=](wl_callback*, unsigned int){
-                    func();
-                  });
-}
-
 void serverCallback::done(wl_callback* cb, unsigned int data)
 {
     callback_(cb, data);

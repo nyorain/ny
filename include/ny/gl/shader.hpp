@@ -14,7 +14,7 @@ class shader
 protected:
     bool compile(const std::string& vertexShader, const std::string& fragmentShader);
 
-    unsigned int program_;
+    unsigned int program_ {0};
 
 public:
     enum type
@@ -44,13 +44,6 @@ public:
     void setUniformParameter(const std::string& name, const mat2f& value);
     void setUniformParameter(const std::string& name, const mat3f& value);
     void setUniformParameter(const std::string& name, const mat4f& value);
-
-    void setUniformParameter(const std::string& name, const mat23f& value);
-    void setUniformParameter(const std::string& name, const mat24f& value);
-    void setUniformParameter(const std::string& name, const mat32f& value);
-    void setUniformParameter(const std::string& name, const mat34f& value);
-    void setUniformParameter(const std::string& name, const mat42f& value);
-    void setUniformParameter(const std::string& name, const mat43f& value);
 
     void setUniformParameter(const std::string& name, const color& value);
 

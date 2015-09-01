@@ -18,7 +18,7 @@ public:
     eventHandler(eventHandler& parent);
     virtual ~eventHandler() = default;
 
-    virtual bool processEvent(std::unique_ptr<event> event); //returns if event was processed (1) or ignored (0)
+    virtual bool processEvent(const event& event); //returns if event was processed (1) or ignored (0)
 };
 
 }

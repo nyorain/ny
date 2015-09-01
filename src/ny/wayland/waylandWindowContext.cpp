@@ -22,6 +22,7 @@
 #endif // NY_WithCairo
 
 #include <iostream>
+#include <cassert>
 
 namespace ny
 {
@@ -118,6 +119,8 @@ waylandWindowContext::waylandWindowContext(window& win, const waylandWindowConte
         drawType_ = waylandDrawType::cairo;
         cairo_ = new waylandCairoDrawContext(*this);
     }
+
+    nyMainApp()->sendEvent(refreshEvent(&getWindow()));
 }
 
 waylandWindowContext::~waylandWindowContext()
@@ -274,7 +277,13 @@ drawContext& waylandWindowContext::beginDraw()
     }
     else if(getEGL() && egl_)
     {
-        egl_->makeCurrent();
+        egl_->initEGL(*this);
+
+        if(!egl_->makeCurrent())
+            throw std::runtime_error("waylandWindowContext::beginDraw: failed to make egl current");
+
+        egl_->updateViewport(getWindow().getSize());
+
         return *egl_;
     }
     else
@@ -295,16 +304,22 @@ void waylandWindowContext::finishDraw()
         wl_surface_attach(wlSurface_, cairo_->getShmBuffer().getWlBuffer(), 0, 0);
         wl_surface_damage(wlSurface_, 0, 0, window_.getWidth(), window_.getHeight());
         wl_surface_commit(wlSurface_);
+
+        wl_display_flush(getWaylandAC()->getWlDisplay());
     }
     else if(getEGL() && egl_)
     {
+        assert(egl_->isCurrent());
         egl_->apply();
 
         wlFrameCallback_ = wl_surface_frame(wlSurface_);
         wl_callback_add_listener(wlFrameCallback_, &frameListener, this);
 
-        egl_->swapBuffers();
-        egl_->makeNotCurrent();
+        if(!egl_->swapBuffers())
+            nyWarning("waylandWC::finishDraw: failed to swap egl buffers");
+
+        if(!egl_->makeNotCurrent())
+            nyWarning("waylandWC::finishDraw: failed to make egl context not current");
     }
     else
     {
@@ -402,13 +417,13 @@ void waylandWindowContext::updateCursor(mouseCrossEvent* ev)
         getWaylandAC()->setCursor(window_.getCursor().getImage(), window_.getCursor().getImageHotspot(), serial);
 }
 
-void waylandWindowContext::sendContextEvent(std::unique_ptr<contextEvent> e)
+void waylandWindowContext::sendContextEvent(const contextEvent& e)
 {
-    if(e->contextType() == frameEvent)
+    if(e.contextType() == frameEvent)
     {
         if(wlFrameCallback_)
         {
-            wl_callback_destroy(wlFrameCallback_);
+            wl_callback_destroy(wlFrameCallback_); //?
             wlFrameCallback_ = nullptr;
         }
 
@@ -438,21 +453,21 @@ void waylandWindowContext::setNormal()
 {
     if(getWlShellSurface()) wl_shell_surface_set_toplevel(wlShellSurface_);
 }
-void waylandWindowContext::beginMove(mouseButtonEvent* ev)
+void waylandWindowContext::beginMove(const mouseButtonEvent* ev)
 {
     waylandEventData* e = dynamic_cast<waylandEventData*> (ev->data.get());
 
-    if(!ev || !getWlShellSurface())
+    if(!e || !getWlShellSurface())
         return;
 
     wl_shell_surface_move(wlShellSurface_, getWaylandAC()->getWlSeat(), e->serial);
 }
 
-void waylandWindowContext::beginResize(mouseButtonEvent* ev, windowEdge edge)
+void waylandWindowContext::beginResize(const mouseButtonEvent* ev, windowEdge edge)
 {
     waylandEventData* e = dynamic_cast<waylandEventData*> (ev->data.get());
 
-    if(!ev || !getWlShellSurface())
+    if(!e || !getWlShellSurface())
         return;
 
     unsigned int wlEdge = 0;

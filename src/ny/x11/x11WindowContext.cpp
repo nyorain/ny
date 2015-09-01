@@ -38,7 +38,7 @@ struct glxFBC
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //windowContext///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-x11WindowContext::x11WindowContext(window& win, const x11WindowContextSettings& settings) : windowContext(win, settings)
+x11WindowContext::x11WindowContext(window& win, const x11WindowContextSettings& settings) : windowContext(win, settings), glx_()
 {
     x11AppContext* ac = getX11AppContext();
 
@@ -285,14 +285,9 @@ void x11WindowContext::matchGLXVisualInfo()
 void x11WindowContext::refresh()
 {
     //internal event method
+    nyMainApp()->sendEvent(std::make_unique<drawEvent>(&getWindow()));
+
 /*
-    drawEvent e;
-    e.handler = &window_;
-    e.backend = 0;
-    nyMainApp()->sendEvent(e);
-*/
-
-
     //x11 method
     XEvent ev;
 
@@ -303,6 +298,7 @@ void x11WindowContext::refresh()
 
     XSendEvent(getXDisplay(), xWindow_, False, ExposureMask, &ev);
     XFlush(getXDisplay());
+*/
 }
 
 drawContext& x11WindowContext::beginDraw()
@@ -314,6 +310,7 @@ drawContext& x11WindowContext::beginDraw()
     else if(getGLX())
     {
         getGLX()->makeCurrent();
+        getGLX()->updateViewport(getWindow().getSize());
         return *glx_.ctx;
     }
     else
@@ -423,10 +420,10 @@ void x11WindowContext::setMaxSize(vec2ui size)
     XSetWMNormalHints(getXDisplay(), xWindow_, &s);
 }
 
-void x11WindowContext::sendContextEvent(std::unique_ptr<contextEvent> e)
+void x11WindowContext::sendContextEvent(const contextEvent& e)
 {
-    if(e->contextType() == X11Reparent)
-        wasReparented(event_cast<x11ReparentEvent>(std::move(e))->ev);
+    if(e.contextType() == X11Reparent)
+        wasReparented(event_cast<x11ReparentEvent>(e).ev);
 }
 
 void x11WindowContext::addWindowHints(unsigned long hints)
@@ -771,7 +768,7 @@ void x11WindowContext::setNormal()
     XSetWMHints(getXDisplay(), xWindow_, &hints);
 }
 
-void x11WindowContext::beginMove(mouseButtonEvent* ev)
+void x11WindowContext::beginMove(const mouseButtonEvent* ev)
 {
     x11EventData* xbev = dynamic_cast<x11EventData*>(ev->data.get());
     if(!xbev)
@@ -795,7 +792,7 @@ void x11WindowContext::beginMove(mouseButtonEvent* ev)
     XSendEvent(getXDisplay(), DefaultRootWindow(getXDisplay()), False, SubstructureNotifyMask , &mev);
 }
 
-void x11WindowContext::beginResize(mouseButtonEvent* ev, windowEdge edge)
+void x11WindowContext::beginResize(const mouseButtonEvent* ev, windowEdge edge)
 {
     x11EventData* xbev = dynamic_cast<x11EventData*>(ev->data.get());
 
