@@ -98,6 +98,14 @@ void redirectDrawContext::mask(const customPath& obj)
     redirect_.mask(scopy);
 }
 
+void redirectDrawContext::mask(const rectangle& obj)
+{
+    auto scopy = obj;
+    scopy.move(position_);
+    redirect_.mask(scopy);
+}
+
+
 void redirectDrawContext::mask(const text& obj)
 {
     text scopy = obj;
@@ -130,7 +138,6 @@ void redirectDrawContext::setPosition(vec2d position)
 
 void redirectDrawContext::startClip()
 {
-    clipSave_ = redirect_.getClip();
     updateClip();
 }
 
@@ -139,6 +146,7 @@ void redirectDrawContext::updateClip()
     clipSave_ = redirect_.getClip();
     redirect_.resetClip();
     redirect_.clip(rect2f(position_, size_));
+    nyDebug("clip: ", position_, " ", size_);
 }
 void redirectDrawContext::endClip()
 {

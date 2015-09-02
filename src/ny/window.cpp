@@ -10,6 +10,7 @@
 #include <ny/style.hpp>
 #include <ny/mouse.hpp>
 #include <ny/keyboard.hpp>
+#include <ny/widgets.hpp>
 
 #include <nyutil/misc.hpp>
 
@@ -75,7 +76,7 @@ void window::destroy()
 
 bool window::processEvent(const event& ev)
 {
-    if(!checkValid()) return 0;
+    //if(!checkValid()) return 0;
     if(eventHandler::processEvent(ev)) return 1;
 
     switch (ev.type())
@@ -269,10 +270,11 @@ void window::windowFocus(const focusEvent& e)
 //draw
 void window::draw(drawContext& dc)
 {
+    dc.clear(color::white); //todo
     drawCallback_(*this, dc);
 
     for(auto win : getWindowChildren())
-        if(win->isVirtual()) win->windowDraw(drawEvent(win));
+        if(win->isVirtual()) win->draw(((virtualWindowContext*) win->getWindowContext())->beginDraw(dc));
 }
 
 //util
@@ -341,10 +343,12 @@ toplevelWindow::toplevelWindow() : window()
 {
 }
 
-toplevelWindow::toplevelWindow(vec2i position, vec2ui size, std::string title, const windowContextSettings& settings) : window()
+toplevelWindow::toplevelWindow(vec2i position, vec2ui size, std::string title, const windowContextSettings& settings) : window(), headerbar_(nullptr), panel_(nullptr)
 {
     create(position, size, title, settings);
 }
+
+toplevelWindow::~toplevelWindow() = default;
 
 void toplevelWindow::create(vec2i position, vec2ui size, std::string title, const windowContextSettings& settings)
 {
@@ -354,11 +358,37 @@ void toplevelWindow::create(vec2i position, vec2ui size, std::string title, cons
     hints_ |= windowHints::Resize;
 	hints_ |= windowHints::Move;
 
+	hints_ |= windowHints::CustomDecorated; //...
+	hints_ |= windowHints::CustomMoved; //...
+	hints_ |= windowHints::CustomResized; //...
+
     window::create(*nyMainApp(), position, size, settings);
 
     cursor c;
     c.fromNativeType(cursorType::leftPtr);
     windowContext_->setCursor(c);
+
+
+    if(hints_ & windowHints::CustomDecorated)
+    {
+        unsigned int hheight = 100;
+        unsigned int border = 15;
+
+        setHeight(getHeight() + hheight);
+
+        headerbar_.reset(new headerbar(*this, vec2i(0, 0), vec2ui(getWidth(), hheight)));
+        headerbar_->refresh();
+
+        panel_.reset(new panel(*this, vec2i(0 + border, hheight + border), vec2ui(getWidth() - 2 * border, getHeight() - hheight - 2 * border)));
+        panel_->refresh();
+    }
+
+}
+
+void toplevelWindow::addChild(eventHandler& child)
+{
+    if(panel_.get()) child.processEvent(reparentEvent(&child, panel_.get()));
+    else eventHandler::addChild(child);
 }
 
 void toplevelWindow::setIcon(const image* icon)

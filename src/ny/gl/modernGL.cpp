@@ -14,24 +14,6 @@ namespace ny
 namespace
 {
 
-vec2f toGL(const vec2f& src, const vec2ui& size)
-{
-    return ((vec2f(src.x, size.y - src.y) / size) * 2) - vec2f(1, 1);
-    //return src / size;
-}
-
-/*
-rect2f toGL(const rect2f& src, const vec2ui& size)
-{
-    rect2f ret;
-
-    ret.position = (vec2f(src.position.x, size.y - src.position.y - src.size.y) / size) * 2 - 1;
-    ret.size = (src.size / size) * 2;
-
-    return ret;
-}
-*/
-
 //shader
 shader defaultShader;
 
@@ -58,21 +40,22 @@ void modernGLDrawImpl::fill(const mask& m, const brush& b)
     const customPath& p = m[0].getCustom();
     size_t pSize = p.size();
 
+    nyDebug(p.size());
+
     GLint viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
-    vec2ui viewSize(viewport[2], viewport[3]);
+    vec2f viewSize(viewport[2], viewport[3]);
 
+    //nyDebug(viewSize);
 
     GLfloat* verts = new GLfloat[p.size() * 2];
     for(size_t i(0); i < p.size() * 2; i += 2)
     {
-        auto pos1 = vec3f(p[i / 2].position.x, p[i / 2].position.y, 1.) * p.getTransformMatrix();
-        auto pos = toGL(vec2f(pos1.x, pos1.y), viewSize);
-        verts[i] = pos.x;
-        verts[i + 1] = pos.y;
-        nyDebug(pos);
+        //auto pos1 = vec3f(p[i / 2].position.x, p[i / 2].position.y, 1.) * p.getTransformMatrix();
+        //auto pos = toGL(vec2f(pos1.x, pos1.y), viewSize);
+        verts[i] = p[i / 2].position.x;
+        verts[i + 1] = p[i / 2].position.y;
     }
-    nyDebug("\n\n");
 
     GLuint elements[] = {
         0, 1, 2,
@@ -104,9 +87,13 @@ void modernGLDrawImpl::fill(const mask& m, const brush& b)
 
     nyDebug(tmat, "\n\n");
 */
+
+    //nyDebug(p.getTransformMatrix());
+
     if(!defaultShader.getProgram()) initShader();
     defaultShader.setUniformParameter("inColor", b.rgbaNorm());
-    //defaultShader.setUniformParameter("transform", tmat);
+    defaultShader.setUniformParameter("transform", p.getTransformMatrix());
+    defaultShader.setUniformParameter("viewSize", viewSize);
     defaultShader.use();
 
     // Specify the layout of the vertex data

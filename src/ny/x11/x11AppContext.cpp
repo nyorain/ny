@@ -253,6 +253,7 @@ bool x11AppContext::processEvent(XEvent& ev)
 
     case Expose:
     {
+        nyDebug("xps");
         if(ev.xexpose.count == 0) sendRedrawEvent(ev.xexpose.window);
         return 1;
     }

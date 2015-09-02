@@ -24,6 +24,16 @@ bool eventHandler::processEvent(const event& event)
         destroy();
         return true;
     }
+    else if(event.type() == eventType::reparent)
+    {
+        auto ev = event_cast<reparentEvent>(event);
+        if(ev.newParent)
+        {
+            nyDebug("reparent");
+            reparent(*ev.newParent); //else warning
+        }
+        return true;
+    }
 
     return false;
 }

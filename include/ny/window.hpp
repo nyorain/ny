@@ -32,9 +32,9 @@ protected:
     vec2ui maxSize_;
 
     //states saved in window, not in the context
-    bool focus_ : 1;
-    bool mouseOver_ : 1;
-    bool shown_ : 1;
+    bool focus_ {0};
+    bool mouseOver_ {0};
+    bool shown_ {0};
 
     //current window cursor
     cursor cursor_;
@@ -215,6 +215,14 @@ protected:
     std::string title_{};
     unsigned int borderSize_{};
 
+    //these both are used (and only valid) for custom decoration
+    std::unique_ptr<headerbar> headerbar_;
+    std::unique_ptr<panel> panel_;
+
+    //evthandler
+    virtual void addChild(eventHandler& window) override;
+
+    //window
     virtual void mouseButton(const mouseButtonEvent& ev) override;
     virtual void mouseMove(const mouseMoveEvent& ev) override;
 
@@ -223,7 +231,9 @@ protected:
 
 public:
     toplevelWindow(vec2i position, vec2ui size, std::string title = " ", const windowContextSettings& settings = windowContextSettings());
+    virtual ~toplevelWindow();
 
+    //hints
     bool hasMaximizeHint() const { return (hints_ & windowHints::Maximize); }
     bool hasMinimizeHint() const { return (hints_ & windowHints::Minimize); }
     bool hasResizeHint() const { return (hints_ & windowHints::Resize); }

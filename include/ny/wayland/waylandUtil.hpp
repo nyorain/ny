@@ -12,6 +12,7 @@
 #include <wayland-client-protocol.h>
 
 #include <iostream>
+#include <atomic>
 
 
 namespace ny
@@ -37,15 +38,22 @@ public:
 class shmBuffer
 {
 protected:
-    static const unsigned int defaultSize_ = 1; //10MB
+    //static const unsigned int defaultSize_ = 1024 * 1024 * 5; //5MB
+    unsigned int shmSize_ = 1024 * 1024 * 5; //5MB
 
     vec2ui size_;
     wl_buffer* buffer_;
     wl_shm_pool* pool_;
     void* data_;
 
+    std::atomic<bool> used_ {0};
+
     void create();
     void destroy();
+
+    //release cb
+    friend void bufferRelease(void*, wl_buffer*);
+    void wasReleased(){ used_.store(0); }
 
 public:
     shmBuffer(vec2ui size, bufferFormat form = bufferFormat::argb8888);
@@ -57,6 +65,9 @@ public:
     unsigned int getAbsSize() const { return size_.x * getBufferFormatSize(format) * size_.y; }
     wl_buffer* getWlBuffer() const { return buffer_; }
     void* getData(){ return data_; }
+
+    void wasAttached() { used_.store(1); }
+    bool used() const { return used_.load(); }
 
     void setSize(const vec2ui& size);
 };

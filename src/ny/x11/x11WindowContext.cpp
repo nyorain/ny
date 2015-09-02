@@ -329,11 +329,11 @@ void x11WindowContext::finishDraw()
     {
         getGLX()->apply();
         getGLX()->swapBuffers();
-        getGLX()->makeNotCurrent();
+        //getGLX()->makeNotCurrent();
     }
 
     XFlush(getXDisplay());
-    XSync(getXDisplay(), False); //rlly needed?
+    //XSync(getXDisplay(), False); //rlly needed?
 }
 
 void x11WindowContext::show()

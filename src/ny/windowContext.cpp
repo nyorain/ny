@@ -18,7 +18,7 @@ windowContext::windowContext(window& win, const windowContextSettings& s) : wind
 
 void windowContext::redraw()
 {
-    window_.processEvent(drawEvent(&window_));
+    nyMainApp()->sendEvent(std::make_unique<drawEvent>(&window_));
 }
 
 //virtual////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -37,14 +37,13 @@ drawContext& virtualWindowContext::beginDraw()
     drawContext_->startClip();
     return *drawContext_;
 };
-/*
+
 drawContext& virtualWindowContext::beginDraw(drawContext& dc)
 {
     drawContext_ = new redirectDrawContext(dc, window_.getPosition(), window_.getSize());
     drawContext_->startClip();
     return *drawContext_;
 };
-*/
 
 void virtualWindowContext::finishDraw()
 {

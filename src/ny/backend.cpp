@@ -39,7 +39,7 @@ backend::backend(unsigned int i) : id(i)
 std::unique_ptr<windowContext> backend::createWindowContext(window& win, const windowContextSettings& settings)
 {
     childWindow* w = dynamic_cast<childWindow*>(&win);
-    if(settings.virtualPref == preference::Must)
+    if(settings.virtualPref == preference::Must || (win.getParent() && win.getParent()->isVirtual()))
     {
         if(w)
         {

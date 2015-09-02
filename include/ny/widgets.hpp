@@ -53,7 +53,7 @@ protected:
     callback<void(textfield&, const std::string&)> enterCallback_ {};
 
 public:
-    textfield(window* parent, vec2ui size, vec2ui position, std::string label, const windowContextSettings& = windowContextSettings());
+    textfield(window& parent, vec2i position, vec2ui size, std::string label, const windowContextSettings& = windowContextSettings());
 
     template<typename F> connection onEdit(F&& func){ return editCallback_.add(func); };
     template<typename F> connection onEnter(F&& func){ return enterCallback_.add(func); };
@@ -63,6 +63,29 @@ public:
 
     //widget
     virtual std::string getWidgetName() const override { return "ny::textfield"; }
+};
+
+//headerbar
+class headerbar : public widget
+{
+protected:
+    virtual void mouseButton(const mouseButtonEvent& ev) override;
+
+    void cbDraw(drawContext& dc);
+
+public:
+    headerbar(window& parent, vec2i position, vec2ui size, const windowContextSettings& = windowContextSettings());
+
+    virtual std::string getWidgetName() const override { return "ny::headerbar"; }
+};
+
+//panel
+class panel : public widget
+{
+public:
+    using widget::widget;
+
+    virtual std::string getWidgetName() const override { return "ny::panel"; }
 };
 
 }

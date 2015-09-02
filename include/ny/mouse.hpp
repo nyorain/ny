@@ -69,10 +69,10 @@ public:
 //events
 namespace eventType
 {
-constexpr unsigned int mouseMove = 2;
-constexpr unsigned int mouseButton = 3;
-constexpr unsigned int mouseWheel = 4;
-constexpr unsigned int mouseCross = 5;
+constexpr unsigned int mouseMove = 3;
+constexpr unsigned int mouseButton = 4;
+constexpr unsigned int mouseWheel = 5;
+constexpr unsigned int mouseCross = 6;
 }
 
 class mouseButtonEvent : public eventBase<mouseButtonEvent, eventType::mouseButton>

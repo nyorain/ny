@@ -213,7 +213,13 @@ void app::sendEvent(std::unique_ptr<event> ev)
             }
         }
 
-        if(ev.get()) events_.emplace_back(std::move(ev));
+        if(ev.get())
+        {
+            if(ev->type() == eventType::windowSize)
+                events_.emplace_front(std::move(ev));
+            else
+                events_.emplace_back(std::move(ev));
+        }
     } //critical end
 
     eventCV_.notify_one();

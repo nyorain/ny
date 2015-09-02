@@ -94,7 +94,7 @@ public:
     virtual void refresh() override;
 
     virtual drawContext& beginDraw() override;
-    //drawContext& beginDraw(drawContext& dc); //custom overload
+    drawContext& beginDraw(drawContext& dc); //custom overload
     virtual void finishDraw() override;
 
     virtual void show() override {}

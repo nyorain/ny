@@ -9,7 +9,8 @@ namespace ny
 class widget : public childWindow
 {
 public:
-    widget(window& parent, vec2i position, vec2ui size, const windowContextSettings& = windowContextSettings());
+    using childWindow::childWindow;
+
     virtual ~widget() = default;
 
     virtual std::string getWidgetName() const = 0;

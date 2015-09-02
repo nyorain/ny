@@ -88,6 +88,11 @@ class showEvent;
 class destroyEvent;
 class contextEvent;
 
+class button;
+class headerbar;
+class textfield;
+class panel;
+
 class file;
 
 enum class preference : unsigned char;

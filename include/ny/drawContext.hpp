@@ -74,15 +74,16 @@ public:
 	virtual void clear(color col = color::none) override;
 
 	virtual void mask(const customPath& obj) override;
+	virtual void mask(const rectangle& obj) override;
 	virtual void mask(const text& obj) override;
 	virtual void resetMask() override;
 
 	virtual void fillPreserve(const pen& col) override;
 	virtual void strokePreserve(const brush& col) override;
 
-    virtual rect2f getClip() override { return rect2f(); };
-    virtual void clip(const rect2f& obj) override {};
-	virtual void resetClip() override {};
+    virtual rect2f getClip() override { return redirect_.getClip(); };
+    virtual void clip(const rect2f& obj) override { redirect_.clip(rect2f(obj.position + position_, obj.size)); };
+	virtual void resetClip() override { redirect_.resetClip(); };
 
 	void setSize(vec2f size);
 	void setPosition(vec2d position);

@@ -3,6 +3,7 @@
 #include <ny/mouse.hpp>
 #include <ny/keyboard.hpp>
 #include <ny/drawContext.hpp>
+#include <ny/windowContext.hpp>
 
 namespace ny
 {
@@ -62,5 +63,32 @@ void button::cbCross(const mouseCrossEvent& ev)
 }
 
 //textfield
+
+//headerbar
+headerbar::headerbar(window& parent, vec2i position, vec2ui size, const windowContextSettings& settings) : widget(parent, position, size, settings)
+{
+    drawCallback_.add(memberCallback(&headerbar::cbDraw, this));
+}
+
+void headerbar::mouseButton(const mouseButtonEvent& ev)
+{
+    window::mouseButton(ev);
+
+    if(ev.button == mouse::left && ev.pressed)
+    {
+        getTopLevelParent()->getWindowContext()->beginMove(&ev);
+    }
+}
+
+void headerbar::cbDraw(drawContext& dc)
+{
+    dc.clear(color::black);
+
+    //text txt((getSize() / 2) - vec2ui(0, 7), getTopLevelParent()->getTitle(), 14);
+    //txt.setBound(textBound::center);
+
+    //dc.mask(txt);
+    //dc.fill(color::white);
+}
 
 }

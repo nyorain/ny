@@ -14,6 +14,7 @@ namespace eventType
 {
 constexpr unsigned int invalid = 0;
 constexpr unsigned int destroy = 1;
+constexpr unsigned int reparent = 2;
 }
 
 //eventData, used by backends
@@ -85,6 +86,13 @@ public:
     destroyEvent(eventHandler* h = nullptr, eventData* d = nullptr) : evBase(h, d) {};
 };
 
+//destroy
+class reparentEvent : public eventBase<reparentEvent, eventType::reparent, 1>
+{
+public:
+    reparentEvent(eventHandler* h = nullptr, eventHandler* nh = nullptr, eventData* d = nullptr) : evBase(h, d), newParent(nh) {};
+    eventHandler* newParent {nullptr};
+};
 
 //event cast
 template<typename T>

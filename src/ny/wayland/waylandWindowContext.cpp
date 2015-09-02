@@ -233,8 +233,8 @@ void waylandWindowContext::createSubsurface()
         return;
     }
 
-    wl_surface* wlParent = asWayland(cw->getParent()->getWC())->getWlSurface();
-    if(!wlParent)
+    wl_surface* wlParent = nullptr;
+    if(!asWayland(cw->getParent()->getWC()) || !(wlParent = asWayland(cw->getParent()->getWC())->getWlSurface()))
     {
         throw std::runtime_error("waylandWC::waylandWC: could not find wayland parent for child window");
         return;
@@ -266,13 +266,18 @@ void waylandWindowContext::refresh()
         return;
     }
 
-    redraw();
+    //redraw();
+    getWindow().processEvent(drawEvent(&getWindow()));
 }
 
 drawContext& waylandWindowContext::beginDraw()
 {
     if(getCairo() && cairo_)
     {
+        if(cairo_->frontBufferUsed())
+            cairo_->swapBuffers();
+
+        cairo_->updateSize(getWindow().getSize());
         return *cairo_;
     }
     else if(getEGL() && egl_)
@@ -301,7 +306,7 @@ void waylandWindowContext::finishDraw()
         wlFrameCallback_ = wl_surface_frame(wlSurface_);
         wl_callback_add_listener(wlFrameCallback_, &frameListener, this);
 
-        wl_surface_attach(wlSurface_, cairo_->getShmBuffer().getWlBuffer(), 0, 0);
+        cairo_->attach();
         wl_surface_damage(wlSurface_, 0, 0, window_.getWidth(), window_.getHeight());
         wl_surface_commit(wlSurface_);
 
@@ -309,7 +314,6 @@ void waylandWindowContext::finishDraw()
     }
     else if(getEGL() && egl_)
     {
-        assert(egl_->isCurrent());
         egl_->apply();
 
         wlFrameCallback_ = wl_surface_frame(wlSurface_);
@@ -360,10 +364,6 @@ void waylandWindowContext::setSize(vec2ui size, bool change)
     if(getEGL())
     {
         egl_->setSize(size);
-    }
-    else if(getCairo())
-    {
-        cairo_->setSize(size);
     }
 
     refresh();

@@ -44,7 +44,7 @@ public:
 //events
 namespace eventType
 {
-constexpr unsigned int key = 6;
+constexpr unsigned int key = 7;
 }
 
 class keyEvent : public eventBase<keyEvent, eventType::key>

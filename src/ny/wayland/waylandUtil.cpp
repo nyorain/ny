@@ -111,7 +111,8 @@ int osCreateAnonymousFile(off_t size)
 //buffer interface
 void bufferRelease(void* data, wl_buffer* wl_buffer)
 {
-
+    shmBuffer* b = (shmBuffer*) data;
+    b->wasReleased();
 }
 const wl_buffer_listener bufferListener =
 {
@@ -147,30 +148,25 @@ void shmBuffer::create()
     wl_shm* shm = ac->getWlShm();
     if(!shm)
     {
-        throw std::runtime_error("no wayland shm initialized");
+        throw std::runtime_error("wayland shm buffer: no wayland shm initialized");
         return;
     }
 
     unsigned int stride = size_.x * getBufferFormatSize(format);
 
     unsigned int vecSize = stride * size_.y;
-    unsigned int mmapSize = defaultSize_;
-
-    if(vecSize > defaultSize_ || 1)
-    {
-        mmapSize = vecSize;
-    }
+    shmSize_ = std::max(vecSize, shmSize_);
 
     int fd;
 
-    fd = osCreateAnonymousFile(mmapSize);
+    fd = osCreateAnonymousFile(shmSize_);
     if (fd < 0)
     {
         throw std::runtime_error("wayland shm buffer: could not create file");
         return;
     }
 
-    data_ = mmap(nullptr, mmapSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    data_ = mmap(nullptr, shmSize_, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (data_ == MAP_FAILED)
     {
         close(fd);
@@ -178,14 +174,16 @@ void shmBuffer::create()
         return;
     }
 
-    pool_ = wl_shm_create_pool(shm, fd, mmapSize);
+    pool_ = wl_shm_create_pool(shm, fd, shmSize_);
     buffer_ = wl_shm_pool_create_buffer(pool_, 0, size_.x, size_.y, stride, bufferFormatToWayland(format));
+    wl_buffer_add_listener(buffer_, &bufferListener, this);
 }
 
 void shmBuffer::destroy()
 {
-    wl_buffer_destroy(buffer_);
-    wl_shm_pool_destroy(pool_);
+    if(buffer_) wl_buffer_destroy(buffer_);
+    if(pool_) wl_shm_pool_destroy(pool_);
+    if(data_) munmap(data_, shmSize_);
 }
 
 void shmBuffer::setSize(const vec2ui& size)
@@ -195,7 +193,7 @@ void shmBuffer::setSize(const vec2ui& size)
     unsigned int stride = size_.x * getBufferFormatSize(format);
     unsigned int vecSize = stride * size_.y;
 
-    if(vecSize > defaultSize_)
+    if(vecSize > shmSize_)
     {
         destroy();
         create();

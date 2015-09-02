@@ -105,6 +105,8 @@ rect2f cairoDrawContext::getClip()
     }
 
     cairo_rectangle_list_t* recList = cairo_copy_clip_rectangle_list(cairoCR_);
+    if(recList->num_rectangles == 0)
+        return rect2f();
 
     cairo_rectangle_t& r = recList->rectangles[0];
     ret.position = vec2f(r.x, r.y);
@@ -141,7 +143,7 @@ void cairoDrawContext::applyTransform(const transformable2& obj)
     cairo_matrix_t tm {};
     auto& om = obj.getTransformMatrix();
 
-    cairo_matrix_init(&tm, om[0][0], om[0][1], om[1][0], om[1][1], om[0][2], om[1][2]);
+    cairo_matrix_init(&tm, om[0][0], om[1][0], om[0][1], om[1][1], om[0][2], om[1][2]);
     cairo_set_matrix(cairoCR_, &tm);
 }
 
@@ -192,12 +194,12 @@ void cairoDrawContext::mask(const rectangle& obj)
 
     if(obj.getBorderRadius() == vec4f()) //no border radius
     {
-        vec2f pos123 = -obj.getOrigin();
+        vec2f pos123 = 0;
         cairo_rectangle(cairoCR_, pos123.x, pos123.y, obj.getSize().x, obj.getSize().y);
     }
     else
     {
-        vec2f pos123 = -obj.getOrigin();
+        vec2f pos123 = 0;
         cairo_move_to(cairoCR_, pos123.x, pos123.y);
         cairo_arc(cairoCR_, pos123.x + obj.getSize().x - obj.getBorderRadius().x, pos123.y + obj.getBorderRadius().x, obj.getBorderRadius().x, -90 * cDeg, 0 * cDeg);
         cairo_arc(cairoCR_, pos123.x + obj.getSize().x - obj.getBorderRadius().y, pos123.y + obj.getSize().y - obj.getBorderRadius().y, obj.getBorderRadius().y, 0 * cDeg, 90 * cDeg);
