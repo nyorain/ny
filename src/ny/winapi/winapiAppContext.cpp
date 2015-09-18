@@ -5,6 +5,9 @@
 #include <ny/error.hpp>
 #include <ny/app.hpp>
 #include <ny/event.hpp>
+#include <ny/windowEvents.hpp>
+#include <ny/mouse.hpp>
+#include <ny/keyboard.hpp>
 #include <ny/window.hpp>
 
 #include <iostream>
@@ -23,8 +26,11 @@ winapiAppContext::winapiAppContext()
     }
 
     GetStartupInfo(&startupInfo_);
-
     GdiplusStartup(&gdiplusToken_, &gdiplusStartupInput_, nullptr);
+
+    //eventSource
+    eventSource_.reset(new idleEventSource(nyMainApp()->getEventLoop(), 1));
+    eventSource_->onNotify = memberCallback(&winapiAppContext::mainLoop, this);
 }
 
 winapiAppContext::~winapiAppContext()
@@ -35,7 +41,10 @@ winapiAppContext::~winapiAppContext()
 bool winapiAppContext::mainLoop()
 {
     MSG msg;
+
+    nyDebug(":0");
     BOOL ret = GetMessage(&msg, nullptr, 0, 0);
+    nyDebug(":1");
 
     if(ret == -1)
     {
@@ -100,12 +109,7 @@ LRESULT winapiAppContext::eventProc(HWND handler, UINT message, WPARAM wparam, L
         {
             winapiWindowContext* w = getWindowContext(handler);
             if(!w) break;
-
-            mouseMoveEvent ev;
-            ev.handler = &w->getWindow();
-            //e->position = ;
-            //e->delta = ;
-            nyMainApp()->mouseMove(ev);
+            nyMainApp()->mouseMove(std::make_unique<mouseMoveEvent>(&w->getWindow()));
             break;
         }
 
@@ -123,11 +127,7 @@ LRESULT winapiAppContext::eventProc(HWND handler, UINT message, WPARAM wparam, L
         {
             winapiWindowContext* w = getWindowContext(handler);
             if(!w) break;
-
-            drawEvent e;
-            e.handler = &w->getWindow();
-            e.backend = Winapi;
-            nyMainApp()->windowDraw(e);
+            nyMainApp()->sendEvent(std::make_unique<drawEvent>(&w->getWindow()));
             break;
         }
 
@@ -135,11 +135,7 @@ LRESULT winapiAppContext::eventProc(HWND handler, UINT message, WPARAM wparam, L
         {
             winapiWindowContext* w = getWindowContext(handler);
             if(!w) break;
-
-            destroyEvent e;
-            e.handler = &w->getWindow();
-            e.backend = Winapi;
-            nyMainApp()->destroyHandler(e);
+            nyMainApp()->sendEvent(std::make_unique<destroyEvent>(&w->getWindow()));
             break;
         }
 
@@ -147,12 +143,8 @@ LRESULT winapiAppContext::eventProc(HWND handler, UINT message, WPARAM wparam, L
         {
             winapiWindowContext* w = getWindowContext(handler);
             if(!w) break;
-
-            sizeEvent e;
-            e.handler = &w->getWindow();
-            e.backend = Winapi;
-            //e->size = ;
-            nyMainApp()->windowSize(e);
+            vec2ui size = vec2ui(); //todo
+            nyMainApp()->sendEvent(std::make_unique<sizeEvent>(&w->getWindow(), size, 0));
             break;
         }
 
@@ -160,18 +152,14 @@ LRESULT winapiAppContext::eventProc(HWND handler, UINT message, WPARAM wparam, L
         {
             winapiWindowContext* w = getWindowContext(handler);
             if(!w) break;
-
-            positionEvent e;
-            e.handler = &w->getWindow();
-            e.backend = Winapi;
-            //e->position = ;
-            nyMainApp()->windowPosition(e);
+            vec2i pos = vec2i(); //todo
+            nyMainApp()->sendEvent(std::make_unique<positionEvent>(&w->getWindow(), pos, 0));
             break;
         }
 
         case WM_QUIT:
         {
-            nyMainApp()->exitApp();
+            nyMainApp()->exit();
             break;
         }
 

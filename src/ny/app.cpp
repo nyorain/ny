@@ -26,15 +26,17 @@ app* app::mainApp = nullptr;
 std::vector<backend*> app::backends;
 
 //app////////////////////////////////////////////////
-app::app() : eventHandler(), threadpool_{nullptr}
+app::app() : eventHandlerNode(), appContext_{nullptr}, threadpool_{nullptr}
 {
     if(nyMainApp() != nullptr)
     {
         nyWarning("there can be only one app");
         return;
     }
-
-    mainApp = this;
+    else
+    {
+        mainApp = this;
+    }
 }
 
 app::~app()
@@ -118,7 +120,7 @@ int app::mainLoop()
 {
     if(!valid_) return 0;
 
-    mainThreadID_ = std::this_thread::get_id();
+    loopThreadID_ = std::this_thread::get_id();
     eventDispatcher_ = std::thread(&app::eventDispatcher, this);
 
     exitReason_ = exitReason::noEventSources;
@@ -146,6 +148,8 @@ void app::exit(int reason)
     exitReason_ = reason;
     mainLoop_.stop();
 
+    //destroy();
+
 /*
     exit_ = 1;
 
@@ -166,12 +170,12 @@ bool app::valid() const
     return valid_;
 }
 
-bool app::removeChild(eventHandler& child)
+bool app::removeChild(eventHandlerNode& child)
 {
     if(focus_ == &child) focus_ = nullptr;
     if(mouseOver_ == &child) mouseOver_ = nullptr;
 
-    bool ret = eventHandler::removeChild(child);
+    bool ret = eventHandlerNode::removeChild(child);
 
     if(getChildren().size() == 0 && settings_.exitWithoutChildren)
     {
@@ -183,7 +187,7 @@ bool app::removeChild(eventHandler& child)
 
 void app::destroy()
 {
-    eventHandler::destroy();
+    eventHandlerNode::destroy();
 }
 
 void app::sendEvent(std::unique_ptr<event> ev)
@@ -232,6 +236,7 @@ void app::sendEvent(const event& ev)
 
 void app::eventDispatcher()
 {
+    eventThreadID_ = std::this_thread::get_id();
     std::unique_lock<std::mutex> lck(eventMtx_);
 
     while(!exit_.load())
@@ -304,7 +309,7 @@ void app::mouseMove(std::unique_ptr<mouseMoveEvent> event)
 
     if(mouseOver_)
     {
-        window* child = mouseOver_->getTopLevelParent()->getWindowAt(event->position);
+        window* child = mouseOver_.load()->getTopLevelParent()->getWindowAt(event->position);
 
         if(child && child != mouseOver_)
         {
@@ -351,6 +356,10 @@ void app::mouseCross(std::unique_ptr<mouseCrossEvent> event)
     {
         window* child = w->getWindowAt(event->position);
         if(child) event->handler = child;
+    }
+    if(!event->entered)
+    {
+        event->handler = mouseOver_;
     }
 
     if(event->entered) mouseOver_ = w;

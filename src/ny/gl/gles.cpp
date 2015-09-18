@@ -1,5 +1,8 @@
-#include <ny/gl/glDrawContext.hpp>
+#include <ny/config.h>
 
+#ifdef NY_WithGLES
+
+#include <ny/gl/glDrawContext.hpp>
 #include <GLES2/gl2.h>
 
 namespace ny
@@ -26,3 +29,4 @@ void glesDrawImpl::stroke(const mask& m, const pen& b)
 
 }
 
+#endif //NY_WithGLES

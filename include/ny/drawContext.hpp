@@ -82,7 +82,7 @@ public:
 	virtual void strokePreserve(const brush& col) override;
 
     virtual rect2f getClip() override { return redirect_.getClip(); };
-    virtual void clip(const rect2f& obj) override { redirect_.clip(rect2f(obj.position + position_, obj.size)); };
+    virtual void clip(const rect2f& obj) override { redirect_.clip(rect2f(obj.position + position_, vec2f(std::min(obj.size.x, size_.x) - position_.x, std::min(obj.size.y, size_.y) - position_.y))); };
 	virtual void resetClip() override { redirect_.resetClip(); };
 
 	void setSize(vec2f size);

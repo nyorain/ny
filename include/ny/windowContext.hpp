@@ -29,12 +29,12 @@ public:
     virtual unsigned long getAdditionalWindowHints() const { return 0; }
 
     virtual bool isVirtual() const { return 0; }
-    virtual bool hasGL() const = 0;
+    virtual bool hasGL() const = 0; //defines if this window uses gl for rendering
 
     virtual void refresh() = 0;
     virtual void redraw(); //needed?
 
-    virtual drawContext& beginDraw() = 0;
+    virtual drawContext* beginDraw() = 0; //can fail, returns nullptr then, should remain valid until finishDraw was called
     virtual void finishDraw() = 0;
 
     virtual void show() = 0;
@@ -55,13 +55,13 @@ public:
     virtual void setMaxSize(vec2ui size){};
 
     //event
-    virtual void sendContextEvent(const contextEvent& e){};
+    virtual void processEvent(const contextEvent& e){};
 
     virtual void setSize(vec2ui size, bool change = 1) = 0; //change states if the window on the backend has to be resized
     virtual void setPosition(vec2i position, bool change = 1) = 0; //...
 
     virtual void setCursor(const cursor& c) = 0;
-    virtual void updateCursor(mouseCrossEvent* ev){}; //not needed in all
+    virtual void updateCursor(const mouseCrossEvent* ev){}; //not needed in all
 
 
     //toplevel-specific//////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -83,25 +83,26 @@ public:
 class virtualWindowContext : public windowContext
 {
 protected:
-    redirectDrawContext* drawContext_ = nullptr;
+    std::unique_ptr<redirectDrawContext> drawContext_;
 
 public:
     virtualWindowContext(childWindow& win, const windowContextSettings& = windowContextSettings());
+    virtual ~virtualWindowContext();
 
     virtual bool isVirtual() const override { return 1; }
     virtual bool hasGL() const override { return getParentContext()->hasGL(); };
 
     virtual void refresh() override;
 
-    virtual drawContext& beginDraw() override;
-    drawContext& beginDraw(drawContext& dc); //custom overload
+    virtual drawContext* beginDraw() override;
+    drawContext* beginDraw(drawContext& dc); //custom overload
     virtual void finishDraw() override;
 
     virtual void show() override {}
     virtual void hide() override {}
 
     virtual void setCursor(const cursor& c) override {}
-    virtual void updateCursor(mouseCrossEvent* ev) override;
+    virtual void updateCursor(const mouseCrossEvent* ev) override;
 
     virtual void setSize(vec2ui size, bool change = 1) override;
     virtual void setPosition(vec2i position, bool change = 1) override;

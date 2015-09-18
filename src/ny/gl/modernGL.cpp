@@ -1,9 +1,17 @@
+#include <ny/config.h>
+
+#ifdef NY_WithGL
+
 #include <ny/gl/modernGL.hpp>
 #include <ny/gl/shader.hpp>
 #include <ny/gl/shader/modernSources.hpp>
 
-#include <glbinding/gl/gl.h>
-using namespace gl;
+#ifdef NY_WithGLBinding
+ #include <glbinding/gl/gl.h>
+ using namespace gl;
+#else
+ #include <GL/glew.h>
+#endif
 
 #include <cassert>
 
@@ -113,3 +121,6 @@ void modernGLDrawImpl::stroke(const mask& m, const pen& b)
 }
 
 }
+
+
+#endif // NY_WithGL

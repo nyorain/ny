@@ -21,7 +21,7 @@ namespace ny
 //todo: implement all callback-add-functions for window correctly. can it be done with some template-like method?
 
 //window class
-class window : public eventHandler, public surface
+class window : public eventHandlerNode, public surface
 {
 protected:
     //position and max/min - size. size itself inherited from surface
@@ -77,11 +77,6 @@ protected:
     virtual void windowShow(const showEvent&);
     virtual void windowFocus(const focusEvent&);
 
-    //window is abstract class
-    window();
-    window(eventHandler& parent, vec2ui position, vec2ui size, const windowContextSettings& settings = windowContextSettings());
-    void create(eventHandler& parent, vec2i position, vec2ui size, const windowContextSettings& settings = windowContextSettings());
-
     //windowContext functions are protected, derived classes can make public aliases if needed. User should not be able to change backend Hints for button e.g
     void setCursor(const cursor& curs);
 
@@ -100,6 +95,11 @@ protected:
     virtual void draw(drawContext& dc);
     virtual bool checkValid() const;
 
+    //window is abstract class
+    window();
+    window(eventHandlerNode& parent, vec2ui position, vec2ui size, const windowContextSettings& settings = windowContextSettings());
+    void create(eventHandlerNode& parent, vec2i position, vec2ui size, const windowContextSettings& settings = windowContextSettings());
+
 public:
     virtual ~window();
 
@@ -112,7 +112,7 @@ public:
     virtual void destroy() override;
     virtual bool valid() const override;
 
-    virtual window* getParent() const override { return dynamic_cast<window*>(eventHandler::getParent()); }
+    virtual window* getParent() const override { return dynamic_cast<window*>(eventHandlerNode::getParent()); }
 
     virtual toplevelWindow* getTopLevelParent() = 0;
     virtual const toplevelWindow* getTopLevelParent() const = 0;
@@ -220,11 +220,14 @@ protected:
     std::unique_ptr<panel> panel_;
 
     //evthandler
-    virtual void addChild(eventHandler& window) override;
+    //virtual void addChild(eventHandlerNode& window) override;
 
     //window
     virtual void mouseButton(const mouseButtonEvent& ev) override;
     virtual void mouseMove(const mouseMoveEvent& ev) override;
+
+    //draw window
+    virtual void draw(drawContext& dc) override;
 
     toplevelWindow();
     void create(vec2i position, vec2ui size, std::string title = " ", const windowContextSettings& settings = windowContextSettings());
@@ -232,6 +235,7 @@ protected:
 public:
     toplevelWindow(vec2i position, vec2ui size, std::string title = " ", const windowContextSettings& settings = windowContextSettings());
     virtual ~toplevelWindow();
+
 
     //hints
     bool hasMaximizeHint() const { return (hints_ & windowHints::Maximize); }
@@ -246,6 +250,7 @@ public:
     void setMoveHint(bool hint = 1);
     void setCloseHint(bool hint = 1);
 
+/*
     bool isCustomDecorated() const {  return (hints_ & windowHints::CustomDecorated); }
     bool isCustomMoved() const { return (hints_ & windowHints::CustomMoved); }
     bool isCustomResized() const { return (hints_ & windowHints::CustomResized); }
@@ -254,7 +259,7 @@ public:
     bool setCustomDecorated(bool set = 1);
     bool setCustomMoved(bool set = 1);
     bool setCustomResized(bool set = 1);
-
+*/
     ////
     std::string getTitle() const { return title_; }
     void setTitle(const std::string& n);

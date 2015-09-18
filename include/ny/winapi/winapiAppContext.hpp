@@ -1,10 +1,14 @@
 #pragma once
 
 #include <ny/appContext.hpp>
+#include <nyutil/eventLoop.hpp>
 
-#include <map>
+#include <winsock2.h>
 #include <windows.h>
 #include <gdiplus.h>
+
+#include <memory>
+#include <map>
 
 using namespace Gdiplus;
 
@@ -28,6 +32,8 @@ protected:
 
     GdiplusStartupInput gdiplusStartupInput_;
     ULONG_PTR gdiplusToken_;
+
+    std::unique_ptr<idleEventSource> eventSource_;
 
 public:
     winapiAppContext();

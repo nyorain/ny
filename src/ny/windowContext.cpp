@@ -22,40 +22,45 @@ void windowContext::redraw()
 }
 
 //virtual////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-virtualWindowContext::virtualWindowContext(childWindow& win, const windowContextSettings& s) : windowContext(win, s)
+virtualWindowContext::virtualWindowContext(childWindow& win, const windowContextSettings& s) : windowContext(win, s), drawContext_(nullptr)
 {
 }
+
+virtualWindowContext::~virtualWindowContext() = default;
 
 void virtualWindowContext::refresh()
 {
     window_.getParent()->refresh();
 };
 
-drawContext& virtualWindowContext::beginDraw()
+drawContext* virtualWindowContext::beginDraw()
 {
-    drawContext_ = new redirectDrawContext(getParentContext()->beginDraw(), window_.getPosition(), window_.getSize());
+    auto dc = getParentContext()->beginDraw();
+    if(!dc) return nullptr;
+
+    drawContext_.reset(new redirectDrawContext(*dc, window_.getPosition(), window_.getSize()));
     drawContext_->startClip();
-    return *drawContext_;
+
+    return drawContext_.get();
 };
 
-drawContext& virtualWindowContext::beginDraw(drawContext& dc)
+drawContext* virtualWindowContext::beginDraw(drawContext& dc)
 {
-    drawContext_ = new redirectDrawContext(dc, window_.getPosition(), window_.getSize());
+    drawContext_.reset(new redirectDrawContext(dc, window_.getPosition(), window_.getSize()));
     drawContext_->startClip();
-    return *drawContext_;
+
+    return drawContext_.get();
 };
 
 void virtualWindowContext::finishDraw()
 {
-    if(drawContext_)
+    if(drawContext_.get())
     {
         drawContext_->apply(); //needed here?
         drawContext_->endClip();
-        delete drawContext_;
     }
 
-    drawContext_ = nullptr;
-
+    drawContext_.reset();
     getParentContext()->finishDraw();
 };
 
@@ -69,10 +74,16 @@ void virtualWindowContext::setPosition(vec2i position, bool change)
 
 windowContext* virtualWindowContext::getParentContext() const
 {
-    return window_.getParent()->getWindowContext();
+    windowContext* ret = nullptr;
+    if(!window_.getParent() || !(ret = window_.getParent()->getWindowContext()))
+    {
+        //error...
+    }
+
+    return ret;
 }
 
-void virtualWindowContext::updateCursor(mouseCrossEvent* ev)
+void virtualWindowContext::updateCursor(const mouseCrossEvent* ev)
 {
     getParentContext()->setCursor(window_.getCursor());
     getParentContext()->updateCursor(ev);

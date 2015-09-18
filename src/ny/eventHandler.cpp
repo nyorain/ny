@@ -9,15 +9,20 @@
 namespace ny
 {
 
-eventHandler::eventHandler() : hierachyBase()
+eventHandlerNode::eventHandlerNode() : eventHandler(), hierachyBase()
 {
 }
 
-eventHandler::eventHandler(eventHandler& parent) : hierachyBase(parent)
+eventHandlerNode::eventHandlerNode(eventHandlerNode& parent) : eventHandler(), hierachyBase(parent)
 {
 }
 
-bool eventHandler::processEvent(const event& event)
+void eventHandlerNode::create(eventHandlerNode& parent)
+{
+    hierachyBase::create(parent);
+}
+
+bool eventHandlerNode::processEvent(const event& event)
 {
     if(event.type() == eventType::destroy)
     {
@@ -27,11 +32,11 @@ bool eventHandler::processEvent(const event& event)
     else if(event.type() == eventType::reparent)
     {
         auto ev = event_cast<reparentEvent>(event);
-        if(ev.newParent)
-        {
-            nyDebug("reparent");
-            reparent(*ev.newParent); //else warning
-        }
+        auto parent = dynamic_cast<eventHandlerNode*>(ev.newParent);
+
+        if(parent) reparent(*parent);
+        else nyWarning("eventHandlerNode::processEvent: received reparentEvent without valid parent.");
+
         return true;
     }
 

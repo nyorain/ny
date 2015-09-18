@@ -4,7 +4,7 @@
 #define cimg_use_png 1
 #endif //NOT Winapi
 
-#include <CImg.h>
+#include "CImg.h"
 using namespace cimg_library;
 
 namespace ny

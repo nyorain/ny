@@ -11,6 +11,7 @@
 #include <ny/mouse.hpp>
 #include <ny/keyboard.hpp>
 #include <ny/widgets.hpp>
+#include <ny/sizer.hpp>
 
 #include <nyutil/misc.hpp>
 
@@ -24,7 +25,7 @@ namespace ny
 windowContextSettings::~windowContextSettings() = default;
 
 //window//////////////////////////////////////////////////////////////////////////////
-window::window(eventHandler& parent, vec2ui position, vec2ui size, const windowContextSettings& settings) : eventHandler(), surface(), maxSize_(UINT_MAX, UINT_MAX)
+window::window(eventHandlerNode& parent, vec2ui position, vec2ui size, const windowContextSettings& settings) : eventHandlerNode(), surface(), maxSize_(UINT_MAX, UINT_MAX)
 {
     create(parent, size, position);
 }
@@ -32,7 +33,7 @@ window::window(eventHandler& parent, vec2ui position, vec2ui size, const windowC
 window::window() = default;
 window::~window() = default;
 
-void window::create(eventHandler& parent, vec2i position, vec2ui size, const windowContextSettings& settings)
+void window::create(eventHandlerNode& parent, vec2i position, vec2ui size, const windowContextSettings& settings)
 {
     size_ = size;
     position_ = position;
@@ -46,7 +47,7 @@ void window::create(eventHandler& parent, vec2i position, vec2ui size, const win
     std::unique_ptr<windowContext> newWC;
     try
     {
-        eventHandler::create(parent);
+        eventHandlerNode::create(parent);
         newWC = createWindowContext(*this, settings);
     }
     catch(const std::exception& err)
@@ -70,14 +71,14 @@ void window::create(eventHandler& parent, vec2i position, vec2ui size, const win
 void window::destroy()
 {
     destroyCallback_(*this);
-    eventHandler::destroy();
+    eventHandlerNode::destroy();
     windowContext_.reset();
 }
 
 bool window::processEvent(const event& ev)
 {
     //if(!checkValid()) return 0;
-    if(eventHandler::processEvent(ev)) return 1;
+    if(eventHandlerNode::processEvent(ev)) return 1;
 
     switch (ev.type())
     {
@@ -115,7 +116,7 @@ bool window::processEvent(const event& ev)
         refresh();
         return true;
     case eventType::context:
-        windowContext_->sendContextEvent(event_cast<contextEvent>(ev));
+        windowContext_->processEvent(event_cast<contextEvent>(ev));
         return true;
 
     default:
@@ -125,7 +126,7 @@ bool window::processEvent(const event& ev)
 
 bool window::valid() const
 {
-    return eventHandler::valid() && windowContext_.get();
+    return eventHandlerNode::valid() && windowContext_.get();
 }
 
 
@@ -253,8 +254,8 @@ void window::windowPosition(const positionEvent& e)
 }
 void window::windowDraw(const drawEvent& e)
 {
-    drawContext& dc = windowContext_->beginDraw();
-    draw(dc);
+    drawContext* dc = windowContext_->beginDraw();
+    draw(*dc);
     windowContext_->finishDraw();
 }
 void window::windowShow(const showEvent& e)
@@ -274,7 +275,7 @@ void window::draw(drawContext& dc)
     drawCallback_(*this, dc);
 
     for(auto win : getWindowChildren())
-        if(win->isVirtual()) win->draw(((virtualWindowContext*) win->getWindowContext())->beginDraw(dc));
+        if(win->isVirtual()) win->draw(*((virtualWindowContext*) win->getWindowContext())->beginDraw(dc));
 }
 
 //util
@@ -353,7 +354,7 @@ toplevelWindow::~toplevelWindow() = default;
 void toplevelWindow::create(vec2i position, vec2ui size, std::string title, const windowContextSettings& settings)
 {
     title_ = title;
-
+/*
     hints_ |= windowHints::Toplevel;
     hints_ |= windowHints::Resize;
 	hints_ |= windowHints::Move;
@@ -361,34 +362,72 @@ void toplevelWindow::create(vec2i position, vec2ui size, std::string title, cons
 	hints_ |= windowHints::CustomDecorated; //...
 	hints_ |= windowHints::CustomMoved; //...
 	hints_ |= windowHints::CustomResized; //...
-
+*/
     window::create(*nyMainApp(), position, size, settings);
 
     cursor c;
     c.fromNativeType(cursorType::leftPtr);
     windowContext_->setCursor(c);
-
-
+/*
     if(hints_ & windowHints::CustomDecorated)
     {
         unsigned int hheight = 100;
-        unsigned int border = 15;
+        unsigned int padding = 15;
+        unsigned int border = 10;
 
-        setHeight(getHeight() + hheight);
+        setHeight(getHeight() + hheight + 2 * border);
+        setWidth(getWidth() + 2 * border);
 
-        headerbar_.reset(new headerbar(*this, vec2i(0, 0), vec2ui(getWidth(), hheight)));
+        headerbar_.reset(new headerbar(*this, vec2i(0, 0), vec2ui(getWidth() - 2 * border, hheight - 2 * border)));
         headerbar_->refresh();
 
-        panel_.reset(new panel(*this, vec2i(0 + border, hheight + border), vec2ui(getWidth() - 2 * border, getHeight() - hheight - 2 * border)));
+        vboxSizer* b = new vboxSizer(*this);
+
+        hboxSizer* b1 = new hboxSizer(*b);
+        b1->addChild(*headerbar_);
+
+        panel_.reset(new panel(*this, vec2i(padding, hheight + padding), vec2ui(getWidth() - 2 * (border + padding), getHeight() - hheight - 2 * (border + padding))));
         panel_->refresh();
+
+        hboxSizer* b2 = new hboxSizer(*b);
+        b2->addChild(*panel_);
     }
-
+*/
 }
-
+/*
 void toplevelWindow::addChild(eventHandler& child)
 {
-    if(panel_.get()) child.processEvent(reparentEvent(&child, panel_.get()));
-    else eventHandler::addChild(child);
+    auto wid = dynamic_cast<widget*>(&child);
+    bool dont = 0;
+    if(wid)
+    {
+        if(wid->getWidgetName() == "ny::headerbar" || wid->getWidgetName() == "ny::panel")
+            dont = 1;
+    }
+
+    if(panel_.get() && !dont) child.processEvent(reparentEvent(&child, panel_.get()));
+    else
+        eventHandler::addChild(child);
+}
+*/
+void toplevelWindow::draw(drawContext& dc)
+{
+/*
+    if(hints_ & windowHints::CustomDecorated)
+    {
+        dc.resetClip();
+        dc.clear(color(0, 0, 0, 100));
+        redirectDrawContext red(dc, vec2i(10, 10), getSize() - vec2ui(20, 20));
+        red.startClip();
+        window::draw(dc);
+        red.endClip();
+    }
+    else
+    {
+        window::draw(dc);
+    }
+*/
+    window::draw(dc);
 }
 
 void toplevelWindow::setIcon(const image* icon)
@@ -401,10 +440,10 @@ void toplevelWindow::mouseButton(const mouseButtonEvent& ev)
 {
     window::mouseButton(ev);
 
-
+/*
     if(!isCustomResized() || !hasResizeHint())
         return;
-
+*/
 
     windowEdge medge = windowEdge::Unknown;
 
@@ -452,9 +491,10 @@ void toplevelWindow::mouseMove(const mouseMoveEvent& ev)
 {
     window::mouseMove(ev);
 
+/*
     if(!isCustomResized() || !hasResizeHint())
         return;
-
+*/
     cursorType t = cursorType::grab;
 
     int length = 100;
@@ -495,6 +535,7 @@ void toplevelWindow::setTitle(const std::string& n)
     getWindowContext()->setTitle(n);
 };
 
+/*
 bool toplevelWindow::setCustomDecorated(bool set)
 {
     hints_ |= windowHints::CustomDecorated;
@@ -530,7 +571,7 @@ bool toplevelWindow::setCustomMoved(bool set)
 
     return 1;
 }
-
+*/
 void toplevelWindow::setMaximizeHint(bool hint)
 {
     hints_ |= windowHints::Maximize;
@@ -594,7 +635,7 @@ childWindow::childWindow(window& parent, vec2i position, vec2ui size, windowCont
 
 void childWindow::create(window& parent, vec2i position, vec2ui size, windowContextSettings settings)
 {
-    hints_ |= windowHints::Child;
+    //hints_ |= windowHints::Child;
     window::create(parent, position, size, settings);
 }
 

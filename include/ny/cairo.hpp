@@ -38,6 +38,7 @@ public:
     virtual ~cairoDrawContext();
 
     virtual void clear(color col = color::none) override;
+    virtual void apply() override;
 
 	virtual void mask(const customPath& obj) override;
 	virtual void mask(const text& obj) override;

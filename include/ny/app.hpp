@@ -42,7 +42,7 @@ public:
     int threadpoolSize = -1; //auto size, 0 for no threadpool
 };
 
-class app : public eventHandler
+class app : public eventHandlerNode
 {
 
 friend class backend; //calls registerBackend on init
@@ -67,34 +67,36 @@ public:
 
     static app* nyMainApp(){ return mainApp; };
 
+private:
+    int exitReason_{exitReason::unknown};
+
 protected:
-    window* focus_ {nullptr}; //eventHandler which has current focus
-    window* mouseOver_ {nullptr}; //eventHandler on which is the mouse
+    appSettings settings_;
+
+    std::thread::id loopThreadID_; //holds the thread id that is executing the mainLoop. only valid if(mainLoop_)
+    std::thread::id eventThreadID_; //holds the thread id that is executing the mainLoop. only valid if(mainLoop_)
+
+    eventLoop mainLoop_;
+    backend* backend_ {nullptr}; //the chosen backend. only existing if(valid_), one of backends
 
     std::unique_ptr<appContext> appContext_;
+    std::unique_ptr<threadpool> threadpool_;
+
+    //changed/read by eventLoop and by eventDispatcher thread:
+    std::atomic<window*> focus_ {nullptr}; //eventHandler which has current focus
+    std::atomic<window*> mouseOver_ {nullptr}; //eventHandler on which is the mouse
 
     std::atomic<bool> exit_ {0};
     std::atomic<bool> valid_ {0}; //if the app was initialized (correctly)
 
-    int exitReason_{exitReason::unknown};
-
-    backend* backend_ {nullptr}; //the chosen backend. only existing if(valid_), one of backends
-    std::unique_ptr<threadpool> threadpool_;
-    std::thread::id mainThreadID_; //holds the thread id that is executing the mainLoop. only valid if(mainLoop_)
-    appSettings settings_;
-
-    eventLoop mainLoop_;
-
-    //todo, event dispatch system
+    //event dispatching
     std::thread eventDispatcher_;
     std::deque<std::unique_ptr<event>> events_;
     std::mutex eventMtx_;
     std::condition_variable eventCV_;
 
+    //dispatcher func
     void eventDispatcher();
-
-    //replace from eventHandler
-    //virtual void create(eventHandler& parent) override {};
 
 public:
     app();
@@ -108,7 +110,7 @@ public:
     virtual void onError();
 
     //eventHandler
-    virtual bool removeChild(eventHandler& handler) override;
+    virtual bool removeChild(eventHandlerNode& handler) override;
     virtual void destroy() override;
     virtual bool valid() const override;
 
@@ -125,7 +127,8 @@ public:
     const appSettings& getSettings() const { return settings_; }
     const std::string& getName() const { return settings_.name; }
 
-    bool mainThread() const { return std::this_thread::get_id() == mainThreadID_; };
+    bool loopThread() const { return std::this_thread::get_id() == loopThreadID_; };
+    bool eventThread() const { return std::this_thread::get_id() == eventThreadID_; };
 
     threadpool* getThreadPool() const { return threadpool_.get(); }
 

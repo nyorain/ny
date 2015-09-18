@@ -6,13 +6,51 @@
 namespace ny
 {
 
-template <typename Widget>
-class widgetStyle
+/*
+class styleBase
 {
 public:
-    void draw(Widget& wid, drawContext& dc) {};
+
 };
 
-//style-module?
+//style
+template <typename Window>
+class style
+{
+public:
+    virtual void draw(Window& win, drawContext& dc) = 0;
+};
+
+//defaultStyle
+template <typename Window>
+class defaultStyle : public style<Window>
+{
+public:
+    virtual void draw(Window& win, drawContext& dc) override
+    {
+        dc.clear();
+    }
+};
+
+//styles map
+namespace detail
+{
+
+}
+
+//lookup
+template <typename T>
+style<T>* lookupStyle()
+{
+
+}
+
+//register
+template <typename T>
+void registerStyle(const style<T>& st)
+{
+
+}
+*/
 
 }

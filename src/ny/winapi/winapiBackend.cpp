@@ -5,16 +5,19 @@
 namespace ny
 {
 
+winapiBackend winapiBackend::object{};
+
+//
 winapiBackend::winapiBackend() : backend(Winapi)
 {
 }
 
-appContext* winapiBackend::createAppContext()
+std::unique_ptr<appContext> winapiBackend::createAppContext()
 {
-    return new winapiAppContext();
+    return std::make_unique<winapiAppContext>();
 }
 
-windowContext* winapiBackend::createWindowContext(window& win, const windowContextSettings& settings)
+std::unique_ptr<windowContext> winapiBackend::createWindowContextImpl(window& win, const windowContextSettings& settings)
 {
     winapiWindowContextSettings s;
     const winapiWindowContextSettings* sTest = dynamic_cast<const winapiWindowContextSettings*>(&settings);
@@ -28,7 +31,7 @@ windowContext* winapiBackend::createWindowContext(window& win, const windowConte
         s.hints = settings.hints;
     }
 
-    return new winapiWindowContext(win, s);
+    return std::make_unique<winapiWindowContext>(win, s);
 }
 
 }

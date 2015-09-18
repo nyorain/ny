@@ -41,7 +41,7 @@ void x11CairoDrawContext::setSize(vec2ui size)
 void x11CairoDrawContext::apply()
 {
     cairo_surface_flush(cairoSurface_);
-    cairo_surface_copy_page(cairoSurface_);
+    cairo_surface_show_page(cairoSurface_);
 
     cairo_t* cr = cairo_create(xlibSurface_);
 

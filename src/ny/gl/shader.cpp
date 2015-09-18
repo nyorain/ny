@@ -6,9 +6,13 @@
 #include <ny/error.hpp>
 #include <nyutil/mat.hpp>
 
-#include <glbinding/gl/gl.h>
-#include <glbinding/Binding.h>
-using namespace gl;
+#ifdef NY_WithGLBinding
+ #include <glbinding/gl/gl.h>
+ #include <glbinding/Binding.h>
+ using namespace gl;
+#else
+ #include <GL/glew.h>
+#endif
 
 #include <fstream>
 

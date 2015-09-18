@@ -7,8 +7,14 @@
 #include <ny/surface.hpp>
 #include <ny/error.hpp>
 
-#include <glbinding/gl/gl.h>
-#include <glbinding/Binding.h>
+#ifdef NY_WithGLBinding
+ #include <glbinding/gl/gl.h>
+ #include <glbinding/Binding.h>
+ using namespace gl;
+#else
+ #include <GL/glew.h>
+#endif //glbinding
+
 #include <string.h>
 
 namespace ny
@@ -90,11 +96,20 @@ void glDrawContext::init(glApi api, unsigned int depth, unsigned int stencil)
     stencil_ = stencil;
 
     makeCurrentImpl();
-    glbinding::Binding::initialize();
+
+    #ifdef NY_WithGLBinding
+     glbinding::Binding::initialize();
+    #else
+     glewExperimental = true;
+     if(!glewInit())
+     {
+         //error...
+     }
+    #endif
 
     int maj = 0, min = 0;
-    glGetIntegerv(gl::GL_MAJOR_VERSION, &maj);
-    glGetIntegerv(gl::GL_MINOR_VERSION, &min);
+    glGetIntegerv(GL_MAJOR_VERSION, &maj);
+    glGetIntegerv(GL_MINOR_VERSION, &min);
 
     major_ = maj;
     minor_ = min;
@@ -112,8 +127,6 @@ void glDrawContext::init(glApi api, unsigned int depth, unsigned int stencil)
         }
     }
 
-    //nyDebug("ctx: ", glbinding::getCurrentContext());
-
     makeNotCurrentImpl();
 }
 
@@ -124,7 +137,10 @@ bool glDrawContext::makeCurrent()
 
     if(makeCurrentImpl())
     {
-        glbinding::Binding::useCurrentContext();
+        #ifdef NY_WithGLBinding
+         glbinding::Binding::useCurrentContext();
+        #endif //glbinding
+
         makeContextCurrent(*this);
         return 1;
     }
@@ -139,7 +155,6 @@ bool glDrawContext::makeNotCurrent()
 
     if(makeNotCurrentImpl())
     {
-        //glbinding::Binding::releaseCurrentContext();
         makeContextNotCurrent(*this);
         return 1;
     }
@@ -171,12 +186,12 @@ void glDrawContext::clear(color col)
 void glDrawContext::updateViewport(vec2ui size)
 {
     if(!assureValid()) return;
-    gl::glViewport(0, 0, size.x, size.y);
+    glViewport(0, 0, size.x, size.y);
 }
 
 rect2f glDrawContext::getClip()
 {
-    if(!assureValid() || gl::glIsEnabled(gl::GL_SCISSOR_TEST) != gl::GL_TRUE) return rect2f();
+    if(!assureValid() || glIsEnabled(GL_SCISSOR_TEST) != GL_TRUE) return rect2f();
     return clip_;
 }
 
@@ -184,14 +199,14 @@ void glDrawContext::clip(const rect2f& clip)
 {
     if(!assureValid()) return;
 
-    glEnable(gl::GL_SCISSOR_TEST);
+    glEnable(GL_SCISSOR_TEST);
     rect2f ccopy = clip;
 
-    gl::GLint vp[4];
-    gl::glGetIntegerv(gl::GL_VIEWPORT, vp);
+    GLint vp[4];
+    glGetIntegerv(GL_VIEWPORT, vp);
     ccopy.position.y = vp[3] - clip.position.y - clip.size.y;
 
-    gl::glScissor(ccopy.position.x, ccopy.position.y, ccopy.size.x, ccopy.size.y);
+    glScissor(ccopy.position.x, ccopy.position.y, ccopy.size.x, ccopy.size.y);
 
     clip_ = clip;
 }
@@ -201,7 +216,7 @@ void glDrawContext::resetClip()
     if(!assureValid()) return;
 
     clip_ = rect2f(vec2f(0,0), surface_.getSize());
-    gl::glDisable(gl::GL_SCISSOR_TEST);
+    glDisable(GL_SCISSOR_TEST);
 }
 
 void glDrawContext::mask(const customPath& obj)

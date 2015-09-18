@@ -48,6 +48,26 @@ winapiWindowContext::winapiWindowContext(window& win, const winapiWindowContextS
     wndClass_.cbWndExtra = 0;
     wndClass_.hbrBackground = (HBRUSH) GetStockObject(BLACK_BRUSH);
 
+    if (!RegisterClassEx(&wndClass_))
+    {
+        throw std::runtime_error("winapiWindowContext::create: could not register window class");
+        return;
+    }
+
+    handle_ = CreateWindowEx(0, wndClass_.lpszClassName, _T("title here"), WS_OVERLAPPEDWINDOW, win.getPosition().x, win.getPosition().y, win.getSize().x, win.getSize().y, HWND_DESKTOP, NULL, instance_, NULL);
+
+    if(!handle_)
+    {
+        throw std::runtime_error("winapiWindowContext::create: could not create window");
+        return;
+    }
+
+    ShowWindow(handle_, 10); //why 10? more generic?
+    UpdateWindow(handle_);
+
+    ac->registerContext(handle_, this);
+
+    gdi_ = new gdiDrawContext(*this);
 }
 
 winapiWindowContext::~winapiWindowContext()
@@ -60,11 +80,14 @@ void winapiWindowContext::refresh()
     RedrawWindow(handle_, nullptr, nullptr, RDW_INVALIDATE | RDW_NOERASE);
 }
 
-drawContext& winapiWindowContext::beginDraw()
+drawContext* winapiWindowContext::beginDraw()
 {
+    gdi_->beginDraw();
+    return gdi_;
 }
 void winapiWindowContext::finishDraw()
 {
+    gdi_->finishDraw();
 }
 
 void winapiWindowContext::show()
@@ -74,9 +97,11 @@ void winapiWindowContext::hide()
 {
 }
 
+/*
 void winapiWindowContext::setWindowHints(const unsigned long hints)
 {
 }
+*/
 void winapiWindowContext::addWindowHints(const unsigned long hint)
 {
 }
@@ -84,9 +109,11 @@ void winapiWindowContext::removeWindowHints(const unsigned long hint)
 {
 }
 
+/*
 void winapiWindowContext::setContextHints(const unsigned long hints)
 {
 }
+*/
 void winapiWindowContext::addContextHints(const unsigned long hints)
 {
 }
@@ -94,9 +121,11 @@ void winapiWindowContext::removeContextHints(const unsigned long hints)
 {
 }
 
+/*
 void winapiWindowContext::setSettings(const windowContextSettings& s)
 {
 }
+*/
 
 void winapiWindowContext::setSize(vec2ui size, bool change)
 {

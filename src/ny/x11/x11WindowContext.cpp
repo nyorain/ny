@@ -162,6 +162,13 @@ x11WindowContext::x11WindowContext(window& win, const x11WindowContextSettings& 
         attr.background_pixel = 0;
         attr.border_pixel = 0;
     }
+    else
+    {
+        mask |= CWBackPixmap | CWBorderPixmap | CWBorderPixel;
+        attr.background_pixmap = None;
+        attr.border_pixmap = None;
+        attr.border_pixel = 0;
+    }
 
     xWindow_ = XCreateWindow(getXDisplay(), xParent, win.getPositionX(), win.getPositionY(), win.getWidth(), win.getHeight(), 0, xVinfo_->depth, InputOutput, xVinfo_->visual, mask, &attr);
 
@@ -211,20 +218,15 @@ void x11WindowContext::matchGLXVisualInfo()
 {
     const int attribs[] =
     {
-      GLX_X_RENDERABLE    , True,
-      GLX_DRAWABLE_TYPE   , GLX_WINDOW_BIT,
-      GLX_RENDER_TYPE     , GLX_RGBA_BIT,
-      GLX_X_VISUAL_TYPE   , GLX_TRUE_COLOR,
-      GLX_RED_SIZE        , 8,
-      GLX_GREEN_SIZE      , 8,
-      GLX_BLUE_SIZE       , 8,
-      GLX_ALPHA_SIZE      , 8,
-      GLX_DEPTH_SIZE      , 24,
-      GLX_STENCIL_SIZE    , 8,
-      GLX_DOUBLEBUFFER    , True,
-      //GLX_SAMPLE_BUFFERS  , 1,
-      //GLX_SAMPLES         , 4,
-      None
+        GLX_RENDER_TYPE, GLX_RGBA_BIT,
+        GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT,
+        GLX_DOUBLEBUFFER, True,
+        GLX_RED_SIZE, 8,
+        GLX_GREEN_SIZE, 8,
+        GLX_BLUE_SIZE, 8,
+        GLX_ALPHA_SIZE, 8,
+        GLX_DEPTH_SIZE, 24,
+        None
     };
 
 

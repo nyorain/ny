@@ -145,8 +145,14 @@ void redirectDrawContext::updateClip()
 {
     clipSave_ = redirect_.getClip();
     redirect_.resetClip();
-    redirect_.clip(rect2f(position_, size_));
-    nyDebug("clip: ", position_, " ", size_);
+
+    //vec2f pos(std::min(position_.x, clipSave_.position.x), std::min(position_.y, clipSave_.position.y));
+    vec2f pos = position_;
+    vec2f siz = size_;
+    //vec2f siz(std::min(size_.x, clipSave_.size.x), std::min(size_.y, clipSave_.size.y));
+
+    redirect_.clip(rect2f(pos, siz));
+    //nyDebug("clip: ", position_, " ", size_);
 }
 void redirectDrawContext::endClip()
 {

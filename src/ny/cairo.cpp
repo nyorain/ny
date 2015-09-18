@@ -90,8 +90,25 @@ void cairoDrawContext::clear(color col)
     float r, g, b, a = 0;
     col.normalized(r, g, b, a);
 
-    cairo_set_source_rgba(cairoCR_, r, g, b, a);
-    cairo_paint(cairoCR_);
+    cairo_save (cairoCR_);
+    cairo_set_source_rgba (cairoCR_, r, g, b, a);
+    cairo_set_operator (cairoCR_, CAIRO_OPERATOR_SOURCE);
+    cairo_paint (cairoCR_);
+    cairo_restore (cairoCR_);
+}
+
+void cairoDrawContext::apply()
+{
+    if(!cairoCR_)
+    {
+        nyWarning("drawing with uninitialized cairoDC");
+        return;
+    }
+
+    cairo_show_page(cairoCR_);
+
+    cairo_destroy(cairoCR_);
+    cairoCR_ = cairo_create(cairoSurface_);
 }
 
 rect2f cairoDrawContext::getClip()

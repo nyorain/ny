@@ -3,6 +3,7 @@
 #include <ny/include.hpp>
 #include <ny/drawContext.hpp>
 
+#include <winsock2.h>
 #include <windows.h>
 #include <gdiplus.h>
 
@@ -36,16 +37,16 @@ public:
 
     virtual void clear(color col = color::none) override;
 
-	virtual void mask(const customPath& obj) override;
-	virtual void mask(const text& obj) override;
-	virtual void resetMask() override;
+	virtual void mask(const customPath& obj) override {};
+	virtual void mask(const text& obj) override {};
+	virtual void resetMask() override {};
 
-	virtual void fill(const brush& col) override;
-	virtual void outline(const pen& col) override;
+	virtual void fillPreserve(const brush& col) override {};
+	virtual void strokePreserve(const pen& col) override {};
 
-    virtual rect2f getClip() override;
-    virtual void clip(const rect2f& obj) override;
-	virtual void resetClip() override;
+    virtual rect2f getClip() override { return rect2f(); };
+    virtual void clip(const rect2f& obj) override {};
+	virtual void resetClip() override {};
 
     //specific
     void setSize(vec2ui size);

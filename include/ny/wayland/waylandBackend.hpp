@@ -1,7 +1,9 @@
 #pragma once
 
+#include <ny/include.hpp>
 #include <ny/backend.hpp>
-#include <ny/windowContext.hpp>
+
+#include <memory>
 
 namespace ny
 {

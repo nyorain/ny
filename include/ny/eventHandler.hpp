@@ -3,22 +3,33 @@
 #include <ny/include.hpp>
 #include <nyutil/hierachy.hpp>
 
-#include <memory>
-
 namespace ny
 {
 
-class eventHandler : public hierachyNode<eventHandler>
+//eventHandler base
+class eventHandler
 {
-protected:
-    using hierachyBase = hierachyNode<eventHandler>;
-
-    eventHandler();
 public:
-    eventHandler(eventHandler& parent);
+    eventHandler() = default;
     virtual ~eventHandler() = default;
 
-    virtual bool processEvent(const event& event); //returns if event was processed (1) or ignored (0)
+    virtual bool processEvent(const event& ev) { return 0; }; //returns if event was processed (1) or ignored (0)
+};
+
+//eventHandlerHierachyNode
+class eventHandlerNode : public eventHandler, public hierachyNode<eventHandlerNode>
+{
+protected:
+    using hierachyBase = hierachyNode<eventHandlerNode>;
+
+    eventHandlerNode();
+    void create(eventHandlerNode& parent);
+
+public:
+    eventHandlerNode(eventHandlerNode& parent);
+    virtual ~eventHandlerNode() = default;
+
+    virtual bool processEvent(const event& ev);
 };
 
 }
