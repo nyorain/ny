@@ -1,0 +1,6 @@
+build/
+.git
+concepts/
+obj/
+bin/
+old/

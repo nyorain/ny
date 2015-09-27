@@ -1,0 +1,638 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="libny" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Option virtualFolders="src\;src\gl\;src\wayland\;src\x11\;src\winapi\;include\;include\gl\;include\x11\;include\wayland\;include\winapi\;" />
+		<Build>
+			<Target title="linux">
+				<Option output="../../../linux/lib/ny" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug/" />
+				<Option type="3" />
+				<Option compiler="gcc" />
+				<Option createDefFile="1" />
+				<Option createStaticLib="1" />
+				<Compiler>
+					<Add option="-fPIC" />
+					<Add option="-g" />
+					<Add option="`freetype-config --cflags`" />
+					<Add option="-DNY_WithCairo" />
+					<Add option="-DNY_WithGL" />
+					<Add option="-DNY_WithEGL" />
+					<Add option="-DNY_WithGLES" />
+					<Add option="-DNY_WithWayland" />
+					<Add option="-DNY_WithX11" />
+					<Add option="-DNY_WithFreeType" />
+					<Add directory="../include" />
+					<Add directory="../src" />
+					<Add directory="/mnt/sda5/Programming/linux/include/nyutil" />
+				</Compiler>
+				<Linker>
+					<Add option="`freetype-config --libs`" />
+					<Add library="X11" />
+					<Add library="wayland-client" />
+					<Add library="wayland-cursor" />
+					<Add library="pthread" />
+					<Add library="cairo" />
+					<Add library="glbinding" />
+					<Add library="wayland-egl" />
+					<Add library="uv" />
+				</Linker>
+			</Target>
+			<Target title="windows">
+				<Option output="../../../windows/lib/ny" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug/" />
+				<Option type="3" />
+				<Option compiler="gcc" />
+				<Option createDefFile="1" />
+				<Option createStaticLib="1" />
+				<Compiler>
+					<Add option="-O2" />
+					<Add option="-DNY_WithWinapi" />
+					<Add directory="../src" />
+					<Add directory="../include" />
+					<Add directory="A:/Programming/windows/include/nyutil" />
+					<Add directory="C:/Program Files/libuv/include" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+					<Add library="uv" />
+					<Add library="Gdiplus" />
+					<Add library="gdi32" />
+					<Add directory="C:/Program Files/libuv" />
+				</Linker>
+			</Target>
+			<Target title="noBackends">
+				<Option output="libny" prefix_auto="1" extension_auto="1" />
+				<Option type="0" />
+				<Option compiler="gcc" />
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wzero-as-null-pointer-constant" />
+			<Add option="-std=c++11" />
+			<Add option="-Wall" />
+			<Add option="-DNY_DEBUG" />
+			<Add option="-DXXNYPREDEF" />
+		</Compiler>
+		<Unit filename="../include/ny/app.hpp">
+			<Option virtualFolder="include/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/appContext.hpp">
+			<Option virtualFolder="include/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/backend.hpp">
+			<Option virtualFolder="include/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/cairo.hpp">
+			<Option virtualFolder="include/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/color.hpp">
+			<Option virtualFolder="include/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/config.h">
+			<Option virtualFolder="include/" />
+		</Unit>
+		<Unit filename="../include/ny/cursor.hpp">
+			<Option virtualFolder="include/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/data.hpp">
+			<Option virtualFolder="include/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/dialog.hpp">
+			<Option virtualFolder="include/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/drawContext.hpp">
+			<Option virtualFolder="include/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/error.hpp">
+			<Option virtualFolder="include/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/event.hpp">
+			<Option virtualFolder="include/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/eventHandler.hpp">
+			<Option virtualFolder="include/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/file.hpp">
+			<Option virtualFolder="include/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/font.hpp">
+			<Option virtualFolder="include/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/frame.hpp">
+			<Option virtualFolder="include/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/freeType.hpp">
+			<Option virtualFolder="include/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/gl.hpp">
+			<Option virtualFolder="include/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/gl/egl.hpp">
+			<Option virtualFolder="include/gl/" />
+		</Unit>
+		<Unit filename="../include/ny/gl/glDrawContext.hpp">
+			<Option virtualFolder="include/gl/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/gl/legacyGL.hpp">
+			<Option virtualFolder="include/gl/" />
+		</Unit>
+		<Unit filename="../include/ny/gl/modernGL.hpp">
+			<Option virtualFolder="include/gl/" />
+		</Unit>
+		<Unit filename="../include/ny/gl/shader.hpp">
+			<Option virtualFolder="include/gl/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/global.hpp">
+			<Option virtualFolder="include/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/image.hpp">
+			<Option virtualFolder="include/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/include.hpp">
+			<Option virtualFolder="include/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/keyboard.hpp">
+			<Option virtualFolder="include/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/mouse.hpp">
+			<Option virtualFolder="include/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/ny.hpp">
+			<Option virtualFolder="include/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/shape.hpp">
+			<Option virtualFolder="include/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/sizer.hpp">
+			<Option virtualFolder="include/" />
+		</Unit>
+		<Unit filename="../include/ny/style.hpp">
+			<Option virtualFolder="include/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/surface.hpp">
+			<Option virtualFolder="include/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/texture.hpp">
+			<Option virtualFolder="include/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/wayland/waylandAppContext.hpp">
+			<Option virtualFolder="include/wayland/" />
+			<Option target="linux" />
+		</Unit>
+		<Unit filename="../include/ny/wayland/waylandBackend.hpp">
+			<Option virtualFolder="include/wayland/" />
+			<Option target="linux" />
+		</Unit>
+		<Unit filename="../include/ny/wayland/waylandCairo.hpp">
+			<Option virtualFolder="include/wayland/" />
+			<Option target="linux" />
+		</Unit>
+		<Unit filename="../include/ny/wayland/waylandEgl.hpp">
+			<Option virtualFolder="include/wayland/" />
+			<Option target="linux" />
+		</Unit>
+		<Unit filename="../include/ny/wayland/waylandInclude.hpp">
+			<Option virtualFolder="include/wayland/" />
+			<Option target="linux" />
+		</Unit>
+		<Unit filename="../include/ny/wayland/waylandInterfaces.hpp">
+			<Option virtualFolder="include/wayland/" />
+			<Option target="linux" />
+		</Unit>
+		<Unit filename="../include/ny/wayland/waylandUtil.hpp">
+			<Option virtualFolder="include/wayland/" />
+			<Option target="linux" />
+			<Option target="noBackends" />
+		</Unit>
+		<Unit filename="../include/ny/wayland/waylandWindowContext.hpp">
+			<Option virtualFolder="include/wayland/" />
+			<Option target="linux" />
+			<Option target="noBackends" />
+		</Unit>
+		<Unit filename="../include/ny/widget.hpp">
+			<Option virtualFolder="include/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/widgets.hpp">
+			<Option virtualFolder="include/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/winapi/gdiDrawContext.hpp">
+			<Option virtualFolder="include/winapi/" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/winapi/wgl.hpp">
+			<Option virtualFolder="include/winapi/" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/winapi/winapiAppContext.hpp">
+			<Option virtualFolder="include/winapi/" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/winapi/winapiBackend.hpp">
+			<Option virtualFolder="include/winapi/" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/winapi/winapiInclude.hpp">
+			<Option virtualFolder="include/winapi/" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/winapi/winapiUtil.hpp">
+			<Option virtualFolder="include/winapi/" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/winapi/winapiWindowContext.hpp">
+			<Option virtualFolder="include/winapi/" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/window.hpp">
+			<Option virtualFolder="include/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/windowContext.hpp">
+			<Option virtualFolder="include/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/windowDefs.hpp">
+			<Option virtualFolder="include/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/windowEvents.hpp">
+			<Option virtualFolder="include/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/x11/glx.hpp">
+			<Option virtualFolder="include/x11/" />
+			<Option target="linux" />
+		</Unit>
+		<Unit filename="../include/ny/x11/x11AppContext.hpp">
+			<Option virtualFolder="include/x11/" />
+			<Option target="linux" />
+		</Unit>
+		<Unit filename="../include/ny/x11/x11Backend.hpp">
+			<Option virtualFolder="include/x11/" />
+			<Option target="linux" />
+		</Unit>
+		<Unit filename="../include/ny/x11/x11Cairo.hpp">
+			<Option virtualFolder="include/x11/" />
+			<Option target="linux" />
+		</Unit>
+		<Unit filename="../include/ny/x11/x11Egl.hpp">
+			<Option virtualFolder="include/x11/" />
+			<Option target="linux" />
+		</Unit>
+		<Unit filename="../include/ny/x11/x11Include.hpp">
+			<Option virtualFolder="include/x11/" />
+			<Option target="linux" />
+		</Unit>
+		<Unit filename="../include/ny/x11/x11Util.hpp">
+			<Option virtualFolder="include/x11/" />
+			<Option target="linux" />
+			<Option target="noBackends" />
+		</Unit>
+		<Unit filename="../include/ny/x11/x11WindowContext.hpp">
+			<Option virtualFolder="include/x11/" />
+			<Option target="linux" />
+		</Unit>
+		<Unit filename="../src/ny/app.cpp">
+			<Option virtualFolder="src/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/appContext.cpp">
+			<Option virtualFolder="src/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/backend.cpp">
+			<Option virtualFolder="src/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/cairo.cpp">
+			<Option virtualFolder="src/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/color.cpp">
+			<Option virtualFolder="src/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/cursor.cpp">
+			<Option virtualFolder="src/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/data.cpp">
+			<Option virtualFolder="src/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/dialog.cpp">
+			<Option virtualFolder="src/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/drawContext.cpp">
+			<Option virtualFolder="src/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/error.cpp">
+			<Option virtualFolder="src/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/event.cpp">
+			<Option virtualFolder="src/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/eventHandler.cpp">
+			<Option virtualFolder="src/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/file.cpp">
+			<Option virtualFolder="src/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/font.cpp">
+			<Option virtualFolder="src/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/frame.cpp">
+			<Option virtualFolder="src/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/freeType.cpp">
+			<Option virtualFolder="src/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/gl/egl.cpp">
+			<Option virtualFolder="src/gl/" />
+		</Unit>
+		<Unit filename="../src/ny/gl/glDrawContext.cpp">
+			<Option virtualFolder="src/gl/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/gl/gles.cpp">
+			<Option virtualFolder="src/gl/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/gl/legacyGL.cpp">
+			<Option virtualFolder="src/gl/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/gl/modernGL.cpp">
+			<Option virtualFolder="src/gl/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/gl/shader.cpp">
+			<Option virtualFolder="src/gl/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/headerbar.cpp">
+			<Option virtualFolder="src/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/image.cpp">
+			<Option virtualFolder="src/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/keyboard.cpp">
+			<Option virtualFolder="src/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/mouse.cpp">
+			<Option virtualFolder="src/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/shape.cpp">
+			<Option virtualFolder="src/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/sizer.cpp">
+			<Option virtualFolder="src/" />
+		</Unit>
+		<Unit filename="../src/ny/style.cpp">
+			<Option virtualFolder="src/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/surface.cpp">
+			<Option virtualFolder="src/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/texture.cpp">
+			<Option virtualFolder="src/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/touch.cpp">
+			<Option virtualFolder="src/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/wayland/waylandAppContext.cpp">
+			<Option virtualFolder="src/wayland/" />
+			<Option target="linux" />
+		</Unit>
+		<Unit filename="../src/ny/wayland/waylandBackend.cpp">
+			<Option virtualFolder="src/wayland/" />
+			<Option target="linux" />
+		</Unit>
+		<Unit filename="../src/ny/wayland/waylandCairo.cpp">
+			<Option virtualFolder="src/wayland/" />
+			<Option target="linux" />
+		</Unit>
+		<Unit filename="../src/ny/wayland/waylandEgl.cpp">
+			<Option virtualFolder="src/wayland/" />
+			<Option target="linux" />
+		</Unit>
+		<Unit filename="../src/ny/wayland/waylandInterfaces.cpp">
+			<Option virtualFolder="src/wayland/" />
+			<Option target="linux" />
+		</Unit>
+		<Unit filename="../src/ny/wayland/waylandUtil.cpp">
+			<Option virtualFolder="src/wayland/" />
+			<Option target="linux" />
+		</Unit>
+		<Unit filename="../src/ny/wayland/waylandWindowContext.cpp">
+			<Option virtualFolder="src/wayland/" />
+			<Option target="linux" />
+		</Unit>
+		<Unit filename="../src/ny/wayland/xdg-shell-client-protocol.h">
+			<Option virtualFolder="include/wayland/" />
+			<Option target="linux" />
+			<Option target="noBackends" />
+		</Unit>
+		<Unit filename="../src/ny/wayland/xdg-shell-protocol.c">
+			<Option compilerVar="CC" />
+			<Option virtualFolder="src/wayland/" />
+			<Option target="linux" />
+		</Unit>
+		<Unit filename="../src/ny/widget.cpp">
+			<Option virtualFolder="src/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/widgets.cpp">
+			<Option virtualFolder="src/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/winapi/gdiDrawContext.cpp">
+			<Option virtualFolder="src/winapi/" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/winapi/wgl.cpp">
+			<Option virtualFolder="src/winapi/" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/winapi/winapiAppContext.cpp">
+			<Option virtualFolder="src/winapi/" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/winapi/winapiBackend.cpp">
+			<Option virtualFolder="src/winapi/" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/winapi/winapiUtil.cpp">
+			<Option virtualFolder="src/winapi/" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/winapi/winapiWindowContext.cpp">
+			<Option virtualFolder="src/winapi/" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/window.cpp">
+			<Option virtualFolder="src/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/windowContext.cpp">
+			<Option virtualFolder="src/" />
+			<Option target="linux" />
+			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/x11/glx.cpp">
+			<Option virtualFolder="src/x11/" />
+			<Option target="linux" />
+		</Unit>
+		<Unit filename="../src/ny/x11/x11AppContext.cpp">
+			<Option virtualFolder="src/x11/" />
+			<Option target="linux" />
+		</Unit>
+		<Unit filename="../src/ny/x11/x11Backend.cpp">
+			<Option virtualFolder="src/x11/" />
+			<Option target="linux" />
+		</Unit>
+		<Unit filename="../src/ny/x11/x11Cairo.cpp">
+			<Option virtualFolder="src/x11/" />
+			<Option target="linux" />
+		</Unit>
+		<Unit filename="../src/ny/x11/x11Egl.cpp">
+			<Option virtualFolder="src/x11/" />
+			<Option target="linux" />
+		</Unit>
+		<Unit filename="../src/ny/x11/x11Util.cpp">
+			<Option virtualFolder="src/x11/" />
+			<Option target="linux" />
+		</Unit>
+		<Unit filename="../src/ny/x11/x11WindowContext.cpp">
+			<Option virtualFolder="src/x11/" />
+			<Option target="linux" />
+		</Unit>
+		<Extensions>
+			<code_completion />
+			<envvars />
+			<lib_finder disable_auto="1" />
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>
