@@ -195,7 +195,7 @@ public:
     void setSize(float width, float height){ size_ = {width, height}; }
 
     void setBorderRadius(vec4f br){ borderRadius_ = br; }
-    void setBorderRadius(float value){ borderRadius_.allTo(value); }
+    void setBorderRadius(float value){ borderRadius_.fill(value); }
     void setBorderRadius(float leftTop, float rightTop, float rightBottom, float leftBottom){ borderRadius_ = {leftTop, rightTop, rightBottom, leftBottom}; }
 
     vec2f getSize() const { return size_; }
@@ -280,7 +280,7 @@ public:
     customPath getAsCustomPath() const;
 
     //inherited from transformable
-    rect2f getExtents() const { return rect2f(position_, radius_ * 2); }
+    rect2f getExtents() const { return rect2f(position_, vec2f(radius_ * 2, radius_ * 2)); }
 };
 
 //path///////////////////////////////////////////////////////////////

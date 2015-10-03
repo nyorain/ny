@@ -135,7 +135,7 @@ void shader::setUniformParameter(const std::string& name, const mat2f& value)
 void shader::setUniformParameter(const std::string& name, const mat3f& value)
 {
     int location = glGetUniformLocation(program_, name.c_str());
-    glUniformMatrix3fv(location, 1, GL_FALSE, value.ptr());
+    glUniformMatrix3fv(location, 1, GL_FALSE, value.data());
 }
 void shader::setUniformParameter(const std::string& name, const mat4f& value)
 {

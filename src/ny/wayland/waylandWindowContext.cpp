@@ -54,27 +54,28 @@ waylandWindowContext::waylandWindowContext(window& win, const waylandWindowConte
 
     wl_surface_set_user_data(wlSurface_, this);
 
-    unsigned long hints = win.getWindowHints();
-
     //window role
-    if(hints & windowHints::Toplevel)
+    auto* toplvlw = dynamic_cast<toplevelWindow*>(&win);
+    auto* childw = dynamic_cast<childWindow*>(&win);
+    if((!toplvlw && !childw) || (toplvlw && childw))
+    {
+        throw std::runtime_error("window must be either of childWindow or of toplevelWindow type");
+        return;
+    }
+
+    if(toplvlw)
     {
         //if(ac->getXDGShell())
         //    createXDGSurface();
         //else
             createShellSurface();
     }
-    else if(hints & windowHints::Child)
+    else if(childw)
     {
         //if(ac->getXDGShell())
         //    createSubsurface();
         //else
             createSubsurface();
-    }
-    else
-    {
-        throw std::runtime_error("window has no type defined in its hints");
-        return;
     }
 
     //drawContext
@@ -270,7 +271,7 @@ void waylandWindowContext::refresh()
     getWindow().processEvent(drawEvent(&getWindow()));
 }
 
-drawContext& waylandWindowContext::beginDraw()
+drawContext* waylandWindowContext::beginDraw()
 {
     if(getCairo() && cairo_)
     {
@@ -278,22 +279,22 @@ drawContext& waylandWindowContext::beginDraw()
             cairo_->swapBuffers();
 
         cairo_->updateSize(getWindow().getSize());
-        return *cairo_;
+        return cairo_;
     }
     else if(getEGL() && egl_)
     {
         egl_->initEGL(*this);
 
         if(!egl_->makeCurrent())
-            throw std::runtime_error("waylandWindowContext::beginDraw: failed to make egl current");
+            return nullptr;
 
         egl_->updateViewport(getWindow().getSize());
 
-        return *egl_;
+        return egl_;
     }
     else
     {
-        throw std::runtime_error("waylandWindowContext::beginDraw: uninitialized context");
+        return nullptr;
     }
 }
 
@@ -383,12 +384,12 @@ unsigned long waylandWindowContext::getAdditionalWindowHints() const
 
     if(getWlShellSurface()) //toplevel
     {
-        ret |= windowHints::CustomDecorated | windowHints::CustomMoved | windowHints::CustomResized;
+        //ret |= windowHints::CustomDecorated | windowHints::CustomMoved | windowHints::CustomResized;
     }
 
     if(getEGL())
     {
-        ret |= windowHints::GL;
+        //ret |= windowHints::GL;
     }
 
     return ret;
@@ -400,7 +401,7 @@ void waylandWindowContext::setCursor(const cursor& c)
     updateCursor(nullptr);
 }
 
-void waylandWindowContext::updateCursor(mouseCrossEvent* ev)
+void waylandWindowContext::updateCursor(const mouseCrossEvent* ev)
 {
     unsigned int serial = 0;
 
@@ -417,7 +418,7 @@ void waylandWindowContext::updateCursor(mouseCrossEvent* ev)
         getWaylandAC()->setCursor(window_.getCursor().getImage(), window_.getCursor().getImageHotspot(), serial);
 }
 
-void waylandWindowContext::sendContextEvent(const contextEvent& e)
+void waylandWindowContext::processEvent(const contextEvent& e)
 {
     if(e.contextType() == frameEvent)
     {

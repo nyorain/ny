@@ -96,7 +96,7 @@ public:
     //high-level, have to be implemented/////////////////////////////////
     virtual void refresh() override;
 
-    virtual drawContext& beginDraw() override;
+    virtual drawContext* beginDraw() override;
     virtual void finishDraw() override;
 
     virtual void show() override;
@@ -116,7 +116,7 @@ public:
     virtual void addContextHints(unsigned long hints) override;
     virtual void removeContextHints(unsigned long hints) override;
 
-    virtual void sendContextEvent(const contextEvent& e) override;
+    virtual void processEvent(const contextEvent& e) override;
 
     //toplevel////////////////////
     virtual void setMaximized() override;

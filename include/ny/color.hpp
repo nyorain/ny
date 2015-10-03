@@ -31,10 +31,10 @@ public:
     unsigned char a;
 
     vec4uc rgba() const { return vec4uc(r,g,b,a); }
-    vec3uc rgb() const { return vec4uc(r,g,a); }
+    vec3uc rgb() const { return vec3uc(r,g,a); }
 
     vec4f rgbaNorm() const { return vec4f(r / 255.f, g / 255.f, b / 255.f, a / 255.f); }
-    vec3f rgbNorm() const { return vec4f(r / 255.f, g / 255.f, b / 255.f); }
+    vec3f rgbNorm() const { return vec3f(r / 255.f, g / 255.f, b / 255.f); }
 
 public:
     const static color red;

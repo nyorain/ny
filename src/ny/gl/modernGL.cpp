@@ -107,10 +107,10 @@ void modernGLDrawImpl::fill(const mask& m, const brush& b)
     // Specify the layout of the vertex data
     GLint posAttrib = glGetAttribLocation(defaultShader.getProgram(), "pos");
     glEnableVertexAttribArray(posAttrib);
-    glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
 
     //draw
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 
     delete[] verts;
 }

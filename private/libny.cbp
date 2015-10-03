@@ -5,7 +5,7 @@
 		<Option title="libny" />
 		<Option pch_mode="2" />
 		<Option compiler="gcc" />
-		<Option virtualFolders="src\;src\gl\;src\wayland\;src\x11\;src\winapi\;include\;include\gl\;include\x11\;include\wayland\;include\winapi\;" />
+		<Option virtualFolders="src/;src/gl/;src/wayland/;src/x11/;src/winapi/;include/;include/gl/;include/x11/;include/wayland/;include/winapi/;" />
 		<Build>
 			<Target title="linux">
 				<Option output="../../../linux/lib/ny" prefix_auto="1" extension_auto="1" />
@@ -183,6 +183,9 @@
 			<Option virtualFolder="include/gl/" />
 			<Option target="linux" />
 			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/gl/triangulate.hpp">
+			<Option virtualFolder="include/gl/" />
 		</Unit>
 		<Unit filename="../include/ny/global.hpp">
 			<Option virtualFolder="include/" />
@@ -469,6 +472,9 @@
 			<Option virtualFolder="src/gl/" />
 			<Option target="linux" />
 			<Option target="windows" />
+		</Unit>
+		<Unit filename="../src/ny/gl/triangulate.cpp">
+			<Option virtualFolder="src/gl/" />
 		</Unit>
 		<Unit filename="../src/ny/headerbar.cpp">
 			<Option virtualFolder="src/" />

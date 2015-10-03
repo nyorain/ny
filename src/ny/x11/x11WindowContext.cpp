@@ -58,8 +58,6 @@ x11WindowContext::x11WindowContext(window& win, const x11WindowContextSettings& 
 
     xScreenNumber_ = ac->getXDefaultScreenNumber(); //todo: implement correctly
 
-    unsigned long hints = win.getWindowHints();
-
     bool gl = 0;
 
     //renderer - nothing available
@@ -96,16 +94,18 @@ x11WindowContext::x11WindowContext(window& win, const x11WindowContextSettings& 
 
     //window type
     Window xParent;
-    if(hints & windowHints::Toplevel)
+
+    auto* toplvlw = dynamic_cast<toplevelWindow*>(&win);
+    auto* childw = dynamic_cast<childWindow*>(&win);
+    if((!toplvlw && !childw) || (toplvlw && childw))
+    {
+        throw std::runtime_error("window must be either of childWindow or of toplevelWindow type");
+        return;
+    }
+
+    if(toplvlw)
     {
         windowType_ = x11WindowType::toplevel;
-
-        toplevelWindow* tw = dynamic_cast<toplevelWindow*>(&win);
-        if(!tw)
-        {
-            throw std::runtime_error("x11WC::x11WC: window has toplevel hint, but isnt a toplevel window");
-            return;
-        }
 
         if(gl)
             matchGLXVisualInfo();
@@ -115,18 +115,11 @@ x11WindowContext::x11WindowContext(window& win, const x11WindowContextSettings& 
         xParent = DefaultRootWindow(getXDisplay());
 
     }
-    else if(hints & windowHints::Child)
+    else if(childw)
     {
         windowType_ = x11WindowType::child;
 
-        childWindow* cw = dynamic_cast<childWindow*>(&win);
-        if(!cw)
-        {
-            throw std::runtime_error("x11WC::x11WC: window has child hint, but isnt a child window");
-            return;
-        }
-
-        x11WC* parentWC = asX11(cw->getParent()->getWC());
+        x11WC* parentWC = asX11(childw->getParent()->getWC());
         if(!parentWC || !(xParent = parentWC->getXWindow()))
         {
             throw std::runtime_error("x11WC::x11WC: could not find xParent");
@@ -173,7 +166,7 @@ x11WindowContext::x11WindowContext(window& win, const x11WindowContextSettings& 
     xWindow_ = XCreateWindow(getXDisplay(), xParent, win.getPositionX(), win.getPositionY(), win.getWidth(), win.getHeight(), 0, xVinfo_->depth, InputOutput, xVinfo_->visual, mask, &attr);
 
     ac->registerContext(xWindow_, this);
-    if(hints & windowHints::Toplevel) XSetWMProtocols(getXDisplay(), xWindow_, &x11::WindowDelete, 1);
+    if(toplvlw) XSetWMProtocols(getXDisplay(), xWindow_, &x11::WindowDelete, 1);
 
     if(gl)
     {
@@ -303,21 +296,21 @@ void x11WindowContext::refresh()
 */
 }
 
-drawContext& x11WindowContext::beginDraw()
+drawContext* x11WindowContext::beginDraw()
 {
     if(getCairo())
     {
-        return *cairo_;
+        return cairo_.get();
     }
     else if(getGLX())
     {
         getGLX()->makeCurrent();
         getGLX()->updateViewport(getWindow().getSize());
-        return *glx_.ctx;
+        return glx_.ctx.get();
     }
     else
     {
-        throw std::runtime_error("x11WC::beginDraw: no valid draw context"); //
+        return nullptr;
     }
 }
 
@@ -422,7 +415,7 @@ void x11WindowContext::setMaxSize(vec2ui size)
     XSetWMNormalHints(getXDisplay(), xWindow_, &s);
 }
 
-void x11WindowContext::sendContextEvent(const contextEvent& e)
+void x11WindowContext::processEvent(const contextEvent& e)
 {
     if(e.contextType() == X11Reparent)
         wasReparented(event_cast<x11ReparentEvent>(e).ev);

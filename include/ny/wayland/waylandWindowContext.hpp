@@ -89,7 +89,7 @@ public:
     //high level functions///////////////////////////////////////////////
     virtual void refresh() override;
 
-    virtual drawContext& beginDraw() override;
+    virtual drawContext* beginDraw() override;
     virtual void finishDraw() override;
 
     virtual void show() override;
@@ -105,9 +105,9 @@ public:
     virtual void setPosition(vec2i position, bool change = 1) override;
 
     virtual void setCursor(const cursor& c) override;
-    virtual void updateCursor(mouseCrossEvent* ev) override;
+    virtual void updateCursor(const mouseCrossEvent* ev) override;
 
-    virtual void sendContextEvent(const contextEvent& e) override;
+    virtual void processEvent(const contextEvent& e) override;
 
     virtual unsigned long getAdditionalWindowHints() const override;
 

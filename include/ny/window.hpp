@@ -178,12 +178,12 @@ public:
     unsigned int getHeight() const                      { return size_.y; }
 
     vec2ui getMinSize() const                           { return minSize_; }
-    vec2ui getMinWidth() const                          { return minSize_.x; }
-    vec2ui getMinHeight() const                         { return minSize_.y; }
+    unsigned int getMinWidth() const                    { return minSize_.x; }
+    unsigned int getMinHeight() const                   { return minSize_.y; }
 
     vec2ui getMaxSize() const                           { return maxSize_; }
-    vec2ui getMaxWidth() const                          { return maxSize_.x; }
-    vec2ui getMaxHeight() const                         { return maxSize_.y; }
+    unsigned int getMaxWidth() const                    { return maxSize_.x; }
+    unsigned int getMaxHeight() const                   { return maxSize_.y; }
 
     bool hasFocus() const                               { return focus_; }
     bool hasMouseOver() const                           { return mouseOver_; }
