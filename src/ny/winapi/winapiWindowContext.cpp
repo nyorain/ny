@@ -54,7 +54,7 @@ winapiWindowContext::winapiWindowContext(window& win, const winapiWindowContextS
         return;
     }
 
-    handle_ = CreateWindowEx(0, wndClass_.lpszClassName, _T("title here"), WS_OVERLAPPEDWINDOW, win.getPosition().x, win.getPosition().y, win.getSize().x, win.getSize().y, HWND_DESKTOP, NULL, instance_, NULL);
+    handle_ = CreateWindowEx(0, wndClass_.lpszClassName, _T("title here"), WS_OVERLAPPEDWINDOW, win.getPosition().x, win.getPosition().y, win.getSize().x, win.getSize().y, HWND_DESKTOP, nullptr, instance_, nullptr);
 
     if(!handle_)
     {

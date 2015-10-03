@@ -714,7 +714,7 @@
 	<windows.h>
 	<gdiplus.h>
 
-1441208615 source:/mnt/sda5/Programming/projects/ny/src/ny/app.cpp
+1443363640 source:/mnt/sda5/Programming/projects/ny/src/ny/app.cpp
 	<ny/app.hpp>
 	<ny/eventHandler.hpp>
 	<ny/event.hpp>
@@ -723,6 +723,23 @@
 	<ny/backend.hpp>
 	<ny/window.hpp>
 	<ny/font.hpp>
+	<nyutil/thread.hpp>
+	<nyutil/time.hpp>
+	<nyutil/misc.hpp>
+	<iostream>
+	<thread>
+	<chrono>
+	<vector>
+	<ny/app.hpp>
+	<ny/eventHandler.hpp>
+	<ny/event.hpp>
+	<ny/error.hpp>
+	<ny/appContext.hpp>
+	<ny/backend.hpp>
+	<ny/window.hpp>
+	<ny/font.hpp>
+	<ny/keyboard.hpp>
+	<ny/mouse.hpp>
 	<nyutil/thread.hpp>
 	<nyutil/time.hpp>
 	<nyutil/misc.hpp>
@@ -751,8 +768,9 @@
 1439633997 source:/mnt/sda5/Programming/projects/ny/src/ny/appContext.cpp
 	<ny/appContext.hpp>
 	<ny/appContext.hpp>
+	<ny/appContext.hpp>
 
-1441201816 source:/mnt/sda5/Programming/projects/ny/src/ny/backend.cpp
+1441637417 source:/mnt/sda5/Programming/projects/ny/src/ny/backend.cpp
 	<ny/backend.hpp>
 	<ny/app.hpp>
 	<ny/wayland/waylandBackend.hpp>
@@ -765,8 +783,23 @@
 	<ny/winapi/winapiBackend.hpp>
 	<ny/window.hpp>
 	<ny/error.hpp>
+	<ny/backend.hpp>
+	<ny/app.hpp>
+	<ny/wayland/waylandBackend.hpp>
+	<ny/x11/x11Backend.hpp>
+	<ny/winapi/winapiBackend.hpp>
+	<ny/window.hpp>
+	<ny/error.hpp>
 
-1441201590 source:/mnt/sda5/Programming/projects/ny/src/ny/cairo.cpp
+1443815558 source:/mnt/sda5/Programming/projects/ny/src/ny/cairo.cpp
+	<ny/config.h>
+	<ny/cairo.hpp>
+	<ny/shape.hpp>
+	<ny/error.hpp>
+	<ny/surface.hpp>
+	<ny/image.hpp>
+	<iostream>
+	<cmath>
 	<ny/config.h>
 	<ny/cairo.hpp>
 	<ny/shape.hpp>
@@ -787,8 +820,11 @@
 1439633997 source:/mnt/sda5/Programming/projects/ny/src/ny/color.cpp
 	<ny/color.hpp>
 	<ny/color.hpp>
+	<ny/color.hpp>
 
 1440624530 source:/mnt/sda5/Programming/projects/ny/src/ny/cursor.cpp
+	<ny/cursor.hpp>
+	<ny/image.hpp>
 	<ny/cursor.hpp>
 	<ny/image.hpp>
 	<ny/cursor.hpp>
@@ -797,10 +833,14 @@
 1440081982 source:/mnt/sda5/Programming/projects/ny/src/ny/data.cpp
 	<ny/data.hpp>
 	<ny/data.hpp>
+	<ny/data.hpp>
 
 1439633997 source:/mnt/sda5/Programming/projects/ny/src/ny/dialog.cpp
 
 1441197645 source:/mnt/sda5/Programming/projects/ny/src/ny/drawContext.cpp
+	<ny/drawContext.hpp>
+	<ny/shape.hpp>
+	<ny/surface.hpp>
 	<ny/drawContext.hpp>
 	<ny/shape.hpp>
 	<ny/surface.hpp>
@@ -815,12 +855,21 @@
 	<ny/error.hpp>
 	<ny/app.hpp>
 	<iostream>
+	<ny/error.hpp>
+	<ny/app.hpp>
+	<iostream>
 
 1440848787 source:/mnt/sda5/Programming/projects/ny/src/ny/event.cpp
 	<ny/event.hpp>
 	<ny/event.hpp>
+	<ny/event.hpp>
 
-1441157645 source:/mnt/sda5/Programming/projects/ny/src/ny/eventHandler.cpp
+1441472695 source:/mnt/sda5/Programming/projects/ny/src/ny/eventHandler.cpp
+	<ny/eventHandler.hpp>
+	<ny/app.hpp>
+	<ny/error.hpp>
+	<ny/event.hpp>
+	<iostream>
 	<ny/eventHandler.hpp>
 	<ny/app.hpp>
 	<ny/error.hpp>
@@ -835,8 +884,14 @@
 1439633997 source:/mnt/sda5/Programming/projects/ny/src/ny/file.cpp
 	<ny/file.hpp>
 	<ny/file.hpp>
+	<ny/file.hpp>
 
 1440203765 source:/mnt/sda5/Programming/projects/ny/src/ny/font.cpp
+	<ny/font.hpp>
+	<ny/error.hpp>
+	<ny/freeType.hpp>
+	<ny/cairo.hpp>
+	<ny/winapi/gdiDrawContext.hpp>
 	<ny/font.hpp>
 	<ny/error.hpp>
 	<ny/freeType.hpp>
@@ -851,8 +906,12 @@
 1440198291 source:/mnt/sda5/Programming/projects/ny/src/ny/frame.cpp
 	<ny/frame.hpp>
 	<ny/frame.hpp>
+	<ny/frame.hpp>
 
 1439633997 source:/mnt/sda5/Programming/projects/ny/src/ny/freeType.cpp
+	<ny/config.h>
+	<ny/freeType.hpp>
+	<ny/error.hpp>
 	<ny/config.h>
 	<ny/freeType.hpp>
 	<ny/error.hpp>
@@ -867,7 +926,7 @@
 	<glbinding/gl/gl.h>
 	<string.h>
 
-1441063994 source:/mnt/sda5/Programming/projects/ny/src/ny/gl/glDrawContext.cpp
+1441472685 source:/mnt/sda5/Programming/projects/ny/src/ny/gl/glDrawContext.cpp
 	<ny/config.h>
 	<ny/gl/glDrawContext.hpp>
 	<ny/surface.hpp>
@@ -883,8 +942,17 @@
 	<glbinding/gl/gl.h>
 	<glbinding/Binding.h>
 	<string.h>
+	<ny/config.h>
+	<ny/gl/glDrawContext.hpp>
+	<ny/gl/modernGL.hpp>
+	<ny/surface.hpp>
+	<ny/error.hpp>
+	<glbinding/gl/gl.h>
+	<glbinding/Binding.h>
+	<GL/glew.h>
+	<string.h>
 
-1441065522 source:/mnt/sda5/Programming/projects/ny/src/ny/gl/shader.cpp
+1443815544 source:/mnt/sda5/Programming/projects/ny/src/ny/gl/shader.cpp
 	<ny/config.h>
 	<ny/gl/shader.hpp>
 	<glbinding/gl/gl.h>
@@ -897,36 +965,52 @@
 	<glbinding/gl/gl.h>
 	<glbinding/Binding.h>
 	<fstream>
+	<ny/config.h>
+	<ny/gl/shader.hpp>
+	<ny/error.hpp>
+	<nyutil/mat.hpp>
+	<glbinding/gl/gl.h>
+	<glbinding/Binding.h>
+	<GL/glew.h>
+	<fstream>
 
 1439633997 source:/mnt/sda5/Programming/projects/ny/src/ny/headerbar.cpp
 
-1440117273 source:/mnt/sda5/Programming/projects/ny/src/ny/image.cpp
+1441484563 source:/mnt/sda5/Programming/projects/ny/src/ny/image.cpp
 	<ny/image.hpp>
 	<CImg.h>
 	<ny/image.hpp>
 	<CImg.h>
+	<ny/image.hpp>
+	"CImg.h"
 
 1440513408 source:/mnt/sda5/Programming/projects/ny/src/ny/keyboard.cpp
 	<ny/keyboard.hpp>
 	<ny/keyboard.hpp>
+	<ny/keyboard.hpp>
 
-1440982284 source:/mnt/sda5/Programming/projects/ny/src/ny/mouse.cpp
+1441628778 source:/mnt/sda5/Programming/projects/ny/src/ny/mouse.cpp
+	<ny/mouse.hpp>
 	<ny/mouse.hpp>
 	<ny/mouse.hpp>
 
 1441064403 source:/mnt/sda5/Programming/projects/ny/src/ny/shape.cpp
 	<ny/shape.hpp>
 	<ny/shape.hpp>
+	<ny/shape.hpp>
 
 1439633997 source:/mnt/sda5/Programming/projects/ny/src/ny/style.cpp
+	<ny/style.hpp>
 	<ny/style.hpp>
 	<ny/style.hpp>
 
 1439633997 source:/mnt/sda5/Programming/projects/ny/src/ny/surface.cpp
 	<ny/surface.hpp>
 	<ny/surface.hpp>
+	<ny/surface.hpp>
 
 1439633997 source:/mnt/sda5/Programming/projects/ny/src/ny/texture.cpp
+	<ny/texture.hpp>
 	<ny/texture.hpp>
 	<ny/texture.hpp>
 
@@ -945,8 +1029,22 @@
 	<ny/wayland/waylandCairo.hpp>
 	<ny/wayland/waylandEgl.hpp>
 	<wayland-client.h>
+	<ny/wayland/waylandBackend.hpp>
+	<ny/wayland/waylandWindowContext.hpp>
+	<ny/wayland/waylandAppContext.hpp>
+	<ny/wayland/waylandCairo.hpp>
+	<ny/wayland/waylandEgl.hpp>
+	<wayland-client.h>
 
 1441151646 source:/mnt/sda5/Programming/projects/ny/src/ny/wayland/waylandCairo.cpp
+	<ny/wayland/waylandCairo.hpp>
+	<ny/wayland/waylandUtil.hpp>
+	<ny/wayland/waylandAppContext.hpp>
+	<ny/wayland/waylandWindowContext.hpp>
+	<ny/wayland/waylandInterfaces.hpp>
+	<ny/error.hpp>
+	<ny/cairo.hpp>
+	<nyutil/rect.hpp>
 	<ny/wayland/waylandCairo.hpp>
 	<ny/wayland/waylandUtil.hpp>
 	<ny/wayland/waylandAppContext.hpp>
@@ -978,6 +1076,18 @@
 	<ny/gl/glDrawContext.hpp>
 	<wayland-egl.h>
 	<EGL/egl.h>
+	<ny/config.h>
+	<ny/wayland/waylandEgl.hpp>
+	<ny/wayland/waylandAppContext.hpp>
+	<ny/wayland/waylandUtil.hpp>
+	<ny/wayland/waylandWindowContext.hpp>
+	<ny/wayland/waylandInterfaces.hpp>
+	<ny/error.hpp>
+	<ny/window.hpp>
+	<ny/gl/glDrawContext.hpp>
+	<wayland-egl.h>
+	<EGL/egl.h>
+	<GL/gl.h>
 	<ny/config.h>
 	<ny/wayland/waylandEgl.hpp>
 	<ny/wayland/waylandAppContext.hpp>
@@ -1026,8 +1136,25 @@
 	<string.h>
 	<linux/input.h>
 	<iostream>
+	<ny/wayland/waylandUtil.hpp>
+	<ny/wayland/waylandAppContext.hpp>
+	<ny/wayland/waylandWindowContext.hpp>
+	<ny/wayland/waylandCairo.hpp>
+	<ny/wayland/waylandEgl.hpp>
+	<ny/app.hpp>
+	<ny/event.hpp>
+	<ny/cursor.hpp>
+	<ny/error.hpp>
+	<wayland-cursor.h>
+	<fcntl.h>
+	<sys/mman.h>
+	<errno.h>
+	<unistd.h>
+	<string.h>
+	<linux/input.h>
+	<iostream>
 
-1441157938 source:/mnt/sda5/Programming/projects/ny/src/ny/wayland/waylandWindowContext.cpp
+1443816764 source:/mnt/sda5/Programming/projects/ny/src/ny/wayland/waylandWindowContext.cpp
 	<ny/wayland/waylandWindowContext.hpp>
 	<ny/wayland/waylandUtil.hpp>
 	<ny/wayland/waylandAppContext.hpp>
@@ -1057,8 +1184,24 @@
 	<ny/wayland/waylandCairo.hpp>
 	<iostream>
 	<cassert>
+	<ny/wayland/waylandWindowContext.hpp>
+	<ny/wayland/waylandUtil.hpp>
+	<ny/wayland/waylandAppContext.hpp>
+	<ny/wayland/waylandInterfaces.hpp>
+	<ny/event.hpp>
+	<ny/app.hpp>
+	<ny/error.hpp>
+	<ny/cursor.hpp>
+	<ny/wayland/xdg-shell-client-protocol.h>
+	<ny/gl/glDrawContext.hpp>
+	<ny/wayland/waylandEgl.hpp>
+	<ny/cairo.hpp>
+	<ny/wayland/waylandCairo.hpp>
+	<iostream>
+	<cassert>
 
 1441154050 source:/mnt/sda5/Programming/projects/ny/src/ny/widget.cpp
+	<ny/widget.hpp>
 	<ny/widget.hpp>
 	<ny/widget.hpp>
 
@@ -1071,8 +1214,14 @@
 	<ny/keyboard.hpp>
 	<ny/drawContext.hpp>
 	<ny/windowContext.hpp>
+	<ny/widgets.hpp>
+	<ny/shape.hpp>
+	<ny/mouse.hpp>
+	<ny/keyboard.hpp>
+	<ny/drawContext.hpp>
+	<ny/windowContext.hpp>
 
-1441210871 source:/mnt/sda5/Programming/projects/ny/src/ny/window.cpp
+1441493498 source:/mnt/sda5/Programming/projects/ny/src/ny/window.cpp
 	<ny/window.hpp>
 	<ny/event.hpp>
 	<ny/app.hpp>
@@ -1101,11 +1250,31 @@
 	<nyutil/misc.hpp>
 	<iostream>
 	<climits>
+	<ny/window.hpp>
+	<ny/event.hpp>
+	<ny/app.hpp>
+	<ny/error.hpp>
+	<ny/cursor.hpp>
+	<ny/backend.hpp>
+	<ny/windowContext.hpp>
+	<ny/drawContext.hpp>
+	<ny/style.hpp>
+	<ny/mouse.hpp>
+	<ny/keyboard.hpp>
+	<ny/widgets.hpp>
+	<ny/sizer.hpp>
+	<nyutil/misc.hpp>
+	<iostream>
+	<climits>
 
-1441159129 source:/mnt/sda5/Programming/projects/ny/src/ny/windowContext.cpp
+1441491202 source:/mnt/sda5/Programming/projects/ny/src/ny/windowContext.cpp
 	<ny/windowContext.hpp>
 	<ny/drawContext.hpp>
 	<ny/window.hpp>
+	<ny/windowContext.hpp>
+	<ny/drawContext.hpp>
+	<ny/window.hpp>
+	<ny/app.hpp>
 	<ny/windowContext.hpp>
 	<ny/drawContext.hpp>
 	<ny/window.hpp>
@@ -1114,6 +1283,14 @@
 1441494802 p>
 
 1441051518 source:/mnt/sda5/Programming/projects/ny/src/ny/x11/glx.cpp
+	<ny/config.h>
+	<ny/x11/glx.hpp>
+	<ny/x11/x11WindowContext.hpp>
+	<ny/x11/x11AppContext.hpp>
+	<ny/gl/glDrawContext.hpp>
+	<ny/error.hpp>
+	<ny/window.hpp>
+	<GL/glx.h>
 	<ny/config.h>
 	<ny/x11/glx.hpp>
 	<ny/x11/x11WindowContext.hpp>
@@ -1146,8 +1323,22 @@
 	<ny/error.hpp>
 	<ny/window.hpp>
 	<cstring>
+	<ny/x11/x11AppContext.hpp>
+	<ny/x11/x11WindowContext.hpp>
+	<ny/x11/x11Util.hpp>
+	<ny/app.hpp>
+	<ny/error.hpp>
+	<ny/window.hpp>
+	<cstring>
 
 1440629931 source:/mnt/sda5/Programming/projects/ny/src/ny/x11/x11Backend.cpp
+	<ny/x11/x11Backend.hpp>
+	<ny/x11/x11WindowContext.hpp>
+	<ny/x11/x11AppContext.hpp>
+	<ny/x11/x11Cairo.hpp>
+	<ny/x11/glx.hpp>
+	<ny/x11/x11Egl.hpp>
+	<X11/Xlib.h>
 	<ny/x11/x11Backend.hpp>
 	<ny/x11/x11WindowContext.hpp>
 	<ny/x11/x11AppContext.hpp>
@@ -1176,8 +1367,20 @@
 	<ny/cairo.hpp>
 	<ny/window.hpp>
 	<cairo/cairo-xlib.h>
+	<ny/x11/x11Cairo.hpp>
+	<ny/x11/x11AppContext.hpp>
+	<ny/x11/x11WindowContext.hpp>
+	<ny/cairo.hpp>
+	<ny/window.hpp>
+	<cairo/cairo-xlib.h>
 
 1439633997 source:/mnt/sda5/Programming/projects/ny/src/ny/x11/x11Egl.cpp
+	<ny/config.h>
+	<ny/x11/x11Egl.hpp>
+	<ny/x11/x11AppContext.hpp>
+	<ny/x11/x11WindowContext.hpp>
+	<ny/gl/glDrawContext.hpp>
+	<ny/window.hpp>
 	<ny/config.h>
 	<ny/x11/x11Egl.hpp>
 	<ny/x11/x11AppContext.hpp>
@@ -1216,8 +1419,36 @@
 	<ny/windowEvents.hpp>
 	<X11/keysymdef.h>
 	<X11/X.h>
+	<ny/x11/x11Include.hpp>
+	<ny/x11/x11Util.hpp>
+	<ny/x11/x11AppContext.hpp>
+	<ny/x11/x11WindowContext.hpp>
+	<ny/x11/x11Cairo.hpp>
+	<ny/app.hpp>
+	<ny/drawContext.hpp>
+	<ny/x11/glx.hpp>
+	<ny/x11/x11Egl.hpp>
+	<ny/windowEvents.hpp>
+	<X11/keysymdef.h>
+	<X11/X.h>
 
-1441199513 source:/mnt/sda5/Programming/projects/ny/src/ny/x11/x11WindowContext.cpp
+1443816163 source:/mnt/sda5/Programming/projects/ny/src/ny/x11/x11WindowContext.cpp
+	<ny/x11/x11WindowContext.hpp>
+	<ny/x11/x11Util.hpp>
+	<ny/x11/x11AppContext.hpp>
+	<ny/app.hpp>
+	<ny/window.hpp>
+	<ny/event.hpp>
+	<ny/error.hpp>
+	<ny/cursor.hpp>
+	<ny/image.hpp>
+	<X11/Xatom.h>
+	<memory.h>
+	<iostream>
+	<ny/x11/glx.hpp>
+	<GL/glx.h>
+	<ny/x11/x11Egl.hpp>
+	<ny/x11/x11Cairo.hpp>
 	<ny/x11/x11WindowContext.hpp>
 	<ny/x11/x11Util.hpp>
 	<ny/x11/x11AppContext.hpp>
@@ -1278,6 +1509,19 @@
 	<ny/wayland/waylandEgl.hpp>
 	<wayland-egl.h>
 	<cassert>
+	<ny/wayland/waylandAppContext.hpp>
+	<ny/wayland/waylandUtil.hpp>
+	<ny/wayland/waylandInterfaces.hpp>
+	<ny/wayland/waylandWindowContext.hpp>
+	<ny/error.hpp>
+	<ny/app.hpp>
+	<ny/image.hpp>
+	<nyutil/misc.hpp>
+	<nyutil/eventLoop.hpp>
+	<ny/wayland/xdg-shell-client-protocol.h>
+	<ny/wayland/waylandEgl.hpp>
+	<wayland-egl.h>
+	<cassert>
 
 1441042430 source:/mnt/sda5/Programming/projects/ny/src/ny/wayland/waylandInterfaces.cpp
 	<ny/wayland/waylandInterfaces.hpp>
@@ -1294,8 +1538,15 @@
 	<ny/app.hpp>
 	<ny/wayland/xdg-shell-client-protocol.h>
 	<iostream>
+	<ny/wayland/waylandInterfaces.hpp>
+	<ny/wayland/waylandAppContext.hpp>
+	<ny/wayland/waylandWindowContext.hpp>
+	<ny/wayland/waylandUtil.hpp>
+	<ny/app.hpp>
+	<ny/wayland/xdg-shell-client-protocol.h>
+	<iostream>
 
-1441027898 /mnt/sda5/Programming/projects/ny/include/ny/app.hpp
+1441471466 /mnt/sda5/Programming/projects/ny/include/ny/app.hpp
 	<ny/include.hpp>
 	<ny/eventHandler.hpp>
 	<nyutil/eventLoop.hpp>
@@ -1318,9 +1569,25 @@
 	<atomic>
 	<queue>
 	<condition_variable>
+	<ny/include.hpp>
+	<ny/eventHandler.hpp>
+	<nyutil/eventLoop.hpp>
+	<nyutil/thread.hpp>
+	<vector>
+	<string>
+	<map>
+	<mutex>
+	<thread>
+	<atomic>
+	<queue>
+	<condition_variable>
 
-1441155944 /mnt/sda5/Programming/projects/ny/include/ny/include.hpp
+1443815039 /mnt/sda5/Programming/projects/ny/include/ny/include.hpp
 	<ny/config.h>
+	<cstdlib>
+	<ny/config.h>
+	<ny/error.hpp>
+	<iostream>
 	<cstdlib>
 	<ny/config.h>
 	<ny/error.hpp>
@@ -1329,7 +1596,7 @@
 
 1440248953 /mnt/sda5/Programming/projects/ny/include/ny/config.h
 
-1441210833 /mnt/sda5/Programming/projects/ny/include/ny/eventHandler.hpp
+1441472553 /mnt/sda5/Programming/projects/ny/include/ny/eventHandler.hpp
 	<ny/include.hpp>
 	<nyutil/nonCopyable.hpp>
 	<nyutil/thread.hpp>
@@ -1339,6 +1606,8 @@
 	<ny/include.hpp>
 	<nyutil/hierachy.hpp>
 	<memory>
+	<ny/include.hpp>
+	<nyutil/hierachy.hpp>
 
 1437945176 /mnt/sda5/Programming/projects/ny/include/ny/util/nonCopyable.hpp
 
@@ -1365,6 +1634,9 @@
 	<ny/include.hpp>
 	<memory>
 	<type_traits>
+	<ny/include.hpp>
+	<memory>
+	<type_traits>
 
 1440641815 ts>
 
@@ -1374,6 +1646,12 @@
 	<ny/include.hpp>
 	<bitset>
 	<nyutil/vec.hpp>
+	<ny/include.hpp>
+	<ny/event.hpp>
+	<nyutil/vec.hpp>
+	<nyutil/callback.hpp>
+	<nyutil/compFunc.hpp>
+	<bitset>
 	<ny/include.hpp>
 	<ny/event.hpp>
 	<nyutil/vec.hpp>
@@ -1390,8 +1668,16 @@
 	<ny/include.hpp>
 	<ny/event.hpp>
 	<bitset>
+	<ny/include.hpp>
+	<ny/event.hpp>
+	<bitset>
 
 1440255862 /mnt/sda5/Programming/projects/ny/include/ny/error.hpp
+	<ny/include.hpp>
+	<nyutil/misc.hpp>
+	<string>
+	<stdexcept>
+	<ostream>
 	<ny/include.hpp>
 	<nyutil/misc.hpp>
 	<string>
@@ -1419,6 +1705,9 @@
 	<ny/include.hpp>
 	<nyutil/nonCopyable.hpp>
 	<functional>
+	<ny/include.hpp>
+	<nyutil/nonCopyable.hpp>
+	<functional>
 
 1440628805 /mnt/sda5/Programming/projects/ny/include/ny/backend.hpp
 	<ny/include.hpp>
@@ -1431,8 +1720,13 @@
 	<nyutil/nonCopyable.hpp>
 	<vector>
 	<memory>
+	<ny/include.hpp>
+	<ny/windowContext.hpp>
+	<nyutil/nonCopyable.hpp>
+	<vector>
+	<memory>
 
-1441159154 /mnt/sda5/Programming/projects/ny/include/ny/windowContext.hpp
+1441484936 /mnt/sda5/Programming/projects/ny/include/ny/windowContext.hpp
 	<ny/include.hpp>
 	<ny/windowDefs.hpp>
 	<nyutil/nonCopyable.hpp>
@@ -1442,12 +1736,29 @@
 	<nyutil/nonCopyable.hpp>
 	<nyutil/vec.hpp>
 	<memory>
+	<ny/include.hpp>
+	<ny/windowDefs.hpp>
+	<nyutil/nonCopyable.hpp>
+	<nyutil/vec.hpp>
+	<memory>
 
-1439633997 /mnt/sda5/Programming/projects/ny/include/ny/windowDefs.hpp
+1441471031 /mnt/sda5/Programming/projects/ny/include/ny/windowDefs.hpp
 	<ny/include.hpp>
 	<ny/include.hpp>
+	<ny/include.hpp>
 
-1441196563 /mnt/sda5/Programming/projects/ny/include/ny/window.hpp
+1443815484 /mnt/sda5/Programming/projects/ny/include/ny/window.hpp
+	<ny/include.hpp>
+	<ny/eventHandler.hpp>
+	<ny/surface.hpp>
+	<ny/cursor.hpp>
+	<ny/data.hpp>
+	<ny/windowEvents.hpp>
+	<ny/windowDefs.hpp>
+	<nyutil/callback.hpp>
+	<nyutil/vec.hpp>
+	<memory>
+	<functional>
 	<ny/include.hpp>
 	<ny/eventHandler.hpp>
 	<ny/surface.hpp>
@@ -1476,8 +1787,13 @@
 	<nyutil/vec.hpp>
 	<ny/include.hpp>
 	<nyutil/vec.hpp>
+	<ny/include.hpp>
+	<nyutil/vec.hpp>
 
 1439762994 /mnt/sda5/Programming/projects/ny/include/ny/cursor.hpp
+	<ny/include.hpp>
+	<ny/image.hpp>
+	<nyutil/vec.hpp>
 	<ny/include.hpp>
 	<ny/image.hpp>
 	<nyutil/vec.hpp>
@@ -1498,8 +1814,16 @@
 	<vector>
 	<functional>
 	<fstream>
+	<ny/include.hpp>
+	<ny/event.hpp>
+	<iostream>
+	<vector>
+	<functional>
+	<fstream>
 
 1441029407 /mnt/sda5/Programming/projects/ny/include/ny/windowEvents.hpp
+	<ny/include.hpp>
+	<ny/event.hpp>
 	<ny/include.hpp>
 	<ny/event.hpp>
 	<ny/include.hpp>
@@ -1513,13 +1837,18 @@
 	<algorithm>
 	<utility>
 
-1440629950 /mnt/sda5/Programming/projects/ny/include/ny/wayland/waylandBackend.hpp
+1441637258 /mnt/sda5/Programming/projects/ny/include/ny/wayland/waylandBackend.hpp
 	<ny/backend.hpp>
 	<ny/windowContext.hpp>
 	<ny/backend.hpp>
 	<ny/windowContext.hpp>
+	<ny/include.hpp>
+	<ny/backend.hpp>
+	<memory>
 
 1440629963 /mnt/sda5/Programming/projects/ny/include/ny/x11/x11Backend.hpp
+	<ny/x11/x11Include.hpp>
+	<ny/backend.hpp>
 	<ny/x11/x11Include.hpp>
 	<ny/backend.hpp>
 	<ny/x11/x11Include.hpp>
@@ -1528,14 +1857,21 @@
 1439633997 /mnt/sda5/Programming/projects/ny/include/ny/x11/x11Include.hpp
 	<ny/include.hpp>
 	<ny/include.hpp>
+	<ny/include.hpp>
 
-1439633997 /mnt/sda5/Programming/projects/ny/include/ny/winapi/winapiBackend.hpp
+1441637621 /mnt/sda5/Programming/projects/ny/include/ny/winapi/winapiBackend.hpp
 	<ny/include.hpp>
 	<ny/backend.hpp>
 	<ny/include.hpp>
 	<ny/backend.hpp>
+	<ny/include.hpp>
+	<ny/backend.hpp>
+	<memory>
 
-1441200602 /mnt/sda5/Programming/projects/ny/include/ny/cairo.hpp
+1443815020 /mnt/sda5/Programming/projects/ny/include/ny/cairo.hpp
+	<ny/include.hpp>
+	<ny/drawContext.hpp>
+	<cairo/cairo.h>
 	<ny/include.hpp>
 	<ny/drawContext.hpp>
 	<cairo/cairo.h>
@@ -1556,10 +1892,19 @@
 	<nyutil/rect.hpp>
 	<nyutil/region.hpp>
 	<nyutil/nonCopyable.hpp>
+	<ny/include.hpp>
+	<ny/color.hpp>
+	<nyutil/vec.hpp>
+	<nyutil/rect.hpp>
+	<nyutil/region.hpp>
+	<nyutil/nonCopyable.hpp>
 
 1440083180 nCopyable.hpp>
 
-1441034225 /mnt/sda5/Programming/projects/ny/include/ny/color.hpp
+1443814881 /mnt/sda5/Programming/projects/ny/include/ny/color.hpp
+	<ny/include.hpp>
+	<nyutil/vec.hpp>
+	<vector>
 	<ny/include.hpp>
 	<nyutil/vec.hpp>
 	<vector>
@@ -1578,10 +1923,19 @@
 	<ny/util/rect.hpp>
 	<vector>
 
-1441065736 /mnt/sda5/Programming/projects/ny/include/ny/shape.hpp
+1443815513 /mnt/sda5/Programming/projects/ny/include/ny/shape.hpp
 	<ny/include.hpp>
 	<ny/color.hpp>
 	<ny/util/transformable.hpp>
+	<ny/font.hpp>
+	<nyutil/vec.hpp>
+	<nyutil/mat.hpp>
+	<nyutil/rect.hpp>
+	<nyutil/cache.hpp>
+	<vector>
+	<ny/include.hpp>
+	<ny/color.hpp>
+	<nyutil/transformable.hpp>
 	<ny/font.hpp>
 	<nyutil/vec.hpp>
 	<nyutil/mat.hpp>
@@ -1625,8 +1979,12 @@
 	<ny/include.hpp>
 	<string>
 	<memory>
+	<ny/include.hpp>
+	<string>
+	<memory>
 
 1439763597 /mnt/sda5/Programming/projects/ny/include/ny/file.hpp
+	<string>
 	<string>
 	<string>
 
@@ -1635,18 +1993,27 @@
 	<freetype2/ft2build.h>
 	<string>
 	<freetype2/ft2build.h>
+	<string>
+	<freetype2/ft2build.h>
 
-1439633997 /mnt/sda5/Programming/projects/ny/include/ny/winapi/gdiDrawContext.hpp
+1441534807 /mnt/sda5/Programming/projects/ny/include/ny/winapi/gdiDrawContext.hpp
 	<ny/include.hpp>
 	<ny/drawContext.hpp>
 	<windows.h>
 	<gdiplus.h>
 	<ny/include.hpp>
 	<ny/drawContext.hpp>
+	<windows.h>
+	<gdiplus.h>
+	<ny/include.hpp>
+	<ny/drawContext.hpp>
+	<winsock2.h>
 	<windows.h>
 	<gdiplus.h>
 
 1440198272 /mnt/sda5/Programming/projects/ny/include/ny/frame.hpp
+	<ny/include.hpp>
+	<ny/window.hpp>
 	<ny/include.hpp>
 	<ny/window.hpp>
 	<ny/include.hpp>
@@ -1668,8 +2035,15 @@
 	<ny/drawContext.hpp>
 	<ny/shape.hpp>
 	<memory>
+	<ny/include.hpp>
+	<ny/drawContext.hpp>
+	<ny/shape.hpp>
+	<memory>
 
 1441064575 /mnt/sda5/Programming/projects/ny/include/ny/gl/shader.hpp
+	<ny/include.hpp>
+	<nyutil/vec.hpp>
+	<nyutil/mat.hpp>
 	<ny/include.hpp>
 	<nyutil/vec.hpp>
 	<nyutil/mat.hpp>
@@ -1689,14 +2063,22 @@
 	<ny/surface.hpp>
 	<ny/file.hpp>
 	<memory>
+	<ny/include.hpp>
+	<ny/surface.hpp>
+	<ny/file.hpp>
+	<memory>
 
-1440255259 /mnt/sda5/Programming/projects/ny/include/ny/style.hpp
+1441470181 /mnt/sda5/Programming/projects/ny/include/ny/style.hpp
+	<ny/include.hpp>
+	<ny/color.hpp>
 	<ny/include.hpp>
 	<ny/color.hpp>
 	<ny/include.hpp>
 	<ny/color.hpp>
 
 1440072723 /mnt/sda5/Programming/projects/ny/include/ny/texture.hpp
+	<ny/include.hpp>
+	<string>
 	<ny/include.hpp>
 	<string>
 	<ny/include.hpp>
@@ -1722,8 +2104,19 @@
 	<vector>
 	<string>
 	<memory>
+	<ny/wayland/waylandInclude.hpp>
+	<ny/appContext.hpp>
+	<nyutil/vec.hpp>
+	<wayland-client.h>
+	<wayland-cursor.h>
+	<wayland-egl.h>
+	<EGL/egl.h>
+	<vector>
+	<string>
+	<memory>
 
 1439633997 /mnt/sda5/Programming/projects/ny/include/ny/wayland/waylandInclude.hpp
+	<ny/include.hpp>
 	<ny/include.hpp>
 	<ny/include.hpp>
 
@@ -1747,14 +2140,32 @@
 	<wayland-client-protocol.h>
 	<iostream>
 	<atomic>
+	<ny/wayland/waylandInclude.hpp>
+	<ny/mouse.hpp>
+	<ny/keyboard.hpp>
+	<ny/cursor.hpp>
+	<ny/backend.hpp>
+	<ny/window.hpp>
+	<ny/windowEvents.hpp>
+	<wayland-client-protocol.h>
+	<iostream>
+	<atomic>
 
 1439633997 /mnt/sda5/Programming/projects/ny/include/ny/wayland/waylandInterfaces.hpp
+	<wayland-client-protocol.h>
 	<wayland-client-protocol.h>
 	<wayland-client-protocol.h>
 
 1439637597 lient-protocol.h>
 
-1441038133 /mnt/sda5/Programming/projects/ny/include/ny/wayland/waylandWindowContext.hpp
+1443815718 /mnt/sda5/Programming/projects/ny/include/ny/wayland/waylandWindowContext.hpp
+	<ny/wayland/waylandInclude.hpp>
+	<ny/cursor.hpp>
+	<ny/windowContext.hpp>
+	<ny/windowEvents.hpp>
+	<wayland-client-protocol.h>
+	<wayland-egl.h>
+	<EGL/egl.h>
 	<ny/wayland/waylandInclude.hpp>
 	<ny/cursor.hpp>
 	<ny/windowContext.hpp>
@@ -1779,8 +2190,17 @@
 	<nyutil/nonCopyable.hpp>
 	<nyutil/vec.hpp>
 	<ny/cairo.hpp>
+	<ny/wayland/waylandInclude.hpp>
+	<nyutil/nonCopyable.hpp>
+	<nyutil/vec.hpp>
+	<ny/cairo.hpp>
 
 1441042177 /mnt/sda5/Programming/projects/ny/include/ny/wayland/waylandEgl.hpp
+	<ny/wayland/waylandInclude.hpp>
+	<ny/gl/egl.hpp>
+	<nyutil/nonCopyable.hpp>
+	<nyutil/vec.hpp>
+	<wayland-egl.h>
 	<ny/wayland/waylandInclude.hpp>
 	<ny/gl/egl.hpp>
 	<nyutil/nonCopyable.hpp>
@@ -1797,14 +2217,18 @@
 	<ny/window.hpp>
 	<ny/include.hpp>
 	<ny/window.hpp>
+	<ny/include.hpp>
+	<ny/window.hpp>
 
 1439633997 /mnt/sda5/Programming/projects/ny/include/ny/x11/glx.hpp
 	<ny/x11/x11Include.hpp>
 	<ny/gl/glDrawContext.hpp>
 	<ny/x11/x11Include.hpp>
 	<ny/gl/glDrawContext.hpp>
+	<ny/x11/x11Include.hpp>
+	<ny/gl/glDrawContext.hpp>
 
-1441062227 /mnt/sda5/Programming/projects/ny/include/ny/x11/x11WindowContext.hpp
+1443815958 /mnt/sda5/Programming/projects/ny/include/ny/x11/x11WindowContext.hpp
 	<ny/x11/x11Include.hpp>
 	<ny/appContext.hpp>
 	<ny/windowContext.hpp>
@@ -1812,6 +2236,14 @@
 	<ny/windowEvents.hpp>
 	<X11/Xutil.h>
 	<memory>
+	<ny/x11/x11Include.hpp>
+	<ny/appContext.hpp>
+	<ny/windowContext.hpp>
+	<ny/backend.hpp>
+	<ny/windowEvents.hpp>
+	<X11/Xutil.h>
+	<memory>
+	<mutex>
 	<ny/x11/x11Include.hpp>
 	<ny/appContext.hpp>
 	<ny/windowContext.hpp>
@@ -1832,8 +2264,17 @@
 	<nyutil/eventLoop.hpp>
 	<X11/Xlib.h>
 	<map>
+	<ny/x11/x11Include.hpp>
+	<ny/appContext.hpp>
+	<nyutil/eventLoop.hpp>
+	<X11/Xlib.h>
+	<map>
 
 1440083180 /mnt/sda5/Programming/projects/ny/include/ny/gl/egl.hpp
+	<ny/config.h>
+	<ny/include.hpp>
+	<ny/gl/glDrawContext.hpp>
+	<nyutil/nonCopyable.hpp>
 	<ny/config.h>
 	<ny/include.hpp>
 	<ny/gl/glDrawContext.hpp>
@@ -1855,8 +2296,16 @@
 	<ny/appContext.hpp>
 	<ny/error.hpp>
 	<EGL/egl.h>
+	<ny/config.h>
+	<ny/gl/egl.hpp>
+	<ny/app.hpp>
+	<ny/appContext.hpp>
+	<ny/error.hpp>
+	<EGL/egl.h>
 
 1440632615 /mnt/sda5/Programming/projects/ny/include/ny/x11/x11Cairo.hpp
+	<ny/x11/x11Include.hpp>
+	<ny/cairo.hpp>
 	<ny/x11/x11Include.hpp>
 	<ny/cairo.hpp>
 	<ny/x11/x11Include.hpp>
@@ -1867,8 +2316,18 @@
 	<ny/gl/egl.hpp>
 	<ny/x11/x11Include.hpp>
 	<ny/gl/egl.hpp>
+	<ny/x11/x11Include.hpp>
+	<ny/gl/egl.hpp>
 
 1439633997 /mnt/sda5/Programming/projects/ny/include/ny/x11/x11Util.hpp
+	<ny/x11/x11Include.hpp>
+	<ny/keyboard.hpp>
+	<ny/mouse.hpp>
+	<ny/cursor.hpp>
+	<ny/data.hpp>
+	<X11/Xutil.h>
+	<X11/Xlib.h>
+	<map>
 	<ny/x11/x11Include.hpp>
 	<ny/keyboard.hpp>
 	<ny/mouse.hpp>
@@ -1893,10 +2352,13 @@
 	<stdint.h>
 	<stddef.h>
 	"wayland-client.h"
+	<stdint.h>
+	<stddef.h>
+	"wayland-client.h"
 
 1439637597 lient.h"
 
-1441640998 source:a:\programming\projects\ny\src\ny\app.cpp
+1443367240 source:a:\programming\projects\ny\src\ny\app.cpp
 	<ny/app.hpp>
 	<ny/eventHandler.hpp>
 	<ny/event.hpp>
@@ -1927,7 +2389,7 @@
 	<ny/window.hpp>
 	<ny/error.hpp>
 
-1441205190 source:a:\programming\projects\ny\src\ny\cairo.cpp
+1443819158 source:a:\programming\projects\ny\src\ny\cairo.cpp
 	<ny/config.h>
 	<ny/cairo.hpp>
 	<ny/shape.hpp>
@@ -2006,7 +2468,7 @@
 	<GL/glew.h>
 	<string.h>
 
-1441488134 source:a:\programming\projects\ny\src\ny\gl\shader.cpp
+1443819144 source:a:\programming\projects\ny\src\ny\gl\shader.cpp
 	<ny/config.h>
 	<ny/gl/shader.hpp>
 	<ny/error.hpp>
@@ -2117,7 +2579,7 @@
 	<linux/input.h>
 	<iostream>
 
-1441161538 source:a:\programming\projects\ny\src\ny\wayland\waylandwindowcontext.cpp
+1443820364 source:a:\programming\projects\ny\src\ny\wayland\waylandwindowcontext.cpp
 	<ny/wayland/waylandWindowContext.hpp>
 	<ny/wayland/waylandUtil.hpp>
 	<ny/wayland/waylandAppContext.hpp>
@@ -2227,7 +2689,7 @@
 	<X11/keysymdef.h>
 	<X11/X.h>
 
-1441203113 source:a:\programming\projects\ny\src\ny\x11\x11windowcontext.cpp
+1443819763 source:a:\programming\projects\ny\src\ny\x11\x11windowcontext.cpp
 	<ny/x11/x11WindowContext.hpp>
 	<ny/x11/x11Util.hpp>
 	<ny/x11/x11AppContext.hpp>
@@ -2259,7 +2721,7 @@
 	<queue>
 	<condition_variable>
 
-1441159544 a:\programming\projects\ny\include\ny\include.hpp
+1443818639 a:\programming\projects\ny\include\ny\include.hpp
 	<ny/config.h>
 	<ny/error.hpp>
 	<iostream>
@@ -2349,7 +2811,7 @@
 1441474631 a:\programming\projects\ny\include\ny\windowdefs.hpp
 	<ny/include.hpp>
 
-1441488711 a:\programming\projects\ny\include\ny\window.hpp
+1443819084 a:\programming\projects\ny\include\ny\window.hpp
 	<ny/include.hpp>
 	<ny/eventHandler.hpp>
 	<ny/surface.hpp>
@@ -2408,7 +2870,7 @@
 	<ny/backend.hpp>
 	<memory>
 
-1441204202 a:\programming\projects\ny\include\ny\cairo.hpp
+1443818620 a:\programming\projects\ny\include\ny\cairo.hpp
 	<ny/include.hpp>
 	<ny/drawContext.hpp>
 	<cairo/cairo.h>
@@ -2421,7 +2883,7 @@
 	<nyutil/region.hpp>
 	<nyutil/nonCopyable.hpp>
 
-1441037825 a:\programming\projects\ny\include\ny\color.hpp
+1443818481 a:\programming\projects\ny\include\ny\color.hpp
 	<ny/include.hpp>
 	<nyutil/vec.hpp>
 	<vector>
@@ -2437,7 +2899,7 @@
 	<ny/util/rect.hpp>
 	<vector>
 
-1441069336 a:\programming\projects\ny\include\ny\shape.hpp
+1443819113 a:\programming\projects\ny\include\ny\shape.hpp
 	<ny/include.hpp>
 	<ny/color.hpp>
 	<nyutil/transformable.hpp>
@@ -2587,7 +3049,7 @@
 	<ny/x11/x11Include.hpp>
 	<ny/gl/glDrawContext.hpp>
 
-1441065827 a:\programming\projects\ny\include\ny\x11\x11windowcontext.hpp
+1443819558 a:\programming\projects\ny\include\ny\x11\x11windowcontext.hpp
 	<ny/x11/x11Include.hpp>
 	<ny/appContext.hpp>
 	<ny/windowContext.hpp>
@@ -2645,7 +3107,7 @@
 	<ny/winapi/winapiWindowContext.hpp>
 	<ny/window.hpp>
 
-1441660205 source:a:\programming\projects\ny\src\ny\winapi\winapiappcontext.cpp
+1443888239 source:a:\programming\projects\ny\src\ny\winapi\winapiappcontext.cpp
 	<ny/winapi/winapiAppContext.hpp>
 	<ny/winapi/winapiWindowContext.hpp>
 	<ny/error.hpp>
@@ -2657,7 +3119,7 @@
 	<ny/window.hpp>
 	<iostream>
 
-1441550568 source:a:\programming\projects\ny\src\ny\winapi\winapiwindowcontext.cpp
+1443889077 source:a:\programming\projects\ny\src\ny\winapi\winapiwindowcontext.cpp
 	<ny/winapi/winapiWindowContext.hpp>
 	<ny/winapi/winapiAppContext.hpp>
 	<ny/winapi/gdiDrawContext.hpp>
@@ -2666,7 +3128,57 @@
 	<ny/window.hpp>
 	<tchar.h>
 
-1426092546 /mnt/sda5/Programming/projects/ny/src/ny/CImg.h
+1439633997 /mnt/sda5/Programming/projects/ny/src/ny/CImg.h
+	<cstdio>
+	<cstdlib>
+	<cstdarg>
+	<cstring>
+	<cmath>
+	<climits>
+	<ctime>
+	<exception>
+	<stdio.h>
+	<sys/types.h>
+	<sys/time.h>
+	<sys/stat.h>
+	<unistd.h>
+	<windows.h>
+	<shlobj.h>
+	<process.h>
+	<io.h>
+	<initializer_list>
+	<utility>
+	<X11/Xlib.h>
+	<X11/Xutil.h>
+	<X11/keysym.h>
+	<pthread.h>
+	<sys/ipc.h>
+	<sys/shm.h>
+	<X11/extensions/XShm.h>
+	<X11/extensions/Xrandr.h>
+	<omp.h>
+	<cstddef>
+	"cv.h"
+	"highgui.h"
+	"png.h"
+	"jpeglib.h"
+	"setjmp.h"
+	"tiffio.h"
+	"minc_io_simple_volume.h"
+	"minc_1_simple.h"
+	"minc_1_simple_rw.h"
+	"zlib.h"
+	"curl/curl.h"
+	"Magick++.h"
+	"fftw3.h"
+	"Board.h"
+	"ImfRgbaFile.h"
+	"ImfInputFile.h"
+	"ImfChannelList.h"
+	"ImfMatrixAttribute.h"
+	"ImfArray.h"
+	"CImg.h"
+	<stdint.h>
 	<cstdio>
 	<cstdlib>
 	<cstdarg>
@@ -2778,29 +3290,46 @@
 	<stdlib.h>
 	<stdint.h>
 	"wayland-util.h"
+	<stdlib.h>
+	<stdint.h>
+	"wayland-util.h"
 
 1439637597 til.h"
 
-1440720374 source:/mnt/sda5/Programming/projects/ny/src/ny/gl/gles.cpp
+1441533716 source:/mnt/sda5/Programming/projects/ny/src/ny/gl/gles.cpp
 	<ny/gl/glDrawContext.hpp>
 	<ny/gl/glDrawContext.hpp>
 	<GLES2/gl2.h>
+	<ny/config.h>
+	<ny/gl/glDrawContext.hpp>
+	<GLES2/gl2.h>
 
-1440258564 source:/mnt/sda5/Programming/projects/ny/src/ny/gl/legacyGL.cpp
+1441533679 source:/mnt/sda5/Programming/projects/ny/src/ny/gl/legacyGL.cpp
 	<ny/gl/glDrawContext.hpp>
 	<glbinding/gl/gl.h>
 	<ny/gl/glDrawContext.hpp>
 	<glbinding/gl/gl.h>
+	<ny/config.h>
+	<ny/gl/glDrawContext.hpp>
+	<glbinding/gl/gl.h>
+	<GL/glew.h>
 
 1440258568 /gl/gl.h>
 
-1441153770 source:/mnt/sda5/Programming/projects/ny/src/ny/gl/modernGL.cpp
+1443815595 source:/mnt/sda5/Programming/projects/ny/src/ny/gl/modernGL.cpp
 	<ny/gl/glDrawContext.hpp>
 	<glbinding/gl/gl.h>
 	<ny/gl/modernGL.hpp>
 	<ny/gl/shader.hpp>
 	<ny/gl/shader/modernSources.hpp>
 	<glbinding/gl/gl.h>
+	<cassert>
+	<ny/config.h>
+	<ny/gl/modernGL.hpp>
+	<ny/gl/shader.hpp>
+	<ny/gl/shader/modernSources.hpp>
+	<glbinding/gl/gl.h>
+	<GL/glew.h>
 	<cassert>
 
 1439633997 source:/mnt/sda5/Programming/projects/sad/ny/src/ny/appContext.cpp
@@ -3525,6 +4054,9 @@
 	<ny/include.hpp>
 	<ny/widget.hpp>
 	<nyutil/time.hpp>
+	<ny/include.hpp>
+	<ny/widget.hpp>
+	<nyutil/time.hpp>
 
 1441159133 me.hpp>
 
@@ -4180,34 +4712,40 @@
 
 1437853439 a:\programming\windows\include\nyutil\nyutil\noncopyable.hpp
 
-1441068713 a:\programming\windows\include\nyutil\nyutil\vec.hpp
+1443890811 a:\programming\windows\include\nyutil\nyutil\vec.hpp
+	<nyutil/tmp.hpp>
+	<nyutil/constants.hpp>
 	<ostream>
+	<cmath>
+	<type_traits>
 
-1440635435 a:\programming\windows\include\nyutil\nyutil\rect.hpp
+1443117864 a:\programming\windows\include\nyutil\nyutil\rect.hpp
 	<nyutil/vec.hpp>
 	<vector>
 
-1437853415 a:\programming\windows\include\nyutil\nyutil\region.hpp
+1443870038 a:\programming\windows\include\nyutil\nyutil\region.hpp
 	<nyutil/vec.hpp>
 	<nyutil/rect.hpp>
 	<vector>
 
-1441068878 a:\programming\windows\include\nyutil\nyutil\mat.hpp
+1443821403 a:\programming\windows\include\nyutil\nyutil\mat.hpp
 	<nyutil/vec.hpp>
 	<nyutil/refVec.hpp>
-	<ostream>
+	<nyutil/compFunc.hpp>
+	<nyutil/misc.hpp>
 	<iomanip>
-	<cmath>
-
-1440076291 a:\programming\windows\include\nyutil\nyutil\refvec.hpp
-	<nyutil/vec.hpp>
-	<functional>
-
-1440247076 a:\programming\windows\include\nyutil\nyutil\cache.hpp
 	<memory>
-	<vector>
+	<cmath>
+	<tuple>
 
-1440720126 a:\programming\windows\include\nyutil\nyutil\misc.hpp
+1443820245 a:\programming\windows\include\nyutil\nyutil\refvec.hpp
+	<nyutil/vec.hpp>
+
+1443819045 a:\programming\windows\include\nyutil\nyutil\cache.hpp
+	<vector>
+	<memory>
+
+1442767605 a:\programming\windows\include\nyutil\nyutil\misc.hpp
 	<string>
 	<vector>
 	<functional>
@@ -4230,14 +4768,14 @@
 	<chrono>
 	<ratio>
 
-1441538400 a:\programming\windows\include\nyutil\nyutil\eventloop.hpp
+1443888797 a:\programming\windows\include\nyutil\nyutil\eventloop.hpp
 	<nyutil/callback.hpp>
 	<nyutil/time.hpp>
 	<uv.h>
 	<vector>
 	<memory>
 
-1440990166 a:\programming\windows\include\nyutil\nyutil\callback.hpp
+1442673992 a:\programming\windows\include\nyutil\nyutil\callback.hpp
 	<nyutil/nonCopyable.hpp>
 	<nyutil/compFunc.hpp>
 	<functional>
@@ -4336,19 +4874,42 @@
 	<queue>
 	<future>
 	<functional>
+	<nyutil/time.hpp>
+	<thread>
+	<mutex>
+	<condition_variable>
+	<vector>
+	<deque>
+	<queue>
+	<future>
+	<functional>
 
 1439992037 /mnt/sda5/Programming/linux/include/nyutil/nyutil/time.hpp
 	<chrono>
 	<ratio>
+	<chrono>
+	<ratio>
 
-1440714396 /mnt/sda5/Programming/linux/include/nyutil/nyutil/eventLoop.hpp
+1441534800 /mnt/sda5/Programming/linux/include/nyutil/nyutil/eventLoop.hpp
+	<nyutil/callback.hpp>
+	<nyutil/time.hpp>
+	<uv.h>
+	<vector>
+	<memory>
 	<nyutil/callback.hpp>
 	<nyutil/time.hpp>
 	<uv.h>
 	<vector>
 	<memory>
 
-1440986566 /mnt/sda5/Programming/linux/include/nyutil/nyutil/callback.hpp
+1442670392 /mnt/sda5/Programming/linux/include/nyutil/nyutil/callback.hpp
+	<nyutil/nonCopyable.hpp>
+	<nyutil/compFunc.hpp>
+	<functional>
+	<vector>
+	<utility>
+	<memory>
+	<atomic>
 	<nyutil/nonCopyable.hpp>
 	<nyutil/compFunc.hpp>
 	<functional>
@@ -4368,8 +4929,13 @@
 	<bitset>
 	<nyutil/vec.hpp>
 
-1441065113 /mnt/sda5/Programming/linux/include/nyutil/nyutil/vec.hpp
+1443825470 /mnt/sda5/Programming/linux/include/nyutil/nyutil/vec.hpp
 	<ostream>
+	<nyutil/tmp.hpp>
+	<nyutil/constants.hpp>
+	<ostream>
+	<cmath>
+	<type_traits>
 
 1439633997 /mnt/sda5/Programming/projects/ny-fixed/include/ny/keyboard.hpp
 	<ny/include.hpp>
@@ -4382,7 +4948,13 @@
 	<stdexcept>
 	<ostream>
 
-1440716526 /mnt/sda5/Programming/linux/include/nyutil/nyutil/misc.hpp
+1442764005 /mnt/sda5/Programming/linux/include/nyutil/nyutil/misc.hpp
+	<string>
+	<vector>
+	<functional>
+	<algorithm>
+	<sstream>
+	<cmath>
 	<string>
 	<vector>
 	<functional>
@@ -4455,11 +5027,16 @@
 	<nyutil/vec.hpp>
 	<vector>
 
-1440631835 /mnt/sda5/Programming/linux/include/nyutil/nyutil/rect.hpp
+1443114264 /mnt/sda5/Programming/linux/include/nyutil/nyutil/rect.hpp
+	<nyutil/vec.hpp>
+	<vector>
 	<nyutil/vec.hpp>
 	<vector>
 
-1437849815 /mnt/sda5/Programming/linux/include/nyutil/nyutil/region.hpp
+1443114895 /mnt/sda5/Programming/linux/include/nyutil/nyutil/region.hpp
+	<nyutil/vec.hpp>
+	<nyutil/rect.hpp>
+	<vector>
 	<nyutil/vec.hpp>
 	<nyutil/rect.hpp>
 	<vector>
@@ -4538,20 +5115,31 @@
 	<nyutil/vec.hpp>
 	<nyutil/rect.hpp>
 
-1441065278 /mnt/sda5/Programming/linux/include/nyutil/nyutil/mat.hpp
+1443817803 /mnt/sda5/Programming/linux/include/nyutil/nyutil/mat.hpp
 	<nyutil/vec.hpp>
 	<nyutil/refVec.hpp>
 	<ostream>
 	<iomanip>
 	<cmath>
+	<nyutil/vec.hpp>
+	<nyutil/refVec.hpp>
+	<nyutil/compFunc.hpp>
+	<nyutil/misc.hpp>
+	<iomanip>
+	<memory>
+	<cmath>
+	<tuple>
 
-1440072691 /mnt/sda5/Programming/linux/include/nyutil/nyutil/refVec.hpp
+1443816645 /mnt/sda5/Programming/linux/include/nyutil/nyutil/refVec.hpp
 	<nyutil/vec.hpp>
 	<functional>
+	<nyutil/vec.hpp>
 
-1440243476 /mnt/sda5/Programming/linux/include/nyutil/nyutil/cache.hpp
+1443815445 /mnt/sda5/Programming/linux/include/nyutil/nyutil/cache.hpp
 	<memory>
 	<vector>
+	<vector>
+	<memory>
 
 1439633997 source:/mnt/sda5/Programming/projects/ny-fixed/src/ny/color.cpp
 	<ny/color.hpp>
@@ -4999,38 +5587,57 @@
 	<ny/x11/x11Egl.hpp>
 	<ny/x11/x11Cairo.hpp>
 
-1440891968 /mnt/sda5/Programming/linux/include/nyutil/nyutil/compFunc.hpp
+1443032058 /mnt/sda5/Programming/linux/include/nyutil/nyutil/compFunc.hpp
 	<nyutil/function_traits.hpp>
 	<type_traits>
 	<utility>
 	<tuple>
 	<functional>
+	<nyutil/function_traits.hpp>
+	<nyutil/tmp.hpp>
+	<type_traits>
+	<utility>
+	<tuple>
+	<functional>
 
-1440466020 /mnt/sda5/Programming/linux/include/nyutil/nyutil/function_traits.hpp
+1442764026 /mnt/sda5/Programming/linux/include/nyutil/nyutil/function_traits.hpp
+	<tuple>
 	<tuple>
 
-1440642195 /mnt/sda5/Programming/linux/include/nyutil/nyutil/transformable.hpp
+1443822439 /mnt/sda5/Programming/linux/include/nyutil/nyutil/transformable.hpp
 	<nyutil/mat.hpp>
 	<nyutil/vec.hpp>
 	<nyutil/rect.hpp>
+	<cmath>
+	<nyutil/mat.hpp>
+	<nyutil/vec.hpp>
+	<nyutil/rect.hpp>
+	<nyutil/constants.hpp>
 	<cmath>
 
 1440641815 /mnt/sda5/Programming/linux/include/nyutil/nyutil/cloneable.hpp
 	<memory>
 	<type_traits>
 
-1441156720 /mnt/sda5/Programming/linux/include/nyutil/nyutil/hierachy.hpp
+1442777630 /mnt/sda5/Programming/linux/include/nyutil/nyutil/hierachy.hpp
 	<nyutil/nonCopyable.hpp>
 	<vector>
 	<stdexcept>
+	<nyutil/nonCopyable.hpp>
+	<vector>
 
 1441032963 /mnt/sda5/Programming/projects/ny/include/ny/gl/modernGL.hpp
+	<ny/include.hpp>
+	<ny/gl/glDrawContext.hpp>
 	<ny/include.hpp>
 	<ny/gl/glDrawContext.hpp>
 
 1441133271 /mnt/sda5/Programming/projects/ny/include/ny/gl/shader/modernSources.hpp
 
 1441210220 source:/mnt/sda5/Programming/projects/ny/src/ny/sizer.cpp
+	<ny/sizer.hpp>
+	<ny/window.hpp>
+	<nyutil/misc.hpp>
 	<ny/sizer.hpp>
 	<ny/window.hpp>
 	<nyutil/misc.hpp>
@@ -5043,26 +5650,32 @@
 	<ny/window.hpp>
 	<nyutil/misc.hpp>
 	<nyutil/vec.hpp>
+	<ny/include.hpp>
+	<ny/eventHandler.hpp>
+	<ny/window.hpp>
+	<nyutil/misc.hpp>
+	<nyutil/vec.hpp>
 
-1441474859 a:\programming\windows\include\nyutil\nyutil\transformable.hpp
+1443826039 a:\programming\windows\include\nyutil\nyutil\transformable.hpp
 	<nyutil/mat.hpp>
 	<nyutil/vec.hpp>
 	<nyutil/rect.hpp>
+	<nyutil/constants.hpp>
 	<cmath>
 
-1441659413 a:\programming\windows\include\nyutil\nyutil\hierachy.hpp
+1442781230 a:\programming\windows\include\nyutil\nyutil\hierachy.hpp
 	<nyutil/nonCopyable.hpp>
 	<vector>
-	<stdexcept>
 
-1440895568 a:\programming\windows\include\nyutil\nyutil\compfunc.hpp
+1443035658 a:\programming\windows\include\nyutil\nyutil\compfunc.hpp
 	<nyutil/function_traits.hpp>
+	<nyutil/tmp.hpp>
 	<type_traits>
 	<utility>
 	<tuple>
 	<functional>
 
-1440469620 a:\programming\windows\include\nyutil\nyutil\function_traits.hpp
+1442767626 a:\programming\windows\include\nyutil\nyutil\function_traits.hpp
 	<tuple>
 
 1441537279 source:a:\programming\projects\ny\src\ny\gl\legacygl.cpp
@@ -5075,7 +5688,7 @@
 	<ny/include.hpp>
 	<ny/gl/glDrawContext.hpp>
 
-1441537252 source:a:\programming\projects\ny\src\ny\gl\moderngl.cpp
+1443819195 source:a:\programming\projects\ny\src\ny\gl\moderngl.cpp
 	<ny/config.h>
 	<ny/gl/modernGL.hpp>
 	<ny/gl/shader.hpp>
@@ -5138,7 +5751,7 @@
 1439637597 a:\programming\projects\ny\include\ny\wayland\waylandinterfaces.hpp
 	<wayland-client-protocol.h>
 
-1441041733 a:\programming\projects\ny\include\ny\wayland\waylandwindowcontext.hpp
+1443819318 a:\programming\projects\ny\include\ny\wayland\waylandwindowcontext.hpp
 	<ny/wayland/waylandInclude.hpp>
 	<ny/cursor.hpp>
 	<ny/windowContext.hpp>
@@ -5188,860 +5801,8 @@
 	<ny/x11/x11Include.hpp>
 	<ny/gl/egl.hpp>
 
-1439633997 source:/mnt/sda5/Programming/projects/ny/src/ny/appContext.cpp
-	<ny/appContext.hpp>
-
-1440116570 /mnt/sda5/Programming/projects/ny/include/ny/appContext.hpp
-	<ny/include.hpp>
-	<nyutil/nonCopyable.hpp>
-	<functional>
-
-1443815039 /mnt/sda5/Programming/projects/ny/include/ny/include.hpp
-	<ny/config.h>
-	<ny/error.hpp>
-	<iostream>
-	<cstdlib>
-
-1440248953 /mnt/sda5/Programming/projects/ny/include/ny/config.h
-
-1440255862 /mnt/sda5/Programming/projects/ny/include/ny/error.hpp
-	<ny/include.hpp>
-	<nyutil/misc.hpp>
-	<string>
-	<stdexcept>
-	<ostream>
-
-1442764005 /mnt/sda5/Programming/linux/include/nyutil/nyutil/misc.hpp
-	<string>
-	<vector>
-	<functional>
-	<algorithm>
-	<sstream>
-	<cmath>
-
-1437849839 /mnt/sda5/Programming/linux/include/nyutil/nyutil/nonCopyable.hpp
-
-1441637417 source:/mnt/sda5/Programming/projects/ny/src/ny/backend.cpp
-	<ny/backend.hpp>
-	<ny/app.hpp>
-	<ny/wayland/waylandBackend.hpp>
-	<ny/x11/x11Backend.hpp>
-	<ny/winapi/winapiBackend.hpp>
-	<ny/window.hpp>
-	<ny/error.hpp>
-
-1440628805 /mnt/sda5/Programming/projects/ny/include/ny/backend.hpp
-	<ny/include.hpp>
-	<ny/windowContext.hpp>
-	<nyutil/nonCopyable.hpp>
-	<vector>
-	<memory>
-
-1441484936 /mnt/sda5/Programming/projects/ny/include/ny/windowContext.hpp
-	<ny/include.hpp>
-	<ny/windowDefs.hpp>
-	<nyutil/nonCopyable.hpp>
-	<nyutil/vec.hpp>
-	<memory>
-
-1441471031 /mnt/sda5/Programming/projects/ny/include/ny/windowDefs.hpp
-	<ny/include.hpp>
-
-1443825470 /mnt/sda5/Programming/linux/include/nyutil/nyutil/vec.hpp
-	<nyutil/tmp.hpp>
-	<nyutil/constants.hpp>
-	<ostream>
-	<cmath>
-	<type_traits>
-
-1441471466 /mnt/sda5/Programming/projects/ny/include/ny/app.hpp
-	<ny/include.hpp>
-	<ny/eventHandler.hpp>
-	<nyutil/eventLoop.hpp>
-	<nyutil/thread.hpp>
-	<vector>
-	<string>
-	<map>
-	<mutex>
-	<thread>
-	<atomic>
-	<queue>
-	<condition_variable>
-
-1441472553 /mnt/sda5/Programming/projects/ny/include/ny/eventHandler.hpp
-	<ny/include.hpp>
-	<nyutil/hierachy.hpp>
-
-1442777630 /mnt/sda5/Programming/linux/include/nyutil/nyutil/hierachy.hpp
-	<nyutil/nonCopyable.hpp>
-	<vector>
-
-1441534800 /mnt/sda5/Programming/linux/include/nyutil/nyutil/eventLoop.hpp
-	<nyutil/callback.hpp>
-	<nyutil/time.hpp>
-	<uv.h>
-	<vector>
-	<memory>
-
-1442670392 /mnt/sda5/Programming/linux/include/nyutil/nyutil/callback.hpp
-	<nyutil/nonCopyable.hpp>
-	<nyutil/compFunc.hpp>
-	<functional>
-	<vector>
-	<utility>
-	<memory>
-	<atomic>
-
-1443032058 /mnt/sda5/Programming/linux/include/nyutil/nyutil/compFunc.hpp
-	<nyutil/function_traits.hpp>
-	<nyutil/tmp.hpp>
-	<type_traits>
-	<utility>
-	<tuple>
-	<functional>
-
-1442764026 /mnt/sda5/Programming/linux/include/nyutil/nyutil/function_traits.hpp
-	<tuple>
-
 1443817394 /mnt/sda5/Programming/linux/include/nyutil/nyutil/tmp.hpp
 	<utility>
-
-1439992037 /mnt/sda5/Programming/linux/include/nyutil/nyutil/time.hpp
-	<chrono>
-	<ratio>
-
-1440633035 /mnt/sda5/Programming/linux/include/nyutil/nyutil/thread.hpp
-	<nyutil/time.hpp>
-	<thread>
-	<mutex>
-	<condition_variable>
-	<vector>
-	<deque>
-	<queue>
-	<future>
-	<functional>
-
-1441637258 /mnt/sda5/Programming/projects/ny/include/ny/wayland/waylandBackend.hpp
-	<ny/include.hpp>
-	<ny/backend.hpp>
-	<memory>
-
-1440629963 /mnt/sda5/Programming/projects/ny/include/ny/x11/x11Backend.hpp
-	<ny/x11/x11Include.hpp>
-	<ny/backend.hpp>
-
-1439633997 /mnt/sda5/Programming/projects/ny/include/ny/x11/x11Include.hpp
-	<ny/include.hpp>
-
-1441637621 /mnt/sda5/Programming/projects/ny/include/ny/winapi/winapiBackend.hpp
-	<ny/include.hpp>
-	<ny/backend.hpp>
-	<memory>
-
-1443815484 /mnt/sda5/Programming/projects/ny/include/ny/window.hpp
-	<ny/include.hpp>
-	<ny/eventHandler.hpp>
-	<ny/surface.hpp>
-	<ny/cursor.hpp>
-	<ny/data.hpp>
-	<ny/windowEvents.hpp>
-	<ny/windowDefs.hpp>
-	<nyutil/callback.hpp>
-	<nyutil/vec.hpp>
-	<memory>
-	<functional>
-
-1439633997 /mnt/sda5/Programming/projects/ny/include/ny/surface.hpp
-	<ny/include.hpp>
-	<nyutil/vec.hpp>
-
-1439762994 /mnt/sda5/Programming/projects/ny/include/ny/cursor.hpp
-	<ny/include.hpp>
-	<ny/image.hpp>
-	<nyutil/vec.hpp>
-
-1440258600 /mnt/sda5/Programming/projects/ny/include/ny/image.hpp
-	<ny/include.hpp>
-	<ny/surface.hpp>
-	<ny/file.hpp>
-	<memory>
-
-1439763597 /mnt/sda5/Programming/projects/ny/include/ny/file.hpp
-	<string>
-
-1440981437 /mnt/sda5/Programming/projects/ny/include/ny/data.hpp
-	<ny/include.hpp>
-	<ny/event.hpp>
-	<iostream>
-	<vector>
-	<functional>
-	<fstream>
-
-1441157585 /mnt/sda5/Programming/projects/ny/include/ny/event.hpp
-	<ny/include.hpp>
-	<memory>
-	<type_traits>
-
-1441029407 /mnt/sda5/Programming/projects/ny/include/ny/windowEvents.hpp
-	<ny/include.hpp>
-	<ny/event.hpp>
-
-1443815558 source:/mnt/sda5/Programming/projects/ny/src/ny/cairo.cpp
-	<ny/config.h>
-	<ny/cairo.hpp>
-	<ny/shape.hpp>
-	<ny/error.hpp>
-	<ny/surface.hpp>
-	<ny/image.hpp>
-	<iostream>
-	<cmath>
-
-1443815020 /mnt/sda5/Programming/projects/ny/include/ny/cairo.hpp
-	<ny/include.hpp>
-	<ny/drawContext.hpp>
-	<cairo/cairo.h>
-
-1441211096 /mnt/sda5/Programming/projects/ny/include/ny/drawContext.hpp
-	<ny/include.hpp>
-	<ny/color.hpp>
-	<nyutil/vec.hpp>
-	<nyutil/rect.hpp>
-	<nyutil/region.hpp>
-	<nyutil/nonCopyable.hpp>
-
-1443814881 /mnt/sda5/Programming/projects/ny/include/ny/color.hpp
-	<ny/include.hpp>
-	<nyutil/vec.hpp>
-	<vector>
-
-1443114264 /mnt/sda5/Programming/linux/include/nyutil/nyutil/rect.hpp
-	<nyutil/vec.hpp>
-	<vector>
-
-1443114895 /mnt/sda5/Programming/linux/include/nyutil/nyutil/region.hpp
-	<nyutil/vec.hpp>
-	<nyutil/rect.hpp>
-	<vector>
-
-1443815513 /mnt/sda5/Programming/projects/ny/include/ny/shape.hpp
-	<ny/include.hpp>
-	<ny/color.hpp>
-	<nyutil/transformable.hpp>
-	<ny/font.hpp>
-	<nyutil/vec.hpp>
-	<nyutil/mat.hpp>
-	<nyutil/rect.hpp>
-	<nyutil/cache.hpp>
-	<vector>
-
-1443822439 /mnt/sda5/Programming/linux/include/nyutil/nyutil/transformable.hpp
-	<nyutil/mat.hpp>
-	<nyutil/vec.hpp>
-	<nyutil/rect.hpp>
-	<nyutil/constants.hpp>
-	<cmath>
-
-1443817803 /mnt/sda5/Programming/linux/include/nyutil/nyutil/mat.hpp
-	<nyutil/vec.hpp>
-	<nyutil/refVec.hpp>
-	<nyutil/compFunc.hpp>
-	<nyutil/misc.hpp>
-	<iomanip>
-	<memory>
-	<cmath>
-	<tuple>
-
-1443816645 /mnt/sda5/Programming/linux/include/nyutil/nyutil/refVec.hpp
-	<nyutil/vec.hpp>
-
-1440082254 /mnt/sda5/Programming/projects/ny/include/ny/font.hpp
-	<ny/include.hpp>
-	<string>
-	<memory>
-
-1443815445 /mnt/sda5/Programming/linux/include/nyutil/nyutil/cache.hpp
-	<vector>
-	<memory>
-
-1439633997 source:/mnt/sda5/Programming/projects/ny/src/ny/color.cpp
-	<ny/color.hpp>
-
-1440624530 source:/mnt/sda5/Programming/projects/ny/src/ny/cursor.cpp
-	<ny/cursor.hpp>
-	<ny/image.hpp>
-
-1440081982 source:/mnt/sda5/Programming/projects/ny/src/ny/data.cpp
-	<ny/data.hpp>
-
-1439633997 source:/mnt/sda5/Programming/projects/ny/src/ny/dialog.cpp
-
-1441197645 source:/mnt/sda5/Programming/projects/ny/src/ny/drawContext.cpp
-	<ny/drawContext.hpp>
-	<ny/shape.hpp>
-	<ny/surface.hpp>
-
-1440260030 source:/mnt/sda5/Programming/projects/ny/src/ny/error.cpp
-	<ny/error.hpp>
-	<ny/app.hpp>
-	<iostream>
-
-1440848787 source:/mnt/sda5/Programming/projects/ny/src/ny/event.cpp
-	<ny/event.hpp>
-
-1441472695 source:/mnt/sda5/Programming/projects/ny/src/ny/eventHandler.cpp
-	<ny/eventHandler.hpp>
-	<ny/app.hpp>
-	<ny/error.hpp>
-	<ny/event.hpp>
-	<iostream>
-
-1439633997 source:/mnt/sda5/Programming/projects/ny/src/ny/file.cpp
-	<ny/file.hpp>
-
-1440203765 source:/mnt/sda5/Programming/projects/ny/src/ny/font.cpp
-	<ny/font.hpp>
-	<ny/error.hpp>
-	<ny/freeType.hpp>
-	<ny/cairo.hpp>
-	<ny/winapi/gdiDrawContext.hpp>
-
-1439633997 /mnt/sda5/Programming/projects/ny/include/ny/freeType.hpp
-	<string>
-	<freetype2/ft2build.h>
-
-1441534807 /mnt/sda5/Programming/projects/ny/include/ny/winapi/gdiDrawContext.hpp
-	<ny/include.hpp>
-	<ny/drawContext.hpp>
-	<winsock2.h>
-	<windows.h>
-	<gdiplus.h>
-
-1440198291 source:/mnt/sda5/Programming/projects/ny/src/ny/frame.cpp
-	<ny/frame.hpp>
-
-1440198272 /mnt/sda5/Programming/projects/ny/include/ny/frame.hpp
-	<ny/include.hpp>
-	<ny/window.hpp>
-
-1439633997 source:/mnt/sda5/Programming/projects/ny/src/ny/freeType.cpp
-	<ny/config.h>
-	<ny/freeType.hpp>
-	<ny/error.hpp>
-
-1441041824 source:/mnt/sda5/Programming/projects/ny/src/ny/gl/egl.cpp
-	<ny/config.h>
-	<ny/gl/egl.hpp>
-	<ny/app.hpp>
-	<ny/appContext.hpp>
-	<ny/error.hpp>
-	<EGL/egl.h>
-
-1440083180 /mnt/sda5/Programming/projects/ny/include/ny/gl/egl.hpp
-	<ny/config.h>
-	<ny/include.hpp>
-	<ny/gl/glDrawContext.hpp>
-	<nyutil/nonCopyable.hpp>
-
-1441050959 /mnt/sda5/Programming/projects/ny/include/ny/gl/glDrawContext.hpp
-	<ny/include.hpp>
-	<ny/drawContext.hpp>
-	<ny/shape.hpp>
-	<memory>
-
-1441472685 source:/mnt/sda5/Programming/projects/ny/src/ny/gl/glDrawContext.cpp
-	<ny/config.h>
-	<ny/gl/glDrawContext.hpp>
-	<ny/gl/modernGL.hpp>
-	<ny/surface.hpp>
-	<ny/error.hpp>
-	<glbinding/gl/gl.h>
-	<glbinding/Binding.h>
-	<GL/glew.h>
-	<string.h>
-
-1441032963 /mnt/sda5/Programming/projects/ny/include/ny/gl/modernGL.hpp
-	<ny/include.hpp>
-	<ny/gl/glDrawContext.hpp>
-
-1441533716 source:/mnt/sda5/Programming/projects/ny/src/ny/gl/gles.cpp
-	<ny/config.h>
-	<ny/gl/glDrawContext.hpp>
-	<GLES2/gl2.h>
-
-1441533679 source:/mnt/sda5/Programming/projects/ny/src/ny/gl/legacyGL.cpp
-	<ny/config.h>
-	<ny/gl/glDrawContext.hpp>
-	<glbinding/gl/gl.h>
-	<GL/glew.h>
-
-1443815595 source:/mnt/sda5/Programming/projects/ny/src/ny/gl/modernGL.cpp
-	<ny/config.h>
-	<ny/gl/modernGL.hpp>
-	<ny/gl/shader.hpp>
-	<ny/gl/shader/modernSources.hpp>
-	<glbinding/gl/gl.h>
-	<GL/glew.h>
-	<cassert>
-
-1441064575 /mnt/sda5/Programming/projects/ny/include/ny/gl/shader.hpp
-	<ny/include.hpp>
-	<nyutil/vec.hpp>
-	<nyutil/mat.hpp>
-
-1441133271 /mnt/sda5/Programming/projects/ny/include/ny/gl/shader/modernSources.hpp
-
-1443815544 source:/mnt/sda5/Programming/projects/ny/src/ny/gl/shader.cpp
-	<ny/config.h>
-	<ny/gl/shader.hpp>
-	<ny/error.hpp>
-	<nyutil/mat.hpp>
-	<glbinding/gl/gl.h>
-	<glbinding/Binding.h>
-	<GL/glew.h>
-	<fstream>
-
-1439633997 source:/mnt/sda5/Programming/projects/ny/src/ny/headerbar.cpp
-
-1441484563 source:/mnt/sda5/Programming/projects/ny/src/ny/image.cpp
-	<ny/image.hpp>
-	"CImg.h"
-
-1439633997 /mnt/sda5/Programming/projects/ny/src/ny/CImg.h
-	<cstdio>
-	<cstdlib>
-	<cstdarg>
-	<cstring>
-	<cmath>
-	<climits>
-	<ctime>
-	<exception>
-	<stdio.h>
-	<sys/types.h>
-	<sys/time.h>
-	<sys/stat.h>
-	<unistd.h>
-	<windows.h>
-	<shlobj.h>
-	<process.h>
-	<io.h>
-	<initializer_list>
-	<utility>
-	<X11/Xlib.h>
-	<X11/Xutil.h>
-	<X11/keysym.h>
-	<pthread.h>
-	<sys/ipc.h>
-	<sys/shm.h>
-	<X11/extensions/XShm.h>
-	<X11/extensions/Xrandr.h>
-	<omp.h>
-	<cstddef>
-	"cv.h"
-	"highgui.h"
-	"png.h"
-	"jpeglib.h"
-	"setjmp.h"
-	"tiffio.h"
-	"minc_io_simple_volume.h"
-	"minc_1_simple.h"
-	"minc_1_simple_rw.h"
-	"zlib.h"
-	"curl/curl.h"
-	"Magick++.h"
-	"fftw3.h"
-	"Board.h"
-	"ImfRgbaFile.h"
-	"ImfInputFile.h"
-	"ImfChannelList.h"
-	"ImfMatrixAttribute.h"
-	"ImfArray.h"
-	"CImg.h"
-	<stdint.h>
-
-1440513408 source:/mnt/sda5/Programming/projects/ny/src/ny/keyboard.cpp
-	<ny/keyboard.hpp>
-
-1441156427 /mnt/sda5/Programming/projects/ny/include/ny/keyboard.hpp
-	<ny/include.hpp>
-	<ny/event.hpp>
-	<bitset>
-
-1441628778 source:/mnt/sda5/Programming/projects/ny/src/ny/mouse.cpp
-	<ny/mouse.hpp>
-
-1441156421 /mnt/sda5/Programming/projects/ny/include/ny/mouse.hpp
-	<ny/include.hpp>
-	<ny/event.hpp>
-	<nyutil/vec.hpp>
-	<nyutil/callback.hpp>
-	<nyutil/compFunc.hpp>
-	<bitset>
-
-1441064403 source:/mnt/sda5/Programming/projects/ny/src/ny/shape.cpp
-	<ny/shape.hpp>
-
-1441210220 source:/mnt/sda5/Programming/projects/ny/src/ny/sizer.cpp
-	<ny/sizer.hpp>
-	<ny/window.hpp>
-	<nyutil/misc.hpp>
-
-1441210786 /mnt/sda5/Programming/projects/ny/include/ny/sizer.hpp
-	<ny/include.hpp>
-	<ny/eventHandler.hpp>
-	<ny/window.hpp>
-	<nyutil/misc.hpp>
-	<nyutil/vec.hpp>
-
-1439633997 source:/mnt/sda5/Programming/projects/ny/src/ny/style.cpp
-	<ny/style.hpp>
-
-1441470181 /mnt/sda5/Programming/projects/ny/include/ny/style.hpp
-	<ny/include.hpp>
-	<ny/color.hpp>
-
-1439633997 source:/mnt/sda5/Programming/projects/ny/src/ny/surface.cpp
-	<ny/surface.hpp>
-
-1439633997 source:/mnt/sda5/Programming/projects/ny/src/ny/texture.cpp
-	<ny/texture.hpp>
-
-1440072723 /mnt/sda5/Programming/projects/ny/include/ny/texture.hpp
-	<ny/include.hpp>
-	<string>
-
-1439633997 source:/mnt/sda5/Programming/projects/ny/src/ny/touch.cpp
-
-1441210651 source:/mnt/sda5/Programming/projects/ny/src/ny/wayland/waylandAppContext.cpp
-	<ny/wayland/waylandAppContext.hpp>
-	<ny/wayland/waylandUtil.hpp>
-	<ny/wayland/waylandInterfaces.hpp>
-	<ny/wayland/waylandWindowContext.hpp>
-	<ny/error.hpp>
-	<ny/app.hpp>
-	<ny/image.hpp>
-	<nyutil/misc.hpp>
-	<nyutil/eventLoop.hpp>
-	<ny/wayland/xdg-shell-client-protocol.h>
-	<ny/wayland/waylandEgl.hpp>
-	<wayland-egl.h>
-	<cassert>
-
-1440716703 /mnt/sda5/Programming/projects/ny/include/ny/wayland/waylandAppContext.hpp
-	<ny/wayland/waylandInclude.hpp>
-	<ny/appContext.hpp>
-	<nyutil/vec.hpp>
-	<wayland-client.h>
-	<wayland-cursor.h>
-	<wayland-egl.h>
-	<EGL/egl.h>
-	<vector>
-	<string>
-	<memory>
-
-1439633997 /mnt/sda5/Programming/projects/ny/include/ny/wayland/waylandInclude.hpp
-	<ny/include.hpp>
-
-1441152063 /mnt/sda5/Programming/projects/ny/include/ny/wayland/waylandUtil.hpp
-	<ny/wayland/waylandInclude.hpp>
-	<ny/mouse.hpp>
-	<ny/keyboard.hpp>
-	<ny/cursor.hpp>
-	<ny/backend.hpp>
-	<ny/window.hpp>
-	<ny/windowEvents.hpp>
-	<wayland-client-protocol.h>
-	<iostream>
-	<atomic>
-
-1439633997 /mnt/sda5/Programming/projects/ny/include/ny/wayland/waylandInterfaces.hpp
-	<wayland-client-protocol.h>
-
-1443815718 /mnt/sda5/Programming/projects/ny/include/ny/wayland/waylandWindowContext.hpp
-	<ny/wayland/waylandInclude.hpp>
-	<ny/cursor.hpp>
-	<ny/windowContext.hpp>
-	<ny/windowEvents.hpp>
-	<wayland-client-protocol.h>
-	<wayland-egl.h>
-	<EGL/egl.h>
-
-1439633997 /mnt/sda5/Programming/projects/ny/src/ny/wayland/xdg-shell-client-protocol.h
-	<stdint.h>
-	<stddef.h>
-	"wayland-client.h"
-
-1441042177 /mnt/sda5/Programming/projects/ny/include/ny/wayland/waylandEgl.hpp
-	<ny/wayland/waylandInclude.hpp>
-	<ny/gl/egl.hpp>
-	<nyutil/nonCopyable.hpp>
-	<nyutil/vec.hpp>
-	<wayland-egl.h>
-
-1440629956 source:/mnt/sda5/Programming/projects/ny/src/ny/wayland/waylandBackend.cpp
-	<ny/wayland/waylandBackend.hpp>
-	<ny/wayland/waylandWindowContext.hpp>
-	<ny/wayland/waylandAppContext.hpp>
-	<ny/wayland/waylandCairo.hpp>
-	<ny/wayland/waylandEgl.hpp>
-	<wayland-client.h>
-
-1441150324 /mnt/sda5/Programming/projects/ny/include/ny/wayland/waylandCairo.hpp
-	<ny/wayland/waylandInclude.hpp>
-	<nyutil/nonCopyable.hpp>
-	<nyutil/vec.hpp>
-	<ny/cairo.hpp>
-
-1441151646 source:/mnt/sda5/Programming/projects/ny/src/ny/wayland/waylandCairo.cpp
-	<ny/wayland/waylandCairo.hpp>
-	<ny/wayland/waylandUtil.hpp>
-	<ny/wayland/waylandAppContext.hpp>
-	<ny/wayland/waylandWindowContext.hpp>
-	<ny/wayland/waylandInterfaces.hpp>
-	<ny/error.hpp>
-	<ny/cairo.hpp>
-	<nyutil/rect.hpp>
-
-1441199042 source:/mnt/sda5/Programming/projects/ny/src/ny/wayland/waylandEgl.cpp
-	<ny/config.h>
-	<ny/wayland/waylandEgl.hpp>
-	<ny/wayland/waylandAppContext.hpp>
-	<ny/wayland/waylandUtil.hpp>
-	<ny/wayland/waylandWindowContext.hpp>
-	<ny/wayland/waylandInterfaces.hpp>
-	<ny/error.hpp>
-	<ny/window.hpp>
-	<ny/gl/glDrawContext.hpp>
-	<wayland-egl.h>
-	<EGL/egl.h>
-	<GL/gl.h>
-
-1441042430 source:/mnt/sda5/Programming/projects/ny/src/ny/wayland/waylandInterfaces.cpp
-	<ny/wayland/waylandInterfaces.hpp>
-	<ny/wayland/waylandAppContext.hpp>
-	<ny/wayland/waylandWindowContext.hpp>
-	<ny/wayland/waylandUtil.hpp>
-	<ny/app.hpp>
-	<ny/wayland/xdg-shell-client-protocol.h>
-	<iostream>
-
-1441152117 source:/mnt/sda5/Programming/projects/ny/src/ny/wayland/waylandUtil.cpp
-	<ny/wayland/waylandUtil.hpp>
-	<ny/wayland/waylandAppContext.hpp>
-	<ny/wayland/waylandWindowContext.hpp>
-	<ny/wayland/waylandCairo.hpp>
-	<ny/wayland/waylandEgl.hpp>
-	<ny/app.hpp>
-	<ny/event.hpp>
-	<ny/cursor.hpp>
-	<ny/error.hpp>
-	<wayland-cursor.h>
-	<fcntl.h>
-	<sys/mman.h>
-	<errno.h>
-	<unistd.h>
-	<string.h>
-	<linux/input.h>
-	<iostream>
-
-1443816764 source:/mnt/sda5/Programming/projects/ny/src/ny/wayland/waylandWindowContext.cpp
-	<ny/wayland/waylandWindowContext.hpp>
-	<ny/wayland/waylandUtil.hpp>
-	<ny/wayland/waylandAppContext.hpp>
-	<ny/wayland/waylandInterfaces.hpp>
-	<ny/event.hpp>
-	<ny/app.hpp>
-	<ny/error.hpp>
-	<ny/cursor.hpp>
-	<ny/wayland/xdg-shell-client-protocol.h>
-	<ny/gl/glDrawContext.hpp>
-	<ny/wayland/waylandEgl.hpp>
-	<ny/cairo.hpp>
-	<ny/wayland/waylandCairo.hpp>
-	<iostream>
-	<cassert>
-
-1439633997 source:/mnt/sda5/Programming/projects/ny/src/ny/wayland/xdg-shell-protocol.c
-	<stdlib.h>
-	<stdint.h>
-	"wayland-util.h"
-
-1441154050 source:/mnt/sda5/Programming/projects/ny/src/ny/widget.cpp
-	<ny/widget.hpp>
-
-1441154044 /mnt/sda5/Programming/projects/ny/include/ny/widget.hpp
-	<ny/include.hpp>
-	<ny/window.hpp>
-
-1441156834 source:/mnt/sda5/Programming/projects/ny/src/ny/widgets.cpp
-	<ny/widgets.hpp>
-	<ny/shape.hpp>
-	<ny/mouse.hpp>
-	<ny/keyboard.hpp>
-	<ny/drawContext.hpp>
-	<ny/windowContext.hpp>
-
-1441155533 /mnt/sda5/Programming/projects/ny/include/ny/widgets.hpp
-	<ny/include.hpp>
-	<ny/widget.hpp>
-	<nyutil/time.hpp>
-
-1441493498 source:/mnt/sda5/Programming/projects/ny/src/ny/window.cpp
-	<ny/window.hpp>
-	<ny/event.hpp>
-	<ny/app.hpp>
-	<ny/error.hpp>
-	<ny/cursor.hpp>
-	<ny/backend.hpp>
-	<ny/windowContext.hpp>
-	<ny/drawContext.hpp>
-	<ny/style.hpp>
-	<ny/mouse.hpp>
-	<ny/keyboard.hpp>
-	<ny/widgets.hpp>
-	<ny/sizer.hpp>
-	<nyutil/misc.hpp>
-	<iostream>
-	<climits>
-
-1441491202 source:/mnt/sda5/Programming/projects/ny/src/ny/windowContext.cpp
-	<ny/windowContext.hpp>
-	<ny/drawContext.hpp>
-	<ny/window.hpp>
-	<ny/app.hpp>
-
-1441051518 source:/mnt/sda5/Programming/projects/ny/src/ny/x11/glx.cpp
-	<ny/config.h>
-	<ny/x11/glx.hpp>
-	<ny/x11/x11WindowContext.hpp>
-	<ny/x11/x11AppContext.hpp>
-	<ny/gl/glDrawContext.hpp>
-	<ny/error.hpp>
-	<ny/window.hpp>
-	<GL/glx.h>
-
-1439633997 /mnt/sda5/Programming/projects/ny/include/ny/x11/glx.hpp
-	<ny/x11/x11Include.hpp>
-	<ny/gl/glDrawContext.hpp>
-
-1443815958 /mnt/sda5/Programming/projects/ny/include/ny/x11/x11WindowContext.hpp
-	<ny/x11/x11Include.hpp>
-	<ny/appContext.hpp>
-	<ny/windowContext.hpp>
-	<ny/backend.hpp>
-	<ny/windowEvents.hpp>
-	<X11/Xutil.h>
-	<memory>
-	<mutex>
-
-1440894634 /mnt/sda5/Programming/projects/ny/include/ny/x11/x11AppContext.hpp
-	<ny/x11/x11Include.hpp>
-	<ny/appContext.hpp>
-	<nyutil/eventLoop.hpp>
-	<X11/Xlib.h>
-	<map>
-
-1441134376 source:/mnt/sda5/Programming/projects/ny/src/ny/x11/x11AppContext.cpp
-	<ny/x11/x11AppContext.hpp>
-	<ny/x11/x11WindowContext.hpp>
-	<ny/x11/x11Util.hpp>
-	<ny/app.hpp>
-	<ny/error.hpp>
-	<ny/window.hpp>
-	<cstring>
-
-1439633997 /mnt/sda5/Programming/projects/ny/include/ny/x11/x11Util.hpp
-	<ny/x11/x11Include.hpp>
-	<ny/keyboard.hpp>
-	<ny/mouse.hpp>
-	<ny/cursor.hpp>
-	<ny/data.hpp>
-	<X11/Xutil.h>
-	<X11/Xlib.h>
-	<map>
-
-1440629931 source:/mnt/sda5/Programming/projects/ny/src/ny/x11/x11Backend.cpp
-	<ny/x11/x11Backend.hpp>
-	<ny/x11/x11WindowContext.hpp>
-	<ny/x11/x11AppContext.hpp>
-	<ny/x11/x11Cairo.hpp>
-	<ny/x11/glx.hpp>
-	<ny/x11/x11Egl.hpp>
-	<X11/Xlib.h>
-
-1440632615 /mnt/sda5/Programming/projects/ny/include/ny/x11/x11Cairo.hpp
-	<ny/x11/x11Include.hpp>
-	<ny/cairo.hpp>
-
-1439633997 /mnt/sda5/Programming/projects/ny/include/ny/x11/x11Egl.hpp
-	<ny/x11/x11Include.hpp>
-	<ny/gl/egl.hpp>
-
-1441201423 source:/mnt/sda5/Programming/projects/ny/src/ny/x11/x11Cairo.cpp
-	<ny/x11/x11Cairo.hpp>
-	<ny/x11/x11AppContext.hpp>
-	<ny/x11/x11WindowContext.hpp>
-	<ny/cairo.hpp>
-	<ny/window.hpp>
-	<cairo/cairo-xlib.h>
-
-1439633997 source:/mnt/sda5/Programming/projects/ny/src/ny/x11/x11Egl.cpp
-	<ny/config.h>
-	<ny/x11/x11Egl.hpp>
-	<ny/x11/x11AppContext.hpp>
-	<ny/x11/x11WindowContext.hpp>
-	<ny/gl/glDrawContext.hpp>
-	<ny/window.hpp>
-
-1440203737 source:/mnt/sda5/Programming/projects/ny/src/ny/x11/x11Util.cpp
-	<ny/x11/x11Include.hpp>
-	<ny/x11/x11Util.hpp>
-	<ny/x11/x11AppContext.hpp>
-	<ny/x11/x11WindowContext.hpp>
-	<ny/x11/x11Cairo.hpp>
-	<ny/app.hpp>
-	<ny/drawContext.hpp>
-	<ny/x11/glx.hpp>
-	<ny/x11/x11Egl.hpp>
-	<ny/windowEvents.hpp>
-	<X11/keysymdef.h>
-	<X11/X.h>
-
-1443816163 source:/mnt/sda5/Programming/projects/ny/src/ny/x11/x11WindowContext.cpp
-	<ny/x11/x11WindowContext.hpp>
-	<ny/x11/x11Util.hpp>
-	<ny/x11/x11AppContext.hpp>
-	<ny/app.hpp>
-	<ny/window.hpp>
-	<ny/event.hpp>
-	<ny/error.hpp>
-	<ny/cursor.hpp>
-	<ny/image.hpp>
-	<X11/Xatom.h>
-	<memory.h>
-	<iostream>
-	<ny/x11/glx.hpp>
-	<GL/glx.h>
-	<ny/x11/x11Egl.hpp>
-	<ny/x11/x11Cairo.hpp>
-
-1443363640 source:/mnt/sda5/Programming/projects/ny/src/ny/app.cpp
-	<ny/app.hpp>
-	<ny/eventHandler.hpp>
-	<ny/event.hpp>
-	<ny/error.hpp>
-	<ny/appContext.hpp>
-	<ny/backend.hpp>
-	<ny/window.hpp>
-	<ny/font.hpp>
-	<ny/keyboard.hpp>
-	<ny/mouse.hpp>
-	<nyutil/thread.hpp>
-	<nyutil/time.hpp>
-	<nyutil/misc.hpp>
-	<iostream>
-	<thread>
-	<chrono>
-	<vector>
 
 1443815785 source:/mnt/sda5/Programming/projects/ny/src/ny/gl/triangulate.cpp
 	<ny/gl/triangulate.hpp>
@@ -6060,4 +5821,26 @@
 	<nyutil/vec.hpp>
 
 1443822523 /mnt/sda5/Programming/linux/include/nyutil/nyutil/constants.hpp
+
+1443820994 a:\programming\windows\include\nyutil\nyutil\tmp.hpp
+	<utility>
+
+1443826123 a:\programming\windows\include\nyutil\nyutil\constants.hpp
+
+1443890768 source:a:\programming\projects\ny\src\ny\gl\triangulate.cpp
+	<ny/gl/triangulate.hpp>
+	<nyutil/line.hpp>
+	<nyutil/vec.hpp>
+
+1443820494 a:\programming\projects\ny\include\ny\gl\triangulate.hpp
+	<ny/include.hpp>
+	<ny/shape.hpp>
+	<nyutil/triangle.hpp>
+	<vector>
+
+1443829294 a:\programming\windows\include\nyutil\nyutil\triangle.hpp
+	<nyutil/vec.hpp>
+
+1443826205 a:\programming\windows\include\nyutil\nyutil\line.hpp
+	<nyutil/vec.hpp>
 

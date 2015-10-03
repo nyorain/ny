@@ -41,10 +41,7 @@ winapiAppContext::~winapiAppContext()
 bool winapiAppContext::mainLoop()
 {
     MSG msg;
-
-    nyDebug(":0");
     BOOL ret = GetMessage(&msg, nullptr, 0, 0);
-    nyDebug(":1");
 
     if(ret == -1)
     {
@@ -131,7 +128,7 @@ LRESULT winapiAppContext::eventProc(HWND handler, UINT message, WPARAM wparam, L
             break;
         }
 
-        case WM_CLOSE:
+        case WM_DESTROY:
         {
             winapiWindowContext* w = getWindowContext(handler);
             if(!w) break;
@@ -143,7 +140,7 @@ LRESULT winapiAppContext::eventProc(HWND handler, UINT message, WPARAM wparam, L
         {
             winapiWindowContext* w = getWindowContext(handler);
             if(!w) break;
-            vec2ui size = vec2ui(); //todo
+            vec2ui size = vec2ui(LOWORD(lparam), HIWORD(lparam)); //todo
             nyMainApp()->sendEvent(std::make_unique<sizeEvent>(&w->getWindow(), size, 0));
             break;
         }

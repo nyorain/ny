@@ -11,28 +11,59 @@ namespace ny
 //      able to perform it in 3d space
 //      able to handle holes
 
+//
+struct ppoint
+{
+    vec2f pos;
+    bool convex;
+};
+
+//
 namespace
 {
-    thread_local std::vector<segment2> segments;
+    thread_local std::vector<vec2f> points;
     thread_local std::vector<triangle2> triangles;
+    bool clockwise;
 }
 
-std::size_t findNextEar()
+
+//
+std::size_t nextPoint(std::size_t i)
 {
-    for(std::size_t i(0); i < segments.size(); i++)
+
+}
+
+std::size_t prevPoint(std::size_t i)
+{
+
+}
+
+
+bool updateConvex(std::size_t i)
+{
+
+}
+
+vec<3, std::size_t> findNextEar()
+{
+    for(std::size_t i(0); i < points.size(); i++)
     {
-        std::size_t next = (i + 1 == segments.size()) ? 0 : i + 1;
-        bool found = 0;
+        std::size_t next = (i + 1 == points.size()) ? 0 : i + 1;
+        std::size_t prev = (i == 0) ? points.size() - 1 : i - 1;
 
-        if(angle(segments[i].getDifference(), segments[next].getDifference()) / cDeg > 180.f)
+        vec2f l1(points[i] - points[prev]);
+        vec2f l2(points[next] - points[i]);
+        float angl = (atan2(l1.y, l1.x) - atan2(l2.y, l2.x)) / cDeg;
+
+        if(angl < 180.f) //if point is convex
         {
-            triangle2 test(segments[i].a, segments[i].b, segments[next].b);
-            found = 1;
+            triangle2 test(points[prev], points[i], points[next]);
+            bool found = 1;
 
-            for(std::size_t o(0); o < segments.size(); o++)
+            for(std::size_t o(0); o < points.size(); o++)
             {
-                if(o == i || o == next) continue;
-                if(test.contains(segments[o].a))
+                if(o == i || o == next || o == prev) continue;
+                if(test.contains(points[o]))
                 {
                     found = 0;
                     break;
@@ -41,41 +72,51 @@ std::size_t findNextEar()
 
             if(found)
             {
-                return i;
+                return {prev, i, next};
             }
         }
     }
 
-    return 0;
+    return {0,0,0}; //should never occur
 }
 
-std::vector<triangle2> triangulate(float* points, std::size_t size)
+std::vector<triangle2> triangulate(float* xpoints, std::size_t size)
 {
     //init
-    segments.reserve(size);
-    triangles.reserve(size - 2);
+    points.clear();
+    triangles.clear();
+
+    points.resize(size);
+    triangles.resize(size - 2);
 
     for(std::size_t i(0); i < size * 2; i += 2)
     {
-        segments[i / 2].a = vec2f(points[i], points[i + 1]);
-        segments[i / 2].b = vec2f(points[i + 2], points[i + 3]);
+        points[i / 2].x = xpoints[i];
+        points[i / 2].y = xpoints[i + 1];
     }
+
+    //todo: init convex/concave points store
+    //      check if points are counter- or clockwise
+    //      holes
 
     //iterate
     std::size_t i(0);
-    while(segments.size() > 3)
+    while(points.size() > 3)
     {
-        std::size_t ear = findNextEar();
-        triangles[i] = triangle2(segments[ear].a, segments[ear].b, segments[ear + 1].b);
-        segments.erase(segments.begin() + ear);
+        std::cout << "it: " << i << " s: " << points.size() << std::endl;
+        vec<3, std::size_t> ear = findNextEar();
+        triangles[i] = triangle2(points[ear.x], points[ear.y], points[ear.z]);
+        points.erase(points.begin() + ear.y);
         i++;
     }
 
-    triangles.back() = triangle2(segments[0].a, segments[1].a, segments[2].a);
+    triangles[i] = triangle2(points[0], points[1], points[2]); //triangles.back()
+    points.clear();
 
     //return
     return triangles;
 }
+
 
 
 }
