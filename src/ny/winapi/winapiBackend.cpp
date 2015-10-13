@@ -29,6 +29,8 @@ std::unique_ptr<windowContext> winapiBackend::createWindowContextImpl(window& wi
     else
     {
         s.hints = settings.hints;
+        s.glPref = settings.glPref;
+        s.virtualPref = settings.virtualPref;
     }
 
     return std::make_unique<winapiWindowContext>(win, s);

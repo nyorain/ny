@@ -87,6 +87,7 @@ winapiWindowContext* winapiAppContext::getWindowContext(HWND w)
     if(contexts_.find(w) != contexts_.end())
         return contexts_[w];
 
+    nyDebug("winapiAC::getWC: could find windowContext for handle ", w);
     return nullptr;
 }
 
@@ -99,6 +100,9 @@ LRESULT winapiAppContext::eventProc(HWND handler, UINT message, WPARAM wparam, L
     {
         case WM_CREATE:
         {
+            CREATESTRUCT* cr = (CREATESTRUCT*) lparam;
+            winapiWindowContext* w = (winapiWindowContext*) cr->lpCreateParams;
+            nyMainApp()->sendEvent(std::make_unique<contextCreateEvent>(&w->getWindow()));
             break;
         }
 

@@ -2,6 +2,7 @@
 
 #include <ny/include.hpp>
 #include <ny/event.hpp>
+#include <memory>
 
 namespace ny
 {
@@ -15,6 +16,8 @@ constexpr unsigned int windowShow = 14;
 constexpr unsigned int windowFocus = 15;
 constexpr unsigned int windowRefresh = 16;
 constexpr unsigned int context = 20;
+
+constexpr unsigned int contextCreate = 1; //contextEventType
 }
 
 class focusEvent : public eventBase<focusEvent, eventType::windowFocus>
@@ -79,5 +82,13 @@ public:
     virtual std::unique_ptr<event> clone() const = 0;
 };
 
+class contextCreateEvent : public contextEvent
+{
+public:
+    using contextEvent::contextEvent;
+
+    virtual unsigned int contextType() const override { return eventType::contextCreate; }
+    virtual std::unique_ptr<event> clone() const override { return std::make_unique<contextCreateEvent>(*this); };
+};
 
 }

@@ -22,7 +22,7 @@ struct ppoint
 namespace
 {
     thread_local std::vector<vec2f> points;
-    thread_local std::vector<triangle2> triangles;
+    thread_local std::vector<triangle2f> triangles;
     bool clockwise;
 }
 
@@ -57,7 +57,7 @@ vec<3, std::size_t> findNextEar()
 
         if(angl < 180.f) //if point is convex
         {
-            triangle2 test(points[prev], points[i], points[next]);
+            triangle2f test(points[prev], points[i], points[next]);
             bool found = 1;
 
             for(std::size_t o(0); o < points.size(); o++)
@@ -80,7 +80,7 @@ vec<3, std::size_t> findNextEar()
     return {0,0,0}; //should never occur
 }
 
-std::vector<triangle2> triangulate(float* xpoints, std::size_t size)
+std::vector<triangle2f> triangulate(float* xpoints, std::size_t size)
 {
     //init
     points.clear();
@@ -105,12 +105,12 @@ std::vector<triangle2> triangulate(float* xpoints, std::size_t size)
     {
         std::cout << "it: " << i << " s: " << points.size() << std::endl;
         vec<3, std::size_t> ear = findNextEar();
-        triangles[i] = triangle2(points[ear.x], points[ear.y], points[ear.z]);
+        triangles[i] = triangle2f(points[ear.x], points[ear.y], points[ear.z]);
         points.erase(points.begin() + ear.y);
         i++;
     }
 
-    triangles[i] = triangle2(points[0], points[1], points[2]); //triangles.back()
+    triangles[i] = triangle2f(points[0], points[1], points[2]); //triangles.back()
     points.clear();
 
     //return

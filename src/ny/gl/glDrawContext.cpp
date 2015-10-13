@@ -121,10 +121,12 @@ void glDrawContext::init(glApi api, unsigned int depth, unsigned int stencil)
             if(major_ >= 3 && minor_ >= 0) impl_.reset(new modernGLDrawImpl()); //better 3.3?
             else impl_.reset(new legacyGLDrawImpl());
         }
+        #ifdef NY_WithGLES
         else
         {
             impl_.reset(new glesDrawImpl());
         }
+        #endif //GLES
     }
 
     makeNotCurrentImpl();

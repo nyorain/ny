@@ -16,31 +16,33 @@ class winapiWindowContextSettings : public windowContextSettings
 
 typedef winapiWindowContextSettings winapiWS;
 
-enum class winapiDrawType
+//enum
+enum class winapiDrawType : unsigned char
 {
     none,
 
-    gdi,
-    wgl
+    wgl,
+    gdi
 };
+
 
 //windowContext
 class winapiWindowContext : public windowContext
 {
 protected:
-    static unsigned int highestID;
+    static unsigned int highestID; //just for window class registration
 
+protected:
     HWND handle_;
-    HINSTANCE instance_;
     WNDCLASSEX wndClass_;
 
     winapiDrawType drawType_ = winapiDrawType::none;
     union
     {
-        gdiDrawContext* gdi_ = nullptr;
+        std::unique_ptr<gdiDrawContext> gdi_ {nullptr};
 
         #ifdef NY_WithGL
-         wglDrawContext* wgl_;
+         std::unique_ptr<wglDrawContext> wgl_;
         #endif //GL
     };
 
@@ -73,6 +75,7 @@ public:
     virtual void updateCursor(const mouseCrossEvent* ev) override {};
 
     virtual bool hasGL() const override { return 0; };
+    virtual void processEvent(const contextEvent& e) override;
 
     //toplevel
     virtual void setMaximized() override {};
@@ -91,10 +94,12 @@ public:
 
     /////////////////////////////////////////
     //winapi specific
-
     HWND getHandle() const { return handle_; }
-    HINSTANCE getInstance() const { return instance_; }
     WNDCLASSEX getWndClassEx() const { return wndClass_; }
+
+    gdiDrawContext* getGDI() const { if(drawType_ == winapiDrawType::gdi) return gdi_.get(); return nullptr; }
+    wglDrawContext* getWGL() const { if(drawType_ == winapiDrawType::wgl) return wgl_.get(); return nullptr; }
+    winapiDrawType getDrawType() const { return drawType_;}
 };
 
 

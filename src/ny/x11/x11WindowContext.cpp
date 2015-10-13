@@ -31,10 +31,40 @@
 namespace ny
 {
 
+//util
 struct glxFBC
 {
     GLXFBConfig config;
 };
+
+bool usingGLX11(preference glPref)
+{
+    //renderer - nothing available
+    #if (!defined NY_WithGL && !defined NY_WithCairo)
+     throw std::runtime_error("x11WC::x11WC: no renderer available");
+
+    #endif
+
+    //WithGL
+    #if (!defined NY_WithGL)
+     if(settings.glPref == preference::Must) throw std::runtime_error("x11WC::x11WC: no gl renderer available, glPreference was set to MUST");
+     else return 0;
+
+    #else
+     if(settings.glPref == preference::Must || settings.glPref == preference::Should) return 1;
+
+    #endif
+
+    //WithCairo
+    #if (!defined NY_WithCairo)
+     if(settings.glPref == preference::MustNot) throw std::runtime_error("x11WC::x11WC: no software renderer available, glPreference was set to MUSTNOT");
+     else return 1;
+
+    #else
+     if(settings.glPref == preference::MustNot || settings.glPref == preference::ShouldNot) return 0;
+
+    #endif
+}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //windowContext///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -57,68 +87,25 @@ x11WindowContext::x11WindowContext(window& win, const x11WindowContextSettings& 
     }
 
     xScreenNumber_ = ac->getXDefaultScreenNumber(); //todo: implement correctly
-
-    bool gl = 0;
-
-    //renderer - nothing available
-    #if (!defined NY_WithGL && !defined NY_WithCairo)
-    throw std::runtime_error("x11WC::x11WC: no renderer available");
-    return;
-    #endif
-
-    //WithGL
-    #if (!defined NY_WithGL)
-    if(settings.glPref == preference::Must)
-    {
-        throw std::runtime_error("x11WC::x11WC: no gl renderer available");
-        return;
-    }
-    #else
-    gl = 1;
-
-    #endif
-
-    //WithCairo
-    #if (!defined NY_WithCairo)
-    if(settings.glPref == preference::MustNot)
-    {
-        throw std::runtime_error("x11WC::x11WC: no software renderer available");
-        return;
-    }
-    #else
-    if(settings.glPref == preference::MustNot || settings.glPref == preference::ShouldNot)
-        gl = 0;
-
-    #endif
-
+    bool gl = usingGLX11(settings.glPref);
 
     //window type
     Window xParent;
 
     auto* toplvlw = dynamic_cast<toplevelWindow*>(&win);
     auto* childw = dynamic_cast<childWindow*>(&win);
-    if((!toplvlw && !childw) || (toplvlw && childw))
-    {
-        throw std::runtime_error("window must be either of childWindow or of toplevelWindow type");
-        return;
-    }
 
-    if(toplvlw)
+    if((!toplvlw && !childw) || (toplvlw && childw)) throw std::runtime_error("x11WC::x11WC: window must be either of childWindow or of toplevelWindow type");
+    else if(toplvlw)
     {
-        windowType_ = x11WindowType::toplevel;
-
-        if(gl)
-            matchGLXVisualInfo();
-        else
-            matchVisualInfo();
+        if(gl) matchGLXVisualInfo();
+        else matchVisualInfo();
 
         xParent = DefaultRootWindow(getXDisplay());
 
     }
     else if(childw)
     {
-        windowType_ = x11WindowType::child;
-
         x11WC* parentWC = asX11(childw->getParent()->getWC());
         if(!parentWC || !(xParent = parentWC->getXWindow()))
         {
@@ -128,17 +115,13 @@ x11WindowContext::x11WindowContext(window& win, const x11WindowContextSettings& 
 
         if(gl)
         {
-            if(parentWC->getDrawType() == x11DrawType::glx) //can take visual info from parent
-                xVinfo_ = parentWC->getXVinfo();
-            else
-                matchGLXVisualInfo();
+            if(parentWC->getDrawType() == x11DrawType::glx) xVinfo_ = parentWC->getXVinfo();  //can take visual info from parent, maybe CopyFromParent?
+            else matchGLXVisualInfo();
         }
         else
         {
-            if(parentWC->getDrawType() == x11DrawType::cairo)
-                xVinfo_ = parentWC->getXVinfo();
-            else
-                matchVisualInfo();
+            if(parentWC->getDrawType() == x11DrawType::cairo) xVinfo_ = parentWC->getXVinfo();
+            else matchVisualInfo();
         }
 
     }
@@ -310,6 +293,7 @@ drawContext* x11WindowContext::beginDraw()
     }
     else
     {
+        nyWarning("x11WC::beginDraw: no valid drawContext");
         return nullptr;
     }
 }
@@ -324,11 +308,10 @@ void x11WindowContext::finishDraw()
     {
         getGLX()->apply();
         getGLX()->swapBuffers();
-        //getGLX()->makeNotCurrent();
+        getGLX()->makeNotCurrent();
     }
 
     XFlush(getXDisplay());
-    //XSync(getXDisplay(), False); //rlly needed?
 }
 
 void x11WindowContext::show()
@@ -358,25 +341,17 @@ void x11WindowContext::requestFocus()
 
 void x11WindowContext::setSize(vec2ui size, bool change)
 {
-    if(change)
-    {
-        XResizeWindow(getXDisplay(), xWindow_, size.x, size.y);
-    }
+    if(change) XResizeWindow(getXDisplay(), xWindow_, size.x, size.y);
 
-    if(getCairo())
-        cairo_->setSize(size);
-    else if(getGLX())
-        glx_.ctx->setSize(size);
+    if(getCairo()) cairo_->setSize(size);
+    else if(getGLX()) glx_.ctx->setSize(size);
 
     refresh();
 }
 
 void x11WindowContext::setPosition(vec2i position, bool change)
 {
-    if(change)
-    {
-        XMoveWindow(getXDisplay(), xWindow_, position.x, position.y);
-    }
+    if(change) XMoveWindow(getXDisplay(), xWindow_, position.x, position.y);
 }
 
 void x11WindowContext::setCursor(const cursor& curs)
@@ -417,8 +392,7 @@ void x11WindowContext::setMaxSize(vec2ui size)
 
 void x11WindowContext::processEvent(const contextEvent& e)
 {
-    if(e.contextType() == X11Reparent)
-        wasReparented(event_cast<x11ReparentEvent>(e).ev);
+    if(e.contextType() == X11Reparent) wasReparented(event_cast<x11ReparentEvent>(e).ev);
 }
 
 void x11WindowContext::addWindowHints(unsigned long hints)

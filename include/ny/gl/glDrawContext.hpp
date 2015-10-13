@@ -36,6 +36,7 @@ public:
     virtual void stroke(const mask& m, const pen& b) override;
 };
 
+#ifdef NY_WithGLES
 //gles
 class glesDrawImpl : public glDrawImpl
 {
@@ -44,7 +45,7 @@ public:
     virtual void fill(const mask& m, const brush& b) override;
     virtual void stroke(const mask& m, const pen& b) override;
 };
-
+#endif //GLES
 
 //glDrawContext////////////////////////////////////////////////////////////////////////////77
 class glDrawContext : public drawContext
@@ -117,5 +118,7 @@ protected:
 public:
     static glDrawContext* getCurrent();
 };
+
+inline glDrawContext* asGL(drawContext* dc){return dynamic_cast<glDrawContext*>(dc); }
 
 }
