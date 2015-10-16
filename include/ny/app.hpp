@@ -40,6 +40,7 @@ public:
     bool allBackends = 1;
 
     int threadpoolSize = -1; //auto size, 0 for no threadpool
+    bool useEventThread = 1;
 };
 
 class app : public eventHandlerNode
@@ -88,6 +89,7 @@ protected:
 
     std::atomic<bool> exit_ {0};
     std::atomic<bool> valid_ {0}; //if the app was initialized (correctly)
+    std::atomic<bool> inMainLoop_ {0};
 
     //event dispatching
     std::thread eventDispatcher_;

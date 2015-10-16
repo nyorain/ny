@@ -88,7 +88,7 @@ public:
     using contextEvent::contextEvent;
 
     virtual unsigned int contextType() const override { return eventType::contextCreate; }
-    virtual std::unique_ptr<event> clone() const override { return std::make_unique<contextCreateEvent>(*this); };
+    virtual std::unique_ptr<event> clone() const override { return make_unique<contextCreateEvent>(*this); };
 };
 
 }

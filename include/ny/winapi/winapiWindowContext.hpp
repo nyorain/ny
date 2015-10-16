@@ -35,6 +35,7 @@ protected:
 protected:
     HWND handle_;
     WNDCLASSEX wndClass_;
+    PAINTSTRUCT tmpPS_;
 
     winapiDrawType drawType_ = winapiDrawType::none;
     union

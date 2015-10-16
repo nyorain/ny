@@ -54,17 +54,20 @@ bool wglDrawContext::setupContext()
 
 bool wglDrawContext::makeCurrentImpl()
 {
-    return wglMakeCurrent(handleDC_, wglContext_);
+    if(!isCurrent()) return wglMakeCurrent(handleDC_, wglContext_);
+    return 1;
 }
 
 bool wglDrawContext::makeNotCurrentImpl()
 {
-    return wglMakeCurrent(nullptr, nullptr);
+    if(isCurrent()) return wglMakeCurrent(nullptr, nullptr);
+    return 1;
 }
 
 bool wglDrawContext::swapBuffers()
 {
-    return wglSwapLayerBuffers(handleDC_, WGL_SWAP_MAIN_PLANE);
+    //return wglSwapLayerBuffers(handleDC_, WGL_SWAP_MAIN_PLANE);
+    return SwapBuffers(handleDC_);
 }
 
 }

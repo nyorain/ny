@@ -50,6 +50,7 @@
 				<Option createStaticLib="1" />
 				<Compiler>
 					<Add option="-O2" />
+					<Add option="-std=c++14" />
 					<Add option="-DNY_WithWinapi" />
 					<Add option="-DNY_WithGL" />
 					<Add option="-DGLEW_STATIC" />
@@ -76,7 +77,6 @@
 		</Build>
 		<Compiler>
 			<Add option="-Wzero-as-null-pointer-constant" />
-			<Add option="-std=c++11" />
 			<Add option="-Wall" />
 			<Add option="-DNY_DEBUG" />
 			<Add option="-DXXNYPREDEF" />

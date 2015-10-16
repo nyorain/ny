@@ -29,7 +29,7 @@ public:
     x11ReparentEvent(eventHandler* h = nullptr, const XReparentEvent& e = XReparentEvent()) : contextEvent(h), ev(e) {};
 
     virtual unsigned int contextType() const override { return X11Reparent; }
-    virtual std::unique_ptr<event> clone() const override { return std::make_unique<x11ReparentEvent>(*this); }
+    virtual std::unique_ptr<event> clone() const override { return make_unique<x11ReparentEvent>(*this); }
 
     XReparentEvent ev;
 };

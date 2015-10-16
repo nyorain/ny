@@ -43,7 +43,7 @@ std::unique_ptr<windowContext> backend::createWindowContext(window& win, const w
     {
         if(w)
         {
-            return std::make_unique<virtualWindowContext>(*w, settings);
+            return make_unique<virtualWindowContext>(*w, settings);
         }
         else
         {
@@ -55,7 +55,7 @@ std::unique_ptr<windowContext> backend::createWindowContext(window& win, const w
     {
         if(w)
         {
-            return std::make_unique<virtualWindowContext>(*w, settings);
+            return make_unique<virtualWindowContext>(*w, settings);
         }
         else if(settings.virtualPref == preference::Should)
         {

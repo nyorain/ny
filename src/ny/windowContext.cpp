@@ -18,7 +18,7 @@ windowContext::windowContext(window& win, const windowContextSettings& s) : wind
 
 void windowContext::redraw()
 {
-    nyMainApp()->sendEvent(std::make_unique<drawEvent>(&window_));
+    nyMainApp()->sendEvent(make_unique<drawEvent>(&window_));
 }
 
 //virtual////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

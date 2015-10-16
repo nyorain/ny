@@ -40,8 +40,6 @@ winapiWindowContext::winapiWindowContext(window& win, const winapiWindowContextS
 
     //toplevel or child, gl or gdi
     bool gl = usingGLWin(settings.glPref);
-    nyDebug("pref: ", (unsigned int)settings.glPref);
-    nyDebug("gl: ", gl);
 
     auto* toplvlw = dynamic_cast<toplevelWindow*>(&win);
     auto* childw = dynamic_cast<childWindow*>(&win);
@@ -114,6 +112,7 @@ winapiWindowContext::winapiWindowContext(window& win, const winapiWindowContextS
     {
         drawType_ = winapiDrawType::wgl;
         wgl_.reset(new wglDrawContext(*this));
+        wgl_->setupContext();
     }
     else
     {
@@ -145,6 +144,8 @@ drawContext* winapiWindowContext::beginDraw()
     }
     else if(getWGL())
     {
+        BeginPaint(handle_, &tmpPS_);
+
         wgl_->makeCurrent();
         return wgl_.get();
     }
@@ -162,8 +163,10 @@ void winapiWindowContext::finishDraw()
     }
     else if(getWGL())
     {
+        EndPaint(handle_, &tmpPS_);
+
         wgl_->swapBuffers(); //todo check
-        wgl_->makeNotCurrent();
+        //wgl_->makeNotCurrent();
     }
     else
     {
@@ -212,14 +215,16 @@ void winapiWindowContext::processEvent(const contextEvent& e)
 {
     if(e.contextType() == eventType::contextCreate)
     {
-        if(getWGL())
-            if(!getWGL()->setupContext())
-                nyError("winapiWC::failed to init wgl context.");
+        //if(getWGL())
+        //    if(!getWGL()->setupContext())
+        //        nyError("winapiWC::failed to init wgl context.");
     }
 }
 
 void winapiWindowContext::setSize(vec2ui size, bool change)
 {
+    if(getWGL())
+        wgl_->updateViewport(size);
 }
 void winapiWindowContext::setPosition(vec2i position, bool change)
 {

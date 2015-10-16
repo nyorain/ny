@@ -102,7 +102,7 @@ LRESULT winapiAppContext::eventProc(HWND handler, UINT message, WPARAM wparam, L
         {
             CREATESTRUCT* cr = (CREATESTRUCT*) lparam;
             winapiWindowContext* w = (winapiWindowContext*) cr->lpCreateParams;
-            nyMainApp()->sendEvent(std::make_unique<contextCreateEvent>(&w->getWindow()));
+            //nyMainApp()->sendEvent(make_unique<contextCreateEvent>(&w->getWindow()));
             break;
         }
 
@@ -110,7 +110,7 @@ LRESULT winapiAppContext::eventProc(HWND handler, UINT message, WPARAM wparam, L
         {
             winapiWindowContext* w = getWindowContext(handler);
             if(!w) break;
-            nyMainApp()->mouseMove(std::make_unique<mouseMoveEvent>(&w->getWindow()));
+            nyMainApp()->mouseMove(make_unique<mouseMoveEvent>(&w->getWindow()));
             break;
         }
 
@@ -128,7 +128,7 @@ LRESULT winapiAppContext::eventProc(HWND handler, UINT message, WPARAM wparam, L
         {
             winapiWindowContext* w = getWindowContext(handler);
             if(!w) break;
-            nyMainApp()->sendEvent(std::make_unique<drawEvent>(&w->getWindow()));
+            nyMainApp()->sendEvent(make_unique<drawEvent>(&w->getWindow()));
             break;
         }
 
@@ -136,7 +136,7 @@ LRESULT winapiAppContext::eventProc(HWND handler, UINT message, WPARAM wparam, L
         {
             winapiWindowContext* w = getWindowContext(handler);
             if(!w) break;
-            nyMainApp()->sendEvent(std::make_unique<destroyEvent>(&w->getWindow()));
+            nyMainApp()->sendEvent(make_unique<destroyEvent>(&w->getWindow()));
             break;
         }
 
@@ -145,7 +145,7 @@ LRESULT winapiAppContext::eventProc(HWND handler, UINT message, WPARAM wparam, L
             winapiWindowContext* w = getWindowContext(handler);
             if(!w) break;
             vec2ui size = vec2ui(LOWORD(lparam), HIWORD(lparam)); //todo
-            nyMainApp()->sendEvent(std::make_unique<sizeEvent>(&w->getWindow(), size, 0));
+            nyMainApp()->sendEvent(make_unique<sizeEvent>(&w->getWindow(), size, 0));
             break;
         }
 
@@ -154,7 +154,7 @@ LRESULT winapiAppContext::eventProc(HWND handler, UINT message, WPARAM wparam, L
             winapiWindowContext* w = getWindowContext(handler);
             if(!w) break;
             vec2i pos = vec2i(); //todo
-            nyMainApp()->sendEvent(std::make_unique<positionEvent>(&w->getWindow(), pos, 0));
+            nyMainApp()->sendEvent(make_unique<positionEvent>(&w->getWindow(), pos, 0));
             break;
         }
 
@@ -162,6 +162,11 @@ LRESULT winapiAppContext::eventProc(HWND handler, UINT message, WPARAM wparam, L
         {
             nyMainApp()->exit();
             break;
+        }
+
+        case WM_ERASEBKGND:
+        {
+            return 1;
         }
 
         default:

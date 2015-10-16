@@ -20,12 +20,12 @@ public:
 //image
 image::image() : file(), surface(), impl_(nullptr)
 {
-	//impl_ = std::make_unique<impl>();
+	//impl_ = make_unique<impl>();
 }
 
 image::image(const std::string& path) : file(path), surface()
 {
-	//impl_ = std::make_unique<impl>();
+	//impl_ = make_unique<impl>();
 	//impl_->img.load(path.c_str());
 }
 
@@ -35,7 +35,7 @@ image::~image()
 
 image::image(const image& other) : file(), surface(), impl_(nullptr)
 {
-	//impl_ = std::make_unique<impl>();
+	//impl_ = make_unique<impl>();
 	//impl_->img = other.impl_->img;
 }
 

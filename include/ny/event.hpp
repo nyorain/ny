@@ -1,9 +1,10 @@
 #pragma once
 
 #include <ny/include.hpp>
+#include <nyutil/make_unique.hpp>
 
-#include <memory>
 #include <type_traits>
+#include <stdexcept>
 
 namespace ny
 {
@@ -30,7 +31,7 @@ class eventDataBase : public eventData
 {
 public:
     virtual std::unique_ptr<eventData> clone() const override
-        { return std::make_unique<T>(static_cast<const T&>(*this)); }
+        { return make_unique<T>(static_cast<const T&>(*this)); }
 };
 
 //event//////////////////
@@ -74,7 +75,7 @@ public:
     eventBase(eventHandler* xhandler = nullptr, eventData* xdata = nullptr) : event(xhandler, xdata){};
 
     //event
-    virtual std::unique_ptr<event> clone() const override { return std::make_unique<T>(static_cast<const T&>(*this)); }
+    virtual std::unique_ptr<event> clone() const override { return make_unique<T>(static_cast<const T&>(*this)); }
     virtual unsigned int type() const override final { return Type; }
     virtual bool overrideable() const override final { return Override; }
 };

@@ -265,7 +265,7 @@ void waylandAppContext::eventMouseMove(wl_pointer *pointer, unsigned int time, i
     auto pos = vec2i(wl_fixed_to_int(sx), wl_fixed_to_int(sy));
     auto delta = pos - mouse::getPosition();
 
-    nyMainApp()->mouseMove(std::make_unique<mouseMoveEvent>(nullptr, pos, vec2i(), delta));
+    nyMainApp()->mouseMove(make_unique<mouseMoveEvent>(nullptr, pos, vec2i(), delta));
 }
 
 void waylandAppContext::eventMouseEnterSurface(wl_pointer *pointer, unsigned int serial, wl_surface *surface, int sx, int sy)
@@ -278,7 +278,7 @@ void waylandAppContext::eventMouseEnterSurface(wl_pointer *pointer, unsigned int
     auto handler = &(static_cast<waylandWC*>(data))->getWindow();
     auto pos = vec2i(wl_fixed_to_int(sx), wl_fixed_to_int(sy));
 
-    nyMainApp()->mouseCross(std::make_unique<mouseCrossEvent>(handler, 1, pos, new waylandEventData(serial)));
+    nyMainApp()->mouseCross(make_unique<mouseCrossEvent>(handler, 1, pos, new waylandEventData(serial)));
 }
 
 void waylandAppContext::eventMouseLeaveSurface(wl_pointer *pointer, unsigned int serial, wl_surface *surface)
@@ -290,19 +290,19 @@ void waylandAppContext::eventMouseLeaveSurface(wl_pointer *pointer, unsigned int
 
     auto handler = &(static_cast<waylandWC*>(data))->getWindow();
 
-    nyMainApp()->mouseCross(std::make_unique<mouseCrossEvent>(handler, 0, vec2i(), new waylandEventData(serial)));
+    nyMainApp()->mouseCross(make_unique<mouseCrossEvent>(handler, 0, vec2i(), new waylandEventData(serial)));
 }
 
 void waylandAppContext::eventMouseButton(wl_pointer *wl_pointer, unsigned int serial, unsigned int time, unsigned int button, unsigned int state)
 {
     auto buttn = waylandToButton(button);
-    nyMainApp()->mouseButton(std::make_unique<mouseButtonEvent>(nullptr, buttn, static_cast<bool>(state), mouse::getPosition(), new waylandEventData(serial)));
+    nyMainApp()->mouseButton(make_unique<mouseButtonEvent>(nullptr, buttn, static_cast<bool>(state), mouse::getPosition(), new waylandEventData(serial)));
 }
 
 void waylandAppContext::eventMouseAxis(wl_pointer *pointer, unsigned int time, unsigned int axis, int value)
 {
     //todo
-    nyMainApp()->sendEvent(std::make_unique<mouseWheelEvent>(nullptr, value));
+    nyMainApp()->sendEvent(make_unique<mouseWheelEvent>(nullptr, value));
 }
 
 //keyboard
@@ -320,7 +320,7 @@ void waylandAppContext::eventKeyboardEnterSurface(wl_keyboard *keyboard, unsigne
 
     auto handler = &(static_cast<waylandWC*>(data))->getWindow();
 
-    nyMainApp()->windowFocus(std::make_unique<focusEvent>(handler, 1, new waylandEventData(serial)));
+    nyMainApp()->windowFocus(make_unique<focusEvent>(handler, 1, new waylandEventData(serial)));
 }
 
 void waylandAppContext::eventKeyboardLeaveSurface(wl_keyboard *keyboard, unsigned int serial, wl_surface *surface)
@@ -332,13 +332,13 @@ void waylandAppContext::eventKeyboardLeaveSurface(wl_keyboard *keyboard, unsigne
 
     auto handler = &(static_cast<waylandWC*>(data))->getWindow();
 
-    nyMainApp()->windowFocus(std::make_unique<focusEvent>(handler, 0, new waylandEventData(serial)));
+    nyMainApp()->windowFocus(make_unique<focusEvent>(handler, 0, new waylandEventData(serial)));
 }
 
 void waylandAppContext::eventKeyboardKey(wl_keyboard *keyboard, unsigned int serial, unsigned int time, unsigned int key, unsigned int state)
 {
     auto ky = waylandToKey(key);
-    nyMainApp()->keyboardKey(std::make_unique<keyEvent>(nullptr, ky, static_cast<bool>(state), new waylandEventData(serial)));
+    nyMainApp()->keyboardKey(make_unique<keyEvent>(nullptr, ky, static_cast<bool>(state), new waylandEventData(serial)));
 }
 
 void waylandAppContext::eventKeyboardModifiers(wl_keyboard *keyboard, unsigned int serial, unsigned int mods_depressed, unsigned int mods_latched, unsigned int mods_locked, unsigned int group)
@@ -357,7 +357,7 @@ void waylandAppContext::eventWindowResized(wl_shell_surface* shellSurface, unsig
     auto handler = &static_cast<waylandWindowContext*>(wl_shell_surface_get_user_data(shellSurface))->getWindow();
     auto size = vec2ui(width, height);
 
-    nyMainApp()->sendEvent(std::make_unique<sizeEvent>(handler, size, 1));
+    nyMainApp()->sendEvent(make_unique<sizeEvent>(handler, size, 1));
 }
 
 void waylandAppContext::shmFormat(wl_shm* shm, unsigned int format)

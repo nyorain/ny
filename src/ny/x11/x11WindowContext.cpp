@@ -263,7 +263,7 @@ void x11WindowContext::matchGLXVisualInfo()
 void x11WindowContext::refresh()
 {
     //internal event method
-    nyMainApp()->sendEvent(std::make_unique<drawEvent>(&getWindow()));
+    nyMainApp()->sendEvent(make_unique<drawEvent>(&getWindow()));
 
 /*
     //x11 method

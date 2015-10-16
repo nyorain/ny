@@ -124,9 +124,12 @@ int app::mainLoop()
     eventDispatcher_ = std::thread(&app::eventDispatcher, this);
 
     exitReason_ = exitReason::noEventSources;
+    inMainLoop_ = 1;
+
     mainLoop_.run();
 
     //clean up
+    inMainLoop_ = 0;
     exit_ = 1;
 
     threadpool_.reset();
@@ -192,6 +195,17 @@ void app::destroy()
 
 void app::sendEvent(std::unique_ptr<event> ev)
 {
+    if(!settings_.useEventThread)
+    {
+        if(!mainLoop_.running() || !inMainLoop_)
+            return;
+
+        if(ev->handler) ev->handler->processEvent(*ev);
+        else nyWarning("app::sendEvent: received event without valid event handler");
+
+        return;
+    }
+
     //if(ev && ev->handler) ev->handler->processEvent(*ev);
     //return;
 
@@ -313,8 +327,8 @@ void app::mouseMove(std::unique_ptr<mouseMoveEvent> event)
 
         if(child && child != mouseOver_)
         {
-            mouseCross(std::make_unique<mouseCrossEvent>(mouseOver_, 0));
-            mouseCross(std::make_unique<mouseCrossEvent>(child, 1));
+            mouseCross(make_unique<mouseCrossEvent>(mouseOver_, 0));
+            mouseCross(make_unique<mouseCrossEvent>(child, 1));
 
             mouseOver_ = child;
         }

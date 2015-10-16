@@ -36,7 +36,7 @@ bool x11Backend::isAvailable() const
 
 std::unique_ptr<appContext> x11Backend::createAppContext()
 {
-    return std::make_unique<x11AppContext>();
+    return make_unique<x11AppContext>();
 }
 
 std::unique_ptr<windowContext> x11Backend::createWindowContextImpl(window& win, const windowContextSettings& s)
@@ -55,7 +55,7 @@ std::unique_ptr<windowContext> x11Backend::createWindowContextImpl(window& win, 
         settings.glPref = s.glPref;
     }
 
-    return std::make_unique<x11WindowContext>(win, settings);
+    return make_unique<x11WindowContext>(win, settings);
 }
 
 }

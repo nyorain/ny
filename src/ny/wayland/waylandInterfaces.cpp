@@ -45,7 +45,7 @@ const wl_shell_surface_listener shellSurfaceListener =
 void surfaceHandleFrame(void* data, wl_callback *callback, uint32_t time)
 {
     waylandWC* wc = (waylandWindowContext*)data;
-    nyMainApp()->sendEvent(std::make_unique<waylandFrameEvent>(&wc->getWindow()));
+    nyMainApp()->sendEvent(make_unique<waylandFrameEvent>(&wc->getWindow()));
 }
 const wl_callback_listener frameListener =
 {
@@ -266,12 +266,12 @@ const xdg_shell_listener xdgShellListener =
 void xdgSurfaceConfigure(void *data, struct xdg_surface *xdg_surface, int32_t width, int32_t height, struct wl_array *states, uint32_t serial)
 {
     waylandWindowContext* wc = (waylandWindowContext*) data;
-    nyMainApp()->sendEvent(std::make_unique<sizeEvent>(&wc->getWindow(), vec2ui(width, height), 1, new waylandEventData(serial)));
+    nyMainApp()->sendEvent(make_unique<sizeEvent>(&wc->getWindow(), vec2ui(width, height), 1, new waylandEventData(serial)));
 }
 void xdgSurfaceClose(void *data, struct xdg_surface *xdg_surface)
 {
     waylandWindowContext* wc = (waylandWindowContext*) data;
-    nyMainApp()->sendEvent(std::make_unique<destroyEvent>(&wc->getWindow()));
+    nyMainApp()->sendEvent(make_unique<destroyEvent>(&wc->getWindow()));
 }
 const xdg_surface_listener xdgSurfaceListener =
 {

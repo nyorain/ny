@@ -2,6 +2,8 @@
 #include <ny/winapi/winapiAppContext.hpp>
 #include <ny/winapi/winapiWindowContext.hpp>
 
+#include <nyutil/make_unique.hpp>
+
 namespace ny
 {
 
@@ -14,7 +16,7 @@ winapiBackend::winapiBackend() : backend(Winapi)
 
 std::unique_ptr<appContext> winapiBackend::createAppContext()
 {
-    return std::make_unique<winapiAppContext>();
+    return make_unique<winapiAppContext>();
 }
 
 std::unique_ptr<windowContext> winapiBackend::createWindowContextImpl(window& win, const windowContextSettings& settings)
@@ -33,7 +35,7 @@ std::unique_ptr<windowContext> winapiBackend::createWindowContextImpl(window& wi
         s.virtualPref = settings.virtualPref;
     }
 
-    return std::make_unique<winapiWindowContext>(win, s);
+    return make_unique<winapiWindowContext>(win, s);
 }
 
 }

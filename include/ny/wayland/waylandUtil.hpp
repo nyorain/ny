@@ -30,7 +30,7 @@ public:
     using contextEvent::contextEvent;
 
     virtual unsigned int contextType() const override { return frameEvent; }
-    virtual std::unique_ptr<event> clone() const override { return std::make_unique<waylandFrameEvent>(); }
+    virtual std::unique_ptr<event> clone() const override { return make_unique<waylandFrameEvent>(); }
 };
 
 

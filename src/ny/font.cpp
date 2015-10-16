@@ -38,7 +38,7 @@ freeTypeFont* font::getFreeTypeHandle(bool cr)
     {
         try
         {
-            ftFont_ = std::make_unique<freeTypeFont>(name_, fromFile_);
+            ftFont_ = make_unique<freeTypeFont>(name_, fromFile_);
         }
         catch(const std::exception& err)
         {
@@ -58,7 +58,7 @@ cairoFont* font::getCairoHandle(bool cr)
     {
         try
         {
-            cairoFont_ = std::make_unique<cairoFont>(name_, fromFile_);
+            cairoFont_ = make_unique<cairoFont>(name_, fromFile_);
         }
         catch(const std::exception& err)
         {

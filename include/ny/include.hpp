@@ -21,12 +21,11 @@ namespace nyutil
 template<size_t dim, class T> class vec;
 template<size_t dim, typename T> using refVec = vec<dim, T&>;
 template<size_t dim, class prec> class rect;
-
+template<size_t dim, class prec> class triangle;
+template<size_t dim, class prec> class line;
 template<size_t dim, typename prec> class transformable;
-using transformable2 = transformable<2, float>;
-using transformable3 = transformable<3, float>;
-
 template < class > class callback;
+template < class > class compatibleFunction;
 
 class connection;
 class callbackBase;
@@ -35,7 +34,7 @@ class timeDuration;
 class timePoint;
 class timer;
 
-class region;
+template<typename prec> class region;
 class threadpool;
 class task;
 class threadSafeObj;
@@ -156,8 +155,5 @@ typedef eglAppContext eglAC;
 #endif // NY_WithGL
 
 //utils
-
-
-
 }
 

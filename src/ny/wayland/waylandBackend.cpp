@@ -50,12 +50,12 @@ std::unique_ptr<windowContext> waylandBackend::createWindowContextImpl(window& w
         settings.glPref = s.glPref;
     }
 
-    return std::make_unique<waylandWindowContext>(win, settings);
+    return make_unique<waylandWindowContext>(win, settings);
 }
 
 std::unique_ptr<appContext> waylandBackend::createAppContext()
 {
-    return std::make_unique<waylandAppContext>();
+    return make_unique<waylandAppContext>();
 }
 
 
