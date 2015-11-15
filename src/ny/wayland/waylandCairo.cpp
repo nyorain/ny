@@ -7,7 +7,7 @@
 #include <ny/error.hpp>
 #include <ny/cairo.hpp>
 
-#include <nyutil/rect.hpp>
+#include <nytl/rect.hpp>
 
 
 namespace ny

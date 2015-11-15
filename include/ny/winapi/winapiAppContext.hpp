@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ny/appContext.hpp>
-#include <nyutil/eventLoop.hpp>
+#include <ny/eventLoop.hpp>
 
 #include <winsock2.h>
 #include <windows.h>

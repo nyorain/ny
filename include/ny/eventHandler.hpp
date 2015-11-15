@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <nyutil/hierachy.hpp>
+#include <nytl/hierachy.hpp>
 
 namespace ny
 {

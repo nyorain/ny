@@ -102,13 +102,13 @@ unsigned int image::getStride() const
     //return getSize().x * impl_->img.spectrum();
 }
 
-bool image::saveToFile(const std::string& path) const
+bool image::save(std::ostream& os) const
 {
     //impl_->img.save(path.c_str());
     //return 1;
 }
 
-bool image::loadFromFile(const std::string& path)
+bool image::load(std::istream& is)
 {
     //impl_->img.load(path.c_str());
    // return 1;

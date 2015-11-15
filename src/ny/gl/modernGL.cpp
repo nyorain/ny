@@ -4,6 +4,7 @@
 
 #include <ny/gl/modernGL.hpp>
 #include <ny/gl/shader.hpp>
+#include <ny/gl/triangulate.hpp>
 #include <ny/gl/shader/modernSources.hpp>
 
 #ifdef NY_WithGLBinding
@@ -45,74 +46,68 @@ void modernGLDrawImpl::clear(color col)
 
 void modernGLDrawImpl::fill(const mask& m, const brush& b)
 {
-    const customPath& p = m[0].getCustom();
-    size_t pSize = p.size();
+    static thread_local std::vector<triangle2f> triangles_;
 
-    nyDebug(p.size());
+    if(m.empty())
+        return;
 
     GLint viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
     vec2f viewSize(viewport[2], viewport[3]);
 
-    //nyDebug(viewSize);
-
-    GLfloat* verts = new GLfloat[p.size() * 2];
-    for(size_t i(0); i < p.size() * 2; i += 2)
-    {
-        //auto pos1 = vec3f(p[i / 2].position.x, p[i / 2].position.y, 1.) * p.getTransformMatrix();
-        //auto pos = toGL(vec2f(pos1.x, pos1.y), viewSize);
-        verts[i] = p[i / 2].position.x;
-        verts[i + 1] = p[i / 2].position.y;
-    }
-
-    GLuint elements[] = {
-        0, 1, 2,
-        2, 3, 0
-    };
-
-
-    GLuint vao;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
-    GLuint vbo;
-    glGenBuffers(1, &vbo);
-
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, pSize * 2 * sizeof(GLfloat), verts, GL_STATIC_DRAW);
-
-    GLuint ebo;
-    glGenBuffers(1, &ebo);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
-
-    //normalize transaltion for opengl
-    /*
-    auto tmat = p.getTransformMatrix();
-    tmat[0][2] = (tmat[0][2] / viewSize.x) * 2;
-    tmat[1][2] = -((tmat[1][2] / viewSize.y)) * 2;
-
-    nyDebug(tmat, "\n\n");
-*/
-
-    //nyDebug(p.getTransformMatrix());
-
     if(!defaultShader.getProgram()) initShader();
     defaultShader.setUniformParameter("inColor", b.rgbaNorm());
-    defaultShader.setUniformParameter("transform", p.getTransformMatrix());
     defaultShader.setUniformParameter("viewSize", viewSize);
     defaultShader.use();
 
-    // Specify the layout of the vertex data
-    GLint posAttrib = glGetAttribLocation(defaultShader.getProgram(), "pos");
-    glEnableVertexAttribArray(posAttrib);
-    glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+    for(const auto& pth : m)
+    {
+        triangles_.clear();
 
-    //draw
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+        if(pth.getPathType() == pathType::rectangle)
+        {
+            //nyDebug("gl: rectangle pos: ", pth.getRectangle().getPosition(), " size: ", pth.getRectangle().getSize());
+            rect2f r(pth.getRectangle().getPosition(), pth.getRectangle().getSize());
+            triangles_.emplace_back(r.topLeft(), r.topRight(), r.bottomRight());
+            triangles_.emplace_back(r.topLeft(), r.bottomLeft(), r.bottomRight());
+        }
+        else if(pth.getPathType() == pathType::circle)
+        {
+            //nyDebug("gl: cricle");
+        }
+        else if(pth.getPathType() == pathType::text)
+        {
+            //nyDebug("gl: text");
+        }
+        else if(pth.getPathType() == pathType::custom)
+        {
+            //nyDebug("gl: customPath");
+            triangles_ = triangulate((float*) pth.getCustom().getBaked().data(), pth.getCustom().getBaked().size());
+        }
 
-    delete[] verts;
+        GLuint vao;
+        glGenVertexArrays(1, &vao);
+        glBindVertexArray(vao);
+
+        GLuint vbo;
+        glGenBuffers(1, &vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, triangles_.size() * 6 * sizeof(GLfloat), (GLfloat*) triangles_.data(), GL_STATIC_DRAW);
+
+        defaultShader.setUniformParameter("transform", pth.getTransformMatrix());
+        GLint posAttrib = glGetAttribLocation(defaultShader.getProgram(), "pos");
+        glEnableVertexAttribArray(posAttrib);
+        glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+        nyDebug("gl: drawing ", triangles_.size(), " triangles");
+        for(auto& tr : triangles_)
+            std::cout << tr << "\n";
+
+        glDrawArrays(GL_TRIANGLES, 0, triangles_.size() * 3);
+
+        glDeleteBuffers(1, &vbo);
+        glDeleteVertexArrays(1, &vao);
+    }
 }
 
 void modernGLDrawImpl::stroke(const mask& m, const pen& b)

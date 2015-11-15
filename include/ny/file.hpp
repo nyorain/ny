@@ -1,6 +1,8 @@
 #pragma once
 
 #include <string>
+#include <ostream>
+#include <istream>
 
 namespace ny
 {
@@ -16,14 +18,18 @@ protected:
 public:
 	file() = default;
 	file(const std::string& path);
+	virtual ~file() = default;
 
 	bool hasChanged() const { return changed_; }
 
-    virtual bool saveToFile(const std::string& path) const = 0;
-    virtual bool loadFromFile(const std::string& path) = 0;
+    virtual bool save() const { if(filePath_.empty()) return 0; return save(filePath_); };
+    virtual bool load() { if(filePath_.empty()) return 0; return load(filePath_); };
 
-    virtual bool save() const { if(filePath_.empty()) return 0; return saveToFile(filePath_); };
-    virtual bool reload() { if(filePath_.empty()) return 0; return loadFromFile(filePath_); };
+    virtual bool save(const std::string& path) const;
+    virtual bool load(const std::string& path);
+
+    virtual bool save(std::ostream& os) const = 0;
+    virtual bool load(std::istream& is) = 0;
 };
 
 }

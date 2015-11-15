@@ -225,6 +225,7 @@ void glDrawContext::mask(const customPath& obj)
 {
     store_.emplace_back(obj);
 }
+
 void glDrawContext::mask(const text& obj)
 {
     store_.emplace_back(obj);

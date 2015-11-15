@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ny/ny.hpp>
-#include <nyutil/callback.hpp>
+#include <nytl/callback.hpp>
 
 namespace ny
 {

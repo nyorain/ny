@@ -41,13 +41,13 @@ public:
     virtual vec2ui getSize() const override;
 
     //from file
-    virtual bool loadFromFile(const std::string& path) override;
-    virtual bool saveToFile(const std::string& path) const override;
+    virtual bool load(std::istream& is) override;
+    virtual bool save(std::ostream& os) const override;
 };
 
 
 //gif//////////////////////////////////////////
-class gifImage : public file, public surface //maybe not surface
+class gifImage : public file
 {
 protected:
 public:
@@ -56,12 +56,12 @@ public:
     image* getImage(size_t i) { return nullptr; }
     image* operator[](size_t i) { return getImage(i); }
 
-    //from surface
-    virtual vec2ui getSize() const override { return vec2ui(); };
+    //inherit from surface?
+    vec2ui getSize() const { return vec2ui(); };
 
     //from file
-    virtual bool loadFromFile(const std::string& path) override { return 0;};
-    virtual bool saveToFile(const std::string& path) const override { return 0;};
+    virtual bool load(std::istream& is) override { return 0; };
+    virtual bool save(std::ostream& os) const override { return 0; };
 };
 
 }

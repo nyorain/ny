@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <nyutil/misc.hpp>
+#include <nytl/misc.hpp>
 
 #include <string>
 #include <stdexcept>

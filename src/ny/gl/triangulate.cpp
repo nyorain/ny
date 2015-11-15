@@ -1,7 +1,7 @@
 #include <ny/gl/triangulate.hpp>
 
-#include <nyutil/line.hpp>
-#include <nyutil/vec.hpp>
+#include <nytl/line.hpp>
+#include <nytl/vec.hpp>
 
 namespace ny
 {
@@ -15,68 +15,77 @@ namespace ny
 struct ppoint
 {
     vec2f pos;
-    bool convex;
+    float angle;
 };
 
 //
 namespace
 {
-    thread_local std::vector<vec2f> points;
-    thread_local std::vector<triangle2f> triangles;
+    std::vector<ppoint> points;
+    std::vector<triangle2f> triangles;
     bool clockwise;
+    float fullangle;
 }
 
 
 //
 std::size_t nextPoint(std::size_t i)
 {
-
+    return (i == points.size() - 1) ? 0 : i + 1;
 }
 
 std::size_t prevPoint(std::size_t i)
 {
-
+    return (i == 0) ? points.size() - 1 : i - 1;
 }
 
 
-bool updateConvex(std::size_t i)
+float updateAngle(std::size_t i)
 {
+    vec2f l1(points[i].pos - points[prevPoint(i)].pos);
+    vec2f l2(points[nextPoint(i)].pos - points[i].pos);
 
+    points[i].angle = cangle(l1, l2) / cDeg;
+    fullangle += (points[i].pos.x - points[prevPoint(i)].pos.x) * (points[i].pos.y + points[prevPoint(i)].pos.y);
+
+    nyDebug(i, ": ", points[i].angle);
+    nyDebug(i, "full: ", fullangle);
+
+    return points[i].angle;
+}
+
+bool isConvex(std::size_t i)
+{
+    return (clockwise) ? (points[i].angle >= 180.f) : (points[i].angle < 180.f);
 }
 
 vec<3, std::size_t> findNextEar()
 {
     for(std::size_t i(0); i < points.size(); i++)
     {
-        std::size_t next = (i + 1 == points.size()) ? 0 : i + 1;
-        std::size_t prev = (i == 0) ? points.size() - 1 : i - 1;
+        std::size_t prev = prevPoint(i);
+        std::size_t next = nextPoint(i);
 
-        vec2f l1(points[i] - points[prev]);
-        vec2f l2(points[next] - points[i]);
-        float angl = (atan2(l1.y, l1.x) - atan2(l2.y, l2.x)) / cDeg;
-
-        if(angl < 180.f) //if point is convex
+        if(isConvex(i)) //if point is convex
         {
-            triangle2f test(points[prev], points[i], points[next]);
-            bool found = 1;
+            triangle2f test(points[prev].pos, points[i].pos, points[next].pos);
 
+            bool found = 1;
             for(std::size_t o(0); o < points.size(); o++)
             {
-                if(o == i || o == next || o == prev) continue;
-                if(test.contains(points[o]))
+                if(isConvex(o) || o == i || o == next || o == prev) continue;
+                if(contains(test, points[o].pos))
                 {
                     found = 0;
                     break;
                 }
             }
 
-            if(found)
-            {
-                return {prev, i, next};
-            }
+            if(found) return {prev, i, next};
         }
     }
 
+    nyDebug("triangulate failed");
     return {0,0,0}; //should never occur
 }
 
@@ -89,31 +98,39 @@ std::vector<triangle2f> triangulate(float* xpoints, std::size_t size)
     points.resize(size);
     triangles.resize(size - 2);
 
-    for(std::size_t i(0); i < size * 2; i += 2)
+    fullangle = 0;
+    for(std::size_t i(0); i < size; i++)
     {
-        points[i / 2].x = xpoints[i];
-        points[i / 2].y = xpoints[i + 1];
+        points[i].pos.x = xpoints[i * 2];
+        points[i].pos.y = xpoints[i * 2 + 1];
+
+        if(i != 0) updateAngle(i - 1);
     }
 
-    //todo: init convex/concave points store
-    //      check if points are counter- or clockwise
-    //      holes
+    fullangle += updateAngle(points.size() - 1);
+
+    if(fullangle > 0) clockwise = 0;
+    else clockwise = 1;
 
     //iterate
     std::size_t i(0);
     while(points.size() > 3)
     {
-        std::cout << "it: " << i << " s: " << points.size() << std::endl;
         vec<3, std::size_t> ear = findNextEar();
-        triangles[i] = triangle2f(points[ear.x], points[ear.y], points[ear.z]);
+        triangles[i] = triangle2f(points[ear.x].pos, points[ear.y].pos, points[ear.z].pos);
+        nyDebug("c: ", i, " ", ear.x, " ", ear.y, " ", ear.z, " ", triangles[i]);
         points.erase(points.begin() + ear.y);
+
+        updateAngle(ear.x);
+        updateAngle(ear.z > 0 ? ear.z - 1 : 0);
+
         i++;
     }
+	nyDebug("some debug");
 
-    triangles[i] = triangle2f(points[0], points[1], points[2]); //triangles.back()
+    triangles[i] = triangle2f(points[0].pos, points[1].pos, points[2].pos); //triangles.back()
     points.clear();
 
-    //return
     return triangles;
 }
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <nyutil/nonCopyable.hpp>
+#include <nytl/nonCopyable.hpp>
 
 #include <functional>
 

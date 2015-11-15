@@ -74,6 +74,9 @@ enum class toplevelState : unsigned char
     Modal
 };
 
+//nativeWindowType, todo for wcSettings
+class nativeWindowType;
+
 //windowSettings
 class windowContextSettings
 {

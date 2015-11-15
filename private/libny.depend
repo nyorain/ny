@@ -2614,7 +2614,7 @@
 
 1439637597 lient.h"
 
-1445019484 source:a:\programming\projects\ny\src\ny\app.cpp
+1447612009 source:a:\programming\projects\ny\src\ny\app.cpp
 	<ny/app.hpp>
 	<ny/eventHandler.hpp>
 	<ny/event.hpp>
@@ -2625,18 +2625,17 @@
 	<ny/font.hpp>
 	<ny/keyboard.hpp>
 	<ny/mouse.hpp>
-	<nyutil/thread.hpp>
-	<nyutil/time.hpp>
-	<nyutil/misc.hpp>
+	<nytl/time.hpp>
+	<nytl/misc.hpp>
 	<iostream>
 	<thread>
 	<chrono>
 	<vector>
 
-1439637597 source:a:\programming\projects\ny\src\ny\appcontext.cpp
+1439633997 source:a:\programming\projects\ny\src\ny\appcontext.cpp
 	<ny/appContext.hpp>
 
-1445014803 source:a:\programming\projects\ny\src\ny\backend.cpp
+1445011203 source:a:\programming\projects\ny\src\ny\backend.cpp
 	<ny/backend.hpp>
 	<ny/app.hpp>
 	<ny/wayland/waylandBackend.hpp>
@@ -2645,7 +2644,7 @@
 	<ny/window.hpp>
 	<ny/error.hpp>
 
-1443819158 source:a:\programming\projects\ny\src\ny\cairo.cpp
+1443815558 source:a:\programming\projects\ny\src\ny\cairo.cpp
 	<ny/config.h>
 	<ny/cairo.hpp>
 	<ny/shape.hpp>
@@ -2655,57 +2654,57 @@
 	<iostream>
 	<cmath>
 
-1439637597 source:a:\programming\projects\ny\src\ny\color.cpp
+1439633997 source:a:\programming\projects\ny\src\ny\color.cpp
 	<ny/color.hpp>
 
-1440628130 source:a:\programming\projects\ny\src\ny\cursor.cpp
+1440624530 source:a:\programming\projects\ny\src\ny\cursor.cpp
 	<ny/cursor.hpp>
 	<ny/image.hpp>
 
-1440085582 source:a:\programming\projects\ny\src\ny\data.cpp
+1440081982 source:a:\programming\projects\ny\src\ny\data.cpp
 	<ny/data.hpp>
 
-1439637597 source:a:\programming\projects\ny\src\ny\dialog.cpp
+1439633997 source:a:\programming\projects\ny\src\ny\dialog.cpp
 
-1441201245 source:a:\programming\projects\ny\src\ny\drawcontext.cpp
+1441197645 source:a:\programming\projects\ny\src\ny\drawcontext.cpp
 	<ny/drawContext.hpp>
 	<ny/shape.hpp>
 	<ny/surface.hpp>
 
-1440263630 source:a:\programming\projects\ny\src\ny\error.cpp
+1440260030 source:a:\programming\projects\ny\src\ny\error.cpp
 	<ny/error.hpp>
 	<ny/app.hpp>
 	<iostream>
 
-1440852387 source:a:\programming\projects\ny\src\ny\event.cpp
+1440848787 source:a:\programming\projects\ny\src\ny\event.cpp
 	<ny/event.hpp>
 
-1441476295 source:a:\programming\projects\ny\src\ny\eventhandler.cpp
+1441472695 source:a:\programming\projects\ny\src\ny\eventhandler.cpp
 	<ny/eventHandler.hpp>
 	<ny/app.hpp>
 	<ny/error.hpp>
 	<ny/event.hpp>
 	<iostream>
 
-1439637597 source:a:\programming\projects\ny\src\ny\file.cpp
+1445558282 source:a:\programming\projects\ny\src\ny\file.cpp
 	<ny/file.hpp>
 
-1445014803 source:a:\programming\projects\ny\src\ny\font.cpp
+1445011203 source:a:\programming\projects\ny\src\ny\font.cpp
 	<ny/font.hpp>
 	<ny/error.hpp>
 	<ny/freeType.hpp>
 	<ny/cairo.hpp>
 	<ny/winapi/gdiDrawContext.hpp>
 
-1440201891 source:a:\programming\projects\ny\src\ny\frame.cpp
+1440198291 source:a:\programming\projects\ny\src\ny\frame.cpp
 	<ny/frame.hpp>
 
-1439637597 source:a:\programming\projects\ny\src\ny\freetype.cpp
+1439633997 source:a:\programming\projects\ny\src\ny\freetype.cpp
 	<ny/config.h>
 	<ny/freeType.hpp>
 	<ny/error.hpp>
 
-1441045424 source:a:\programming\projects\ny\src\ny\gl\egl.cpp
+1441041824 source:a:\programming\projects\ny\src\ny\gl\egl.cpp
 	<ny/config.h>
 	<ny/gl/egl.hpp>
 	<ny/app.hpp>
@@ -2713,7 +2712,7 @@
 	<ny/error.hpp>
 	<EGL/egl.h>
 
-1444674654 source:a:\programming\projects\ny\src\ny\gl\gldrawcontext.cpp
+1445111062 source:a:\programming\projects\ny\src\ny\gl\gldrawcontext.cpp
 	<ny/config.h>
 	<ny/gl/glDrawContext.hpp>
 	<ny/gl/modernGL.hpp>
@@ -2724,40 +2723,40 @@
 	<GL/glew.h>
 	<string.h>
 
-1443819144 source:a:\programming\projects\ny\src\ny\gl\shader.cpp
+1447612009 source:a:\programming\projects\ny\src\ny\gl\shader.cpp
 	<ny/config.h>
 	<ny/gl/shader.hpp>
 	<ny/error.hpp>
-	<nyutil/mat.hpp>
+	<nytl/mat.hpp>
 	<glbinding/gl/gl.h>
 	<glbinding/Binding.h>
 	<GL/glew.h>
 	<fstream>
 
-1439637597 source:a:\programming\projects\ny\src\ny\headerbar.cpp
+1439633997 source:a:\programming\projects\ny\src\ny\headerbar.cpp
 
-1445014802 source:a:\programming\projects\ny\src\ny\image.cpp
+1445558112 source:a:\programming\projects\ny\src\ny\image.cpp
 	<ny/image.hpp>
 
-1440517008 source:a:\programming\projects\ny\src\ny\keyboard.cpp
+1440513408 source:a:\programming\projects\ny\src\ny\keyboard.cpp
 	<ny/keyboard.hpp>
 
-1441632378 source:a:\programming\projects\ny\src\ny\mouse.cpp
+1447612190 source:a:\programming\projects\ny\src\ny\mouse.cpp
 	<ny/mouse.hpp>
 
-1441068003 source:a:\programming\projects\ny\src\ny\shape.cpp
+1447612205 source:a:\programming\projects\ny\src\ny\shape.cpp
 	<ny/shape.hpp>
 
-1439637597 source:a:\programming\projects\ny\src\ny\style.cpp
+1439633997 source:a:\programming\projects\ny\src\ny\style.cpp
 	<ny/style.hpp>
 
-1439637597 source:a:\programming\projects\ny\src\ny\surface.cpp
+1439633997 source:a:\programming\projects\ny\src\ny\surface.cpp
 	<ny/surface.hpp>
 
-1439637597 source:a:\programming\projects\ny\src\ny\texture.cpp
+1439633997 source:a:\programming\projects\ny\src\ny\texture.cpp
 	<ny/texture.hpp>
 
-1439637597 source:a:\programming\projects\ny\src\ny\touch.cpp
+1439633997 source:a:\programming\projects\ny\src\ny\touch.cpp
 
 1441214251 source:a:\programming\projects\ny\src\ny\wayland\waylandappcontext.cpp
 	<ny/wayland/waylandAppContext.hpp>
@@ -2851,10 +2850,10 @@
 	<iostream>
 	<cassert>
 
-1441157650 source:a:\programming\projects\ny\src\ny\widget.cpp
+1441154050 source:a:\programming\projects\ny\src\ny\widget.cpp
 	<ny/widget.hpp>
 
-1445016795 source:a:\programming\projects\ny\src\ny\widgets.cpp
+1445013195 source:a:\programming\projects\ny\src\ny\widgets.cpp
 	<ny/widgets.hpp>
 	<ny/shape.hpp>
 	<ny/mouse.hpp>
@@ -2862,7 +2861,7 @@
 	<ny/drawContext.hpp>
 	<ny/windowContext.hpp>
 
-1444671290 source:a:\programming\projects\ny\src\ny\window.cpp
+1447612009 source:a:\programming\projects\ny\src\ny\window.cpp
 	<ny/window.hpp>
 	<ny/event.hpp>
 	<ny/app.hpp>
@@ -2876,11 +2875,11 @@
 	<ny/keyboard.hpp>
 	<ny/widgets.hpp>
 	<ny/sizer.hpp>
-	<nyutil/misc.hpp>
+	<nytl/misc.hpp>
 	<iostream>
 	<climits>
 
-1445014803 source:a:\programming\projects\ny\src\ny\windowcontext.cpp
+1445011203 source:a:\programming\projects\ny\src\ny\windowcontext.cpp
 	<ny/windowContext.hpp>
 	<ny/drawContext.hpp>
 	<ny/window.hpp>
@@ -2962,11 +2961,10 @@
 	<ny/x11/x11Egl.hpp>
 	<ny/x11/x11Cairo.hpp>
 
-1445019458 a:\programming\projects\ny\include\ny\app.hpp
+1445689139 a:\programming\projects\ny\include\ny\app.hpp
 	<ny/include.hpp>
 	<ny/eventHandler.hpp>
-	<nyutil/eventLoop.hpp>
-	<nyutil/thread.hpp>
+	<ny/eventLoop.hpp>
 	<vector>
 	<string>
 	<map>
@@ -2976,17 +2974,17 @@
 	<queue>
 	<condition_variable>
 
-1445015693 a:\programming\projects\ny\include\ny\include.hpp
+1447612009 a:\programming\projects\ny\include\ny\include.hpp
 	<ny/config.h>
 	<ny/error.hpp>
 	<iostream>
 	<cstdlib>
 
-1444671814 a:\programming\projects\ny\include\ny\config.h
+1447612470 a:\programming\projects\ny\include\ny\config.h
 
-1441476153 a:\programming\projects\ny\include\ny\eventhandler.hpp
+1447612009 a:\programming\projects\ny\include\ny\eventhandler.hpp
 	<ny/include.hpp>
-	<nyutil/hierachy.hpp>
+	<nytl/hierachy.hpp>
 
 1436517857 a:\programming\projects\ny\include\ny\util\noncopyable.hpp
 
@@ -3005,31 +3003,31 @@
 	<chrono>
 	<ratio>
 
-1445014785 a:\programming\projects\ny\include\ny\event.hpp
+1447612009 a:\programming\projects\ny\include\ny\event.hpp
 	<ny/include.hpp>
-	<nyutil/make_unique.hpp>
+	<nytl/make_unique.hpp>
 	<type_traits>
 	<stdexcept>
 
-1441160021 a:\programming\projects\ny\include\ny\mouse.hpp
+1447612009 a:\programming\projects\ny\include\ny\mouse.hpp
 	<ny/include.hpp>
 	<ny/event.hpp>
-	<nyutil/vec.hpp>
-	<nyutil/callback.hpp>
-	<nyutil/compFunc.hpp>
+	<nytl/vec.hpp>
+	<nytl/callback.hpp>
+	<nytl/compFunc.hpp>
 	<bitset>
 
 1437516788 a:\programming\projects\ny\include\ny\util\vec.hpp
 	<iostream>
 
-1441160027 a:\programming\projects\ny\include\ny\keyboard.hpp
+1441156427 a:\programming\projects\ny\include\ny\keyboard.hpp
 	<ny/include.hpp>
 	<ny/event.hpp>
 	<bitset>
 
-1440259462 a:\programming\projects\ny\include\ny\error.hpp
+1447612009 a:\programming\projects\ny\include\ny\error.hpp
 	<ny/include.hpp>
-	<nyutil/misc.hpp>
+	<nytl/misc.hpp>
 	<string>
 	<stdexcept>
 	<ostream>
@@ -3043,29 +3041,29 @@
 	<sstream>
 	<cmath>
 
-1440120170 a:\programming\projects\ny\include\ny\appcontext.hpp
+1447612009 a:\programming\projects\ny\include\ny\appcontext.hpp
 	<ny/include.hpp>
-	<nyutil/nonCopyable.hpp>
+	<nytl/nonCopyable.hpp>
 	<functional>
 
-1440632405 a:\programming\projects\ny\include\ny\backend.hpp
+1447612009 a:\programming\projects\ny\include\ny\backend.hpp
 	<ny/include.hpp>
 	<ny/windowContext.hpp>
-	<nyutil/nonCopyable.hpp>
+	<nytl/nonCopyable.hpp>
 	<vector>
 	<memory>
 
-1441488536 a:\programming\projects\ny\include\ny\windowcontext.hpp
+1447612009 a:\programming\projects\ny\include\ny\windowcontext.hpp
 	<ny/include.hpp>
 	<ny/windowDefs.hpp>
-	<nyutil/nonCopyable.hpp>
-	<nyutil/vec.hpp>
+	<nytl/nonCopyable.hpp>
+	<nytl/vec.hpp>
 	<memory>
 
-1441474631 a:\programming\projects\ny\include\ny\windowdefs.hpp
+1445689251 a:\programming\projects\ny\include\ny\windowdefs.hpp
 	<ny/include.hpp>
 
-1443819084 a:\programming\projects\ny\include\ny\window.hpp
+1447612009 a:\programming\projects\ny\include\ny\window.hpp
 	<ny/include.hpp>
 	<ny/eventHandler.hpp>
 	<ny/surface.hpp>
@@ -3073,21 +3071,21 @@
 	<ny/data.hpp>
 	<ny/windowEvents.hpp>
 	<ny/windowDefs.hpp>
-	<nyutil/callback.hpp>
-	<nyutil/vec.hpp>
+	<nytl/callback.hpp>
+	<nytl/vec.hpp>
 	<memory>
 	<functional>
 
-1439637597 a:\programming\projects\ny\include\ny\surface.hpp
+1447612009 a:\programming\projects\ny\include\ny\surface.hpp
 	<ny/include.hpp>
-	<nyutil/vec.hpp>
+	<nytl/vec.hpp>
 
-1439766594 a:\programming\projects\ny\include\ny\cursor.hpp
+1447612009 a:\programming\projects\ny\include\ny\cursor.hpp
 	<ny/include.hpp>
 	<ny/image.hpp>
-	<nyutil/vec.hpp>
+	<nytl/vec.hpp>
 
-1440985037 a:\programming\projects\ny\include\ny\data.hpp
+1440981437 a:\programming\projects\ny\include\ny\data.hpp
 	<ny/include.hpp>
 	<ny/event.hpp>
 	<iostream>
@@ -3095,7 +3093,7 @@
 	<functional>
 	<fstream>
 
-1445014803 a:\programming\projects\ny\include\ny\windowevents.hpp
+1445011203 a:\programming\projects\ny\include\ny\windowevents.hpp
 	<ny/include.hpp>
 	<ny/event.hpp>
 	<memory>
@@ -3108,39 +3106,39 @@
 	<algorithm>
 	<utility>
 
-1441640858 a:\programming\projects\ny\include\ny\wayland\waylandbackend.hpp
+1441637258 a:\programming\projects\ny\include\ny\wayland\waylandbackend.hpp
 	<ny/include.hpp>
 	<ny/backend.hpp>
 	<memory>
 
-1440633563 a:\programming\projects\ny\include\ny\x11\x11backend.hpp
+1440629963 a:\programming\projects\ny\include\ny\x11\x11backend.hpp
 	<ny/x11/x11Include.hpp>
 	<ny/backend.hpp>
 
-1439637597 a:\programming\projects\ny\include\ny\x11\x11include.hpp
+1439633997 a:\programming\projects\ny\include\ny\x11\x11include.hpp
 	<ny/include.hpp>
 
-1441641221 a:\programming\projects\ny\include\ny\winapi\winapibackend.hpp
+1441637621 a:\programming\projects\ny\include\ny\winapi\winapibackend.hpp
 	<ny/include.hpp>
 	<ny/backend.hpp>
 	<memory>
 
-1443818620 a:\programming\projects\ny\include\ny\cairo.hpp
+1443815020 a:\programming\projects\ny\include\ny\cairo.hpp
 	<ny/include.hpp>
 	<ny/drawContext.hpp>
 	<cairo/cairo.h>
 
-1441214696 a:\programming\projects\ny\include\ny\drawcontext.hpp
+1447612009 a:\programming\projects\ny\include\ny\drawcontext.hpp
 	<ny/include.hpp>
 	<ny/color.hpp>
-	<nyutil/vec.hpp>
-	<nyutil/rect.hpp>
-	<nyutil/region.hpp>
-	<nyutil/nonCopyable.hpp>
+	<nytl/vec.hpp>
+	<nytl/rect.hpp>
+	<nytl/region.hpp>
+	<nytl/nonCopyable.hpp>
 
-1443818481 a:\programming\projects\ny\include\ny\color.hpp
+1447613509 a:\programming\projects\ny\include\ny\color.hpp
 	<ny/include.hpp>
-	<nyutil/vec.hpp>
+	<nytl/vec.hpp>
 	<vector>
 
 1436517857 a:\programming\projects\ny\include\ny\util\rect.hpp
@@ -3154,15 +3152,15 @@
 	<ny/util/rect.hpp>
 	<vector>
 
-1443819113 a:\programming\projects\ny\include\ny\shape.hpp
+1447612009 a:\programming\projects\ny\include\ny\shape.hpp
 	<ny/include.hpp>
 	<ny/color.hpp>
-	<nyutil/transformable.hpp>
+	<nytl/transform.hpp>
 	<ny/font.hpp>
-	<nyutil/vec.hpp>
-	<nyutil/mat.hpp>
-	<nyutil/rect.hpp>
-	<nyutil/cache.hpp>
+	<nytl/vec.hpp>
+	<nytl/mat.hpp>
+	<nytl/rect.hpp>
+	<nytl/cache.hpp>
 	<vector>
 
 1436517857 a:\programming\projects\ny\include\ny\util\transformable.hpp
@@ -3181,51 +3179,53 @@
 	<ny/util/vec.hpp>
 	<functional>
 
-1440085854 a:\programming\projects\ny\include\ny\font.hpp
+1440082254 a:\programming\projects\ny\include\ny\font.hpp
 	<ny/include.hpp>
 	<string>
 	<memory>
 
-1440262200 a:\programming\projects\ny\include\ny\image.hpp
+1445558046 a:\programming\projects\ny\include\ny\image.hpp
 	<ny/include.hpp>
 	<ny/surface.hpp>
 	<ny/file.hpp>
 	<memory>
 
-1439767197 a:\programming\projects\ny\include\ny\file.hpp
+1445558243 a:\programming\projects\ny\include\ny\file.hpp
 	<string>
+	<ostream>
+	<istream>
 
-1439637597 a:\programming\projects\ny\include\ny\freetype.hpp
+1439633997 a:\programming\projects\ny\include\ny\freetype.hpp
 	<string>
 	<freetype2/ft2build.h>
 
-1441538407 a:\programming\projects\ny\include\ny\winapi\gdidrawcontext.hpp
+1447623320 a:\programming\projects\ny\include\ny\winapi\gdidrawcontext.hpp
 	<ny/include.hpp>
 	<ny/drawContext.hpp>
 	<winsock2.h>
 	<windows.h>
 	<gdiplus.h>
 
-1440201872 a:\programming\projects\ny\include\ny\frame.hpp
+1440198272 a:\programming\projects\ny\include\ny\frame.hpp
 	<ny/include.hpp>
 	<ny/window.hpp>
 
-1440086780 a:\programming\projects\ny\include\ny\gl\egl.hpp
+1447612009 a:\programming\projects\ny\include\ny\gl\egl.hpp
 	<ny/config.h>
 	<ny/include.hpp>
 	<ny/gl/glDrawContext.hpp>
-	<nyutil/nonCopyable.hpp>
+	<nytl/nonCopyable.hpp>
 
-1444676182 a:\programming\projects\ny\include\ny\gl\gldrawcontext.hpp
+1444672582 a:\programming\projects\ny\include\ny\gl\gldrawcontext.hpp
 	<ny/include.hpp>
 	<ny/drawContext.hpp>
 	<ny/shape.hpp>
 	<memory>
 
-1441068175 a:\programming\projects\ny\include\ny\gl\shader.hpp
+1447612009 a:\programming\projects\ny\include\ny\gl\shader.hpp
 	<ny/include.hpp>
-	<nyutil/vec.hpp>
-	<nyutil/mat.hpp>
+	<nytl/vec.hpp>
+	<nytl/mat.hpp>
 
 1439637597 a:\programming\projects\ny\src\ny\cimg.h
 	<cstdio>
@@ -3279,19 +3279,19 @@
 	"CImg.h"
 	<stdint.h>
 
-1441473781 a:\programming\projects\ny\include\ny\style.hpp
+1441470181 a:\programming\projects\ny\include\ny\style.hpp
 	<ny/include.hpp>
 	<ny/color.hpp>
 
-1440076323 a:\programming\projects\ny\include\ny\texture.hpp
+1440072723 a:\programming\projects\ny\include\ny\texture.hpp
 	<ny/include.hpp>
 	<string>
 
-1441157644 a:\programming\projects\ny\include\ny\widget.hpp
+1441154044 a:\programming\projects\ny\include\ny\widget.hpp
 	<ny/include.hpp>
 	<ny/window.hpp>
 
-1445019714 source:a:\programming\projects\ny\src\ny\winapi\wgl.cpp
+1445102982 source:a:\programming\projects\ny\src\ny\winapi\wgl.cpp
 	<ny/config.h>
 	<ny/winapi/wgl.hpp>
 	<ny/winapi/winapiWindowContext.hpp>
@@ -3299,7 +3299,7 @@
 
 1439637597 /wgl.hpp>
 
-1444675686 a:\programming\projects\ny\include\ny\winapi\wgl.hpp
+1444672086 a:\programming\projects\ny\include\ny\winapi\wgl.hpp
 	<ny/winapi/winapiInclude.hpp>
 	<ny/gl/glDrawContext.hpp>
 	<windows.h>
@@ -3326,51 +3326,51 @@
 	<X11/Xlib.h>
 	<map>
 
-1444648539 source:a:\programming\projects\ny\src\ny\winapi\winapiutil.cpp
+1444644939 source:a:\programming\projects\ny\src\ny\winapi\winapiutil.cpp
 	<ny/winapi/winapiUtil.hpp>
 	<ny/winapi/winapiAppContext.hpp>
 	<ny/app.hpp>
 	<ny/color.hpp>
 
-1439637597 a:\programming\projects\ny\include\ny\winapi\winapiutil.hpp
+1439633997 a:\programming\projects\ny\include\ny\winapi\winapiutil.hpp
 	<windows.h>
 	<gdiplus.h>
 	<ny/include.hpp>
 
-1445018082 source:a:\programming\projects\ny\src\ny\winapi\winapibackend.cpp
+1447612009 source:a:\programming\projects\ny\src\ny\winapi\winapibackend.cpp
 	<ny/winapi/winapiBackend.hpp>
 	<ny/winapi/winapiAppContext.hpp>
 	<ny/winapi/winapiWindowContext.hpp>
-	<nyutil/make_unique.hpp>
+	<nytl/make_unique.hpp>
 
 1437608690 /winapiWindowContext.hpp>
 
-1441659915 a:\programming\projects\ny\include\ny\winapi\winapiappcontext.hpp
+1445558162 a:\programming\projects\ny\include\ny\winapi\winapiappcontext.hpp
 	<ny/appContext.hpp>
-	<nyutil/eventLoop.hpp>
+	<ny/eventLoop.hpp>
 	<winsock2.h>
 	<windows.h>
 	<gdiplus.h>
 	<memory>
 	<map>
 
-1445018729 a:\programming\projects\ny\include\ny\winapi\winapiwindowcontext.hpp
+1445015129 a:\programming\projects\ny\include\ny\winapi\winapiwindowcontext.hpp
 	<ny/winapi/winapiInclude.hpp>
 	<ny/windowContext.hpp>
 	<ny/winapi/gdiDrawContext.hpp>
 	<winsock2.h>
 	<windows.h>
 
-1439637597 a:\programming\projects\ny\include\ny\winapi\winapiinclude.hpp
+1439633997 a:\programming\projects\ny\include\ny\winapi\winapiinclude.hpp
 	<ny/include.hpp>
 
-1439637597 source:a:\programming\projects\ny\src\ny\winapi\gdidrawcontext.cpp
+1439633997 source:a:\programming\projects\ny\src\ny\winapi\gdidrawcontext.cpp
 	<ny/winapi/gdiDrawContext.hpp>
 	<ny/winapi/winapiUtil.hpp>
 	<ny/winapi/winapiWindowContext.hpp>
 	<ny/window.hpp>
 
-1445019161 source:a:\programming\projects\ny\src\ny\winapi\winapiappcontext.cpp
+1445558202 source:a:\programming\projects\ny\src\ny\winapi\winapiappcontext.cpp
 	<ny/winapi/winapiAppContext.hpp>
 	<ny/winapi/winapiWindowContext.hpp>
 	<ny/error.hpp>
@@ -3382,7 +3382,7 @@
 	<ny/window.hpp>
 	<iostream>
 
-1445019126 source:a:\programming\projects\ny\src\ny\winapi\winapiwindowcontext.cpp
+1445016270 source:a:\programming\projects\ny\src\ny\winapi\winapiwindowcontext.cpp
 	<ny/winapi/winapiWindowContext.hpp>
 	<ny/winapi/winapiAppContext.hpp>
 	<ny/winapi/gdiDrawContext.hpp>
@@ -5041,28 +5041,28 @@
 
 1440252553 a:\programming\projects\ny-fixed\include\ny\config.h
 
-1437853439 a:\programming\windows\include\nyutil\nyutil\noncopyable.hpp
+1445465652 a:\programming\windows\include\nyutil\nyutil\noncopyable.hpp
 
-1444687634 a:\programming\windows\include\nyutil\nyutil\vec.hpp
+1445465652 a:\programming\windows\include\nyutil\nyutil\vec.hpp
 	<nyutil/tmp.hpp>
 	<nyutil/constants.hpp>
 	<ostream>
 	<cmath>
 	<type_traits>
 
-1444688402 a:\programming\windows\include\nyutil\nyutil\rect.hpp
+1445465652 a:\programming\windows\include\nyutil\nyutil\rect.hpp
 	<nyutil/vec.hpp>
 	<nyutil/triangle.hpp>
 	<vector>
 
-1444688379 a:\programming\windows\include\nyutil\nyutil\region.hpp
+1445465652 a:\programming\windows\include\nyutil\nyutil\region.hpp
 	<nyutil/vec.hpp>
 	<nyutil/rect.hpp>
 	<nyutil/triangle.hpp>
 	<nyutil/line.hpp>
 	<vector>
 
-1445015683 a:\programming\windows\include\nyutil\nyutil\mat.hpp
+1445465651 a:\programming\windows\include\nyutil\nyutil\mat.hpp
 	<nyutil/vec.hpp>
 	<nyutil/refVec.hpp>
 	<nyutil/compFunc.hpp>
@@ -5073,14 +5073,15 @@
 	<cmath>
 	<tuple>
 
-1443820245 a:\programming\windows\include\nyutil\nyutil\refvec.hpp
+1445465652 a:\programming\windows\include\nyutil\nyutil\refvec.hpp
 	<nyutil/vec.hpp>
 
-1443819045 a:\programming\windows\include\nyutil\nyutil\cache.hpp
-	<vector>
+1445561674 a:\programming\windows\include\nyutil\nyutil\cache.hpp
+	<unordered_map>
 	<memory>
+	<nyutil/make_unique.hpp>
 
-1445015945 a:\programming\windows\include\nyutil\nyutil\misc.hpp
+1445465652 a:\programming\windows\include\nyutil\nyutil\misc.hpp
 	<string>
 	<vector>
 	<functional>
@@ -5099,7 +5100,7 @@
 	<future>
 	<functional>
 
-1444768028 a:\programming\windows\include\nyutil\nyutil\time.hpp
+1445465652 a:\programming\windows\include\nyutil\nyutil\time.hpp
 	<chrono>
 	<ratio>
 
@@ -5110,7 +5111,7 @@
 	<vector>
 	<memory>
 
-1442673992 a:\programming\windows\include\nyutil\nyutil\callback.hpp
+1445467602 a:\programming\windows\include\nyutil\nyutil\callback.hpp
 	<nyutil/nonCopyable.hpp>
 	<nyutil/compFunc.hpp>
 	<functional>
@@ -5119,7 +5120,7 @@
 	<memory>
 	<atomic>
 
-1438809680 c:\program files\libuv\include\uv.h
+1438806080 c:\program files\libuv\include\uv.h
 	"uv-errno.h"
 	"uv-version.h"
 	<stddef.h>
@@ -5130,12 +5131,12 @@
 
 1438809680 "
 
-1438809680 c:\program files\libuv\include\uv-errno.h
+1438806080 c:\program files\libuv\include\uv-errno.h
 	<errno.h>
 
-1438809680 c:\program files\libuv\include\uv-version.h
+1438806080 c:\program files\libuv\include\uv-version.h
 
-1438809680 c:\program files\libuv\include\uv-win.h
+1438806080 c:\program files\libuv\include\uv-win.h
 	<winsock2.h>
 	<mswsock.h>
 	<ws2tcpip.h>
@@ -5150,9 +5151,9 @@
 
 1438809680 pool.h"
 
-1438809680 c:\program files\libuv\include\tree.h
+1438806080 c:\program files\libuv\include\tree.h
 
-1438809680 c:\program files\libuv\include\uv-threadpool.h
+1438806080 c:\program files\libuv\include\uv-threadpool.h
 
 1440204736 source:/mnt/sda5/Programming/projects/ny-fixed/src/ny/app.cpp
 	<ny/app.hpp>
@@ -6074,11 +6075,11 @@
 	<nyutil/constants.hpp>
 	<cmath>
 
-1444768364 a:\programming\windows\include\nyutil\nyutil\hierachy.hpp
+1445465651 a:\programming\windows\include\nyutil\nyutil\hierachy.hpp
 	<nyutil/nonCopyable.hpp>
 	<vector>
 
-1445017803 a:\programming\windows\include\nyutil\nyutil\compfunc.hpp
+1445465651 a:\programming\windows\include\nyutil\nyutil\compfunc.hpp
 	<nyutil/function_traits.hpp>
 	<nyutil/tmp.hpp>
 	<nyutil/integer_sequence.hpp>
@@ -6086,49 +6087,51 @@
 	<utility>
 	<tuple>
 	<functional>
+	<experimental/tuple>
 
-1442767626 a:\programming\windows\include\nyutil\nyutil\function_traits.hpp
+1445465651 a:\programming\windows\include\nyutil\nyutil\function_traits.hpp
 	<tuple>
 
-1441537279 source:a:\programming\projects\ny\src\ny\gl\legacygl.cpp
+1441533679 source:a:\programming\projects\ny\src\ny\gl\legacygl.cpp
 	<ny/config.h>
 	<ny/gl/glDrawContext.hpp>
 	<glbinding/gl/gl.h>
 	<GL/glew.h>
 
-1441036563 a:\programming\projects\ny\include\ny\gl\moderngl.hpp
+1441032963 a:\programming\projects\ny\include\ny\gl\moderngl.hpp
 	<ny/include.hpp>
 	<ny/gl/glDrawContext.hpp>
 
-1443819195 source:a:\programming\projects\ny\src\ny\gl\moderngl.cpp
+1445111051 source:a:\programming\projects\ny\src\ny\gl\moderngl.cpp
 	<ny/config.h>
 	<ny/gl/modernGL.hpp>
 	<ny/gl/shader.hpp>
+	<ny/gl/triangulate.hpp>
 	<ny/gl/shader/modernSources.hpp>
 	<glbinding/gl/gl.h>
 	<GL/glew.h>
 	<cassert>
 
-1441136871 a:\programming\projects\ny\include\ny\gl\shader\modernsources.hpp
+1441133271 a:\programming\projects\ny\include\ny\gl\shader\modernsources.hpp
 
-1441213820 source:a:\programming\projects\ny\src\ny\sizer.cpp
+1447612009 source:a:\programming\projects\ny\src\ny\sizer.cpp
 	<ny/sizer.hpp>
 	<ny/window.hpp>
-	<nyutil/misc.hpp>
+	<nytl/misc.hpp>
 
-1441214386 a:\programming\projects\ny\include\ny\sizer.hpp
+1447612009 a:\programming\projects\ny\include\ny\sizer.hpp
 	<ny/include.hpp>
 	<ny/eventHandler.hpp>
 	<ny/window.hpp>
-	<nyutil/misc.hpp>
-	<nyutil/vec.hpp>
+	<nytl/misc.hpp>
+	<nytl/vec.hpp>
 
-1441159133 a:\programming\projects\ny\include\ny\widgets.hpp
+1447612009 a:\programming\projects\ny\include\ny\widgets.hpp
 	<ny/include.hpp>
 	<ny/widget.hpp>
-	<nyutil/time.hpp>
+	<nytl/time.hpp>
 
-1441537316 source:a:\programming\projects\ny\src\ny\gl\gles.cpp
+1441533716 source:a:\programming\projects\ny\src\ny\gl\gles.cpp
 	<ny/config.h>
 	<ny/gl/glDrawContext.hpp>
 	<GLES2/gl2.h>
@@ -6237,34 +6240,182 @@
 
 1444584621 /mnt/sda5/Programming/linux/include/nyutil/nyutil/constants.hpp
 
-1445017293 a:\programming\windows\include\nyutil\nyutil\tmp.hpp
+1445542997 a:\programming\windows\include\nyutil\nyutil\tmp.hpp
 	<utility>
 
-1445015729 a:\programming\windows\include\nyutil\nyutil\constants.hpp
+1445543636 a:\programming\windows\include\nyutil\nyutil\constants.hpp
 
-1444648223 source:a:\programming\projects\ny\src\ny\gl\triangulate.cpp
+1447612160 source:a:\programming\projects\ny\src\ny\gl\triangulate.cpp
 	<ny/gl/triangulate.hpp>
-	<nyutil/line.hpp>
-	<nyutil/vec.hpp>
+	<nytl/line.hpp>
+	<nytl/vec.hpp>
 
-1444645883 a:\programming\projects\ny\include\ny\gl\triangulate.hpp
+1447612009 a:\programming\projects\ny\include\ny\gl\triangulate.hpp
 	<ny/include.hpp>
 	<ny/shape.hpp>
-	<nyutil/triangle.hpp>
+	<nytl/triangle.hpp>
 	<vector>
 
-1444688415 a:\programming\windows\include\nyutil\nyutil\triangle.hpp
+1445465652 a:\programming\windows\include\nyutil\nyutil\triangle.hpp
 	<nyutil/vec.hpp>
 	<nyutil/line.hpp>
 
-1444688390 a:\programming\windows\include\nyutil\nyutil\line.hpp
+1445465651 a:\programming\windows\include\nyutil\nyutil\line.hpp
 	<nyutil/vec.hpp>
 
-1444767573 a:\programming\windows\include\nyutil\nyutil\integer_sequence.hpp
+1445543286 a:\programming\windows\include\nyutil\nyutil\integer_sequence.hpp
 	<nyutil/tmp.hpp>
 	<utility>
 
-1444767315 a:\programming\windows\include\nyutil\nyutil\make_unique.hpp
+1445465651 a:\programming\windows\include\nyutil\nyutil\make_unique.hpp
 	<memory>
 	<functional>
+
+1447612122 a:\programming\projects\ny\include\ny\eventloop.hpp
+	<ny/include.hpp>
+	<nytl/callback.hpp>
+	<nytl/time.hpp>
+	<uv.h>
+	<vector>
+	<memory>
+
+1445465652 a:\programming\windows\include\nyutil\nyutil\transform.hpp
+	<nyutil/mat.hpp>
+	<nyutil/vec.hpp>
+	<nyutil/rect.hpp>
+	<nyutil/constants.hpp>
+	<cmath>
+
+1447534972 a:\programming\projects\nytl\nytl\misc.hpp
+	<string>
+	<vector>
+	<functional>
+	<utility>
+	<algorithm>
+	<sstream>
+	<cmath>
+
+1446583769 a:\programming\projects\nytl\nytl\noncopyable.hpp
+
+1446583769 a:\programming\projects\nytl\nytl\vec.hpp
+	<nytl/tmp.hpp>
+	<nytl/constants.hpp>
+	<iostream>
+	<algorithm>
+	<cmath>
+	<type_traits>
+	<nytl/bits/vec.inl>
+
+1446583769 a:\programming\projects\nytl\nytl\tmp.hpp
+	<utility>
+	<ostream>
+
+1446583769 a:\programming\projects\nytl\nytl\constants.hpp
+
+1447009309 a:\programming\projects\nytl\nytl\bits\vec.inl
+
+1446583769 a:\programming\projects\nytl\nytl\hierachy.hpp
+	<nytl/nonCopyable.hpp>
+	<vector>
+
+1446583769 a:\programming\projects\nytl\nytl\make_unique.hpp
+	<memory>
+	<functional>
+
+1446583769 a:\programming\projects\nytl\nytl\callback.hpp
+	<nytl/nonCopyable.hpp>
+	<nytl/compFunc.hpp>
+	<functional>
+	<vector>
+	<utility>
+	<memory>
+	<atomic>
+
+1446583769 a:\programming\projects\nytl\nytl\compfunc.hpp
+	<nytl/function_traits.hpp>
+	<nytl/tmp.hpp>
+	<nytl/integer_sequence.hpp>
+	<type_traits>
+	<utility>
+	<tuple>
+	<functional>
+	<experimental/tuple>
+
+1446583769 a:\programming\projects\nytl\nytl\function_traits.hpp
+	<tuple>
+
+1446583769 a:\programming\projects\nytl\nytl\integer_sequence.hpp
+	<nytl/tmp.hpp>
+	<utility>
+
+1446583769 a:\programming\projects\nytl\nytl\rect.hpp
+	<nytl/vec.hpp>
+	<nytl/triangle.hpp>
+	<nytl/line.hpp>
+	<vector>
+	<ostream>
+	<algorithm>
+	<nytl/bits/rect.inl>
+
+1446583769 a:\programming\projects\nytl\nytl\triangle.hpp
+	<nytl/vec.hpp>
+	<nytl/line.hpp>
+	<nytl/bits/triangle.inl>
+
+1446583769 a:\programming\projects\nytl\nytl\line.hpp
+	<nytl/vec.hpp>
+	<nytl/bits/line.inl>
+
+1446583769 a:\programming\projects\nytl\nytl\bits\line.inl
+
+1446583769 a:\programming\projects\nytl\nytl\bits\triangle.inl
+
+1446583769 a:\programming\projects\nytl\nytl\bits\rect.inl
+
+1446583769 a:\programming\projects\nytl\nytl\region.hpp
+	<nytl/vec.hpp>
+	<nytl/rect.hpp>
+	<nytl/triangle.hpp>
+	<nytl/line.hpp>
+	<vector>
+	<nytl/bits/region.inl>
+
+1446583769 a:\programming\projects\nytl\nytl\bits\region.inl
+
+1446583769 a:\programming\projects\nytl\nytl\transform.hpp
+	<nytl/mat.hpp>
+	<nytl/vec.hpp>
+	<nytl/rect.hpp>
+	<nytl/constants.hpp>
+	<cmath>
+
+1446583769 a:\programming\projects\nytl\nytl\mat.hpp
+	<nytl/vec.hpp>
+	<nytl/refVec.hpp>
+	<nytl/compFunc.hpp>
+	<nytl/misc.hpp>
+	<nytl/integer_sequence.hpp>
+	<iomanip>
+	<memory>
+	<cmath>
+	<tuple>
+	<cstddef>
+	<nytl/bits/matmp.inl>
+	<nytl/bits/mat.inl>
+
+1446583769 a:\programming\projects\nytl\nytl\refvec.hpp
+	<nytl/vec.hpp>
+
+1446583769 a:\programming\projects\nytl\nytl\bits\matmp.inl
+
+1446583769 a:\programming\projects\nytl\nytl\bits\mat.inl
+
+1446583769 a:\programming\projects\nytl\nytl\cache.hpp
+	<unordered_map>
+	<memory>
+	<nytl/make_unique.hpp>
+
+1446583769 a:\programming\projects\nytl\nytl\time.hpp
+	<chrono>
+	<ratio>
 

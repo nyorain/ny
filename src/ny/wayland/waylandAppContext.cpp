@@ -8,8 +8,8 @@
 #include <ny/app.hpp>
 #include <ny/image.hpp>
 
-#include <nyutil/misc.hpp>
-#include <nyutil/eventLoop.hpp>
+#include <nytl/misc.hpp>
+#include <nytl/eventLoop.hpp>
 
 #include <ny/wayland/xdg-shell-client-protocol.h>
 

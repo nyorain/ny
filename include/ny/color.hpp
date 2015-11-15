@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <nyutil/vec.hpp>
+#include <nytl/vec.hpp>
 
 #include <vector>
 

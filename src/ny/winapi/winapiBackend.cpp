@@ -2,7 +2,7 @@
 #include <ny/winapi/winapiAppContext.hpp>
 #include <ny/winapi/winapiWindowContext.hpp>
 
-#include <nyutil/make_unique.hpp>
+#include <nytl/make_unique.hpp>
 
 namespace ny
 {

@@ -49,18 +49,17 @@
 				<Option createDefFile="1" />
 				<Option createStaticLib="1" />
 				<Compiler>
-					<Add option="-O2" />
 					<Add option="-std=c++14" />
+					<Add option="-g" />
 					<Add option="-DNY_WithWinapi" />
 					<Add option="-DNY_WithGL" />
 					<Add option="-DGLEW_STATIC" />
 					<Add directory="../src" />
 					<Add directory="../include" />
-					<Add directory="A:/Programming/windows/include/nyutil" />
+					<Add directory="A:/Programming/projects/nytl" />
 					<Add directory="C:/Program Files/libuv/include" />
 				</Compiler>
 				<Linker>
-					<Add option="-s" />
 					<Add library="uv" />
 					<Add library="Gdiplus" />
 					<Add library="gdi32" />
@@ -143,6 +142,9 @@
 			<Option virtualFolder="include/" />
 			<Option target="linux" />
 			<Option target="windows" />
+		</Unit>
+		<Unit filename="../include/ny/eventLoop.hpp">
+			<Option virtualFolder="include/" />
 		</Unit>
 		<Unit filename="../include/ny/file.hpp">
 			<Option virtualFolder="include/" />

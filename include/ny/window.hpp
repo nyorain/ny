@@ -8,8 +8,8 @@
 #include <ny/windowEvents.hpp>
 #include <ny/windowDefs.hpp>
 
-#include <nyutil/callback.hpp>
-#include <nyutil/vec.hpp>
+#include <nytl/callback.hpp>
+#include <nytl/vec.hpp>
 
 #include <memory>
 #include <functional>

@@ -4,3 +4,4 @@ concepts/
 obj/
 bin/
 old/
+*.swp

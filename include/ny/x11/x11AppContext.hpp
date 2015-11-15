@@ -2,7 +2,7 @@
 
 #include <ny/x11/x11Include.hpp>
 #include <ny/appContext.hpp>
-#include <nyutil/eventLoop.hpp>
+#include <nytl/eventLoop.hpp>
 
 #include <X11/Xlib.h>
 #include <map>

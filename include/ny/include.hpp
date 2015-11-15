@@ -1,12 +1,12 @@
 #pragma once
 
-namespace nyutil
+namespace nytl
 {
 }
 
 namespace ny
 {
-using namespace nyutil;
+using namespace nytl;
 }
 
 #include <ny/config.h>
@@ -14,7 +14,7 @@ using namespace nyutil;
 #include <iostream> //same
 #include <cstdlib>
 
-namespace nyutil
+namespace nytl
 {
 
 
@@ -34,15 +34,7 @@ class timeDuration;
 class timePoint;
 class timer;
 
-template<typename prec> class region;
-class threadpool;
-class task;
-class threadSafeObj;
 class nonCopyable;
-
-class eventLoop;
-class eventSource;
-class pollEventSource;
 }
 
 namespace ny

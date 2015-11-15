@@ -2,7 +2,7 @@
 
 #include <ny/include.hpp>
 #include <ny/widget.hpp>
-#include <nyutil/time.hpp>
+#include <nytl/time.hpp>
 
 namespace ny
 {

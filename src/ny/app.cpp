@@ -10,9 +10,8 @@
 #include <ny/keyboard.hpp>
 #include <ny/mouse.hpp>
 
-#include <nyutil/thread.hpp>
-#include <nyutil/time.hpp>
-#include <nyutil/misc.hpp>
+#include <nytl/time.hpp>
+#include <nytl/misc.hpp>
 
 #include <iostream>
 #include <thread>
@@ -22,11 +21,10 @@
 namespace ny
 {
 
-app* app::mainApp = nullptr;
 std::vector<backend*> app::backends;
 
 //app////////////////////////////////////////////////
-app::app() : eventHandlerNode(), appContext_{nullptr}, threadpool_{nullptr}
+app::app() : eventHandlerNode(), appContext_{nullptr}
 {
     if(nyMainApp() != nullptr)
     {
@@ -35,7 +33,7 @@ app::app() : eventHandlerNode(), appContext_{nullptr}, threadpool_{nullptr}
     }
     else
     {
-        mainApp = this;
+        appInstance(1, this);
     }
 }
 
@@ -44,7 +42,7 @@ app::~app()
     exit();
 
     if(nyMainApp() == this)
-        mainApp = nullptr;
+        appInstance(1, nullptr);
 }
 
 void app::registerBackend(backend& b)
@@ -101,7 +99,7 @@ bool app::init(const appSettings& settings)
 
     font::getDefault().loadFromName(settings_.defaultFont);
 
-
+/*
     if(settings_.threadpoolSize > 0)
     {
         threadpool_.reset(new threadpool(settings_.threadpoolSize));
@@ -110,6 +108,7 @@ bool app::init(const appSettings& settings)
     {
          threadpool_.reset(new threadpool()); //auto size
     }
+*/
     //if threadpoolSize in appSetitngs == 0, no threadpool is created
 
     valid_ = 1;
@@ -132,7 +131,7 @@ int app::mainLoop()
     inMainLoop_ = 0;
     exit_ = 1;
 
-    threadpool_.reset();
+    //threadpool_.reset();
 
     eventCV_.notify_one();
     eventDispatcher_.join();

@@ -50,6 +50,21 @@ bool wglDrawContext::setupContext()
     wglContext_ = wglCreateContext(handleDC_);
 
     init(glApi::openGL);
+
+/*
+    makeCurrent();
+    using swapFuncType = bool (*)(int);
+    swapFuncType swapFuncEXT = (swapFuncType) wglGetProcAddress("wglSwapIntervalEXT");
+    if(swapFuncEXT)
+    {
+        swapFuncEXT(0); //?
+    }
+    else
+    {
+        nyWarning("wgl: function wglSwapIntervalEXT not found");
+    }
+    makeNotCurrent();
+*/
 }
 
 bool wglDrawContext::makeCurrentImpl()

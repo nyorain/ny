@@ -17,7 +17,7 @@ vec2i mouse::getPosition()
 
 void mouse::setPosition(vec2i pos)
 {
-    if(position == pos) return;
+    if(all(position == pos)) return;
 
     position = pos;
     moveCallback_(pos);

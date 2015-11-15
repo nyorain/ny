@@ -4,8 +4,8 @@
 
 #include <ny/windowDefs.hpp>
 
-#include <nyutil/nonCopyable.hpp>
-#include <nyutil/vec.hpp>
+#include <nytl/nonCopyable.hpp>
+#include <nytl/vec.hpp>
 
 #include <memory>
 

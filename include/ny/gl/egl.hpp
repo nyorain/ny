@@ -8,7 +8,7 @@
 #include <ny/include.hpp>
 #include <ny/gl/glDrawContext.hpp>
 
-#include <nyutil/nonCopyable.hpp>
+#include <nytl/nonCopyable.hpp>
 
 typedef void* EGLConfig;
 typedef void* EGLContext;

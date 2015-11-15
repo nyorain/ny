@@ -30,6 +30,8 @@ protected:
     PAINTSTRUCT ps_;
     Graphics* graphics_ = nullptr;
 
+    GraphicsPath currentPath_;
+
     winapiWindowContext& wc_;
 
 public:
@@ -37,11 +39,13 @@ public:
 
     virtual void clear(color col = color::none) override;
 
-	virtual void mask(const customPath& obj) override {};
-	virtual void mask(const text& obj) override {};
-	virtual void resetMask() override {};
+	virtual void mask(const customPath& obj) override;
+	virtual void mask(const text& obj) override;
+	virtual void mask(const rectangle& obj) override;
+	virtual void resetMask() override;
 
-	virtual void fillPreserve(const brush& col) override {};
+	virtual void fill(const brush& col) override;
+	virtual void fillPreserve(const brush& col) override;
 	virtual void strokePreserve(const pen& col) override {};
 
     virtual rect2f getClip() override { return rect2f(); };

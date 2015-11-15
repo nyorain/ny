@@ -3,8 +3,8 @@
 #include <ny/wayland/waylandInclude.hpp>
 
 #include <ny/gl/egl.hpp>
-#include <nyutil/nonCopyable.hpp>
-#include <nyutil/vec.hpp>
+#include <nytl/nonCopyable.hpp>
+#include <nytl/vec.hpp>
 #include <wayland-egl.h>
 
 namespace ny

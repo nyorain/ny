@@ -2,9 +2,9 @@
 
 #include <ny/include.hpp>
 #include <ny/event.hpp>
-#include <nyutil/vec.hpp>
-#include <nyutil/callback.hpp>
-#include <nyutil/compFunc.hpp>
+#include <nytl/vec.hpp>
+#include <nytl/callback.hpp>
+#include <nytl/compFunc.hpp>
 
 #include <bitset>
 

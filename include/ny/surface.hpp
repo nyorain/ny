@@ -2,7 +2,7 @@
 
 #include <ny/include.hpp>
 
-#include <nyutil/vec.hpp>
+#include <nytl/vec.hpp>
 
 namespace ny
 {

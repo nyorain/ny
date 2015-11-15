@@ -1,289 +1,19 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <CodeBlocks_layout_file>
 	<ActiveTarget name="windows" />
-	<File name="..\src\ny\frame.cpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="188" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\appContext.hpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="289" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\ny.hpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="14" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\wayland\waylandAppContext.cpp" open="0" top="0" tabpos="8" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="10818" topLine="326" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\app.hpp" open="0" top="0" tabpos="5" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="2279" topLine="69" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\gl\modernGL.hpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="63" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\x11\x11Util.cpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="7021" topLine="227" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\gl\egl.cpp" open="0" top="0" tabpos="16" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="1707" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\sizer.hpp" open="0" top="0" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="2049" topLine="58" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\winapi\winapiWindowContext.hpp" open="1" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="365" topLine="22" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\config.h" open="0" top="0" tabpos="8" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="4" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\gl\modernGL.cpp" open="0" top="0" tabpos="13" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="2667" topLine="93" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\include.hpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="2553" topLine="126" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\winapi\wgl.cpp" open="1" top="0" tabpos="5" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="1593" topLine="31" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\window.hpp" open="0" top="0" tabpos="8" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="8379" topLine="164" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\gl\triangulate.cpp" open="0" top="0" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="1021" topLine="43" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\x11\x11WindowContext.cpp" open="0" top="0" tabpos="6" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="7335" topLine="87" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\color.hpp" open="0" top="0" tabpos="9" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="763" topLine="12" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\gl\gles.cpp" open="0" top="0" tabpos="11" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="421" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\x11\x11Backend.cpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="1080" topLine="26" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\x11\x11Util.hpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="0" topLine="21" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\cursor.hpp" open="0" top="0" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="748" topLine="30" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\gl\shader.hpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="1432" topLine="25" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\x11\x11Cairo.cpp" open="0" top="0" tabpos="11" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="1384" topLine="28" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\x11\x11Cairo.hpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="350" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\image.cpp" open="0" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="586" topLine="84" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\image.hpp" open="0" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="297" topLine="0" />
-		</Cursor>
-	</File>
 	<File name="..\src\ny\wayland\xdg-shell-protocol.c" open="0" top="0" tabpos="14" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
 			<Cursor1 position="0" topLine="83" />
 		</Cursor>
 	</File>
-	<File name="..\include\ny\event.hpp" open="0" top="0" tabpos="9" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="..\include\ny\surface.hpp" open="0" top="0" tabpos="16" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="2742" topLine="65" />
+			<Cursor1 position="0" topLine="0" />
 		</Cursor>
 	</File>
-	<File name="..\include\ny\windowDefs.hpp" open="0" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="..\src\ny\shape.cpp" open="0" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="1659" topLine="50" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\gl\legacyGL.cpp" open="0" top="0" tabpos="14" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="531" topLine="5" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\wayland\waylandInterfaces.hpp" open="0" top="0" tabpos="5" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="14" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\wayland\waylandBackend.cpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="1185" topLine="15" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\eventHandler.hpp" open="0" top="0" tabpos="15" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="498" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\shape.cpp" open="0" top="0" tabpos="7" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="3711" topLine="160" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\gl\glDrawContext.hpp" open="0" top="0" tabpos="8" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="129" topLine="1" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\x11\glx.cpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="1982" topLine="45" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\data.cpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="1136" topLine="42" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\drawContext.hpp" open="0" top="0" tabpos="15" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="141" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\sizer.cpp" open="0" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="24" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\wayland\waylandWindowContext.hpp" open="0" top="0" tabpos="9" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="2891" topLine="93" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\wayland\waylandUtil.cpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="4096" topLine="187" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\cairo.cpp" open="0" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="4907" topLine="197" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\error.hpp" open="0" top="0" tabpos="7" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="40" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\widgets.cpp" open="0" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="375" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\backend.hpp" open="0" top="0" tabpos="11" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="557" topLine="8" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\winapi\winapiUtil.hpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="130" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\gl\egl.hpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="375" topLine="11" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\mouse.cpp" open="0" top="0" tabpos="6" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="273" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\wayland\waylandCairo.hpp" open="0" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="847" topLine="4" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\windowContext.cpp" open="0" top="0" tabpos="10" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="535" topLine="59" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\file.hpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="227" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\x11\x11AppContext.hpp" open="0" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="854" topLine="16" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\keyboard.hpp" open="0" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="1382" topLine="24" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\gl\glDrawContext.cpp" open="0" top="0" tabpos="15" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="1570" topLine="102" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\wayland\waylandEgl.hpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="665" topLine="6" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\winapi\winapiUtil.cpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="485" topLine="0" />
+			<Cursor1 position="1377" topLine="54" />
 		</Cursor>
 	</File>
 	<File name="..\include\ny\x11\x11WindowContext.hpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
@@ -291,109 +21,19 @@
 			<Cursor1 position="805" topLine="0" />
 		</Cursor>
 	</File>
-	<File name="..\include\ny\mouse.hpp" open="0" top="0" tabpos="5" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="..\src\ny\frame.cpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="1727" topLine="68" />
+			<Cursor1 position="188" topLine="0" />
 		</Cursor>
 	</File>
-	<File name="..\include\ny\wayland\waylandUtil.hpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="..\include\ny\image.hpp" open="0" top="0" tabpos="17" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="666" topLine="36" />
+			<Cursor1 position="1381" topLine="36" />
 		</Cursor>
 	</File>
-	<File name="..\src\ny\x11\x11AppContext.cpp" open="0" top="0" tabpos="12" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="..\src\ny\gl\legacyGL.cpp" open="0" top="0" tabpos="14" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="13790" topLine="243" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\font.hpp" open="0" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="118" topLine="5" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\app.cpp" open="1" top="0" tabpos="8" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="2664" topLine="107" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\freeType.hpp" open="0" top="0" tabpos="12" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="33" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\winapi\winapiBackend.hpp" open="0" top="0" tabpos="6" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="163" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\widget.hpp" open="0" top="0" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="88" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\x11\x11Backend.hpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="431" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\widgets.hpp" open="0" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="648" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\wayland\waylandWindowContext.cpp" open="0" top="0" tabpos="10" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="1453" topLine="40" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\wayland\waylandCairo.cpp" open="0" top="0" tabpos="9" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="2154" topLine="35" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\windowContext.hpp" open="0" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="1724" topLine="45" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\winapi\gdiDrawContext.hpp" open="0" top="0" tabpos="18" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="926" topLine="29" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\widget.cpp" open="0" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="198" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\winapi\wgl.hpp" open="1" top="0" tabpos="6" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="126" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\winapi\winapiAppContext.cpp" open="1" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="2197" topLine="95" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\data.hpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="3533" topLine="119" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\backend.cpp" open="0" top="0" tabpos="7" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="1520" topLine="9" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\texture.hpp" open="0" top="0" tabpos="6" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="143" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\wayland\xdg-shell-client-protocol.h" open="0" top="0" tabpos="15" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="0" topLine="199" />
+			<Cursor1 position="531" topLine="5" />
 		</Cursor>
 	</File>
 	<File name="..\src\ny\cursor.cpp" open="0" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
@@ -401,14 +41,54 @@
 			<Cursor1 position="272" topLine="2" />
 		</Cursor>
 	</File>
-	<File name="..\include\ny\wayland\waylandAppContext.hpp" open="0" top="0" tabpos="7" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="..\include\ny\drawContext.hpp" open="0" top="0" tabpos="12" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="1705" topLine="0" />
+			<Cursor1 position="141" topLine="9" />
 		</Cursor>
 	</File>
-	<File name="..\src\ny\winapi\gdiDrawContext.cpp" open="0" top="0" tabpos="17" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="..\src\ny\gl\glDrawContext.cpp" open="0" top="0" tabpos="9" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="0" topLine="0" />
+			<Cursor1 position="4181" topLine="208" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\include.hpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="2553" topLine="126" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\wayland\waylandUtil.cpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="4096" topLine="187" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\x11\x11Backend.hpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="431" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\appContext.hpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="289" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\gl\modernGL.cpp" open="1" top="1" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="1320" topLine="85" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\gl\triangulate.hpp" open="0" top="0" tabpos="5" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="250" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\winapi\winapiWindowContext.cpp" open="0" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="-1" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="5953" topLine="202" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\data.cpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="1136" topLine="42" />
 		</Cursor>
 	</File>
 	<File name="..\src\ny\font.cpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
@@ -416,9 +96,34 @@
 			<Cursor1 position="1080" topLine="32" />
 		</Cursor>
 	</File>
-	<File name="..\include\ny\dialog.hpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="..\include\ny\gl\egl.hpp" open="0" top="0" tabpos="15" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="12" topLine="0" />
+			<Cursor1 position="375" topLine="38" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\window.cpp" open="0" top="0" tabpos="10" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="3086" topLine="127" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\app.hpp" open="0" top="0" tabpos="20" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="3740" topLine="128" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\image.cpp" open="0" top="0" tabpos="25" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="1538" topLine="84" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\texture.hpp" open="0" top="0" tabpos="6" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="143" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\windowContext.cpp" open="0" top="0" tabpos="10" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="535" topLine="59" />
 		</Cursor>
 	</File>
 	<File name="..\include\ny\windowEvents.hpp" open="0" top="0" tabpos="11" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
@@ -426,49 +131,9 @@
 			<Cursor1 position="2605" topLine="60" />
 		</Cursor>
 	</File>
-	<File name="..\include\ny\gl\triangulate.hpp" open="0" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="..\include\ny\data.hpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="114" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\wayland\waylandEgl.cpp" open="0" top="0" tabpos="12" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="771" topLine="18" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\drawContext.cpp" open="0" top="0" tabpos="16" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="2915" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\frame.hpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="198" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\winapi\winapiAppContext.hpp" open="1" top="0" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="1440" topLine="19" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\window.cpp" open="1" top="0" tabpos="10" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="3086" topLine="127" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\shape.hpp" open="0" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="8488" topLine="254" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\winapi\winapiBackend.cpp" open="0" top="0" tabpos="5" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="274" topLine="10" />
-		</Cursor>
-	</File>
-	<File name="..\include\ny\x11\x11Include.hpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="579" topLine="1" />
+			<Cursor1 position="3533" topLine="119" />
 		</Cursor>
 	</File>
 	<File name="..\src\ny\keyboard.cpp" open="0" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
@@ -476,24 +141,9 @@
 			<Cursor1 position="3775" topLine="124" />
 		</Cursor>
 	</File>
-	<File name="..\include\ny\wayland\waylandBackend.hpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="..\include\ny\widget.hpp" open="0" top="0" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="84" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\eventHandler.cpp" open="0" top="0" tabpos="14" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="761" topLine="13" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\gl\shader.cpp" open="0" top="0" tabpos="12" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="3127" topLine="121" />
-		</Cursor>
-	</File>
-	<File name="..\src\ny\winapi\winapiWindowContext.cpp" open="1" top="1" tabpos="4" split="0" active="1" splitpos="0" zoom_1="-1" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="5953" topLine="202" />
+			<Cursor1 position="88" topLine="0" />
 		</Cursor>
 	</File>
 	<File name="..\src\ny\error.cpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
@@ -501,9 +151,309 @@
 			<Cursor1 position="217" topLine="4" />
 		</Cursor>
 	</File>
-	<File name="..\include\ny\cairo.hpp" open="0" top="0" tabpos="8" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="..\include\ny\dialog.hpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="634" topLine="27" />
+			<Cursor1 position="12" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\mouse.cpp" open="0" top="0" tabpos="6" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="273" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\eventHandler.hpp" open="0" top="0" tabpos="15" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="498" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\winapi\winapiUtil.cpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="485" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\eventHandler.cpp" open="0" top="0" tabpos="14" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="761" topLine="13" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\cairo.hpp" open="0" top="0" tabpos="23" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="91" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\gl\egl.cpp" open="0" top="0" tabpos="16" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="1707" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\file.hpp" open="0" top="0" tabpos="18" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="340" topLine="4" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\x11\x11Util.cpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="7021" topLine="227" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\windowDefs.hpp" open="0" top="0" tabpos="14" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="1659" topLine="61" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\config.h" open="0" top="0" tabpos="22" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="125" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\gl\triangulate.cpp" open="0" top="0" tabpos="6" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="919" topLine="38" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\gl\glDrawContext.hpp" open="1" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="1346" topLine="22" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\x11\x11WindowContext.cpp" open="0" top="0" tabpos="6" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="7335" topLine="87" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\winapi\wgl.hpp" open="0" top="0" tabpos="10" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="126" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\error.hpp" open="0" top="0" tabpos="7" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="40" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\gl\shader.hpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="1432" topLine="25" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\window.hpp" open="0" top="0" tabpos="8" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="8379" topLine="164" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\backend.hpp" open="0" top="0" tabpos="11" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="557" topLine="8" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\wayland\waylandAppContext.cpp" open="0" top="0" tabpos="8" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="10818" topLine="326" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\mouse.hpp" open="0" top="0" tabpos="5" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="1727" topLine="68" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\x11\glx.cpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="1982" topLine="45" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\windowContext.hpp" open="0" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="1724" topLine="45" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\shape.hpp" open="0" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="3389" topLine="120" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\x11\x11AppContext.hpp" open="0" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="854" topLine="16" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\event.hpp" open="0" top="0" tabpos="9" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="2742" topLine="65" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\wayland\xdg-shell-client-protocol.h" open="0" top="0" tabpos="15" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="0" topLine="199" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\sizer.hpp" open="0" top="0" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="2049" topLine="58" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\winapi\gdiDrawContext.cpp" open="0" top="0" tabpos="17" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="0" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\wayland\waylandBackend.cpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="1185" topLine="15" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\x11\x11Backend.cpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="1080" topLine="26" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\file.cpp" open="0" top="0" tabpos="29" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="205" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\wayland\waylandAppContext.hpp" open="0" top="0" tabpos="7" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="1705" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\x11\x11AppContext.cpp" open="0" top="0" tabpos="12" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="13790" topLine="243" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\backend.cpp" open="0" top="0" tabpos="7" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="1520" topLine="9" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\wayland\waylandCairo.hpp" open="0" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="847" topLine="4" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\x11\x11Cairo.cpp" open="0" top="0" tabpos="11" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="1384" topLine="28" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\cairo.cpp" open="0" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="4907" topLine="197" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\color.hpp" open="0" top="0" tabpos="9" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="763" topLine="12" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\sizer.cpp" open="0" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="24" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\frame.hpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="198" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\winapi\winapiBackend.cpp" open="0" top="0" tabpos="5" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="274" topLine="10" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\cursor.hpp" open="0" top="0" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="748" topLine="30" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\gl\legacyGL.hpp" open="1" top="0" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="0" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\winapi\winapiAppContext.cpp" open="0" top="0" tabpos="28" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="2062" topLine="95" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\x11\x11Cairo.hpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="350" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\widgets.cpp" open="0" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="375" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\wayland\waylandEgl.hpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="665" topLine="6" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\winapi\wgl.cpp" open="0" top="0" tabpos="11" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="1666" topLine="37" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\gl\modernGL.hpp" open="1" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="63" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\winapi\winapiAppContext.hpp" open="0" top="0" tabpos="26" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="55" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\font.hpp" open="0" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="118" topLine="5" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\wayland\waylandCairo.cpp" open="0" top="0" tabpos="9" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="2154" topLine="35" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\global.hpp" open="0" top="0" tabpos="19" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="0" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\winapi\winapiBackend.hpp" open="0" top="0" tabpos="6" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="163" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\ny.hpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="14" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\wayland\waylandWindowContext.cpp" open="0" top="0" tabpos="10" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="1453" topLine="40" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\keyboard.hpp" open="0" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="1382" topLine="24" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\x11\x11Util.hpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="0" topLine="21" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\wayland\waylandBackend.hpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="84" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\gl\shader.cpp" open="0" top="0" tabpos="12" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="3127" topLine="121" />
 		</Cursor>
 	</File>
 	<File name="..\include\ny\style.hpp" open="0" top="0" tabpos="6" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
@@ -511,9 +461,79 @@
 			<Cursor1 position="601" topLine="22" />
 		</Cursor>
 	</File>
+	<File name="..\src\ny\app.cpp" open="0" top="0" tabpos="21" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="2624" topLine="118" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\winapi\winapiUtil.hpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="130" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\freeType.hpp" open="0" top="0" tabpos="12" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="33" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\drawContext.cpp" open="0" top="0" tabpos="13" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="2915" topLine="3" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\winapi\winapiWindowContext.hpp" open="0" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="365" topLine="22" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\wayland\waylandInterfaces.hpp" open="0" top="0" tabpos="5" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="14" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\gl\gles.cpp" open="0" top="0" tabpos="11" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="421" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\x11\x11Include.hpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="579" topLine="1" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\wayland\waylandUtil.hpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="666" topLine="36" />
+		</Cursor>
+	</File>
 	<File name="..\src\ny\wayland\waylandInterfaces.cpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
 			<Cursor1 position="8297" topLine="30" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\widgets.hpp" open="0" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="648" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\widget.cpp" open="0" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="198" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\wayland\waylandWindowContext.hpp" open="0" top="0" tabpos="9" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="2891" topLine="93" />
+		</Cursor>
+	</File>
+	<File name="..\src\ny\wayland\waylandEgl.cpp" open="0" top="0" tabpos="12" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="771" topLine="18" />
+		</Cursor>
+	</File>
+	<File name="..\include\ny\winapi\gdiDrawContext.hpp" open="0" top="0" tabpos="18" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="926" topLine="29" />
 		</Cursor>
 	</File>
 </CodeBlocks_layout_file>

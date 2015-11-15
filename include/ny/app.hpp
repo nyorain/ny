@@ -2,8 +2,7 @@
 
 #include <ny/include.hpp>
 #include <ny/eventHandler.hpp>
-#include <nyutil/eventLoop.hpp>
-#include <nyutil/thread.hpp>
+#include <ny/eventLoop.hpp>
 
 #include <vector>
 #include <string>
@@ -48,8 +47,18 @@ class app : public eventHandlerNode
 
 friend class backend; //calls registerBackend on init
 
+private:
+    static app* appInstance(bool change = 0, app* a = nullptr)
+    {
+        static app* instance_;
+        if(change)
+        {
+            instance_ = a;
+        }
+        return instance_;
+    }
+
 protected:
-    static app* mainApp;
     static std::vector<backend*> backends; //ALL built in . from these one available backend is chose in init()
     static void registerBackend(backend& e);
 
@@ -66,7 +75,7 @@ public:
         signal = 10 // + signal number
     };
 
-    static app* nyMainApp(){ return mainApp; };
+    static app* nyMainApp(){ return appInstance(); };
 
 private:
     int exitReason_{exitReason::unknown};
@@ -81,7 +90,7 @@ protected:
     backend* backend_ {nullptr}; //the chosen backend. only existing if(valid_), one of backends
 
     std::unique_ptr<appContext> appContext_;
-    std::unique_ptr<threadpool> threadpool_;
+    //std::unique_ptr<threadpool> threadpool_;
 
     //changed/read by eventLoop and by eventDispatcher thread:
     std::atomic<window*> focus_ {nullptr}; //eventHandler which has current focus
@@ -132,7 +141,7 @@ public:
     bool loopThread() const { return std::this_thread::get_id() == loopThreadID_; };
     bool eventThread() const { return std::this_thread::get_id() == eventThreadID_; };
 
-    threadpool* getThreadPool() const { return threadpool_.get(); }
+    //threadpool* getThreadPool() const { return threadpool_.get(); }
 
     eventLoop& getEventLoop() { return mainLoop_; }
     const eventLoop& getEventLoop() const { return mainLoop_; }

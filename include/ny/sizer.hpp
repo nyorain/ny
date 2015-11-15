@@ -3,8 +3,8 @@
 #include <ny/include.hpp>
 #include <ny/eventHandler.hpp>
 #include <ny/window.hpp>
-#include <nyutil/misc.hpp>
-#include <nyutil/vec.hpp>
+#include <nytl/misc.hpp>
+#include <nytl/vec.hpp>
 
 namespace ny
 {
@@ -54,7 +54,7 @@ public:
     }
     template<sizerDir odir> boxSizer(boxSizer<odir>& parent) : eventHandler(), sizerParent_(&parent)
     {
-        parent.addChild(*this);
+        //parent.addChild(*this);
     }
     ~boxSizer() = default;
 

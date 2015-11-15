@@ -2,7 +2,7 @@
 
 #include <ny/include.hpp>
 #include <ny/shape.hpp>
-#include <nyutil/triangle.hpp>
+#include <nytl/triangle.hpp>
 
 #include <vector>
 

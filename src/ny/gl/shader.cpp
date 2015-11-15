@@ -4,7 +4,7 @@
 
 #include <ny/gl/shader.hpp>
 #include <ny/error.hpp>
-#include <nyutil/mat.hpp>
+#include <nytl/mat.hpp>
 
 #ifdef NY_WithGLBinding
  #include <glbinding/gl/gl.h>

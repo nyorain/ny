@@ -2,8 +2,8 @@
 
 #include <ny/include.hpp>
 
-#include <nyutil/vec.hpp>
-#include <nyutil/mat.hpp>
+#include <nytl/vec.hpp>
+#include <nytl/mat.hpp>
 
 namespace ny
 {

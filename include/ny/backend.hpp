@@ -2,7 +2,7 @@
 
 #include <ny/include.hpp>
 #include <ny/windowContext.hpp>
-#include <nyutil/nonCopyable.hpp>
+#include <nytl/nonCopyable.hpp>
 
 #include <vector>
 #include <memory>

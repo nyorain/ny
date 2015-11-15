@@ -2,13 +2,13 @@
 
 #include <ny/include.hpp>
 #include <ny/color.hpp>
-#include <nyutil/transformable.hpp>
+#include <nytl/transform.hpp>
 #include <ny/font.hpp>
 
-#include <nyutil/vec.hpp>
-#include <nyutil/mat.hpp>
-#include <nyutil/rect.hpp>
-#include <nyutil/cache.hpp>
+#include <nytl/vec.hpp>
+#include <nytl/mat.hpp>
+#include <nytl/rect.hpp>
+#include <nytl/cache.hpp>
 
 #include <vector>
 
@@ -105,6 +105,7 @@ protected:
 
 public:
     vertexArray() = default;
+    vertexArray(const std::vector<vec2f>& v) : points_(v) {};
     ~vertexArray() = default;
 
     explicit vertexArray(const vertexArray& other) = default;
@@ -116,6 +117,11 @@ public:
     ////
     vec2f& operator[](size_t i){ return points_[i]; }
     const vec2f& operator[](size_t i) const { return points_[i]; }
+
+    const vec2f* data() const { return points_.data(); }
+    vec2f* data() { return points_.data(); }
+
+    std::size_t size() const { return points_.size(); }
 
     //inherited from transformable
     rect2f getExtents() const
@@ -135,7 +141,7 @@ public:
 //path///////////////////////////////
 //pathType of the first point will be ignored, its a startpoint
 //the pathType of every point shows how to draw the line BEFORE the point
-class customPath : public transformable2
+class customPath : public transformable2, public multiCache<std::string>
 {
 protected:
     std::vector<point> points_ {};
@@ -145,12 +151,12 @@ protected:
 
 public:
     customPath(vec2f start = vec2f());
-    customPath(const customPath& other) noexcept : transformable2(other), points_(other.points_) {}
+    customPath(const customPath& other) : transformable2(other), points_(other.points_) {}
     customPath(customPath&& other) noexcept : transformable2(other), points_(std::move(other.points_)) {}
     ~customPath() = default;
 
     customPath& operator=(const customPath& other){ copyTransform(other); points_ = other.points_; return *this; }
-    customPath& operator=(customPath&& other){ copyTransform(other); points_ = std::move(other.points_); return *this; }
+    customPath& operator=(customPath&& other) noexcept { copyTransform(other); points_ = std::move(other.points_); return *this; }
 
     point& operator[](size_t i){ return points_[i]; }
     const point& operator[](size_t i) const { return points_[i]; }
@@ -174,7 +180,7 @@ public:
 
     void bake(int precision = -1) const; //default: use previous precision
     const std::vector<point>& getPoints() const { return points_; }
-    const vertexArray& getBaked() const { if(needBake_)bake(); return baked_; }
+    const vertexArray& getBaked() const { bake(); return baked_; }
     unsigned int getBakedPrecision() const { return precision_; }
 };
 
@@ -255,7 +261,7 @@ class circle : public transformable2
 protected:
     vec2f position_ {};
     float radius_ {0};
-    unsigned int points_ {0};
+    unsigned int points_ {30};
 
 public:
     circle() = default;
@@ -294,7 +300,7 @@ protected:
 		text text_;
 		rectangle rectangle_;
 		circle circle_;
-		customPath custom_;
+		customPath custom_ {};
 	};
 
 public:
@@ -394,7 +400,7 @@ public:
     void setBrush(const brush* b){ if(b){ hasBrush_ = 1; brush_ = *b; } }
 };
 
-//customShape//////////////////////////////////
+//bake//////////////////////////////////
 std::vector<vec2f> bakePoints(const std::vector<point>& vec);
 
 

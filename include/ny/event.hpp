@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <nyutil/make_unique.hpp>
+#include <nytl/make_unique.hpp>
 
 #include <type_traits>
 #include <stdexcept>

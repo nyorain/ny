@@ -100,8 +100,8 @@ LRESULT winapiAppContext::eventProc(HWND handler, UINT message, WPARAM wparam, L
     {
         case WM_CREATE:
         {
-            CREATESTRUCT* cr = (CREATESTRUCT*) lparam;
-            winapiWindowContext* w = (winapiWindowContext*) cr->lpCreateParams;
+            //CREATESTRUCT* cr = (CREATESTRUCT*) lparam;
+            //winapiWindowContext* w = (winapiWindowContext*) cr->lpCreateParams;
             //nyMainApp()->sendEvent(make_unique<contextCreateEvent>(&w->getWindow()));
             break;
         }

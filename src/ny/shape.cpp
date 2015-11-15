@@ -67,7 +67,11 @@ void customPath::addArc(vec2f p, float radius, arcType type)
 
 void customPath::bake(int precision) const
 {
+    if(precision != -1)
+        precision_ = precision;
 
+    baked_ = vertexArray(bakePoints(points_));
+    needBake_ = 0;
 }
 
 ///////////////////////////////////////////////////////7
@@ -163,7 +167,7 @@ customPath rectangle::getAsCustomPath() const
     rect2f me;
     me.size = size_;
 
-    if(allValuesLessOrEqual(borderRadius_, vec4f(0,0,0,0)))
+    if(all(borderRadius_ <= vec4f(0,0,0,0)))
     {
         customPath p(vec2f(0,0));
         p.addLine(vec2f(size_.x, 0));
