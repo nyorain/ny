@@ -1,6 +1,6 @@
-#include <ny/drawContext.hpp>
-#include <ny/shape.hpp>
-#include <ny/surface.hpp>
+#include <ny/draw/drawContext.hpp>
+#include <ny/draw/shape.hpp>
+#include <ny/draw/surface.hpp>
 
 namespace ny
 {
@@ -18,8 +18,8 @@ void drawContext::mask(const path& obj)
 {
     switch(obj.getPathType())
     {
-        case pathType::text: mask(obj.getText()); return;
-        case pathType::rectangle: mask(obj.getRectangle()); return;
+		case pathType::text: mask(obj.getText()); return;
+		case pathType::rectangle: mask(obj.getRectangle()); return;
         case pathType::custom: mask(obj.getCustom()); return;
         case pathType::circle: mask(obj.getCircle()); return;
     }
@@ -76,10 +76,15 @@ void drawContext::stroke(const pen& col)
 
 //redirectDrawContext//////////////////////////////////////////////////////////////////////////////////////////////////////
 redirectDrawContext::redirectDrawContext(drawContext& redirect, vec2f position, vec2f size) :
-    drawContext(redirect.getSurface()), size_(size), position_(position), redirect_(redirect) {}
+    drawContext(redirect.getSurface()), size_(size), position_(position), redirect_(redirect) 
+{
+}
 
 redirectDrawContext::redirectDrawContext(drawContext& redirect, vec2f position) :
-    drawContext(redirect.getSurface()), size_(redirect.getSurface().getSize()), position_(position), redirect_(redirect) {}
+    drawContext(redirect.getSurface()), size_(redirect.getSurface().getSize()), 
+	position_(position), redirect_(redirect) 
+{
+}
 
 void redirectDrawContext::apply()
 {
@@ -138,22 +143,18 @@ void redirectDrawContext::setPosition(vec2d position)
 
 void redirectDrawContext::startClip()
 {
-    updateClip();
-}
-
-void redirectDrawContext::updateClip()
-{
     clipSave_ = redirect_.getClip();
     redirect_.resetClip();
 
-    //vec2f pos(std::min(position_.x, clipSave_.position.x), std::min(position_.y, clipSave_.position.y));
-    vec2f pos = position_;
-    vec2f siz = size_;
-    //vec2f siz(std::min(size_.x, clipSave_.size.x), std::min(size_.y, clipSave_.size.y));
-
-    redirect_.clip(rect2f(pos, siz));
-    //nyDebug("clip: ", position_, " ", size_);
+    redirect_.clip(rect2f(position_, size_));
 }
+
+void redirectDrawContext::clip(const rect2f& obj)
+{ 
+	redirect_.clip(rect2f(obj.position + position_, vec2f(std::min(obj.size.x, size_.x) 
+					- position_.x, std::min(obj.size.y, size_.y) - position_.y))); 
+};
+
 void redirectDrawContext::endClip()
 {
     redirect_.resetClip();

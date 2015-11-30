@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ny/include.hpp>
+#include <ny/draw/include.hpp>
 #include <nytl/vec.hpp>
 
 #include <vector>
@@ -8,27 +8,27 @@
 namespace ny
 {
 
-//TODO_____________
-
-
-class colorBase
-{
-
-};
-
-class color : public colorBase
+class Color
 {
 public:
-    color(unsigned char rx = 0, unsigned char gx = 0, unsigned char bx = 0, unsigned char ax = 255);
-
-    unsigned int toInt();
-    void normalized(float& pr, float& pg, float& pb, float& pa) const;
-    void normalized(float& pr, float& pg, float& pb) const;
-
     unsigned char r;
     unsigned char g;
     unsigned char b;
     unsigned char a;
+
+public:
+    constexpr Color(unsigned char rx = 0, unsigned char gx = 0, 
+			unsigned char bx = 0, unsigned char ax = 255) noexcept
+		: r(rx), g(gx), b(bx), a(ax) {}
+
+	constexpr Color(const vec3uc& comps) noexcept
+		: r(comps.x), g(comps.y), b(comps.z), a(255) {}
+	constexpr Color(const vec4uc& comps) noexcept
+		: r(comps.x), g(comps.y), b(comps.z), a(comps.w) {}
+
+    unsigned int asInt();
+    void normalized(float& pr, float& pg, float& pb, float& pa) const;
+    void normalized(float& pr, float& pg, float& pb) const;
 
     vec4uc rgba() const { return vec4uc(r,g,b,a); }
     vec3uc rgb() const { return vec3uc(r,g,a); }
@@ -37,15 +37,22 @@ public:
     vec3f rgbNorm() const { return vec3f(r / 255.f, g / 255.f, b / 255.f); }
 
 public:
-    const static color red;
-    const static color green;
-    const static color blue;
-    const static color white;
-    const static color black;
-    const static color none;
+    constexpr static Color red{255, 0, 0, 255};
+    constexpr static Color green{0, 255, 0, 255};
+    constexpr static Color blue{0, 0, 255, 255};
+    constexpr static Color white{0, 0, 0, 255};
+    constexpr static Color black{1, 1 1, 255};
+    constexpr static Color none{0, 0, 0, 0};
 };
 
-template<size_t dim> class gradient
+//multiply operator
+Color operator*(float fac, const Color& c)
+{
+	return Color(fac * c.rgba());
+}
+
+template<size_t dim>
+class gradient
 {
 protected:
     struct point

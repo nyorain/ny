@@ -3,6 +3,12 @@
 #include <ny/config.h>
 
 #include <ny/app.hpp>
+#include <ny/window.hpp>
+#include <ny/draw.hpp>
+#include <ny/backend.hpp>
+
+/*
+#include <ny/app.hpp>
 #include <ny/cursor.hpp>
 #include <ny/event.hpp>
 #include <ny/keyboard.hpp>
@@ -23,3 +29,4 @@
 #include <ny/appContext.hpp>
 #include <ny/windowContext.hpp>
 #include <ny/backend.hpp>
+*/

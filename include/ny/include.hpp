@@ -1,16 +1,6 @@
 #pragma once
 
-namespace nytl
-{
-}
-
-namespace ny
-{
-using namespace nytl;
-}
-
 #include <ny/config.h>
-#include <ny/error.hpp> //to make nyDebug available everywhere for the moment. remove later
 #include <iostream> //same
 #include <cstdlib>
 
@@ -39,6 +29,8 @@ class nonCopyable;
 
 namespace ny
 {
+
+using namespace nytl;
 
 class backend;
 class app;
