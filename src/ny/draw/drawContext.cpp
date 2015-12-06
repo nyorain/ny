@@ -1,164 +1,261 @@
 #include <ny/draw/drawContext.hpp>
 #include <ny/draw/shape.hpp>
-#include <ny/draw/surface.hpp>
+
+#include <nytl/log.hpp>
 
 namespace ny
 {
 
-drawContext::drawContext(surface& s) : surface_(s)
+void DrawContext::mask(const PathBase& obj)
 {
-
-}
-
-drawContext::~drawContext()
-{
-}
-
-void drawContext::mask(const path& obj)
-{
-    switch(obj.getPathType())
+    switch(obj.type())
     {
-		case pathType::text: mask(obj.getText()); return;
-		case pathType::rectangle: mask(obj.getRectangle()); return;
-        case pathType::custom: mask(obj.getCustom()); return;
-        case pathType::circle: mask(obj.getCircle()); return;
+        case Type::text: mask(obj.text()); return;
+        case Type::rectangle: mask(obj.rectangle()); return;
+        case Type::path: mask(obj.path()); return;
+        case Type::circle: mask(obj.circle()); return;
     }
 }
 
-void drawContext::mask(const ny::mask& m)
+void DrawContext::mask(const std::vector<PathBase>& m)
 {
     for(auto& pth : m)
         mask(pth);
 }
 
-void drawContext::mask(const rectangle& obj)
+void DrawContext::mask(const Rectangle& obj)
 {
-    mask(obj.getAsCustomPath());
+    mask(obj.asPath());
 }
 
-void drawContext::mask(const circle& obj)
+void DrawContext::mask(const Circle& obj)
 {
-    mask(obj.getAsCustomPath());
+    mask(obj.asCustomPath());
 }
 
-void drawContext::draw(const shape& obj)
+void DrawContext::draw(const Shape& obj)
 {
-    if(obj.getMask().empty() || (!obj.getPen() && !obj.getBrush()))
-        return; //no result
+    mask(obj.pathBase());
 
-    mask(obj.getMask());
-
-    if(obj.getBrush()) fillPreserve(*obj.getBrush());
-    if(obj.getPen()) strokePreserve(*obj.getPen());
+    fillPreserve(*obj.brush());
+    strokePreserve(*obj.pen());
 
     resetMask();
 }
 
-void drawContext::clear(color col)
+void DrawContext::clear(const Brush& b)
 {
-    rectangle r(vec2f(0,0), surface_.getSize());
-    mask(r);
-    fill(col);
-    resetMask();
+    Brush alphaMask(Color(0, 0, 0, 255));
+    paint(alphaMask, b);
 }
 
-void drawContext::fill(const brush& col)
+void DrawContext::fill(const Brush& col)
 {
     fillPreserve(col);
     resetMask();
 }
 
-void drawContext::stroke(const pen& col)
+void DrawContext::stroke(const Pen& col)
 {
     strokePreserve(col);
     resetMask();
 }
 
+void DrawContext::clipMask()
+{
+    sendWarning("DrawContext::clipMak: mask clipping not supported, object ", this);
+}
+
+void DrawContext::clipMaskPreserve()
+{
+    sendWarning("DrawContext::clipMakPreserve: mask clipping not supported, object ", this);
+}
+
+std::vector<PathBase> DrawContext::maskClip() const
+{
+    sendWarning("DrawContext::maskClip: mask clipping not supported, object ", this);
+    return {};
+}
+
+void DrawContext::resetMaskClip()
+{
+    sendWarning("DrawContext::resetMaskClip: mask clipping not supported, object ", this);
+}
+
 //redirectDrawContext//////////////////////////////////////////////////////////////////////////////////////////////////////
-redirectDrawContext::redirectDrawContext(drawContext& redirect, vec2f position, vec2f size) :
-    drawContext(redirect.getSurface()), size_(size), position_(position), redirect_(redirect) 
+RedirectDrawContext::RedirectDrawContext(DrawContext& redirect, vec2f position, vec2f size)
+    : DrawContext(), size_(size), position_(position), redirect_(&redirect)
 {
 }
 
-redirectDrawContext::redirectDrawContext(drawContext& redirect, vec2f position) :
-    drawContext(redirect.getSurface()), size_(redirect.getSurface().getSize()), 
-	position_(position), redirect_(redirect) 
+
+void RedirectDrawContext::apply()
 {
+    redirect_->apply();
 }
 
-void redirectDrawContext::apply()
+void RedirectDrawContext::clear(const Brush& b)
 {
-    redirect_.apply();
+    //todo: transklate brushes correctly
+    redirect_->clear(b);
 }
 
-void redirectDrawContext::clear(color col)
+void RedirectDrawContext::paint(const Brush& alphaMask, const Brush& fillBrush)
 {
-    redirect_.clear(col);
+    //todo: transklate brushes correctly
+    redirect_->paint(alphaMask, fillBrush);
 }
 
-void redirectDrawContext::mask(const customPath& obj)
-{
-    customPath scopy = obj;
-    scopy.move(position_);
-    redirect_.mask(scopy);
-}
-
-void redirectDrawContext::mask(const rectangle& obj)
+void RedirectDrawContext::mask(const Path& obj)
 {
     auto scopy = obj;
     scopy.move(position_);
-    redirect_.mask(scopy);
+    redirect_->mask(scopy);
 }
 
-
-void redirectDrawContext::mask(const text& obj)
+void RedirectDrawContext::mask(const Rectangle& obj)
 {
-    text scopy = obj;
+    auto scopy = obj;
     scopy.move(position_);
-    redirect_.mask(scopy);
+    redirect_->mask(scopy);
 }
 
-void redirectDrawContext::resetMask()
+void RedirectDrawContext::mask(const Text& obj)
 {
-    redirect_.resetMask();
+    auto scopy = obj;
+    scopy.move(position_);
+    redirect_->mask(scopy);
 }
 
-void redirectDrawContext::fillPreserve(const brush& col)
+void RedirectDrawContext::mask(const Circle& obj)
 {
-    redirect_.fillPreserve(col);
-}
-void redirectDrawContext::strokePreserve(const pen& col)
-{
-    redirect_.strokePreserve(col);
+    auto scopy = obj;
+    scopy.move(position_);
+    redirect_->mask(scopy);
 }
 
-void redirectDrawContext::setSize(vec2f size)
+void RedirectDrawContext::mask(const PathBase& obj)
+{
+    auto scopy = obj;
+    scopy.move(position_);
+    redirect_->mask(scopy);
+}
+
+void RedirectDrawContext::resetMask()
+{
+    redirect_->resetMask();
+}
+
+void RedirectDrawContext::fillPreserve(const brush& col)
+{
+    redirect_->fillPreserve(col);
+}
+void RedirectDrawContext::strokePreserve(const pen& col)
+{
+    redirect_->strokePreserve(col);
+}
+
+void RedirectDrawContext::fill(const brush& col)
+{
+    redirect_->fill(col);
+}
+void RedirectDrawContext::stroke(const pen& col)
+{
+    redirect_->stroke(col);
+}
+
+bool RedirectDrawContext::maskClippingSupported() const
+{
+    return redirect_->maskClippingSupported();
+}
+
+void RedirectDrawContext::clipMask()
+{
+    redirect_->clipMask();
+}
+
+void RedirectDrawContext::clipMaskPreserve() override
+{
+    redirect_->clipMaskPreserve();
+}
+
+std::vector<PathBase> RedirectDrawContext::maskClip() const
+{
+    auto ret = redirect_->clipMaskPreserve();
+    for(auto& p : ret)
+        p.move(-position_);
+
+    return ret;
+}
+
+void RedirectDrawContext::resetMaskClip()
+{
+    redirect_->resetMaskClip();
+}
+
+void RedirectDrawContext::size(const vec2f& size)
 {
     size_ = size;
 }
-void redirectDrawContext::setPosition(vec2d position)
+void RedirectDrawContext::position(const vec2f& position)
 {
     position_ = position;
 }
 
-void redirectDrawContext::startClip()
+void RedirectDrawContext::redirect(DrawContext& dc)
 {
-    clipSave_ = redirect_.getClip();
-    redirect_.resetClip();
-
-    redirect_.clip(rect2f(position_, size_));
+    redirect_= &dc;
 }
 
-void redirectDrawContext::clip(const rect2f& obj)
-{ 
-	redirect_.clip(rect2f(obj.position + position_, vec2f(std::min(obj.size.x, size_.x) 
-					- position_.x, std::min(obj.size.y, size_.y) - position_.y))); 
+void RedirectDrawContext::clipRectangle(const rect2f& obj)
+{
+    rect2f clipRect;
+    clipRect.position = std::max(obj.position, 0) + position_;
+    clipRect.size = min(obj.size, position_ + size_ - clipRect.position);
+
+	redirect_->clipRectangle(clipRect);
 };
 
-void redirectDrawContext::endClip()
+void RedirectDrawContext::resetRectangleClip()
 {
-    redirect_.resetClip();
-    redirect_.clip(clipSave_);
+    redirect_->clipRectangle(extents());
+}
+
+rect2f RedirectDrawContext::rectangleClip() const
+{
+    auto r = redirect_->rectangleClip();
+    r.position -= position_;
+
+    return r;
+}
+
+void RedirectDrawContext::startDrawing()
+{
+    redirect_.resetMask();
+
+    if(redirect_->maskClippingSupported())
+    {
+        maskClipSave_ = redirect_->maskClip();
+        redirect_->resetMaskClip();
+    }
+
+    rectangleClipSave_ = redirect_->rectangleClip();
+    redirect_.clipRectangle(extents());
+}
+
+
+void RedirectDrawContext::endDrawing()
+{
+    redirect_->resetMask();
+
+    if(redirect_->makClippingSupported())
+    {
+        redirect_->resetClipMask();
+        redirect_->mask(maskClipSave_);
+        redirect_->clipMask();
+    }
+
+    redirect_->clipRectangle(rectangleClipSave_);
 }
 
 

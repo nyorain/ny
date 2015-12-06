@@ -1,7 +1,6 @@
 #pragma once
 
 #include <ny/file.hpp>
-#include <ny/surface.hpp>
 #include <ny/drawContext.hpp>
 #include <ny/image.hpp>
 
@@ -10,27 +9,39 @@
 namespace ny
 {
 
-class svgDrawContext : public drawContext
+///Implements the DrawContext interface to draw on an svg image surface.
+///It basically just stores the drawn shapes in the SvgImage object it is related to.
+class SvgDrawContext : public DrawContext
 {
 protected:
+    SvgImage* image_ = nullptr;
+
 public:
+    SvgDrawContext(SvgImage& img);
+    virtual ~SvgDrawContext() = default;
+
+    SvgImage& svgImage() const { return image_; }
+    void svgImage(SvgImage& image){ image_ = &image; }
 };
 
 //svg/////////////////////////////////////////////
-class svgImage : public file, public surface //maybe not surface
+class SvgImage : public File
 {
 protected:
-    std::unique_ptr<svgDrawContext> dc_;
+    vec2ui size_;
+    std::vector<Shape> shapes_;
 
 public:
-    svgImage(){}
-    ~svgImage(){}
+    SvgImage(vec2ui size) : size_(size) {}
+    ~SvgImage() = default;
 
-    svgDrawContext& getDrawContext() const { return *dc_; }
-    svgDrawContext& getDC() const { return *dc_; }
+    vec2ui size() const { return size_; };
 
-    //from surface
-    virtual vec2ui getSize() const override {};
+    void addShape(const Shape& shape);
+    const std::vector<Shape>& shapes() const { return shapes_; }
+
+    ///Renders itself with the given size on the given DrawContext.
+    void draw(DrawContext& dc, const vec2ui& size);
 
     //from file
     virtual bool loadFromFile(const std::string& path) override {};

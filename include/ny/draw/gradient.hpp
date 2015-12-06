@@ -3,15 +3,30 @@
 #include <ny/draw/include.hpp>
 #include <ny/draw/color.hpp>
 
-#include <nytl/vec.hpp>
-#include <nytl/sequence.hpp>
+#include <vector>
 
 namespace ny
 {
 
-class ColorGradient : public nytl::sequence<1, float, Color>
-{		
-};
+//gradient base
+class ColorGradient
+{
+public:
+	struct Stop
+	{
+		float position;
+		Color color;
+	};
 
+protected:
+	std::vector<ColorStop> stops_;
+
+public:
+	void addPoint(const Stop& p);
+	void addPoint(float position, const Color& col);
+
+	Color colorAt(float position) const;
+	const std::vector<Stops> stops() const { return stops_; };
+};
 
 }

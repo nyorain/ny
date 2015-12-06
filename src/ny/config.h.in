@@ -3,8 +3,10 @@
 
 #cmakedefine NY_WithGL
 #cmakedefine NY_WithEGL
+#cmakedefine NY_WithGLES
 #cmakedefine NY_WithX11
 #cmakedefine NY_WithWayland
 #cmakedefine NY_WithWinapi
 #cmakedefine NY_WithCairo
 #cmakedefine NY_WithFreeType
+#cmakedefine NY_WithXML

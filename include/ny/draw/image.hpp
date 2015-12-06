@@ -12,7 +12,7 @@ namespace ny
 
 
 //image/////////////////////////////
-class image : public file, public surface
+class image : public file
 {
 protected:
     class impl;
@@ -51,13 +51,14 @@ class gifImage : public file
 {
 protected:
 public:
-    size_t getImageCount() const { return 0; }
+
 
     image* getImage(size_t i) { return nullptr; }
     image* operator[](size_t i) { return getImage(i); }
 
     //inherit from surface?
-    vec2ui getSize() const { return vec2ui(); };
+    size_t imageCount() const { return 0; }
+    vec2ui size() const { return vec2ui(); };
 
     //from file
     virtual bool load(std::istream& is) override { return 0; };

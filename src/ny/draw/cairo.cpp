@@ -14,17 +14,29 @@
 namespace ny
 {
 
+//Cache Nam: "ny::CairoFontHandle"
+class CairoFontHandle : public cache
+{
+protected:
+    cairo_font_face_t* handle_;
+
+public:
+    cairoFont(const std::string& name, bool fromFile = 0);
+    ~cairoFont();
+
+    cairo_font_face_t* getFontFace() const { return handle_; }
+};
 
 
 //font
-cairoFont::cairoFont(const std::string& name, bool fromFile)
+CairoFontHandle::CairoFontHandle(const std::string& name, bool fromFile)
 {
     handle_ = cairo_toy_font_face_create(name.c_str(), CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
     if(!handle_)
         nyWarning("failed to create cairo font");
 }
 
-cairoFont::~cairoFont()
+CairoFontHandle::~CairoFontHandle()
 {
     cairo_font_face_destroy(handle_);
 }

@@ -1,408 +1,389 @@
 #pragma once
 
-#include <ny/include.hpp>
-#include <ny/color.hpp>
+#include <ny/draw/include.hpp>
+#include <ny/draw/brush.hpp>
+#include <ny/draw/pen.hpp>
+
 #include <nytl/transform.hpp>
-#include <ny/font.hpp>
-
 #include <nytl/vec.hpp>
-#include <nytl/mat.hpp>
 #include <nytl/rect.hpp>
-#include <nytl/cache.hpp>
 
+#include <utility>
 #include <vector>
 
 namespace ny
 {
 
-//todo: match stl interface conventions
-
-//enums
-enum class drawStyle
+///Represents the data of an arc-type path segment.
+struct ArcData
 {
-    none,
-    linear,
-    arc,
-    bezier
+	///The x and y radius of the arc.
+	vec2f radius;
+
+	///Defines if the arc should be >180 degrees.
+	bool largeArc;
+
+	///Defines if the arc should be clockwise
+    bool clockwise;
 };
 
-enum class textBound
+///The PathSegment class represents a part of a Path object, it is able to represent all
+///svg path subcommands. It does always hold the position of the next point in the path and
+///additionally some data that are specific to the used draw type, e.g. some kind of curve or line.
+class PathSegment
 {
-    left,
-    right,
-    center
-};
+public:
+	///This enumeration holds all possible segment types. They are able to represent the svg path
+	///operations. https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Paths holds a good
+	///explanation of the different svg path segment types.
+    enum class Type
+    {
+        line,
+        smoothQuadCurve,
+        quadCurve,
+        smoothCubicCurve,
+        cubicCurve,
+        arc
+    };
 
-enum class pathType
-{
-    text,
-    rectangle,
-    circle,
-    custom
-};
-
-//arcType
-enum class arcType
-{
-    left,
-    right,
-    leftInverted,
-    rightInverted
-};
-
-//tangentData
-struct bezierData
-{
-	vec2f start;
-	vec2f end;
-};
-
-//arcData
-struct arcData
-{
-	float radius;
-	arcType type;
-};
-
-//point
-class point
-{
 protected:
-	drawStyle style_;
+	Type type_;
+    vec2f position_;
 
 	union
 	{
-		bezierData bezier_;
-		arcData arc_;
+        vec2f controlPoint_;
+		std::pair<vec2f> quadCurveControlPoints_;
+		ArcData arc_;
 	};
 
 public:
-	vec2f position;
+	///Constructs the segment with a given position it goes to and a given type which is defaulted
+	///to line.
+    PathSegment(const vec2f& position, Type t = Type::line);
 
-	point() = default;
-	point(const vec2f& pos) : position(pos) {}
-	point(float x, float y) : position(x,y) {}
+	///Returns the position this segment goes to
+    const vec2f& position() const { return position_; }
 
-    point(const point& other) : style_(other.style_), position(other.position) { }
-    point& operator=(const point& other) { style_ = other.style_; position = other.position; return *this; }
+	///Sets the position this segment goes to.
+    void position(const vec2f& pos){ position_ = pos; }
 
-	drawStyle getDrawStyle() const { return style_; }
-	bezierData getBezierData() const { if(style_ == drawStyle::bezier) return bezier_; return bezierData(); }
-	arcData getArcData() const { if(style_ == drawStyle::arc) return arc_; return arcData(); }
 
-	void setLinearDraw() { style_ = drawStyle::linear; }
-	void setBezierDraw(bezierData d) { style_ = drawStyle::bezier; bezier_ = d; }
-	void setBezierDraw(vec2f a, vec2f b) { style_ = drawStyle::bezier; bezier_.start = a; bezier_.end = b; }
-	void setArcDraw(arcData d) { style_ = drawStyle::arc; arc_ = d; }
-	void setArcDraw(float radius, arcType type) { style_ = drawStyle::arc; arc_.radius = radius; arc_.type = type; }
+	///Returns the type of this Segment. See Segment::Type for information.
+    Type type() const { return type_; }
+
+
+	///Sets the type of this segment to line.
+    void line();
+
+	///Sets the type of this segment to smoothQuadCurve. This Requires no paremeters.
+    void smoothQuadCurve();
+
+	///Sets the type of this segment to quadCurve with the given control point.
+    void quadCurve(const vec2f& control);
+
+	///Sets the type of this segment to smoothCubicCurve with the given control point.
+    void smoothCubicCurve(const vec2f& control);
+
+	///Sets the type of this segment to cubicCurve with the 2 given control points.
+    void cubicCurve(const vec2f& control1, const vec2f& control2);
+
+	///Sets the type of this segment to arc with the given ArcData as description of the
+	///arc segment.
+    void arc(const ArcData& data);
+
+
+	///Returns the control point this segment holds in its description. This will only return a
+	///valid value if the type of this segment holds one control point in its description i.e.
+	///if its quadCurve or smoothCubicCurve. Will raise a warning otherwise.
+    vec2f controlPoint() const;
+
+	///Returns the two control points this segment holds in its description. This will raise a
+	///warning and return 2 {0,0}-vecs if the type of this segment is not cubicCurve.
+    std::pair<vec2f> quadCurveControlPoints() const;
+
+	///Will return the ArcData object this segment has stored. Will rasie a warning and return
+	///a default-constructed ArcData object if the type of this object is not arc.
+    ArcData arcData() const;
 };
 
-//posArray////////////////////////////////////////////////////////////
-class vertexArray : public transformable2
+///The PlainSubpath class represents a closed path that consists of straight lines only.
+///It can be created (baked) from every normal subpath but just approximates the curves.
+///Since it is basically just an array of points, the class is derived from std::vector<vec2f>.
+class PlainSubpath : public std::vector<vec2f>
 {
 protected:
-    std::vector<vec2f> points_;
+    bool closed_;
 
 public:
-    vertexArray() = default;
-    vertexArray(const std::vector<vec2f>& v) : points_(v) {};
-    ~vertexArray() = default;
+    PlainSubpath(const std::vector<vec2f>& points, bool closed = 0);
 
-    explicit vertexArray(const vertexArray& other) = default;
-    explicit vertexArray(vertexArray&& other) = default;
+	///Returns if the subpath is closed.
+    bool closed() const { return closed_; }
 
-    vertexArray& operator=(const vertexArray& other) = default;
-    vertexArray& operator=(vertexArray&& other) = default;
-
-    ////
-    vec2f& operator[](size_t i){ return points_[i]; }
-    const vec2f& operator[](size_t i) const { return points_[i]; }
-
-    const vec2f* data() const { return points_.data(); }
-    vec2f* data() { return points_.data(); }
-
-    std::size_t size() const { return points_.size(); }
-
-    //inherited from transformable
-    rect2f getExtents() const
-    {
-        rect2f ret;
-        for(size_t i (0); i < points_.size(); i++)
-        {
-            ret.position.x = std::min(ret.left(), points_[i].x);
-            ret.position.y = std::min(ret.top(), points_[i].y);
-            ret.size.x = std::max(ret.size.x, points_[i].x - ret.position.x);
-            ret.size.y = std::max(ret.size.y, points_[i].y - ret.position.y);
-        }
-        return ret;
-    }
+	///Closes the subpath.
+    void close(){ closed_ = b; }
 };
 
-//path///////////////////////////////
-//pathType of the first point will be ignored, its a startpoint
-//the pathType of every point shows how to draw the line BEFORE the point
-class customPath : public transformable2, public multiCache<std::string>
+///The Subpath class represents a single, potentially closed, shape.
+///It consists of many PathSegments and a start point.
+class Subpath
 {
 protected:
-    std::vector<point> points_ {};
-    mutable vertexArray baked_ {};
-    mutable unsigned int precision_ = 10;
-    mutable bool needBake_ = 0;
+    vec2f start_;
+    std::vector<PathSegment> segments_;
+    bool closed_ = 0;
 
 public:
-    customPath(vec2f start = vec2f());
-    customPath(const customPath& other) : transformable2(other), points_(other.points_) {}
-    customPath(customPath&& other) noexcept : transformable2(other), points_(std::move(other.points_)) {}
-    ~customPath() = default;
+	///Constructs the subpath with a given Startpoint
+    Subpath(const vec2f& start = {0,0});
 
-    customPath& operator=(const customPath& other){ copyTransform(other); points_ = other.points_; return *this; }
-    customPath& operator=(customPath&& other) noexcept { copyTransform(other); points_ = std::move(other.points_); return *this; }
+    const PathSegment& line(const vec2f& point);
+	const PathSegment& smoothQuadCurve(const vec2f& position);
+    const PathSegment& quadCurve(const vec2f& position, const vec2f& control);
+    const PathSegment& smoothCubicCurve(const vec2f& position, const vec2f& control);
+    const PathSegment& cubicCurve(const vec2f& position, const vec2f& control1, const vec2f& control2);
+    const PathSegment& arc(const vec2f& position, const ArcData& data);
 
-    point& operator[](size_t i){ return points_[i]; }
-    const point& operator[](size_t i) const { return points_[i]; }
+	///Returns the current Point the Subpath stays at.
+	const vec2f& currentPoint() const;
 
-    size_t size() const { return points_.size(); }
+	///Closes the Subpath.
+	void close(){ closed_ = 1; }
 
-    void addLine(vec2f p);
-	void addLine(float x, float y);
+	///Returns whether the Subpath is closed.
+    bool closed() const { return closed_; }
 
-	void addBezier(vec2f p, const bezierData& d);
-	void addBezier(vec2f p, vec2f a, vec2f b);
+	///Returns the segments of this Subpath.
+	const std::vector<PathSegment>& segments() const { return segments_; }
 
-	void addArc(vec2f p, const arcData& d);
-	void addArc(vec2f p, float radius, arcType type);
+	///Sets the startPoint for this Subpath.
+	void startPoint(const vec2f& start){ start_ = start; }
 
-	size_t addPoint(point p){ points_.push_back(p); return points_.size() - 1; }
-	void removePoint(size_t pos){ points_.erase(points_.begin() + pos - 1); }
+	///Returns the current startPoint of this Subpath.
+	const vec2f& startPoint() const { return start; }
 
-    //inherited from transformable
-    rect2f getExtents() const { return getBaked().getExtents(); }
-
-    void bake(int precision = -1) const; //default: use previous precision
-    const std::vector<point>& getPoints() const { return points_; }
-    const vertexArray& getBaked() const { bake(); return baked_; }
-    unsigned int getBakedPrecision() const { return precision_; }
+	///Approximiates the curves of the Subpath to create a PlainSubpath just consisting of
+	///linear segments (basically a vertex array).
+    PlainSubpath bake() const;
 };
 
-//rectangle
-class rectangle : public transformable2
+///The Path class holds a vector of subpaths and can be transformed.
+///It represents the svg <path> node.
+class Path : public transformable2
+{
+protected:
+    std::vector<Subpath> subpaths_;
+
+public:
+    Path();
+    ~Path() = default;
+
+	///Starts and returns a new Subpath.
+    Subpath& newSubpath();
+
+	///Starts a new Subpath at the given point. Returns the new (current after this call) Subpath.
+    Subpath& move(const vec2f& point);
+
+	const PathSegment& line(const vec2f& point);
+	const PathSegment& smoothQuadCurve(const vec2f& position);
+    const PathSegment& quadCurve(const vec2f& position, const vec2f& control);
+    const PathSegment& smoothCubicCurve(const vec2f& position, const vec2f& control);
+    const PathSegment& cubicCurve(const vec2f& pos, const vec2f& cont1, const vec2f& cont2);
+    const PathSegment& arc(const vec2f& position, const ArcData& data);
+
+	///Closes the current Subpath and start a new one. Returns the new Subpath.
+    Subpath& close();
+
+    Subpath& currentSubpath() const { return subpaths_.back(); }
+	const std::vector<Subpath>& subpaths() const { return subpaths_; }
+};
+
+//The Rectangle class represents a svg rectangle shape.
+class Rectangle : public transformable2
 {
 protected:
     vec2f size_;
     vec4f borderRadius_;
 
 public:
-    rectangle(vec2f position = vec2f(), vec2f size = vec2f()) : size_(size) { setPosition(position); }
-    rectangle(float px, float py, float sx = 0, float sy = 0) : size_(sx, sy) { setPosition({px,py}); }
+    Rectangle(const vec2f& position = vec2f(), const vec2f& size = vec2f()) : size_(size) { setPosition(position); }
+	Rectangle(const rect2f& rct) : transformable2(rect.position), size_(rect.size) {}
 
-    rectangle(const rectangle& other) = default;
+    void size(const vec2f& size){ size_ = size; }
+	const vec2f& size() const { return size_; }
 
-    void setSize(vec2f size){ size_ = size; }
-    void setSize(float width, float height){ size_ = {width, height}; }
+    void borderRadius(const vec4f& br){ borderRadius_ = br; }
+    void borderRadius(float value){ borderRadius_.fill(value); }
+    const vec4f& borderRadius() const { return borderRadius_; }
 
-    void setBorderRadius(vec4f br){ borderRadius_ = br; }
-    void setBorderRadius(float value){ borderRadius_.fill(value); }
-    void setBorderRadius(float leftTop, float rightTop, float rightBottom, float leftBottom){ borderRadius_ = {leftTop, rightTop, rightBottom, leftBottom}; }
-
-    vec2f getSize() const { return size_; }
-    vec4f getBorderRadius() const { return borderRadius_; }
-
-    customPath getAsCustomPath() const;
-
-    template<class prec> operator rect2<prec>() const { return rect2<prec>(getPosition(), size_); }
-
-    //inherited from transformable
-    virtual rect2f getExtents() const override { return rect2f(getPosition(), size_); }
+    Path asPath() const;
+    template<class prec> operator rect2<prec>() const { return rect2<prec>(position(), size_); }
+    virtual rect2f extents() const override { return rect2f(position(), size_); }
 };
 
-class text : public transformable2
+//Text
+class Text : public transformable2
 {
+public:
+	enum class Bounds
+	{
+		left,
+		middle,
+		right
+	};
+
 protected:
-    vec2f position_ {};
     float size_ {14};
     std::string string_ {};
-    textBound bound_ {textBound::left};
-    font* font_ {nullptr};
+    Bounds bounds_ {Bounds::left};
+    Font* font_ {nullptr};
 
 public:
-    text(const std::string& s = "", float size = 14) : size_(size), string_(s), bound_(textBound::left), font_(&font::getDefault()) {}
-    text(vec2f position, const std::string& s = "", float size = 14) : position_(position), size_(size), string_(s), font_(&font::getDefault()) {};
-    text(float x, float y, float size) : position_(x,y), size_(size), font_(&font::getDefault()) {}
+    Text(const std::string& s = "", float size = 14);
+    Text(const vec2f& position, const std::string& s = "", float size = 14);
 
-    ~text() = default;
+    void string(const std::string& s){ string_ = s; }
+    const std::string& string() const { return string_; }
 
-    text(const text& other){}
-    text(text&& other){}
+	void size(float s){ size_ = s; }
+    float size() const { return size_; }
 
-    text& operator=(const text& other) { return *this; }
-    text& operator=(text&& other) { return *this; }
+    Bound bounds() const { return bound_; }
+    void bounds(Bounds b) { bound_ = b; }
 
-    void setPosition(vec2f position){ position_ = position; }
-    void setPosition(float x, float y){ position_ = {x,y}; }
-
-    void setString(const std::string& s){ string_ = s; }
-    std::string getString() const { return string_; }
-
-    vec2f getPosition() const { return position_; }
-    float getSize() const { return size_; }
-
-    textBound getBound() const { return bound_; }
-    void setBound(textBound b) { bound_ = b; }
-
-    font* getFont() const { return font_; }
-    void setFont(font& f) { font_ = &f; }
+    Font* font() const { return font_; }
+    void font(Font& f) { font_ = &f; }
 
     //inherited from transformable
-    rect2f getExtents() const { rect2f ret; return ret; }
+    virtual rect2f extents() const override { rect2f ret; ret.position = position(); return ret; }
 };
 
-class circle : public transformable2
+///The Circle class is able to hold a circle shape. It inherits the transformable2 class.
+///There is no explicit ellipse class, one can use a Circle with matching scaling instead.
+class Circle : public transformable2
 {
 protected:
-    vec2f position_ {};
     float radius_ {0};
-    unsigned int points_ {30};
 
 public:
-    circle() = default;
-    circle(float radius) : radius_(radius) {}
-    circle(vec2f position, float radius = 0, unsigned int points = 30) : position_(position), radius_(radius), points_(points) {}
-    circle(float x, float y, float radius = 0, unsigned int points = 30) : position_(x,y), radius_(radius), points_(points) {}
+    circle(float radius = 0) : radius_(radius) {}
+    circle(const vec2f& position, float radius = 0)
+	 	: transformable2(position), radius_(radius) {}
 
-    circle(const circle& other) = default;
+    void radius(float r){ radius_ = r; }
+    float radius() const { return radius_; }
 
-    void setPosition(vec2f position){ position_ = position; }
-    void setPosition(float x, float y){ position_ = {x,y}; }
+    vec2f center() const { return position() - origin() + vec2f(radius_, radius_); }
 
-    void setRadius(float r){ radius_ = r; }
-    void setPoints(unsigned int points){ points_ = points; }
-
-    vec2f getPosition() const { return position_; }
-    float getRadius() const { return radius_; }
-    unsigned int getPoints() const { return points_; }
-
-    vec2f getCenter() const { return getPosition() - getOrigin() + vec2f(radius_, radius_); } //todo?
-
-    customPath getAsCustomPath() const;
-
-    //inherited from transformable
-    rect2f getExtents() const { return rect2f(position_, vec2f(radius_ * 2, radius_ * 2)); }
+    Path asPath() const;
+    virtual rect2f extents() const override
+		{ return rect2f(position(), 2 * vec2f(radius_, radius_)); }
 };
 
-//path///////////////////////////////////////////////////////////////
-class path
+//The PathBase is able to hold an Text, Rectangle, Circle or Path object. It can represent any
+///svg shape.
+class PathBase
 {
+public:
+    enum class Type
+    {
+        text,
+        rectangle,
+        path,
+        circle
+    };
+
 protected:
-    pathType type_;
+    Type type_;
 
     union
 	{
-		text text_;
-		rectangle rectangle_;
-		circle circle_;
-		customPath custom_ {};
+		Text text_;
+		Rectangle rectangle_;
+		Circle circle_;
+		Path path_;
 	};
 
 public:
-	path() : type_(pathType::custom), custom_() {}
+	PathBase() : type_(Type::path), path_() {}
 
-    path(const rectangle& obj) : type_(pathType::rectangle), rectangle_(obj) {}
-    path(const circle& obj) : type_(pathType::circle), circle_(obj) {}
-    path(const text& obj) : type_(pathType::text), text_(obj) {}
-    path(const customPath& obj) : type_(pathType::custom), custom_(obj) {}
+    PathBase(const Rectangle& obj) : type_(pathType::rectangle), rectangle_(obj) {}
+    PathBase(const Circle& obj) : type_(pathType::circle), circle_(obj) {}
+    PathBase(const Text& obj) : type_(pathType::text), text_(obj) {}
+    PathBase(const Path& obj) : type_(pathType::path), path_(obj) {}
 
-	path(const path& lhs) noexcept;
-    path& operator=(const path& lhs) noexcept;
+	PathBase(const PathBase& lhs) noexcept;
+    PathBase& operator=(const PathBase& lhs) noexcept;
 
-	path(path&& lhs) noexcept;
-    path& operator=(path&& lhs) noexcept;
+	PathBase(PathBase&& lhs) noexcept;
+    PathBase& operator=(PathBase&& lhs) noexcept;
 
-    ~path();
+    ~PathBase();
 
-	void setText(const text& obj){ type_ = pathType::text; text_ = obj; }
-	void setRectangle(const rectangle& obj){ type_ = pathType::rectangle; rectangle_ = obj; }
-	void setCircle(const circle& obj){ type_ = pathType::circle; circle_ = obj; }
-	void setCustom(const customPath& obj){ type_ = pathType::custom; custom_ = obj; }
+	void text(const Text& obj){ type_ = pathType::text; text_ = obj; }
+	void rectangle(const Rectangle& obj){ type_ = pathType::rectangle; rectangle_ = obj; }
+	void circle(const Circle& obj){ type_ = pathType::circle; circle_ = obj; }
+	void path(const Path& obj){ type_ = pathType::path; path_ = obj; }
 
-	pathType getPathType() const { return type_; }
+	Type type() const { return type_; }
 
-	const text& getText() const { return text_; }
-	const rectangle& getRectangle() const { return rectangle_; }
-	const circle& getCircle() const { return circle_; }
-	const customPath& getCustom() const { return custom_; }
+	const Text& text() const { return text_; }
+	const Rectangle& rectangle() const { return rectangle_; }
+	const Circle& circle() const { return circle_; }
+	const Path& path() const { return path_; }
 
-	const transformable2& getTransformable() const;
-	transformable2& getTransformable();
+	const transformable2& transformable() const;
+	transformable2& transformable();
 
     ////transformable//////////////
-    void rotate(float rotation){ getTransformable().rotate(rotation); }
-    void move(const vec2f& translation){ getTransformable().move(translation); }
-    void scale(const vec2f& pscale){ getTransformable().scale(pscale); }
-    void moveOrigin(const vec2f& m) { getTransformable().moveOrigin(m); };
+    void rotate(float rotation){ transformable().rotate(rotation); }
+    void move(const vec2f& translation){ transformable().move(translation); }
+    void scale(const vec2f& pscale){ transformable().scale(pscale); }
+    void moveOrigin(const vec2f& m) { transformable().moveOrigin(m); };
 
-    void setRotation(float rotation){ getTransformable().setRotation(rotation); }
-    void setPosition(const vec2f& translation){ getTransformable().setPosition(translation); }
-    void setScale(const vec2f& pscale){ getTransformable().setScale(pscale); }
-    void setOrigin(const vec2f& origin) { getTransformable().setOrigin(origin); }
+    void rotation(float rotation){ transformable().rotation(rotation); }
+    void position(const vec2f& translation){ transformable().position(translation); }
+    void scale(const vec2f& pscale){ transformable().scale(pscale); }
+    void origin(const vec2f& origin) { transformable().origin(origin); }
 
-    float getRotation() const { return getTransformable().getRotation(); }
-    const vec2f& getPosition() const { return getTransformable().getPosition(); }
-    const vec2f& getScale() const { return getTransformable().getScale(); }
-    const vec2f& getOrigin() const { return getTransformable().getOrigin(); }
+    float rotation() const { return transformable().rotation(); }
+    const vec2f& position() const { return transformable().position(); }
+    const vec2f& scale() const { return transformable().scale(); }
+    const vec2f& origin() const { return transformable().origin(); }
 
-	void copyTransform(const transformable2& other){ getTransformable().copyTransform(other); };
+	void copyTransform(const transformable2& other){ transformable().copyTransform(other); };
 
-    mat3f getTransformMatrix() const { return getTransformable().getTransformMatrix(); }
+    mat3f transformMatrix() const { return transformable().getTransformMatrix(); }
 
-	rect2f getExtents() const { return getTransformable().getExtents(); }
-	rect2f getTransformedExtents() const { return getTransformable().getTransformedExtents(); }
+	rect2f extents() const { return transformable().getExtents(); }
+	rect2f transformedExtents() const { return transformable().getTransformedExtents(); }
 
 };
 
-//shape///////////////////////////////////////
-class mask : public std::vector<path>
-{
-public:
-	mask() = default;
 
-/*
-	const std::vector<path>& paths() const { return paths_; }
-
-	void addPath(const path& p){ paths_.emplace_back(p); }
-	void addPath(path&& p){ paths_.push_back(std::move(p)); }
-*/
-    rect2f getExtents() const { return rect2f(); }
-};
-
-//shape//////////////////////////////////////
-class shape
+///The Shape class is completley able to hold a svg shape tag like rectangle, ellipse or path.
+///It holds a path type which define the actual shape of the object as well as a brush and pen
+///to fill or stroke the shape.
+class Shape
 {
 protected:
-    mask mask_;
-    brush brush_;
-    pen pen_;
-
-    bool hasBrush_ {0};
-    bool hasPen_ {0};
+    PathBase pathBase_;
+    Brush brush_ = Brush::none;
+    Pen pen_ = Pen::none;
 
 public:
-    shape(const mask& m = mask()) : mask_(m) {}
+	Shape() = default;
+	Shape(const PathBase& path, const Brush& brush = Brush::none, const Pen& pen = Pen::none)
+		: pathBase_(path), brush_(brush), pen_(pen) {}
 
-    const mask& getMask() const { return mask_; }
-    const brush* getBrush() const { return (hasBrush_) ? &brush_ : nullptr; }
-    const pen* getPen() const { return (hasPen_) ? &pen_ : nullptr; }
+	const Pen& pen() const { return pen_; }
+	const Brush& brush() const { return brush_; }
+	const PathBase& pathBase() const { return pathBase_; }
 
-    mask& getMask() { return mask_; }
-    brush* getBrush() { return (hasBrush_) ? &brush_ : nullptr; }
-    pen* getPen() { return (hasPen_) ? &pen_ : nullptr; }
-
-    void setPen(const pen* p){ if(p){ hasPen_ = 1; pen_ = *p; } }
-    void setBrush(const brush* b){ if(b){ hasBrush_ = 1; brush_ = *b; } }
+	void pen(const Pen& p){ pen_ = p; }
+	void brush(const Brush& b){ brush_ = b; }
+	void pathBase(const PathBase& p){ pathBase_ = p; }
 };
-
-//bake//////////////////////////////////
-std::vector<vec2f> bakePoints(const std::vector<point>& vec);
-
-
 
 }

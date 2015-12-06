@@ -1,7 +1,8 @@
 #pragma once
 
+#include <ny/draw/include.hpp>
+
 #ifdef NY_WithCairo
-#include <ny/include.hpp>
 #include <ny/drawContext.hpp>
 
 #include <cairo/cairo.h>
@@ -9,33 +10,24 @@
 namespace ny
 {
 
-class cairoFont
-{
-protected:
-    cairo_font_face_t* handle_;
-
-public:
-    cairoFont(const std::string& name, bool fromFile = 0);
-    ~cairoFont();
-
-    cairo_font_face_t* getFontFace() const { return handle_; }
-};
-
-class cairoDrawContext : public drawContext
+///The cairo implementation for the DrawContext interface.
+class CairoDrawContext : public DrawContext
 {
 protected:
     cairo_surface_t* cairoSurface_ = nullptr; //both prob. better custom unique_ptr, to dont have to care about onwership (destruction) with derived classes
     cairo_t* cairoCR_ = nullptr;
 
-    cairoDrawContext(surface& surf);
+    cairoDrawContext();
 
     void applyTransform(const transformable2& obj);
     void resetTransform();
 
 public:
-    cairoDrawContext(surface& surf, cairo_surface_t& cairoSurface);
+    cairoDrawContext(cairo_surface_t& cairoSurface);
     cairoDrawContext(image& img);
     virtual ~cairoDrawContext();
+
+    bool init(cairo_surface_t& cairoSurface);
 
     virtual void clear(color col = color::none) override;
     virtual void apply() override;
@@ -59,11 +51,10 @@ public:
 	void save();
 	void restore();
 
-    cairo_surface_t* getCairoSurface() const { return cairoSurface_; };
-    cairo_t* getCairoContext() const { return cairoCR_; };
+    cairo_surface_t* cairoSurface() const { return cairoSurface_; };
+    cairo_t* cairoContext() const { return cairoCR_; };
 };
 
 }
 
 #endif //Cairo
-
