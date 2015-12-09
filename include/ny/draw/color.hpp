@@ -44,10 +44,4 @@ public:
     const static Color none;
 };
 
-//multiply operator
-Color operator*(float fac, const Color& c)
-{
-	return Color(fac * c.rgba());
-}
-
 }

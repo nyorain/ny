@@ -16,15 +16,16 @@ class Circle;
 class Text;
 class Font;
 class Image;
+class Texture;
 class Shape;
 class Color;
 class Brush;
 class Pen;
 class ColorGradient;
-class LinearGradientBrush;
-class RadialGradientBrush;
-class ImageBrush;
-class DashStyle;
 class SvgImage;
+struct LinearGradientBrush;
+struct RadialGradientBrush;
+struct ImageBrush;
+struct DashStyle;
 
 }

@@ -47,20 +47,30 @@ public:
     };
 
 protected:
-	Type type_;
-    vec2f position_;
+	Type type_ {Type::line};
+    vec2f position_ {0, 0};
 
 	union
 	{
-        vec2f controlPoint_;
-		std::pair<vec2f> quadCurveControlPoints_;
+        vec2f controlPoint_ {0.f, 0.f}; //default activated
+		std::pair<vec2f, vec2f> cubicCurveControlPoints_;
 		ArcData arc_;
 	};
+
+	///Calls the constructor of the current active type.
+	///Should be called on destruction of this object and before constructing a new member
+	///of the union.
+	void resetUnion();
 
 public:
 	///Constructs the segment with a given position it goes to and a given type which is defaulted
 	///to line.
-    PathSegment(const vec2f& position, Type t = Type::line);
+    PathSegment(const vec2f& position, Type t = Type::line) noexcept;
+	~PathSegment() noexcept;
+
+	PathSegment(const PathSegment& other) noexcept;
+	PathSegment& operator=(const PathSegment& other) noexcept;
+	//move operations not implemented since they are the same as copy operations
 
 	///Returns the position this segment goes to
     const vec2f& position() const { return position_; }
@@ -100,7 +110,8 @@ public:
 
 	///Returns the two control points this segment holds in its description. This will raise a
 	///warning and return 2 {0,0}-vecs if the type of this segment is not cubicCurve.
-    std::pair<vec2f> quadCurveControlPoints() const;
+	///TODO: vec2<vec2f> better as return type here?
+    std::pair<vec2f, vec2f> cubicCurveControlPoints() const;
 
 	///Will return the ArcData object this segment has stored. Will rasie a warning and return
 	///a default-constructed ArcData object if the type of this object is not arc.
@@ -113,20 +124,21 @@ public:
 class PlainSubpath : public std::vector<vec2f>
 {
 protected:
-    bool closed_;
+    bool closed_ = 0;
 
 public:
+	PlainSubpath() = default;
     PlainSubpath(const std::vector<vec2f>& points, bool closed = 0);
 
 	///Returns if the subpath is closed.
     bool closed() const { return closed_; }
 
 	///Closes the subpath.
-    void close(){ closed_ = b; }
+    void close(){ closed_ = 1; }
 };
 
 ///The Subpath class represents a single, potentially closed, shape.
-///It consists of many PathSegments and a start point.
+///It consists of many PathSegments, a start point and a closed flag.
 class Subpath
 {
 protected:
@@ -136,17 +148,17 @@ protected:
 
 public:
 	///Constructs the subpath with a given Startpoint
-    Subpath(const vec2f& start = {0,0});
+    Subpath(const vec2f& start = {0.f, 0.f});
 
-    const PathSegment& line(const vec2f& point);
+    const PathSegment& line(const vec2f& position);
 	const PathSegment& smoothQuadCurve(const vec2f& position);
     const PathSegment& quadCurve(const vec2f& position, const vec2f& control);
     const PathSegment& smoothCubicCurve(const vec2f& position, const vec2f& control);
-    const PathSegment& cubicCurve(const vec2f& position, const vec2f& control1, const vec2f& control2);
+    const PathSegment& cubicCurve(const vec2f& pos, const vec2f& con1, const vec2f& con2);
     const PathSegment& arc(const vec2f& position, const ArcData& data);
 
 	///Returns the current Point the Subpath stays at.
-	const vec2f& currentPoint() const;
+	const vec2f& currentPosition() const;
 
 	///Closes the Subpath.
 	void close(){ closed_ = 1; }
@@ -161,10 +173,11 @@ public:
 	void startPoint(const vec2f& start){ start_ = start; }
 
 	///Returns the current startPoint of this Subpath.
-	const vec2f& startPoint() const { return start; }
+	const vec2f& startPoint() const { return start_; }
 
 	///Approximiates the curves of the Subpath to create a PlainSubpath just consisting of
 	///linear segments (basically a vertex array).
+	///TODO: some kind of precision argument
     PlainSubpath bake() const;
 };
 
@@ -176,26 +189,38 @@ protected:
     std::vector<Subpath> subpaths_;
 
 public:
-    Path();
+    Path(const vec2f& start = {0.f, 0.f});
+	Path(const Subpath& sub);
     ~Path() = default;
 
-	///Starts and returns a new Subpath.
+	///Starts a new Subpath at the current position and returns it.
     Subpath& newSubpath();
 
 	///Starts a new Subpath at the given point. Returns the new (current after this call) Subpath.
+	///If the current subpath has no segments (is empty), no new subpath will be created, the
+	///current one will be used (with a changed start point) instead.
     Subpath& move(const vec2f& point);
 
-	const PathSegment& line(const vec2f& point);
+	const PathSegment& line(const vec2f& position);
 	const PathSegment& smoothQuadCurve(const vec2f& position);
     const PathSegment& quadCurve(const vec2f& position, const vec2f& control);
     const PathSegment& smoothCubicCurve(const vec2f& position, const vec2f& control);
-    const PathSegment& cubicCurve(const vec2f& pos, const vec2f& cont1, const vec2f& cont2);
+    const PathSegment& cubicCurve(const vec2f& pos, const vec2f& con1, const vec2f& con2);
     const PathSegment& arc(const vec2f& position, const ArcData& data);
 
 	///Closes the current Subpath and start a new one. Returns the new Subpath.
     Subpath& close();
 
-    Subpath& currentSubpath() const { return subpaths_.back(); }
+	///Returns the current subpath.
+    const Subpath& currentSubpath() const { return subpaths_.back(); }
+
+	///Returns the current subpath.
+    Subpath& currentSubpath() { return subpaths_.back(); }
+
+	///Returns the current point the path stays at.
+	const vec2f& currentPosition() const;
+
+	///Returns a vector of all subpaths.
 	const std::vector<Subpath>& subpaths() const { return subpaths_; }
 };
 
@@ -207,8 +232,10 @@ protected:
     vec4f borderRadius_;
 
 public:
-    Rectangle(const vec2f& position = vec2f(), const vec2f& size = vec2f()) : size_(size) { setPosition(position); }
-	Rectangle(const rect2f& rct) : transformable2(rect.position), size_(rect.size) {}
+    Rectangle(const vec2f& position = vec2f(), const vec2f& size = vec2f())
+		: transformable2(position), size_(size) {}
+	Rectangle(const rect2f& rct)
+		: transformable2(rct.position), size_(rct.size) {}
 
     void size(const vec2f& size){ size_ = size; }
 	const vec2f& size() const { return size_; }
@@ -218,6 +245,7 @@ public:
     const vec4f& borderRadius() const { return borderRadius_; }
 
     Path asPath() const;
+
     template<class prec> operator rect2<prec>() const { return rect2<prec>(position(), size_); }
     virtual rect2f extents() const override { return rect2f(position(), size_); }
 };
@@ -249,13 +277,13 @@ public:
 	void size(float s){ size_ = s; }
     float size() const { return size_; }
 
-    Bound bounds() const { return bound_; }
-    void bounds(Bounds b) { bound_ = b; }
+    Bounds bounds() const { return bounds_; }
+    void bounds(Bounds b) { bounds_ = b; }
 
     Font* font() const { return font_; }
     void font(Font& f) { font_ = &f; }
 
-    //inherited from transformable
+    //inherited from transformable, TODO, requires font check
     virtual rect2f extents() const override { rect2f ret; ret.position = position(); return ret; }
 };
 
@@ -267,16 +295,16 @@ protected:
     float radius_ {0};
 
 public:
-    circle(float radius = 0) : radius_(radius) {}
-    circle(const vec2f& position, float radius = 0)
+    Circle(float radius = 0) : radius_(radius) {}
+    Circle(const vec2f& position, float radius = 0)
 	 	: transformable2(position), radius_(radius) {}
 
     void radius(float r){ radius_ = r; }
     float radius() const { return radius_; }
 
     vec2f center() const { return position() - origin() + vec2f(radius_, radius_); }
-
     Path asPath() const;
+
     virtual rect2f extents() const override
 		{ return rect2f(position(), 2 * vec2f(radius_, radius_)); }
 };
@@ -305,26 +333,33 @@ protected:
 		Path path_;
 	};
 
+	///Calls the destructor on the current active type, so a new union member can be activated
+	///(i.e. constructed).
+	void resetUnion();
+
 public:
-	PathBase() : type_(Type::path), path_() {}
+	///Constructs the PathBase with the given type. The type parameter is defaulted to circle
+	///since it is the most lightweight and easy type.
+	PathBase(Type type = Type::circle) : type_(type), circle_() {};
 
-    PathBase(const Rectangle& obj) : type_(pathType::rectangle), rectangle_(obj) {}
-    PathBase(const Circle& obj) : type_(pathType::circle), circle_(obj) {}
-    PathBase(const Text& obj) : type_(pathType::text), text_(obj) {}
-    PathBase(const Path& obj) : type_(pathType::path), path_(obj) {}
+    PathBase(const Rectangle& obj) : type_(Type::rectangle), rectangle_(obj) {}
+    PathBase(const Circle& obj) : type_(Type::circle), circle_(obj) {}
+    PathBase(const Text& obj) : type_(Type::text), text_(obj) {}
+    PathBase(const Path& obj) : type_(Type::path), path_(obj) {}
 
-	PathBase(const PathBase& lhs) noexcept;
-    PathBase& operator=(const PathBase& lhs) noexcept;
+	PathBase(const PathBase& other);
+    PathBase& operator=(const PathBase& other);
 
-	PathBase(PathBase&& lhs) noexcept;
-    PathBase& operator=(PathBase&& lhs) noexcept;
+	PathBase(PathBase&& other) noexcept;
+    PathBase& operator=(PathBase&& other) noexcept;
 
     ~PathBase();
 
-	void text(const Text& obj){ type_ = pathType::text; text_ = obj; }
-	void rectangle(const Rectangle& obj){ type_ = pathType::rectangle; rectangle_ = obj; }
-	void circle(const Circle& obj){ type_ = pathType::circle; circle_ = obj; }
-	void path(const Path& obj){ type_ = pathType::path; path_ = obj; }
+	///
+	void text(const Text& obj);
+	void rectangle(const Rectangle& obj);
+	void circle(const Circle& obj);
+	void path(const Path& obj);
 
 	Type type() const { return type_; }
 
@@ -336,7 +371,7 @@ public:
 	const transformable2& transformable() const;
 	transformable2& transformable();
 
-    ////transformable//////////////
+    //transformable
     void rotate(float rotation){ transformable().rotate(rotation); }
     void move(const vec2f& translation){ transformable().move(translation); }
     void scale(const vec2f& pscale){ transformable().scale(pscale); }
@@ -344,21 +379,18 @@ public:
 
     void rotation(float rotation){ transformable().rotation(rotation); }
     void position(const vec2f& translation){ transformable().position(translation); }
-    void scale(const vec2f& pscale){ transformable().scale(pscale); }
+    void scaling(const vec2f& pscale){ transformable().scaling(pscale); }
     void origin(const vec2f& origin) { transformable().origin(origin); }
 
     float rotation() const { return transformable().rotation(); }
     const vec2f& position() const { return transformable().position(); }
-    const vec2f& scale() const { return transformable().scale(); }
+    const vec2f& scaling() const { return transformable().scaling(); }
     const vec2f& origin() const { return transformable().origin(); }
 
 	void copyTransform(const transformable2& other){ transformable().copyTransform(other); };
+    mat3f transformMatrix() const { return transformable().transformMatrix(); }
 
-    mat3f transformMatrix() const { return transformable().getTransformMatrix(); }
-
-	rect2f extents() const { return transformable().getExtents(); }
-	rect2f transformedExtents() const { return transformable().getTransformedExtents(); }
-
+	rect2f extents() const { return transformable().extents(); }
 };
 
 

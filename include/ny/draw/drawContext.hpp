@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ny/draw/include.hpp>
-#include <ny/draw/color.hpp>
+#include <ny/draw/brush.hpp>
 
 #include <nytl/vec.hpp>
 #include <nytl/rect.hpp>
@@ -137,7 +137,7 @@ protected:
 	vec2f size_;
     vec2f position_;
 
-    drawContext* redirect_;
+    DrawContext* redirect_;
 
 public:
 	///Constructs the RedirectDrawContext with a given original DrawContext, to which all
@@ -157,11 +157,11 @@ public:
 	virtual void mask(const PathBase& b) override;
 	virtual void resetMask() override;
 
-	virtual void fill(const pen& col) override;
-	virtual void stroke(const pen& col) override;
+	virtual void fill(const Brush& col) override;
+	virtual void stroke(const Pen& col) override;
 
-	virtual void fillPreserve(const pen& col) override;
-	virtual void strokePreserve(const brush& col) override;
+	virtual void fillPreserve(const Brush& col) override;
+	virtual void strokePreserve(const Pen& col) override;
 
 	virtual bool maskClippingSupported() const override;
 	virtual void clipMask() override;
@@ -202,6 +202,31 @@ public:
 	///This function cleans up the redirected DrawContext. To call any DrawContext
 	///function of this object after endDrawing is called is undefined behaviour.
 	void endDrawing();
+};
+
+
+///Abstract base class for implementations that use a backend without real masking system (e.g. gl).
+///All mask calls will be stored in a vector<PathBase> and will only be applied to the
+///surface when some fill or stroke method is called (or clear).
+///Does not differ the masking functions from its DrawContext base class.
+///The pure virtual stroke and fill functions from DrawContext must be implemented in 
+///derived classes (as well as masking-related functions), they can just use the storedMask()
+///function to get the current mask.
+class DelayedDrawContext : public DrawContext
+{
+protected:
+	std::vector<PathBase> mask_;
+
+public:
+	virtual void mask(const Path& obj) override;
+	virtual void mask(const Circle& obj) override;
+	virtual void mask(const Rectangle& obj) override;
+	virtual void mask(const Text& obj) override;
+	virtual void mask(const PathBase& b) override;
+	virtual void resetMask() override;
+
+	///Returns the current (just stored, not real) mask of this context.
+	const std::vector<PathBase>& storedMask() const { return mask_; }
 };
 
 }

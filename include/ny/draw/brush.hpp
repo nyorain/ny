@@ -4,13 +4,17 @@
 #include <ny/draw/color.hpp>
 #include <ny/draw/gradient.hpp>
 
+#include <nytl/vec.hpp>
+#include <nytl/line.hpp>
+#include <nytl/rect.hpp>
+
 namespace ny
 {
 
 //ImageBrush
-struct ImageBrush
+struct TextureBrush
 {
-	Image* image;
+	Texture* texture;
 	rect2f extents;
 };
 
@@ -22,7 +26,7 @@ struct LinearGradientBrush
 };
 
 //RadialGradientBrush
-class RadialGradientBrush
+struct RadialGradientBrush
 {
 	ColorGradient gradient;
 	vec2f center;
@@ -40,7 +44,7 @@ public:
 		color,
 		linearGradient,
 		radialGradient,
-		image
+		texture
 	};
 
 	static const Brush none;
@@ -49,30 +53,38 @@ protected:
 	Type type_;
 	union
 	{
-		Color color_ = Color::none;
+		Color color_;
 		LinearGradientBrush linearGradient_;
 		RadialGradientBrush radialGradient_;
-		ImageBrush image_;
+		TextureBrush texture_;
 	};
+
+	///Destructs the current active union member.
+	void resetUnion();
 
 public:
 	Brush(const Color& c = Color::none);
 	Brush(const LinearGradientBrush& grad);
 	Brush(const RadialGradientBrush& grad);
-	Brush(const ImageBrush& img);
+	Brush(const TextureBrush& tex);
 	~Brush();
 
+	//no move operators since they do not differ
+	Brush(const Brush& other);
+	Brush& operator=(const Brush& other);
+
+	//
 	Type type() const { return type_; }
 
 	Color color() const { return color_; }
 	LinearGradientBrush linearGradient() const { return linearGradient_; }
-	RadialGradientBurhs radialGradient() const { return radialGradient_; }
-	ImageBrush imageBrush() const { return image_; }
+	RadialGradientBrush radialGradient() const { return radialGradient_; }
+	TextureBrush textureBrush() const { return texture_; }
 
-	void color(const Color& c);
+	void color(const Color& col);
 	void linearGradientBrush(const LinearGradientBrush& grad);
 	void radialGradientBrush(const RadialGradientBrush& grad);
-	void ImageBrush(const ImageBrush& grad);
+	void textureBrush(const TextureBrush& tex);
 };
 
 }

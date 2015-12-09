@@ -10,14 +10,14 @@ void ColorGradient::addStop(const ColorGradient::Stop& stop)
 
 void ColorGradient::addStop(float position, const Color& col)
 {
-    stops_.emplace_back({position, col});
+    stops_.push_back(Stop{position, col});
 }
 
 Color ColorGradient::colorAt(float position) const
 {
     if(stops_.empty()) return Color::none;
     
-    Stop* lastOne = nullptr;
+    const Stop* lastOne = nullptr;
     for(auto& s : stops_)
     {
         if(s.position > position)
@@ -26,10 +26,11 @@ Color ColorGradient::colorAt(float position) const
             float distance = s.position - lastOne->position;
 
             float higherFac = (s.position - position) / distance;
-            return higherFac * s.color + (1 - higherFac) * lastOne->color;
+            auto res = higherFac * s.color.rgba() + (1 - higherFac) * lastOne->color.rgba();
+			return Color(res);
         }
 
-        lastOne_ = &s;
+        lastOne = &s;
     }
 
     return stops_.back().color;

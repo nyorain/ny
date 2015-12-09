@@ -10,10 +10,10 @@ void DrawContext::mask(const PathBase& obj)
 {
     switch(obj.type())
     {
-        case Type::text: mask(obj.text()); return;
-        case Type::rectangle: mask(obj.rectangle()); return;
-        case Type::path: mask(obj.path()); return;
-        case Type::circle: mask(obj.circle()); return;
+		case PathBase::Type::text: mask(obj.text()); return;
+		case PathBase::Type::rectangle: mask(obj.rectangle()); return;
+		case PathBase::Type::path: mask(obj.path()); return;
+		case PathBase::Type::circle: mask(obj.circle()); return;
     }
 }
 
@@ -30,15 +30,15 @@ void DrawContext::mask(const Rectangle& obj)
 
 void DrawContext::mask(const Circle& obj)
 {
-    mask(obj.asCustomPath());
+    mask(obj.asPath());
 }
 
 void DrawContext::draw(const Shape& obj)
 {
     mask(obj.pathBase());
 
-    fillPreserve(*obj.brush());
-    strokePreserve(*obj.pen());
+    fillPreserve(obj.brush());
+    strokePreserve(obj.pen());
 
     resetMask();
 }
@@ -83,7 +83,8 @@ void DrawContext::resetMaskClip()
 }
 
 //redirectDrawContext//////////////////////////////////////////////////////////////////////////////////////////////////////
-RedirectDrawContext::RedirectDrawContext(DrawContext& redirect, vec2f position, vec2f size)
+RedirectDrawContext::RedirectDrawContext(DrawContext& redirect, const vec2f& position, 
+		const vec2f& size)
     : DrawContext(), size_(size), position_(position), redirect_(&redirect)
 {
 }
@@ -146,20 +147,20 @@ void RedirectDrawContext::resetMask()
     redirect_->resetMask();
 }
 
-void RedirectDrawContext::fillPreserve(const brush& col)
+void RedirectDrawContext::fillPreserve(const Brush& col)
 {
     redirect_->fillPreserve(col);
 }
-void RedirectDrawContext::strokePreserve(const pen& col)
+void RedirectDrawContext::strokePreserve(const Pen& col)
 {
     redirect_->strokePreserve(col);
 }
 
-void RedirectDrawContext::fill(const brush& col)
+void RedirectDrawContext::fill(const Brush& col)
 {
     redirect_->fill(col);
 }
-void RedirectDrawContext::stroke(const pen& col)
+void RedirectDrawContext::stroke(const Pen& col)
 {
     redirect_->stroke(col);
 }
@@ -174,14 +175,14 @@ void RedirectDrawContext::clipMask()
     redirect_->clipMask();
 }
 
-void RedirectDrawContext::clipMaskPreserve() override
+void RedirectDrawContext::clipMaskPreserve() 
 {
     redirect_->clipMaskPreserve();
 }
 
 std::vector<PathBase> RedirectDrawContext::maskClip() const
 {
-    auto ret = redirect_->clipMaskPreserve();
+    auto ret = redirect_->maskClip();
     for(auto& p : ret)
         p.move(-position_);
 
@@ -210,7 +211,7 @@ void RedirectDrawContext::redirect(DrawContext& dc)
 void RedirectDrawContext::clipRectangle(const rect2f& obj)
 {
     rect2f clipRect;
-    clipRect.position = std::max(obj.position, 0) + position_;
+    clipRect.position = max(obj.position, {0.f, 0.f}) + position_;
     clipRect.size = min(obj.size, position_ + size_ - clipRect.position);
 
 	redirect_->clipRectangle(clipRect);
@@ -231,7 +232,7 @@ rect2f RedirectDrawContext::rectangleClip() const
 
 void RedirectDrawContext::startDrawing()
 {
-    redirect_.resetMask();
+    redirect_->resetMask();
 
     if(redirect_->maskClippingSupported())
     {
@@ -240,7 +241,7 @@ void RedirectDrawContext::startDrawing()
     }
 
     rectangleClipSave_ = redirect_->rectangleClip();
-    redirect_.clipRectangle(extents());
+    redirect_->clipRectangle(extents());
 }
 
 
@@ -248,9 +249,9 @@ void RedirectDrawContext::endDrawing()
 {
     redirect_->resetMask();
 
-    if(redirect_->makClippingSupported())
+    if(redirect_->maskClippingSupported())
     {
-        redirect_->resetClipMask();
+        redirect_->resetMaskClip();
         redirect_->mask(maskClipSave_);
         redirect_->clipMask();
     }
@@ -258,5 +259,35 @@ void RedirectDrawContext::endDrawing()
     redirect_->clipRectangle(rectangleClipSave_);
 }
 
+//Delayed
+void DelayedDrawContext::mask(const Path& obj)
+{
+	mask_.push_back(obj);
+}
+
+void DelayedDrawContext::mask(const Rectangle& obj)
+{
+	mask_.push_back(obj);
+}
+
+void DelayedDrawContext::mask(const Text& obj)
+{
+	mask_.push_back(obj);
+}
+
+void DelayedDrawContext::mask(const Circle& obj)
+{
+	mask_.push_back(obj);
+}
+
+void DelayedDrawContext::mask(const PathBase& obj)
+{
+	mask_.push_back(obj);
+}
+
+void DelayedDrawContext::resetMask()
+{
+	mask_.clear();
+}
 
 }

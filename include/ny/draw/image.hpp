@@ -1,68 +1,90 @@
 #pragma once
 
-#include <ny/include.hpp>
+#include <ny/draw/include.hpp>
+#include <ny/app/file.hpp>
+#include <nytl/vec.hpp>
 
-#include <ny/surface.hpp>
-#include <ny/file.hpp>
-
-#include <memory>
+#include <vector>
+#include <string>
+#include <istream>
+#include <ostream>
 
 namespace ny
 {
 
-
-//image/////////////////////////////
-class image : public file
+///Represnts a single image which can be loaded from a file and on which can be rendered.
+class Image : public File
 {
+public:
+	enum class Format
+	{
+		rgba8888,
+		rgb888,
+		rgb655,
+		rgb565,
+		rgb556,
+		a1
+	};
+
+	static unsigned int formatSize(Format f);
+
 protected:
-    class impl;
-    std::unique_ptr<impl> impl_;
+	std::vector<unsigned char> data_;
+	vec2ui size_ {0u, 0u};
+	Format format_ {Format::rgba8888};
 
 public:
-    image();
-    image(const std::string& path);
-    virtual ~image();
+    Image(const vec2ui& size = {0u, 0u}, Format format = Format::rgba8888);
+    Image(const std::string& path);
+    virtual ~Image() = default;
 
-    image(const image& other);
-    image& operator=(const image& other);
+    Image(const Image& other) = default;
+    Image& operator=(const Image& other) = default;
 
-    virtual unsigned char* getDataPlain();
-    const virtual unsigned char* getDataPlain() const;
+	//noexcept? :o
+	Image(Image&& other) = default;
+	Image& operator=(Image&& other) = default;
 
-    virtual unsigned char* getData() const;
-    virtual void getData(unsigned char* data) const;
+	//
+	std::vector<unsigned char>& data() { return data_; }
+	const std::vector<unsigned char>& data() const { return data_; }
+    void data(const std::vector<unsigned char>& newdata, const vec2ui& newsize);
 
-    unsigned int getBufferSize() const;
-    bufferFormat getBufferFormat() const;
+	std::vector<unsigned char> copyData() const;
 
-    unsigned int getStride() const;
+    unsigned int pixelSize() const;
+    Format bufferFormat() const { return format_; }
 
-    //from surface
-    virtual vec2ui getSize() const override;
+    const vec2ui& size() const { return size_; }
+	void size(const vec2ui& newSize);
+
+    bool load(std::istream& is);
+    bool save(std::ostream& os, const std::string& type) const;
 
     //from file
-    virtual bool load(std::istream& is) override;
-    virtual bool save(std::ostream& os) const override;
+	virtual bool load(const std::string& path) override;
+	virtual bool save(const std::string& path) const override;
 };
 
 
-//gif//////////////////////////////////////////
-class gifImage : public file
+///Represents an animatedImage (e.g. gif file) which can hold multiple images with animation
+///delays.
+class animatedImage : public File
 {
 protected:
+	std::vector<std::pair<Image, unsigned int>> images_;
+	vec2ui size_;
+
 public:
+    Image* image(std::size_t i);
+    Image* operator[](std::size_t i) { return image(i); }
 
-
-    image* getImage(size_t i) { return nullptr; }
-    image* operator[](size_t i) { return getImage(i); }
-
-    //inherit from surface?
-    size_t imageCount() const { return 0; }
-    vec2ui size() const { return vec2ui(); };
+    size_t imageCount() const { return images_.size(); }
+    const vec2ui& size() const { return size_; };
 
     //from file
-    virtual bool load(std::istream& is) override { return 0; };
-    virtual bool save(std::ostream& os) const override { return 0; };
+    virtual bool load(const std::string& path) override;
+    virtual bool save(const std::string& path) const override;
 };
 
 }

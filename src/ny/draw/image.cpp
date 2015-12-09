@@ -1,117 +1,199 @@
-#include <ny/image.hpp>
+#include <ny/draw/image.hpp>
+#include <nytl/make_unique.hpp>
+#include <nytl/log.hpp>
 
-#if (!defined NY_WithWinapi)
-#define cimg_use_png 1
-#endif //NOT Winapi
+#include "stb_image.h"
+#include "stb_image_write.h"
 
-//#include "CImg.h"
-//using namespace cimg_library;
+#include <cstring>
+#include <fstream>
 
 namespace ny
 {
 
-//wrapper class
-class image::impl
+//static
+unsigned int Image::formatSize(Image::Format f)
 {
-public:
-	//CImg<unsigned char> img;
-};
-
-//image
-image::image() : file(), surface(), impl_(nullptr)
-{
-	//impl_ = make_unique<impl>();
+	switch(f)
+	{
+		case Format::rgba8888: return 4;
+		case Format::rgb888: return 3;
+		case Format::rgb655: case Format::rgb565: case Format::rgb556: return 2;
+		case Format::a1: return 1;
+		default: return 0;
+	}
 }
 
-image::image(const std::string& path) : file(path), surface()
-{
-	//impl_ = make_unique<impl>();
-	//impl_->img.load(path.c_str());
+//stbi callbacks/util
+namespace
+{    
+	int read(void* user, char* data, int size)
+    {
+        std::istream* stream = static_cast<std::istream*>(user);
+        stream->read(data, size);
+		return stream->gcount();
+    }
+    void skip(void* user, int size)
+    {
+        std::istream* stream = static_cast<std::istream*>(user);
+        stream->seekg(static_cast<int>(stream->tellg()) + size, stream->beg);
+    }
+    int eof(void* user)
+    {
+        std::istream* stream = static_cast<std::istream*>(user);
+
+		auto curr = stream->tellg();
+		stream->seekg(0, stream->end);
+		std::size_t size = static_cast<std::size_t>(stream->tellg());
+        stream->seekg(curr, stream->beg);
+
+        return static_cast<std::size_t>(stream->tellg()) >= size;
+    }
+
+	void write(void* user, void* data, int size)
+	{
+		std::ostream* stream = static_cast<std::ostream*>(user);
+		stream->write(static_cast<char*>(data), size);
+	}
 }
 
-image::~image()
+//Image
+Image::Image(const vec2ui& size, Format format) : File(), size_(size), format_(format)
 {
+	data_.resize(size_.x * size_.y);
 }
 
-image::image(const image& other) : file(), surface(), impl_(nullptr)
+Image::Image(const std::string& path) : File(path)
 {
-	//impl_ = make_unique<impl>();
-	//impl_->img = other.impl_->img;
+	//problematic since virtual...
+	load(path);
 }
 
-image& image::operator=(const image& other)
+/*
+Image::Image(Image&& other) noexcept
+	: File(std::move(other)), data_(std::move(other.data_)), size_(other.size_),
+		format_(other.format_)
 {
-	//impl_->img = other.impl_->img;
-	//return *this;
+	other.size_ = {0u, 0u};
 }
 
-const unsigned char* image::getDataPlain() const
+Image& Image::operator=(Image&& other) noexcept
 {
-    //return impl_->img.data();
+	File::operator=(std::move(other));
+
+	data_ = std::move(other.data_);
+	size_ = other.size_;
+	format_ = other.format_;
+
+	other.size_ = {0u, 0u};
+
+	return *this;
+}
+*/
+
+void Image::data(const std::vector<unsigned char>& newdata, const vec2ui& newsize)
+{
+	size_ = newsize;
+	data_ = newdata;
+
+	change();
 }
 
-unsigned char* image::getDataPlain()
+std::vector<unsigned char> Image::copyData() const
 {
-	//return impl_->img.data();
+	return data_;
 }
 
-unsigned int image::getBufferSize() const
+unsigned int Image::pixelSize() const
 {
-    //return impl_->img.size();
+	return formatSize(format_);
 }
 
 //todo
-unsigned char* image::getData() const
+bool Image::save(const std::string& path) const
 {
-    /*
-    unsigned char* ret = new unsigned char[impl_->img.size()]; //todo: store
+	if(data_.empty()) return 0;
 
-    cimg_forXYC(impl_->img, x, y, c)
+    const std::size_t dot = path.find_last_of('.');
+    std::string ext = (dot != std::string::npos) ? path.substr(dot + 1) : "";	   
+	if(ext.empty()) ext = "plain";
+
+	for(auto& c : ext) c = std::tolower(c);
+
+	std::ofstream ofs(path);
+	if(!ofs.is_open())
+	{
+		return 0;
+	}
+
+	return save(ofs, ext);
+}
+
+bool Image::load(const std::string& path)
+{
+	std::ifstream ifs(path);
+	if(!ifs.is_open())
+	{
+		return 0;
+	}
+
+	return load(ifs);
+}
+
+bool Image::save(std::ostream& os, const std::string& type) const
+{ 
+	if(type == "bmp")
+	{
+		if(stbi_write_bmp_to_func(&write, &os, size_.x, size_.y, 4, data_.data()))
+			return 1;
+	}
+	else if(type == "tga")
+	{
+		if(stbi_write_tga_to_func(&write, &os, size_.x, size_.y, 4, data_.data()))
+			return 1;
+	}
+	else if(type == "png")
+	{
+		if(stbi_write_png_to_func(&write, &os, size_.x, size_.y, 4, data_.data(), 0))
+			return 1;
+	}
+	else
+	{
+		nytl::sendWarning("Image::save(stream): unknown/unsupported type ", type);
+		return 0;
+	}
+
+	nytl::sendWarning("Image::save: failed to load from stream with type ", type);
+	return 0;
+}
+
+bool Image::load(std::istream& is)
+{
+	data_.clear();
+
+	stbi_io_callbacks callbacks;
+    callbacks.read = &read;
+    callbacks.skip = &skip;
+    callbacks.eof  = &eof;
+
+    int width, height, channels;
+    unsigned char* ptr = stbi_load_from_callbacks(&callbacks, &is, &width, 
+			&height, &channels, STBI_rgb_alpha);
+
+    if (ptr && width && height)
     {
-        unsigned int pos = (impl_->img.width() * y + x) * impl_->img.spectrum() + c;
-        ret[pos] = impl_->img(x,y,c);
+        size_.x = width;
+        size_.y = height;
+
+        data_.resize(width * height * 4);
+		std::memcpy(&data_[0], ptr, data_.size());
+
+        stbi_image_free(ptr);
+        return true;
     }
 
-    return ret;
-    */
-}
-
-void image::getData(unsigned char* data) const
-{
-    /*
-    cimg_forXYC(impl_->img, x, y, c)
-    {
-        unsigned int pos = (impl_->img.width() * y + x) * impl_->img.spectrum() + c;
-        data[pos] = impl_->img(x,y,c);
-    }
-    */
-}
-
-vec2ui image::getSize() const
-{
-	//return vec2ui(impl_->img.width(), impl_->img.height());
-}
-
-bufferFormat image::getBufferFormat() const
-{
-    //return bufferFormat::unknown;
-}
-
-unsigned int image::getStride() const
-{
-    //return getSize().x * impl_->img.spectrum();
-}
-
-bool image::save(std::ostream& os) const
-{
-    //impl_->img.save(path.c_str());
-    //return 1;
-}
-
-bool image::load(std::istream& is)
-{
-    //impl_->img.load(path.c_str());
-   // return 1;
+	nytl::sendWarning("Image::load: failed to load image from stream:\n\t", stbi_failure_reason());
+	return 0;
 }
 
 }

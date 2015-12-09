@@ -19,14 +19,14 @@ public:
 	};
 
 protected:
-	std::vector<ColorStop> stops_;
+	std::vector<Stop> stops_;
 
 public:
-	void addPoint(const Stop& p);
-	void addPoint(float position, const Color& col);
+	void addStop(const Stop& p);
+	void addStop(float position, const Color& col);
 
 	Color colorAt(float position) const;
-	const std::vector<Stops> stops() const { return stops_; };
+	const std::vector<Stop>& stops() const { return stops_; };
 };
 
 }
