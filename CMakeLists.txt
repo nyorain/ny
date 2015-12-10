@@ -13,11 +13,18 @@ include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src")
 option(NY_BUILD_EXAMPLES "build the ny examples" OFF)
 option(NY_BUILD_TESTS "build the ny tests" OFF)
 
+#todo
+set(NY_WithGL 1)
+set(NY_WithGLES 1)
+set(NY_WithEGL 1)
+set(NY_WithGlbinding 1)
+set(NY_WithGlesbinding 1)
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 
-#config
+#config, TODO: install
 configure_file	( "${CMAKE_CURRENT_SOURCE_DIR}/src/ny/config.h.in"
-		  "${CMAKE_CURRENT_SOURCE_DIR}/include/ny/config.h"
+	"${CMAKE_CURRENT_BINARY_DIR}/include/ny/config.h"
 	     	)
 
 

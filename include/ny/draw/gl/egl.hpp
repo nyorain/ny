@@ -2,13 +2,11 @@
 
 #include <ny/config.h>
 
+#include <ny/draw/include.hpp>
+#include <ny/draw/gl/glContext.hpp>
 
-#ifdef NY_WithEGL
-
-#include <ny/include.hpp>
-#include <ny/gl/glDrawContext.hpp>
-
-#include <nytl/nonCopyable.hpp>
+#include <string>
+#include <vector>
 
 typedef void* EGLConfig;
 typedef void* EGLContext;
@@ -18,52 +16,42 @@ typedef void* EGLSurface;
 namespace ny
 {
 
-//eglApp
-class eglAppContext : public nonCopyable
+///EGL implementation for a gl(es) context.
+class EglContext : public GlContext
 {
-protected:
-    EGLDisplay eglDisplay_ = nullptr;
-    EGLConfig eglConfig_ = nullptr;
-
-    eglAppContext();
-
-	static eglAppContext* global_;
-
 public:
-    eglAppContext(EGLDisplay dpy, EGLConfig conf);
-    virtual ~eglAppContext();
+	static int eglError();
+	static std::string errorMessage(int error);
+	static int eglErrorWarn();
 
-    EGLDisplay getDisplay() const { return eglDisplay_; }
-    EGLConfig getConfig() const { return eglConfig_; }
-
-	static eglAppContext* getGlobal() { return global_; }
-};
-
-inline eglAppContext* getEGLAppContext()
-{
-    return eglAppContext::getGlobal();
-}
-
-//egl
-class eglDrawContext : public glDrawContext
-{
 protected:
+	EGLDisplay eglDisplay_ = nullptr;
     EGLContext eglContext_ = nullptr;
     EGLSurface eglSurface_ = nullptr;
 
     virtual bool makeCurrentImpl() override;
     virtual bool makeNotCurrentImpl() override;
 
-    eglDrawContext(surface& s);
+	EglContext() = default;
+	void init(EGLConfig config, Api api = Api::openGL);
 
 public:
-    eglDrawContext(surface& s, EGLContext ctx, EGLSurface surf);
+	EglContext(EGLDisplay disp, EGLSurface surf, Api api = Api::openGL);
+	EglContext(EGLDisplay disp, EGLConfig config, EGLSurface surf, Api api = Api::openGL);
+	virtual ~EglContext();
 
-    virtual bool swapBuffers() override;
+	EGLDisplay eglDisplay() const { return eglDisplay_; }
+    EGLContext eglContext() const { return eglContext_; }
+    EGLSurface eglSurface() const { return eglSurface_; }
 
-    EGLContext getEGLContext() const { return eglContext_; }
-    EGLContext getEGLSurface() const { return eglSurface_; }
+	void eglSurface(EGLSurface surface);
+
+	std::vector<std::string> eglExtensions() const;
+	bool eglExtensionSupported(const std::string& name) const;
+
+	virtual bool apply() override;
+	virtual bool valid() const override;
+
 };
 
 }
-#endif // NY_WithEGL

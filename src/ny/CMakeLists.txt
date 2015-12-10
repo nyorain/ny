@@ -11,6 +11,14 @@ set(src-draw
 		draw/image.cpp
 		draw/font.cpp)
 
+if(NY_WithGL OR NY_WithGLES)
+	set(src-draw ${src-draw} draw/gl/glContext.cpp)
+endif(NY_WithGL OR NY_WithGLES)
+
+if(NY_WithEGL)
+	set(src-draw ${src-draw} draw/gl/egl.cpp)
+endif(NY_WithEGL)
+
 add_library(ny-draw SHARED ${src-draw})
 target_compile_features(ny-draw PRIVATE cxx_range_for)
 

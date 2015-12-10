@@ -21,8 +21,6 @@ public:
 
 	//openGL
     virtual void updateViewport(const vec2ui& size) = 0;
-	virtual GlContext::Api api() const = 0;
-	virtual bool supportsVersion(unsigned int major, unsigned int minor) const = 0;
 };
 
 inline GlDrawContext* asGl(DrawContext* dc){ return dynamic_cast<GlDrawContext*>(dc); }

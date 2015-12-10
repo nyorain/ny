@@ -4,6 +4,8 @@
 #cmakedefine NY_WithGL
 #cmakedefine NY_WithEGL
 #cmakedefine NY_WithGLES
+#cmakedefine NY_WithGlbinding
+#cmakedefine NY_WithGlesbinding
 #cmakedefine NY_WithX11
 #cmakedefine NY_WithWayland
 #cmakedefine NY_WithWinapi

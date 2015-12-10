@@ -3,6 +3,9 @@
 #include <ny/draw/include.hpp>
 #include <nytl/nonCopyable.hpp>
 
+#include <string>
+#include <vector>
+
 namespace ny
 {
 
@@ -26,7 +29,8 @@ public:
 	};
 
 	///Returns the current context in the calling thread, nullptr if there is none.
-	static GlContext* current();
+	static GlContext* current()
+		{ return threadLocalCurrent(); }
 
 	///Returns the current context in the calling thread, nullptr if there is none or the found
 	///one is not in a valid state. This function should be prefered over current.
@@ -42,6 +46,12 @@ protected:
 
     unsigned int majorVersion_ {0};
     unsigned int minorVersion_ {0};
+
+	std::vector<std::string> extensions_;
+
+	///This should be called by implementations at some point of context creation/initialisation
+	///to init the context (e.g. function pointer resolution; glew/glbinding). 
+	virtual void initContext();
 
 	///This function will be called by makeCurrent() and should be implemented by derived 
 	///classes.
@@ -88,6 +98,13 @@ public:
 
 	///Checks if the context is the current one in the calling thread.
 	bool isCurrent() const;
+
+
+	///Returns all extensions returned by glGetString(GL_EXTENSIONS) for this context.
+	const std::vector<std::string>& glExtensions() const { return extensions_; }
+
+	///Returns wheter the given openGL extension name is supported.
+	bool glExtensionSupported(const std::string& name) const;
 
 
 	///Applies the contents of this context to its surface. Usually this means, the context will
