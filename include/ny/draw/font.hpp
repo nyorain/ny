@@ -10,11 +10,11 @@ namespace ny
 class Font : public multiCache<std::string>
 {
 protected:
+    std::string name_; //can contain file name or fontname
     bool fromFile_;
-    std::string name_; //can conatain file name or fontname
 
 public:
-    Font(std::string name = "sans", bool fromFile = 0);
+    Font(const std::string& name = "sans", bool fromFile = 0);
 
     void loadFromFile(const std::string& filename);
     void loadFromName(const std::string& fontname);

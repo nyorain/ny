@@ -2,6 +2,9 @@
 #include <nytl/make_unique.hpp>
 #include <nytl/log.hpp>
 
+#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+
 #include "stb_image.h"
 #include "stb_image_write.h"
 
@@ -18,8 +21,8 @@ unsigned int Image::formatSize(Image::Format f)
 	{
 		case Format::rgba8888: return 4;
 		case Format::rgb888: return 3;
-		case Format::rgb655: case Format::rgb565: case Format::rgb556: return 2;
-		case Format::a1: return 1;
+		//case Format::rgb655: case Format::rgb565: case Format::rgb556: return 2;
+		case Format::a8: return 1;
 		default: return 0;
 	}
 }
@@ -123,6 +126,7 @@ bool Image::save(const std::string& path) const
 	std::ofstream ofs(path);
 	if(!ofs.is_open())
 	{
+		nytl::sendWarning("Image::save: failed to open file ", path);
 		return 0;
 	}
 
@@ -134,6 +138,7 @@ bool Image::load(const std::string& path)
 	std::ifstream ifs(path);
 	if(!ifs.is_open())
 	{
+		nytl::sendWarning("Image::load: failed to open file ", path);
 		return 0;
 	}
 

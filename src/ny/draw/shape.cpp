@@ -222,11 +222,15 @@ PlainSubpath Subpath::bake() const
 {
     //TODO
     PlainSubpath ret;
+	ret.push_back(startPoint());
 
     for(auto& seg : segments_)
     {
         ret.push_back(seg.position());
     }
+
+	if(closed())
+		ret.close();
 
     return ret;
 }
@@ -300,8 +304,15 @@ const vec2f& Path::currentPosition() const
 //rectangle baking
 Path Rectangle::asPath() const
 {
-    if(all(borderRadius_ <= vec4f(0,0,0,0)))
+	//todo: borderradius values.
+	//
+	//auto testVec = lessThanEqual(borderRadius_, 0);
+	//nytl::sendLog("radius: ", borderRadius_);
+	//nytl::sendLog("testvec: ", testVec);
+
+    if(1) //all(testVec)
     {
+		nytl::sendLog("rectangle as path a");
         Path p({0.f, 0.f});
         p.line(vec2f(size_.x, 0));
         p.line(size_);
@@ -313,6 +324,7 @@ Path Rectangle::asPath() const
     }
     else
     {
+		nytl::sendLog("rectangle as path b");
         rect2f me;
         me.size = size_; //dont copy position since it will be copied with copyTransform()
 
@@ -363,6 +375,143 @@ Path Circle::asPath() const
     p.close();
     p.copyTransform(*this);
     return p;
+}
+
+//PathBase
+PathBase::~PathBase()
+{
+	resetUnion();
+}
+
+PathBase::PathBase(const PathBase& other)
+	: type_(other.type_), circle_()
+{
+	resetUnion();
+	switch(type_)
+	{
+		case Type::text: text_ = other.text_; break;
+		case Type::rectangle: rectangle_ = other.rectangle_; break;
+		case Type::circle: circle_ = other.circle_; break;
+		case Type::path: path_ = other.path_; break;
+	}
+}
+
+PathBase& PathBase::operator=(const PathBase& other)
+{
+	resetUnion();
+	type_ = other.type_;
+
+	switch(type_)
+	{
+		case Type::text: text_ = other.text_; break;
+		case Type::rectangle: rectangle_ = other.rectangle_; break;
+		case Type::circle: circle_ = other.circle_; break;
+		case Type::path: path_ = other.path_; break;
+	}
+
+	return *this;
+}
+
+PathBase::PathBase(PathBase&& other) noexcept
+	: type_(other.type_), circle_()
+{
+	resetUnion();
+	switch(type_)
+	{
+		case Type::text: text_ = std::move(other.text_); break;
+		case Type::rectangle: rectangle_ = std::move(other.rectangle_); break;
+		case Type::circle: circle_ = std::move(other.circle_); break;
+		case Type::path: path_ = std::move(other.path_); break;
+	}
+
+	other.type_ = Type::circle;
+	other.circle_ = Circle();
+}
+
+PathBase& PathBase::operator=(PathBase&& other) noexcept
+{
+	resetUnion();
+	type_ = other.type_;
+
+	switch(type_)
+	{
+		case Type::text: text_ = std::move(other.text_); break;
+		case Type::rectangle: rectangle_ = std::move(other.rectangle_); break;
+		case Type::circle: circle_ = std::move(other.circle_); break;
+		case Type::path: path_ = std::move(other.path_); break;
+	}
+
+	other.type_ = Type::circle;
+	other.circle_ = Circle();
+
+	return *this;
+}
+
+void PathBase::resetUnion()
+{
+	switch(type_)
+	{
+		case Type::text: text_.~Text(); break;
+		case Type::rectangle: rectangle_.~Rectangle(); break;
+		case Type::circle: circle_.~Circle(); break;
+		case Type::path: path_.~Path(); break;
+	}
+}
+
+void PathBase::text(const Text& obj)
+{
+	resetUnion();
+	type_ = Type::text;
+	text_ = obj;
+}
+
+void PathBase::rectangle(const Rectangle& obj)
+{
+	resetUnion();
+	type_ = Type::rectangle;
+	rectangle_ = obj;
+}
+
+void PathBase::circle(const Circle& obj)
+{
+	resetUnion();
+	type_ = Type::circle;
+	circle_ = obj;
+}
+
+void PathBase::path(const Path& obj)
+{
+	resetUnion();
+	type_ = Type::path;
+	path_ = obj;
+}
+
+void PathBase::path(Path&& obj)
+{
+	resetUnion();
+	path_ = std::move(obj);
+}
+
+const transformable2& PathBase::transformable() const
+{
+	switch(type_)
+	{
+		case Type::text: return text_;
+		case Type::rectangle: return rectangle_;
+		case Type::circle: return circle_; 
+		case Type::path: return path_;
+	}
+}
+
+transformable2& PathBase::transformable() 
+{
+	switch(type_)
+	{
+		case Type::text: return text_;
+		case Type::rectangle: return rectangle_;
+		case Type::circle: return circle_; 
+		case Type::path: return path_;
+	}
 }
 
 }

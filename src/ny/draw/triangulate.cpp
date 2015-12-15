@@ -1,4 +1,4 @@
-#include <ny/gl/triangulate.hpp>
+#include <ny/draw/triangulate.hpp>
 
 #include <nytl/line.hpp>
 #include <nytl/vec.hpp>
@@ -46,10 +46,8 @@ float updateAngle(std::size_t i)
     vec2f l2(points[nextPoint(i)].pos - points[i].pos);
 
     points[i].angle = cangle(l1, l2) / cDeg;
-    fullangle += (points[i].pos.x - points[prevPoint(i)].pos.x) * (points[i].pos.y + points[prevPoint(i)].pos.y);
-
-    nyDebug(i, ": ", points[i].angle);
-    nyDebug(i, "full: ", fullangle);
+    fullangle += (points[i].pos.x - points[prevPoint(i)].pos.x) * 
+		(points[i].pos.y + points[prevPoint(i)].pos.y);
 
     return points[i].angle;
 }
@@ -85,29 +83,29 @@ vec<3, std::size_t> findNextEar()
         }
     }
 
-    nyDebug("triangulate failed");
+    //nyDebug("triangulate failed");
     return {0,0,0}; //should never occur
 }
 
-std::vector<triangle2f> triangulate(float* xpoints, std::size_t size)
+std::vector<triangle2f> triangulate(const std::vector<vec2f>& xpoints)
 {
     //init
     points.clear();
     triangles.clear();
 
-    points.resize(size);
-    triangles.resize(size - 2);
+    points.resize(xpoints.size());
+    triangles.resize(xpoints.size() - 2);
 
     fullangle = 0;
-    for(std::size_t i(0); i < size; i++)
+    for(std::size_t i(0); i < xpoints.size(); i++)
     {
-        points[i].pos.x = xpoints[i * 2];
-        points[i].pos.y = xpoints[i * 2 + 1];
-
-        if(i != 0) updateAngle(i - 1);
+        points[i].pos = xpoints[i];
+        if(i != 0)
+		{
+			updateAngle(i - 1);
+		}
     }
-
-    fullangle += updateAngle(points.size() - 1);
+    updateAngle(points.size() - 1);
 
     if(fullangle > 0) clockwise = 0;
     else clockwise = 1;
@@ -118,7 +116,7 @@ std::vector<triangle2f> triangulate(float* xpoints, std::size_t size)
     {
         vec<3, std::size_t> ear = findNextEar();
         triangles[i] = triangle2f(points[ear.x].pos, points[ear.y].pos, points[ear.z].pos);
-        nyDebug("c: ", i, " ", ear.x, " ", ear.y, " ", ear.z, " ", triangles[i]);
+        //nyDebug("c: ", i, " ", ear.x, " ", ear.y, " ", ear.z, " ", triangles[i]);
         points.erase(points.begin() + ear.y);
 
         updateAngle(ear.x);
@@ -126,7 +124,7 @@ std::vector<triangle2f> triangulate(float* xpoints, std::size_t size)
 
         i++;
     }
-	nyDebug("some debug");
+	//nyDebug("some debug");
 
     triangles[i] = triangle2f(points[0].pos, points[1].pos, points[2].pos); //triangles.back()
     points.clear();

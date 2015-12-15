@@ -76,6 +76,13 @@ public:
 	///function will return 5.
 	unsigned int minorApiVersion() const { return minorVersion_; }
 
+	///Reeturns majorVersion * 10 + minorVersion. If the context has e.g. the openGLES version
+	///3.1 this function returns 31.
+	unsigned int version() const { return majorVersion_ * 10 + minorVersion_; }
+
+	///Returns the version in the opengl opengles compatiblity layer {20, 30, 31, 32}.
+	unsigned int glpVersion() const;
+
 
 	///Returns the number of depth bits this context has. For contexts without depth buffer it
 	///returns therefore 0.
@@ -120,5 +127,6 @@ public:
 	///to guarantee it, so it should usually be checked before using the context. 
 	virtual bool valid() const { return 1; }
 };
+
 
 }

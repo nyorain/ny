@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ny/include.hpp>
+#include <ny/draw/include.hpp>
 
 #include <nytl/vec.hpp>
 #include <nytl/mat.hpp>
@@ -8,50 +8,56 @@
 namespace ny
 {
 
-//shader
-class shader
+///The Shader class represents an OpenGL(ES) shader object.
+///It can be created and compiled with an external source file or with a source string.
+///One can use the uniform() function to set the shaders uniform parameters.
+class Shader
 {
+public:
+	enum class Type
+	{
+		fragment,
+		vertex
+	};
+
 protected:
     bool compile(const std::string& vertexShader, const std::string& fragmentShader);
-
     unsigned int program_ {0};
 
 public:
-    enum type
-    {
-        fragment,
-        vertex
-    };
-
-    shader();
-    ~shader();
+    Shader();
+    ~Shader();
 
     bool loadFromFile(const std::string& vertexFile, const std::string& fragmentFile);
-    bool loadFromFile(const std::string& file, type type);
+    bool loadFromFile(const std::string& file, Type type);
 
     bool loadFromString(const std::string& vertexShader, const std::string& fragmentShader);
-    bool loadFromString(const std::string& shader, type type);
+    bool loadFromString(const std::string& shader, Type type);
 
-    void setUniformParameter(const std::string& name, float value);
-    void setUniformParameter(const std::string& name, float x, float y);
-    void setUniformParameter(const std::string& name, float x, float y, float z);
-    void setUniformParameter(const std::string& name, float x, float y, float z, float w);
+    void uniform(const std::string& name, float value);
+    void uniform(const std::string& name, float x, float y);
+    void uniform(const std::string& name, float x, float y, float z);
+    void uniform(const std::string& name, float x, float y, float z, float w);
 
-    void setUniformParameter(const std::string& name, const vec2f& value);
-    void setUniformParameter(const std::string& name, const vec3f& value);
-    void setUniformParameter(const std::string& name, const vec4f& value);
+    void uniform(const std::string& name, const vec2f& value);
+    void uniform(const std::string& name, const vec3f& value);
+    void uniform(const std::string& name, const vec4f& value);
 
-    void setUniformParameter(const std::string& name, const mat2f& value);
-    void setUniformParameter(const std::string& name, const mat3f& value);
-    void setUniformParameter(const std::string& name, const mat4f& value);
+    void uniform(const std::string& name, const mat2f& value);
+    void uniform(const std::string& name, const mat3f& value);
+    void uniform(const std::string& name, const mat4f& value);
 
-    void setUniformParameter(const std::string& name, const color& value);
+	///Fills a vec4 uniform parameter in the shader with the rgba values of the color.
+    void uniform(const std::string& name, const Color& value);
 
-    //void bindVertexBuffer(const std::string& name, float* values, unsigned int num, unsigned int stride, int offset = 0, int method = -1){};
-    //template<size_t dim, class prec> void bindVertexBuffer(const std::string& name, std::vector<vec<dim, prec>>& values, unsigned int num = dim, unsigned int stride = dim, int offset = 0, int method = -1){};
+	///Returns the OpenGL(ES) handle to the shader program.
+    unsigned int glProgram() const { return program_; }
 
-    unsigned int getProgram() const { return program_; }
+	///Makes the shader program the used one in the calling thread/current context.
     void use() const;
+
+	///Deletes the compiled shader program if existent.
+	void reset();
 };
 
 }

@@ -14,7 +14,7 @@ namespace ny
 //ImageBrush
 struct TextureBrush
 {
-	Texture* texture;
+	const Texture* texture;
 	rect2f extents;
 };
 
@@ -76,7 +76,7 @@ public:
 	//
 	Type type() const { return type_; }
 
-	Color color() const { return color_; }
+	const Color& color() const { return color_; }
 	LinearGradientBrush linearGradient() const { return linearGradient_; }
 	RadialGradientBrush radialGradient() const { return radialGradient_; }
 	TextureBrush textureBrush() const { return texture_; }

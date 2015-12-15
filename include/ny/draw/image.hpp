@@ -20,10 +20,8 @@ public:
 	{
 		rgba8888,
 		rgb888,
-		rgb655,
-		rgb565,
-		rgb556,
-		a1
+		xrgb8888,
+		a8
 	};
 
 	static unsigned int formatSize(Format f);
@@ -53,7 +51,7 @@ public:
 	std::vector<unsigned char> copyData() const;
 
     unsigned int pixelSize() const;
-    Format bufferFormat() const { return format_; }
+    Format format() const { return format_; }
 
     const vec2ui& size() const { return size_; }
 	void size(const vec2ui& newSize);

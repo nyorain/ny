@@ -8,7 +8,9 @@ set(NY_VMAJOR 0)
 set(NY_VMINOR 1)
 
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
+include_directories("${CMAKE_CURRENT_BINARY_DIR}/include")
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src")
+include_directories("${CMAKE_CURRENT_BINARY_DIR}/src")
 
 option(NY_BUILD_EXAMPLES "build the ny examples" OFF)
 option(NY_BUILD_TESTS "build the ny tests" OFF)
@@ -27,6 +29,7 @@ configure_file	( "${CMAKE_CURRENT_SOURCE_DIR}/src/ny/config.h.in"
 	"${CMAKE_CURRENT_BINARY_DIR}/include/ny/config.h"
 	     	)
 
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/include/ny/config.h" DESTINATION include/ny)
 
 add_subdirectory(src/ny)
 add_subdirectory(include/ny)

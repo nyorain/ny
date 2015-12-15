@@ -17,6 +17,7 @@ class Text;
 class Font;
 class Image;
 class Texture;
+class ImageTexture;
 class Shape;
 class Color;
 class Brush;
@@ -27,5 +28,10 @@ struct LinearGradientBrush;
 struct RadialGradientBrush;
 struct ImageBrush;
 struct DashStyle;
+
+class GlDrawContext;
+class GlContext;
+class Shader;
+class GlTexture;
 
 }

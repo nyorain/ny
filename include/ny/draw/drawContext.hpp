@@ -2,6 +2,7 @@
 
 #include <ny/draw/include.hpp>
 #include <ny/draw/brush.hpp>
+#include <ny/draw/shape.hpp>
 
 #include <nytl/vec.hpp>
 #include <nytl/rect.hpp>

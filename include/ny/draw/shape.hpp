@@ -229,7 +229,7 @@ class Rectangle : public transformable2
 {
 protected:
     vec2f size_;
-    vec4f borderRadius_;
+    vec4f borderRadius_ {0.f, 0.f, 0.f, 0.f};
 
 public:
     Rectangle(const vec2f& position = vec2f(), const vec2f& size = vec2f())
@@ -360,6 +360,7 @@ public:
 	void rectangle(const Rectangle& obj);
 	void circle(const Circle& obj);
 	void path(const Path& obj);
+	void path(Path&& obj);
 
 	Type type() const { return type_; }
 

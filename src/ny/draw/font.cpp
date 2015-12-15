@@ -3,6 +3,11 @@
 namespace ny
 {
 
+Font::Font(const std::string& name, bool fromFile)
+	: name_(name), fromFile_(fromFile)
+{
+}
+
 void Font::loadFromFile(const std::string& filename)
 {
     name_ = filename;

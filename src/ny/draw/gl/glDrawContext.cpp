@@ -1,258 +1,150 @@
-#include <ny/config.h>
+#include <ny/draw/gl/glDrawContext.hpp>
+#include <ny/draw/gl/glTexture.hpp>
+#include <ny/draw/gl/glContext.hpp>
+#include <ny/draw/gl/shader.hpp>
+#include <ny/draw/triangulate.hpp>
 
-#ifdef NY_WithGL
+#include <ny/draw/gl/shaderSources/modernSources.hpp>
+#include <ny/draw/gl/drawImplementation.hpp>
 
-#include <ny/gl/glDrawContext.hpp>
-#include <ny/gl/modernGL.hpp>
-#include <ny/surface.hpp>
-#include <ny/error.hpp>
+#include <nytl/log.hpp>
 
-#ifdef NY_WithGLBinding
- #include <glbinding/gl/gl.h>
- #include <glbinding/Binding.h>
- using namespace gl;
+#include <glpbinding/glp20/glp.h>
+using namespace glp20;
+
+//macro for current context validation
+#if defined(__GNUC__) || defined(__clang__)
+ #define FUNC_NAME __PRETTY_FUNCTION__
 #else
- #include <GL/glew.h>
-#endif //glbinding
+ #define FUNC_NAME __func__
+#endif //FUNCNAME
 
-#include <string.h>
+#define VALIDATE_CTX(...) if(!GlContext::current())\
+	{ nytl::sendWarning(FUNC_NAME, ": no current opengl context."); return __VA_ARGS__; }
 
 namespace ny
 {
 
-bool isExtensionSupported(const char* extList, const char* extension)
+////
+GlDrawContext::ShaderPrograms& GlDrawContext::shaderPrograms()
 {
-    //todo: to c++
-    const char *start;
-    const char *where, *terminator;
+	static ShaderPrograms programs;
+	if(!programs.initialized)
+	{
+		programs.color.loadFromString(defaultShaderVS, modernColorShaderFS);
+		programs.texture.loadFromString(defaultShaderVS, modernTextureShaderFS);
+		programs.initialized = 1;
+	}
 
-    where = strchr(extension, ' ');
-    if (where || *extension == '\0')
-        return false;
-
-    for (start=extList;;) {
-        where = strstr(start, extension);
-
-        if (!where)
-          break;
-
-        terminator = where + strlen(extension);
-
-        if ( where == start || *(where - 1) == ' ' )
-          if ( *terminator == ' ' || *terminator == '\0' )
-            return true;
-
-        start = terminator;
-    }
-
-    return false;
+	return programs;
 }
 
-bool validGLContext()
+////
+void GlDrawContext::clear(const Brush& brush)
 {
-    return glDrawContext::getCurrent();
+	VALIDATE_CTX();
+
+	if(brush.type() == Brush::Type::color)
+	{
+		auto col = brush.color().rgbaNorm();
+		glClearColor(col.x, col.y, col.z, col.w);
+		glClear(GL_COLOR_BUFFER_BIT);
+	}
+	else
+	{
+		vec2f size = viewport().size;
+		std::vector<triangle2f> triangles = {
+			{{0.f, 0.f}, {size.x, 0.f}, {size.x, size.y}},
+			{{0.f, 0.f}, {size.x, size.y}, {0.f, size.y}}
+		};
+	
+		Impl::fillTriangles(triangles, brush, ny::identityMat<3>());
+	}
 }
 
-//glDC
-//static
-thread_local glDrawContext* glDrawContext::current_;
-
-
-void glDrawContext::makeContextCurrent(glDrawContext& ctx)
+void GlDrawContext::paint(const Brush& alpha, const Brush& fill) 
 {
-    current_ = &ctx;
+	VALIDATE_CTX();
+	nytl::sendWarning("glDC::paint: not implemented yet...");
 }
 
-void glDrawContext::makeContextNotCurrent(glDrawContext& ctx)
+void GlDrawContext::fillPreserve(const Brush& brush)
 {
-    if(current_ == &ctx)
-    {
-        current_ = nullptr;
-    }
+	VALIDATE_CTX();
+
+	for(auto& pth : storedMask())
+	{
+		if(pth.type() == PathBase::Type::path)
+		{
+			for(auto& subpth : pth.path().subpaths())
+			{
+				Impl::fillTriangles(triangulate(subpth.bake()), brush, pth.transformMatrix());
+			}
+		}
+		else if(pth.type() == PathBase::Type::rectangle)
+		{
+			auto points = pth.rectangle().asPath().subpaths()[0].bake();
+			auto triangles = triangulate(points);
+			Impl::fillTriangles(triangles, brush, pth.transformMatrix());
+		}
+		else if(pth.type() == PathBase::Type::circle)
+		{
+			Impl::fillTriangles(triangulate(pth.circle().asPath().subpaths()[0].bake()), 
+					brush, pth.transformMatrix());
+		}
+		else if(pth.type() == PathBase::Type::text)
+		{
+			Impl::fillText(pth.text(), brush);
+		}
+	}
 }
 
-glDrawContext* glDrawContext::getCurrent()
+void GlDrawContext::strokePreserve(const Pen& pen)
 {
-    return current_;
+	VALIDATE_CTX();
+
+	for(auto& pth : storedMask())
+	{
+
+	}
 }
 
-//non-static
-glDrawContext::glDrawContext(surface& s) : drawContext(s)
+void GlDrawContext::clipRectangle(const rect2f& rct)
 {
+	VALIDATE_CTX();
+	auto size = viewport().size;
+	auto normRect = Impl::asGlNormalize(rct, size);
+
+	glEnable(GL_SCISSOR_TEST);
+	glScissor(normRect.position.x, normRect.position.y, normRect.size.x, normRect.size.y);
 }
 
-
-glDrawContext::~glDrawContext()
+rect2f GlDrawContext::rectangleClip() const
 {
-    if(isCurrent())
-        makeContextNotCurrent(*this);
+	VALIDATE_CTX({});
+	GLint vals[4];
+	glGetIntegerv(GL_SCISSOR_BOX, vals);
+	return {{float(vals[0]), float(vals[1])}, {float(vals[2]), float(vals[3])}};	
 }
 
-//gl
-void glDrawContext::init(glApi api, unsigned int depth, unsigned int stencil)
+void GlDrawContext::resetRectangleClip()
 {
-    api_ = api;
-    depth_ = depth;
-    stencil_ = stencil;
-
-    makeCurrentImpl();
-
-    #ifdef NY_WithGLBinding
-     glbinding::Binding::initialize();
-    #else
-     glewExperimental = true;
-     if(!glewInit())
-     {
-         //error...
-     }
-    #endif
-
-    int maj = 0, min = 0;
-    glGetIntegerv(GL_MAJOR_VERSION, &maj);
-    glGetIntegerv(GL_MINOR_VERSION, &min);
-
-    major_ = maj;
-    minor_ = min;
-
-    if(!impl_)
-    {
-        if(api_ == glApi::openGL)
-        {
-            if(major_ >= 3 && minor_ >= 0) impl_.reset(new modernGLDrawImpl()); //better 3.3?
-            else impl_.reset(new legacyGLDrawImpl());
-        }
-        #ifdef NY_WithGLES
-        else
-        {
-            impl_.reset(new glesDrawImpl());
-        }
-        #endif //GLES
-    }
-
-    makeNotCurrentImpl();
+	VALIDATE_CTX();
+	glDisable(GL_SCISSOR_TEST);
 }
 
-bool glDrawContext::makeCurrent()
+void GlDrawContext::viewport(const rect2f& viewport)
 {
-    if(isCurrent())
-        return 1;
-
-    if(makeCurrentImpl())
-    {
-        #ifdef NY_WithGLBinding
-         glbinding::Binding::useCurrentContext();
-        #endif //glbinding
-
-        makeContextCurrent(*this);
-        return 1;
-    }
-
-    return 0;
+	VALIDATE_CTX();
+	glViewport(viewport.position.x, viewport.position.y, viewport.size.x, viewport.size.y);
 }
 
-bool glDrawContext::makeNotCurrent()
+rect2f GlDrawContext::viewport() const
 {
-    if(!isCurrent())
-        return 1;
+	VALIDATE_CTX({});
 
-    if(makeNotCurrentImpl())
-    {
-        makeContextNotCurrent(*this);
-        return 1;
-    }
-
-    return 0;
-}
-
-bool glDrawContext::isCurrent() const
-{
-    return (current_ == this);
-}
-
-bool glDrawContext::assureValid(bool warning) const
-{
-    if(isCurrent() && impl_)
-        return 1;
-
-    if(warning) nyWarning("glDrawContext: glDC not valid: isCurrent: ", isCurrent(), " impl: ", impl_.get(), " ctx: ", this);
-    return 0;
-}
-
-//dc
-void glDrawContext::clear(color col)
-{
-    if(!assureValid()) return;
-    impl_->clear(col);
-}
-
-void glDrawContext::updateViewport(vec2ui size)
-{
-    if(!assureValid()) return;
-    glViewport(0, 0, size.x, size.y);
-}
-
-rect2f glDrawContext::getClip()
-{
-    if(!assureValid() || glIsEnabled(GL_SCISSOR_TEST) != GL_TRUE) return rect2f();
-    return clip_;
-}
-
-void glDrawContext::clip(const rect2f& clip)
-{
-    if(!assureValid()) return;
-
-    glEnable(GL_SCISSOR_TEST);
-    rect2f ccopy = clip;
-
-    GLint vp[4];
-    glGetIntegerv(GL_VIEWPORT, vp);
-    ccopy.position.y = vp[3] - clip.position.y - clip.size.y;
-
-    glScissor(ccopy.position.x, ccopy.position.y, ccopy.size.x, ccopy.size.y);
-
-    clip_ = clip;
-}
-
-void glDrawContext::resetClip()
-{
-    if(!assureValid()) return;
-
-    clip_ = rect2f(vec2f(0,0), surface_.getSize());
-    glDisable(GL_SCISSOR_TEST);
-}
-
-void glDrawContext::mask(const customPath& obj)
-{
-    store_.emplace_back(obj);
-}
-
-void glDrawContext::mask(const text& obj)
-{
-    store_.emplace_back(obj);
-}
-void glDrawContext::mask(const ny::mask& obj)
-{
-    store_.insert(store_.cend(), obj.cbegin(), obj.cend());
-}
-void glDrawContext::mask(const path& obj)
-{
-    store_.push_back(obj);
-}
-void glDrawContext::resetMask()
-{
-    store_.clear();
-}
-void glDrawContext::fillPreserve(const brush& col)
-{
-    if(!assureValid() || store_.empty()) return;
-    impl_->fill(store_, col);
-}
-void glDrawContext::strokePreserve(const pen& col)
-{
-    if(!assureValid() || store_.empty()) return;
-    impl_->stroke(store_, col);
+	return Impl::viewport();
 }
 
 }
 
-#endif // NY_WithGL

@@ -2,28 +2,35 @@
 
 #include <ny/draw/include.hpp>
 #include <ny/draw/drawContext.hpp>
-#include <ny/draw/shape.hpp>
 #include <ny/draw/gl/glContext.hpp>
 
 namespace ny
 {
 
-///Abstract base class for all implementations for the DrawContext base class, that
-///use some kind of openGL(ES) backend.
+///OpenGL(ES) draw context implementation.
 class GlDrawContext : public DelayedDrawContext
 {
-protected:
-    rect2f clip_{};
+public:
+	class Impl;
+	struct ShaderPrograms;
+	static ShaderPrograms& shaderPrograms();
 
 public:
-    GlDrawContext() = default;
-    virtual ~GlDrawContext() = default;
+	virtual void clear(const Brush& brush) override;
+	virtual void paint(const Brush& alpha, const Brush& fill) override;
 
-	//openGL
-    virtual void updateViewport(const vec2ui& size) = 0;
+	virtual void fillPreserve(const Brush& brush) override;
+	virtual void strokePreserve(const Pen& pen) override;
+
+	virtual bool maskClippingSupported() const override { return 0; }
+
+	virtual void clipRectangle(const rect2f& rct) override;
+	virtual rect2f rectangleClip() const override;
+	virtual void resetRectangleClip() override;
+
+	//gl-specific
+	virtual void viewport(const rect2f& viewport);
+	rect2f viewport() const;
 };
-
-inline GlDrawContext* asGl(DrawContext* dc){ return dynamic_cast<GlDrawContext*>(dc); }
-inline GlDrawContext* asGl(DrawContext& dc){ return dynamic_cast<GlDrawContext*>(&dc); }
 
 }

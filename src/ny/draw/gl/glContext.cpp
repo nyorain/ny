@@ -2,23 +2,14 @@
 #include <nytl/log.hpp>
 
 //glcontext backend api
-#if defined(NY_WithGlbinding)
- #include <glbinding/Binding.h>
-
- #if defined(NY_WithGlesbinding)
-  #include <glesbinding/Binding.h>
- #endif //glesLoader
-
-#elif defined(NY_WithGLEW)
- #include <GL/glew.h>
-#endif //glLoader
+#include <glpbinding/Binding.h>
 
 namespace ny
 {
 
 GlContext* GlContext::threadLocalCurrent(bool change, GlContext* newOne)
 {
-	static thread_local GlContext* current_;
+	static thread_local GlContext* current_ = nullptr;
 	if(change)
 		current_ = newOne;
 
@@ -34,34 +25,9 @@ void GlContext::initContext()
 		return;
 	}
 
-	if(api_ == Api::openGL)
-	{
-		#if defined(NY_WithGlbinding)
-		 glBinding::Binding::initialize();
+	glpbinding::Binding::initialize();
 
-		#elif defined(NY_WithGLEW)
-		 glewExperimental = 1;
-		 glewInit();
-
-		#else
-		 //static loading
-		 nytl::sendWarning("GlContext::initContext: no dynamic openGL loader available.");
-
-		#endif //glLoader
-	}
-	else if(api_ == Api::openGLES)
-	{
-		#if defined(NY_WithGlesbinding)
-		 glesBinding::Binding::initialize();
-
-		#else
-		 //static loading
-		 nytl::sendWarning("GlContext::initContext: no dynamic openGLES loader available.");
-
-		#endif //glesBinding
-	}
-
-	if(!saved->makeCurrent())
+	if(saved && !saved->makeCurrent())
 	{
 		nytl::sendWarning("GlContext::initContext: failed to make saved context current again.");
 		return;
@@ -97,6 +63,28 @@ bool GlContext::glExtensionSupported(const std::string& name) const
 {
 	for(auto& s : glExtensions())
 		if(s == name) return 1;
+
+	return 0;
+}
+
+unsigned int GlContext::glpVersion() const
+{
+	if(api_ == Api::openGL)
+	{
+		if(version() <= 20) return 0;
+		else if(version() < 30) return 20;
+		else if(version() < 31) return 30;
+		else if(version() < 32) return 31;
+		else if(version() >= 32) return 32;
+	}
+	else if(api_ == Api::openGLES)
+	{
+		if(version() <= 20) return 0;
+		else if(version() < 30) return 20;
+		else if(version() < 31) return 30;
+		else if(version() < 32) return 31;
+		else if(version() >= 32) return 32;
+	}
 
 	return 0;
 }

@@ -1,10 +1,7 @@
 #include <ny/config.h>
 
-#ifdef NY_WithEGL
-#include <ny/gl/egl.hpp>
-#include <ny/app.hpp>
-#include <ny/appContext.hpp>
-#include <ny/error.hpp>
+#include <ny/draw/gl/egl.hpp>
+#include <nytl/log.hpp>
 
 #include <EGL/egl.h>
 
@@ -13,49 +10,56 @@ namespace ny
 
 //EglContext
 EglContext::EglContext(EGLDisplay disp, EGLConfig config, EGLSurface surf, GlContext::Api api) 
-	: GlContext(), display_(disp), surface_(surf)
+	: GlContext(), eglDisplay_(disp), eglSurface_(surf), eglConfig_(config)
 {
-	init(config, api);
+	initEglContext(api);
 }
 
 EglContext::EglContext(EGLDisplay disp, EGLSurface surf, GlContext::Api api) 
-	: GlContext(), display_(disp), surface_(surf)
+	: GlContext(), eglDisplay_(disp), eglSurface_(surf)
 {
-	EGLConfig config;
 	int attribs[] = {EGL_NONE};
 
 	int number;
-	eglChooseConfig(eglDisplay_, attribs, &config, 1, &number);
+	eglChooseConfig(eglDisplay_, attribs, &eglConfig_, 1, &number);
 	if(number != 0)
 	{
-		throw std::runtime_error("EglContext::EglContext: failed to choose EGLConfig\n\t",
-				eglErrorMessage(eglError()));
+		throw std::runtime_error("EglContext::EglContext: failed to choose EGLConfig\n\t" + 
+				errorMessage(eglError()));
 	}
 
-	init(config, api);
+	initEglContext(api);
 }
 
-void EglContext::init(EGLConfig config, Api api)
+EglContext::~EglContext()
+{
+	if(eglDisplay_ && eglContext_)
+	{
+		eglDestroyContext(eglDisplay_, eglContext_);
+	}
+}
+
+void EglContext::initEglContext(Api api)
 {
 	api_ = api;
 
 	if(api_ == Api::openGLES)
 	{
-		eglBindApi(EGL_OPENGL_ES_API);
-		const int attrib[] = {EGL_CONTEXT_CLIENT_VERSION, 2};
-		eglContext_ = eglCreateContext(eglDisplay_, config, nullptr, attrib);
+		eglBindAPI(EGL_OPENGL_ES_API);
+		const int attrib[] = {EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
+		eglContext_ = eglCreateContext(eglDisplay_, eglConfig_, nullptr, attrib);
 	}
 	else if(api_ == Api::openGL)
 	{
-		eglBindApi(EGL_OPENGL_API);
-		eglContext_ = eglCreateContext(eglDisplay_, config, nullptr, nullptr);
+		eglBindAPI(EGL_OPENGL_API);
+		eglContext_ = eglCreateContext(eglDisplay_, eglConfig_, nullptr, nullptr);
 	}
 
 	if(!eglContext_)
 	{
 		//TODO: throw here? make the function bool?
-		throw std::runtime_error("EglContext::EglContext: failed to create EGLContext\n\t",
-				eglErrorMessage(eglError()));
+		throw std::runtime_error("EglContext::EglContext: failed to create EGLContext\n\t" +
+				errorMessage(eglError()));
 	}
 
 	initContext();
@@ -71,14 +75,20 @@ bool EglContext::makeCurrentImpl()
 {
     if(!valid())
     {
-        nyWarning("eglContext::makeCurrentImpl: invalid");
+        nytl::sendWarning("eglContext::makeCurrentImpl: invalid");
         return 0;
     }
 
+	if(!eglSurface_)
+	{
+		nytl::sendWarning("EglContext::makeCurrentImpl: no egl surface. Trying to make a "
+				"context current without surface - may fail");
+	}
+
     if(!eglMakeCurrent(eglDisplay_, eglSurface_, eglSurface_, eglContext_))
     {
-        nyWarning("eglContext::makeCurrentImpl: eglMakeCurrent failed\n\t", 
-				eglErrorMessage(eglError()));
+        nytl::sendWarning("eglContext::makeCurrentImpl: eglMakeCurrent failed\n\t", 
+				errorMessage(eglError()));
         return 0;
     }
 
@@ -89,14 +99,14 @@ bool EglContext::makeNotCurrentImpl()
 {
     if(!valid())
     {
-        nyWarning("eglContext::makeNotCurrentImpl: invalid");
+        nytl::sendWarning("eglContext::makeNotCurrentImpl: invalid");
         return 0;
     }
 
     if(!eglMakeCurrent(eglDisplay_, nullptr, nullptr, nullptr))
     {
-        nyWarning("eglContext::makeNotCurrentImpl: eglMakeCurrent failed\n\t",
-				eglErrorMessage(eglError()));
+        nytl::sendWarning("eglContext::makeNotCurrentImpl: eglMakeCurrent failed\n\t",
+				errorMessage(eglError()));
         return 0;
     }
 
@@ -107,15 +117,15 @@ bool EglContext::apply()
 {
     if(!isCurrent() || !valid())
     {
-        nyWarning("eglContext::apply: invalid or not current");
+		nytl::sendWarning("eglContext::apply: invalid or not current");
         return 0;
     }
 
 	//TODO: single buffered?
     if(!eglSwapBuffers(eglDisplay_, eglSurface_))
     {
-        nyWarning("eglContext::apply: eglSwapBuffers failed\n\t",
-				eglErrorMessage(eglError()));
+		nytl::sendWarning("eglContext::apply: eglSwapBuffers failed\n\t",
+				errorMessage(eglError()));
         return 0;
     }
 
@@ -124,9 +134,21 @@ bool EglContext::apply()
 
 bool EglContext::valid() const
 {
-	return (eglDisplay_ && eglContext_ && eglSurface_);
+	return (eglDisplay_ && eglContext_);
 }
 
+std::vector<std::string> EglContext::eglExtensions() const
+{
+	return nytl::split(eglQueryString(eglDisplay_, EGL_EXTENSIONS), ' ');
+}
+
+bool EglContext::eglExtensionSupported(const std::string& name) const
+{
+	for(auto& s : eglExtensions())
+		if(s == name) return 1;
+
+	return 0;
+}
 
 //static
 int EglContext::eglError()
@@ -153,7 +175,7 @@ std::string EglContext::errorMessage(int error)
 		case EGL_BAD_PARAMETER: return "EGL_BAD_PARAMETER";
 		case EGL_BAD_SURFACE: return "EGL_BAD_SURFACE";
 		case EGL_CONTEXT_LOST: return "EGL_CONTEXT_LOST";					  
-		default return "unknown error code";
+		default: return "unknown error code";
 	}
 }
 
@@ -170,4 +192,3 @@ int EglContext::eglErrorWarn()
 
 }
 
-#endif // NY_WithEGL

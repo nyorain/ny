@@ -1,36 +1,43 @@
-#include <ny/config.h>
+#include <ny/draw/gl/shader.hpp>
+#include <ny/draw/gl/glContext.hpp>
+#include <ny/draw/color.hpp>
 
-#ifdef NY_WithGL
+#include <nytl/log.hpp>
 
-#include <ny/gl/shader.hpp>
-#include <ny/error.hpp>
-#include <nytl/mat.hpp>
-
-#ifdef NY_WithGLBinding
- #include <glbinding/gl/gl.h>
- #include <glbinding/Binding.h>
- using namespace gl;
-#else
- #include <GL/glew.h>
-#endif
+#include <glpbinding/glp20/glp.h>
+using namespace glp20;
 
 #include <fstream>
+
+//macro for current context validation
+#if defined(__GNUC__) || defined(__clang__)
+ #define FUNC_NAME __PRETTY_FUNCTION__
+#else
+ #define FUNC_NAME __func__
+#endif //FUNCNAME
+
+#define VALIDATE_CTX(...) if(!GlContext::current())\
+	{ nytl::sendWarning(FUNC_NAME, ": no current opengl context."); return __VA_ARGS__; }
 
 namespace ny
 {
 
-bool validGLContext();
-
 //shader
-shader::shader()
+Shader::Shader()
 {
 }
 
-shader::~shader()
+Shader::~Shader()
 {
+	reset();
 }
 
-bool shader::loadFromFile(const std::string& vertexFile, const std::string& fragmentFile)
+void Shader::reset()
+{
+	if(program_) glDeleteProgram(program_);
+}
+
+bool Shader::loadFromFile(const std::string& vertexFile, const std::string& fragmentFile)
 {
     std::string vertString;
     std::string fragString;
@@ -43,9 +50,12 @@ bool shader::loadFromFile(const std::string& vertexFile, const std::string& frag
 
         while(std::getline(vertStream, tmp))
             vertString += tmp + "\n";
-
-        vertStream.close();
     }
+	else
+	{
+		nytl::sendWarning("Shader::loadFromFile: failed to open fragment file ", vertexFile);
+		return 0;
+	}
 
     std::ifstream fragStream;
     fragStream.open(fragmentFile);
@@ -55,13 +65,16 @@ bool shader::loadFromFile(const std::string& vertexFile, const std::string& frag
 
         while(std::getline(fragStream, tmp))
             fragString += tmp + "\n";
-
-        fragStream.close();
     }
+	else
+	{
+		nytl::sendWarning("Shader::loadFromFile: failed to open fragment file ", fragmentFile);
+		return 0;
+	}
 
     return compile(vertString, fragString);
 }
-bool shader::loadFromFile(const std::string& file, type type)
+bool Shader::loadFromFile(const std::string& file, Shader::Type type)
 {
     std::string source;
     std::string tmp = "";
@@ -70,83 +83,109 @@ bool shader::loadFromFile(const std::string& file, type type)
 
     if(!stream.is_open())
     {
-        return 0;
+		nytl::sendWarning("Shader::loadFromFile: failed to open file ", file);
+		return 0;
     }
 
     while(std::getline(stream, tmp))
-    source += tmp + "\n";
-    stream.close();
+		source += tmp + "\n";
 
-    if(type == vertex) return compile(source, std::string());
-    if(type == fragment) return compile(std::string(), source);
+    if(type == Type::vertex) return compile(source, std::string());
+    else if(type == Type::fragment) return compile(std::string(), source);
 
-    return 0;
+	return 0;
 }
 
-bool shader::loadFromString(const std::string& vertexShader, const std::string& fragmentShader)
+bool Shader::loadFromString(const std::string& vertexShader, const std::string& fragmentShader)
 {
     return compile(vertexShader, fragmentShader);
 }
-bool shader::loadFromString(const std::string& shader, type type)
+
+bool Shader::loadFromString(const std::string& shader, Shader::Type type)
 {
-    if(type == vertex) return compile(shader, std::string());
-    if(type == fragment) return compile(std::string(), shader);
+    if(type == Type::vertex) return compile(shader, std::string());
+    else if(type == Type::fragment) return compile(std::string(), shader);
 
     return 0;
 }
 
-void shader::setUniformParameter(const std::string& name, float value)
+void Shader::uniform(const std::string& name, float value)
 {
+	VALIDATE_CTX();
+
     int location = glGetUniformLocation(program_, name.c_str());
     glUniform1f(location, value);
 }
 
-void shader::setUniformParameter(const std::string& name, float x, float y)
+void Shader::uniform(const std::string& name, float x, float y)
 {
+	VALIDATE_CTX();
+
     int location = glGetUniformLocation(program_, name.c_str());
     glUniform2f(location, x, y);
 }
-void shader::setUniformParameter(const std::string& name, float x, float y, float z)
+void Shader::uniform(const std::string& name, float x, float y, float z)
 {
+	VALIDATE_CTX();
+
     int location = glGetUniformLocation(program_, name.c_str());
     glUniform3f(location, x, y, z);
 }
-void shader::setUniformParameter(const std::string& name, float x, float y, float z, float w)
+void Shader::uniform(const std::string& name, float x, float y, float z, float w)
 {
+	VALIDATE_CTX();
+
     int location = glGetUniformLocation(program_, name.c_str());
     glUniform4f(location, x, y, z, w);
 }
-void shader::setUniformParameter(const std::string& name, const vec2f& value)
+void Shader::uniform(const std::string& name, const vec2f& value)
 {
-    setUniformParameter(name, value.x, value.y);
+    uniform(name, value.x, value.y);
 }
-void shader::setUniformParameter(const std::string& name, const vec3f& value)
+void Shader::uniform(const std::string& name, const vec3f& value)
 {
-    setUniformParameter(name, value.x, value.y, value.z);
+    uniform(name, value.x, value.y, value.z);
 }
-void shader::setUniformParameter(const std::string& name, const vec4f& value)
+void Shader::uniform(const std::string& name, const vec4f& value)
 {
-    setUniformParameter(name, value.x, value.y, value.z, value.w);
+    uniform(name, value.x, value.y, value.z, value.w);
 }
-void shader::setUniformParameter(const std::string& name, const mat2f& value)
+void Shader::uniform(const std::string& name, const mat2f& value)
 {
+	VALIDATE_CTX();
 
+    int location = glGetUniformLocation(program_, name.c_str());
+    glUniformMatrix2fv(location, 1, GL_FALSE, value.data());
 }
-void shader::setUniformParameter(const std::string& name, const mat3f& value)
+void Shader::uniform(const std::string& name, const mat3f& value)
 {
+	VALIDATE_CTX();
+
     int location = glGetUniformLocation(program_, name.c_str());
     glUniformMatrix3fv(location, 1, GL_FALSE, value.data());
 }
-void shader::setUniformParameter(const std::string& name, const mat4f& value)
+void Shader::uniform(const std::string& name, const mat4f& value)
 {
+	VALIDATE_CTX();
 
+    int location = glGetUniformLocation(program_, name.c_str());
+    glUniformMatrix4fv(location, 1, GL_FALSE, value.data());
 }
-void shader::setUniformParameter(const std::string& name, const color& value)
+void Shader::uniform(const std::string& name, const Color& value)
 {
+	VALIDATE_CTX();
+
+    int location = glGetUniformLocation(program_, name.c_str());
+	auto val = value.rgbaNorm();
+	nytl::sendLog("location: ", location, " .. color: ", val);
+	glUniform4f(location, val.x, val.y, val.z, val.w);
 }
 
-bool shader::compile(const std::string& vertexShader, const std::string& fragmentShader)
+bool Shader::compile(const std::string& vertexShader, const std::string& fragmentShader)
 {
+	VALIDATE_CTX(0);
+	reset();
+
     unsigned int vsID = 0;
     unsigned int fsID = 0;
 
@@ -166,7 +205,7 @@ bool shader::compile(const std::string& vertexShader, const std::string& fragmen
             glGetShaderiv(vsID, GL_INFO_LOG_LENGTH, &infoLength);
             std::vector<char> info(infoLength);
             glGetShaderInfoLog(vsID, infoLength, nullptr, info.data());
-            nyWarning("failed to compile vertex shader:\n", info.data());
+			nytl::sendWarning("failed to compile vertex shader:\n\t", info.data());
             vsID = 0;
         }
     }
@@ -187,7 +226,7 @@ bool shader::compile(const std::string& vertexShader, const std::string& fragmen
             glGetShaderiv(fsID, GL_INFO_LOG_LENGTH, &infoLength);
             std::vector<char> info(infoLength);
             glGetShaderInfoLog(fsID, infoLength, nullptr, info.data());
-            nyWarning("failed to compile fragment shader:\n", info.data());
+			nytl::sendWarning("failed to compile fragment shader:\n\t", info.data());
             fsID = 0;
         }
     }
@@ -195,24 +234,27 @@ bool shader::compile(const std::string& vertexShader, const std::string& fragmen
     if(!vsID & !fsID) return 0;
 
     unsigned int progID = glCreateProgram();
-    if(vsID)glAttachShader(progID, vsID);
-    if(fsID)glAttachShader(progID, fsID);
+    if(vsID) glAttachShader(progID, vsID);
+    if(fsID) glAttachShader(progID, fsID);
     glLinkProgram(progID);
 
-    if(vsID)glDeleteShader(vsID);
-    if(fsID)glDeleteShader(fsID);
+    if(vsID) glDeleteShader(vsID);
+    if(fsID) glDeleteShader(fsID);
 
     program_ = progID;
     return 1;
 }
 
-void shader::use() const
+void Shader::use() const
 {
-    if(program_ && validGLContext())
+	VALIDATE_CTX();
+
+    if(program_)
         glUseProgram(program_);
+	else
+		nytl::sendWarning("Shader::use: shader has no gl program.");
 }
 
 
 }
 
-#endif // NY_WithGL

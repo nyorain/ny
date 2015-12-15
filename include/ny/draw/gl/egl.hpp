@@ -28,12 +28,13 @@ protected:
 	EGLDisplay eglDisplay_ = nullptr;
     EGLContext eglContext_ = nullptr;
     EGLSurface eglSurface_ = nullptr;
+	EGLConfig eglConfig_ = nullptr;
 
     virtual bool makeCurrentImpl() override;
     virtual bool makeNotCurrentImpl() override;
 
 	EglContext() = default;
-	void init(EGLConfig config, Api api = Api::openGL);
+	void initEglContext(Api api = Api::openGL);
 
 public:
 	EglContext(EGLDisplay disp, EGLSurface surf, Api api = Api::openGL);
@@ -43,6 +44,7 @@ public:
 	EGLDisplay eglDisplay() const { return eglDisplay_; }
     EGLContext eglContext() const { return eglContext_; }
     EGLSurface eglSurface() const { return eglSurface_; }
+    EGLConfig eglConfig() const { return eglConfig_; }
 
 	void eglSurface(EGLSurface surface);
 
