@@ -3,6 +3,8 @@
 
 //glcontext backend api
 #include <glpbinding/Binding.h>
+#include <glbinding/Binding.h>
+#include <glesbinding/Binding.h>
 
 namespace ny
 {
@@ -26,6 +28,9 @@ void GlContext::initContext()
 	}
 
 	glpbinding::Binding::initialize();
+	
+	if(api_ == Api::openGL) glbinding::Binding::initialize();
+	else if(api_ == Api::openGLES) glesbinding::Binding::initialize();
 
 	if(saved && !saved->makeCurrent())
 	{

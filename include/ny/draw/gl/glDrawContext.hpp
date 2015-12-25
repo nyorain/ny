@@ -4,6 +4,9 @@
 #include <ny/draw/drawContext.hpp>
 #include <ny/draw/gl/glContext.hpp>
 
+#include <memory>
+#include <map>
+
 namespace ny
 {
 
@@ -11,9 +14,13 @@ namespace ny
 class GlDrawContext : public DelayedDrawContext
 {
 public:
-	class Impl;
+	struct Impl;
 	struct ShaderPrograms;
+
 	static ShaderPrograms& shaderPrograms();
+
+protected:
+	static std::map<GlContext*, ShaderPrograms> shaderPrograms_;
 
 public:
 	virtual void clear(const Brush& brush) override;

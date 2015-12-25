@@ -30,7 +30,7 @@ public:
 
 
 	///Clears the contents of the surface with the given brush.
-	virtual void clear(const Brush& b = Brush());
+	virtual void clear(const Brush& b = Brush::none);
 
 	///Uses the alphaMask parameter to paint the surface with the given brush.
 	virtual void paint(const Brush& alphaMask, const Brush& brush) = 0;

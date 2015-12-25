@@ -1,44 +1,43 @@
-#include <ny/config.h>
+#include <ny/draw/cairo.hpp>
+#include <ny/draw/image.hpp>
 
-#ifdef NY_WithCairo
-#include <ny/cairo.hpp>
+#include <nytl/log.hpp>
+#include <nytl/cache.hpp>
 
-#include <ny/shape.hpp>
-#include <ny/error.hpp>
-#include <ny/surface.hpp>
-#include <ny/image.hpp>
+#include <cairo/cairo.h>
 
-#include <iostream>
 #include <cmath>
 
 namespace ny
 {
 
-//Cache Nam: "ny::CairoFontHandle"
+//Cache Name: "ny::CairoFontHandle"
 class CairoFontHandle : public cache
 {
 protected:
     cairo_font_face_t* handle_;
 
 public:
-    cairoFont(const std::string& name, bool fromFile = 0);
-    ~cairoFont();
+    CairoFontHandle(const std::string& name, bool fromFile = 0);
+    ~CairoFontHandle();
 
     cairo_font_face_t* getFontFace() const { return handle_; }
 };
 
 
-//font
-CairoFontHandle::CairoFontHandle(const std::string& name, bool fromFile)
+//Font
+CairoFontHandle::CairoFontHandle(const std::string& name, bool)
 {
-    handle_ = cairo_toy_font_face_create(name.c_str(), CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    handle_ = cairo_toy_font_face_create(name.c_str(), CAIRO_FONT_SLANT_NORMAL, 
+			CAIRO_FONT_WEIGHT_NORMAL);
+
     if(!handle_)
-        nyWarning("failed to create cairo font");
+        nytl::sendWarning("CairoFontHandle: failed to create cairo font");
 }
 
 CairoFontHandle::~CairoFontHandle()
 {
-    cairo_font_face_destroy(handle_);
+    if(handle_) cairo_font_face_destroy(handle_);
 }
 
 //util
@@ -73,29 +72,38 @@ vec2d circleCenter(vec2d p1, vec2d p2,double radius, direction m)
 }
 
 
-//cairoDC////////////////////////////////////////////////////////////////////////////////////77
-cairoDrawContext::cairoDrawContext(surface& surf) : drawContext(surf)
+//Cairo DC Implementation
+CairoDrawContext::CairoDrawContext()
 {
 }
 
-cairoDrawContext::cairoDrawContext(surface& surf, cairo_surface_t& cairoSurface) : drawContext(surf), cairoSurface_(&cairoSurface), cairoCR_(cairo_create(&cairoSurface))
+CairoDrawContext::CairoDrawContext(cairo_surface_t& cairoSurface)
 {
+	cairoSurface_ = cairo_surface_reference(&cairoSurface);
+	cairoCR_ = cairo_create(cairoSurface_);
 }
 
-cairoDrawContext::cairoDrawContext(image& img) : drawContext(img)
+CairoDrawContext::CairoDrawContext(Image& img)
 {
-    //cairo_image_surface_create_for_data(img.getData(), CAIRO_FORMAT_ARGB32, img.getSize().x, img.getSize().y, img.getStride());
+	//todo: correct format and stuff
+    cairoSurface_ = cairo_image_surface_create_for_data(img.data().data(), CAIRO_FORMAT_ARGB32, 
+		img.size().x, img.size().y, img.size().x * 4);
 }
 
-cairoDrawContext::~cairoDrawContext()
+CairoDrawContext::~CairoDrawContext()
 {
+	if(cairoSurface_)
+	{
+		//will only remove the reference
+		cairo_surface_destroy(cairoSurface_);
+	}
 }
 
-void cairoDrawContext::clear(color col)
+void CairoDrawContext::clear(const Brush& b)
 {
     if(!cairoCR_)
     {
-        nyWarning("drawing with uninitialized cairoDC");
+		nytl::sendWarning("drawing with uninitialized cairoDC");
         return;
     }
 
@@ -109,7 +117,7 @@ void cairoDrawContext::clear(color col)
     cairo_restore (cairoCR_);
 }
 
-void cairoDrawContext::apply()
+void CairoDrawContext::apply()
 {
     if(!cairoCR_)
     {
@@ -123,7 +131,7 @@ void cairoDrawContext::apply()
     cairoCR_ = cairo_create(cairoSurface_);
 }
 
-rect2f cairoDrawContext::getClip()
+rect2f CairoDrawContext::rectangleClip() const
 {
     rect2f ret;
 
@@ -144,7 +152,7 @@ rect2f cairoDrawContext::getClip()
     return ret;
 }
 
-void cairoDrawContext::clip(const rect2f& obj)
+void CairoDrawContext::clipRectangle(const rect2f& obj)
 {
     if(!cairoCR_)
     {
@@ -156,7 +164,7 @@ void cairoDrawContext::clip(const rect2f& obj)
     cairo_clip(cairoCR_);
 }
 
-void cairoDrawContext::resetClip()
+void CairoDrawContext::resetRectangleClip()
 {
     if(!cairoCR_)
     {
@@ -167,7 +175,7 @@ void cairoDrawContext::resetClip()
     cairo_reset_clip(cairoCR_);
 }
 
-void cairoDrawContext::applyTransform(const transformable2& obj)
+void CairoDrawContext::applyTransform(const transform2& xtransform)
 {
     cairo_matrix_t tm {};
     auto& om = obj.getTransformMatrix();
@@ -176,12 +184,12 @@ void cairoDrawContext::applyTransform(const transformable2& obj)
     cairo_set_matrix(cairoCR_, &tm);
 }
 
-void cairoDrawContext::resetTransform()
+void CairoDrawContext::resetTransform()
 {
     cairo_identity_matrix(cairoCR_);
 }
 
-void cairoDrawContext::mask(const text& obj)
+void CairoDrawContext::mask(const Text& obj)
 {
     if(!cairoCR_)
     {
@@ -208,7 +216,7 @@ void cairoDrawContext::mask(const text& obj)
     resetTransform();
 }
 
-void cairoDrawContext::mask(const rectangle& obj)
+void CairoDrawContext::mask(const Rectangle& obj)
 {
     if(!cairoCR_)
     {
@@ -239,7 +247,7 @@ void cairoDrawContext::mask(const rectangle& obj)
     resetTransform();
 }
 
-void cairoDrawContext::mask(const circle& obj)
+void CairoDrawContext::mask(const Circle& obj)
 {
     if(!cairoCR_)
     {
@@ -257,7 +265,7 @@ void cairoDrawContext::mask(const circle& obj)
     resetTransform();
 }
 
-void cairoDrawContext::mask(const customPath& obj)
+void CairoDrawContext::mask(const Path& obj)
 {
     if(!cairoCR_)
     {
@@ -346,14 +354,14 @@ void cairoDrawContext::mask(const customPath& obj)
     }
 }
 
-void cairoDrawContext::resetMask()
+void CairoDrawContext::resetMask()
 {
     //todo
     cairo_set_source_rgba(cairoCR_, 0, 0, 0, 0); //nothing
     cairo_fill(cairoCR_); //just clean current mask
 }
 
-void cairoDrawContext::strokePreserve(const brush& col)
+void CairoDrawContext::strokePreserve(const Brush& col)
 {
     if(!cairoCR_)
     {
@@ -368,7 +376,7 @@ void cairoDrawContext::strokePreserve(const brush& col)
     cairo_stroke_preserve(cairoCR_);
 }
 
-void cairoDrawContext::fillPreserve(const pen& col)
+void CairoDrawContext::fillPreserve(const Pen& col)
 {
     if(!cairoCR_)
     {
@@ -383,7 +391,7 @@ void cairoDrawContext::fillPreserve(const pen& col)
     cairo_fill_preserve(cairoCR_);
 }
 
-void cairoDrawContext::stroke(const brush& col)
+void CairoDrawContext::stroke(const Brush& col)
 {
     if(!cairoCR_)
     {
@@ -398,7 +406,7 @@ void cairoDrawContext::stroke(const brush& col)
     cairo_stroke(cairoCR_);
 }
 
-void cairoDrawContext::fill(const pen& col)
+void CairoDrawContext::fill(const Pen& col)
 {
     if(!cairoCR_)
     {
@@ -551,4 +559,3 @@ void cairoText(cairo_t* cr,const  text& obj)
 
 }
 
-#endif //NY_WithCairo

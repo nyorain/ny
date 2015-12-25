@@ -312,7 +312,6 @@ Path Rectangle::asPath() const
 
     if(1) //all(testVec)
     {
-		nytl::sendLog("rectangle as path a");
         Path p({0.f, 0.f});
         p.line(vec2f(size_.x, 0));
         p.line(size_);
@@ -324,7 +323,6 @@ Path Rectangle::asPath() const
     }
     else
     {
-		nytl::sendLog("rectangle as path b");
         rect2f me;
         me.size = size_; //dont copy position since it will be copied with copyTransform()
 

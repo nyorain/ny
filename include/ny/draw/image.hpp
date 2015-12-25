@@ -34,6 +34,9 @@ protected:
 public:
     Image(const vec2ui& size = {0u, 0u}, Format format = Format::rgba8888);
     Image(const std::string& path);
+	Image(const std::vector<unsigned char>& data, const vec2ui& size, Format format);
+	Image(std::vector<unsigned char>&& data, const vec2ui& size, Format format);
+
     virtual ~Image() = default;
 
     Image(const Image& other) = default;

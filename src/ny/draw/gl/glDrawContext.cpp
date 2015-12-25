@@ -4,8 +4,8 @@
 #include <ny/draw/gl/shader.hpp>
 #include <ny/draw/triangulate.hpp>
 
-#include <ny/draw/gl/shaderSources/modernSources.hpp>
 #include <ny/draw/gl/drawImplementation.hpp>
+#include <ny/draw/gl/shaderSources/modernSources.hpp>
 
 #include <nytl/log.hpp>
 
@@ -19,24 +19,27 @@ using namespace glp20;
  #define FUNC_NAME __func__
 #endif //FUNCNAME
 
+//macro for assuring a valid context (warn and return if there is none)
 #define VALIDATE_CTX(...) if(!GlContext::current())\
 	{ nytl::sendWarning(FUNC_NAME, ": no current opengl context."); return __VA_ARGS__; }
+
 
 namespace ny
 {
 
-////
 GlDrawContext::ShaderPrograms& GlDrawContext::shaderPrograms()
 {
-	static ShaderPrograms programs;
-	if(!programs.initialized)
+	//todo: context version, api
+	
+	auto& prog = shaderPrograms_[GlContext::current()]; 
+	if(!prog.initialized)
 	{
-		programs.color.loadFromString(defaultShaderVS, modernColorShaderFS);
-		programs.texture.loadFromString(defaultShaderVS, modernTextureShaderFS);
-		programs.initialized = 1;
+		prog.brush.color.loadFromString(defaultShaderVS, modernColorShaderFS);
+		prog.brush.texture.loadFromString(defaultShaderVS, modernTextureShaderFS);
+		prog.initialized = 1;
 	}
 
-	return programs;
+	return prog;
 }
 
 ////
@@ -106,6 +109,27 @@ void GlDrawContext::strokePreserve(const Pen& pen)
 	for(auto& pth : storedMask())
 	{
 
+		if(pth.type() == PathBase::Type::path)
+		{
+			for(auto& subpth : pth.path().subpaths())
+			{
+				Impl::strokePath(subpth.bake(), pen, pth.transformMatrix());
+			}
+		}
+		else if(pth.type() == PathBase::Type::rectangle)
+		{
+			auto points = pth.rectangle().asPath().subpaths()[0].bake();
+			Impl::strokePath(points, pen, pth.transformMatrix());
+		}
+		else if(pth.type() == PathBase::Type::circle)
+		{
+			Impl::strokePath(pth.circle().asPath().subpaths()[0].bake(), 
+					pen, pth.transformMatrix());
+		}
+		else if(pth.type() == PathBase::Type::text)
+		{
+			Impl::strokeText(pth.text(), pen);
+		}
 	}
 }
 
@@ -142,7 +166,6 @@ void GlDrawContext::viewport(const rect2f& viewport)
 rect2f GlDrawContext::viewport() const
 {
 	VALIDATE_CTX({});
-
 	return Impl::viewport();
 }
 

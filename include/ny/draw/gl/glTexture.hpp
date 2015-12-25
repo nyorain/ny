@@ -16,6 +16,7 @@ class GlTexture : public Texture, public nonCopyable
 {
 protected:
 	unsigned int texture_ = 0;
+	vec2ui size_ {0u, 0u};
 
 public:
 	GlTexture() = default;
@@ -26,8 +27,11 @@ public:
 
 	void destroy();
 
+	const vec2ui& size() const { return size_; }
+	void size(const vec2ui& size) { size_ = size; };
+
 	unsigned int glTexture() const { return texture_; }
-	void glTexture(unsigned int texture);
+	void glTexture(unsigned int texture, const vec2ui& size);
 
 	void bind() const;
 

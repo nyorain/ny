@@ -72,27 +72,15 @@ Image::Image(const std::string& path) : File(path)
 	load(path);
 }
 
-/*
-Image::Image(Image&& other) noexcept
-	: File(std::move(other)), data_(std::move(other.data_)), size_(other.size_),
-		format_(other.format_)
+Image::Image(const std::vector<unsigned char>& data, const vec2ui& size, Format format)
+	: File(), data_(data), size_(size), format_(format)
 {
-	other.size_ = {0u, 0u};
 }
 
-Image& Image::operator=(Image&& other) noexcept
+Image::Image(std::vector<unsigned char>&& data, const vec2ui& size, Format format)
+	: File(), data_(std::move(data)), size_(size), format_(format)
 {
-	File::operator=(std::move(other));
-
-	data_ = std::move(other.data_);
-	size_ = other.size_;
-	format_ = other.format_;
-
-	other.size_ = {0u, 0u};
-
-	return *this;
 }
-*/
 
 void Image::data(const std::vector<unsigned char>& newdata, const vec2ui& newsize)
 {
