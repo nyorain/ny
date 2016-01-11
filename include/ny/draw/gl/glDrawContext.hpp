@@ -11,6 +11,7 @@ namespace ny
 {
 
 ///OpenGL(ES) draw context implementation.
+///\todo mask clipping
 class GlDrawContext : public DelayedDrawContext
 {
 public:

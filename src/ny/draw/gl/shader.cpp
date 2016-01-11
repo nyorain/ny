@@ -16,8 +16,8 @@ using namespace glp20;
  #define FUNC_NAME __func__
 #endif //FUNCNAME
 
-#define VALIDATE_CTX(...) if(!GlContext::current())\
-	{ nytl::sendWarning(FUNC_NAME, ": no current opengl context."); return __VA_ARGS__; }
+#define VALIDATE_CTX(...) if(!validContext())\
+	{ nytl::sendWarning(FUNC_NAME, ": invalid GlContext for GlResource "); return __VA_ARGS__; }
 
 namespace ny
 {
@@ -34,7 +34,16 @@ Shader::~Shader()
 
 void Shader::reset()
 {
-	if(program_) glDeleteProgram(program_);
+	if(program_)
+	{
+		if(!validContext())
+		{
+			nytl::sendWarning("Shader::reset: Inalid current opengl context");
+			return;
+		}
+
+		glDeleteProgram(program_);
+	}
 }
 
 bool Shader::loadFromFile(const std::string& vertexFile, const std::string& fragmentFile)
@@ -183,7 +192,12 @@ void Shader::uniform(const std::string& name, const Color& value)
 
 bool Shader::compile(const std::string& vertexShader, const std::string& fragmentShader)
 {
-	VALIDATE_CTX(0);
+	if(!GlContext::currentValid())
+	{
+		nytl::sendWarning("Shader::compile: no valid current GlContext");
+		return 0;
+	}
+
 	reset();
 
     unsigned int vsID = 0;
@@ -242,6 +256,8 @@ bool Shader::compile(const std::string& vertexShader, const std::string& fragmen
     if(fsID) glDeleteShader(fsID);
 
     program_ = progID;
+	GlResource::glContext(*GlContext::current());
+
     return 1;
 }
 
@@ -249,10 +265,8 @@ void Shader::use() const
 {
 	VALIDATE_CTX();
 
-    if(program_)
-        glUseProgram(program_);
-	else
-		nytl::sendWarning("Shader::use: shader has no gl program.");
+    if(program_) glUseProgram(program_);
+	else nytl::sendWarning("Shader::use: shader has no compiled program");
 }
 
 

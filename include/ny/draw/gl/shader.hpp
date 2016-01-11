@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ny/draw/include.hpp>
+#include <ny/draw/gl/glResource.hpp>
 
 #include <nytl/vec.hpp>
 #include <nytl/mat.hpp>
@@ -11,9 +12,10 @@ namespace ny
 ///The Shader class represents an OpenGL(ES) shader object.
 ///It can be created and compiled with an external source file or with a source string.
 ///One can use the uniform() function to set the shaders uniform parameters.
-class Shader
+class Shader : public GlResource
 {
 public:
+	//TODO: add more type options
 	enum class Type
 	{
 		fragment,
@@ -46,9 +48,6 @@ public:
     void uniform(const std::string& name, const mat2f& value);
     void uniform(const std::string& name, const mat3f& value);
     void uniform(const std::string& name, const mat4f& value);
-
-	///Fills a vec4 uniform parameter in the shader with the rgba values of the color.
-    void uniform(const std::string& name, const Color& value);
 
 	///Returns the OpenGL(ES) handle to the shader program.
     unsigned int glProgram() const { return program_; }

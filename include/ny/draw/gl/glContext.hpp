@@ -21,7 +21,6 @@ protected:
 
 public:
 	///The possible apis a context may have. 
-	///TODO: What about openVG, support for that?
 	enum class Api
 	{
 		openGL,
@@ -48,6 +47,8 @@ protected:
     unsigned int minorVersion_ {0};
 
 	std::vector<std::string> extensions_;
+	std::vector<GlContext*> sharedContexts_;
+	std::vector<unsigned int> glslVersions_;
 
 	///This should be called by implementations at some point of context creation/initialisation
 	///to init the context (e.g. function pointer resolution; glew/glbinding). 
@@ -112,6 +113,12 @@ public:
 
 	///Returns wheter the given openGL extension name is supported.
 	bool glExtensionSupported(const std::string& name) const;
+
+	///Returns all supported glsl versions
+	std::vector<unsigned int> glslVersions() const { return glslVersions_; }
+
+	///Returns a vector of all shared opengl contexts.
+	std::vector<GlContext*> sharedContexts() const { return sharedContexts_; }
 
 
 	///Applies the contents of this context to its surface. Usually this means, the context will
