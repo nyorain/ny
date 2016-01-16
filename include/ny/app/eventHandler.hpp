@@ -1,35 +1,39 @@
 #pragma once
 
-#include <ny/include.hpp>
+#include <ny/app/include.hpp>
 #include <nytl/hierachy.hpp>
 
 namespace ny
 {
 
 //eventHandler base
-class eventHandler
+class EventHandler
 {
 public:
-    eventHandler() = default;
-    virtual ~eventHandler() = default;
+    EventHandler() = default;
+    virtual ~EventHandler() = default;
 
-    virtual bool processEvent(const event& ev) { return 0; }; //returns if event was processed (1) or ignored (0)
+	//returns if event was processed (1) or not handled (0)
+    virtual bool processEvent(const Event&) { return 0; }; 
 };
 
 //eventHandlerHierachyNode
-class eventHandlerNode : public eventHandler, public hierachyNode<eventHandlerNode>
+class EventHandlerNode : public EventHandler, public hierachyNode<EventHandlerNode>
 {
 protected:
-    using hierachyBase = hierachyNode<eventHandlerNode>;
+    using hierachyBase = hierachyNode<EventHandlerNode>;
 
-    eventHandlerNode();
-    void create(eventHandlerNode& parent);
+    EventHandlerNode();
+    void create(EventHandlerNode& parent);
 
 public:
-    eventHandlerNode(eventHandlerNode& parent);
-    virtual ~eventHandlerNode() = default;
+    EventHandlerNode(EventHandlerNode& parent);
+    virtual ~EventHandlerNode() = default;
 
-    virtual bool processEvent(const event& ev);
+    virtual bool processEvent(const Event& ev) override;
 };
+
+//eventHandlerRoot
+using EventHandlerRoot = hierachyRoot<EventHandlerNode>;
 
 }

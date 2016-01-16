@@ -1,22 +1,22 @@
 #pragma once
 
-#include <ny/include.hpp>
+#include <ny/backend/include.hpp>
 #include <nytl/nonCopyable.hpp>
-
-#include <functional>
 
 namespace ny
 {
 
-class appContext : public nonCopyable
+class AppContext : public nonCopyable
 {
 public:
-    appContext();
-    virtual ~appContext();
+    AppContext() = default;
+    virtual ~AppContext() = default;
 
-    virtual void exit(){}; //todo: virtual
+	virtual int mainLoop() = 0;
+	virtual void exit() {}
 
     //data
+	/*
     virtual void startDataOffer(dataSource& source, const image& img, const window& w, const event* ev){}
     virtual bool isOffering() const { return 0; }
     virtual void endDataOffer(){}
@@ -27,6 +27,7 @@ public:
     //data specifications
     void setClipboard(const std::string& str);
     void setClipboard(const image& str);
+	*/
 };
 
 }

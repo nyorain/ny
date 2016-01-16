@@ -27,7 +27,7 @@ Color ColorGradient::colorAt(float position) const
 
             float higherFac = (s.position - position) / distance;
             auto res = higherFac * s.color.rgba() + (1 - higherFac) * lastOne->color.rgba();
-			return Color(res);
+			return Color(static_cast<vec4uc>(res));
         }
 
         lastOne = &s;

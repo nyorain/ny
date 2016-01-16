@@ -1,6 +1,6 @@
 build/
 .git
-concepts/
+private/
 obj/
 bin/
 old/

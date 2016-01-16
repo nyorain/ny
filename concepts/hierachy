@@ -1,0 +1,17 @@
+template <typename T>
+class hirachyObject : public nonCopyable
+{
+protected:
+	T* parent_;
+	std::vector<T*> children_;
+
+public:
+	virtual ~hirachyObject(){ for(auto* c : children_)c->destroy(); }
+	virtual void destroy(){}
+
+	void addChild(T& child){ children_.push_back(&child); }
+	void removeChild(T& child){  } //return if child was found
+
+	T* getParent() const { return parent_; } //better T& ?
+	std::vector<T*> getChildren() const { return children_; }
+};

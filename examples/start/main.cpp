@@ -3,20 +3,16 @@
 
 int main()
 {
-	ny::app myApp;
+	ny::App app;
+	
+	ny::Frame frame(app, "Just a test", ny::vec2ui(800, 500));
+	ny::Gui gui(frame);
 
-	if(myApp.init())
-	{
-		std::cout << "could not init. exit" << std::endl;
-		//return 1;
-	}
+	ny::Button button(gui, "Click me!");
+	button.onClick([]{ std::cout << "Clicked\n"; });
 
-	ny::toplevelWindow win(ny::vec2ui(100, 100), ny::vec2ui(800, 500), "Test");
-	win.show();
+	ny::Textfield textfield(gui);
+	textfield.onEnter([](ny::Textfield& tf){ std::cout << "Entered: " << tf.label() << "\n"; });
 
-	win.onDraw([](ny::drawContext& dc){
-			dc.clear(ny::color::white);
-			});
-
-	return myApp.mainLoop();
+	return app.run();
 }

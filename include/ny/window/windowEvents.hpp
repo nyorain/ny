@@ -1,7 +1,10 @@
 #pragma once
 
-#include <ny/include.hpp>
-#include <ny/event.hpp>
+#include <ny/window/include.hpp>
+#include <ny/app/event.hpp>
+
+#include <nytl/vec.hpp>
+
 #include <memory>
 
 namespace ny
@@ -20,75 +23,74 @@ constexpr unsigned int context = 20;
 constexpr unsigned int contextCreate = 1; //contextEventType
 }
 
-class focusEvent : public eventBase<focusEvent, eventType::windowFocus>
+class FocusEvent : public EventBase<FocusEvent, eventType::windowFocus>
 {
 public:
-    focusEvent(eventHandler* h = nullptr, bool gain = 0, eventData* d = nullptr)
-        : evBase(h, d), focusGained(gain) {}
+    FocusEvent(EventHandler* h = nullptr, bool gain = 0, EventData* d = nullptr)
+        : EvBase(h, d), focusGained(gain) {}
 
     bool focusGained;
 };
 
-class sizeEvent : public eventBase<sizeEvent, eventType::windowSize>
+class SizeEvent : public EventBase<SizeEvent, eventType::windowSize>
 {
 public:
-    sizeEvent(eventHandler* h = nullptr, vec2ui s = vec2ui(), bool ch = 1, eventData* d = nullptr)
-        : evBase(h, d), size(s), change(ch) {}
+    SizeEvent(EventHandler* h = nullptr, vec2ui s = vec2ui(), bool ch = 1, EventData* d = nullptr)
+        : EvBase(h, d), size(s), change(ch) {}
 
     vec2ui size;
     bool change;
 };
 
-class showEvent : public eventBase<showEvent, eventType::windowShow>
+class ShowEvent : public EventBase<ShowEvent, eventType::windowShow>
 {
 public:
-    showEvent(eventHandler* h = nullptr, bool ch = 1, eventData* d = nullptr)
-        : evBase(h, d), change(ch) {}
+    ShowEvent(EventHandler* h = nullptr, bool ch = 1, EventData* d = nullptr)
+        : EvBase(h, d), change(ch) {}
 
     //showState here
     bool change;
 };
 
-class positionEvent : public eventBase<positionEvent, eventType::windowPosition, 1>
+class PositionEvent : public EventBase<PositionEvent, eventType::windowPosition, 1>
 {
 public:
-    positionEvent(eventHandler* h = nullptr, vec2i pos = vec2i(), bool ch = 1, eventData* d = nullptr)
-        : evBase(h, d), position(pos), change(ch) {}
+    PositionEvent(EventHandler* h = nullptr, vec2i pos = vec2i(), bool ch = 1, EventData* d = nullptr)
+        : EvBase(h, d), position(pos), change(ch) {}
 
     vec2i position {0, 0};
     bool change;
 };
 
-class drawEvent : public eventBase<drawEvent, eventType::windowDraw, 1>
+class DrawEvent : public EventBase<DrawEvent, eventType::windowDraw, 1>
 {
 public:
-    drawEvent(eventHandler* h = nullptr, eventData* d = nullptr) : evBase(h, d) {}
+    DrawEvent(EventHandler* h = nullptr, EventData* d = nullptr) : EvBase(h, d) {}
 };
 
 //better sth like "using refreshEvent = eventBase<eventType::windowRefresh>;"? since it has no additional members
-class refreshEvent : public eventBase<refreshEvent, eventType::windowRefresh, 1>
+class RefreshEvent : public EventBase<RefreshEvent, eventType::windowRefresh, 1>
 {
 public:
-    refreshEvent(eventHandler* h = nullptr, eventData* d = nullptr) : evBase(h, d) {}
+    RefreshEvent(EventHandler* h = nullptr, EventData* d = nullptr) : EvBase(h, d) {}
 };
 
-class contextEvent : public event //own ContextEvents could be derived form this
+class ContextEvent : public Event //own ContextEvents could be derived form this
 {
 public:
-    contextEvent(eventHandler* h = nullptr, eventData* d = nullptr) : event(h, d) {}
+    ContextEvent(EventHandler* h = nullptr, EventData* d = nullptr) : Event(h, d) {}
 
     virtual unsigned int type() const override final { return eventType::context; }
     virtual unsigned int contextType() const = 0;
-    virtual std::unique_ptr<event> clone() const = 0;
 };
 
-class contextCreateEvent : public contextEvent
+class ContextCreateEvent : public deriveCloneable<ContextEvent, ContextCreateEvent>
 {
 public:
-    using contextEvent::contextEvent;
+    ContextCreateEvent(EventHandler* h = nullptr, EventData* d = nullptr) 
+		: deriveCloneable<ContextEvent, ContextCreateEvent>(h, d) {}
 
     virtual unsigned int contextType() const override { return eventType::contextCreate; }
-    virtual std::unique_ptr<event> clone() const override { return make_unique<contextCreateEvent>(*this); };
 };
 
 }

@@ -2,7 +2,7 @@
 
 #include <ny/draw/include.hpp>
 
-#ifdef NY_WithFreetype
+#ifdef NY_WithFreeType
 #include <nytl/cache.hpp>
 
 #include <freetype2/ft2build.h>
@@ -14,21 +14,23 @@ namespace ny
 {
 
 //Cache Name: "ny::FTFontHandle"
-class FTFontHandle : public cache
+class FTFontHandle : public cacheBase<FTFontHandle>
 {
 protected:
     static FT_Library lib_;
 
 public:
     static bool init();
-    static FT_Library getLib(){ return lib_; }
+    static FT_Library lib(){ return lib_; }
 
 protected:
     FT_Face face_;
 
 public:
-    FreeTypeFontHandle(const std::string& name, bool fromFile = 0);
-    ~FreeTypeFontHandle();
+    FTFontHandle(const std::string& name, bool fromFile = 0);
+    ~FTFontHandle();
+
+	FT_Face face() const { return face_; }
 };
 
 }

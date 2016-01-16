@@ -1,7 +1,8 @@
 #pragma once
 
-#include <ny/include.hpp>
-#include <ny/event.hpp>
+#include <ny/app/include.hpp>
+#include <ny/app/event.hpp>
+
 #include <nytl/vec.hpp>
 #include <nytl/callback.hpp>
 #include <nytl/compFunc.hpp>
@@ -12,20 +13,21 @@ namespace ny
 {
 
 //grab
-struct mouseGrab
+//TODO
+struct MouseGrab
 {
-    eventHandler* handler_ {nullptr};
-    std::unique_ptr<event> event_ {nullptr};
+    EventHandler* handler_ {nullptr};
+    std::unique_ptr<Event> event_ {nullptr};
 };
 
 //mouse
-class mouse
+class Mouse
 {
 
-friend class app;
+friend class App;
 
 public:
-    enum button : int
+    enum class Button : int
     {
         none = -1,
         left = 0,
@@ -38,32 +40,27 @@ public:
     };
 
 protected:
-    static std::bitset<8> states;
-    static vec2i position;
+    static std::bitset<8> states_;
+    static vec2i position_;
 
     //static mouseGrab grab_ {};
 
 protected:
-    static void buttonPressed(button b);
-    static void buttonReleased(button b);
+    static void buttonPressed(Button button, bool pressed);
     static void wheelMoved(float value);
-    static void setPosition(vec2i pos);
+    static void position(const vec2i& pos);
 
-    static callback<void(vec2i)> moveCallback_;
-    static callback<void(button, bool)> buttonCallback_;
+    static callback<void(const vec2i&)> moveCallback_;
+    static callback<void(Button, bool)> buttonCallback_;
     static callback<void(float)> wheelCallback_;
 
 public:
-    static bool isButtonPressed(button b);
-    static vec2i getPosition();
+    static bool buttonPressed(Button button);
+    static vec2i position();
 
-    //static mouseGrab* grabbed() const { return grab_.handler ? &grab_ : nullptr; }
-    //static  grab(const event& ev);
-    //static bool ungrab
-
-    template<typename F> static std::unique_ptr<connection> onMove(F&& func) { return moveCallback_.add(func); }
-    template<typename F> static std::unique_ptr<connection> onButton(F&& func) { return buttonCallback_.add(func); }
-    template<typename F> static std::unique_ptr<connection> onWheel(F&& func) { return wheelCallback_.add(func); }
+    template<typename F> connection onMove(F&& func) { return moveCallback_.add(func); }
+    template<typename F> connection onButton(F&& func) { return buttonCallback_.add(func); }
+    template<typename F> connection onWheel(F&& func) { return wheelCallback_.add(func); }
 };
 
 //events
@@ -75,42 +72,39 @@ constexpr unsigned int mouseWheel = 5;
 constexpr unsigned int mouseCross = 6;
 }
 
-class mouseButtonEvent : public eventBase<mouseButtonEvent, eventType::mouseButton>
+class MouseButtonEvent : public EventBase<MouseButtonEvent, eventType::mouseButton>
 {
 public:
-    mouseButtonEvent(eventHandler* h = nullptr, mouse::button but = mouse::none, bool prssd = 0, vec2i pos = vec2i(), eventData* d = nullptr)
-        : evBase(h, d), pressed(prssd), button(but), position(pos) {};
+	using EvBase::EvBase;
 
     bool pressed;
-    mouse::button button;
+    Mouse::Button button;
     vec2i position;
 };
 
-class mouseMoveEvent : public eventBase<mouseMoveEvent, eventType::mouseMove, 1>
+class MouseMoveEvent : public EventBase<MouseMoveEvent, eventType::mouseMove, 1>
 {
 public:
-    mouseMoveEvent(eventHandler* h = nullptr, vec2i pos = vec2i(), vec2i spos = vec2i(), vec2i del = vec2i(), eventData* d = nullptr)
-        : evBase(h, d), position(pos), screenPosition(spos), delta(del) {};
+	using EvBase::EvBase;
 
     vec2i position;
     vec2i screenPosition;
     vec2i delta;
 };
 
-class mouseCrossEvent : public eventBase<mouseCrossEvent, eventType::mouseCross>
+class MouseCrossEvent : public EventBase<MouseCrossEvent, eventType::mouseCross>
 {
 public:
-    mouseCrossEvent(eventHandler* h = nullptr, bool e = 0, vec2i pos = vec2i(), eventData* d = nullptr) : evBase(h, d), entered(e), position(pos) {};
+	using EvBase::EvBase;
 
     bool entered;
     vec2i position;
 };
 
-class mouseWheelEvent : public eventBase<mouseWheelEvent, eventType::mouseWheel>
+class MouseWheelEvent : public EventBase<MouseWheelEvent, eventType::mouseWheel>
 {
 public:
-    mouseWheelEvent(eventHandler* h = nullptr, float val = 0.f, eventData* d = nullptr) : evBase(h, d), value(val) {};
-
+	using EvBase::EvBase;
     float value;
 };
 

@@ -1,7 +1,8 @@
 #pragma once
 
-#include <ny/include.hpp>
+#include <ny/app/include.hpp>
 #include <nytl/make_unique.hpp>
+#include <nytl/cloneable.hpp>
 
 #include <type_traits>
 #include <stdexcept>
@@ -13,110 +14,79 @@ namespace ny
 //custom events should put their type id in this namespace
 namespace eventType
 {
-constexpr unsigned int invalid = 0;
 constexpr unsigned int destroy = 1;
 constexpr unsigned int reparent = 2;
 }
 
 //eventData, used by backends
-class eventData
+class EventData : public cloneable<EventData>
 {
 public:
-    virtual ~eventData() = default; //for dynamic cast
-    virtual std::unique_ptr<eventData> clone() const = 0;
-};
-
-template <typename T>
-class eventDataBase : public eventData
-{
-public:
-    virtual std::unique_ptr<eventData> clone() const override
-        { return make_unique<T>(static_cast<const T&>(*this)); }
+    virtual ~EventData() = default; //for dynamic cast
 };
 
 //event//////////////////
-class event
+class Event : public abstractCloneable<Event>
 {
 public:
-    event(eventHandler* h = nullptr, eventData* d = nullptr) : handler(h), data(d) {};
-    virtual ~event() = default;
+    Event(EventHandler* h = nullptr, EventData* d = nullptr) : handler(h), data(d) {};
+    virtual ~Event() = default;
 
-    event(const event& other) : handler(other.handler), data(nullptr) { if(other.data.get()) data = other.data->clone(); }
-    event& operator=(const event& other)
+    Event(const Event& other) : handler(other.handler), data(nullptr) 
+		{ if(other.data.get()) data = nytl::clone(other.data); }
+
+    Event& operator=(const Event& other)
     {
         handler = other.handler;
-        if(other.data.get()) data = other.data->clone();
+        if(other.data.get()) data = nytl::clone(other.data);
         else data.reset();
         return *this;
     }
 
-    event(event&& other) : handler(other.handler), data(std::move(other.data)) {}
-    event& operator=(event&& other) { handler = other.handler; data = std::move(other.data); return *this; }
+    Event(Event&& other) noexcept = default;
+    Event& operator=(Event&& other) noexcept = default;
 
-    eventHandler* handler {nullptr};
-    std::unique_ptr<eventData> data {nullptr}; //place for the backend to transport data (e.g. serial numbers for custom resize / move)
+    EventHandler* handler {nullptr};
+    std::unique_ptr<EventData> data {nullptr}; 
 
-    //type
-    virtual std::unique_ptr<event> clone() const = 0;
     virtual unsigned int type() const = 0;
     virtual bool overrideable() const { return 0; }
 };
 
-using eventPtr = std::unique_ptr<event>;
+using EventPtr = std::unique_ptr<Event>;
 
 //eventBase
 template<typename T, unsigned int Type, bool Override = 0>
-class eventBase : public event
+class EventBase : public deriveCloneable<Event, T>
 {
-protected:
-    using evBase = eventBase<T, Type, Override>;
+public:
+	using EvBase = EventBase;
+	using CloenableEvBase = deriveCloneable<Event, T>;
 
 public:
-    eventBase(eventHandler* xhandler = nullptr, eventData* xdata = nullptr) : event(xhandler, xdata){};
+	using CloenableEvBase::CloenableEvBase;
 
     //event
-    virtual std::unique_ptr<event> clone() const override { return make_unique<T>(static_cast<const T&>(*this)); }
     virtual unsigned int type() const override final { return Type; }
     virtual bool overrideable() const override final { return Override; }
 };
 
 //destroy
-class destroyEvent : public eventBase<destroyEvent, eventType::destroy, 1>
+class DestroyEvent : public EventBase<DestroyEvent, eventType::destroy, 1>
 {
 public:
-    destroyEvent(eventHandler* h = nullptr, eventData* d = nullptr) : evBase(h, d) {};
+	using EvBase::EvBase;
 };
 
 //destroy
-class reparentEvent : public eventBase<reparentEvent, eventType::reparent, 1>
+class ReparentEvent : public EventBase<ReparentEvent, eventType::reparent, 1>
 {
 public:
-    reparentEvent(eventHandler* h = nullptr, eventHandler* nh = nullptr, eventData* d = nullptr) : evBase(h, d), newParent(nh) {};
-    eventHandler* newParent {nullptr};
+    ReparentEvent(EventHandler* handler = nullptr, EventHandlerNode* newparent = nullptr, 
+			EventData* d = nullptr) : EvBase(handler, d), newParent(newparent) {};
+
+    EventHandlerNode* newParent {nullptr};
 };
-
-//event cast
-template<typename T>
-std::unique_ptr<T> event_cast(std::unique_ptr<event>&& ptr)
-{
-    static_assert(std::is_base_of<event, T>::value, "you can only cast into a derived event class");
-
-    auto ret = dynamic_cast<T*>(ptr.release());
-    if(ptr) return std::unique_ptr<T>(ret);
-
-    throw std::logic_error("event_cast<unique_ptr>: tried to cast into wrong type");
-}
-
-template<typename T>
-const T& event_cast(const event& ev)
-{
-    static_assert(std::is_base_of<event, T>::value, "you can only cast into a derived event class");
-
-    auto ret = dynamic_cast<const T*>(&ev);
-    if(ret) return *ret;
-
-    throw std::logic_error("event_cast<const ref>: tried to cast into wrong type");
-}
 
 }
 

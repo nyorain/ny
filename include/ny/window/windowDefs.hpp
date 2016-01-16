@@ -78,10 +78,10 @@ enum class toplevelState : unsigned char
 class nativeWindowType;
 
 //windowSettings
-class windowContextSettings
+class WindowContextSettings
 {
 public:
-    virtual ~windowContextSettings();
+    virtual ~WindowContextSettings() = default;
 
     unsigned long hints; //backend-specific e.g. x11::TypeInputOnly, usually set by the window class
     unsigned int nativeWindow; //e.g. nativeWindow::button, usually set by the window class

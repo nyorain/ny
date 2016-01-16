@@ -180,15 +180,6 @@ void Shader::uniform(const std::string& name, const mat4f& value)
     int location = glGetUniformLocation(program_, name.c_str());
     glUniformMatrix4fv(location, 1, GL_FALSE, value.data());
 }
-void Shader::uniform(const std::string& name, const Color& value)
-{
-	VALIDATE_CTX();
-
-    int location = glGetUniformLocation(program_, name.c_str());
-	auto val = value.rgbaNorm();
-	nytl::sendLog("location: ", location, " .. color: ", val);
-	glUniform4f(location, val.x, val.y, val.z, val.w);
-}
 
 bool Shader::compile(const std::string& vertexShader, const std::string& fragmentShader)
 {

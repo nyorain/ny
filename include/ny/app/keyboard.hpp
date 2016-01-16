@@ -1,7 +1,7 @@
 #pragma once
 
-#include <ny/include.hpp>
-#include <ny/event.hpp>
+#include <ny/app/include.hpp>
+#include <ny/app/event.hpp>
 
 #include <bitset>
 
@@ -9,34 +9,37 @@ namespace ny
 {
 
 //keyboard
-class keyboard
+class Keyboard
 {
 
-friend class app;
+friend class App;
 
 public:
-    enum key
+    enum class Key
     {
-        /* none    */   none = -1,
-        /* chars   */   a = 0, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z,
-        /* numbers */   num1, num2, num3, num4, num5, num6, num7, num8, num9, num0, numpad1, numpad2, numpad3, numpad4, numpad5, numpad6, numpad7, numpad8, numpad9, numpad0,
-        /* func    */   f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14, f15, f16, f17, f18, f19, f20, f21, f22, f23, f24,
-        /* else    */   play, stop, next, previous, escape, comma, dot, sharp, plus, minus, tab, leftctrl, rightctrl, leftsuper, rightsuper, leftshift, rightshift,
-                        space, enter, backspace, del, end, insert, pageUp, pageDown,  home,  back,  left, up, down, right, volumeup, volumedown, leftalt, rightalt, capsLock
+        none = -1,
+        a = 0, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z,
+        num1, num2, num3, num4, num5, num6, num7, num8, num9, num0, 
+		numpad1, numpad2, numpad3, numpad4, numpad5, numpad6, numpad7, numpad8, numpad9, numpad0,
+        f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14, f15, f16, f17, f18, f19, 
+		f20, f21, f22, f23, f24,
+        play, stop, next, previous, escape, comma, dot, sharp, plus, minus, tab, 
+		leftctrl, rightctrl, leftsuper, rightsuper, leftshift, rightshift,
+        space, enter, backspace, del, end, insert, pageUp, pageDown,  home,  back, left, up, 
+		down, right, volumeup, volumedown, leftalt, rightalt, capsLock
     };
 
 protected:
-    static std::bitset<255> states;
-    static bool capsLockState;
+    static std::bitset<255> states_;
 
-    static void keyPressed(key k);
-    static void keyReleased(key k);
+    static void keyPressed(Key key, bool pressed);
 
 public:
-    static char toChar(key k);
-    static bool isKeyPressed(key k);
+    static std::string utf8(Key k);
+    static bool keyPressed(Key k);
 
-    static bool capsActive(); //better sth. with capsActive
+	//states: TODO
+    static bool capsActive(); 
     static bool altActive();
     static bool ctrlActive();
 };
@@ -47,13 +50,13 @@ namespace eventType
 constexpr unsigned int key = 7;
 }
 
-class keyEvent : public eventBase<keyEvent, eventType::key>
+class KeyEvent : public EventBase<KeyEvent, eventType::key>
 {
 public:
-    keyEvent(eventHandler* h = nullptr, keyboard::key k = keyboard::none, bool p = 0, eventData* d = nullptr) : evBase(h, d), pressed(p), key(k) {}
+	using EvBase::EvBase;
 
     bool pressed;
-    keyboard::key key;
+    Keyboard::Key key;
 };
 
 }

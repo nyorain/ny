@@ -1,13 +1,11 @@
 #pragma once
 
-#include <ny/include.hpp>
-#include <ny/image.hpp>
+#include <ny/window/include.hpp>
+#include <ny/draw/image.hpp>
 #include <nytl/vec.hpp>
 
 namespace ny
 {
-
-class image;
 
 //todo: cursor themes for all applications. loaded with styles
 
@@ -35,29 +33,29 @@ enum class cursorType
     sizeTopLeft
 };
 
-class cursor
+class Cursor
 {
 protected:
     cursorType type_ = cursorType::leftPtr;
 
-    image image_{};
+    Image image_{};
     vec2i hotspot_{};
 
 public:
-    cursor() = default;
-    cursor(cursorType t);
-    cursor(const image& data);
+    Cursor() = default;
+    Cursor(cursorType t);
+    Cursor(const Image& data);
 
-    void fromImage(const image& data);
-    void fromImage(const image& data, vec2i hotspot);
-    void fromNativeType(cursorType t);
+    void image(const Image& data);
+    void image(const Image& data, vec2i hotspot);
+    void nativeType(cursorType t);
 
     bool isImage() const;
     bool isNativeType() const;
 
-    const image* getImage() const;
-    vec2i getImageHotspot() const;
-    cursorType getNativeType() const;
+    const Image* image() const;
+    vec2i imageHotspot() const;
+    cursorType nativeType() const;
 };
 
 }

@@ -1,69 +1,51 @@
-#include <ny/backend.hpp>
-
-#include <ny/app.hpp>
-
-#ifdef NY_WithWayland
-#include <ny/wayland/waylandBackend.hpp>
-#endif // NY_WithGL
-
-#ifdef NY_WithX11
-#include <ny/x11/x11Backend.hpp>
-#endif // WithX11
-
-#ifdef NY_WithWinapi
-#include <ny/winapi/winapiBackend.hpp>
-#endif // WithWinapi
-
-#include <ny/window.hpp>
-#include <ny/error.hpp>
+#include <ny/backend/backend.hpp>
+#include <ny/app/app.hpp>
+#include <ny/window/window.hpp>
 
 namespace ny
 {
 
-std::unique_ptr<windowContext> createWindowContext(window& win, const windowContextSettings& s)
+//
+std::vector<Backend*> Backend::backends()
 {
-    if(!nyMainApp() || !nyMainApp()->getBackend())
-        return nullptr;
-
-    return nyMainApp()->getBackend()->createWindowContext(win, s);
+	return backendsFunc();
 }
 
-std::unique_ptr<wc> createWC(window& win, const windowContextSettings& s){ return createWindowContext(win, s); };
-
-
-backend::backend(unsigned int i) : id(i)
+std::vector<Backend*> Backend::backendsFunc(Backend* reg, bool remove)
 {
-    app::registerBackend(*this);
+	static std::vector<Backend*> backends_;
+
+	if(reg)
+	{
+		if(remove)
+		{
+			for(auto it = backends_.cbegin(); it < backends_.cend(); ++it)
+			{
+				if(*it == reg)
+				{
+					backends_.erase(it);
+					break;
+				}
+			}
+		}
+		else
+		{
+			backends_.push_back(reg);
+		}
+	}
+
+	return backends_;
 }
 
-std::unique_ptr<windowContext> backend::createWindowContext(window& win, const windowContextSettings& settings)
+//
+Backend::Backend()
 {
-    childWindow* w = dynamic_cast<childWindow*>(&win);
-    if(settings.virtualPref == preference::Must || (win.getParent() && win.getParent()->isVirtual()))
-    {
-        if(w)
-        {
-            return make_unique<virtualWindowContext>(*w, settings);
-        }
-        else
-        {
-            throw std::logic_error("backend::createWindowContext: virtual pref was set to Must for a toplevelWindow");
-            return nullptr;
-        }
-    }
-    else if(settings.virtualPref == preference::Should || settings.virtualPref == preference::DontCare)
-    {
-        if(w)
-        {
-            return make_unique<virtualWindowContext>(*w, settings);
-        }
-        else if(settings.virtualPref == preference::Should)
-        {
-            nyWarning("backend::createWindowContext: virtual pref was set to Should for a toplevelWindow");
-        }
-    }
+	backendsFunc(this);
+}
 
-    return createWindowContextImpl(win, settings);
+Backend::~Backend()
+{
+	backendsFunc(this, 1);
 }
 
 }

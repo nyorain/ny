@@ -19,6 +19,9 @@ public:
     void loadFromFile(const std::string& filename);
     void loadFromName(const std::string& fontname);
 
+	bool fromFile() const { return fromFile_; }
+	const std::string& name() const { return name_; }
+
 public:
     static Font& defaultFont()
     {

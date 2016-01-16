@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <ny/event.hpp>
+#include <ny/app/event.hpp>
 
 #include <iostream>
 #include <vector>

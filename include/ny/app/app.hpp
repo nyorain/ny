@@ -1,8 +1,7 @@
 #pragma once
 
-#include <ny/include.hpp>
-#include <ny/eventHandler.hpp>
-#include <ny/eventLoop.hpp>
+#include <ny/app/include.hpp>
+#include <ny/app/eventHandler.hpp>
 
 #include <vector>
 #include <string>
@@ -16,146 +15,98 @@
 namespace ny
 {
 
-app* nyMainApp();
+App* nyMainApp();
 
-enum class errorAction
-{
-    Exit,
-    Continue,
-    AskWindow, //with fallback to AskConsole
-    AskConsole
-};
-
-class appSettings
+class App : public EventHandlerRoot
 {
 public:
-    std::string name;
-    std::string defaultFont {"sans-serif"};
+	enum class ErrorAction
+	{
+		Exit,
+    	Continue,
+    	AskWindow, //with fallback to AskConsole
+    	AskConsole
+	};
 
-    bool exitWithoutChildren = 1;
-    errorAction onError = errorAction::AskWindow;
-
-    std::vector<unsigned int> allowedBackends;
-    bool allBackends = 1;
-
-    int threadpoolSize = -1; //auto size, 0 for no threadpool
-    bool useEventThread = 1;
-};
-
-class app : public eventHandlerNode
-{
-
-friend class backend; //calls registerBackend on init
-
-private:
-    static app* appInstance(bool change = 0, app* a = nullptr)
-    {
-        static app* instance_;
-        if(change)
-        {
-            instance_ = a;
-        }
-        return instance_;
-    }
-
-protected:
-    static std::vector<backend*> backends; //ALL built in . from these one available backend is chose in init()
-    static void registerBackend(backend& e);
+	struct Settings
+	{
+		std::string name;
+		bool exitWithoutChildren = 1;
+		App::ErrorAction onError = ErrorAction::AskWindow;
+		std::vector<std::string> allowedBackends;
+		bool allBackends = 1;
+		int threadpoolSize = -1; //auto size, 0 for no threadpool
+		bool useEventThread = 1;
+	};
 
 public:
-    enum exitReason : int
-    {
-        failure = EXIT_FAILURE,
-        success = EXIT_SUCCESS,
-
-        unknown = 2,
-        noChildren = 3,
-        noEventSources = 4,
-        userInput = 5,
-        signal = 10 // + signal number
-    };
-
-    static app* nyMainApp(){ return appInstance(); };
-
-private:
-    int exitReason_{exitReason::unknown};
+	static App* app();
 
 protected:
-    appSettings settings_;
+	static App* appFunc(App* app = nullptr, bool reg = 0);	
 
-    std::thread::id loopThreadID_; //holds the thread id that is executing the mainLoop. only valid if(mainLoop_)
-    std::thread::id eventThreadID_; //holds the thread id that is executing the mainLoop. only valid if(mainLoop_)
+protected:
+    Settings settings_;
 
-    eventLoop mainLoop_;
-    backend* backend_ {nullptr}; //the chosen backend. only existing if(valid_), one of backends
+    std::thread::id loopThreadID_;
+    std::thread::id eventThreadID_;
 
-    std::unique_ptr<appContext> appContext_;
-    //std::unique_ptr<threadpool> threadpool_;
+    Backend* backend_ {nullptr}; //the chosen backend. only existing if(valid_), one of backends
+
+    std::unique_ptr<AppContext> appContext_;
 
     //changed/read by eventLoop and by eventDispatcher thread:
-    std::atomic<window*> focus_ {nullptr}; //eventHandler which has current focus
-    std::atomic<window*> mouseOver_ {nullptr}; //eventHandler on which is the mouse
+    std::atomic<Window*> focus_ {nullptr}; //eventHandler which has current focus
+    std::atomic<Window*> mouseOver_ {nullptr}; //eventHandler on which is the mouse
 
     std::atomic<bool> exit_ {0};
-    std::atomic<bool> valid_ {0}; //if the app was initialized (correctly)
-    std::atomic<bool> inMainLoop_ {0};
+    std::atomic<bool> mainLoop_ {0};
 
     //event dispatching
     std::thread eventDispatcher_;
-    std::deque<std::unique_ptr<event>> events_;
+    std::deque<std::unique_ptr<Event>> events_;
     std::mutex eventMtx_;
     std::condition_variable eventCV_;
 
     //dispatcher func
     void eventDispatcher();
 
+    //eventHandler
+    virtual bool removeChild(EventHandlerNode& handler) override;
+    virtual void destroy() override;
+
 public:
-    app();
-    virtual ~app();
+    App(const Settings& settings = Settings{});
+    virtual ~App();
 
-    //virtual core
-    virtual bool init(const appSettings& settings = appSettings());
-
+	//
     virtual int mainLoop();
-    virtual void exit(int exitReason = exitReason::unknown);
+    virtual void exit();
     virtual void onError();
 
-    //eventHandler
-    virtual bool removeChild(eventHandlerNode& handler) override;
-    virtual void destroy() override;
-    virtual bool valid() const override;
-
     //get/set
-    window* getMouseOver() const { return mouseOver_; };
-    window* getFocus() const { return focus_; };
+    Window* mouseOver() const { return mouseOver_; };
+    Window* focus() const { return focus_; };
 
-    appContext* getAppContext() const { return appContext_.get(); };
-    ac* getAC() const { return getAppContext(); };
+    AppContext& appContext() const { return *appContext_.get(); };
+    Backend& backend() const { return *backend_; }
 
-    backend* getBackend() const { return backend_; }
-    void setBackend(backend& b) { if(!valid_) backend_ = &b; }
-
-    const appSettings& getSettings() const { return settings_; }
-    const std::string& getName() const { return settings_.name; }
+    const Settings& settings() const { return settings_; }
+    const std::string& name() const { return settings_.name; }
 
     bool loopThread() const { return std::this_thread::get_id() == loopThreadID_; };
     bool eventThread() const { return std::this_thread::get_id() == eventThreadID_; };
 
-    //threadpool* getThreadPool() const { return threadpool_.get(); }
-
-    eventLoop& getEventLoop() { return mainLoop_; }
-    const eventLoop& getEventLoop() const { return mainLoop_; }
-
 public:
-    void sendEvent(std::unique_ptr<event> ev);
-    void sendEvent(const event& ev);
+    void sendEvent(std::unique_ptr<Event>&& ev);
+    void sendEvent(const Event& ev);
 
-    void keyboardKey(std::unique_ptr<keyEvent> event);
-    void mouseMove(std::unique_ptr<mouseMoveEvent> event);
-    void mouseButton(std::unique_ptr<mouseButtonEvent> event);
-    void mouseCross(std::unique_ptr<mouseCrossEvent> event);
-    void mouseWheel(std::unique_ptr<mouseWheelEvent> event);
-    void windowFocus(std::unique_ptr<focusEvent> event);
+    void keyboardKey(std::unique_ptr<KeyEvent>&& event);
+    void mouseMove(std::unique_ptr<MouseMoveEvent>&& event);
+    void mouseButton(std::unique_ptr<MouseButtonEvent>&& event);
+    void mouseCross(std::unique_ptr<MouseCrossEvent>&& event);
+    void mouseWheel(std::unique_ptr<MouseWheelEvent>&& event);
+    void windowFocus(std::unique_ptr<FocusEvent>&& event);
 };
 
 

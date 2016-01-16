@@ -3,6 +3,7 @@
 #include <ny/app/include.hpp>
 
 #include <string>
+#include <iosfwd>
 
 namespace ny
 {

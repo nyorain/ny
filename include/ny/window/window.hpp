@@ -1,12 +1,11 @@
 #pragma once
 
-#include <ny/include.hpp>
-#include <ny/eventHandler.hpp>
-#include <ny/surface.hpp>
-#include <ny/cursor.hpp>
-#include <ny/data.hpp>
-#include <ny/windowEvents.hpp>
-#include <ny/windowDefs.hpp>
+#include <ny/window/include.hpp>
+#include <ny/window/cursor.hpp>
+#include <ny/window/windowEvents.hpp>
+#include <ny/window/windowDefs.hpp>
+#include <ny/app/data.hpp>
+#include <ny/app/eventHandler.hpp>
 
 #include <nytl/callback.hpp>
 #include <nytl/vec.hpp>
@@ -21,15 +20,15 @@ namespace ny
 //todo: implement all callback-add-functions for window correctly. can it be done with some template-like method?
 
 //window class
-class window : public eventHandlerNode, public surface
+class Window : public EventHandler
 {
 protected:
     //position and max/min - size. size itself inherited from surface
-    vec2i position_;
-    vec2ui size_;
+    vec2i position_ {0, 0};
+    vec2ui size_ {0, 0};
 
-    vec2ui minSize_;
-    vec2ui maxSize_;
+    vec2ui minSize_ {0, 0};
+    vec2ui maxSize_ {1 << 30, 1 << 30};
 
     //states saved in window, not in the context
     bool focus_ {0};
@@ -37,48 +36,55 @@ protected:
     bool shown_ {0};
 
     //current window cursor
-    cursor cursor_;
+    Cursor cursor_;
 
-    //windowContext. backend specific object. Core element of window. window itself is not able to change anything, it has to communicate with the backend through this object
-    std::unique_ptr<windowContext> windowContext_;
+    //windowContext. backend specific object. Core element of window. 
+	//window itself is not able to change anything, it has to communicate with the backend 
+	//through this object
+    std::unique_ptr<WindowContext> windowContext_ {nullptr};
 
-    //stores window hints. most of window hints (e.g. Native<> or Maximize/Minimize etc. are not set by window class itself, but by the specific derivations of window
-    //do NOT represent window states (as focus_, mouseOver_ etc) but general information about the window, which should not be changed by the window or its context after creation (of course they can be changed from the outside)
-    unsigned long hints_ = 0;
+    //stores window hints. most of window hints (e.g. Native<> or Maximize/Minimize etc. are not 
+	//set by window class itself, but by the specific derivations of window
+    //do NOT represent window states (as focus_, mouseOver_ etc) but general information 
+	//about the window, which should not be changed by the window or its context after 
+	//creation (of course they can be changed from the outside)
+    unsigned long hints_ {0};
 
-    //files of the types listed in the dataType (basically vector of dataTypes) will generate a dataReceiveEvent when they are dropped on the window
+    //files of the types listed in the dataType (basically vector of dataTypes) will 
+	//generate a dataReceiveEvent when they are dropped on the window
     dataTypes dropAccept_ {};
 
 
     //callbacks
-    callback<void(window&, drawContext&)> drawCallback_;
-    callback<void(window&, const vec2ui&)> resizeCallback_;
-    callback<void(window&, const vec2i&)> moveCallback_;
-    callback<void(window&)> destroyCallback_;
-    callback<void(window&, const focusEvent&)> focusCallback_;
-    callback<void(window&, const showEvent&)> showCallback_;
+    callback<void(Window&, DrawContext&)> drawCallback_;
+    callback<void(Window&, const vec2ui&)> resizeCallback_;
+    callback<void(Window&, const vec2i&)> moveCallback_;
+    callback<void(Window&)> destroyCallback_;
+    callback<void(Window&, const FocusEvent&)> focusCallback_;
+    callback<void(Window&, const ShowEvent&)> showCallback_;
 
-    callback<void(window&, const mouseMoveEvent&)> mouseMoveCallback_;
-    callback<void(window&, const mouseButtonEvent&)> mouseButtonCallback_;
-    callback<void(window&, const mouseCrossEvent&)> mouseCrossCallback_;
-    callback<void(window&, const mouseWheelEvent&)> mouseWheelCallback_;
+    callback<void(Window&, const MouseMoveEvent&)> mouseMoveCallback_;
+    callback<void(Window&, const MouseButtonEvent&)> mouseButtonCallback_;
+    callback<void(Window&, const MouseCrossEvent&)> mouseCrossCallback_;
+    callback<void(Window&, const MouseWheelEvent&)> mouseWheelCallback_;
 
-    callback<void(window&, const keyEvent&)> keyCallback_;
+    callback<void(Window&, const KeyEvent&)> keyCallback_;
 
     //events - have to be protected?
-    virtual void mouseMove(const mouseMoveEvent&);
-    virtual void mouseCross(const mouseCrossEvent&);
-    virtual void mouseButton(const mouseButtonEvent&);
-    virtual void mouseWheel(const mouseWheelEvent&);
-    virtual void keyboardKey(const keyEvent&);
-    virtual void windowSize(const sizeEvent&);
-    virtual void windowPosition(const positionEvent&);
-    virtual void windowDraw(const drawEvent&);
-    virtual void windowShow(const showEvent&);
-    virtual void windowFocus(const focusEvent&);
+    virtual void mouseMove(const MouseMoveEvent&);
+    virtual void mouseCross(const MouseCrossEvent&);
+    virtual void mouseButton(const MouseButtonEvent&);
+    virtual void mouseWheel(const MouseWheelEvent&);
+    virtual void keyboardKey(const KeyEvent&);
+    virtual void windowSize(const SizeEvent&);
+    virtual void windowPosition(const PositionEvent&);
+    virtual void windowDraw(const DrawEvent&);
+    virtual void windowShow(const ShowEvent&);
+    virtual void windowFocus(const FocusEvent&);
 
-    //windowContext functions are protected, derived classes can make public aliases if needed. User should not be able to change backend Hints for button e.g
-    void setCursor(const cursor& curs);
+    //windowContext functions are protected, derived classes can make public aliases if needed. 
+	//User should not be able to change backend Hints for button e.g
+    void cursor(const Cursor& curs);
 
     void setBackendHints(unsigned int backend, unsigned long hints);
     void addBackendHints(unsigned int backend, unsigned long hints);
@@ -92,60 +98,36 @@ protected:
     void addDropType(unsigned char type);
     void removeDropType(unsigned char type);
 
-    virtual void draw(drawContext& dc);
-    virtual bool checkValid() const;
+    virtual void draw(DrawContext& dc);
 
     //window is abstract class
-    window();
-    window(eventHandlerNode& parent, vec2ui position, vec2ui size, const windowContextSettings& settings = windowContextSettings());
-    void create(eventHandlerNode& parent, vec2i position, vec2ui size, const windowContextSettings& settings = windowContextSettings());
+    Window();
+    Window(const vec2ui& size, const WindowContextSettings& settings = {});
+    void create(const vec2ui& size, const WindowContextSettings& settings = {});
 
 public:
-    virtual ~window();
+    virtual ~Window();
 
-    ////////////////////////////////////////////////////////////
-    //virtual functions
-    //todo: which of them have to be virtual? rethink - maybe some of the <basic window functions> should be virtual, too
+    virtual bool processEvent(const Event& event) override;
+	virtual void destroy();
 
-    //returns if the given event was processed by the window
-    virtual bool processEvent(const event& event) override;
-    virtual void destroy() override;
-    virtual bool valid() const override;
+    virtual Window* parent() const { return nullptr; }
 
-    virtual window* getParent() const override { return dynamic_cast<window*>(eventHandlerNode::getParent()); }
-
-    virtual toplevelWindow* getTopLevelParent() = 0;
-    virtual const toplevelWindow* getTopLevelParent() const = 0;
+    virtual ToplevelWindow* topLevelParent() = 0;
+    virtual const ToplevelWindow* topLevelParent() const = 0;
 
     virtual bool isVirtual() const { return 0; }
 
-    /////////////////////////////////////////////////////////////
-    //basic window functions
-    void setSize(vec2ui size);
-    void setSize(unsigned int width, unsigned int height){ setSize(vec2ui(width, height)); };
-    void setWidth(unsigned int width){ setSize(vec2ui(width, size_.y)); };
-    void setHeight(unsigned int height){ setSize(vec2ui(size_.x, height)); };
+    void size(const vec2ui& size);
+    void position(const vec2i& position);
 
-    std::vector<childWindow*> getWindowChildren();
-    window* getWindowAt(vec2i position);
+    //std::vector<ChildWindow*> getWindowChildren();
+    //window* getWindowAt(vec2i position);
 
-    void setPosition(vec2i position);
-    void setPosition(int x, int y){ setPosition(vec2i(x,y)); };
-    void setXPosition(int x){ setPosition(vec2i(x, position_.y)); };
-    void setYPosition(int y){ setPosition(vec2i(position_.x, y)); };
+    void move(const vec2i& delta);
 
-    void move(vec2i delta);
-    void move(int dx, int dy){ move(vec2i(dx,dy)); };
-
-    void setMinSize(vec2ui size);
-    void setMinSize(unsigned int width, unsigned int height){ setMinSize(vec2ui(width, height)); };
-    void setMinWidth(unsigned int width){ setMinSize(width, size_.y); };
-    void setMinHeight(unsigned int height){ setMinSize(size_.x, height); };
-
-    void setMaxSize(vec2ui size);
-    void setMaxSize(unsigned int width, unsigned int height){ setMaxSize(vec2ui(width, height)); }
-    void setMaxWidth(unsigned int width){ setMaxSize(vec2ui(width, size_.y)); };
-    void setMaxHeight(unsigned int height){ setMaxSize(vec2ui(size_.x, height)); };
+    void minSize(const vec2ui& size);
+    void maxSize(const vec2ui& size);
 
     void refresh();
 
@@ -153,59 +135,46 @@ public:
     void hide();
     void toggleShow();
 
-    /////////////////////////////////////////////////////////////////////
     //callbacks
     template<typename F> connection onDraw(F&& func){ return drawCallback_.add(func); }
     template<typename F> connection onResize(F&& func){ return resizeCallback_.add(func); }
     template<typename F> connection onMove(F&& func){ return moveCallback_.add(func); }
     template<typename F> connection onDestroy(F&& func){ return destroyCallback_.add(func); }
     template<typename F> connection onFocus(F&& func){ return focusCallback_.add(func); }
-    template<typename F> connection onShow(F&& func){ return showCallback_.add(func); } //sth like onShowState
+    template<typename F> connection onShow(F&& func){ return showCallback_.add(func); }
     template<typename F> connection onMouseMove(F&& func){ return mouseMoveCallback_.add(func); }
-    template<typename F> connection onMouseButton(F&& func){ return mouseButtonCallback_.add(func); }
+    template<typename F> connection onMouseButton(F&& func){return mouseButtonCallback_.add(func);}
     template<typename F> connection onMouseCross(F&& func){ return mouseCrossCallback_.add(func); }
     template<typename F> connection onMouseWheel(F&& func){ return mouseWheelCallback_.add(func); }
     template<typename F> connection onKey(F&& func){ return keyCallback_.add(func); }
 
-    /////////////////////////////////////////////////////
     //const getters
-    vec2i getPosition() const                           { return position_; }
-    int getPositionX() const                            { return position_.x; }
-    int getPositionY() const                            { return position_.y; }
+    const vec2i& position() const { return position_; }
+    const vec2ui& getSize() const { return size_; }
 
-    vec2ui getSize() const                              { return size_; }
-    unsigned int getWidth() const                       { return size_.x; }
-    unsigned int getHeight() const                      { return size_.y; }
+    const vec2ui& minSize() const                           { return minSize_; }
+    const vec2ui& maxSize() const                           { return maxSize_; }
 
-    vec2ui getMinSize() const                           { return minSize_; }
-    unsigned int getMinWidth() const                    { return minSize_.x; }
-    unsigned int getMinHeight() const                   { return minSize_.y; }
+    bool focus() const                               { return focus_; }
+    bool mouseOver() const                           { return mouseOver_; }
+    bool shown() const                               { return shown_; }
 
-    vec2ui getMaxSize() const                           { return maxSize_; }
-    unsigned int getMaxWidth() const                    { return maxSize_.x; }
-    unsigned int getMaxHeight() const                   { return maxSize_.y; }
+    unsigned long windowHints() const                { return hints_; }
+    WindowContext* windowContext() const             { return windowContext_.get(); }
 
-    bool hasFocus() const                               { return focus_; }
-    bool hasMouseOver() const                           { return mouseOver_; }
-    bool isShown () const                               { return shown_; }
-
-    unsigned long getWindowHints() const                { return hints_; }
-
-    windowContext* getWindowContext() const             { return windowContext_.get(); }
-    wc* getWC() const                                   { return windowContext_.get(); }
-
-    const cursor& getCursor() const                     { return cursor_; }
+    const Cursor& cursor() const                     { return cursor_; }
 
     dataTypes getAcceptedDropTypes() const              { return dropAccept_; }
     bool dropTypeAccepted(unsigned char type) const     { return dropAccept_.contains(type); }
 
     //get data from windowContext, have to check if window is valid. defined in window.cpp
-    windowContextSettings getWindowContextSettings() const;
-    unsigned long getBackendHints() const;
+    WindowContextSettings getWindowContextSettings() const;
+    unsigned long backendHints() const;
 };
 
+/*
 //toplevel window
-class toplevelWindow : public window
+class ToplevelWindow : public Window
 {
 protected:
     //hints here not really needed
@@ -250,7 +219,7 @@ public:
     void setMoveHint(bool hint = 1);
     void setCloseHint(bool hint = 1);
 
-/*
+//
     bool isCustomDecorated() const {  return (hints_ & windowHints::CustomDecorated); }
     bool isCustomMoved() const { return (hints_ & windowHints::CustomMoved); }
     bool isCustomResized() const { return (hints_ & windowHints::CustomResized); }
@@ -259,7 +228,7 @@ public:
     bool setCustomDecorated(bool set = 1);
     bool setCustomMoved(bool set = 1);
     bool setCustomResized(bool set = 1);
-*/
+//
     ////
     std::string getTitle() const { return title_; }
     void setTitle(const std::string& n);
@@ -279,10 +248,10 @@ public:
 };
 
 //childWindow
-class childWindow : public window
+class ChildWindow : public Window
 {
 protected:
-    childWindow();
+    ChildWindow();
     void create(window& parent, vec2i position, vec2ui size, windowContextSettings settings = windowContextSettings());
 
 public:
@@ -293,7 +262,7 @@ public:
 
     virtual bool isVirtual() const final;
 };
-
+*/
 
 }
 

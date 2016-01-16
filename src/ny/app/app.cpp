@@ -1,17 +1,16 @@
-#include <ny/app.hpp>
+#include <ny/app/app.hpp>
 
-#include <ny/eventHandler.hpp>
-#include <ny/event.hpp>
-#include <ny/error.hpp>
-#include <ny/appContext.hpp>
-#include <ny/backend.hpp>
-#include <ny/window.hpp>
-#include <ny/font.hpp>
-#include <ny/keyboard.hpp>
-#include <ny/mouse.hpp>
+#include <ny/app/event.hpp>
+#include <ny/backend/appContext.hpp>
+#include <ny/backend/backend.hpp>
+#include <ny/window/window.hpp>
+#include <ny/window/windowEvents.hpp>
+#include <ny/app/keyboard.hpp>
+#include <ny/app/mouse.hpp>
 
 #include <nytl/time.hpp>
 #include <nytl/misc.hpp>
+#include <nytl/log.hpp>
 
 #include <iostream>
 #include <thread>
@@ -21,186 +20,131 @@
 namespace ny
 {
 
-std::vector<backend*> app::backends;
-
-//app////////////////////////////////////////////////
-app::app() : eventHandlerNode(), appContext_{nullptr}
+//
+App* nyMainApp()
 {
-    if(nyMainApp() != nullptr)
-    {
-        nyWarning("there can be only one app");
-        return;
-    }
-    else
-    {
-        appInstance(1, this);
-    }
+	return App::app();
 }
 
-app::~app()
+App* App::app()
 {
-    exit();
-
-    if(nyMainApp() == this)
-        appInstance(1, nullptr);
+	return appFunc();
 }
 
-void app::registerBackend(backend& b)
+App* App::appFunc(App* app, bool reg)
 {
-    backends.push_back(&b);
+	static App* instance_ = nullptr;
+	if(reg) instance_ = app;
+	return instance_;
 }
 
-bool app::init(const appSettings& settings)
+//
+App::App(const App::Settings& settings) : settings_(settings)
 {
-    settings_ = settings;
+	if(app())
+	{
+		throw std::logic_error("App::App: There can only be one app object");
+	}
+
+	appFunc(this, 1);
 
     if(!backend_)
     {
-        for(unsigned int i(0); i < backends.size(); i++)
-        {
-            if(settings_.allBackends || contains(settings_.allowedBackends, backends[i]->id))
-            {
-                if(backends[i]->isAvailable())
-                {
-                    backend_ = backends[i];
-                    break;
-                }
-                else
-                {
-                    //not available
-                }
-            }
-        }
+		auto backends = Backend::backends();
+		auto available = std::vector<Backend*>{};
 
-        if(!backend_)
-        {
-            nyError("in app::init: No matching backend found.");
-            return false;
-        }
-    }
+		for(auto* backend : backends)
+			if(backend->available()) available.push_back(backend);
 
-    if(this != nyMainApp())
-    {
-        nyWarning("Only mainApp can be initialized. There can be only one app");
-        return false;
-    }
 
-    try
-    {
-        appContext_ = backend_->createAppContext();
-    }
-    catch(std::exception& err)
-    {
-        nyError(err);
-        appContext_.reset();
-        valid_ = 0;
-        return false;
-    }
+		for(auto& allowd : settings_.allowedBackends)
+		{
+			for(auto* backend : available)
+			{
+				if(allowd == backend->name())
+				{
+					backend_ = backend;
+					break;
+				}
+			}
+		}
 
-    font::getDefault().loadFromName(settings_.defaultFont);
+		if(!backend_)
+		{
+			if(!settings_.allBackends || available.empty())
+			{
+				throw std::runtime_error("App::App: Could not query a backend");
+			}
 
-/*
-    if(settings_.threadpoolSize > 0)
-    {
-        threadpool_.reset(new threadpool(settings_.threadpoolSize));
-    }
-    else if(settings_.threadpoolSize < 0)
-    {
-         threadpool_.reset(new threadpool()); //auto size
-    }
-*/
-    //if threadpoolSize in appSetitngs == 0, no threadpool is created
+			//fallback, just choose forst available
+			backend_ = available[0];
+		}
+	}
 
-    valid_ = 1;
-    return 1;
+    appContext_ = backend_->createAppContext(*this);
 }
 
-int app::mainLoop()
+App::~App()
 {
-    if(!valid_) return 0;
+    exit();
+	appFunc(nullptr, 1);
+}
 
+int App::mainLoop()
+{
     loopThreadID_ = std::this_thread::get_id();
-    eventDispatcher_ = std::thread(&app::eventDispatcher, this);
+    eventDispatcher_ = std::thread(&App::eventDispatcher, this);
 
-    exitReason_ = exitReason::noEventSources;
-    inMainLoop_ = 1;
+    mainLoop_ = 1;
+	exit_ = 0;
 
-    mainLoop_.run();
+	int ret = appContext_->mainLoop();
 
     //clean up
-    inMainLoop_ = 0;
+    mainLoop_ = 0;
     exit_ = 1;
-
-    //threadpool_.reset();
 
     eventCV_.notify_one();
     eventDispatcher_.join();
 
     destroy(); //from eventHandler
 
-    appContext_->exit();
-    valid_ = 0;
-
-    return exitReason_;
+	return ret;
 }
 
-void app::exit(int reason)
+void App::exit()
 {
-    //todo
-    exitReason_ = reason;
-    mainLoop_.stop();
-
-    //destroy();
-
-/*
-    exit_ = 1;
-
-    threadpool_.reset();
-
-    eventCV_.notify_one();
-    eventDispatcher_.join();
-
-    destroy(); //from eventHandler
-
-    appContext_->exit();
-    valid_ = 0;
-*/
+	exit_.store(1);
 }
 
-bool app::valid() const
+bool App::removeChild(EventHandlerNode& child)
 {
-    return valid_;
-}
+    if(focus_.load() == &child) focus_ = nullptr;
+    if(mouseOver_.load() == &child) mouseOver_ = nullptr;
 
-bool app::removeChild(eventHandlerNode& child)
-{
-    if(focus_ == &child) focus_ = nullptr;
-    if(mouseOver_ == &child) mouseOver_ = nullptr;
-
-    bool ret = eventHandlerNode::removeChild(child);
-
-    if(getChildren().size() == 0 && settings_.exitWithoutChildren)
+    bool ret = EventHandlerRoot::removeChild(child);
+    if(children().size() == 0 && settings_.exitWithoutChildren)
     {
-        exit();
+		this->exit();
     }
 
     return ret;
 }
 
-void app::destroy()
+void App::destroy()
 {
-    eventHandlerNode::destroy();
+    EventHandlerRoot::destroy();
 }
 
-void app::sendEvent(std::unique_ptr<event> ev)
+void App::sendEvent(EventPtr&& event)
 {
     if(!settings_.useEventThread)
     {
-        if(!mainLoop_.running() || !inMainLoop_)
+        if(!mainLoop_)
             return;
 
-        if(ev->handler) ev->handler->processEvent(*ev);
-        else nyWarning("app::sendEvent: received event without valid event handler");
+        if(event->handler) event->handler->processEvent(*event);
+        else nytl::sendWarning("app::sendEvent: received event without valid event handler");
 
         return;
     }
@@ -209,45 +153,42 @@ void app::sendEvent(std::unique_ptr<event> ev)
     //return;
 
     //todo: check if old events can be overriden
-    if(!ev.get())
+    if(!event.get())
     {
-        nyWarning("app::sendEvent: invalid event");
+		nytl::sendWarning("app::sendEvent: invalid event");
         return;
     }
 
     { //critical begin
         std::lock_guard<std::mutex> lck(eventMtx_);
 
-        if(ev->overrideable())
+        if(event->overrideable())
         {
             for(auto& stored : events_)
             {
-                if(stored.get() && stored->type() == ev->type())
+                if(stored.get() && stored->type() == event->type())
                 {
-                    stored = std::move(ev);
+                    stored = std::move(event);
                     break;
                 }
             }
         }
 
-        if(ev.get())
+        if(event.get())
         {
-            if(ev->type() == eventType::windowSize)
-                events_.emplace_front(std::move(ev));
-            else
-                events_.emplace_back(std::move(ev));
+            events_.emplace_back(std::move(event));
         }
     } //critical end
 
     eventCV_.notify_one();
 }
 
-void app::sendEvent(const event& ev)
+void App::sendEvent(const Event& ev)
 {
-    sendEvent(ev.clone());
+    sendEvent(clone(ev));
 }
 
-void app::eventDispatcher()
+void App::eventDispatcher()
 {
     eventThreadID_ = std::this_thread::get_id();
     std::unique_lock<std::mutex> lck(eventMtx_);
@@ -267,20 +208,19 @@ void app::eventDispatcher()
 }
 
 //keyboard Events
-void app::windowFocus(std::unique_ptr<focusEvent> event)
+void App::windowFocus(std::unique_ptr<FocusEvent>&& event)
 {
     if(!event->handler) return;
 
-    if(event->focusGained)focus_ = dynamic_cast<window*>(event->handler);
-    else if(event->handler == focus_)focus_ = nullptr;
+    if(event->focusGained) focus_ = dynamic_cast<Window*>(event->handler);
+    else if(event->handler == focus_) focus_ = nullptr;
 
     sendEvent(std::move(event));
 }
 
-void app::keyboardKey(std::unique_ptr<keyEvent> event)
+void App::keyboardKey(std::unique_ptr<KeyEvent>&& event)
 {
-    if(event->pressed) keyboard::keyPressed(event->key);
-    else keyboard::keyReleased(event->key);
+    Keyboard::keyPressed(event->key, event->pressed);
 
     if(!event->handler)
     {
@@ -299,52 +239,20 @@ void app::keyboardKey(std::unique_ptr<keyEvent> event)
 
 
 //mouseEvents
-void app::mouseMove(std::unique_ptr<mouseMoveEvent> event)
+void App::mouseMove(std::unique_ptr<MouseMoveEvent>&& event)
 {
-    mouse::setPosition(event->position);
-    if(!mouseOver_)
-    {
-        if(event->handler)
-        {
-            mouseOver_ = dynamic_cast<window*>(event->handler);
-        }
-    }
-    else if(!event->handler)
-    {
-        event->handler = mouseOver_;
-    }
-
-    if(!event->handler)
-    {
-        nyWarning("app::mouseMove: unaware of current mouse-over window and received mouseMove event without valid handler");
-        return;
-    }
-
-    if(mouseOver_)
-    {
-        window* child = mouseOver_.load()->getTopLevelParent()->getWindowAt(event->position);
-
-        if(child && child != mouseOver_)
-        {
-            mouseCross(make_unique<mouseCrossEvent>(mouseOver_, 0));
-            mouseCross(make_unique<mouseCrossEvent>(child, 1));
-
-            mouseOver_ = child;
-        }
-
-    }
-
+    Mouse::position(event->position);
     sendEvent(std::move(event));
 }
 
-void app::mouseButton(std::unique_ptr<mouseButtonEvent> event)
+void App::mouseButton(std::unique_ptr<MouseButtonEvent>&& event)
 {
-    if(event->pressed)mouse::buttonPressed(event->button);
-    else mouse::buttonReleased(event->button);
+    if(event->pressed) Mouse::buttonPressed(event->button, 1);
+    else Mouse::buttonPressed(event->button, 0);
 
     if(!mouseOver_ && !event->handler)
     {
-        nyWarning("app::mouseButton: not able to send mouseButtonEvent, no valid handler");
+		nytl::sendWarning("App::MouseButton: event with invalid handler, no mouseOver");
         return;
     }
     if(mouseOver_)
@@ -355,61 +263,26 @@ void app::mouseButton(std::unique_ptr<mouseButtonEvent> event)
     sendEvent(std::move(event));
 }
 
-void app::mouseCross(std::unique_ptr<mouseCrossEvent> event)
+void App::mouseCross(std::unique_ptr<MouseCrossEvent>&& event)
 {
     if(event->handler == nullptr)
     {
-        nyWarning("app::mouseCross: event with no handler");
+		nytl::sendWarning("App::mouseCross: event with invalid handler");
         return;
     }
 
-    //if childWindow is directly at the edge
-    window* w = dynamic_cast<window*>(event->handler);
-    if(w && event->entered)
-    {
-        window* child = w->getWindowAt(event->position);
-        if(child) event->handler = child;
-    }
-    if(!event->entered)
-    {
-        event->handler = mouseOver_;
-    }
-
-    if(event->entered) mouseOver_ = w;
-    else if(event->handler == mouseOver_) mouseOver_ = nullptr;
-
     sendEvent(std::move(event));
 }
 
-void app::mouseWheel(std::unique_ptr<mouseWheelEvent> event)
+void App::mouseWheel(std::unique_ptr<MouseWheelEvent>&& event)
 {
-    mouse::wheelMoved(event->value);
+    Mouse::wheelMoved(event->value);
     sendEvent(std::move(event));
 }
 
-
-//
-/*
-void app::addListenerFor(unsigned int id, eventHandler* ev)
+void App::onError()
 {
-    listeners_[id].push_back(ev);
-}
-
-void app::removeListenerFor(unsigned int id, eventHandler* ev)
-{
-    for(unsigned int i(0); i < listeners_[id].size(); i++)
-    {
-        if(listeners_[id][i] == ev)
-        {
-            listeners_[id].erase(listeners_[id].begin() + i);
-        }
-    }
-}
-*/
-
-void app::onError()
-{
-    if(settings_.onError == errorAction::Exit)
+    if(settings_.onError == ErrorAction::Exit)
     {
         std::exit(-1);
     }
@@ -430,12 +303,5 @@ void app::onError()
         //throw e;
     }
 }
-
-//getMainApp
-app* nyMainApp()
-{
-    return app::nyMainApp();
-}
-
 
 }

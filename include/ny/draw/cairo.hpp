@@ -49,6 +49,7 @@ public:
     virtual void clipRectangle(const rect2f& obj) override;
 	virtual void resetRectangleClip() override;
 
+	//
 	void saveCairo();
 	void restoreCairo();
 

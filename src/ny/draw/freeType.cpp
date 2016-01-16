@@ -1,17 +1,13 @@
-#include <ny/config.h>
-
-#ifdef NY_WithFreeType
-#include <ny/freeType.hpp>
-
-#include <ny/error.hpp>
+#include <ny/draw/freeType.hpp>
+#include <nytl/log.hpp>
 
 namespace ny
 {
 
-FT_Library freeTypeFont::lib_ = nullptr;
+FT_Library FTFontHandle::lib_ = nullptr;
 
 /////
-bool freeTypeFont::init()
+bool FTFontHandle::init()
 {
     if(!lib_)
         return 1;
@@ -25,7 +21,7 @@ bool freeTypeFont::init()
 }
 
 /////
-freeTypeFont::freeTypeFont(const std::string& name, bool fromFile)
+FTFontHandle::FTFontHandle(const std::string& name, bool fromFile)
 {
     std::string str = name;
     if(!fromFile)
@@ -42,11 +38,9 @@ freeTypeFont::freeTypeFont(const std::string& name, bool fromFile)
     }
 }
 
-freeTypeFont::~freeTypeFont()
+FTFontHandle::~FTFontHandle()
 {
     if(face_) FT_Done_Face(face_);
 }
 
 }
-
-#endif //FreeType

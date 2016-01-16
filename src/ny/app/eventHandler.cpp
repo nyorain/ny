@@ -1,28 +1,27 @@
-#include <ny/eventHandler.hpp>
+#include <ny/app/eventHandler.hpp>
+#include <ny/app/event.hpp>
 
-#include <ny/app.hpp>
-#include <ny/error.hpp>
-#include <ny/event.hpp>
+#include <nytl/log.hpp>
 
 #include <iostream>
 
 namespace ny
 {
 
-eventHandlerNode::eventHandlerNode() : eventHandler(), hierachyBase()
+EventHandlerNode::EventHandlerNode() : EventHandler(), hierachyBase()
 {
 }
 
-eventHandlerNode::eventHandlerNode(eventHandlerNode& parent) : eventHandler(), hierachyBase(parent)
+EventHandlerNode::EventHandlerNode(EventHandlerNode& parent) : EventHandler(), hierachyBase(parent)
 {
 }
 
-void eventHandlerNode::create(eventHandlerNode& parent)
+void EventHandlerNode::create(EventHandlerNode& parent)
 {
     hierachyBase::create(parent);
 }
 
-bool eventHandlerNode::processEvent(const event& event)
+bool EventHandlerNode::processEvent(const Event& event)
 {
     if(event.type() == eventType::destroy)
     {
@@ -31,11 +30,10 @@ bool eventHandlerNode::processEvent(const event& event)
     }
     else if(event.type() == eventType::reparent)
     {
-        auto ev = event_cast<reparentEvent>(event);
-        auto parent = dynamic_cast<eventHandlerNode*>(ev.newParent);
+        auto& ev = static_cast<const ReparentEvent&>(event);
 
-        if(parent) reparent(*parent);
-        else nyWarning("eventHandlerNode::processEvent: received reparentEvent without valid parent.");
+        if(ev.newParent) reparent(*ev.newParent);
+        else nytl::sendWarning("eventHandlerNode::processEvent: reparentEvent has invalid parent.");
 
         return true;
     }

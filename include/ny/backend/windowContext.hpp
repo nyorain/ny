@@ -1,8 +1,7 @@
 #pragma once
 
-#include <ny/include.hpp>
-
-#include <ny/windowDefs.hpp>
+#include <ny/backend/include.hpp>
+#include <ny/window/windowDefs.hpp>
 
 #include <nytl/nonCopyable.hpp>
 #include <nytl/vec.hpp>
@@ -12,21 +11,28 @@
 namespace ny
 {
 
+class DataTypes;
+class ContextEvent;
+class Cursor;
+class MouseCrossEvent;
+class MouseMoveEvent;
+class MouseButtonEvent;
+
 //windowContex////////////////////////////////////////////////////
-class windowContext : public nonCopyable
+class WindowContext : public nonCopyable
 {
 protected:
-    window& window_;
+    Window& window_;
     unsigned long hints_; //specific context hints. can be declared by every backend
 
 public:
-    windowContext(window& win, unsigned long hints = 0);
-    windowContext(window& win, const windowContextSettings&);
-    virtual ~windowContext(){}
+    WindowContext(Window& win, unsigned long hints = 0);
+    WindowContext(Window& win, const WindowContextSettings&);
+    virtual ~WindowContext(){}
 
-    window& getWindow() const { return window_; }
-    unsigned long getContextHints() const { return hints_; }
-    virtual unsigned long getAdditionalWindowHints() const { return 0; }
+    Window& window() const { return window_; }
+    unsigned long contextHints() const { return hints_; }
+    virtual unsigned long additionalWindowHints() const { return 0; }
 
     virtual bool isVirtual() const { return 0; }
     virtual bool hasGL() const = 0; //defines if this window uses gl for rendering
@@ -34,15 +40,16 @@ public:
     virtual void refresh() = 0;
     virtual void redraw(); //needed?
 
-    virtual drawContext* beginDraw() = 0; //can fail, returns nullptr then, should remain valid until finishDraw was called
+	//may throw
+    virtual DrawContext& beginDraw() = 0;
     virtual void finishDraw() = 0;
 
     virtual void show() = 0;
     virtual void hide() = 0;
 
-    virtual void setDroppable(const dataTypes& type){};
-    virtual void addDropType(unsigned char type){};
-    virtual void removeDropType(unsigned char type){};
+    virtual void droppable(const DataTypes&){};
+    virtual void addDropType(unsigned char){};
+    virtual void removeDropType(unsigned char){};
 
     //window hints
     virtual void addWindowHints(unsigned long hints) = 0;
@@ -51,35 +58,35 @@ public:
     virtual void addContextHints(unsigned long hints) { hints_ |= hints; }
     virtual void removeContextHints(unsigned long hints) { hints_ &= ~hints; }
 
-    virtual void setMinSize(vec2ui size){};
-    virtual void setMaxSize(vec2ui size){};
+    virtual void minSize(const vec2ui&){};
+    virtual void maxSize(const vec2ui&){};
 
     //event
-    virtual void processEvent(const contextEvent& e){};
+    virtual void processEvent(const ContextEvent&){};
 
-    virtual void setSize(vec2ui size, bool change = 1) = 0; //change states if the window on the backend has to be resized
-    virtual void setPosition(vec2i position, bool change = 1) = 0; //...
+    virtual void size(const vec2ui& size, bool change = 1) = 0; 
+    virtual void position(const vec2i& position, bool change = 1) = 0; //...
 
-    virtual void setCursor(const cursor& c) = 0;
-    virtual void updateCursor(const mouseCrossEvent* ev){}; //not needed in all
+    virtual void cursor(const Cursor& c) = 0;
+    virtual void updateCursor(const MouseCrossEvent*){}; //not needed in all
 
 
-    //toplevel-specific//////////////////////////////////////////////////////////////////////////////////////////////////////
-    virtual void setMaximized() = 0;
-    virtual void setMinimized() = 0;
-    virtual void setFullscreen() = 0;
-    virtual void setNormal() = 0; //or reset()?
+    //toplevel-specific/////
+    virtual void maximized() = 0;
+    virtual void minimized() = 0;
+    virtual void fullscreen() = 0;
+    virtual void normal() = 0; //or reset()?
 
-    virtual void beginMove(const mouseButtonEvent* ev) = 0;
-    virtual void beginResize(const mouseButtonEvent* ev, windowEdge edges) = 0;
+    virtual void beginMove(const MouseButtonEvent* ev) = 0;
+    virtual void beginResize(const MouseButtonEvent* ev, windowEdge edges) = 0;
 
-    virtual void setTitle(const std::string& name) = 0;
-	virtual void setIcon(const image* img){}; //may be only important for client decoration
+    virtual void title(const std::string& name) = 0;
+	virtual void icon(const Image*){}; //may be only important for client decoration
 };
 
-
+/*
+//deprecated
 //virtual////////////////////////////////////////////
-
 class virtualWindowContext : public windowContext
 {
 protected:
@@ -128,5 +135,6 @@ public:
     /////////
     windowContext* getParentContext() const;
 };
+*/
 
 }
