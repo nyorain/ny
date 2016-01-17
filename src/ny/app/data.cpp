@@ -1,9 +1,9 @@
-#include <ny/data.hpp>
+#include <ny/app/data.hpp>
 
 namespace ny
 {
 
-void dataTypes::addType(unsigned char type)
+void DataTypes::addType(unsigned char type)
 {
 	if(type == dataType::allImage)
 	{
@@ -19,7 +19,7 @@ void dataTypes::addType(unsigned char type)
     types_.push_back(type);
 }
 
-void dataTypes::removeType(unsigned char type)
+void DataTypes::removeType(unsigned char type)
 {
     std::vector<unsigned char>::iterator it = types_.begin();
     while(it != types_.end())
@@ -33,7 +33,7 @@ void dataTypes::removeType(unsigned char type)
     }
 }
 
-bool dataTypes::contains(unsigned char type) const
+bool DataTypes::contains(unsigned char type) const
 {
     std::vector<unsigned char>::const_iterator it = types_.begin();
     while(it != types_.end())
@@ -45,7 +45,7 @@ bool dataTypes::contains(unsigned char type) const
     return 0;
 }
 
-/////////////////////////////////////////////////////////////
+//
 unsigned char stringToDataType(const std::string& type)
 {
     using namespace dataType;
@@ -65,7 +65,7 @@ std::vector<std::string> dataTypeToString(unsigned char type, bool onlyMime)
     return ret;
 }
 
-std::vector<std::string> dataTypesToString(dataTypes types, bool onlyMime)
+std::vector<std::string> dataTypesToString(DataTypes types, bool onlyMime)
 {
     std::vector<std::string> ret;
     return ret;

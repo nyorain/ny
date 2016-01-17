@@ -1,6 +1,7 @@
 #pragma once
 
-#include <ny/draw/include.hpp>
+#include <ny/include.hpp>
+#include <ny/config.hpp>
 
 #ifdef NY_WithFreeType
 #include <nytl/cache.hpp>

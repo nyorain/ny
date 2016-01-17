@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ny/include.hpp>
 #include <ny/app/file.hpp>
 #include <ny/draw/drawContext.hpp>
 #include <ny/draw/image.hpp>

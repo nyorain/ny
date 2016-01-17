@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ny/window/include.hpp>
+#include <ny/include.hpp>
 #include <ny/window/cursor.hpp>
 #include <ny/window/windowEvents.hpp>
 #include <ny/window/windowDefs.hpp>
@@ -20,7 +20,7 @@ namespace ny
 //todo: implement all callback-add-functions for window correctly. can it be done with some template-like method?
 
 //window class
-class Window : public EventHandler
+class Window : public EventHandlerNode
 {
 protected:
     //position and max/min - size. size itself inherited from surface
@@ -52,7 +52,7 @@ protected:
 
     //files of the types listed in the dataType (basically vector of dataTypes) will 
 	//generate a dataReceiveEvent when they are dropped on the window
-    dataTypes dropAccept_ {};
+    DataTypes dropAccept_ {};
 
 
     //callbacks
@@ -94,29 +94,28 @@ protected:
     void addWindowHints(unsigned long hints);
     void removeWindowHints(unsigned int hints);
 
-    void setAcceptedDropTypes(const dataTypes& d);
+    void acceptedDropTypes(const DataTypes& d);
     void addDropType(unsigned char type);
     void removeDropType(unsigned char type);
 
     virtual void draw(DrawContext& dc);
 
+
     //window is abstract class
-    Window();
-    Window(const vec2ui& size, const WindowContextSettings& settings = {});
-    void create(const vec2ui& size, const WindowContextSettings& settings = {});
+    Window() = default;
+    Window(EventHandlerNode& prnt, const vec2ui& size, const WindowContextSettings& settings = {});
+
+	using EventHandlerNode::create;
+    void create(EventHandlerNode&, const vec2ui& size, const WindowContextSettings& settings = {});
 
 public:
-    virtual ~Window();
+    virtual ~Window() = default;
 
     virtual bool processEvent(const Event& event) override;
-	virtual void destroy();
+	virtual void destroy() override;
 
-    virtual Window* parent() const { return nullptr; }
-
-    virtual ToplevelWindow* topLevelParent() = 0;
-    virtual const ToplevelWindow* topLevelParent() const = 0;
-
-    virtual bool isVirtual() const { return 0; }
+    virtual ToplevelWindow* toplevelParent() = 0;
+    virtual const ToplevelWindow* toplevelParent() const = 0;
 
     void size(const vec2ui& size);
     void position(const vec2i& position);
@@ -152,23 +151,22 @@ public:
     const vec2i& position() const { return position_; }
     const vec2ui& getSize() const { return size_; }
 
-    const vec2ui& minSize() const                           { return minSize_; }
-    const vec2ui& maxSize() const                           { return maxSize_; }
+    const vec2ui& minSize() const { return minSize_; }
+    const vec2ui& maxSize() const { return maxSize_; }
 
-    bool focus() const                               { return focus_; }
-    bool mouseOver() const                           { return mouseOver_; }
-    bool shown() const                               { return shown_; }
+    bool focus() const { return focus_; }
+    bool mouseOver() const { return mouseOver_; }
+    bool shown() const { return shown_; }
 
-    unsigned long windowHints() const                { return hints_; }
-    WindowContext* windowContext() const             { return windowContext_.get(); }
+    unsigned long windowHints() const { return hints_; }
+    WindowContext* windowContext() const { return windowContext_.get(); }
 
-    const Cursor& cursor() const                     { return cursor_; }
+    const Cursor& cursor() const { return cursor_; }
 
-    dataTypes getAcceptedDropTypes() const              { return dropAccept_; }
-    bool dropTypeAccepted(unsigned char type) const     { return dropAccept_.contains(type); }
+    DataTypes acceptedDropTypes() const { return dropAccept_; }
+    bool dropTypeAccepted(unsigned char type) const { return dropAccept_.contains(type); }
 
-    //get data from windowContext, have to check if window is valid. defined in window.cpp
-    WindowContextSettings getWindowContextSettings() const;
+    WindowContextSettings windowContextSettings() const;
     unsigned long backendHints() const;
 };
 

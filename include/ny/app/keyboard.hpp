@@ -32,6 +32,7 @@ public:
 protected:
     static std::bitset<255> states_;
 
+protected:
     static void keyPressed(Key key, bool pressed);
 
 public:

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ny/app/include.hpp>
+#include <ny/include.hpp>
 #include <ny/app/event.hpp>
 
 #include <nytl/vec.hpp>
@@ -66,10 +66,10 @@ public:
 //events
 namespace eventType
 {
-constexpr unsigned int mouseMove = 3;
-constexpr unsigned int mouseButton = 4;
-constexpr unsigned int mouseWheel = 5;
-constexpr unsigned int mouseCross = 6;
+	constexpr unsigned int mouseMove = 3;
+	constexpr unsigned int mouseButton = 4;
+	constexpr unsigned int mouseWheel = 5;
+	constexpr unsigned int mouseCross = 6;
 }
 
 class MouseButtonEvent : public EventBase<MouseButtonEvent, eventType::mouseButton>
@@ -87,12 +87,12 @@ class MouseMoveEvent : public EventBase<MouseMoveEvent, eventType::mouseMove, 1>
 public:
 	using EvBase::EvBase;
 
-    vec2i position;
+    vec2i position; //position in relation to the eventHandler
     vec2i screenPosition;
     vec2i delta;
 };
 
-class MouseCrossEvent : public EventBase<MouseCrossEvent, eventType::mouseCross>
+class MouseCrossEvent : public EventBase<MouseCrossEvent, eventType::mouseCross, 0, 0>
 {
 public:
 	using EvBase::EvBase;
@@ -107,6 +107,5 @@ public:
 	using EvBase::EvBase;
     float value;
 };
-
 
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ny/window/include.hpp>
+#include <ny/include.hpp>
 #include <ny/app/event.hpp>
 
 #include <nytl/vec.hpp>

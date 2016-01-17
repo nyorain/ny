@@ -1,51 +1,43 @@
-#include <ny/mouse.hpp>
+#include <ny/app/mouse.hpp>
 
 namespace ny
 {
 
-std::bitset<8> mouse::states;
-vec2i mouse::position;
+std::bitset<8> Mouse::states_;
+vec2i Mouse::position_;
 
-callback<void(vec2i)> mouse::moveCallback_;
-callback<void(mouse::button, bool)> mouse::buttonCallback_;
-callback<void(float)> mouse::wheelCallback_;
+callback<void(const vec2i&)> Mouse::moveCallback_;
+callback<void(Mouse::Button, bool)> Mouse::buttonCallback_;
+callback<void(float)> Mouse::wheelCallback_;
 
-vec2i mouse::getPosition()
+vec2i Mouse::position()
 {
-    return position;
+    return position_;
 }
 
-void mouse::setPosition(vec2i pos)
+void Mouse::position(const vec2i& pos)
 {
-    if(all(position == pos)) return;
+    if(all(position_ == pos)) return;
 
-    position = pos;
+    position_ = pos;
     moveCallback_(pos);
 }
 
-bool mouse::isButtonPressed(button b)
+bool Mouse::buttonPressed(Button b)
 {
-    if(b == button::none) return 0;
-    return states[static_cast<unsigned int>(b)];
+    if(b == Button::none) return 0;
+    return states_[static_cast<unsigned int>(b)];
 }
 
-void mouse::buttonPressed(button b)
+void Mouse::buttonPressed(Button b, bool pressed)
 {
-    if(b == button::none) return;
-    states[static_cast<unsigned int>(b)] = 1;
+    if(b == Button::none) return;
+    states_[static_cast<unsigned int>(b)] = pressed;
 
-    buttonCallback_(b, 1);
+    buttonCallback_(b, pressed);
 }
 
-void mouse::buttonReleased(button b)
-{
-    if(b == button::none) return;
-    states[static_cast<unsigned int>(b)] = 0;
-
-    buttonCallback_(b, 0);
-}
-
-void mouse::wheelMoved(float value)
+void Mouse::wheelMoved(float value)
 {
     wheelCallback_(value);
 }

@@ -27,11 +27,11 @@ set(NY_WithCairo 1)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 
 #config, TODO: install
-configure_file	( "${CMAKE_CURRENT_SOURCE_DIR}/src/ny/config.h.in"
-	"${CMAKE_CURRENT_BINARY_DIR}/include/ny/config.h"
+configure_file	( "${CMAKE_CURRENT_SOURCE_DIR}/src/ny/config.hpp.in"
+	"${CMAKE_CURRENT_BINARY_DIR}/include/ny/config.hpp"
 	     	)
 
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/include/ny/config.h" DESTINATION include/ny)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/include/ny/config.hpp" DESTINATION include/ny)
 
 add_subdirectory(src/ny)
 add_subdirectory(include/ny)

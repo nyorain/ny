@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ny/app/include.hpp>
+#include <ny/include.hpp>
 #include <nytl/make_unique.hpp>
 #include <nytl/cloneable.hpp>
 
@@ -14,18 +14,18 @@ namespace ny
 //custom events should put their type id in this namespace
 namespace eventType
 {
-constexpr unsigned int destroy = 1;
-constexpr unsigned int reparent = 2;
+	constexpr unsigned int destroy = 1;
+	constexpr unsigned int reparent = 2;
 }
 
-//eventData, used by backends
+//EventData, used by backends
 class EventData : public cloneable<EventData>
 {
 public:
     virtual ~EventData() = default; //for dynamic cast
 };
 
-//event//////////////////
+//Event
 class Event : public abstractCloneable<Event>
 {
 public:
@@ -51,12 +51,13 @@ public:
 
     virtual unsigned int type() const = 0;
     virtual bool overrideable() const { return 0; }
+	virtual bool passable() const { return 0; }
 };
 
 using EventPtr = std::unique_ptr<Event>;
 
 //eventBase
-template<typename T, unsigned int Type, bool Override = 0>
+template<typename T, unsigned int Type, bool Override = 0, bool Passable = 1>
 class EventBase : public deriveCloneable<Event, T>
 {
 public:
@@ -69,17 +70,18 @@ public:
     //event
     virtual unsigned int type() const override final { return Type; }
     virtual bool overrideable() const override final { return Override; }
+	virtual bool passable() const override final { return Passable; }
 };
 
 //destroy
-class DestroyEvent : public EventBase<DestroyEvent, eventType::destroy, 1>
+class DestroyEvent : public EventBase<DestroyEvent, eventType::destroy, 1, 0>
 {
 public:
 	using EvBase::EvBase;
 };
 
 //destroy
-class ReparentEvent : public EventBase<ReparentEvent, eventType::reparent, 1>
+class ReparentEvent : public EventBase<ReparentEvent, eventType::reparent, 1, 0>
 {
 public:
     ReparentEvent(EventHandler* handler = nullptr, EventHandlerNode* newparent = nullptr, 

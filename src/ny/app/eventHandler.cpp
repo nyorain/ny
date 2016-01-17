@@ -8,6 +8,7 @@
 namespace ny
 {
 
+//node
 EventHandlerNode::EventHandlerNode() : EventHandler(), hierachyBase()
 {
 }
@@ -22,6 +23,25 @@ void EventHandlerNode::create(EventHandlerNode& parent)
 }
 
 bool EventHandlerNode::processEvent(const Event& event)
+{
+	if(!processEventImpl(event)) 
+	{
+		if(!parent())
+		{
+			nytl::sendWarning("EventHandlerNode::processEvent: no parent");
+			return false;
+		}
+
+		if(event.passable())
+		{
+			return parent()->processEvent(event);
+		}
+	}
+
+	return true;
+}
+
+bool EventHandlerNode::processEventImpl(const Event& event)
 {
     if(event.type() == eventType::destroy)
     {
@@ -41,5 +61,21 @@ bool EventHandlerNode::processEvent(const Event& event)
     return false;
 }
 
+//root
+bool EventHandlerRoot::processEventImpl(const Event& event)
+{
+	if(event.type() == eventType::destroy)
+	{
+		destroy();
+		return true;
+	}
+
+	return false;
+}
+
+bool EventHandlerRoot::processEvent(const Event& event)
+{
+	return processEventImpl(event);
+}
 
 }

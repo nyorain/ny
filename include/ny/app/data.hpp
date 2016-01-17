@@ -77,7 +77,7 @@ namespace dataType
 
 
 //dataTypes
-class dataTypes
+class DataTypes
 {
 protected:
     std::vector<unsigned char> types_;
@@ -93,48 +93,48 @@ public:
 
 //dataObject
 //used by the  to send other applications data
-class dataObject
+class DataObject
 {
 public:
     void* data;
     unsigned int size; //size in bytes
 };
 
-class dataSource
+class DataSource
 {
 protected:
-	std::function<dataObject(unsigned char)> converter_;
-    dataTypes types_;
+	//std::function<dataObject(unsigned char)> converter_;
+    //dataTypes types_;
 
-    dataSource() : converter_([](unsigned char){ return dataObject {nullptr, 0}; }) {};
+    //dataSource() : converter_([](unsigned char){ return dataObject {nullptr, 0}; }) {};
 
 public:
-    dataSource(std::function<dataObject(unsigned char)> convertCB, const dataTypes& types = dataTypes()) : converter_(convertCB), types_(types) {}
-    virtual ~dataSource(){}
+    //dataSource(std::function<dataObject(unsigned char)> convertCB, const dataTypes& types = dataTypes()) : converter_(convertCB), types_(types) {}
+    //virtual ~dataSource(){}
 
-    virtual dataTypes getPossibleTypes(){ return types_; };
+    //virtual dataTypes getPossibleTypes(){ return types_; };
 
-	virtual dataObject getData(unsigned char type){ return converter_(type); };
+	//virtual dataObject getData(unsigned char type){ return converter_(type); };
 };
 
 //dataOffer
 //abstract class defined by the
 //makes it possible to recieve data from other applications
-class dataOffer
+class DataOffer
 {
 public:
-	virtual ~dataOffer() = default;
+	virtual ~DataOffer() = default;
 
-	virtual bool getPossibleTypes(std::function<void(const dataTypes&)> func) = 0;
+	//virtual bool getPossibleTypes(std::function<void(const dataTypes&)> func) = 0;
 
-	virtual bool getData(unsigned char format, std::function<void(const std::string&)> func) = 0;
-	virtual bool getData(unsigned char format, std::function<void(const image&)> func) = 0;
-	virtual bool getData(unsigned char format, std::function<void(const file&)> func) = 0;
-	virtual bool getData(unsigned char format, std::function<void(const dataObject&)> func) = 0;
+	//virtual bool getData(unsigned char format, std::function<void(const std::string&)> func) = 0;
+	//virtual bool getData(unsigned char format, std::function<void(const Image&)> func) = 0;
+	//virtual bool getData(unsigned char format, std::function<void(const File&)> func) = 0;
+	//virtual bool getData(unsigned char format, std::function<void(const DataObject&)> func) = 0;
 };
 
 //event
-class dataReceiveEvent : public eventBase<dataReceiveEvent, eventType::dataReceive>
+class DataReceiveEvent : public EventBase<DataReceiveEvent, eventType::dataReceive>
 {
 public:
     //dataReceiveEvent(std::unique_ptr<dataOffer> d) : evBase(), data(std::move(d)) {}
@@ -145,7 +145,7 @@ public:
 
 unsigned char stringToDataType(const std::string& type);
 std::vector<std::string> dataTypeToString(unsigned char type, bool onlyMime = 0);
-std::vector<std::string> dataTypesToString(dataTypes types, bool onlyMime = 0);
+std::vector<std::string> dataTypesToString(DataTypes types, bool onlyMime = 0);
 
 }
 

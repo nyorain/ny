@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ny/draw/include.hpp>
+#include <ny/include.hpp>
 #include <ny/draw/drawContext.hpp>
 #include <ny/draw/gl/glContext.hpp>
 #include <ny/draw/gl/shader.hpp>

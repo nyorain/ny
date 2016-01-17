@@ -1,9 +1,7 @@
 set(include-backend ${include-ny})
 
 set(src-backend
-		backend.cpp
-		windowContext.cpp
-		appContext.cpp)
+		backend.cpp)
 
 if(NY_WithWinapi)
 endif(NY_WithWinapi)

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ny/draw/include.hpp>
+#include <ny/include.hpp>
 #include <ny/app/file.hpp>
 #include <nytl/vec.hpp>
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ny/backend/include.hpp>
+#include <ny/include.hpp>
 #include <ny/window/windowDefs.hpp>
 
 #include <nytl/nonCopyable.hpp>
@@ -11,26 +11,19 @@
 namespace ny
 {
 
-class DataTypes;
-class ContextEvent;
-class Cursor;
-class MouseCrossEvent;
-class MouseMoveEvent;
-class MouseButtonEvent;
-
-//windowContex////////////////////////////////////////////////////
+//windowContex
 class WindowContext : public nonCopyable
 {
 protected:
-    Window& window_;
+    Window* window_;
     unsigned long hints_; //specific context hints. can be declared by every backend
 
 public:
-    WindowContext(Window& win, unsigned long hints = 0);
-    WindowContext(Window& win, const WindowContextSettings&);
+    WindowContext(Window& win, unsigned long hints = 0) : window_(&win), hints_(hints) {}
+    WindowContext(Window& win, const WindowContextSettings& s) : window_(&win), hints_(s.hints) {}
     virtual ~WindowContext(){}
 
-    Window& window() const { return window_; }
+    Window& window() const { return *window_; }
     unsigned long contextHints() const { return hints_; }
     virtual unsigned long additionalWindowHints() const { return 0; }
 
@@ -83,6 +76,7 @@ public:
     virtual void title(const std::string& name) = 0;
 	virtual void icon(const Image*){}; //may be only important for client decoration
 };
+
 
 /*
 //deprecated

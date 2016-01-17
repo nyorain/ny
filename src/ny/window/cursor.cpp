@@ -1,60 +1,60 @@
-#include <ny/cursor.hpp>
-#include <ny/image.hpp>
+#include <ny/window/cursor.hpp>
+#include <ny/draw/image.hpp>
 
 namespace ny
 {
 
-cursor::cursor(cursorType t) : type_(t), image_(nullptr)
+Cursor::Cursor(Type t) : type_(t), image_(nullptr)
 {
 }
 
-cursor::cursor(const image& data) : type_(cursorType::image), image_(data)
+Cursor::Cursor(const Image& data) : type_(Type::image), image_(data)
 {
 }
 
 
-void cursor::fromImage(const image& data)
+void Cursor::image(const Image& data)
 {
     image_ = data;
-    hotspot_ = -(data.getSize() / 2);
+    hotspot_ = -(data.size() / 2);
 
-    type_ = cursorType::unknown;
+    type_ = Type::unknown;
 }
 
-void cursor::fromImage(const image& data, vec2i hotspot)
+void Cursor::image(const Image& data, const vec2i& hotspot)
 {
     image_ = data;
     hotspot_ = hotspot;
 
-    type_ = cursorType::unknown;
+    type_ = Type::unknown;
 }
 
-void cursor::fromNativeType(cursorType t)
+void Cursor::nativeType(Type t)
 {
     type_= t;
 }
 
-bool cursor::isImage() const
+bool Cursor::isImage() const
 {
-    return (type_ == cursorType::image);
+    return (type_ == Type::image);
 }
 
-bool cursor::isNativeType() const
+bool Cursor::isNativeType() const
 {
-    return (type_ != cursorType::image);
+    return (type_ != Type::image);
 }
 
-const image* cursor::getImage() const
+const Image* Cursor::image() const
 {
-    return (type_ == cursorType::image) ? &image_ : nullptr;
+    return (type_ == Type::image) ? &image_ : nullptr;
 }
 
-vec2i cursor::getImageHotspot() const
+vec2i Cursor::imageHotspot() const
 {
     return hotspot_;
 }
 
-cursorType cursor::getNativeType() const
+Cursor::Type Cursor::nativeType() const
 {
     return type_;
 }

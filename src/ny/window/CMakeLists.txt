@@ -1,7 +1,8 @@
 set(include-window ${include-ny})
 
 set(src-window
-		window.cpp)
+		window.cpp
+		cursor.cpp)
 
 add_library(ny-window SHARED ${src-window})
 target_compile_features(ny-window PRIVATE cxx_range_for)

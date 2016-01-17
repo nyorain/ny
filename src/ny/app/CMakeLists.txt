@@ -2,6 +2,7 @@ set(include-app ${include-ny})
 
 set(src-app
 		app.cpp
+		data.cpp
 		file.cpp
 		eventHandler.cpp
 		event.cpp

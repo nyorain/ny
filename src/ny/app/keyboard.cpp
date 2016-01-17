@@ -1,57 +1,55 @@
-#include <ny/keyboard.hpp>
+#include <ny/app/keyboard.hpp>
 
 namespace ny
 {
 
-std::bitset<255> keyboard::states;
-bool keyboard::capsLockState = 0;
-
-char keyboard::toChar(keyboard::key k)
+std::bitset<255> Keyboard::states_;
+std::string Keyboard::utf8(Keyboard::Key k)
 {
     if(capsActive())
     {
         switch(k)
         {
-            case(key::num0): return '0';
-            case(key::num1): return '1';
-            case(key::num2): return '2';
-            case(key::num3): return '3';
-            case(key::num4): return '4';
-            case(key::num5): return '5';
-            case(key::num6): return '6';
-            case(key::num7): return '7';
-            case(key::num8): return '8';
-            case(key::num9): return '9';
-            case(key::a): return 'A';
-            case(key::b): return 'B';
-            case(key::c): return 'C';
-            case(key::d): return 'D';
-            case(key::e): return 'E';
-            case(key::f): return 'F';
-            case(key::g): return 'G';
-            case(key::h): return 'H';
-            case(key::i): return 'I';
-            case(key::j): return 'J';
-            case(key::k): return 'K';
-            case(key::l): return 'L';
-            case(key::m): return 'M';
-            case(key::n): return 'N';
-            case(key::o): return 'O';
-            case(key::p): return 'P';
-            case(key::q): return 'Q';
-            case(key::r): return 'R';
-            case(key::s): return 'S';
-            case(key::t): return 'T';
-            case(key::u): return 'U';
-            case(key::v): return 'V';
-            case(key::w): return 'W';
-            case(key::x): return 'X';
-            case(key::y): return 'Y';
-            case(key::z): return 'Z';
-            case(key::dot): return '.';
-            case(key::comma): return ',';
-            case(key::space): return ' ';
-            default: return (char) 0;
+            case(Key::num0): return "0";
+            case(Key::num1): return "1";
+            case(Key::num2): return "2";
+            case(Key::num3): return "3";
+            case(Key::num4): return "4";
+            case(Key::num5): return "5";
+            case(Key::num6): return "6";
+            case(Key::num7): return "7";
+            case(Key::num8): return "8";
+            case(Key::num9): return "9";
+            case(Key::a): return "A";
+            case(Key::b): return "B";
+            case(Key::c): return "C";
+            case(Key::d): return "D";
+            case(Key::e): return "E";
+            case(Key::f): return "F";
+            case(Key::g): return "G";
+            case(Key::h): return "H";
+            case(Key::i): return "I";
+            case(Key::j): return "J";
+            case(Key::k): return "K";
+            case(Key::l): return "L";
+            case(Key::m): return "M";
+            case(Key::n): return "N";
+            case(Key::o): return "O";
+            case(Key::p): return "P";
+            case(Key::q): return "Q";
+            case(Key::r): return "R";
+            case(Key::s): return "S";
+            case(Key::t): return "T";
+            case(Key::u): return "U";
+            case(Key::v): return "V";
+            case(Key::w): return "W";
+            case(Key::x): return "X";
+            case(Key::y): return "Y";
+            case(Key::z): return "Z";
+            case(Key::dot): return ".";
+            case(Key::comma): return ",";
+            case(Key::space): return " ";
+            default: return "";
         }
     }
 
@@ -59,78 +57,67 @@ char keyboard::toChar(keyboard::key k)
     {
         switch(k)
         {
-            case(key::num0): return '0';
-            case(key::num1): return '1';
-            case(key::num2): return '2';
-            case(key::num3): return '3';
-            case(key::num4): return '4';
-            case(key::num5): return '5';
-            case(key::num6): return '6';
-            case(key::num7): return '7';
-            case(key::num8): return '8';
-            case(key::num9): return '9';
-            case(key::a): return 'a';
-            case(key::b): return 'b';
-            case(key::c): return 'c';
-            case(key::d): return 'd';
-            case(key::e): return 'e';
-            case(key::f): return 'f';
-            case(key::g): return 'g';
-            case(key::h): return 'h';
-            case(key::i): return 'i';
-            case(key::j): return 'j';
-            case(key::k): return 'k';
-            case(key::l): return 'l';
-            case(key::m): return 'm';
-            case(key::n): return 'n';
-            case(key::o): return 'o';
-            case(key::p): return 'p';
-            case(key::q): return 'q';
-            case(key::r): return 'r';
-            case(key::s): return 's';
-            case(key::t): return 't';
-            case(key::u): return 'u';
-            case(key::v): return 'v';
-            case(key::w): return 'w';
-            case(key::x): return 'x';
-            case(key::y): return 'y';
-            case(key::z): return 'z';
-            case(key::dot): return '.';
-            case(key::comma): return ',';
-            case(key::space): return ' ';
-            default: return (char) 0;
+            case(Key::num0): return "0";
+            case(Key::num1): return "1";
+            case(Key::num2): return "2";
+            case(Key::num3): return "3";
+            case(Key::num4): return "4";
+            case(Key::num5): return "5";
+            case(Key::num6): return "6";
+            case(Key::num7): return "7";
+            case(Key::num8): return "8";
+            case(Key::num9): return "9";
+            case(Key::a): return "a";
+            case(Key::b): return "b";
+            case(Key::c): return "c";
+            case(Key::d): return "d";
+            case(Key::e): return "e";
+            case(Key::f): return "f";
+            case(Key::g): return "g";
+            case(Key::h): return "h";
+            case(Key::i): return "i";
+            case(Key::j): return "j";
+            case(Key::k): return "k";
+            case(Key::l): return "l";
+            case(Key::m): return "m";
+            case(Key::n): return "n";
+            case(Key::o): return "o";
+            case(Key::p): return "p";
+            case(Key::q): return "q";
+            case(Key::r): return "r";
+            case(Key::s): return "s";
+            case(Key::t): return "t";
+            case(Key::u): return "u";
+            case(Key::v): return "v";
+            case(Key::w): return "w";
+            case(Key::x): return "x";
+            case(Key::y): return "y";
+            case(Key::z): return "z";
+            case(Key::dot): return ".";
+            case(Key::comma): return ",";
+            case(Key::space): return " ";
+            default: return "";
         }
     }
 
 }
 
-bool keyboard::isKeyPressed(keyboard::key id)
+bool Keyboard::keyPressed(Keyboard::Key id)
 {
-    if(id == keyboard::key::none) return 0;
+    if(id == Keyboard::Key::none) return 0;
 
-    return states[(unsigned int)id];
+    return states_[static_cast<unsigned int>(id)];
 }
 
-void keyboard::keyPressed(keyboard::key id)
+void Keyboard::keyPressed(Keyboard::Key id, bool pressed)
 {
-    if(id == keyboard::key::none) return;
+    if(id == Keyboard::Key::none) return;
 
-    if(id == keyboard::key::capsLock)
-    {
-        capsLockState = !capsLockState;
-    }
-
-    states[(unsigned int)id] = 1;
+    states_[static_cast<unsigned int>(id)] = pressed;
 }
 
-void keyboard::keyReleased(keyboard::key id)
-{
-    if(id == keyboard::key::none) return;
-
-    states[(unsigned int)id] = 0;
-}
-
-bool keyboard::capsActive()
+/*
+bool Keyboard::capsActive()
 {
     if(isKeyPressed(key::leftshift) + isKeyPressed(key::rightshift) + capsLockState == 1 || isKeyPressed(key::leftshift) + isKeyPressed(key::rightshift) + capsLockState == 3)
         return 1;
@@ -138,7 +125,7 @@ bool keyboard::capsActive()
     return 0;
 }
 
-bool keyboard::altActive()
+bool Keyboard::altActive()
 {
     if(isKeyPressed(key::leftalt) || isKeyPressed(key::rightalt))
         return 1;
@@ -146,12 +133,13 @@ bool keyboard::altActive()
     return 0;
 }
 
-bool keyboard::ctrlActive()
+bool Keyboard::ctrlActive()
 {
     if(isKeyPressed(key::leftctrl) || isKeyPressed(key::rightctrl))
         return 1;
 
     return 0;
 }
+*/
 
 }

@@ -1,11 +1,3 @@
-#pragma once
-
-#include <ny/include.hpp>
-#include <ny/app/eventHandler.hpp>
-
-namespace ny
-{
-
 class Gui : public EventHandlerRoot
 {
 public:
@@ -14,10 +6,13 @@ public:
 	virtual ~Gui() = default;
 
 	virtual bool processEvent(const Event& event) override;
-
 	virtual void draw(DrawContext& dc);
-	virtual bool hasMouseOver() const;
-	virtual bool hasFocus() const;
 };
 
-}
+class Widget : public EventHandlerNode
+{
+public:
+	virtual bool processEvent(const Event& event) override;
+	virtual rect2ui extents() const;
+	virtual void draw(DrawContext& dc);
+};

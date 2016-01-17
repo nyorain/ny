@@ -3,10 +3,9 @@
 #include <ny/app/event.hpp>
 #include <ny/backend/appContext.hpp>
 #include <ny/backend/backend.hpp>
-#include <ny/window/window.hpp>
-#include <ny/window/windowEvents.hpp>
 #include <ny/app/keyboard.hpp>
 #include <ny/app/mouse.hpp>
+#include <ny/window/window.hpp>
 
 #include <nytl/time.hpp>
 #include <nytl/misc.hpp>
@@ -92,35 +91,22 @@ App::~App()
 
 int App::mainLoop()
 {
-    loopThreadID_ = std::this_thread::get_id();
-    eventDispatcher_ = std::thread(&App::eventDispatcher, this);
-
-    mainLoop_ = 1;
 	exit_ = 0;
 
 	int ret = appContext_->mainLoop();
-
-    //clean up
-    mainLoop_ = 0;
-    exit_ = 1;
-
-    eventCV_.notify_one();
-    eventDispatcher_.join();
-
-    destroy(); //from eventHandler
-
 	return ret;
 }
 
 void App::exit()
 {
-	exit_.store(1);
+	EventDispatcher::exit();
+	destroy();
 }
 
 bool App::removeChild(EventHandlerNode& child)
 {
-    if(focus_.load() == &child) focus_ = nullptr;
-    if(mouseOver_.load() == &child) mouseOver_ = nullptr;
+    if(focus_.load() == static_cast<Window*>(&child)) focus_ = nullptr;
+    if(mouseOver_.load() == static_cast<Window*>(&child)) mouseOver_ = nullptr;
 
     bool ret = EventHandlerRoot::removeChild(child);
     if(children().size() == 0 && settings_.exitWithoutChildren)
@@ -136,158 +122,43 @@ void App::destroy()
     EventHandlerRoot::destroy();
 }
 
-void App::sendEvent(EventPtr&& event)
-{
-    if(!settings_.useEventThread)
-    {
-        if(!mainLoop_)
-            return;
-
-        if(event->handler) event->handler->processEvent(*event);
-        else nytl::sendWarning("app::sendEvent: received event without valid event handler");
-
-        return;
-    }
-
-    //if(ev && ev->handler) ev->handler->processEvent(*ev);
-    //return;
-
-    //todo: check if old events can be overriden
-    if(!event.get())
-    {
-		nytl::sendWarning("app::sendEvent: invalid event");
-        return;
-    }
-
-    { //critical begin
-        std::lock_guard<std::mutex> lck(eventMtx_);
-
-        if(event->overrideable())
-        {
-            for(auto& stored : events_)
-            {
-                if(stored.get() && stored->type() == event->type())
-                {
-                    stored = std::move(event);
-                    break;
-                }
-            }
-        }
-
-        if(event.get())
-        {
-            events_.emplace_back(std::move(event));
-        }
-    } //critical end
-
-    eventCV_.notify_one();
-}
-
-void App::sendEvent(const Event& ev)
-{
-    sendEvent(clone(ev));
-}
-
-void App::eventDispatcher()
-{
-    eventThreadID_ = std::this_thread::get_id();
-    std::unique_lock<std::mutex> lck(eventMtx_);
-
-    while(!exit_.load())
-    {
-        while(events_.empty() && !exit_.load()) eventCV_.wait(lck);
-        if(exit_.load()) return;
-
-        auto ev = std::move(events_.front());
-        events_.pop_front();
-
-        lck.unlock();
-        if(ev->handler) ev->handler->processEvent(*ev);
-        lck.lock();
-    }
-}
-
 //keyboard Events
-void App::windowFocus(std::unique_ptr<FocusEvent>&& event)
+void App::windowFocus(Event&)
 {
-    if(!event->handler) return;
-
-    if(event->focusGained) focus_ = dynamic_cast<Window*>(event->handler);
-    else if(event->handler == focus_) focus_ = nullptr;
-
-    sendEvent(std::move(event));
 }
 
-void App::keyboardKey(std::unique_ptr<KeyEvent>&& event)
+void App::keyboardKey(Event&)
 {
-    Keyboard::keyPressed(event->key, event->pressed);
-
-    if(!event->handler)
-    {
-        if(!focus_)
-            return;
-
-        event->handler = focus_;
-    }
-    else if(event->handler != focus_)
-    {
-        //strange, what do to here?
-    }
-
-    sendEvent(std::move(event));
 }
 
 
 //mouseEvents
-void App::mouseMove(std::unique_ptr<MouseMoveEvent>&& event)
+void App::mouseMove(Event&)
 {
-    Mouse::position(event->position);
-    sendEvent(std::move(event));
 }
 
-void App::mouseButton(std::unique_ptr<MouseButtonEvent>&& event)
+void App::mouseButton(Event&)
 {
-    if(event->pressed) Mouse::buttonPressed(event->button, 1);
-    else Mouse::buttonPressed(event->button, 0);
-
-    if(!mouseOver_ && !event->handler)
-    {
-		nytl::sendWarning("App::MouseButton: event with invalid handler, no mouseOver");
-        return;
-    }
-    if(mouseOver_)
-    {
-        event->handler = mouseOver_; //needed because of virtual windows
-    }
-
-    sendEvent(std::move(event));
 }
 
-void App::mouseCross(std::unique_ptr<MouseCrossEvent>&& event)
+void App::mouseCross(Event&)
 {
-    if(event->handler == nullptr)
-    {
-		nytl::sendWarning("App::mouseCross: event with invalid handler");
-        return;
-    }
-
-    sendEvent(std::move(event));
 }
 
-void App::mouseWheel(std::unique_ptr<MouseWheelEvent>&& event)
+void App::mouseWheel(Event& event)
 {
-    Mouse::wheelMoved(event->value);
-    sendEvent(std::move(event));
+	MouseWheelEvent& ev = static_cast<MouseWheelEvent&>(event);
+    Mouse::wheelMoved(ev.value);
 }
 
-void App::onError()
+void App::error(const std::string& msg)
 {
     if(settings_.onError == ErrorAction::Exit)
     {
         std::exit(-1);
     }
 
-    std::cout << "Error occured. Continue? (y/n)" << std::endl;
+    std::cout << "Error: " << msg << "\nContinue? (y/n)" << std::endl;
 
     std::string s;
     std::cin >> s;
@@ -300,7 +171,6 @@ void App::onError()
     else
     {
         std::exit(-1);
-        //throw e;
     }
 }
 

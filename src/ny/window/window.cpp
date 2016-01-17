@@ -18,16 +18,14 @@
 namespace ny
 {
 
-Window::Window(const vec2ui& size, const WindowContextSettings& settings) 
+Window::Window(EventHandlerNode& parent, const vec2ui& size, const WindowContextSettings& settings) 
 	: maxSize_(UINT_MAX, UINT_MAX)
 {
-    create(size, settings);
+    create(parent, size, settings);
 }
 
-Window::Window() = default;
-Window::~Window() = default;
-
-void Window::create(const vec2ui& size, const WindowContextSettings& settings)
+void Window::create(EventHandlerNode& parent, const vec2ui& size, 
+		const WindowContextSettings& settings)
 {
     size_ = size;
 
@@ -37,7 +35,7 @@ void Window::create(const vec2ui& size, const WindowContextSettings& settings)
         return;
     }
 
-
+	EventHandlerNode::create(parent);
 	windowContext_ = nyMainApp()->backend().createWindowContext(*this, settings);
     hints_ |= windowContext_->additionalWindowHints();
 }
@@ -324,9 +322,7 @@ void toplevelWindow::create(vec2i position, vec2ui size, std::string title, cons
         hboxSizer* b2 = new hboxSizer(*b);
         b2->addChild(*panel_);
     }
-*/
 }
-/*
 void toplevelWindow::addChild(eventHandler& child)
 {
     auto wid = dynamic_cast<widget*>(&child);
