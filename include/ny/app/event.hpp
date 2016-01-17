@@ -51,13 +51,12 @@ public:
 
     virtual unsigned int type() const = 0;
     virtual bool overrideable() const { return 0; }
-	virtual bool passable() const { return 0; }
 };
 
 using EventPtr = std::unique_ptr<Event>;
 
 //eventBase
-template<typename T, unsigned int Type, bool Override = 0, bool Passable = 1>
+template<typename T, unsigned int Type, bool Override = 0>
 class EventBase : public deriveCloneable<Event, T>
 {
 public:
@@ -70,24 +69,23 @@ public:
     //event
     virtual unsigned int type() const override final { return Type; }
     virtual bool overrideable() const override final { return Override; }
-	virtual bool passable() const override final { return Passable; }
 };
 
 //destroy
-class DestroyEvent : public EventBase<DestroyEvent, eventType::destroy, 1, 0>
+class DestroyEvent : public EventBase<DestroyEvent, eventType::destroy, 1>
 {
 public:
 	using EvBase::EvBase;
 };
 
-//destroy
-class ReparentEvent : public EventBase<ReparentEvent, eventType::reparent, 1, 0>
+//reparent
+class ReparentEvent : public EventBase<ReparentEvent, eventType::reparent, 1>
 {
 public:
-    ReparentEvent(EventHandler* handler = nullptr, EventHandlerNode* newparent = nullptr, 
+    ReparentEvent(EventHandler* handler = nullptr, EventHandler* newparent = nullptr, 
 			EventData* d = nullptr) : EvBase(handler, d), newParent(newparent) {};
 
-    EventHandlerNode* newParent {nullptr};
+    EventHandler* newParent {nullptr};
 };
 
 }

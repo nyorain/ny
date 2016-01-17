@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <ny/draw/gl/glResource.hpp>
+#include <ny/draw/gl/resource.hpp>
 
 #include <nytl/vec.hpp>
 #include <nytl/mat.hpp>

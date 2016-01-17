@@ -1,10 +1,10 @@
-#include <ny/draw/gl/glDrawContext.hpp>
-#include <ny/draw/gl/glTexture.hpp>
-#include <ny/draw/gl/glContext.hpp>
+#include <ny/draw/gl/drawContext.hpp>
+#include <ny/draw/gl/texture.hpp>
+#include <ny/draw/gl/context.hpp>
 #include <ny/draw/gl/shader.hpp>
 #include <ny/draw/triangulate.hpp>
 
-#include <ny/draw/gl/shaderSources/modernSources.hpp>
+#include <ny/draw/gl/shaderSources/modern.hpp>
 
 #include <nytl/log.hpp>
 

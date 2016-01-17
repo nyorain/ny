@@ -1,9 +1,7 @@
 #pragma once
 
-#include <ny/config.h>
-
 #include <ny/draw/include.hpp>
-#include <ny/draw/gl/glContext.hpp>
+#include <ny/draw/gl/context.hpp>
 
 #include <string>
 #include <vector>

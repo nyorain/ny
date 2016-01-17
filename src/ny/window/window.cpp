@@ -18,13 +18,17 @@
 namespace ny
 {
 
-Window::Window(EventHandlerNode& parent, const vec2ui& size, const WindowContextSettings& settings) 
+Window::Window(const vec2ui& size, const WindowContextSettings& settings) 
 	: maxSize_(UINT_MAX, UINT_MAX)
 {
-    create(parent, size, settings);
+    create(size, settings);
 }
 
-void Window::create(EventHandlerNode& parent, const vec2ui& size, 
+Window::~Window()
+{
+}
+
+void Window::create(const vec2ui& size, 
 		const WindowContextSettings& settings)
 {
     size_ = size;
@@ -35,12 +39,11 @@ void Window::create(EventHandlerNode& parent, const vec2ui& size,
         return;
     }
 
-	EventHandlerNode::create(parent);
 	windowContext_ = nyMainApp()->backend().createWindowContext(*this, settings);
     hints_ |= windowContext_->additionalWindowHints();
 }
 
-void Window::destroy()
+void Window::close()
 {
     destroyCallback_(*this);
     windowContext_.reset();

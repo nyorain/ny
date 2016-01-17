@@ -12,14 +12,6 @@
 namespace ny
 {
 
-//grab
-//TODO
-struct MouseGrab
-{
-    EventHandler* handler_ {nullptr};
-    std::unique_ptr<Event> event_ {nullptr};
-};
-
 //mouse
 class Mouse
 {
@@ -42,8 +34,6 @@ public:
 protected:
     static std::bitset<8> states_;
     static vec2i position_;
-
-    //static mouseGrab grab_ {};
 
 protected:
     static void buttonPressed(Button button, bool pressed);
@@ -92,7 +82,7 @@ public:
     vec2i delta;
 };
 
-class MouseCrossEvent : public EventBase<MouseCrossEvent, eventType::mouseCross, 0, 0>
+class MouseCrossEvent : public EventBase<MouseCrossEvent, eventType::mouseCross, 0>
 {
 public:
 	using EvBase::EvBase;

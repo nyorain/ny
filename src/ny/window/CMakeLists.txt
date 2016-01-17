@@ -2,7 +2,12 @@ set(include-window ${include-ny})
 
 set(src-window
 		window.cpp
-		cursor.cpp)
+		cursor.cpp
+		toplevel.cpp
+		child.cpp
+		dialog.cpp
+		popup.cpp
+		frame.cpp)
 
 add_library(ny-window SHARED ${src-window})
 target_compile_features(ny-window PRIVATE cxx_range_for)

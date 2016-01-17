@@ -1,9 +1,6 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <ny/config.hpp>
-
-#ifdef NY_WithFreeType
 #include <nytl/cache.hpp>
 
 #include <freetype2/ft2build.h>
@@ -36,4 +33,3 @@ public:
 
 }
 
-#endif //WithFreetype

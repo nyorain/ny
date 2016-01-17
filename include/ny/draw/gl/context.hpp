@@ -52,7 +52,7 @@ protected:
 
 	///This should be called by implementations at some point of context creation/initialisation
 	///to init the context (e.g. function pointer resolution; glew/glbinding). 
-	virtual void initContext();
+	virtual void initContext(Api api, unsigned int depth = 0, unsigned int stencil = 0);
 
 	///This function will be called by makeCurrent() and should be implemented by derived 
 	///classes.

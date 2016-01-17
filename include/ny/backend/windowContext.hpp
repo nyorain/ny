@@ -63,12 +63,11 @@ public:
     virtual void cursor(const Cursor& c) = 0;
     virtual void updateCursor(const MouseCrossEvent*){}; //not needed in all
 
-
     //toplevel-specific/////
     virtual void maximized() = 0;
     virtual void minimized() = 0;
     virtual void fullscreen() = 0;
-    virtual void normal() = 0; //or reset()?
+    virtual void toplevel() = 0; //or reset()?
 
     virtual void beginMove(const MouseButtonEvent* ev) = 0;
     virtual void beginResize(const MouseButtonEvent* ev, windowEdge edges) = 0;

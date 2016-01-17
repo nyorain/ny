@@ -20,7 +20,7 @@ namespace ny
 //todo: implement all callback-add-functions for window correctly. can it be done with some template-like method?
 
 //window class
-class Window : public EventHandlerNode
+class Window : public EventHandler
 {
 protected:
     //position and max/min - size. size itself inherited from surface
@@ -41,7 +41,7 @@ protected:
     //windowContext. backend specific object. Core element of window. 
 	//window itself is not able to change anything, it has to communicate with the backend 
 	//through this object
-    std::unique_ptr<WindowContext> windowContext_ {nullptr};
+    std::unique_ptr<WindowContext> windowContext_;
 
     //stores window hints. most of window hints (e.g. Native<> or Maximize/Minimize etc. are not 
 	//set by window class itself, but by the specific derivations of window
@@ -103,16 +103,15 @@ protected:
 
     //window is abstract class
     Window() = default;
-    Window(EventHandlerNode& prnt, const vec2ui& size, const WindowContextSettings& settings = {});
+    Window(const vec2ui& size, const WindowContextSettings& settings = {});
 
-	using EventHandlerNode::create;
-    void create(EventHandlerNode&, const vec2ui& size, const WindowContextSettings& settings = {});
+    void create(const vec2ui& size, const WindowContextSettings& settings = {});
 
 public:
-    virtual ~Window() = default;
+    virtual ~Window();
 
     virtual bool processEvent(const Event& event) override;
-	virtual void destroy() override;
+	virtual void close();
 
     virtual ToplevelWindow* toplevelParent() = 0;
     virtual const ToplevelWindow* toplevelParent() const = 0;
@@ -149,7 +148,7 @@ public:
 
     //const getters
     const vec2i& position() const { return position_; }
-    const vec2ui& getSize() const { return size_; }
+    const vec2ui& size() const { return size_; }
 
     const vec2ui& minSize() const { return minSize_; }
     const vec2ui& maxSize() const { return maxSize_; }
@@ -169,98 +168,6 @@ public:
     WindowContextSettings windowContextSettings() const;
     unsigned long backendHints() const;
 };
-
-/*
-//toplevel window
-class ToplevelWindow : public Window
-{
-protected:
-    //hints here not really needed
-    //only for virtual handling, but they all are still saved in windowContext. rather make alias functions to access the on the WC stored hints
-    unsigned char handlingHints_{};
-    toplevelState state_{};
-    std::string title_{};
-    unsigned int borderSize_{};
-
-    //these both are used (and only valid) for custom decoration
-    std::unique_ptr<headerbar> headerbar_;
-    std::unique_ptr<panel> panel_;
-
-    //evthandler
-    //virtual void addChild(eventHandlerNode& window) override;
-
-    //window
-    virtual void mouseButton(const mouseButtonEvent& ev) override;
-    virtual void mouseMove(const mouseMoveEvent& ev) override;
-
-    //draw window
-    virtual void draw(drawContext& dc) override;
-
-    toplevelWindow();
-    void create(vec2i position, vec2ui size, std::string title = " ", const windowContextSettings& settings = windowContextSettings());
-
-public:
-    toplevelWindow(vec2i position, vec2ui size, std::string title = " ", const windowContextSettings& settings = windowContextSettings());
-    virtual ~toplevelWindow();
-
-
-    //hints
-    bool hasMaximizeHint() const { return (hints_ & windowHints::Maximize); }
-    bool hasMinimizeHint() const { return (hints_ & windowHints::Minimize); }
-    bool hasResizeHint() const { return (hints_ & windowHints::Resize); }
-    bool hasMoveHint() const { return (hints_ & windowHints::Move); }
-    bool hasCloseHint() const { return (hints_ & windowHints::Close); }
-
-    void setMaximizeHint(bool hint = 1);
-    void setMinimizeHint(bool hint = 1);
-    void setResizeHint(bool hint = 1);
-    void setMoveHint(bool hint = 1);
-    void setCloseHint(bool hint = 1);
-
-//
-    bool isCustomDecorated() const {  return (hints_ & windowHints::CustomDecorated); }
-    bool isCustomMoved() const { return (hints_ & windowHints::CustomMoved); }
-    bool isCustomResized() const { return (hints_ & windowHints::CustomResized); }
-
-    //return if successful
-    bool setCustomDecorated(bool set = 1);
-    bool setCustomMoved(bool set = 1);
-    bool setCustomResized(bool set = 1);
-//
-    ////
-    std::string getTitle() const { return title_; }
-    void setTitle(const std::string& n);
-
-    void setIcon(const image* icon);
-
-    const toplevelWindow* getTopLevelParent() const { return this; };
-    toplevelWindow* getTopLevelParent() { return this; };
-
-    window* getParent() const { return nullptr; };
-
-    bool isMaximized() const { return (state_ == toplevelState::Maximized); };
-    bool isMinimized() const { return (state_ == toplevelState::Minimized); };
-    bool isFullscreen() const { return (state_ == toplevelState::Fullscreen); };
-
-    virtual bool isVirtual() const final { return 0; }
-};
-
-//childWindow
-class ChildWindow : public Window
-{
-protected:
-    ChildWindow();
-    void create(window& parent, vec2i position, vec2ui size, windowContextSettings settings = windowContextSettings());
-
-public:
-    childWindow(window& parent, vec2i position, vec2ui size, windowContextSettings settings = windowContextSettings());
-
-    const toplevelWindow* getTopLevelParent() const { return getParent()->getTopLevelParent(); };
-    toplevelWindow* getTopLevelParent() { return getParent()->getTopLevelParent(); };
-
-    virtual bool isVirtual() const final;
-};
-*/
 
 }
 

@@ -1,9 +1,40 @@
 #include <ny/app/keyboard.hpp>
+#include <nytl/enumOps.hpp>
+using namespace nytl::enumOps;
 
 namespace ny
 {
 
 std::bitset<255> Keyboard::states_;
+Keyboard::Modifier Keyboard::modifier_;
+
+
+bool Keyboard::keyPressed(Keyboard::Key id)
+{
+    if(id == Keyboard::Key::none) return 0;
+
+    return states_[static_cast<unsigned int>(id)];
+}
+
+void Keyboard::keyPressed(Keyboard::Key id, bool pressed)
+{
+    if(id == Keyboard::Key::none) return;
+
+    states_[static_cast<unsigned int>(id)] = pressed;
+}
+
+void Keyboard::modifier(Modifier mod, bool active)
+{
+	if(active) modifier_ |= mod;
+	else modifier_ &= ~mod;
+}
+
+bool Keyboard::modifier(Modifier mod)
+{
+	return static_cast<bool>(modifier_ & mod);
+}
+
+/*
 std::string Keyboard::utf8(Keyboard::Key k)
 {
     if(capsActive())
@@ -101,45 +132,5 @@ std::string Keyboard::utf8(Keyboard::Key k)
     }
 
 }
-
-bool Keyboard::keyPressed(Keyboard::Key id)
-{
-    if(id == Keyboard::Key::none) return 0;
-
-    return states_[static_cast<unsigned int>(id)];
-}
-
-void Keyboard::keyPressed(Keyboard::Key id, bool pressed)
-{
-    if(id == Keyboard::Key::none) return;
-
-    states_[static_cast<unsigned int>(id)] = pressed;
-}
-
-/*
-bool Keyboard::capsActive()
-{
-    if(isKeyPressed(key::leftshift) + isKeyPressed(key::rightshift) + capsLockState == 1 || isKeyPressed(key::leftshift) + isKeyPressed(key::rightshift) + capsLockState == 3)
-        return 1;
-
-    return 0;
-}
-
-bool Keyboard::altActive()
-{
-    if(isKeyPressed(key::leftalt) || isKeyPressed(key::rightalt))
-        return 1;
-
-    return 0;
-}
-
-bool Keyboard::ctrlActive()
-{
-    if(isKeyPressed(key::leftctrl) || isKeyPressed(key::rightctrl))
-        return 1;
-
-    return 0;
-}
 */
-
 }

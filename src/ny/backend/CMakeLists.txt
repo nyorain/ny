@@ -4,12 +4,44 @@ set(src-backend
 		backend.cpp)
 
 if(NY_WithWinapi)
+	set(src-backend ${src-backend} 
+		winapi/appContext.cpp
+		winapi/backend.cpp
+		winapi/util.cpp
+		winapi/windowContext.cpp
+		)
+
+	if(NY_WithGL)
+		set(src-backend ${src-backend} winapi/wgl.cpp)
+	endif(NY_WithGL)
+
 endif(NY_WithWinapi)
 
 if(NY_WithX11)
+	set(src-backend ${src-backend}
+		x11/appContext.cpp
+		x11/backend.cpp
+		x11/util.cpp
+		x11/windowContext.cpp)
+
+	if(NY_WithGL)
+		set(src-backend ${src-backend} x11/glx.cpp)
+	endif(NY_WithGL)
+
 endif(NY_WithX11)
 
 if(NY_WithWayland)
+	set(src-backend ${src-backend}
+		wayland/appContext.cpp
+		wayland/backend.cpp
+		wayland/util.cpp
+		wayland/windowContext.cpp
+		wayland/interfaces.cpp
+		wayland/xdg-shell-client-protocol.c)
+
+	if(NY_WithGL)
+		set(src-backend ${src-backend} wayland/egl.cpp)
+	endif(NY_WithGL)
 endif(NY_WithWayland)
 
 add_library(ny-backend SHARED ${src-backend})

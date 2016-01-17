@@ -31,6 +31,7 @@ public:
     bool init(cairo_surface_t& cairoSurface);
 
     virtual void clear(const Brush& b = Brush::none) override;
+	virtual void paint(const Brush& b, const Brush& alpha) override;
     virtual void apply() override;
 
 	virtual void mask(const Path& obj) override;

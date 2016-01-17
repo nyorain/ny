@@ -12,14 +12,15 @@ set(src-draw
 		font.cpp
 		triangulate.cpp)
 
-if(NY_WithGL OR NY_WithGLES)
+if(NY_WithGL)
 	set(src-draw ${src-draw} 
-		gl/glContext.cpp 
-		gl/glDrawContext.cpp 
-		gl/glTexture.cpp
-		gl/shader.cpp)
+		gl/context.cpp 
+		gl/drawContext.cpp 
+		gl/texture.cpp
+		gl/shader.cpp
+		gl/resource.cpp)
 	set(libs-draw ${libs-draw} glpbinding glbinding glesbinding)
-endif(NY_WithGL OR NY_WithGLES)
+endif(NY_WithGL)
 
 if(NY_WithEGL)
 	set(src-draw ${src-draw} gl/egl.cpp)
@@ -38,6 +39,10 @@ if(NY_WithFreeType)
 	set(include-draw ${include-draw} ${FREETYPE_INCLUDE_DIRS})
 endif(NY_WithFreeType)
 
+if(NY_WithWinapi)
+	set(src-draw ${src-draw} gdi.cpp)
+	set(libs-draw ${libs-draw} "Gdiplus")
+endif(NY_WithWinapi)
 
 add_library(ny-draw SHARED ${src-draw})
 target_compile_features(ny-draw PRIVATE cxx_range_for)

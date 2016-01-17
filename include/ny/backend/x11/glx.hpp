@@ -1,29 +1,35 @@
 #pragma once
 
-#include <ny/x11/x11Include.hpp>
-#include <ny/gl/glDrawContext.hpp>
+#include <ny/backend/x11/include.hpp>
+#include <ny/draw/gl/context.hpp>
+#include <ny/draw/gl/drawContext.hpp>
+
+#include <nytl/vec.hpp>
+
+typedef struct __GLXcontextRec* GLXContext;
+typedef struct __GLXFBConfigRec* GLXFBConfig;
 
 namespace ny
 {
 
-struct glxc;
-
-////////////////////////////
-class glxDrawContext : public glDrawContext
+class GlxContext: public GlContext
 {
 protected:
-    const x11WindowContext& wc_;
-    glxc* glxContext_ = nullptr;
+    X11WindowContext* wc_;
+    GLXContext glxContext_ = nullptr;
+	GlDrawContext drawContext_;
 
     virtual bool makeCurrentImpl() override;
     virtual bool makeNotCurrentImpl() override;
 
 public:
-    glxDrawContext(const x11WindowContext& wc);
-    ~glxDrawContext();
+    GlxContext(X11WindowContext& wc, GLXFBConfig fbc);
+    ~GlxContext();
 
-    void setSize(vec2ui size);
-    virtual bool swapBuffers() override;
+    void size(const vec2ui& size);
+    virtual bool apply() override;
+
+	GlDrawContext& drawContext() { return drawContext_; }
 };
 
 }

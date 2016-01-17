@@ -1,5 +1,5 @@
-#include <ny/draw/gl/glResource.hpp>
-#include <ny/draw/gl/glContext.hpp>
+#include <ny/draw/gl/resource.hpp>
+#include <ny/draw/gl/context.hpp>
 
 namespace ny
 {

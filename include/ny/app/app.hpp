@@ -18,7 +18,7 @@ namespace ny
 
 App* nyMainApp();
 
-class App : public EventHandlerRoot, EventDispatcher
+class App : public EventDispatcher
 {
 public:
 	enum class ErrorAction
@@ -58,9 +58,6 @@ protected:
     std::atomic<Window*> mouseOver_ {nullptr}; //eventHandler on which is the mouse
 
 protected:
-    virtual bool removeChild(EventHandlerNode& handler) override;
-	virtual void destroy() override;
-
     void keyboardKey(Event& event);
     void mouseMove(Event& event);
     void mouseButton(Event& event);

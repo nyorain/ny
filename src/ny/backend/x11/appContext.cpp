@@ -1,11 +1,10 @@
-#include <ny/x11/x11AppContext.hpp>
+#include <ny/backend/x11/appContext.hpp>
+#include <ny/backend/x11/windowContext.hpp>
+#include <ny/backend/x11/util.hpp>
+#include <ny/app/app.hpp>
+#include <ny/window/window.hpp>
 
-#include <ny/x11/x11WindowContext.hpp>
-#include <ny/x11/x11Util.hpp>
-
-#include <ny/app.hpp>
-#include <ny/error.hpp>
-#include <ny/window.hpp>
+#include <nytl/vec.hpp>
 
 #include <cstring>
 
@@ -13,20 +12,7 @@ namespace ny
 {
 
 //appContext
-x11AppContext::x11AppContext() : appContext()
-{
-    xDisplay_ = nullptr;
-
-    init();
-}
-
-x11AppContext::~x11AppContext()
-{
-    if(xDisplay_) XFlush(xDisplay_);
-    if(xDisplay_) XCloseDisplay(xDisplay_);
-}
-
-void x11AppContext::init()
+X11AppContext::X11AppContext()
 {
     XInitThreads(); //todo, make this optional
 
@@ -42,10 +28,11 @@ void x11AppContext::init()
 
     //selection events will be sent to this window -> they need no window argument
     //does not need to be mapped
-    selectionWindow_ = XCreateSimpleWindow(xDisplay_, DefaultRootWindow(xDisplay_), 0, 0, 100, 100, 0, BlackPixel(xDisplay_, xDefaultScreenNumber_), BlackPixel(xDisplay_, xDefaultScreenNumber_));
+    selectionWindow_ = XCreateSimpleWindow(xDisplay_, DefaultRootWindow(xDisplay_), 0, 0, 
+			100, 100, 0, BlackPixel(xDisplay_, xDefaultScreenNumber_), 
+			BlackPixel(xDisplay_, xDefaultScreenNumber_));
 
-
-    //Atoms/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	//atoms
     const char* names[] = {
         "WM_DELETE_WINDOW",
         "_MOTIF_WM_HINTS",
@@ -207,53 +194,48 @@ void x11AppContext::init()
     x11::WMIcon = ret[i++];
 
     x11::Cardinal = ret[i++];
-
-    //event source
-    eventSource_ = make_unique<pollEventSource>(nyMainApp()->getEventLoop(), ConnectionNumber(xDisplay_), UV_READABLE, 1);
-    eventSource_->onNotify = memberCallback(&x11AppContext::eventCallback, this);
 }
 
-void x11AppContext::eventCallback(int, int)
+X11AppContext::~X11AppContext()
 {
-    XEvent ev;
-
-    while(xDisplay_ && XPending(xDisplay_) > 0)
-    {
-        XNextEvent(xDisplay_, &ev);
-        processEvent(ev);
-    }
+    if(xDisplay_)
+	{
+		XFlush(xDisplay_);
+		XCloseDisplay(xDisplay_);
+		xDisplay_ = nullptr;
+	}	
 }
 
-window* x11AppContext::getHandler(Window w)
+Window* X11AppContext::handler(XWindow w)
 {
-    x11WindowContext* wc = getWindowContext(w);
-    return wc ? &wc->getWindow() : nullptr;
+    auto* wc = windowContext(w);
+    return wc ? &wc->window() : nullptr;
 }
 
-void x11AppContext::sendRedrawEvent(Window w)
+void X11AppContext::sendRedrawEvent(XWindow w)
 {
-    x11WindowContext* wc = getWindowContext(w);
-    if(wc) nyMainApp()->sendEvent(make_unique<drawEvent>(&wc->getWindow()));
+    auto* wc = windowContext(w);
+    if(wc) nyMainApp()->dispatch(make_unique<DrawEvent>(&wc->window()));
     return;
 }
 
-bool x11AppContext::processEvent(XEvent& ev)
+bool X11AppContext::processEvent(XEvent& ev)
 {
     switch(ev.type)
     {
     case MotionNotify:
     {
-        auto pos = vec2i(ev.xmotion.x, ev.xmotion.y);
-        auto spos = vec2i(ev.xmotion.x_root, ev.xmotion.y_root);
-        auto delta = pos - mouse::getPosition();
+		auto event = make_unique<MouseMoveEvent>(handler(ev.xmotion.window));
+        event->position = vec2i(ev.xmotion.x, ev.xmotion.y);
+        event->screenPosition = vec2i(ev.xmotion.x_root, ev.xmotion.y_root);
+        event->delta = event->position - Mouse::position();
 
-        nyMainApp()->mouseMove(make_unique<mouseMoveEvent>(getHandler(ev.xmotion.window), pos, spos, delta, new x11EventData(ev)));
+		nyMainApp()->dispatch(std::move(event));
         return 1;
     }
 
     case Expose:
     {
-        nyDebug("xps");
         if(ev.xexpose.count == 0) sendRedrawEvent(ev.xexpose.window);
         return 1;
     }
@@ -269,7 +251,7 @@ bool x11AppContext::processEvent(XEvent& ev)
         auto button = x11ToButton(ev.xbutton.button);
         auto pos = vec2i(ev.xbutton.x, ev.xbutton.y);
 
-        nyMainApp()->mouseButton(make_unique<mouseButtonEvent>(getHandler(ev.xbutton.window), button, 1, pos, new x11EventData(ev)));
+        nyMainApp()->dispatch(make_unique<MouseButtonEvent>(getHandler(ev.xbutton.window), button, 1, pos, new x11EventData(ev)));
         return 1;
     }
 
@@ -278,14 +260,14 @@ bool x11AppContext::processEvent(XEvent& ev)
         auto button = x11ToButton(ev.xbutton.button);
         auto pos = vec2i(ev.xbutton.x, ev.xbutton.y);
 
-        nyMainApp()->mouseButton(make_unique<mouseButtonEvent>(getHandler(ev.xbutton.window), button, 0, pos, new x11EventData(ev)));
+        nyMainApp()->dispatch(make_unique<mouseButtonEvent>(getHandler(ev.xbutton.window), button, 0, pos, new x11EventData(ev)));
         return 1;
     }
 
     case EnterNotify:
     {
         auto pos = vec2i(ev.xcrossing.x, ev.xcrossing.y);
-        nyMainApp()->mouseCross(make_unique<mouseCrossEvent>(getHandler(ev.xcrossing.window), 1, pos, new x11EventData(ev)));
+        nyMainApp()->dispatch(make_unique<mouseCrossEvent>(getHandler(ev.xcrossing.window), 1, pos, new x11EventData(ev)));
 
         return 1;
     }
@@ -293,14 +275,14 @@ bool x11AppContext::processEvent(XEvent& ev)
     case LeaveNotify:
     {
         auto pos = vec2i(ev.xcrossing.x, ev.xcrossing.y);
-        nyMainApp()->mouseCross(make_unique<mouseCrossEvent>(getHandler(ev.xcrossing.window), 0, pos, new x11EventData(ev)));
+        nyMainApp()->dispatch(make_unique<MouseCrossEvent>(getHandler(ev.xcrossing.window), 0, pos, new x11EventData(ev)));
 
         return 1;
     }
 
     case FocusIn:
     {
-        nyMainApp()->windowFocus(make_unique<focusEvent>(getHandler(ev.xfocus.window), 1, new x11EventData(ev)));
+        nyMainApp()->dispatch(make_unique<focusEvent>(getHandler(ev.xfocus.window), 1, new x11EventData(ev)));
         return 1;
     }
 
@@ -317,7 +299,7 @@ bool x11AppContext::processEvent(XEvent& ev)
         XLookupString(&ev.xkey, buffer, 5, &keysym, nullptr);
         auto key = x11ToKey(keysym);
 
-        nyMainApp()->keyboardKey(make_unique<keyEvent>(getHandler(ev.xkey.window), key, 1, new x11EventData(ev)));
+        nyMainApp()->dispatch(make_unique<keyEvent>(getHandler(ev.xkey.window), key, 1, new x11EventData(ev)));
         return 1;
     }
 
@@ -328,7 +310,7 @@ bool x11AppContext::processEvent(XEvent& ev)
         XLookupString(&ev.xkey, buffer, 5, &keysym, nullptr);
         auto key = x11ToKey(keysym);
 
-        nyMainApp()->keyboardKey(make_unique<keyEvent>(getHandler(ev.xkey.window), key, 0, new x11EventData(ev)));
+        nyMainApp()->dispatch(make_unique<keyEvent>(getHandler(ev.xkey.window), key, 0, new x11EventData(ev)));
         return 1;
     }
 
@@ -341,10 +323,10 @@ bool x11AppContext::processEvent(XEvent& ev)
             return 1;
 
         if(getWindowContext(ev.xconfigure.window)->getWindow().getSize() != nsize) //sizeEvent
-            nyMainApp()->sendEvent(make_unique<sizeEvent>(getHandler(ev.xconfigure.window), nsize, 0, new x11EventData(ev)));
+            nyMainApp()->dispatch(make_unique<sizeEvent>(getHandler(ev.xconfigure.window), nsize, 0, new x11EventData(ev)));
 
         if(getWindowContext(ev.xconfigure.window)->getWindow().getPosition() != npos)
-            nyMainApp()->sendEvent(make_unique<positionEvent>(getHandler(ev.xconfigure.window), npos, 0, new x11EventData(ev)));
+            nyMainApp()->dispatch(make_unique<positionEvent>(getHandler(ev.xconfigure.window), npos, 0, new x11EventData(ev)));
 
         return 1;
 
@@ -505,18 +487,18 @@ bool x11AppContext::getClipboard(dataTypes types, std::function<void(dataObject*
 }
 */
 
-void x11AppContext::registerContext(Window w, x11WindowContext* c)
+void X11AppContext::registerContext(XWindow w, X11WindowContext& c)
 {
-    contexts_[w] = c;
+    contexts_[w] = &c;
 }
 
-void x11AppContext::unregisterContext(Window w)
+void X11AppContext::unregisterContext(XWindow w)
 {
     if(contexts_.find(w) != contexts_.end())
         contexts_[w] = nullptr;
 }
 
-x11WindowContext* x11AppContext::getWindowContext(Window win)
+X11WindowContext* x11AppContext::windowContext(XWindow win)
 {
     if(contexts_.find(win) != contexts_.end())
         return contexts_[win];
@@ -524,14 +506,26 @@ x11WindowContext* x11AppContext::getWindowContext(Window win)
     return nullptr;
 }
 
-///////////////////////////////////////////////////////////////////////////
-Display* getXDisplay()
+/////
+Display* xDisplay()
 {
-    x11AppContext* a;
+    X11AppContext* a;
     if(!nyMainApp() || !(a = asX11(nyMainApp()->getAC())))
         return nullptr;
 
-    return a->getXDisplay();
+    return a->xDisplay();
+}
+
+X11AppContext* x11AppContext()
+{
+    X11AppContext* ret = nullptr;
+
+    if(nyMainApp())
+    {
+        ret = asX11(&nyMainApp()->appContext());
+    }
+
+    return ret;
 }
 
 }

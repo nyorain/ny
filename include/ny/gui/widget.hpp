@@ -1,20 +1,26 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <ny/app/eventHandler.hpp>
+#include <ny/gui/widgetBase.hpp>
 
 #include <nytl/vec.hpp>
 #include <nytl/rect.hpp>
+#include <nytl/hierachy.hpp>
 
 namespace ny
 {
 
-class Widget : public EventHandlerNode
+class Widget : public hierachyNode<WidgetBase>
 {
 public:
+	Widget(WidgetBase& parent);
+
 	virtual bool processEvent(const Event& event) override;
 	virtual rect2ui extents() const;
 	virtual void draw(DrawContext& dc);
+	virtual bool contains(const vec2ui& point) const { return nytl::contains(extents(), point); }
+
+	virtual std::string widgetClass() const { return "Widget"; }
 };
 
 }

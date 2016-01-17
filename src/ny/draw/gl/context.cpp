@@ -1,4 +1,4 @@
-#include <ny/draw/gl/glContext.hpp>
+#include <ny/draw/gl/context.hpp>
 #include <nytl/log.hpp>
 #include <nytl/misc.hpp>
 
@@ -23,8 +23,12 @@ GlContext* GlContext::threadLocalCurrent(bool change, GlContext* newOne)
 	return current_;
 }
 
-void GlContext::initContext()
+void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)
 {
+	api_ = api;
+	depthBits_ = depth;
+	stencilBits_ = stencil;
+
 	auto* saved = current();
 	if(!makeCurrent())
 	{

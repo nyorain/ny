@@ -29,26 +29,31 @@ public:
 		down, right, volumeup, volumedown, leftalt, rightalt, capsLock
     };
 
+	enum class Modifier
+	{
+		caps = 1,
+		shift = 4,
+		alt = 8,
+		num = 16
+	};
+
 protected:
     static std::bitset<255> states_;
+	static Modifier modifier_;
 
 protected:
     static void keyPressed(Key key, bool pressed);
+	static void modifier(Modifier mod, bool active);
 
 public:
-    static std::string utf8(Key k);
     static bool keyPressed(Key k);
-
-	//states: TODO
-    static bool capsActive(); 
-    static bool altActive();
-    static bool ctrlActive();
+	static bool modifier(Modifier mod);
 };
 
 //events
 namespace eventType
 {
-constexpr unsigned int key = 7;
+	constexpr unsigned int key = 7;
 }
 
 class KeyEvent : public EventBase<KeyEvent, eventType::key>
@@ -58,6 +63,7 @@ public:
 
     bool pressed;
     Keyboard::Key key;
+	std::string text;
 };
 
 }

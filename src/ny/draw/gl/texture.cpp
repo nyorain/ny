@@ -1,5 +1,5 @@
-#include <ny/draw/gl/glTexture.hpp>
-#include <ny/draw/gl/glContext.hpp>
+#include <ny/draw/gl/texture.hpp>
+#include <ny/draw/gl/context.hpp>
 
 #include <glpbinding/glp20/glp.h>
 #include <glesbinding/gles/gles.h>

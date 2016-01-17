@@ -1,5 +1,3 @@
-#include <ny/config.h>
-
 #include <ny/draw/gl/egl.hpp>
 #include <nytl/log.hpp>
 

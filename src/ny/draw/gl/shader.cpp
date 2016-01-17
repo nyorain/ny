@@ -1,5 +1,5 @@
 #include <ny/draw/gl/shader.hpp>
-#include <ny/draw/gl/glContext.hpp>
+#include <ny/draw/gl/context.hpp>
 #include <ny/draw/color.hpp>
 
 #include <nytl/log.hpp>

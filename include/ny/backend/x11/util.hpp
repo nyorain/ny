@@ -1,46 +1,39 @@
 #pragma once
 
-#include <ny/x11/x11Include.hpp>
+#include <ny/backend/x11/include.hpp>
 
-#include <ny/keyboard.hpp>
-#include <ny/mouse.hpp>
-#include <ny/cursor.hpp>
-#include <ny/data.hpp>
+#include <ny/app/keyboard.hpp>
+#include <ny/app/mouse.hpp>
+#include <ny/window/cursor.hpp>
+#include <ny/app/data.hpp>
 
 #include <X11/Xutil.h>
 #include <X11/Xlib.h>
+using XWindow = XID;
 
 #include <map>
 
 namespace ny
 {
 
-mouse::button x11ToButton(unsigned int id);
-keyboard::key x11ToKey(unsigned int id);
+Mouse::Button x11ToButton(unsigned int id);
+Keyboard::Key x11ToKey(unsigned int id);
 
-int cursorToX11(cursorType c);
-cursorType x11ToCursor(int xcID);
+int cursorToX11(Cursor::Type c);
+Cursor::Type x11ToCursor(int xcID);
 
-x11AppContext* asX11(appContext* c);
-x11WindowContext* asX11(windowContext* c);
+X11AppContext* asX11(AppContext* c);
+X11WindowContext* asX11(WindowContext* c);
 
-#ifdef NY_WithCairo
-x11CairoDrawContext* asX11Cairo(drawContext* c);
-#endif //Cairo
-
-#ifdef NY_WithGL
-glxDrawContext* asGlx(drawContext* c);
-#endif // NY_WithGL
-
-#ifdef NY_WithEGL
-x11EGLDrawContext* asx11EGL(drawContext* c);
-#endif // NY_WithEGL
+X11CairoDrawContext* asX11Cairo(DrawContext* c);
+GlxContext* asGlx(DrawContext* c);
 
 namespace x11
 {
-//context hints
+
 const unsigned int hintOverrideRedirect = (1 << 1);
 
+//
 extern Atom WindowDelete;
 extern Atom MwmHints;
 
@@ -133,14 +126,16 @@ const unsigned long MwmDecoTitle = (1L << 3);
 const unsigned long MwmDecoMenu = (1L << 4);
 const unsigned long MwmDecoMinimize = (1L << 5);
 const unsigned long MwmDecoMaximize = (1L << 5);
-const unsigned long MwmDecoAll = MwmDecoBorder | MwmDecoResize | MwmDecoTitle | MwmDecoMenu | MwmDecoMinimize | MwmDecoMaximize;
+const unsigned long MwmDecoAll = 
+	MwmDecoBorder | MwmDecoResize | MwmDecoTitle | MwmDecoMenu | MwmDecoMinimize | MwmDecoMaximize;
 
 const unsigned long MwmFuncResize = MwmDecoBorder;
 const unsigned long MwmFuncMove = MwmDecoResize;
 const unsigned long MwmFuncMinimize = MwmDecoTitle;
 const unsigned long MwmFuncMaximize = MwmDecoMenu;
 const unsigned long MwmFuncClose = MwmDecoMinimize;
-const unsigned long MwmFuncAll = MwmFuncResize | MwmFuncMove | MwmFuncMaximize | MwmFuncMinimize | MwmFuncClose;
+const unsigned long MwmFuncAll = 
+	MwmFuncResize | MwmFuncMove | MwmFuncMaximize | MwmFuncMinimize | MwmFuncClose;
 
 const unsigned long MwmHintsFunc = (1L << 0);
 const unsigned long MwmHintsDeco = MwmDecoBorder;
@@ -170,7 +165,7 @@ struct mwmHints
 struct mwmInfo
 {
     long flags;
-    Window wm_window;
+    XWindow wm_window;
 };
 
 //Property
@@ -196,11 +191,7 @@ const unsigned char MoveResizeSizeKeyboard     = 9;
 const unsigned char MoveResizeMoveKeyboard     = 10;
 const unsigned char MoveResizeCancel           = 11;
 
-
-////////////////////////////////7
-
-
-property getWindowProperty(Window w, Atom property);
+property windowProperty(XWindow w, Atom property);
 
 }
 

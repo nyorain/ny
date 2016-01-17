@@ -110,6 +110,11 @@ CairoDrawContext::~CairoDrawContext()
 		//will only remove the reference
 		cairo_surface_destroy(cairoSurface_);
 	}
+
+	if(cairoCR_)
+	{
+		cairo_destroy(cairoCR_);
+	}
 }
 
 void CairoDrawContext::clear(const Brush& brush)
@@ -121,6 +126,12 @@ void CairoDrawContext::clear(const Brush& brush)
     cairo_set_source_rgba(cairoCR_, col.x, col.y, col.z, col.w);
     cairo_paint(cairoCR_);
     cairo_restore(cairoCR_);
+}
+
+void CairoDrawContext::paint(const Brush& brush, const Brush& alpha)
+{
+	VALIDATE_CTX();
+	//TODO
 }
 
 void CairoDrawContext::apply()

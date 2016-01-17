@@ -100,9 +100,9 @@ int App::mainLoop()
 void App::exit()
 {
 	EventDispatcher::exit();
-	destroy();
 }
 
+/*
 bool App::removeChild(EventHandlerNode& child)
 {
     if(focus_.load() == static_cast<Window*>(&child)) focus_ = nullptr;
@@ -121,6 +121,7 @@ void App::destroy()
 {
     EventHandlerRoot::destroy();
 }
+*/
 
 //keyboard Events
 void App::windowFocus(Event&)

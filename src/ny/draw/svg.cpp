@@ -1,8 +1,10 @@
 #include <ny/draw/svg.hpp>
 #include <nytl/log.hpp>
 
-#include <pugixml.hpp>
 #include <fstream>
+
+#define PUGIXML_HEADER_ONLY
+#include "pugixml/pugixml.hpp"
 
 namespace ny
 {
