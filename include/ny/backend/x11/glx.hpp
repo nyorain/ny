@@ -1,5 +1,8 @@
 #pragma once
 
+#include <ny/config.hpp>
+#ifdef NY_WithGL
+
 #include <ny/backend/x11/include.hpp>
 #include <ny/draw/gl/context.hpp>
 #include <ny/draw/gl/drawContext.hpp>
@@ -33,3 +36,5 @@ public:
 };
 
 }
+
+#endif

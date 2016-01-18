@@ -28,7 +28,7 @@ protected:
 
 protected:
 	void dispatcherThreadFunc();
-	void sendEvent(EventPtr&& event);
+	void sendEvent(Event& event);
 
 public:
 	EventDispatcher();

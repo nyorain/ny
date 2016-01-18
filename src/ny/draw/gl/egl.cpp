@@ -60,7 +60,7 @@ void EglContext::initEglContext(Api api)
 				errorMessage(eglError()));
 	}
 
-	initContext();
+	initContext(api);
 }
 
 void EglContext::eglSurface(EGLSurface surface)

@@ -2,6 +2,7 @@
 
 #include <ny/include.hpp>
 #include <nytl/nonCopyable.hpp>
+#include <nytl/rect.hpp>
 
 #include <string>
 #include <vector>
@@ -120,13 +121,15 @@ public:
 	///Returns a vector of all shared opengl contexts.
 	std::vector<GlContext*> sharedContexts() const { return sharedContexts_; }
 
+	///Updates the openGL viewport
+	void updateViewport(const rect2f& viewport);
 
 	///Applies the contents of this context to its surface. Usually this means, the context will
 	///swap the back and the front buffer. No guarantess are given that the contents of the
 	///context will not be visible BEFORE a call to this function (since some backends may
 	///use a single buffer to draw its contents). AFTER a call to this function
 	///all contents should be applied.
-	///Alternative name(not matching for all backends, though): swapBuffers()
+	///Alternative name(may not be matching for all backends though): swapBuffers()
 	virtual bool apply() = 0;
 
 	///Checks if this context is in a valid state. Usually all contexts that exist should

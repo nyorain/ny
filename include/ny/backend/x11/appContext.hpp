@@ -30,6 +30,7 @@ protected:
     XWindow selectionWindow_;
 
     selectionType lastSelection_ = selectionType::none; //needed?
+	bool runMainLoop_ = 0;
 
     //clipboard
     //bool clipboardRequest_;

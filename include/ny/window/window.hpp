@@ -81,6 +81,7 @@ protected:
     virtual void windowDraw(const DrawEvent&);
     virtual void windowShow(const ShowEvent&);
     virtual void windowFocus(const FocusEvent&);
+	virtual void windowClose(const DestroyEvent&);
 
     //windowContext functions are protected, derived classes can make public aliases if needed. 
 	//User should not be able to change backend Hints for button e.g
@@ -102,7 +103,7 @@ protected:
 
 
     //window is abstract class
-    Window() = default;
+    Window();
     Window(const vec2ui& size, const WindowContextSettings& settings = {});
 
     void create(const vec2ui& size, const WindowContextSettings& settings = {});
@@ -113,8 +114,8 @@ public:
     virtual bool processEvent(const Event& event) override;
 	virtual void close();
 
-    virtual ToplevelWindow* toplevelParent() = 0;
-    virtual const ToplevelWindow* toplevelParent() const = 0;
+    virtual ToplevelWindow& toplevelParent() = 0;
+    virtual const ToplevelWindow& toplevelParent() const = 0;
 
     void size(const vec2ui& size);
     void position(const vec2i& position);

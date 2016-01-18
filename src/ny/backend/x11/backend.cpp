@@ -1,26 +1,20 @@
-#include <ny/x11/x11Backend.hpp>
+#include <ny/backend/x11/backend.hpp>
 
-#include <ny/x11/x11WindowContext.hpp>
-#include <ny/x11/x11AppContext.hpp>
-#include <ny/x11/x11Cairo.hpp>
-
-#ifdef NY_WithGL
-#include <ny/x11/glx.hpp>
-#include <ny/x11/x11Egl.hpp>
-#endif //WithGL
+#include <ny/backend/x11/windowContext.hpp>
+#include <ny/backend/x11/appContext.hpp>
 
 #include <X11/Xlib.h>
 
 namespace ny
 {
 
-const x11Backend x11Backend::object;
+X11Backend X11Backend::instance_;
 
-x11Backend::x11Backend() : backend(X11)
+X11Backend::X11Backend()
 {
 }
 
-bool x11Backend::isAvailable() const
+bool X11Backend::available() const
 {
     Display* dpy = XOpenDisplay(nullptr);
 
@@ -34,15 +28,16 @@ bool x11Backend::isAvailable() const
     return 1;
 }
 
-std::unique_ptr<appContext> x11Backend::createAppContext()
+std::unique_ptr<AppContext> X11Backend::createAppContext()
 {
-    return make_unique<x11AppContext>();
+    return make_unique<X11AppContext>();
 }
 
-std::unique_ptr<windowContext> x11Backend::createWindowContextImpl(window& win, const windowContextSettings& s)
+std::unique_ptr<WindowContext> 
+X11Backend::createWindowContext(Window& win, const WindowContextSettings& s)
 {
-    x11WindowContextSettings settings;
-    const x11WindowContextSettings* ws = dynamic_cast<const x11WindowContextSettings*> (&s);
+    X11WindowContextSettings settings;
+    const X11WindowContextSettings* ws = dynamic_cast<const X11WindowContextSettings*>(&s);
 
     if(ws)
     {
@@ -55,7 +50,7 @@ std::unique_ptr<windowContext> x11Backend::createWindowContextImpl(window& win, 
         settings.glPref = s.glPref;
     }
 
-    return make_unique<x11WindowContext>(win, settings);
+    return make_unique<X11WindowContext>(win, settings);
 }
 
 }

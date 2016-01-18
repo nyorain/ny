@@ -18,6 +18,10 @@
 namespace ny
 {
 
+Window::Window()
+{
+}
+
 Window::Window(const vec2ui& size, const WindowContextSettings& settings) 
 	: maxSize_(UINT_MAX, UINT_MAX)
 {
@@ -55,6 +59,9 @@ bool Window::processEvent(const Event& ev)
 
     switch (ev.type())
     {
+	case eventType::destroy:
+		windowClose(static_cast<const DestroyEvent&>(ev));
+		return true;
     case eventType::mouseButton:
         mouseButton(static_cast<const MouseButtonEvent&>(ev));
         return true;
@@ -157,6 +164,11 @@ void Window::minSize(const vec2ui& size)
 }
 
 //event callbacks
+void Window::windowClose(const DestroyEvent& event)
+{
+	windowContext_.reset();
+	destroyCallback_(*this);
+}
 void Window::mouseMove(const MouseMoveEvent& e)
 {
     mouseMoveCallback_(*this, e);
@@ -209,7 +221,7 @@ void Window::windowFocus(const FocusEvent& e)
 //draw
 void Window::draw(DrawContext& dc)
 {
-    dc.clear(Color::white); //todo
+    dc.clear(Color::white); //TODO
     drawCallback_(*this, dc);
 }
 
@@ -271,96 +283,6 @@ void Window::removeWindowHints(unsigned int hints)
 }
 
 /*
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//toplevelwindow///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-toplevelWindow::toplevelWindow() : window()
-{
-}
-
-toplevelWindow::toplevelWindow(vec2i position, vec2ui size, std::string title, const windowContextSettings& settings) : window(), headerbar_(nullptr), panel_(nullptr)
-{
-    create(position, size, title, settings);
-}
-
-toplevelWindow::~toplevelWindow() = default;
-
-void toplevelWindow::create(vec2i position, vec2ui size, std::string title, const windowContextSettings& settings)
-{
-    title_ = title;
-/*
-    hints_ |= windowHints::Toplevel;
-    hints_ |= windowHints::Resize;
-	hints_ |= windowHints::Move;
-
-	hints_ |= windowHints::CustomDecorated; //...
-	hints_ |= windowHints::CustomMoved; //...
-	hints_ |= windowHints::CustomResized; //...
-* /
-    window::create(*nyMainApp(), position, size, settings);
-
-    cursor c;
-    c.fromNativeType(cursorType::leftPtr);
-    windowContext_->setCursor(c);
-/*
-    if(hints_ & windowHints::CustomDecorated)
-    {
-        unsigned int hheight = 100;
-        unsigned int padding = 15;
-        unsigned int border = 10;
-
-        setHeight(getHeight() + hheight + 2 * border);
-        setWidth(getWidth() + 2 * border);
-
-        headerbar_.reset(new headerbar(*this, vec2i(0, 0), vec2ui(getWidth() - 2 * border, hheight - 2 * border)));
-        headerbar_->refresh();
-
-        vboxSizer* b = new vboxSizer(*this);
-
-        hboxSizer* b1 = new hboxSizer(*b);
-        b1->addChild(*headerbar_);
-
-        panel_.reset(new panel(*this, vec2i(padding, hheight + padding), vec2ui(getWidth() - 2 * (border + padding), getHeight() - hheight - 2 * (border + padding))));
-        panel_->refresh();
-
-        hboxSizer* b2 = new hboxSizer(*b);
-        b2->addChild(*panel_);
-    }
-}
-void toplevelWindow::addChild(eventHandler& child)
-{
-    auto wid = dynamic_cast<widget*>(&child);
-    bool dont = 0;
-    if(wid)
-    {
-        if(wid->getWidgetName() == "ny::headerbar" || wid->getWidgetName() == "ny::panel")
-            dont = 1;
-    }
-
-    if(panel_.get() && !dont) child.processEvent(reparentEvent(&child, panel_.get()));
-    else
-        eventHandler::addChild(child);
-}
-* /
-void toplevelWindow::draw(drawContext& dc)
-{
-/*
-    if(hints_ & windowHints::CustomDecorated)
-    {
-        dc.resetClip();
-        dc.clear(color(0, 0, 0, 100));
-        redirectDrawContext red(dc, vec2i(10, 10), getSize() - vec2ui(20, 20));
-        red.startClip();
-        window::draw(dc);
-        red.endClip();
-    }
-    else
-    {
-        window::draw(dc);
-    }
-* /
-    window::draw(dc);
-}
-
 void toplevelWindow::setIcon(const image* icon)
 {
     if(!checkValid()) return;

@@ -61,9 +61,6 @@ public:
 	void fillText(const Text& t, const Brush& b);
 	void strokeText(const Text& t, const Pen& p);
 
-protected:
-	static std::map<GlContext*, ShaderPrograms> shaderPrograms_;
-
 public:
 	virtual void clear(const Brush& brush) override;
 	virtual void paint(const Brush& alpha, const Brush& fill) override;

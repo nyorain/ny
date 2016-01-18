@@ -73,6 +73,8 @@ public:
 	virtual void exit();
     virtual void error(const std::string& msg);
 
+	bool running() const { return !exit_; }
+
     Window* mouseOver() const { return mouseOver_; };
     Window* focus() const { return focus_; };
 

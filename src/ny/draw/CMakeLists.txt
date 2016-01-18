@@ -10,16 +10,17 @@ set(src-draw
 		image.cpp
 		svg.cpp
 		font.cpp
-		triangulate.cpp)
+		triangulate.cpp
+		pugixml/pugixml.cpp)
 
 if(NY_WithGL)
 	set(src-draw ${src-draw} 
+		gl/glad/glad.c
 		gl/context.cpp 
 		gl/drawContext.cpp 
 		gl/texture.cpp
 		gl/shader.cpp
 		gl/resource.cpp)
-	set(libs-draw ${libs-draw} glpbinding glbinding glesbinding)
 endif(NY_WithGL)
 
 if(NY_WithEGL)

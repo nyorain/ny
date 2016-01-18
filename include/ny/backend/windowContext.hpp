@@ -31,7 +31,7 @@ public:
     virtual bool hasGL() const = 0; //defines if this window uses gl for rendering
 
     virtual void refresh() = 0;
-    virtual void redraw(); //needed?
+    virtual void redraw(){}
 
 	//may throw
     virtual DrawContext& beginDraw() = 0;

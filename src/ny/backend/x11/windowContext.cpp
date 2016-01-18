@@ -18,35 +18,17 @@
 #include <iostream>
 
 #ifdef NY_WithGL
-#include <ny/backend/x11/glx.hpp>
-#include <GL/glx.h>
+ #include <ny/backend/x11/glx.hpp>
+ #include <GL/glx.h>
 #endif // NY_WithGL
 
 #ifdef NY_WithCairo
-#include <ny/backend/x11/cairo.hpp>
+ #include <ny/backend/x11/cairo.hpp>
 #endif // NY_WithCairo
 
 namespace ny
 {
 
-//x11Event
-class X11EventData : public deriveCloneable<EventData, X11EventData>
-{
-public:
-    X11EventData(const XEvent& e) : ev(e) {};
-    XEvent ev;
-};
-
-constexpr unsigned int X11Reparent = 11;
-class X11ReparentEvent : public deriveCloneable<ContextEvent, X11ReparentEvent>
-{
-public:
-    X11ReparentEvent(EventHandler* h = nullptr, const XReparentEvent& e = XReparentEvent()) 
-		: deriveCloneable<ContextEvent, X11ReparentEvent>(h), ev(e) {};
-
-    virtual unsigned int contextType() const override { return X11Reparent; }
-    XReparentEvent ev;
-};
 
 bool usingGLX(preference glPref)
 {
@@ -81,7 +63,7 @@ bool usingGLX(preference glPref)
 
 //windowContext
 X11WindowContext::X11WindowContext(Window& win, const X11WindowContextSettings& settings) 
-	: WindowContext(win, settings)
+	: WindowContext(win, settings), cairo_(nullptr)
 {
     auto* ac = x11AppContext();
 
@@ -114,11 +96,10 @@ X11WindowContext::X11WindowContext(Window& win, const X11WindowContextSettings& 
 	}
     else if(toplvlw)
     {
-        if(gl) matchGLXVisualInfo();
+        if(gl) glxconfig = matchGLXVisualInfo();
         else matchVisualInfo();
 
         xParent = DefaultRootWindow(xDisplay());
-
     }
     else if(childw)
     {
@@ -174,10 +155,19 @@ X11WindowContext::X11WindowContext(Window& win, const X11WindowContextSettings& 
 			win.size().y, 0, xVinfo_->depth, InputOutput, xVinfo_->visual, mask, &attr);
 
     ac->registerContext(xWindow_, *this);
-    if(toplvlw) XSetWMProtocols(xDisplay(), xWindow_, &x11::WindowDelete, 1);
+    if(toplvlw) 
+	{
+		XSetWMProtocols(xDisplay(), xWindow_, &x11::WindowDelete, 1);
+		XStoreName(xDisplay(), xWindow_, toplvlw->title().c_str());
+	}
 
     if(gl)
     {
+		if(!glxconfig)
+		{
+			throw std::runtime_error("X11WC::X11WC: Failed to create glxfbconfig");
+		}
+
 		#ifdef NY_WithGL
          drawType_ = DrawType::glx;
 		 glx_.reset(new GlxContext(*this, glxconfig));
@@ -221,6 +211,7 @@ void X11WindowContext::matchVisualInfo()
 
 GLXFBConfig X11WindowContext::matchGLXVisualInfo()
 {
+#ifdef NY_WithGL	
     const int attribs[] =
     {
         GLX_RENDER_TYPE, GLX_RGBA_BIT,
@@ -285,6 +276,7 @@ GLXFBConfig X11WindowContext::matchGLXVisualInfo()
 
     xVinfo_ = glXGetVisualFromFBConfig(xDisplay(), ret);
 	return ret;
+#endif
 }
 
 
@@ -314,8 +306,10 @@ DrawContext& X11WindowContext::beginDraw()
     }
     else if(glx())
     {
-        glx_->makeCurrent();
-        return glx_->drawContext();
+		#ifdef NY_WithGL
+         glx_->makeCurrent();
+         return glx_->drawContext();
+		#endif
     }
 
 	throw std::runtime_error("X11WC:beginDraw on invalid x11WC");
@@ -329,8 +323,10 @@ void X11WindowContext::finishDraw()
     }
     else if(glx())
     {
-        glx_->apply();
-        glx_->makeNotCurrent();
+		#ifdef NY_WithGL
+         glx_->apply();
+         glx_->makeNotCurrent();
+		#endif
     }
 
     XFlush(xDisplay());
@@ -366,7 +362,10 @@ void X11WindowContext::size(const vec2ui& size, bool change)
     if(change) XResizeWindow(xDisplay(), xWindow_, size.x, size.y);
 
     if(cairo()) cairo_->size(size);
-    else if(glx()) glx_->size(size);
+
+	#ifdef NY_WithGL
+     else if(glx()) glx_->size(size);
+	#endif
 
     refresh();
 }
@@ -414,7 +413,7 @@ void X11WindowContext::maxSize(const vec2ui& size)
 
 void X11WindowContext::processEvent(const ContextEvent& e)
 {
-    if(e.contextType() == X11Reparent) reparented(static_cast<const X11ReparentEvent&>(e).ev);
+    if(e.contextType() == X11Reparent) reparented(static_cast<const X11ReparentEvent&>(e).event);
 }
 
 void X11WindowContext::addWindowHints(unsigned long hints)
@@ -764,7 +763,7 @@ void X11WindowContext::beginMove(const MouseButtonEvent* ev)
     if(!xbev)
         return;
 
-    XEvent xev = xbev->ev;
+    XEvent xev = xbev->event;
 
     XEvent mev;
     XUngrabPointer(xDisplay(), 0L);
@@ -804,7 +803,7 @@ void X11WindowContext::beginResize(const MouseButtonEvent* ev, windowEdge edge)
         default: return;
     }
 
-    XEvent xev = xbev->ev;
+    XEvent xev = xbev->event;
 
     XEvent mev;
     XUngrabPointer(xDisplay(), 0L);

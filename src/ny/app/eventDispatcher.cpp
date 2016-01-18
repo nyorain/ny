@@ -24,32 +24,39 @@ void EventDispatcher::exit()
 	if(eventDispatcher_.joinable()) eventDispatcher_.join();
 }
 
-void EventDispatcher::sendEvent(EventPtr&& event)
+void EventDispatcher::sendEvent(Event& event)
 {
-	auto it = callbacks_.find(event->type());
+	auto it = callbacks_.find(event.type());
 	if(it != callbacks_.cend())
 	{
-		it->second(*event);
+		it->second(event);
 	}
 
-	if(event->handler) event->handler->processEvent(*event);
+	if(event.handler) event.handler->processEvent(event);
+	else nytl::sendWarning("EventDispatcher: Got event with no handler");
 }
 
 void EventDispatcher::dispatcherThreadFunc()
 {
     std::unique_lock<std::mutex> lck(eventMtx_);
-
     while(!exit_.load())
     {
         while(events_.empty() && !exit_.load()) eventCV_.wait(lck);
-        if(exit_.load()) return;
+        if(exit_.load())
+		{
+			nytl::sendLog("EventDispatcher: exiting thread");
+			return;
+		}
 
         auto ev = std::move(events_.front());
         events_.pop_front();
 
         lck.unlock();
-        sendEvent(std::move(ev));
-        lck.lock();
+
+        sendEvent(*ev);
+		ev.release();
+
+		lck.lock();
     }
 }
 
@@ -70,12 +77,12 @@ void EventDispatcher::dispatch(EventPtr&& event)
                 if(stored->type() == event->type())
                 {
                     stored = std::move(event);
-					return;
+					break;
                 }
             }
         }
 
-		events_.emplace_back(std::move(event));
+		if(event) events_.emplace_back(std::move(event));
     } 
 
     eventCV_.notify_one();

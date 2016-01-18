@@ -82,7 +82,7 @@ void DrawContext::resetMaskClip()
     sendWarning("DrawContext::resetMaskClip: mask clipping not supported, object ", this);
 }
 
-//redirectDrawContext//////////////////////////////////////////////////////////////////////////////////////////////////////
+//redirectDrawContext
 RedirectDrawContext::RedirectDrawContext(DrawContext& redirect, const vec2f& position, 
 		const vec2f& size)
     : DrawContext(), size_(size), position_(position), redirect_(&redirect)

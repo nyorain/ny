@@ -80,7 +80,7 @@ App::App(const App::Settings& settings) : settings_(settings)
 		}
 	}
 
-    appContext_ = backend_->createAppContext(*this);
+    appContext_ = backend_->createAppContext();
 }
 
 App::~App()
@@ -91,14 +91,13 @@ App::~App()
 
 int App::mainLoop()
 {
-	exit_ = 0;
-
 	int ret = appContext_->mainLoop();
 	return ret;
 }
 
 void App::exit()
 {
+	appContext_->exit();
 	EventDispatcher::exit();
 }
 

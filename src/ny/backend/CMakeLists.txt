@@ -28,6 +28,10 @@ if(NY_WithX11)
 		set(src-backend ${src-backend} x11/glx.cpp)
 	endif(NY_WithGL)
 
+	if(NY_WithCairo)
+		set(src-backend ${src-backend} x11/cairo.cpp)
+	endif(NY_WithCairo)
+
 endif(NY_WithX11)
 
 if(NY_WithWayland)

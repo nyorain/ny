@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ny/draw/include.hpp>
+#include <ny/include.hpp>
 #include <ny/draw/texture.hpp>
 #include <ny/draw/image.hpp>
 #include <ny/draw/color.hpp>

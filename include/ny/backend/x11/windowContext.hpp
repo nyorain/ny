@@ -3,6 +3,10 @@
 #include <ny/config.hpp>
 #include <ny/backend/x11/include.hpp>
 #include <ny/backend/windowContext.hpp>
+#include <ny/app/event.hpp>
+#include <ny/window/windowEvents.hpp>
+
+#include <nytl/cloneable.hpp>
 
 #include <X11/Xutil.h>
 #include <X11/Xlib.h>
@@ -14,6 +18,25 @@ typedef struct __GLXFBConfigRec* GLXFBConfig;
 
 namespace ny
 {
+
+//x11Event
+class X11EventData : public deriveCloneable<EventData, X11EventData>
+{
+public:
+    X11EventData(const XEvent& e) : event(e) {};
+    XEvent event;
+};
+
+constexpr unsigned int X11Reparent = 11;
+class X11ReparentEvent : public deriveCloneable<ContextEvent, X11ReparentEvent>
+{
+public:
+    X11ReparentEvent(EventHandler* h = nullptr, const XReparentEvent& e = XReparentEvent()) 
+		: deriveCloneable<ContextEvent, X11ReparentEvent>(h), event(e) {};
+
+    virtual unsigned int contextType() const override { return X11Reparent; }
+    XReparentEvent event;
+};
 
 //x11WindowContextSettings
 class X11WindowContextSettings : public WindowContextSettings {};
@@ -42,7 +65,7 @@ protected:
     DrawType drawType_ = DrawType::cairo;
     union
     {
-        std::unique_ptr<X11CairoDrawContext> cairo_ {nullptr};
+        std::unique_ptr<X11CairoDrawContext> cairo_;
         std::unique_ptr<GlxContext> glx_;
     };
 
@@ -55,7 +78,7 @@ public:
     X11WindowContext(Window& win, const X11WindowContextSettings& settings = {});
     virtual ~X11WindowContext();
 
-    //high-level, have to be implemented/////////////////////////////////
+    //high-level virtual interface
     virtual void refresh() override;
 
     virtual DrawContext& beginDraw() override;
@@ -102,7 +125,7 @@ public:
 
     X11CairoDrawContext* cairo() const 
 		{ return (drawType_ == DrawType::cairo) ? cairo_.get() : nullptr; }
-    GlxDrawContext* glx() const
+    GlxContext* glx() const
 		{ return (drawType_ == DrawType::glx) ? glx_.get() : nullptr; }
 
     //general

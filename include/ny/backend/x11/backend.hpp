@@ -1,30 +1,28 @@
 #pragma once
 
-#include <ny/x11/x11Include.hpp>
-#include <ny/backend.hpp>
+#include <ny/backend/x11/include.hpp>
+#include <ny/backend/backend.hpp>
 
 namespace ny
 {
 
-class x11Backend : public backend
+class X11Backend : public Backend
 {
 protected:
-    static const x11Backend object;
-
-    virtual std::unique_ptr<windowContext> createWindowContextImpl(window& win, const windowContextSettings& s) override;
+    static X11Backend instance_;
+    X11Backend();
 
 public:
-    x11Backend();
+	static X11Backend& instance(){ return instance_; }
 
-    virtual bool isAvailable() const;
+public:
+    virtual bool available() const override;
 
-    virtual std::unique_ptr<appContext> createAppContext() override;
+    virtual AppContextPtr createAppContext() override;
+	virtual WindowContextPtr 
+		createWindowContext(Window& win, const WindowContextSettings& s = {}) override;
 
-    virtual bool hasNativeHandling() const override { return 1; };
-    virtual bool hasNativeDecoration() const override { return 1; };
-
-    virtual bool hasCustomHandling() const override { return 1; };
-    virtual bool hasCustomDecoration() const override { return 1; };
+	virtual std::string name() const override { return "x11"; }
 };
 
 }

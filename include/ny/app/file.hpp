@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ny/app/include.hpp>
+#include <ny/include.hpp>
 
 #include <string>
 #include <iosfwd>

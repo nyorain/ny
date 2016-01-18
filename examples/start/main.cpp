@@ -1,18 +1,16 @@
 #include <iostream>
 #include <ny/ny.hpp>
+#include <ny/window/toplevel.hpp>
 
 int main()
 {
 	ny::App app;
-	
-	ny::Frame frame(app, "Just a test", ny::vec2ui(800, 500));
-	ny::Gui gui(frame);
 
-	ny::Button button(gui, "Click me!");
-	button.onClick([]{ std::cout << "Clicked\n"; });
+	ny::WindowContextSettings settings;
+	//settings.glPref = ny::preference::Must;
+	ny::ToplevelWindow window(ny::vec2ui(800, 500), "test", settings);
+	window.onDraw([](ny::DrawContext& dc){ dc.clear(ny::Color::red); });
+	window.show();
 
-	ny::Textfield textfield(gui);
-	textfield.onEnter([](ny::Textfield& tf){ std::cout << "Entered: " << tf.label() << "\n"; });
-
-	return app.run();
+	return app.mainLoop();
 }

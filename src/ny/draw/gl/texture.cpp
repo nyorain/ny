@@ -1,9 +1,6 @@
 #include <ny/draw/gl/texture.hpp>
 #include <ny/draw/gl/context.hpp>
-
-#include <glpbinding/glp20/glp.h>
-#include <glesbinding/gles/gles.h>
-#include <glbinding/gl/gl.h>
+#include <ny/draw/gl/glad/glad.h>
 
 namespace ny
 {
@@ -13,7 +10,6 @@ namespace
 
 unsigned int asGlFormat(Image::Format format)
 {
-	using namespace glp;
 	switch(format)
 	{
 		case Image::Format::rgb888: return static_cast<unsigned int>(GL_RGB);
@@ -41,7 +37,6 @@ void GlTexture::create(const vec2ui& size, const unsigned char* data, Image::For
 	destroy();
 	size_ = size;
 
-	using namespace glp20;
 	glActiveTexture(GL_TEXTURE0);
 	glGenTextures(1, &texture_);
 
@@ -60,7 +55,6 @@ void GlTexture::create(const vec2ui& size, const unsigned char* data, Image::For
 
 void GlTexture::destroy()
 {
-	using namespace glp;
 	if(texture_)
 	{
 		glDeleteTextures(1, &texture_);
@@ -72,7 +66,6 @@ void GlTexture::destroy()
 
 void GlTexture::bind() const
 {
-	using namespace glp;
 	glBindTexture(GL_TEXTURE_2D, texture_);
 }
 
@@ -91,13 +84,6 @@ Image* GlTexture::image() const
 
 	if(GlContext::current()->api() == GlContext::Api::openGL)
 	{
-		using namespace gl;
-		/*
-		vec2i size;
-		glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &size.x);
-		glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &size.y);
-		*/
-
 		std::vector<unsigned char> pixels(size_.x * size_.y * 4);
 		glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
 
@@ -105,8 +91,6 @@ Image* GlTexture::image() const
 	}
 	else if(GlContext::current()->api() == GlContext::Api::openGLES)
 	{
-		using namespace gles;
-
 		GLint previousFrameBuffer;
 		glGetIntegerv(GL_FRAMEBUFFER_BINDING, &previousFrameBuffer);
 

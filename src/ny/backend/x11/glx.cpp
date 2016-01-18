@@ -3,6 +3,7 @@
 #include <ny/backend/x11/appContext.hpp>
 
 #include <nytl/misc.hpp>
+#include <nytl/log.hpp>
 
 #include <GL/glx.h>
 #include <algorithm>
@@ -16,6 +17,7 @@ namespace
 	bool errorOccured = 0;
 	int ctxErrorHandler(Display*, XErrorEvent*)
 	{
+		nytl::sendWarning("GlxContext::GlxContext: Error occured");
 	    errorOccured = true;
 	    return 0;
 	}
@@ -33,6 +35,7 @@ GlxContext::GlxContext(X11WindowContext& wc, GLXFBConfig fbc) : wc_(&wc)
     const char* glxExts = glXQueryExtensionsString(xDisplay(), DefaultScreen(xDisplay()));
 	auto extVec = split(glxExts, ' ');
 	
+	nytl::sendLog("glx extensions: ", glxExts);
 	auto it = std::find(extVec.begin(), extVec.end(), "GLX_ARB_create_context");
 	bool supported = (it != extVec.end());
 
@@ -73,7 +76,7 @@ GlxContext::GlxContext(X11WindowContext& wc, GLXFBConfig fbc) : wc_(&wc)
 
     if(!glxContext_)
     {
-        //glxContext_ = glXCreateNewContext(xDisplay(), fbc->config, GLX_RGBA_TYPE, 0, True);
+        glxContext_ = glXCreateNewContext(xDisplay(), fbc, GLX_RGBA_TYPE, 0, True);
     }
 
 
@@ -126,9 +129,10 @@ bool GlxContext::apply()
     return 1;
 }
 
-void GlxContext::size(const vec2ui&)
+void GlxContext::size(const vec2ui& size)
 {
-	//TODO
+	makeCurrent();
+	updateViewport(rect2f({0.f, 0.f}, size));
 }
 
 }

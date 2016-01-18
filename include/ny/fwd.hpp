@@ -45,6 +45,7 @@ class Frame;
 class Dialog;
 class MessageBox;
 class Popup;
+class Texture;
 
 class FocusEvent;
 class MouseMoveEvent;

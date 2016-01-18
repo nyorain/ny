@@ -5,11 +5,10 @@
 #include <ny/draw/triangulate.hpp>
 
 #include <ny/draw/gl/shaderSources/modern.hpp>
+#include <ny/draw/gl/glad/glad.h>
 
 #include <nytl/log.hpp>
 
-#include <glpbinding/glp20/glp.h>
-using namespace glp20;
 
 //macro for current context validation
 #if defined(__GNUC__) || defined(__clang__)
@@ -61,8 +60,8 @@ rect2f GlDrawContext::asGlCoords(const rect2f& rct, const vec2f& size)
 
 GlDrawContext::ShaderPrograms& GlDrawContext::shaderPrograms()
 {
-	//todo: context version, api
-	
+	static std::map<GlContext*, ShaderPrograms> shaderPrograms_;
+
 	auto& prog = shaderPrograms_[GlContext::current()]; 
 	if(!prog.initialized)
 	{
@@ -94,7 +93,7 @@ Shader& GlDrawContext::shaderProgramForBrush(const Brush& b)
 		   ret->uniform("fTextureSize", b.textureBrush().extents.size);
 
 		   auto* glTex = dynamic_cast<const GlTexture*>(b.textureBrush().texture);
-		   if(!glTex)
+		   if(!glTex || !glTex->glTexture())
 		   {
 			   nytl::sendWarning("glDraw textureBrush: invalid texture");
 			   break;
@@ -184,7 +183,7 @@ void GlDrawContext::fillTriangles(const std::vector<triangle2f>& triangles,
 	glEnableVertexAttribArray(posAttrib);
 	glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
 	
-	glDrawArrays(GL_LINES, 0, triangles.size() * 3);
+	glDrawArrays(GL_TRIANGLES, 0, triangles.size() * 3);
 	glDeleteBuffers(1, &vbo);
 }
 
@@ -206,7 +205,7 @@ void GlDrawContext::strokePath(const std::vector<vec2f>& path, const Pen& pen,
 	glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
 	
 	glLineWidth(pen.width());
-	glDrawArrays(GL_LINE_STRIP, 0, path.size() * 2);
+	glDrawArrays(GL_LINES, 0, path.size() * 2);
 	glDeleteBuffers(1, &vbo);
 }
 

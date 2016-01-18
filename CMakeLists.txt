@@ -1,6 +1,4 @@
-#toplevel cmake
-
-cmake_minimum_required (VERSION 2.8)
+cmake_minimum_required (VERSION 3.1.0)
 
 project(ny)
 
@@ -12,8 +10,11 @@ include_directories("${CMAKE_CURRENT_BINARY_DIR}/include")
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src")
 include_directories("${CMAKE_CURRENT_BINARY_DIR}/src")
 
-option(NY_BUILD_EXAMPLES "build the ny examples" OFF)
+option(NY_BUILD_EXAMPLES "build the ny examples" ON)
 option(NY_BUILD_TESTS "build the ny tests" OFF)
+
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED on)
 
 #todo
 set(NY_WithGL 1)

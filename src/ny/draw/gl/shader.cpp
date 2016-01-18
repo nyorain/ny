@@ -1,11 +1,10 @@
 #include <ny/draw/gl/shader.hpp>
 #include <ny/draw/gl/context.hpp>
 #include <ny/draw/color.hpp>
+#include <ny/draw/gl/glad/glad.h>
 
 #include <nytl/log.hpp>
 
-#include <glpbinding/glp20/glp.h>
-using namespace glp20;
 
 #include <fstream>
 
@@ -199,7 +198,7 @@ bool Shader::compile(const std::string& vertexShader, const std::string& fragmen
         vsID = glCreateShader(GL_VERTEX_SHADER);
         GLint result = 0;
 
-        const char* const str = vertexShader.c_str();
+        const char* str = vertexShader.c_str();
         glShaderSource(vsID, 1, &str, nullptr);
         glCompileShader(vsID);
 
@@ -220,7 +219,7 @@ bool Shader::compile(const std::string& vertexShader, const std::string& fragmen
         fsID = glCreateShader(GL_FRAGMENT_SHADER);
         GLint result = 0;
 
-        const char* const str = fragmentShader.c_str();
+        const char* str = fragmentShader.c_str();
         glShaderSource(fsID, 1, &str, nullptr);
         glCompileShader(fsID);
 

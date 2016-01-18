@@ -10,4 +10,5 @@ install(FILES
 	app.hpp 
 	draw.hpp 
 	window.hpp
+	fwd.hpp
  DESTINATION include/ny)

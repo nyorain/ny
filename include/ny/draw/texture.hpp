@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ny/draw/include.hpp>
+#include <ny/include.hpp>
 
 namespace ny
 {

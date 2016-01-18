@@ -10,8 +10,6 @@ namespace ny
 class ToplevelWindow : public Window
 {
 protected:
-    //hints here not really needed
-    //only for virtual handling, but they all are still saved in windowContext. rather make alias functions to access the on the WC stored hints
     unsigned char handlingHints_{};
     toplevelState state_{};
     std::string title_{};
@@ -20,7 +18,14 @@ protected:
     //draw window
     virtual void draw(DrawContext& dc) override;
 
+	ToplevelWindow() = default;
+	void create(const vec2ui& size, const std::string& name = "", const WindowContextSettings& = {});
+
 public:
+	ToplevelWindow(const vec2ui& size, const std::string& name = "", 
+			const WindowContextSettings& settings = {});
+
+	virtual ~ToplevelWindow();
 
     //hints
     bool hasMaximizeHint() const { return (hints_ & windowHints::Maximize); }
@@ -29,11 +34,16 @@ public:
     bool hasMoveHint() const { return (hints_ & windowHints::Move); }
     bool hasCloseHint() const { return (hints_ & windowHints::Close); }
 
+	const std::string& title() const { return title_; }
+/*
     void setMaximizeHint(bool hint = 1);
     void setMinimizeHint(bool hint = 1);
     void setResizeHint(bool hint = 1);
     void setMoveHint(bool hint = 1);
     void setCloseHint(bool hint = 1);
+*/
+    virtual const ToplevelWindow& toplevelParent() const override { return *this; };
+    virtual ToplevelWindow& toplevelParent() override { return *this; };
 
 /*
     bool isCustomDecorated() const {  return (hints_ & windowHints::CustomDecorated); }
@@ -50,8 +60,6 @@ public:
 
     void setIcon(const image* icon);
 
-    const toplevelWindow* getTopLevelParent() const { return this; };
-    toplevelWindow* getTopLevelParent() { return this; };
 
     window* getParent() const { return nullptr; };
 

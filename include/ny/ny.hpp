@@ -1,6 +1,7 @@
 #pragma once
 
-#include <ny/config.h>
+#include <ny/config.hpp>
+#include <ny/include.hpp>
 
 #include <ny/app.hpp>
 #include <ny/window.hpp>

@@ -1,15 +1,9 @@
 #include <ny/draw/gl/context.hpp>
 #include <nytl/log.hpp>
 #include <nytl/misc.hpp>
+#include <EGL/egl.h>
 
-//glcontext backend api
-#include <glpbinding/Binding.h>
-#include <glbinding/Binding.h>
-#include <glesbinding/Binding.h>
-
-#include <glpbinding/glp20/glp.h>
-#include <glpbinding/glp30/glp.h>
-#include <glbinding/gl43/gl.h>
+#include <ny/draw/gl/glad/glad.h>
 
 namespace ny
 {
@@ -32,37 +26,23 @@ void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)
 	auto* saved = current();
 	if(!makeCurrent())
 	{
-		nytl::sendWarning("GlContext::initContext: failed to make current.");
+		throw std::runtime_error("GlContext::initContext: failed to make context current");
 		return;
 	}
 
-	glpbinding::Binding::initialize();
-	
-	if(api_ == Api::openGL) glbinding::Binding::initialize();
-	else if(api_ == Api::openGLES) glesbinding::Binding::initialize();
+	//may be a problem for opengl es
+	if(!gladLoadGLES2Loader((GLADloadproc) eglGetProcAddress))
+	{
+		throw std::runtime_error("GlContext::initContext: failed to load opengl");
+	}
 
 	//version
-	//TODO: Use 3.0 (major, minor) enums to get version on newer contexts
-	std::string glver = (const char*) glGetString(glp20::GL_VERSION);
-
-	try
-	{
-		std::size_t idx;
-		majorVersion_ = std::stoi(glver, &idx);
-		minorVersion_ = std::stoi(glver.substr(idx));
-	}
-	catch(const std::exception& err)
-	{
-		//TODO
-		nytl::sendWarning("GlContext::init: invalid GL_VERSION string: ", glver);
-		majorVersion_ = 2;
-		minorVersion_ = 0;
-	}
+	majorVersion_ = GLVersion.major;
+	minorVersion_ = GLVersion.minor;
 
 	//extensions
 	if(glpVersion() >= 30)
 	{
-		using namespace glp30;
 		auto number = 0;
 		glGetIntegerv(GL_NUM_EXTENSIONS, &number);
 
@@ -74,7 +54,6 @@ void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)
 	}
 	else
 	{
-		using namespace glp20;
 		std::string ext = (const char*) glGetString(GL_EXTENSIONS);
 		extensions_ = nytl::split(ext, ' ');
 	}
@@ -83,7 +62,6 @@ void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)
 	//TODO
 	if(api_ == Api::openGL && version() >= 43)
 	{
-		using namespace gl43;
 		auto number = 0;
 		glGetIntegerv(GL_NUM_SHADING_LANGUAGE_VERSIONS, &number);
 
@@ -94,7 +72,7 @@ void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)
 			{
 				std::size_t idx;
 				int major = std::stoi(ver, &idx);
-				int minor = std::stoi(ver.substr(idx));
+				int minor = std::stoi(ver.substr(idx + 1));
 
 				glslVersions_.push_back(major * 10 + minor / 10);
 			}
@@ -106,13 +84,12 @@ void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)
 	}
 	else
 	{
-		using namespace glp20;
 		std::string ver = (const char*) glGetString(GL_SHADING_LANGUAGE_VERSION);
 		try
 		{
 			std::size_t idx;
 			int major = std::stoi(ver, &idx);
-			int minor = std::stoi(ver.substr(idx));
+			int minor = std::stoi(ver.substr(idx + 1));
 
 			glslVersions_.push_back(major * 10 + minor / 10);
 		}
@@ -183,6 +160,17 @@ unsigned int GlContext::glpVersion() const
 	}
 
 	return 0;
+}
+
+void GlContext::updateViewport(const rect2f& viewport)
+{
+	if(!current())
+	{
+		nytl::sendWarning("GlContext::updateViewport called with not-current context");
+		return;
+	}
+
+	glViewport(viewport.position.x, viewport.position.y, viewport.size.x, viewport.size.y);
 }
 
 }

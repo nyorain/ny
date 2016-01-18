@@ -38,8 +38,8 @@ public:
     SizeEvent(EventHandler* h = nullptr, vec2ui s = vec2ui(), bool ch = 1, EventData* d = nullptr)
         : EvBase(h, d), size(s), change(ch) {}
 
-    vec2ui size;
-    bool change;
+    vec2ui size {0, 0};
+    bool change = 0;
 };
 
 class ShowEvent : public EventBase<ShowEvent, eventType::windowShow>
@@ -49,7 +49,7 @@ public:
         : EvBase(h, d), change(ch) {}
 
     //showState here
-    bool change;
+    bool change = 0;
 };
 
 class PositionEvent : public EventBase<PositionEvent, eventType::windowPosition, 1>
@@ -59,7 +59,7 @@ public:
         : EvBase(h, d), position(pos), change(ch) {}
 
     vec2i position {0, 0};
-    bool change;
+    bool change = 0;
 };
 
 class DrawEvent : public EventBase<DrawEvent, eventType::windowDraw, 1>
