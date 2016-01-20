@@ -31,7 +31,7 @@ void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)
 	}
 
 	//may be a problem for opengl es
-	if(!gladLoadGLES2Loader((GLADloadproc) eglGetProcAddress))
+	if(!gladLoadGL())
 	{
 		throw std::runtime_error("GlContext::initContext: failed to load opengl");
 	}
@@ -109,6 +109,8 @@ void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)
 
 bool GlContext::makeCurrent()
 {
+	if(isCurrent()) return 1;
+
 	if(makeCurrentImpl())
 	{
 		threadLocalCurrent(1, this);
@@ -171,6 +173,12 @@ void GlContext::updateViewport(const rect2f& viewport)
 	}
 
 	glViewport(viewport.position.x, viewport.position.y, viewport.size.x, viewport.size.y);
+}
+
+bool GlContext::apply()
+{
+	glFinish();
+	return 1;
 }
 
 }

@@ -1,5 +1,6 @@
 #include <ny/app/eventDispatcher.hpp>
 #include <ny/app/eventHandler.hpp>
+#include <ny/window/windowEvents.hpp>
 
 #include <nytl/log.hpp>
 
@@ -33,15 +34,18 @@ void EventDispatcher::sendEvent(Event& event)
 	}
 
 	if(event.handler) event.handler->processEvent(event);
-	else nytl::sendWarning("EventDispatcher: Got event with no handler");
+	else nytl::sendWarning("EventDispatcher: Got event with no handler, type ", event.type());
 }
 
 void EventDispatcher::dispatcherThreadFunc()
 {
     std::unique_lock<std::mutex> lck(eventMtx_);
-    while(!exit_.load())
+    while(1)
     {
-        while(events_.empty() && !exit_.load()) eventCV_.wait(lck);
+        while(events_.empty() && !exit_.load()) 
+		{
+			eventCV_.wait(lck);
+		}
         if(exit_.load())
 		{
 			nytl::sendLog("EventDispatcher: exiting thread");
@@ -52,10 +56,7 @@ void EventDispatcher::dispatcherThreadFunc()
         events_.pop_front();
 
         lck.unlock();
-
         sendEvent(*ev);
-		ev.release();
-
 		lck.lock();
     }
 }
@@ -68,9 +69,12 @@ void EventDispatcher::dispatch(EventPtr&& event)
         return;
     }
 
+	//sendEvent(*event);
+	//return;
+
     { 
 		std::lock_guard<std::mutex> lck(eventMtx_);
-        if(event->overrideable())
+        if(event->overrideable() && 0)
         {
             for(auto& stored : events_)
             {

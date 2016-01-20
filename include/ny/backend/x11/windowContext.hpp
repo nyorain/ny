@@ -10,6 +10,7 @@
 
 #include <X11/Xutil.h>
 #include <X11/Xlib.h>
+#include <xcb/xcb.h>
 using XWindow = XID;
 using XCursor = XID;
 typedef struct __GLXFBConfigRec* GLXFBConfig;
@@ -23,8 +24,8 @@ namespace ny
 class X11EventData : public deriveCloneable<EventData, X11EventData>
 {
 public:
-    X11EventData(const XEvent& e) : event(e) {};
-    XEvent event;
+    X11EventData(const xcb_generic_event_t& e) : event(e) {};
+    xcb_generic_event_t event;
 };
 
 constexpr unsigned int X11Reparent = 11;
@@ -68,6 +69,8 @@ protected:
         std::unique_ptr<X11CairoDrawContext> cairo_;
         std::unique_ptr<GlxContext> glx_;
     };
+
+	void create();
 
 protected:
     void matchVisualInfo();

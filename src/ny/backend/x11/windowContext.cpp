@@ -153,6 +153,7 @@ X11WindowContext::X11WindowContext(Window& win, const X11WindowContextSettings& 
 
     xWindow_ = XCreateWindow(xDisplay(), xParent, win.position().x, win.position().y, win.size().x, 
 			win.size().y, 0, xVinfo_->depth, InputOutput, xVinfo_->visual, mask, &attr);
+	XMapWindow(xDisplay(), xWindow_);
 
     ac->registerContext(xWindow_, *this);
     if(toplvlw) 
@@ -171,6 +172,7 @@ X11WindowContext::X11WindowContext(Window& win, const X11WindowContextSettings& 
 		#ifdef NY_WithGL
          drawType_ = DrawType::glx;
 		 glx_.reset(new GlxContext(*this, glxconfig));
+		 glx_->makeNotCurrent();
 		#endif
     }
     else
@@ -182,14 +184,21 @@ X11WindowContext::X11WindowContext(Window& win, const X11WindowContextSettings& 
     }
 }
 
+void X11WindowContext::create()
+{
+}
+
 X11WindowContext::~X11WindowContext()
 {
+	if(cairo()) cairo_.reset();
+	else if(glx()) glx_.reset();
+
+    if(ownedXVinfo_ && xVinfo_) delete xVinfo_;
     x11AppContext()->unregisterContext(xWindow_);
 
     XDestroyWindow(xDisplay(), xWindow_);
     XFlush(xDisplay());
 
-    if(ownedXVinfo_ && xVinfo_) delete xVinfo_;
 }
 
 void X11WindowContext::matchVisualInfo()
@@ -286,9 +295,7 @@ void X11WindowContext::refresh()
 
 /*
     //x11 method
-    XEvent ev;
-
-    memset(&ev, 0, sizeof(ev));
+    XEvent ev{};
 
     ev.type = Expose;
     ev.xexpose.window = xWindow_;
@@ -414,6 +421,7 @@ void X11WindowContext::maxSize(const vec2ui& size)
 void X11WindowContext::processEvent(const ContextEvent& e)
 {
     if(e.contextType() == X11Reparent) reparented(static_cast<const X11ReparentEvent&>(e).event);
+	else if(e.contextType() == eventType::contextCreate) create();
 }
 
 void X11WindowContext::addWindowHints(unsigned long hints)
@@ -550,7 +558,7 @@ void X11WindowContext::removeContextHints(unsigned long hints)
 }
 
 
-//x11 specific////////////////////////////////////////////////////////////////////////////////////
+//x11 specific
 void X11WindowContext::addState(Atom state)
 {
     XEvent ev;
@@ -763,7 +771,7 @@ void X11WindowContext::beginMove(const MouseButtonEvent* ev)
     if(!xbev)
         return;
 
-    XEvent xev = xbev->event;
+    XEvent xev = (XEvent&)xbev->event;
 
     XEvent mev;
     XUngrabPointer(xDisplay(), 0L);
@@ -803,7 +811,7 @@ void X11WindowContext::beginResize(const MouseButtonEvent* ev, windowEdge edge)
         default: return;
     }
 
-    XEvent xev = xbev->event;
+    XEvent xev = (XEvent&)xbev->event;
 
     XEvent mev;
     XUngrabPointer(xDisplay(), 0L);

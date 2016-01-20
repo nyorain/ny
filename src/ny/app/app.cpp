@@ -75,7 +75,7 @@ App::App(const App::Settings& settings) : settings_(settings)
 				throw std::runtime_error("App::App: Could not query a backend");
 			}
 
-			//fallback, just choose forst available
+			//fallback, just choose first available
 			backend_ = available[0];
 		}
 	}
@@ -85,7 +85,8 @@ App::App(const App::Settings& settings) : settings_(settings)
 
 App::~App()
 {
-    exit();
+    this->exit();
+	EventDispatcher::exit();
 	appFunc(nullptr, 1);
 }
 
@@ -97,8 +98,7 @@ int App::mainLoop()
 
 void App::exit()
 {
-	appContext_->exit();
-	EventDispatcher::exit();
+	if(appContext_) appContext_->exit();
 }
 
 /*

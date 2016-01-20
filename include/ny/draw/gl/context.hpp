@@ -130,7 +130,7 @@ public:
 	///use a single buffer to draw its contents). AFTER a call to this function
 	///all contents should be applied.
 	///Alternative name(may not be matching for all backends though): swapBuffers()
-	virtual bool apply() = 0;
+	virtual bool apply();
 
 	///Checks if this context is in a valid state. Usually all contexts that exist should
 	///be in a valid state (RAII) but there may be cases where the used backend is not able

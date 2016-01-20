@@ -105,15 +105,15 @@ CairoDrawContext::CairoDrawContext(Image& img)
 
 CairoDrawContext::~CairoDrawContext()
 {
+	if(cairoCR_)
+	{
+		cairo_destroy(cairoCR_);
+	}
+
 	if(cairoSurface_)
 	{
 		//will only remove the reference
 		cairo_surface_destroy(cairoSurface_);
-	}
-
-	if(cairoCR_)
-	{
-		cairo_destroy(cairoCR_);
 	}
 }
 

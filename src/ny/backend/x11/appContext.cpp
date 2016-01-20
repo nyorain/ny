@@ -9,6 +9,7 @@
 #include <nytl/misc.hpp>
 #include <nytl/log.hpp>
 
+#include <X11/Xlibint.h>
 #include <cstring>
 
 namespace ny
@@ -17,7 +18,7 @@ namespace ny
 //appContext
 X11AppContext::X11AppContext()
 {
-    XInitThreads(); //todo, make this optional
+    //XInitThreads(); //todo, make this optional
 
     xDisplay_ = XOpenDisplay(nullptr);
     if(!xDisplay_)
@@ -28,6 +29,14 @@ X11AppContext::X11AppContext()
 
     xDefaultScreenNumber_ = DefaultScreen(xDisplay_);
     xDefaultScreen_ = XScreenOfDisplay(xDisplay_, xDefaultScreenNumber_);
+
+ 	xConnection_ = XGetXCBConnection(xDisplay_);
+    if(!xConnection_)
+    {
+		throw 0;
+    }
+
+    XSetEventQueueOwner(xDisplay_, XCBOwnsEventQueue);
 
     //selection events will be sent to this window -> they need no window argument
     //does not need to be mapped
@@ -222,143 +231,168 @@ void X11AppContext::sendRedrawEvent(XWindow w)
     return;
 }
 
-bool X11AppContext::processEvent(XEvent& ev)
+bool X11AppContext::processEvent(xcb_generic_event_t& ev)
 {
-    switch(ev.type)
+	auto responseType = ev.response_type & ~0x80;
+    switch(responseType)
     {
-    case MotionNotify:
+    case XCB_MOTION_NOTIFY:
     {
-		auto event = make_unique<MouseMoveEvent>(handler(ev.xmotion.window));
-        event->position = vec2i(ev.xmotion.x, ev.xmotion.y);
-        event->screenPosition = vec2i(ev.xmotion.x_root, ev.xmotion.y_root);
+		auto& motion = reinterpret_cast<xcb_motion_notify_event_t&>(ev);  
+		auto event = make_unique<MouseMoveEvent>(handler(motion.event));
+        event->position = vec2i(motion.event_x, motion.event_y);
+        event->screenPosition = vec2i(motion.root_x, motion.root_y);
         event->delta = event->position - Mouse::position();
 
 		nyMainApp()->dispatch(std::move(event));
         return 1;
     }
 
-    case Expose:
+    case XCB_EXPOSE:
     {
-        if(ev.xexpose.count == 0) sendRedrawEvent(ev.xexpose.window);
+		auto& expose = (xcb_expose_event_t &)ev;  
+        if(expose.count == 0) sendRedrawEvent(expose.window);
+        return 1;
+    }
+    case XCB_MAP_NOTIFY:
+    {
+		auto& map = (xcb_map_notify_event_t &)ev;  
+        sendRedrawEvent(map.window);
         return 1;
     }
 
-    case MapNotify:
+    case XCB_BUTTON_PRESS:
     {
-        sendRedrawEvent(ev.xmap.window);
-        return 1;
-    }
-
-    case ButtonPress:
-    {
-		auto event = make_unique<MouseButtonEvent>(handler(ev.xbutton.window));
+		auto& button = reinterpret_cast<xcb_button_press_event_t&>(ev);  
+		auto event = make_unique<MouseButtonEvent>(handler(button.event));
 		event->data = make_unique<X11EventData>(ev);
-        event->button = x11ToButton(ev.xbutton.button);
-        event->position = vec2i(ev.xbutton.x, ev.xbutton.y);
+        event->button = x11ToButton(button.detail);
+        event->position = vec2i(button.event_x, button.event_y);
 		event->pressed = 1;
 
         nyMainApp()->dispatch(std::move(event));
         return 1;
     }
 
-    case ButtonRelease:
+    case XCB_BUTTON_RELEASE:
     {
-		auto event = make_unique<MouseButtonEvent>(ev.xbutton.window);
+		auto& button = reinterpret_cast<xcb_button_release_event_t&>(ev);  
+		auto event = make_unique<MouseButtonEvent>(handler(button.event));
 		event->data = make_unique<X11EventData>(ev);
-        event->button = x11ToButton(ev.xbutton.button);
-        event->position = vec2i(ev.xbutton.x, ev.xbutton.y);
+        event->button = x11ToButton(button.detail);
+        event->position = vec2i(button.event_x, button.event_y);
 		event->pressed = 0;
 
         nyMainApp()->dispatch(std::move(event));
         return 1;
     }
 
-    case EnterNotify:
+    case XCB_ENTER_NOTIFY:
     {
-		auto event = make_unique<MouseCrossEvent>(handler(ev.xcrossing.window));
-        event->position = vec2i(ev.xcrossing.x, ev.xcrossing.y);
+		auto& enter = reinterpret_cast<xcb_enter_notify_event_t&>(ev);  
+		auto event = make_unique<MouseCrossEvent>(handler(enter.event));
+        event->position = vec2i(enter.event_x, enter.event_y);
 		event->entered = 1;
         nyMainApp()->dispatch(std::move(event));
 
         return 1;
     }
 
-    case LeaveNotify:
+    case XCB_LEAVE_NOTIFY:
     {
-		auto event = make_unique<MouseCrossEvent>(handler(ev.xcrossing.window));
-        event->position = vec2i(ev.xcrossing.x, ev.xcrossing.y);
+		auto& leave = reinterpret_cast<xcb_enter_notify_event_t&>(ev);  
+		auto event = make_unique<MouseCrossEvent>(handler(leave.event));
+        event->position = vec2i(leave.event_x, leave.event_y);
 		event->entered = 0;
         nyMainApp()->dispatch(std::move(event));
 
         return 1;
     }
 
-    case FocusIn:
+    case XCB_FOCUS_IN:
     {
-		auto event = make_unique<FocusEvent>(handler(ev.xcrossing.window));
+		auto& focus = reinterpret_cast<xcb_focus_in_event_t&>(ev);  
+		auto event = make_unique<FocusEvent>(handler(focus.event));
 		event->focusGained = 1;
         nyMainApp()->dispatch(std::move(event));
 
         return 1;
     }
 
-    case FocusOut:
+    case XCB_FOCUS_OUT:
     {
-		auto event = make_unique<FocusEvent>(handler(ev.xcrossing.window));
+		auto& focus = reinterpret_cast<xcb_focus_in_event_t&>(ev);  
+		auto event = make_unique<FocusEvent>(handler(focus.event));
 		event->focusGained = 0;
         nyMainApp()->dispatch(std::move(event));
 
         return 1;
     }
 
-    case KeyPress:
+    case XCB_KEY_PRESS:
     {
+		auto& key = reinterpret_cast<xcb_key_press_event_t&>(ev);  
+		XKeyEvent xkey {};
+		xkey.keycode = key.detail;
+		xkey.state = key.state;
+		xkey.display = xDisplay_;
+
         KeySym keysym;
         char buffer[5];
-        XLookupString(&ev.xkey, buffer, 5, &keysym, nullptr);
+        XLookupString(&xkey, buffer, 5, &keysym, nullptr);
 
-		auto event = make_unique<KeyEvent>(handler(ev.xkey.window));
+		auto event = make_unique<KeyEvent>(handler(key.event));
 		event->pressed = 1;
 		event->key = x11ToKey(keysym);
 		event->text = buffer;
         nyMainApp()->dispatch(std::move(event));
+
         return 1;
     }
 
-    case KeyRelease:
+    case XCB_KEY_RELEASE:
     {
+		auto& key = reinterpret_cast<xcb_key_press_event_t&>(ev);  
+		XKeyEvent xkey {};
+		xkey.keycode = key.detail;
+		xkey.state = key.state;
+		xkey.display = xDisplay_;
+
         KeySym keysym;
         char buffer[5];
-        XLookupString(&ev.xkey, buffer, 5, &keysym, nullptr);
+        XLookupString(&xkey, buffer, 5, &keysym, nullptr);
 
-		auto event = make_unique<KeyEvent>(handler(ev.xkey.window));
+		auto event = make_unique<KeyEvent>(handler(key.event));
 		event->pressed = 0;
 		event->key = x11ToKey(keysym);
 		event->text = buffer;
         nyMainApp()->dispatch(std::move(event));
+
         return 1;
     }
 
-    case ConfigureNotify:
-    {
-        //todo: something about window state
-        auto nsize = vec2ui(ev.xconfigure.width, ev.xconfigure.height);
-        auto npos = vec2i(ev.xconfigure.x, ev.xconfigure.y); //positionEvent
+    case XCB_CONFIGURE_NOTIFY:
+	{
+		auto& configure = (xcb_configure_notify_event_t &)ev;  
 
-        if(!handler(ev.xconfigure.window))
+        //todo: something about window state
+        auto nsize = vec2ui(configure.width, configure.height);
+        auto npos = vec2i(configure.x, configure.y); //positionEvent
+
+        if(!handler(configure.window))
             return 1;
 
-        if(any(windowContext(ev.xconfigure.window)->window().size() != nsize)) //sizeEvent
+        if(any(windowContext(configure.window)->window().size() != nsize)) //sizeEvent
 		{
-			auto event = make_unique<SizeEvent>(handler(ev.xconfigure.window));
+			auto event = make_unique<SizeEvent>(handler(configure.window));
 			event->size = nsize;
 			event->change = 0;
 			nyMainApp()->dispatch(std::move(event));
 		}
 
-        if(any(windowContext(ev.xconfigure.window)->window().position() != npos))
+        if(any(windowContext(configure.window)->window().position() != npos))
 		{
-			auto event = make_unique<PositionEvent>(handler(ev.xconfigure.window));
+			auto event = make_unique<PositionEvent>(handler(configure.window));
 			event->position = npos;
 			event->change = 0;
 			nyMainApp()->dispatch(std::move(event));
@@ -366,7 +400,7 @@ bool X11AppContext::processEvent(XEvent& ev)
 
         return 1;
     }
-
+/*
     case ReparentNotify: //nothing similar in other backend. done directly
     {
         if(handler(ev.xreparent.window))
@@ -378,7 +412,7 @@ bool X11AppContext::processEvent(XEvent& ev)
 
         return 1;
     }
-
+*/
     case SelectionNotify:
     {
         /*
@@ -448,6 +482,8 @@ bool X11AppContext::processEvent(XEvent& ev)
 
     case ClientMessage:
     {
+		auto& client = (xcb_client_message_event_t&)ev;
+		/*
         if(ev.xclient.message_type == x11::DndEnter)
         {
             //bool moreThan3 = ev.xclient.data.l[1] & 1;
@@ -466,21 +502,20 @@ bool X11AppContext::processEvent(XEvent& ev)
 
         else if(ev.xclient.message_type == x11::DndDrop)
         {
-            /*
             dataObject* object = new x11DataObject();
             dataReceiveEvent e(*object);
             x11WC* w = getWindowContext(ev.xclient.window);
             if(!w) return 1;
             nyMainApp()->sendEvent(e, w->getWindow());
             return 1;
-            */
+  
         }
-
-        else if((unsigned long)ev.xclient.data.l[0] == x11::WindowDelete)
+*/
+        if((unsigned long)client.data.data32[0] == x11::WindowDelete)
         {
-            if(handler(ev.xclient.window)) 
+            if(handler(client.window)) 
 			{
-				auto event = make_unique<DestroyEvent>(handler(ev.xclient.window));
+				auto event = make_unique<DestroyEvent>(handler(client.window));
 				nyMainApp()->dispatch(std::move(event));
 			}
 
@@ -488,21 +523,41 @@ bool X11AppContext::processEvent(XEvent& ev)
         }
     }
 
+	}
+
+    XLockDisplay(xDisplay_);
+    Bool(*proc)(Display*, XEvent*, xEvent*) = 
+		XESetWireToEvent(xDisplay_, ev.response_type & ~0x80, nullptr);
+    if(proc) 
+	{
+        XESetWireToEvent(xDisplay_, ev.response_type & ~0x80, proc);
+        XEvent dummy;
+        ev.sequence = LastKnownRequestProcessed(xDisplay_);
+        if(proc(xDisplay_, &dummy, (xEvent*) &ev)) //not handled
+		{
+			//goddamit
+		}
     }
+	XUnlockDisplay(xDisplay_);
+
 
     return 1;
 }
 
 int X11AppContext::mainLoop()
 {
+	//XSetWindowAttributes attr;
+	//attr.event_mask = SubstructureNotifyMask;
+	//XChangeWindowAttributes(xDisplay_, DefaultRootWindow(xDisplay_), CWEventMask, &attr);
+
 	runMainLoop_ = 1;
 	while(runMainLoop_)
 	{
-		XEvent event;
-		XNextEvent(xDisplay_, &event);
-		processEvent(event);
+		xcb_generic_event_t *event = xcb_wait_for_event(xConnection_);
+		processEvent(*event);
+		free(event);
 	}
-
+	
 	return 1;
 }
 

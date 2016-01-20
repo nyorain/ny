@@ -18,6 +18,11 @@
 namespace ny
 {
 
+namespace
+{
+int count = 0;
+}
+
 Window::Window()
 {
 }
@@ -35,6 +40,7 @@ Window::~Window()
 void Window::create(const vec2ui& size, 
 		const WindowContextSettings& settings)
 {
+	count++;
     size_ = size;
 
     if(!nyMainApp())
@@ -168,6 +174,15 @@ void Window::windowClose(const DestroyEvent& event)
 {
 	windowContext_.reset();
 	destroyCallback_(*this);
+
+	count--;
+	if(count <= 0)
+	{
+		if(nyMainApp())
+		{
+			nyMainApp()->exit();
+		}
+	}
 }
 void Window::mouseMove(const MouseMoveEvent& e)
 {

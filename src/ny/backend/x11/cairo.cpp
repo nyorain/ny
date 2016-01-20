@@ -25,7 +25,6 @@ X11CairoDrawContext::X11CairoDrawContext(X11WindowContext& wc)
 X11CairoDrawContext::~X11CairoDrawContext()
 {
     cairo_surface_destroy(xlibSurface_);
-    cairo_surface_destroy(cairoSurface_);
 }
 
 void X11CairoDrawContext::size(const vec2ui& size)
@@ -41,6 +40,7 @@ void X11CairoDrawContext::size(const vec2ui& size)
 
 void X11CairoDrawContext::apply()
 {
+	CairoDrawContext::apply();
     cairo_surface_flush(cairoSurface_);
     cairo_surface_show_page(cairoSurface_);
 

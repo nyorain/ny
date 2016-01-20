@@ -26,6 +26,8 @@ namespace
 //
 GlxContext::GlxContext(X11WindowContext& wc, GLXFBConfig fbc) : wc_(&wc)
 {
+	glxWindow_ = glXCreateWindow(xDisplay(), fbc, wc_->xWindow(), 0);
+
     int (*oldHandler)(Display*, XErrorEvent*) = XSetErrorHandler(&ctxErrorHandler);
     using procType = GLXContext(*)(Display*, GLXFBConfig, GLXContext, Bool, const int*);
 
@@ -35,7 +37,7 @@ GlxContext::GlxContext(X11WindowContext& wc, GLXFBConfig fbc) : wc_(&wc)
     const char* glxExts = glXQueryExtensionsString(xDisplay(), DefaultScreen(xDisplay()));
 	auto extVec = split(glxExts, ' ');
 	
-	nytl::sendLog("glx extensions: ", glxExts);
+	//nytl::sendLog("glx extensions: ", glxExts);
 	auto it = std::find(extVec.begin(), extVec.end(), "GLX_ARB_create_context");
 	bool supported = (it != extVec.end());
 
@@ -91,7 +93,7 @@ GlxContext::GlxContext(X11WindowContext& wc, GLXFBConfig fbc) : wc_(&wc)
     glXGetFBConfigAttrib(xDisplay(), fbc, GLX_STENCIL_SIZE, &stencil);
     glXGetFBConfigAttrib(xDisplay(), fbc, GLX_DEPTH_SIZE, &depth);
 
-    initContext(Api::openGL, depth, stencil);
+	GlContext::initContext(Api::openGL, depth, stencil);
 }
 
 GlxContext::~GlxContext()
@@ -101,7 +103,7 @@ GlxContext::~GlxContext()
 
 bool GlxContext::makeCurrentImpl()
 {
-    if(!glXMakeCurrent(xDisplay(), wc_->xWindow(), glxContext_))
+    if(!glXMakeCurrent(xDisplay(), glxWindow_, glxContext_))
     {
 		nytl::sendWarning("Glx::makeCurrentImpl: glxmakecurrent failed");
         return 0;
@@ -125,7 +127,9 @@ bool GlxContext::makeNotCurrentImpl()
 bool GlxContext::apply()
 {
 	drawContext_.apply();
-    glXSwapBuffers(xDisplay(), wc_->xWindow());
+
+	GlContext::apply();
+    glXSwapBuffers(xDisplay(), glxWindow_);
     return 1;
 }
 

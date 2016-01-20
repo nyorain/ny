@@ -6,6 +6,9 @@
 #include <X11/Xlib.h>
 using XWindow = XID;
 
+#include <X11/Xlib-xcb.h> /* for XGetXCBConnection, link with libX11-xcb */
+#include <xcb/xcb.h>
+
 #include <map>
 
 namespace ny
@@ -27,6 +30,8 @@ protected:
     int xDefaultScreenNumber_;
     Screen* xDefaultScreen_;
 
+	xcb_connection_t* xConnection_;
+
     XWindow selectionWindow_;
 
     selectionType lastSelection_ = selectionType::none; //needed?
@@ -42,7 +47,7 @@ protected:
     std::map<XWindow, X11WindowContext*> contexts_;
 
     void sendRedrawEvent(XWindow w);
-    bool processEvent(XEvent& ev);
+    bool processEvent(xcb_generic_event_t& ev);
     Window* handler(XWindow w);
 
 public:

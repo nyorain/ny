@@ -21,6 +21,7 @@ protected:
     X11WindowContext* wc_;
     GLXContext glxContext_ = nullptr;
 	GlDrawContext drawContext_;
+	unsigned int glxWindow_;
 
     virtual bool makeCurrentImpl() override;
     virtual bool makeNotCurrentImpl() override;
