@@ -17,9 +17,6 @@ protected:
 public:
     ChildWindow(Window& parent, const vec2ui& size, const WindowSettings& settings = {});
 
-    //const ToplevelWindow* topLevelParent() const { return parent()->getTopLevelParent(); };
-    //ToplevelWindow* topLevelParent() { return parent()->getTopLevelParent(); };
-	
 	Window& parent() const { return *parent_; }
 };
 

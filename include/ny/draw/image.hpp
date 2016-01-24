@@ -4,10 +4,10 @@
 #include <ny/app/file.hpp>
 #include <nytl/vec.hpp>
 
-#include <vector>
 #include <string>
 #include <istream>
 #include <ostream>
+#include <memory>
 
 namespace ny
 {
@@ -27,31 +27,33 @@ public:
 	static unsigned int formatSize(Format f);
 
 protected:
-	std::vector<unsigned char> data_;
+	std::unique_ptr<std::uint8_t[]> data_ {nullptr};
 	vec2ui size_ {0u, 0u};
 	Format format_ {Format::rgba8888};
 
 public:
     Image(const vec2ui& size = {0u, 0u}, Format format = Format::rgba8888);
     Image(const std::string& path);
-	Image(const std::vector<unsigned char>& data, const vec2ui& size, Format format);
-	Image(std::vector<unsigned char>&& data, const vec2ui& size, Format format);
+	Image(const std::uint8_t* data, const vec2ui& size, Format format);
+	Image(std::unique_ptr<std::uint8_t[]>&& data, const vec2ui& size, Format format);
 
     virtual ~Image() = default;
 
-    Image(const Image& other) = default;
-    Image& operator=(const Image& other) = default;
+    Image(const Image& other);
+    Image& operator=(const Image& other);
 
 	//noexcept? :o
 	Image(Image&& other) = default;
 	Image& operator=(Image&& other) = default;
 
 	//
-	std::vector<unsigned char>& data() { return data_; }
-	const std::vector<unsigned char>& data() const { return data_; }
-    void data(const std::vector<unsigned char>& newdata, const vec2ui& newsize);
+	std::size_t dataSize() const;
 
-	std::vector<unsigned char> copyData() const;
+	std::uint8_t* data() { return data_.get(); }
+	const std::uint8_t* data() const { return data_.get(); }
+    void data(const std::uint8_t* newdata, const vec2ui& newsize, Format newFormat);
+    void data(std::unique_ptr<std::uint8_t[]>&& newdata, const vec2ui& newsize, Format newFormat);
+	std::unique_ptr<std::uint8_t[]> copyData() const;
 
     unsigned int pixelSize() const;
     Format format() const { return format_; }

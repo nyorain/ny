@@ -99,6 +99,9 @@ void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)
 		}
 	}
 
+	//TODO: choose highest if multiple are available
+	preferredGlslVersion_ = glslVersions_[0];
+
 	//restore saved one
 	if(saved && !saved->makeCurrent())
 	{
@@ -132,6 +135,14 @@ bool GlContext::makeNotCurrent()
 bool GlContext::isCurrent() const
 {
 	return (threadLocalCurrent() == this);
+}
+
+bool GlContext::sharedWith(const GlContext& other) const
+{
+	for(auto& ctx : sharedContexts())
+		if(ctx == &other) return 1;
+
+	return 0;
 }
 
 bool GlContext::glExtensionSupported(const std::string& name) const

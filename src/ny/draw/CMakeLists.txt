@@ -20,6 +20,7 @@ if(NY_WithGL)
 		gl/drawContext.cpp 
 		gl/texture.cpp
 		gl/shader.cpp
+		gl/shaderGenerator.cpp
 		gl/resource.cpp)
 endif(NY_WithGL)
 

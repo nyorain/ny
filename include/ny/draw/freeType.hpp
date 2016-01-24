@@ -1,35 +1,64 @@
 #pragma once
 
 #include <ny/include.hpp>
+#include <ny/draw/image.hpp>
+
 #include <nytl/cache.hpp>
 #include <nytl/cloneable.hpp>
+#include <nytl/vec.hpp>
 
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
 
 #include <string>
+#include <memory>
+#include <map>
 
 namespace ny
 {
 
-//Cache Name: "ny::FTFontHandle"
-class FTFontHandle : public deriveCloneable<cache, FTFontHandle>
+///Character
+class Character
+{
+public:
+	Image image;
+	vec2i bearing {0, 0};
+	unsigned int advance {0};
+};
+
+//Library
+class FreeTypeLibrary
+{
+public:
+	static FreeTypeLibrary& instance();
+
+protected:
+	FT_Library lib_;
+
+public:
+	FreeTypeLibrary();
+	~FreeTypeLibrary();
+
+	FT_Library handle() const { return lib_; }
+};
+
+//Cache Name: "ny::FreeTypeFontHandle"
+class FreeTypeFontHandle : public deriveCloneable<cache, FreeTypeFontHandle>
 {
 protected:
-    static FT_Library lib_;
-
-public:
-    static bool init();
-    static FT_Library lib(){ return lib_; }
-
-protected:
     FT_Face face_;
+	mutable std::map<char, Character> charCache_;
 
 public:
-    FTFontHandle(const std::string& name, bool fromFile = 0);
-    ~FTFontHandle();
+    FreeTypeFontHandle(const Font& f);
+    FreeTypeFontHandle(const std::string& name, bool fromFile = 0);
+    ~FreeTypeFontHandle();
 
 	FT_Face face() const { return face_; }
+	void characterSize(const vec2ui& size);
+
+	void cacheAscii() const;
+	Character& load(char c) const;
 };
 
 }

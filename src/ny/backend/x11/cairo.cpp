@@ -11,6 +11,8 @@
 namespace ny
 {
 
+//TODO: correct double-buffering WITHOUT (!) leak
+
 //x11CairoContext
 X11CairoDrawContext::X11CairoDrawContext(X11WindowContext& wc)
 {
@@ -18,24 +20,25 @@ X11CairoDrawContext::X11CairoDrawContext(X11WindowContext& wc)
 
     xlibSurface_ = cairo_xlib_surface_create(xDisplay(), wc.xWindow(), wc.xVinfo()->visual, 
 			size.x, size.y);
-    cairoSurface_ = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, size.x, size.y);
+    //cairoSurface_ = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, size.x, size.y);
+	cairoSurface_ = xlibSurface_;
     cairoCR_ = cairo_create(cairoSurface_);
 }
 
 X11CairoDrawContext::~X11CairoDrawContext()
 {
-    cairo_surface_destroy(xlibSurface_);
+    //cairo_surface_destroy(xlibSurface_);
 }
 
 void X11CairoDrawContext::size(const vec2ui& size)
 {
-    cairo_surface_destroy(cairoSurface_);
     cairo_destroy(cairoCR_);
+    //cairo_surface_destroy(cairoSurface_);
 
-    cairoSurface_ = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, size.x, size.y);
+    //cairoSurface_ = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, size.x, size.y);
+
+    cairo_xlib_surface_set_size(cairoSurface_, size.x, size.y);
     cairoCR_ = cairo_create(cairoSurface_);
-
-    cairo_xlib_surface_set_size(xlibSurface_, size.x, size.y);
 }
 
 void X11CairoDrawContext::apply()
@@ -43,13 +46,17 @@ void X11CairoDrawContext::apply()
 	CairoDrawContext::apply();
     cairo_surface_flush(cairoSurface_);
     cairo_surface_show_page(cairoSurface_);
-
+/*
     cairo_t* cr = cairo_create(xlibSurface_);
 
     cairo_set_source_surface(cr, cairoSurface_, 0, 0);
-    cairo_paint(cr);
+    //cairo_paint(cr);
 
     cairo_destroy(cr);
+
+	cairo_destroy(cairoCR_);
+	cairoCR_ = cairo_create(cairoSurface_);
+	*/
 }
 
 }

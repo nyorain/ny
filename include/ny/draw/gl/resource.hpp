@@ -20,6 +20,31 @@ public:
 	GlResource(GlContext* ctx = nullptr);
 
 	GlContext* glContext() const { return glContext_; }
+	virtual bool shareable() const = 0;
 };
+
+///OpenGL(ES) VertexArray
+class GlVertexArray : public GlResource
+{
+protected:
+	unsigned int handle_;
+
+public:
+	void bind() const;
+	virtual bool shareable() const { return 0; }
+};
+
+///OpenGL(ES) Buffer
+class GlBuffer : public GlResource
+{
+protected:
+	unsigned int handle_;
+	unsigned int type_;
+
+public:
+	void bind() const;
+	virtual bool shareable() const { return 1; }
+};
+
 
 }

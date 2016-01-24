@@ -411,9 +411,8 @@ PathBase& PathBase::operator=(const PathBase& other)
 }
 
 PathBase::PathBase(PathBase&& other) noexcept
-	: type_(other.type_), circle_()
+	: type_(other.type_)
 {
-	resetUnion();
 	switch(type_)
 	{
 		case Type::text: text_ = std::move(other.text_); break;

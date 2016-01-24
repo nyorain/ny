@@ -57,6 +57,8 @@ public:
 
 	///Deletes the compiled shader program if existent.
 	void reset();
+
+	virtual bool shareable() const { return 1; }
 };
 
 }

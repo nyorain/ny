@@ -100,7 +100,7 @@ CairoDrawContext::CairoDrawContext(cairo_surface_t& cairoSurface)
 CairoDrawContext::CairoDrawContext(Image& img)
 {
 	//todo: correct format and stuff
-    cairoSurface_ = cairo_image_surface_create_for_data(img.data().data(), CAIRO_FORMAT_ARGB32, 
+    cairoSurface_ = cairo_image_surface_create_for_data(img.data(), CAIRO_FORMAT_ARGB32, 
 		img.size().x, img.size().y, img.size().x * 4);
 }
 

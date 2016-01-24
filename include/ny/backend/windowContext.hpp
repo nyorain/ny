@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <ny/window/defs.hpp>
+#include <ny/window/settings.hpp>
 
 #include <nytl/nonCopyable.hpp>
 #include <nytl/vec.hpp>

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ny/draw/include.hpp>
+#include <ny/include.hpp>
 
 #ifdef NY_WithGL
 
@@ -11,9 +11,5 @@
 #ifdef NY_WithEGL
 #include <ny/draw/gl/egl.hpp>
 #endif //WithEGL
-
-#ifdef NY_WithGLES
-#include <ny/draw/gl/gles.hpp>
-#endif //WithGLES
 
 #endif //WithGL

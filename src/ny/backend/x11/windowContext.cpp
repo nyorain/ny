@@ -39,22 +39,22 @@ bool usingGLX(Preference glPref)
 
     //WithGL
     #if (!defined NY_WithGL)
-     if(glPref == Preference::Must) 
+     if(glPref == Preference::must) 
 		throw std::runtime_error("x11WC::x11WC: no gl renderer available, preference is must");
      else return 0;
 
     #else
-     if(glPref == Preference::Must || glPref == Preference::Should) return 1;
+     if(glPref == Preference::must || glPref == Preference::should) return 1;
     #endif
 
     //WithCairo
     #if (!defined NY_WithCairo)
-     if(glPref == Preference::MustNot) 
+     if(glPref == Preference::mustNot) 
 		throw std::runtime_error("x11WC::x11WC: no software renderer available");
      else return 1;
 
     #else
-     if(glPref == Preference::MustNot || glPref == Preference::ShouldNot) return 0;
+     if(glPref == Preference::mustNot || glPref == Preference::shouldNot) return 0;
 
     #endif
 
@@ -182,6 +182,8 @@ X11WindowContext::X11WindowContext(Window& win, const X11WindowSettings& setting
          cairo_.reset(new X11CairoDrawContext(*this));
 		#endif
     }
+
+	addWindowHints(window().windowHints());
 }
 
 void X11WindowContext::create()
@@ -315,7 +317,9 @@ DrawContext& X11WindowContext::beginDraw()
     {
 		#ifdef NY_WithGL
          glx_->makeCurrent();
-         return glx_->drawContext();
+		 auto& ret = glx_->drawContext();
+		 ret.viewport(rect2f({0.f, 0.f}, window().size()));
+		 return ret;
 		#endif
     }
 
@@ -437,12 +441,12 @@ void X11WindowContext::addWindowHints(unsigned long hints)
     unsigned long motifFunc = 0;
 
 
-    if(hints & windowHints::Close)
+    if(hints & windowHints::close)
     {
         motifFunc |= x11::MwmFuncClose;
         addAllowedAction(x11::AllowedActionClose);
     }
-    if(hints & windowHints::Maximize)
+    if(hints & windowHints::maximize)
     {
         motifFunc |= x11::MwmFuncMaximize;
         motifDeco |= x11::MwmDecoMaximize;
@@ -451,33 +455,33 @@ void X11WindowContext::addWindowHints(unsigned long hints)
         addAllowedAction(x11::AllowedActionMaximizeVert);
     }
 
-    if(hints & windowHints::Minimize)
+    if(hints & windowHints::minimize)
     {
         motifFunc |= x11::MwmFuncMinimize;
         motifDeco |= x11::MwmDecoMinimize;
 
         addAllowedAction(x11::AllowedActionMinimize);
     }
-    if(hints & windowHints::Move)
+    if(hints & windowHints::move)
     {
         motifFunc |= x11::MwmFuncMove;
         motifDeco |= x11::MwmDecoTitle;
 
         addAllowedAction(x11::AllowedActionMove);
     }
-    if(hints & windowHints::Resize)
+    if(hints & windowHints::resize)
     {
         motifFunc |= x11::MwmFuncResize;
         motifDeco |= x11::MwmDecoResize;
 
         addAllowedAction(x11::AllowedActionResize);
     }
-    if(hints & windowHints::ShowInTaskbar)
+    if(hints & windowHints::showInTaskbar)
     {
         removeState(x11::StateSkipPager);
         removeState(x11::StateSkipTaskbar);
     }
-    if(hints & windowHints::AlwaysOnTop)
+    if(hints & windowHints::alwaysOnTop)
     {
         addState(x11::StateAbove);
     }
@@ -492,12 +496,12 @@ void X11WindowContext::removeWindowHints(unsigned long hints)
     unsigned long motifDeco = 0;
     unsigned long motifFunc = 0;
 
-    if(hints & windowHints::Close)
+    if(hints & windowHints::close)
     {
         motifFunc |= x11::MwmFuncClose;
         removeAllowedAction(x11::AllowedActionClose);
     }
-    if(hints & windowHints::Maximize)
+    if(hints & windowHints::maximize)
     {
         motifFunc |= x11::MwmFuncMaximize;
         motifDeco |= x11::MwmDecoMaximize;
@@ -506,37 +510,36 @@ void X11WindowContext::removeWindowHints(unsigned long hints)
         removeAllowedAction(x11::AllowedActionMaximizeVert);
     }
 
-    if(hints & windowHints::Minimize)
+    if(hints & windowHints::minimize)
     {
         motifFunc |= x11::MwmFuncMinimize;
         motifDeco |= x11::MwmDecoMinimize;
 
         removeAllowedAction(x11::AllowedActionMinimize);
     }
-    if(hints & windowHints::Move)
+    if(hints & windowHints::move)
     {
         motifFunc |= x11::MwmFuncMove;
         motifDeco |= x11::MwmDecoTitle;
 
         removeAllowedAction(x11::AllowedActionMove);
     }
-    if(hints & windowHints::Resize)
+    if(hints & windowHints::resize)
     {
         motifFunc |= x11::MwmFuncResize;
         motifDeco |= x11::MwmDecoResize;
 
         removeAllowedAction(x11::AllowedActionResize);
     }
-    if(hints & windowHints::ShowInTaskbar)
+    if(hints & windowHints::showInTaskbar)
     {
         addState(x11::StateSkipPager);
         addState(x11::StateSkipTaskbar);
     }
-    if(hints & windowHints::AlwaysOnTop)
+    if(hints & windowHints::alwaysOnTop)
     {
         removeState(x11::StateAbove);
     }
-
 
     mwmFuncHints_ &= ~motifFunc;
     mwmDecoHints_ &= ~motifDeco;
@@ -786,14 +789,14 @@ void X11WindowContext::beginResize(const MouseButtonEvent* ev, WindowEdge edge)
 
     switch(edge)
     {
-        case WindowEdge::Top: x11Edge = x11::MoveResizeSizeTop; break;
-        case WindowEdge::Left: x11Edge = x11::MoveResizeSizeLeft; break;
-        case WindowEdge::Bottom: x11Edge = x11::MoveResizeSizeBottom; break;
-        case WindowEdge::Right: x11Edge = x11::MoveResizeSizeRight; break;
-        case WindowEdge::TopLeft: x11Edge = x11::MoveResizeSizeTopLeft; break;
-        case WindowEdge::TopRight: x11Edge = x11::MoveResizeSizeTopRight; break;
-        case WindowEdge::BottomLeft: x11Edge = x11::MoveResizeSizeBottomLeft; break;
-        case WindowEdge::BottomRight: x11Edge = x11::MoveResizeSizeBottomRight; break;
+        case WindowEdge::top: x11Edge = x11::MoveResizeSizeTop; break;
+        case WindowEdge::left: x11Edge = x11::MoveResizeSizeLeft; break;
+        case WindowEdge::bottom: x11Edge = x11::MoveResizeSizeBottom; break;
+        case WindowEdge::right: x11Edge = x11::MoveResizeSizeRight; break;
+        case WindowEdge::topLeft: x11Edge = x11::MoveResizeSizeTopLeft; break;
+        case WindowEdge::topRight: x11Edge = x11::MoveResizeSizeTopRight; break;
+        case WindowEdge::bottomLeft: x11Edge = x11::MoveResizeSizeBottomLeft; break;
+        case WindowEdge::bottomRight: x11Edge = x11::MoveResizeSizeBottomRight; break;
         default: return;
     }
 
@@ -820,9 +823,9 @@ void X11WindowContext::icon(const Image* img)
     //TODO: only rgba images accepted atm
     if(img)
     {
-        auto& imageData = img->data();
+        auto imageData = img->data();
         XChangeProperty(xDisplay(), xWindow_, x11::WMIcon, x11::Cardinal, 32, PropModeReplace, 
-				imageData.data(), 2 + img->size().x * img->size().y);
+				imageData, 2 + img->size().x * img->size().y);
 
         return;
     }

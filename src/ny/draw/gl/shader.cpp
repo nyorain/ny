@@ -1,22 +1,14 @@
 #include <ny/draw/gl/shader.hpp>
 #include <ny/draw/gl/context.hpp>
 #include <ny/draw/color.hpp>
+
+#include <ny/draw/gl/validate.hpp>
 #include <ny/draw/gl/glad/glad.h>
 
 #include <nytl/log.hpp>
 
 
 #include <fstream>
-
-//macro for current context validation
-#if defined(__GNUC__) || defined(__clang__)
- #define FUNC_NAME __PRETTY_FUNCTION__
-#else
- #define FUNC_NAME __func__
-#endif //FUNCNAME
-
-#define VALIDATE_CTX(...) if(!validContext())\
-	{ nytl::sendWarning(FUNC_NAME, ": invalid GlContext for GlResource "); return __VA_ARGS__; }
 
 namespace ny
 {

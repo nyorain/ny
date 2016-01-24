@@ -50,6 +50,7 @@ protected:
 	std::vector<std::string> extensions_;
 	std::vector<GlContext*> sharedContexts_;
 	std::vector<unsigned int> glslVersions_;
+	unsigned int preferredGlslVersion_;
 
 	///This should be called by implementations at some point of context creation/initialisation
 	///to init the context (e.g. function pointer resolution; glew/glbinding). 
@@ -118,8 +119,14 @@ public:
 	///Returns all supported glsl versions
 	std::vector<unsigned int> glslVersions() const { return glslVersions_; }
 
+	///Returns the preferred glsl version
+	unsigned int preferredGlslVersion() const { return preferredGlslVersion_; }
+
 	///Returns a vector of all shared opengl contexts.
 	std::vector<GlContext*> sharedContexts() const { return sharedContexts_; }
+
+	///Returns whether the context shares it resources with the other context.
+	bool sharedWith(const GlContext& other) const;
 
 	///Updates the openGL viewport
 	void updateViewport(const rect2f& viewport);

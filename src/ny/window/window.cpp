@@ -1,8 +1,9 @@
 #include <ny/window/window.hpp>
+#include <ny/window/events.hpp>
+#include <ny/window/cursor.hpp>
 
 #include <ny/app/event.hpp>
 #include <ny/app/app.hpp>
-#include <ny/window/cursor.hpp>
 #include <ny/backend/backend.hpp>
 #include <ny/backend/windowContext.hpp>
 #include <ny/draw/drawContext.hpp>

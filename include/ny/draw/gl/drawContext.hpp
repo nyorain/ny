@@ -28,7 +28,9 @@ public:
 		struct
 		{
 			Shader color;
-			Shader texture;
+			Shader textureRGBA;
+			Shader textureRGB;
+			Shader colorTextureA;
 			Shader radialGradient;
 			Shader linearGradient;
 		} brush;
@@ -73,6 +75,8 @@ public:
 	virtual void clipRectangle(const rect2f& rct) override;
 	virtual rect2f rectangleClip() const override;
 	virtual void resetRectangleClip() override;
+
+	virtual void apply() override;
 
 	//gl-specific
 	virtual void viewport(const rect2f& viewport);

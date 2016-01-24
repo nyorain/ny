@@ -2,24 +2,15 @@
 #include <ny/draw/gl/texture.hpp>
 #include <ny/draw/gl/context.hpp>
 #include <ny/draw/gl/shader.hpp>
+#include <ny/draw/freeType.hpp>
 #include <ny/draw/triangulate.hpp>
+#include <ny/draw/font.hpp>
 
-#include <ny/draw/gl/shaderSources/modern.hpp>
+#include <ny/draw/gl/validate.hpp>
+#include <ny/draw/gl/shaderSources/default.hpp>
 #include <ny/draw/gl/glad/glad.h>
 
 #include <nytl/log.hpp>
-
-
-//macro for current context validation
-#if defined(__GNUC__) || defined(__clang__)
- #define FUNC_NAME __PRETTY_FUNCTION__
-#else
- #define FUNC_NAME __func__
-#endif //FUNCNAME
-
-//macro for assuring a valid context (warn and return if there is none)
-#define VALIDATE_CTX(x) if(!GlContext::current())\
-	{ nytl::sendWarning(FUNC_NAME, ": no current opengl context."); return x; }
 
 
 namespace ny
@@ -66,7 +57,7 @@ GlDrawContext::ShaderPrograms& GlDrawContext::shaderPrograms()
 	if(!prog.initialized)
 	{
 		prog.brush.color.loadFromString(defaultShaderVS, modernColorShaderFS);
-		prog.brush.texture.loadFromString(defaultShaderVS, modernTextureShaderFS);
+		prog.brush.colorTextureA.loadFromString(uvShaderVS, modernColorShaderTextureAFS);
 		prog.initialized = 1;
 	}
 
@@ -87,7 +78,7 @@ Shader& GlDrawContext::shaderProgramForBrush(const Brush& b)
 		}	
 		case Brush::Type::texture: 
 		{
-		   ret = &shaderPrograms().brush.texture;
+		   ret = &shaderPrograms().brush.textureRGBA;
 		   ret->use();
 		   ret->uniform("fTexturePosition", b.textureBrush().extents.position);
 		   ret->uniform("fTextureSize", b.textureBrush().extents.size);
@@ -169,9 +160,13 @@ Shader& GlDrawContext::shaderProgramForPen(const Pen& p)
 void GlDrawContext::fillTriangles(const std::vector<triangle2f>& triangles, 
 		const Brush& brush, const mat3f& transMatrix)
 {
-	GLuint vbo;
+	GLuint vbo, vao;
 	glGenBuffers(1, &vbo);
+	glGenVertexArrays(1, &vao);
+
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBindVertexArray(vao);
+
 	glBufferData(GL_ARRAY_BUFFER, triangles.size() * 6 * sizeof(GLfloat), 
 		(GLfloat*) triangles.data(), GL_STATIC_DRAW);
 
@@ -180,11 +175,16 @@ void GlDrawContext::fillTriangles(const std::vector<triangle2f>& triangles,
 	program.uniform("vTransform", transMatrix);
 
 	GLint posAttrib = glGetAttribLocation(program.glProgram(), "position");
-	glEnableVertexAttribArray(posAttrib);
 	glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+	glEnableVertexAttribArray(posAttrib);
 	
 	glDrawArrays(GL_TRIANGLES, 0, triangles.size() * 3);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+
 	glDeleteBuffers(1, &vbo);
+	glDeleteVertexArrays(1, &vao);
 }
 
 void GlDrawContext::strokePath(const std::vector<vec2f>& path, const Pen& pen, 
@@ -211,6 +211,84 @@ void GlDrawContext::strokePath(const std::vector<vec2f>& path, const Pen& pen,
 
 void GlDrawContext::fillText(const Text& t, const Brush& b)
 {
+	if(!t.font()) return;
+
+	auto& string = t.string();
+	auto& shader = shaderPrograms().brush.colorTextureA;
+	shader.use();
+	shader.uniform("fColor", b.color().rgbaNorm());
+	shader.uniform("vViewSize", viewport().size);
+	shader.uniform("vTransform", t.transformMatrix());
+
+	auto fontHandle = 
+		static_cast<FreeTypeFontHandle*>(t.font()->getCache("ny::FreeTypeFontHandle"));
+	if(!fontHandle)
+	{
+		auto h = make_unique<FreeTypeFontHandle>(*t.font());
+		fontHandle = h.get();
+		t.font()->storeCache("ny::FreeTypeFontHandle", std::move(h));
+	}
+
+	fontHandle->characterSize({0, static_cast<unsigned int>(t.size())});
+
+	GLuint vbo, vao;
+	glGenBuffers(1, &vbo);
+	glGenVertexArrays(1, &vao);
+
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBindVertexArray(vao);
+	
+	vec2f position = {0, 0};
+	vec2f size = {0, 0};
+
+	glBufferData(GL_ARRAY_BUFFER, 24 * sizeof(GLfloat), nullptr, GL_DYNAMIC_DRAW);
+
+	GLint posAttrib = glGetAttribLocation(shader.glProgram(), "vertex");
+	glEnableVertexAttribArray(posAttrib);
+	glVertexAttribPointer(posAttrib, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  
+
+	for(auto& c : string)
+	{
+		auto& ch = fontHandle->load(c);
+
+        size = ch.image.size();
+		auto w = size.x;
+		auto h = size.y;
+
+		auto pos = position;
+		pos.x += ch.bearing.x;
+        pos.y -= ch.bearing.y - t.size();
+
+		auto xpos = pos.x;
+		auto ypos = pos.y;
+	
+		GLfloat vertices[6][4] = {
+       	     { xpos,     ypos + h,   0.0, 1.0 },            
+       	     { xpos,     ypos,       0.0, 0.0 },
+       	     { xpos + w, ypos,       1.0, 0.0 },
+
+       	     { xpos,     ypos + h,   0.0, 1.0 },
+       	     { xpos + w, ypos,       1.0, 0.0 },
+       	     { xpos + w, ypos + h,   1.0, 1.0 }           
+       	 };
+
+		shader.uniform("fTextureSize", size);
+		shader.uniform("fTexturePosition", pos);
+
+		auto glTex = GlTexture(ch.image);
+		glTex.bind();
+
+	    glBufferSubData(GL_ARRAY_BUFFER, 0, 24 * sizeof(float), vertices); 
+	
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		position.x += (ch.advance >> 6);
+	}
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glDeleteBuffers(1, &vbo);
 }
 
 void GlDrawContext::strokeText(const Text& t, const Pen& p)
@@ -305,6 +383,13 @@ void GlDrawContext::strokePreserve(const Pen& pen)
 			strokeText(pth.text(), pen);
 		}
 	}
+}
+
+void GlDrawContext::apply()
+{
+	VALIDATE_CTX();
+
+	glFinish();
 }
 
 void GlDrawContext::clipRectangle(const rect2f& rct)

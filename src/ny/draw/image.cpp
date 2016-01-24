@@ -19,9 +19,8 @@ unsigned int Image::formatSize(Image::Format f)
 {
 	switch(f)
 	{
-		case Format::rgba8888: return 4;
+		case Format::rgba8888: case Format::xrgb8888: return 4;
 		case Format::rgb888: return 3;
-		//case Format::rgb655: case Format::rgb565: case Format::rgb556: return 2;
 		case Format::a8: return 1;
 		default: return 0;
 	}
@@ -63,7 +62,7 @@ namespace
 //Image
 Image::Image(const vec2ui& size, Format format) : File(), size_(size), format_(format)
 {
-	data_.resize(size_.x * size_.y);
+	data_ = make_unique<std::uint8_t[]>(dataSize());
 }
 
 Image::Image(const std::string& path) : File(path)
@@ -72,27 +71,59 @@ Image::Image(const std::string& path) : File(path)
 	load(path);
 }
 
-Image::Image(const std::vector<unsigned char>& data, const vec2ui& size, Format format)
-	: File(), data_(data), size_(size), format_(format)
+Image::Image(const std::uint8_t* data, const vec2ui& size, Format format)
+	: File(), size_(size), format_(format)
 {
+	data_ = make_unique<std::uint8_t[]>(dataSize());
+	std::memcpy(data_.get(), data, dataSize());
 }
 
-Image::Image(std::vector<unsigned char>&& data, const vec2ui& size, Format format)
+Image::Image(std::unique_ptr<std::uint8_t[]>&& data, const vec2ui& size, Format format)
 	: File(), data_(std::move(data)), size_(size), format_(format)
 {
 }
 
-void Image::data(const std::vector<unsigned char>& newdata, const vec2ui& newsize)
+Image::Image(const Image& other)
+	: File(other), size_(other.size_), format_(other.format_)
 {
+	data_ = other.copyData();
+}
+
+Image& Image::operator=(const Image& other)
+{
+	File::operator=(other);
+	size_ = other.size_;
+	format_ = other.format_;
+	data_ = other.copyData();
+
+	return *this;
+}
+
+void Image::data(const std::uint8_t* newdata, const vec2ui& newsize, Format newFormat)
+{
+	format_ = newFormat;
 	size_ = newsize;
-	data_ = newdata;
+
+	data_ = make_unique<std::uint8_t[]>(dataSize());
+	std::memcpy(data_.get(), newdata, dataSize());
 
 	change();
 }
 
-std::vector<unsigned char> Image::copyData() const
+void Image::data(std::unique_ptr<std::uint8_t[]>&& newdata, const vec2ui& newsize, Format newFormat)
 {
-	return data_;
+	format_ = newFormat;
+	size_ = newsize;
+	data_ = std::move(newdata);
+
+	change();
+}
+
+std::unique_ptr<std::uint8_t[]> Image::copyData() const
+{
+	auto ret = make_unique<std::uint8_t[]>(dataSize());
+	std::memcpy(ret.get(), data_.get(), dataSize());
+	return ret;
 }
 
 unsigned int Image::pixelSize() const
@@ -100,10 +131,15 @@ unsigned int Image::pixelSize() const
 	return formatSize(format_);
 }
 
+std::size_t Image::dataSize() const
+{
+	return size_.x * size_.y * pixelSize();
+}
+
 //todo
 bool Image::save(const std::string& path) const
 {
-	if(data_.empty()) return 0;
+	if(!data_) return 0;
 
     const std::size_t dot = path.find_last_of('.');
     std::string ext = (dot != std::string::npos) ? path.substr(dot + 1) : "";	   
@@ -137,17 +173,17 @@ bool Image::save(std::ostream& os, const std::string& type) const
 { 
 	if(type == "bmp")
 	{
-		if(stbi_write_bmp_to_func(&write, &os, size_.x, size_.y, 4, data_.data()))
+		if(stbi_write_bmp_to_func(&write, &os, size_.x, size_.y, 4, data_.get()))
 			return 1;
 	}
 	else if(type == "tga")
 	{
-		if(stbi_write_tga_to_func(&write, &os, size_.x, size_.y, 4, data_.data()))
+		if(stbi_write_tga_to_func(&write, &os, size_.x, size_.y, 4, data_.get()))
 			return 1;
 	}
 	else if(type == "png")
 	{
-		if(stbi_write_png_to_func(&write, &os, size_.x, size_.y, 4, data_.data(), 0))
+		if(stbi_write_png_to_func(&write, &os, size_.x, size_.y, 4, data_.get(), 0))
 			return 1;
 	}
 	else
@@ -162,7 +198,8 @@ bool Image::save(std::ostream& os, const std::string& type) const
 
 bool Image::load(std::istream& is)
 {
-	data_.clear();
+	//TODO: format loading!
+	data_.reset();
 
 	stbi_io_callbacks callbacks;
     callbacks.read = &read;
@@ -177,11 +214,10 @@ bool Image::load(std::istream& is)
     {
         size_.x = width;
         size_.y = height;
+		data_.reset(ptr);
 
-        data_.resize(width * height * 4);
-		std::memcpy(&data_[0], ptr, data_.size());
+		//no free_image since we just use the data
 
-        stbi_image_free(ptr);
         return true;
     }
 

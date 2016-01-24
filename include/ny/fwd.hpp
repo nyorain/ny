@@ -76,5 +76,8 @@ class CairoDrawContext;
 class RedirectDrawContext;
 class DelayedDrawContext;
 
+enum class ToplevelState : unsigned char;
+enum class Preference : unsigned char;
+
 }
 

@@ -2,9 +2,8 @@
 
 #include <ny/include.hpp>
 #include <ny/window/cursor.hpp>
-#include <ny/window/events.hpp>
+#include <ny/window/settings.hpp>
 #include <ny/window/defs.hpp>
-#include <ny/app/data.hpp>
 #include <ny/app/eventHandler.hpp>
 
 #include <nytl/callback.hpp>
@@ -47,10 +46,6 @@ protected:
 	//creation (of course they can be changed from the outside)
     unsigned long hints_ {0};
 
-    //files of the types listed in the dataType (basically vector of dataTypes) will 
-	//generate a dataReceiveEvent when they are dropped on the window
-    DataTypes dropAccept_ {};
-
     //events - have to be protected?
     virtual void mouseMoveEvent(const MouseMoveEvent&);
     virtual void mouseCrossEvent(const MouseCrossEvent&);
@@ -71,10 +66,6 @@ protected:
     void setWindowHints(unsigned long hints);
     void addWindowHints(unsigned long hints);
     void removeWindowHints(unsigned int hints);
-
-    void acceptedDropTypes(const DataTypes& d);
-    void addDropType(unsigned char type);
-    void removeDropType(unsigned char type);
 
     virtual void draw(DrawContext& dc);
 
@@ -98,7 +89,7 @@ public:
     callback<void(Window&, const KeyEvent&)> onKey;
 
 public:
-	Window(void* nativeHandle);
+	Window(const NativeWindowHandle& nativeHandle);
     virtual ~Window();
 
     virtual bool handleEvent(const Event& event) override;
@@ -135,9 +126,6 @@ public:
     WindowContext* windowContext() const { return windowContext_.get(); }
 
     const Cursor& cursor() const { return cursor_; }
-
-    DataTypes acceptedDropTypes() const { return dropAccept_; }
-    bool dropTypeAccepted(unsigned char type) const { return dropAccept_.contains(type); }
 };
 
 }

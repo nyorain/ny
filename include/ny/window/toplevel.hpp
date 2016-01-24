@@ -2,6 +2,7 @@
 
 #include <ny/include.hpp>
 #include <ny/window/window.hpp>
+#include <ny/window/defs.hpp>
 
 namespace ny
 {
@@ -9,14 +10,10 @@ namespace ny
 class ToplevelWindow : public Window
 {
 protected:
-    unsigned char handlingHints_{};
     ToplevelState state_{};
     std::string title_{};
-    unsigned int borderSize_{};
 
-    //draw window
-    virtual void draw(DrawContext& dc) override;
-
+protected:
 	ToplevelWindow() = default;
 	void create(const vec2ui& size, const std::string& name = "", const WindowSettings& = {});
 
@@ -27,47 +24,29 @@ public:
 	virtual ~ToplevelWindow();
 
     //hints
-    bool hasMaximizeHint() const { return (hints_ & windowHints::Maximize); }
-    bool hasMinimizeHint() const { return (hints_ & windowHints::Minimize); }
-    bool hasResizeHint() const { return (hints_ & windowHints::Resize); }
-    bool hasMoveHint() const { return (hints_ & windowHints::Move); }
-    bool hasCloseHint() const { return (hints_ & windowHints::Close); }
+    bool hasMaximizeHint() const { return (hints_ & windowHints::maximize); }
+    bool hasMinimizeHint() const { return (hints_ & windowHints::minimize); }
+    bool hasResizeHint() const { return (hints_ & windowHints::resize); }
+    bool hasMoveHint() const { return (hints_ & windowHints::move); }
+    bool hasCloseHint() const { return (hints_ & windowHints::close); }
+    bool customDecorated() const {  return (hints_ & windowHints::customDecorated); }
 
-	const std::string& title() const { return title_; }
-/*
-    void setMaximizeHint(bool hint = 1);
-    void setMinimizeHint(bool hint = 1);
-    void setResizeHint(bool hint = 1);
-    void setMoveHint(bool hint = 1);
-    void setCloseHint(bool hint = 1);
-*/
-    //virtual const ToplevelWindow& toplevelParent() const override { return *this; };
-    //virtual ToplevelWindow& toplevelParent() override { return *this; };
+    void maximizeHint(bool set);
+    void minimizeHint(bool set);
+    void resizeHint(bool set);
+    void moveHint(bool set);
+    void closeHint(bool set);
+    bool customDecorated(bool set);
 
-/*
-    bool isCustomDecorated() const {  return (hints_ & windowHints::CustomDecorated); }
-    bool isCustomMoved() const { return (hints_ & windowHints::CustomMoved); }
-    bool isCustomResized() const { return (hints_ & windowHints::CustomResized); }
+	void icon(const Image& icon);
 
-    //return if successful
-    bool setCustomDecorated(bool set = 1);
-    bool setCustomMoved(bool set = 1);
-    bool setCustomResized(bool set = 1);
-    ////
-    std::string getTitle() const { return title_; }
-    void setTitle(const std::string& n);
+	void title(const std::string& ptitle);
+	const std::string& title() const { return title_; } 
 
-    void setIcon(const image* icon);
-
-
-    window* getParent() const { return nullptr; };
-
-    bool isMaximized() const { return (state_ == toplevelState::Maximized); };
-    bool isMinimized() const { return (state_ == toplevelState::Minimized); };
-    bool isFullscreen() const { return (state_ == toplevelState::Fullscreen); };
-
-    virtual bool isVirtual() const final { return 0; }
-*/
+	ToplevelState state() const { return state_; }
+    bool maximized() const { return (state_ == ToplevelState::maximized); };
+    bool minimized() const { return (state_ == ToplevelState::minimized); };
+    bool fullscreen() const { return (state_ == ToplevelState::fullscreen); };
 };
 
 }
