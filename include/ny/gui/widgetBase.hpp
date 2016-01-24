@@ -29,7 +29,7 @@ public:
 	void show();
 	void hide();
 
-	virtual bool processEvent(const Event& event) override;
+	virtual bool handleEvent(const Event& event) override;
 
 public:
 	callback<void(MouseCrossEvent&)> onMouseCross;

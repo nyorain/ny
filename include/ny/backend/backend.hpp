@@ -2,7 +2,7 @@
 
 #include <ny/include.hpp>
 #include <ny/backend/windowContext.hpp>
-#include <ny/window/windowDefs.hpp>
+#include <ny/window/defs.hpp>
 #include <nytl/nonCopyable.hpp>
 
 #include <vector>
@@ -31,8 +31,7 @@ public:
     virtual bool available() const = 0;
 
     virtual AppContextPtr createAppContext() = 0;
-	virtual WindowContextPtr createWindowContext(Window& win, 
-			const WindowContextSettings& s = {}) = 0;
+	virtual WindowContextPtr createWindowContext(Window& win, const WindowSettings& s = {}) = 0;
 
 	virtual std::string name() const = 0;
 };

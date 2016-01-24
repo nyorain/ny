@@ -2,6 +2,7 @@
 
 #include <ny/include.hpp>
 #include <nytl/cache.hpp>
+#include <nytl/cloneable.hpp>
 
 #include <freetype2/ft2build.h>
 #include FT_FREETYPE_H
@@ -12,7 +13,7 @@ namespace ny
 {
 
 //Cache Name: "ny::FTFontHandle"
-class FTFontHandle : public cacheBase<FTFontHandle>
+class FTFontHandle : public deriveCloneable<cache, FTFontHandle>
 {
 protected:
     static FT_Library lib_;

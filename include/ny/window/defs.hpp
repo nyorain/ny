@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ny/include.hpp>
+#include <cstdint>
 
 namespace ny
 {
@@ -14,7 +15,6 @@ namespace windowHints
     constexpr unsigned long Minimize = (1L << 4);
     constexpr unsigned long Resize = (1L << 5);
 
-    constexpr unsigned long nativeDecoration = (1L << 6);
     constexpr unsigned long customTitlebar = (1L << 7);
     constexpr unsigned long customBorder = (1L << 8);
     constexpr unsigned long customShadow = (1L << 9);
@@ -38,7 +38,7 @@ namespace nativeWindow
 };
 
 //windowEdge
-enum class windowEdge : unsigned char
+enum class WindowEdge : unsigned char
 {
     Top,
     Right,
@@ -53,7 +53,7 @@ enum class windowEdge : unsigned char
 };
 
 //virtuality
-enum class preference : unsigned char
+enum class Preference : unsigned char
 {
     Must,
     Should,
@@ -63,7 +63,7 @@ enum class preference : unsigned char
 };
 
 //toplevelState
-enum class toplevelState : unsigned char
+enum class ToplevelState : unsigned char
 {
     Unknown = 0,
 
@@ -74,22 +74,37 @@ enum class toplevelState : unsigned char
     Modal
 };
 
-//nativeWindowType, todo for wcSettings
-class nativeWindowType;
+//NativeWindowHandle
+class NativeWindowHandle
+{
+protected:
+	union
+	{
+		void* pointer_ = nullptr;
+		std::uint64_t uint_;
+	};
+
+public:
+	NativeWindowHandle(void* pointer = nullptr) : pointer_(pointer) {}
+	NativeWindowHandle(std::uint64_t uint) : uint_(uint) {}
+
+	operator void*() const { return pointer_; }
+	operator std::uint64_t() const { return uint_; }
+	operator int() const { return uint_; }
+	operator unsigned int() const { return uint_; }
+};
 
 //windowSettings
-class WindowContextSettings
+class WindowSettings
 {
 public:
-    virtual ~WindowContextSettings() = default;
+    virtual ~WindowSettings() = default;
 
-    unsigned long hints; //backend-specific e.g. x11::TypeInputOnly, usually set by the window class
-    unsigned int nativeWindow; //e.g. nativeWindow::button, usually set by the window class
-
-    preference virtualPref = preference::DontCare;
-    preference glPref = preference::DontCare;
+	NativeWindowHandle nativeHandle = nullptr;
+    Preference virtualPref = Preference::DontCare;
+    Preference glPref = Preference::DontCare;
     bool initShown = 1;
-    toplevelState initState = toplevelState::Normal; //only used if window is toplevel window
+    ToplevelState initState = ToplevelState::Normal; //only used if window is toplevel window
 };
 
 }

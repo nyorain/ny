@@ -10,20 +10,8 @@
 namespace ny
 {
 
-//eventType
-//custom events should put their type id in this namespace
-namespace eventType
-{
-	constexpr unsigned int destroy = 1;
-	constexpr unsigned int reparent = 2;
-}
-
 //EventData, used by backends
-class EventData : public cloneable<EventData>
-{
-public:
-    virtual ~EventData() = default; //for dynamic cast
-};
+class EventData : public cloneable<EventData> {};
 
 //Event
 class Event : public abstractCloneable<Event>
@@ -56,36 +44,36 @@ public:
 using EventPtr = std::unique_ptr<Event>;
 
 //eventBase
-template<typename T, unsigned int Type, bool Override = 0>
+template<unsigned int Type, typename T = void, bool Override = 0>
 class EventBase : public deriveCloneable<Event, T>
 {
 public:
 	using EvBase = EventBase;
-	using CloenableEvBase = deriveCloneable<Event, T>;
+	using typename deriveCloneable<Event, T>::cloneableBase;
 
 public:
-	using CloenableEvBase::CloenableEvBase;
+	using cloneableBase::cloneableBase;
 
     //event
     virtual unsigned int type() const override final { return Type; }
     virtual bool overrideable() const override final { return Override; }
 };
 
-//destroy
-class DestroyEvent : public EventBase<DestroyEvent, eventType::destroy, 1>
+//void specialization
+template<unsigned int Type, bool Override>
+class EventBase<Type, void, Override> 
+	: public deriveCloneable<Event, EventBase<Type, void, Override>>
 {
 public:
-	using EvBase::EvBase;
-};
+	using EvBase = EventBase;
+	using typename deriveCloneable<Event, EvBase>::cloneableBase;
 
-//reparent
-class ReparentEvent : public EventBase<ReparentEvent, eventType::reparent, 1>
-{
 public:
-    ReparentEvent(EventHandler* handler = nullptr, EventHandler* newparent = nullptr, 
-			EventData* d = nullptr) : EvBase(handler, d), newParent(newparent) {};
+	using cloneableBase::cloneableBase;
 
-    EventHandler* newParent {nullptr};
+    //event
+    virtual unsigned int type() const override final { return Type; }
+    virtual bool overrideable() const override final { return Override; }
 };
 
 }

@@ -4,6 +4,7 @@
 
 #include <nytl/log.hpp>
 #include <nytl/cache.hpp>
+#include <nytl/cloneable.hpp>
 
 #include <cairo/cairo.h>
 
@@ -24,7 +25,7 @@ namespace ny
 {
 
 //Cache Name: "ny::CairoFontHandle"
-class CairoFontHandle : public cacheBase<CairoFontHandle>
+class CairoFontHandle : public deriveCloneable<cache, CairoFontHandle>
 {
 protected:
     cairo_font_face_t* handle_;

@@ -34,7 +34,7 @@ public:
 		Settings(){};
 
 		std::string name;
-		bool exitWithoutChildren = 1;
+		bool exitWithoutWindows = 1;
 		App::ErrorAction onError = ErrorAction::AskWindow;
 		std::vector<std::string> allowedBackends;
 		bool allBackends = 1;
@@ -52,6 +52,8 @@ protected:
     Settings settings_;
     Backend* backend_ {nullptr}; //the chosen backend. only existing if(valid_), one of backends
     std::unique_ptr<AppContext> appContext_;
+
+	unsigned int windowCount_ = 0; //to make exiting possible when last window closes
 
     //changed/read by eventLoop and by eventDispatcher thread:
     std::atomic<Window*> focus_ {nullptr}; //eventHandler which has current focus

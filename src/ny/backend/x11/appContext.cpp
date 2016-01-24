@@ -3,7 +3,7 @@
 #include <ny/backend/x11/util.hpp>
 #include <ny/app/app.hpp>
 #include <ny/window/window.hpp>
-#include <ny/window/windowEvents.hpp>
+#include <ny/window/events.hpp>
 
 #include <nytl/vec.hpp>
 #include <nytl/misc.hpp>
@@ -313,7 +313,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev)
     {
 		auto& focus = reinterpret_cast<xcb_focus_in_event_t&>(ev);  
 		auto event = make_unique<FocusEvent>(handler(focus.event));
-		event->focusGained = 1;
+		event->gained = 1;
         nyMainApp()->dispatch(std::move(event));
 
         return 1;
@@ -323,7 +323,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev)
     {
 		auto& focus = reinterpret_cast<xcb_focus_in_event_t&>(ev);  
 		auto event = make_unique<FocusEvent>(handler(focus.event));
-		event->focusGained = 0;
+		event->gained = 0;
         nyMainApp()->dispatch(std::move(event));
 
         return 1;
@@ -515,7 +515,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev)
         {
             if(handler(client.window)) 
 			{
-				auto event = make_unique<DestroyEvent>(handler(client.window));
+				auto event = make_unique<CloseEvent>(handler(client.window));
 				nyMainApp()->dispatch(std::move(event));
 			}
 

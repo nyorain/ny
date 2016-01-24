@@ -6,12 +6,11 @@
 namespace ny
 {
 
-
 class ToplevelWindow : public Window
 {
 protected:
     unsigned char handlingHints_{};
-    toplevelState state_{};
+    ToplevelState state_{};
     std::string title_{};
     unsigned int borderSize_{};
 
@@ -19,11 +18,11 @@ protected:
     virtual void draw(DrawContext& dc) override;
 
 	ToplevelWindow() = default;
-	void create(const vec2ui& size, const std::string& name = "", const WindowContextSettings& = {});
+	void create(const vec2ui& size, const std::string& name = "", const WindowSettings& = {});
 
 public:
-	ToplevelWindow(const vec2ui& size, const std::string& name = "", 
-			const WindowContextSettings& settings = {});
+	ToplevelWindow(const vec2ui& size, const std::string& name = "",
+			const WindowSettings& settings = {});
 
 	virtual ~ToplevelWindow();
 
@@ -42,8 +41,8 @@ public:
     void setMoveHint(bool hint = 1);
     void setCloseHint(bool hint = 1);
 */
-    virtual const ToplevelWindow& toplevelParent() const override { return *this; };
-    virtual ToplevelWindow& toplevelParent() override { return *this; };
+    //virtual const ToplevelWindow& toplevelParent() const override { return *this; };
+    //virtual ToplevelWindow& toplevelParent() override { return *this; };
 
 /*
     bool isCustomDecorated() const {  return (hints_ & windowHints::CustomDecorated); }

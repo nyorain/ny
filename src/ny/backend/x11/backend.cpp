@@ -35,10 +35,10 @@ std::unique_ptr<AppContext> X11Backend::createAppContext()
 }
 
 std::unique_ptr<WindowContext> 
-X11Backend::createWindowContext(Window& win, const WindowContextSettings& s)
+X11Backend::createWindowContext(Window& win, const WindowSettings& s)
 {
-    X11WindowContextSettings settings;
-    const X11WindowContextSettings* ws = dynamic_cast<const X11WindowContextSettings*>(&s);
+    X11WindowSettings settings;
+    const X11WindowSettings* ws = dynamic_cast<const X11WindowSettings*>(&s);
 
     if(ws)
     {
@@ -46,9 +46,7 @@ X11Backend::createWindowContext(Window& win, const WindowContextSettings& s)
     }
     else
     {
-        settings.hints &= s.hints;
-        settings.virtualPref = s.virtualPref;
-        settings.glPref = s.glPref;
+		settings.WindowSettings::operator=(s);
     }
 
     return make_unique<X11WindowContext>(win, settings);

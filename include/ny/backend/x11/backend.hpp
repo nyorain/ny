@@ -20,7 +20,7 @@ public:
 
     virtual AppContextPtr createAppContext() override;
 	virtual WindowContextPtr 
-		createWindowContext(Window& win, const WindowContextSettings& s = {}) override;
+		createWindowContext(Window& win, const WindowSettings& s = {}) override;
 
 	virtual std::string name() const override { return "x11"; }
 };

@@ -1,6 +1,5 @@
 #include <ny/app/eventDispatcher.hpp>
 #include <ny/app/eventHandler.hpp>
-#include <ny/window/windowEvents.hpp>
 
 #include <nytl/log.hpp>
 
@@ -33,7 +32,7 @@ void EventDispatcher::sendEvent(Event& event)
 		it->second(event);
 	}
 
-	if(event.handler) event.handler->processEvent(event);
+	if(event.handler) event.handler->handleEvent(event);
 	else nytl::sendWarning("EventDispatcher: Got event with no handler, type ", event.type());
 }
 

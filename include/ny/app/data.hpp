@@ -134,7 +134,7 @@ public:
 };
 
 //event
-class DataReceiveEvent : public EventBase<DataReceiveEvent, eventType::dataReceive>
+class DataReceiveEvent : public EventBase<eventType::dataReceive, DataReceiveEvent>
 {
 public:
     //dataReceiveEvent(std::unique_ptr<dataOffer> d) : evBase(), data(std::move(d)) {}

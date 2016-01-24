@@ -4,7 +4,7 @@
 #include <ny/backend/x11/include.hpp>
 #include <ny/backend/windowContext.hpp>
 #include <ny/app/event.hpp>
-#include <ny/window/windowEvents.hpp>
+#include <ny/window/events.hpp>
 
 #include <nytl/cloneable.hpp>
 
@@ -28,19 +28,22 @@ public:
     xcb_generic_event_t event;
 };
 
-constexpr unsigned int X11Reparent = 11;
-class X11ReparentEvent : public deriveCloneable<ContextEvent, X11ReparentEvent>
+namespace eventType
+{
+	namespace context
+	{
+		constexpr unsigned int x11Reparent = 11;
+	}
+}
+class X11ReparentEvent : public ContextEventBase<eventType::context::x11Reparent, X11ReparentEvent>
 {
 public:
-    X11ReparentEvent(EventHandler* h = nullptr, const XReparentEvent& e = XReparentEvent()) 
-		: deriveCloneable<ContextEvent, X11ReparentEvent>(h), event(e) {};
-
-    virtual unsigned int contextType() const override { return X11Reparent; }
+	using ContextEvBase::ContextEvBase;
     XReparentEvent event;
 };
 
 //x11WindowContextSettings
-class X11WindowContextSettings : public WindowContextSettings {};
+class X11WindowSettings : public WindowSettings {};
 
 //x11AppContext
 class X11WindowContext : public WindowContext
@@ -78,7 +81,7 @@ protected:
     void reparented(const XReparentEvent& ev); //called from appContext through contextEvent
 
 public:
-    X11WindowContext(Window& win, const X11WindowContextSettings& settings = {});
+    X11WindowContext(Window& win, const X11WindowSettings& settings = {});
     virtual ~X11WindowContext();
 
     //high-level virtual interface
@@ -101,10 +104,8 @@ public:
     virtual void addWindowHints(unsigned long hints) override;
     virtual void removeWindowHints(unsigned long hints) override;
 
-    virtual void addContextHints(unsigned long hints) override;
-    virtual void removeContextHints(unsigned long hints) override;
-
     virtual void processEvent(const ContextEvent& e) override;
+	virtual NativeWindowHandle nativeHandle() const override;
 
     //toplevel
     virtual void maximized() override;
@@ -113,7 +114,7 @@ public:
     virtual void toplevel() override;
 
     virtual void beginMove(const MouseButtonEvent* ev) override;
-    virtual void beginResize(const MouseButtonEvent* ev, windowEdge edges) override;
+    virtual void beginResize(const MouseButtonEvent* ev, WindowEdge edges) override;
 
     virtual void title(const std::string& title) override;
 	virtual void icon(const Image* img) override;

@@ -4,7 +4,7 @@ namespace ny
 {
 
 ToplevelWindow::ToplevelWindow(const vec2ui& size, const std::string& title, 
-		const WindowContextSettings& settings) : Window(), title_(title)
+		const WindowSettings& settings) : Window(), title_(title)
 {
 	Window::create(size, settings);
 }
@@ -14,7 +14,7 @@ ToplevelWindow::~ToplevelWindow()
 }
 
 void ToplevelWindow::create(const vec2ui& size, const std::string& title, 
-		const WindowContextSettings& settings)
+		const WindowSettings& settings)
 {
 	title_ = title;
 	Window::create(size, settings);

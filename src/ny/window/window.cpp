@@ -18,16 +18,11 @@
 namespace ny
 {
 
-namespace
-{
-int count = 0;
-}
-
 Window::Window()
 {
 }
 
-Window::Window(const vec2ui& size, const WindowContextSettings& settings) 
+Window::Window(const vec2ui& size, const WindowSettings& settings) 
 	: maxSize_(UINT_MAX, UINT_MAX)
 {
     create(size, settings);
@@ -37,10 +32,8 @@ Window::~Window()
 {
 }
 
-void Window::create(const vec2ui& size, 
-		const WindowContextSettings& settings)
+void Window::create(const vec2ui& size, const WindowSettings& settings)
 {
-	count++;
     size_ = size;
 
     if(!nyMainApp())
@@ -55,53 +48,53 @@ void Window::create(const vec2ui& size,
 
 void Window::close()
 {
-    destroyCallback_(*this);
+    onClose(*this);
     windowContext_.reset();
 }
 
-bool Window::processEvent(const Event& ev)
+bool Window::handleEvent(const Event& ev)
 {
-    if(EventHandler::processEvent(ev)) return 1;
+    if(EventHandler::handleEvent(ev)) return 1;
 
-    switch (ev.type())
+    switch(ev.type())
     {
-	case eventType::destroy:
-		windowClose(static_cast<const DestroyEvent&>(ev));
+	case eventType::windowClose:
+		closeEvent(static_cast<const CloseEvent&>(ev));
 		return true;
     case eventType::mouseButton:
-        mouseButton(static_cast<const MouseButtonEvent&>(ev));
+        mouseButtonEvent(static_cast<const MouseButtonEvent&>(ev));
         return true;
     case eventType::mouseMove:
-        mouseMove(static_cast<const MouseMoveEvent&>(ev));
+        mouseMoveEvent(static_cast<const MouseMoveEvent&>(ev));
         return true;
     case eventType::mouseCross:
-        mouseCross(static_cast<const MouseCrossEvent&>(ev));
+        mouseCrossEvent(static_cast<const MouseCrossEvent&>(ev));
         return true;
     case eventType::mouseWheel:
-        mouseWheel(static_cast<const MouseWheelEvent&>(ev));
+        mouseWheelEvent(static_cast<const MouseWheelEvent&>(ev));
         return true;
     case eventType::key:
-        keyboardKey(static_cast<const KeyEvent&>(ev));
+        keyEvent(static_cast<const KeyEvent&>(ev));
         return true;
     case eventType::windowFocus:
-        windowFocus(static_cast<const FocusEvent&>(ev));
+        focusEvent(static_cast<const FocusEvent&>(ev));
         return true;
     case eventType::windowSize:
-        windowSize(static_cast<const SizeEvent&>(ev));
+        sizeEvent(static_cast<const SizeEvent&>(ev));
         return true;
     case eventType::windowPosition:
-        windowPosition(static_cast<const PositionEvent&>(ev));
+        positionEvent(static_cast<const PositionEvent&>(ev));
         return true;
     case eventType::windowDraw:
-        windowDraw(static_cast<const DrawEvent&>(ev));
+        drawEvent(static_cast<const DrawEvent&>(ev));
         return true;
     case eventType::windowShow:
-        windowShow(static_cast<const ShowEvent&>(ev));
+        showEvent(static_cast<const ShowEvent&>(ev));
         return true;
     case eventType::windowRefresh:
         refresh();
         return true;
-    case eventType::context:
+    case eventType::windowContext:
         windowContext_->processEvent(static_cast<const ContextEvent&>(ev));
         return true;
 
@@ -120,23 +113,23 @@ void Window::size(const vec2ui& size)
     size_ = size;
     windowContext_->size(size, 1);
 
-    resizeCallback_(*this, size_);
+    onResize(*this, size_);
 }
 
 void Window::position(const vec2i& position)
 {
     position_ = position;
-    windowContext_->position(position_);
+    windowContext_->position(position_, 1);
 
-    moveCallback_(*this, position_);
+	onMove(*this, position_);
 }
 
 void Window::move(const vec2i& delta)
 {
     position_ += delta;
-    windowContext_->position(position_);
+    windowContext_->position(position_, 1);
 
-    moveCallback_(*this, position_);
+    onMove(*this, position_);
 }
 
 void Window::show()
@@ -169,112 +162,67 @@ void Window::minSize(const vec2ui& size)
     windowContext_->minSize(size);
 }
 
+void Window::draw(DrawContext& dc)
+{
+	dc.clear(Color::white);
+    onDraw(*this, dc);
+}
+
 //event callbacks
-void Window::windowClose(const DestroyEvent& event)
+void Window::closeEvent(const CloseEvent&)
 {
 	windowContext_.reset();
-	destroyCallback_(*this);
-
-	count--;
-	if(count <= 0)
-	{
-		if(nyMainApp())
-		{
-			nyMainApp()->exit();
-		}
-	}
+	onClose(*this);
 }
-void Window::mouseMove(const MouseMoveEvent& e)
+void Window::mouseMoveEvent(const MouseMoveEvent& e)
 {
-    mouseMoveCallback_(*this, e);
+	onMouseMove(*this, e);
 }
-void Window::mouseCross(const MouseCrossEvent& e)
+void Window::mouseCrossEvent(const MouseCrossEvent& e)
 {
     mouseOver_ = e.entered;
-    mouseCrossCallback_(*this, e);
+	onMouseCross(*this, e);
 }
-void Window::mouseButton(const MouseButtonEvent& e)
+void Window::mouseButtonEvent(const MouseButtonEvent& e)
 {
-    mouseButtonCallback_(*this, e);
+    onMouseButton(*this, e);
 }
-void Window::mouseWheel(const MouseWheelEvent& e)
+void Window::mouseWheelEvent(const MouseWheelEvent& e)
 {
-    mouseWheelCallback_(*this, e);
+    onMouseWheel(*this, e);
 }
-void Window::keyboardKey(const KeyEvent& e)
+void Window::keyEvent(const KeyEvent& e)
 {
-    keyCallback_(*this, e);
+    onKey(*this, e);
 }
-void Window::windowSize(const SizeEvent& e)
+void Window::sizeEvent(const SizeEvent& e)
 {
     size_ = e.size;
     windowContext_->size(size_, e.change);
-    resizeCallback_.call(*this, size_);
+    onResize.call(*this, size_);
 }
-void Window::windowPosition(const PositionEvent& e)
+void Window::positionEvent(const PositionEvent& e)
 {
     position_ = e.position;
     windowContext_->position(position_, e.change);
-    moveCallback_(*this, position_);
+    onMove(*this, position_);
 }
-void Window::windowDraw(const DrawEvent&)
+void Window::drawEvent(const DrawEvent&)
 {
     auto& dc = windowContext_->beginDraw();
     draw(dc);
     windowContext_->finishDraw();
 }
-void Window::windowShow(const ShowEvent& e)
+void Window::showEvent(const ShowEvent& e)
 {
-    showCallback_(*this, e);
+    onShow(*this, e);
 }
-void Window::windowFocus(const FocusEvent& e)
+void Window::focusEvent(const FocusEvent& e)
 {
-    focus_ = e.focusGained;
-    focusCallback_(*this, e);
-}
-
-//draw
-void Window::draw(DrawContext& dc)
-{
-    dc.clear(Color::white); //TODO
-    drawCallback_(*this, dc);
+    focus_ = e.gained;
+    onFocus(*this, e);
 }
 
-//util
-/*
-std::vector<childWindow*> Window::getWindowChildren()
-{
-    std::vector<childWindow*> ret;
-
-    for(auto child : getChildren())
-    {
-        childWindow* w = dynamic_cast<childWindow*>(child);
-        if(w) ret.push_back(w);
-    }
-
-    return ret;
-}
-
-window* Window::getWindowAt(vec2i position)
-{
-    std::vector<childWindow*> vec = getWindowChildren();
-    for(unsigned int i(0); i < vec.size(); i++)
-    {
-        window* w = vec[i];
-        if(w->getPosition().x < position.x && w->getPosition().x + (int)w->getSize().x > position.x && w->getPosition().y < position.y && w->getPosition().y + (int)w->getSize().y > position.y)
-        {
-            return w->getWindowAt(position - w->getPosition());
-        }
-    }
-
-    if(position.x > 0 && position.x < (int) getSize().x && position.y > 0 && position.y < (int) getSize().y)
-    {
-        return this;
-    }
-
-    return nullptr;
-}
-*/
 
 void Window::cursor(const Cursor& curs)
 {

@@ -13,7 +13,7 @@ public:
     virtual ~EventHandler() = default;
 
 	//returns if event was processed (1) or not handled (0)
-    virtual bool processEvent(const Event&) { return 0; }; 
+    virtual bool handleEvent(const Event&) { return 0; }; 
 };
 
 }

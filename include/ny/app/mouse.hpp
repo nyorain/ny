@@ -62,7 +62,7 @@ namespace eventType
 	constexpr unsigned int mouseCross = 6;
 }
 
-class MouseButtonEvent : public EventBase<MouseButtonEvent, eventType::mouseButton>
+class MouseButtonEvent : public EventBase<eventType::mouseButton, MouseButtonEvent>
 {
 public:
 	using EvBase::EvBase;
@@ -72,7 +72,8 @@ public:
     vec2i position;
 };
 
-class MouseMoveEvent : public EventBase<MouseMoveEvent, eventType::mouseMove, 1>
+//really overrideable? delta!
+class MouseMoveEvent : public EventBase<eventType::mouseMove, MouseMoveEvent, 1>
 {
 public:
 	using EvBase::EvBase;
@@ -82,7 +83,7 @@ public:
     vec2i delta;
 };
 
-class MouseCrossEvent : public EventBase<MouseCrossEvent, eventType::mouseCross, 0>
+class MouseCrossEvent : public EventBase<eventType::mouseCross, MouseCrossEvent>
 {
 public:
 	using EvBase::EvBase;
@@ -91,7 +92,7 @@ public:
     vec2i position;
 };
 
-class MouseWheelEvent : public EventBase<MouseWheelEvent, eventType::mouseWheel>
+class MouseWheelEvent : public EventBase<eventType::mouseWheel, MouseWheelEvent>
 {
 public:
 	using EvBase::EvBase;

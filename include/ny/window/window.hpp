@@ -2,8 +2,8 @@
 
 #include <ny/include.hpp>
 #include <ny/window/cursor.hpp>
-#include <ny/window/windowEvents.hpp>
-#include <ny/window/windowDefs.hpp>
+#include <ny/window/events.hpp>
+#include <ny/window/defs.hpp>
 #include <ny/app/data.hpp>
 #include <ny/app/eventHandler.hpp>
 
@@ -16,10 +16,7 @@
 namespace ny
 {
 
-//todo: events masks for windows
-//todo: implement all callback-add-functions for window correctly. can it be done with some template-like method?
-
-//window class
+///The Window class represents a surface which can be mapped on the clients screen.
 class Window : public EventHandler
 {
 protected:
@@ -54,42 +51,22 @@ protected:
 	//generate a dataReceiveEvent when they are dropped on the window
     DataTypes dropAccept_ {};
 
-
-    //callbacks
-    callback<void(Window&, DrawContext&)> drawCallback_;
-    callback<void(Window&, const vec2ui&)> resizeCallback_;
-    callback<void(Window&, const vec2i&)> moveCallback_;
-    callback<void(Window&)> destroyCallback_;
-    callback<void(Window&, const FocusEvent&)> focusCallback_;
-    callback<void(Window&, const ShowEvent&)> showCallback_;
-
-    callback<void(Window&, const MouseMoveEvent&)> mouseMoveCallback_;
-    callback<void(Window&, const MouseButtonEvent&)> mouseButtonCallback_;
-    callback<void(Window&, const MouseCrossEvent&)> mouseCrossCallback_;
-    callback<void(Window&, const MouseWheelEvent&)> mouseWheelCallback_;
-
-    callback<void(Window&, const KeyEvent&)> keyCallback_;
-
     //events - have to be protected?
-    virtual void mouseMove(const MouseMoveEvent&);
-    virtual void mouseCross(const MouseCrossEvent&);
-    virtual void mouseButton(const MouseButtonEvent&);
-    virtual void mouseWheel(const MouseWheelEvent&);
-    virtual void keyboardKey(const KeyEvent&);
-    virtual void windowSize(const SizeEvent&);
-    virtual void windowPosition(const PositionEvent&);
-    virtual void windowDraw(const DrawEvent&);
-    virtual void windowShow(const ShowEvent&);
-    virtual void windowFocus(const FocusEvent&);
-	virtual void windowClose(const DestroyEvent&);
+    virtual void mouseMoveEvent(const MouseMoveEvent&);
+    virtual void mouseCrossEvent(const MouseCrossEvent&);
+    virtual void mouseButtonEvent(const MouseButtonEvent&);
+    virtual void mouseWheelEvent(const MouseWheelEvent&);
+    virtual void keyEvent(const KeyEvent&);
+    virtual void sizeEvent(const SizeEvent&);
+    virtual void positionEvent(const PositionEvent&);
+    virtual void drawEvent(const DrawEvent&);
+    virtual void showEvent(const ShowEvent&);
+    virtual void focusEvent(const FocusEvent&);
+	virtual void closeEvent(const CloseEvent&);
 
     //windowContext functions are protected, derived classes can make public aliases if needed. 
 	//User should not be able to change backend Hints for button e.g
     void cursor(const Cursor& curs);
-
-    void setBackendHints(unsigned int backend, unsigned long hints);
-    void addBackendHints(unsigned int backend, unsigned long hints);
-    void removeBackendHints(unsigned int backend, unsigned long hints);
 
     void setWindowHints(unsigned long hints);
     void addWindowHints(unsigned long hints);
@@ -101,27 +78,36 @@ protected:
 
     virtual void draw(DrawContext& dc);
 
-
-    //window is abstract class
+	//init
     Window();
-    Window(const vec2ui& size, const WindowContextSettings& settings = {});
+    Window(const vec2ui& size, const WindowSettings& settings = {});
 
-    void create(const vec2ui& size, const WindowContextSettings& settings = {});
+    void create(const vec2ui& size, const WindowSettings& settings = {});
 
 public:
+    callback<void(Window&)> onClose;
+    callback<void(Window&, DrawContext&)> onDraw;
+    callback<void(Window&, const vec2ui&)> onResize;
+    callback<void(Window&, const vec2i&)> onMove;
+    callback<void(Window&, const FocusEvent&)> onFocus;
+    callback<void(Window&, const ShowEvent&)> onShow;
+    callback<void(Window&, const MouseMoveEvent&)> onMouseMove;
+    callback<void(Window&, const MouseButtonEvent&)> onMouseButton;
+    callback<void(Window&, const MouseCrossEvent&)> onMouseCross;
+    callback<void(Window&, const MouseWheelEvent&)> onMouseWheel;
+    callback<void(Window&, const KeyEvent&)> onKey;
+
+public:
+	Window(void* nativeHandle);
     virtual ~Window();
 
-    virtual bool processEvent(const Event& event) override;
+    virtual bool handleEvent(const Event& event) override;
 	virtual void close();
-
-    virtual ToplevelWindow& toplevelParent() = 0;
-    virtual const ToplevelWindow& toplevelParent() const = 0;
 
     void size(const vec2ui& size);
     void position(const vec2i& position);
 
-    //std::vector<ChildWindow*> getWindowChildren();
-    //window* getWindowAt(vec2i position);
+    std::vector<ChildWindow*> windowChildren() const;
 
     void move(const vec2i& delta);
 
@@ -133,19 +119,6 @@ public:
     void show();
     void hide();
     void toggleShow();
-
-    //callbacks
-    template<typename F> connection onDraw(F&& func){ return drawCallback_.add(func); }
-    template<typename F> connection onResize(F&& func){ return resizeCallback_.add(func); }
-    template<typename F> connection onMove(F&& func){ return moveCallback_.add(func); }
-    template<typename F> connection onDestroy(F&& func){ return destroyCallback_.add(func); }
-    template<typename F> connection onFocus(F&& func){ return focusCallback_.add(func); }
-    template<typename F> connection onShow(F&& func){ return showCallback_.add(func); }
-    template<typename F> connection onMouseMove(F&& func){ return mouseMoveCallback_.add(func); }
-    template<typename F> connection onMouseButton(F&& func){return mouseButtonCallback_.add(func);}
-    template<typename F> connection onMouseCross(F&& func){ return mouseCrossCallback_.add(func); }
-    template<typename F> connection onMouseWheel(F&& func){ return mouseWheelCallback_.add(func); }
-    template<typename F> connection onKey(F&& func){ return keyCallback_.add(func); }
 
     //const getters
     const vec2i& position() const { return position_; }
@@ -165,9 +138,6 @@ public:
 
     DataTypes acceptedDropTypes() const { return dropAccept_; }
     bool dropTypeAccepted(unsigned char type) const { return dropAccept_.contains(type); }
-
-    WindowContextSettings windowContextSettings() const;
-    unsigned long backendHints() const;
 };
 
 }

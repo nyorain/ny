@@ -11,13 +11,19 @@ namespace ny
 
 class Gui : public hierachyRoot<WidgetBase>
 {
+protected:
+	Window* window_;
+	std::vector<raiiConnection> connections_;
+
 public:
-	Gui() = default;
-	Gui(Window& window);
+	Gui() = default; //independent gui
+	Gui(Window& window); //windowGui
 	virtual ~Gui();
 
-	virtual bool processEvent(const Event& event) override;
+	virtual bool handleEvent(const Event& event) override;
 	virtual void draw(DrawContext& dc);
+
+	Window* window() const { return window_; }
 };
 
 }

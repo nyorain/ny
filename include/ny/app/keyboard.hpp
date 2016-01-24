@@ -56,7 +56,7 @@ namespace eventType
 	constexpr unsigned int key = 7;
 }
 
-class KeyEvent : public EventBase<KeyEvent, eventType::key>
+class KeyEvent : public EventBase<eventType::key, KeyEvent>
 {
 public:
 	using EvBase::EvBase;

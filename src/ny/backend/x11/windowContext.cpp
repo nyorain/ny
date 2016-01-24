@@ -9,7 +9,7 @@
 #include <ny/window/toplevel.hpp>
 #include <ny/app/event.hpp>
 #include <ny/window/cursor.hpp>
-#include <ny/window/windowEvents.hpp>
+#include <ny/window/events.hpp>
 #include <ny/draw/image.hpp>
 
 #include <X11/Xatom.h>
@@ -30,7 +30,7 @@ namespace ny
 {
 
 
-bool usingGLX(preference glPref)
+bool usingGLX(Preference glPref)
 {
     //renderer - nothing available
     #if (!defined NY_WithGL && !defined NY_WithCairo)
@@ -39,22 +39,22 @@ bool usingGLX(preference glPref)
 
     //WithGL
     #if (!defined NY_WithGL)
-     if(glPref == preference::Must) 
+     if(glPref == Preference::Must) 
 		throw std::runtime_error("x11WC::x11WC: no gl renderer available, preference is must");
      else return 0;
 
     #else
-     if(glPref == preference::Must || glPref == preference::Should) return 1;
+     if(glPref == Preference::Must || glPref == Preference::Should) return 1;
     #endif
 
     //WithCairo
     #if (!defined NY_WithCairo)
-     if(glPref == preference::MustNot) 
+     if(glPref == Preference::MustNot) 
 		throw std::runtime_error("x11WC::x11WC: no software renderer available");
      else return 1;
 
     #else
-     if(glPref == preference::MustNot || glPref == preference::ShouldNot) return 0;
+     if(glPref == Preference::MustNot || glPref == Preference::ShouldNot) return 0;
 
     #endif
 
@@ -62,8 +62,8 @@ bool usingGLX(preference glPref)
 }
 
 //windowContext
-X11WindowContext::X11WindowContext(Window& win, const X11WindowContextSettings& settings) 
-	: WindowContext(win, settings), cairo_(nullptr)
+X11WindowContext::X11WindowContext(Window& win, const X11WindowSettings& settings) 
+	: WindowContext(win), cairo_(nullptr)
 {
     auto* ac = x11AppContext();
 
@@ -396,6 +396,11 @@ void X11WindowContext::cursor(const Cursor& curs)
     //todo: image
 }
 
+NativeWindowHandle X11WindowContext::nativeHandle() const
+{
+	return NativeWindowHandle(xWindow_);
+}
+
 void X11WindowContext::minSize(const vec2ui& size)
 {
     long a;
@@ -420,8 +425,10 @@ void X11WindowContext::maxSize(const vec2ui& size)
 
 void X11WindowContext::processEvent(const ContextEvent& e)
 {
-    if(e.contextType() == X11Reparent) reparented(static_cast<const X11ReparentEvent&>(e).event);
-	else if(e.contextType() == eventType::contextCreate) create();
+    if(e.contextType() == eventType::context::x11Reparent) 
+	{
+		reparented(static_cast<const X11ReparentEvent&>(e).event);
+	}
 }
 
 void X11WindowContext::addWindowHints(unsigned long hints)
@@ -536,27 +543,6 @@ void X11WindowContext::removeWindowHints(unsigned long hints)
 
     mwmHints(mwmDecoHints_, mwmFuncHints_);
 }
-
-void X11WindowContext::addContextHints(unsigned long hints)
-{
-    WindowContext::addContextHints(hints);
-
-    if(hints & x11::hintOverrideRedirect)
-    {
-        overrideRedirect(1);
-    }
-
-}
-void X11WindowContext::removeContextHints(unsigned long hints)
-{
-    WindowContext::removeContextHints(hints);
-
-    if(hints & x11::hintOverrideRedirect)
-    {
-        overrideRedirect(0);
-    }
-}
-
 
 //x11 specific
 void X11WindowContext::addState(Atom state)
@@ -789,7 +775,7 @@ void X11WindowContext::beginMove(const MouseButtonEvent* ev)
     XSendEvent(xDisplay(), DefaultRootWindow(xDisplay()), False, SubstructureNotifyMask , &mev);
 }
 
-void X11WindowContext::beginResize(const MouseButtonEvent* ev, windowEdge edge)
+void X11WindowContext::beginResize(const MouseButtonEvent* ev, WindowEdge edge)
 {
     auto* xbev = dynamic_cast<X11EventData*>(ev->data.get());
 
@@ -800,14 +786,14 @@ void X11WindowContext::beginResize(const MouseButtonEvent* ev, windowEdge edge)
 
     switch(edge)
     {
-        case windowEdge::Top: x11Edge = x11::MoveResizeSizeTop; break;
-        case windowEdge::Left: x11Edge = x11::MoveResizeSizeLeft; break;
-        case windowEdge::Bottom: x11Edge = x11::MoveResizeSizeBottom; break;
-        case windowEdge::Right: x11Edge = x11::MoveResizeSizeRight; break;
-        case windowEdge::TopLeft: x11Edge = x11::MoveResizeSizeTopLeft; break;
-        case windowEdge::TopRight: x11Edge = x11::MoveResizeSizeTopRight; break;
-        case windowEdge::BottomLeft: x11Edge = x11::MoveResizeSizeBottomLeft; break;
-        case windowEdge::BottomRight: x11Edge = x11::MoveResizeSizeBottomRight; break;
+        case WindowEdge::Top: x11Edge = x11::MoveResizeSizeTop; break;
+        case WindowEdge::Left: x11Edge = x11::MoveResizeSizeLeft; break;
+        case WindowEdge::Bottom: x11Edge = x11::MoveResizeSizeBottom; break;
+        case WindowEdge::Right: x11Edge = x11::MoveResizeSizeRight; break;
+        case WindowEdge::TopLeft: x11Edge = x11::MoveResizeSizeTopLeft; break;
+        case WindowEdge::TopRight: x11Edge = x11::MoveResizeSizeTopRight; break;
+        case WindowEdge::BottomLeft: x11Edge = x11::MoveResizeSizeBottomLeft; break;
+        case WindowEdge::BottomRight: x11Edge = x11::MoveResizeSizeBottomRight; break;
         default: return;
     }
 
@@ -852,8 +838,8 @@ void X11WindowContext::title(const std::string&)
 }
 
 /*
-//toplevel//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//toplevel///
+////////////
 x11ToplevelWindowContext::x11ToplevelWindowContext(toplevelWindow& win, const X11WindowContextSettings& settings, bool pcreate) : windowContext(win, settings), toplevelWindowContext(win, settings), X11WindowContext(win, settings)
 {
     if(pcreate)

@@ -6,7 +6,7 @@
 #include <ny/backend/x11/windowContext.hpp>
 #include <ny/backend/x11/cairo.hpp>
 #include <ny/app/app.hpp>
-#include <ny/window/windowEvents.hpp>
+#include <ny/window/events.hpp>
 
 #ifdef NY_WithGL
  #include <ny/backend/x11/glx.hpp>

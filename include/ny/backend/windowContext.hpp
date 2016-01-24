@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <ny/window/windowDefs.hpp>
+#include <ny/window/defs.hpp>
 
 #include <nytl/nonCopyable.hpp>
 #include <nytl/vec.hpp>
@@ -16,25 +16,21 @@ class WindowContext : public nonCopyable
 {
 protected:
     Window* window_;
-    unsigned long hints_; //specific context hints. can be declared by every backend
 
 public:
-    WindowContext(Window& win, unsigned long hints = 0) : window_(&win), hints_(hints) {}
-    WindowContext(Window& win, const WindowContextSettings& s) : window_(&win), hints_(s.hints) {}
+    WindowContext(Window& win) : window_(&win) {}
     virtual ~WindowContext(){}
 
     Window& window() const { return *window_; }
-    unsigned long contextHints() const { return hints_; }
     virtual unsigned long additionalWindowHints() const { return 0; }
 
     virtual bool isVirtual() const { return 0; }
     virtual bool hasGL() const = 0; //defines if this window uses gl for rendering
 
     virtual void refresh() = 0;
-    virtual void redraw(){}
+    virtual void redraw() {} //???
 
-	//may throw
-    virtual DrawContext& beginDraw() = 0;
+    virtual DrawContext& beginDraw() = 0; //may throw
     virtual void finishDraw() = 0;
 
     virtual void show() = 0;
@@ -44,17 +40,12 @@ public:
     virtual void addDropType(unsigned char){};
     virtual void removeDropType(unsigned char){};
 
-    //window hints
-    virtual void addWindowHints(unsigned long hints) = 0;
-    virtual void removeWindowHints(unsigned long hints) = 0;
-
-    virtual void addContextHints(unsigned long hints) { hints_ |= hints; }
-    virtual void removeContextHints(unsigned long hints) { hints_ &= ~hints; }
+    virtual void addWindowHints(unsigned long) {};
+    virtual void removeWindowHints(unsigned long) {};
 
     virtual void minSize(const vec2ui&){};
     virtual void maxSize(const vec2ui&){};
 
-    //event
     virtual void processEvent(const ContextEvent&){};
 
     virtual void size(const vec2ui& size, bool change = 1) = 0; 
@@ -63,70 +54,62 @@ public:
     virtual void cursor(const Cursor& c) = 0;
     virtual void updateCursor(const MouseCrossEvent*){}; //not needed in all
 
-    //toplevel-specific/////
+	virtual NativeWindowHandle nativeHandle() const = 0;
+
+    //toplevel-specific
     virtual void maximized() = 0;
     virtual void minimized() = 0;
     virtual void fullscreen() = 0;
     virtual void toplevel() = 0; //or reset()?
 
     virtual void beginMove(const MouseButtonEvent* ev) = 0;
-    virtual void beginResize(const MouseButtonEvent* ev, windowEdge edges) = 0;
+    virtual void beginResize(const MouseButtonEvent* ev, WindowEdge edges) = 0;
 
     virtual void title(const std::string& name) = 0;
 	virtual void icon(const Image*){}; //may be only important for client decoration
 };
 
-
 /*
-//deprecated
-//virtual////////////////////////////////////////////
-class virtualWindowContext : public windowContext
+//virtual
+class VirtualWindowContext : public WindowContext
 {
 protected:
-    std::unique_ptr<redirectDrawContext> drawContext_;
+    std::unique_ptr<RedirectDrawContext> drawContext_;
 
 public:
-    virtualWindowContext(childWindow& win, const windowContextSettings& = windowContextSettings());
-    virtual ~virtualWindowContext();
+    VirtualWindowContext(ChildWindow& win);
+    virtual ~VirtualWindowContext();
 
     virtual bool isVirtual() const override { return 1; }
-    virtual bool hasGL() const override { return getParentContext()->hasGL(); };
+    virtual bool hasGL() const override { return parentContext().hasGL(); };
 
     virtual void refresh() override;
 
-    virtual drawContext* beginDraw() override;
-    drawContext* beginDraw(drawContext& dc); //custom overload
+    virtual DrawContext& beginDraw() override;
+    DrawContext& beginDraw(DrawContext& dc); //custom overload
     virtual void finishDraw() override;
 
     virtual void show() override {}
     virtual void hide() override {}
 
-    virtual void setCursor(const cursor& c) override {}
-    virtual void updateCursor(const mouseCrossEvent* ev) override;
+    virtual void cursor(const Cursor& c) override;
+    virtual void updateCursor(const MouseCrossEvent* ev) override;
 
-    virtual void setSize(vec2ui size, bool change = 1) override;
-    virtual void setPosition(vec2i position, bool change = 1) override;
-
-    //
-    virtual void addWindowHints(unsigned long hint) override {}
-    virtual void removeWindowHints(unsigned long hint) override {}
-
-    virtual void addContextHints(unsigned long hints) override {}
-    virtual void removeContextHints(unsigned long hints) override {}
+    virtual void size(const vec2ui& size, bool change = 1) override;
+    virtual void position(const vec2i& position, bool change = 1) override;
 
     //throw at these functions? warning at least?
-    virtual void setMaximized() override {}
-    virtual void setMinimized() override {}
-    virtual void setFullscreen() override {}
-    virtual void setNormal() override {} //or reset()?
+    virtual void maximized() override;
+    virtual void minimized() override;
+    virtual void fullscreen() override;
+    virtual void toplevel() override;
 
-    virtual void beginMove(const mouseButtonEvent* ev) override {}
-    virtual void beginResize(const mouseButtonEvent* ev, windowEdge edges) override {}
+    virtual void beginMove(const MouseButtonEvent*) override {}
+    virtual void beginResize(const MouseButtonEvent*, windowEdge) override {}
 
-    virtual void setTitle(const std::string& name) override {};
+    virtual void title(const std::string&) override {};
 
-    /////////
-    windowContext* getParentContext() const;
+    WindowContext& parentContext() const;
 };
 */
 
