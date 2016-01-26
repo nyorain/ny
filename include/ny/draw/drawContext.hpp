@@ -145,7 +145,7 @@ public:
 	///drawings should be redirected in the rectangular area that the position and size
 	///describe.
 	RedirectDrawContext(DrawContext& redirect, const vec2f& position, const vec2f& size);
-	virtual ~RedirectDrawContext() = default;
+	virtual ~RedirectDrawContext();
 
 	virtual void apply() override;
 	virtual void clear(const Brush& b = Brush()) override;

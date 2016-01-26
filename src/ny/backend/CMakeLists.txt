@@ -1,4 +1,5 @@
 set(include-backend ${include-ny})
+set(libs-backend ny-base)
 
 set(src-backend
 		backend.cpp)

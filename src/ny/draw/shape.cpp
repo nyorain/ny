@@ -1,6 +1,6 @@
 #include <ny/draw/shape.hpp>
 #include <ny/draw/font.hpp>
-#include <nytl/log.hpp>
+#include <ny/base/log.hpp>
 
 namespace ny
 {
@@ -307,8 +307,8 @@ Path Rectangle::asPath() const
 	//todo: borderradius values.
 	//
 	//auto testVec = lessThanEqual(borderRadius_, 0);
-	//nytl::sendLog("radius: ", borderRadius_);
-	//nytl::sendLog("testvec: ", testVec);
+	//sendLog("radius: ", borderRadius_);
+	//sendLog("testvec: ", testVec);
 
     if(1) //all(testVec)
     {
@@ -382,15 +382,14 @@ PathBase::~PathBase()
 }
 
 PathBase::PathBase(const PathBase& other)
-	: type_(other.type_), circle_()
+	: type_(other.type_)
 {
-	resetUnion();
 	switch(type_)
 	{
-		case Type::text: text_ = other.text_; break;
-		case Type::rectangle: rectangle_ = other.rectangle_; break;
-		case Type::circle: circle_ = other.circle_; break;
-		case Type::path: path_ = other.path_; break;
+		case Type::text: new(&text_) Text(other.text_); break;
+		case Type::rectangle: new(&rectangle_) Rectangle(other.rectangle_); break;
+		case Type::circle: new(&circle_) Circle(other.circle_); break;
+		case Type::path: new(&path_) Path(other.path_); break;
 	}
 }
 
@@ -401,10 +400,10 @@ PathBase& PathBase::operator=(const PathBase& other)
 
 	switch(type_)
 	{
-		case Type::text: text_ = other.text_; break;
-		case Type::rectangle: rectangle_ = other.rectangle_; break;
-		case Type::circle: circle_ = other.circle_; break;
-		case Type::path: path_ = other.path_; break;
+		case Type::text: new(&text_) Text(other.text_); break;
+		case Type::rectangle: new(&rectangle_) Rectangle(other.rectangle_); break;
+		case Type::circle: new(&circle_) Circle(other.circle_); break;
+		case Type::path: new(&path_) Path(other.path_); break;
 	}
 
 	return *this;
@@ -415,10 +414,10 @@ PathBase::PathBase(PathBase&& other) noexcept
 {
 	switch(type_)
 	{
-		case Type::text: text_ = std::move(other.text_); break;
-		case Type::rectangle: rectangle_ = std::move(other.rectangle_); break;
-		case Type::circle: circle_ = std::move(other.circle_); break;
-		case Type::path: path_ = std::move(other.path_); break;
+		case Type::text: new(&text_) Text(std::move(other.text_)); break;
+		case Type::rectangle: new(&rectangle_) Rectangle(std::move(other.rectangle_)); break;
+		case Type::circle: new(&circle_) Circle(std::move(other.circle_)); break;
+		case Type::path: new(&path_) Path(std::move(other.path_)); break;
 	}
 
 	other.type_ = Type::circle;
@@ -432,10 +431,10 @@ PathBase& PathBase::operator=(PathBase&& other) noexcept
 
 	switch(type_)
 	{
-		case Type::text: text_ = std::move(other.text_); break;
-		case Type::rectangle: rectangle_ = std::move(other.rectangle_); break;
-		case Type::circle: circle_ = std::move(other.circle_); break;
-		case Type::path: path_ = std::move(other.path_); break;
+		case Type::text: new(&text_) Text(std::move(other.text_)); break;
+		case Type::rectangle: new(&rectangle_) Rectangle(std::move(other.rectangle_)); break;
+		case Type::circle: new(&circle_) Circle(std::move(other.circle_)); break;
+		case Type::path: new(&path_) Path(std::move(other.path_)); break;
 	}
 
 	other.type_ = Type::circle;

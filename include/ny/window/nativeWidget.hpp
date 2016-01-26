@@ -6,7 +6,7 @@
 namespace ny
 {
 
-class NativeWidget : public ChildWindow
+class NativeWidget /* : public ChildWindow */
 {
 };
 

@@ -254,17 +254,25 @@ public:
 class Text : public transformable2
 {
 public:
-	enum class Bounds
+	enum class HorzBounds
 	{
 		left,
-		middle,
+		center,
 		right
+	};
+
+	enum class VertBounds
+	{
+		top,
+		middle,
+		bottom
 	};
 
 protected:
     float size_ {14};
     std::string string_ {};
-    Bounds bounds_ {Bounds::left};
+    HorzBounds horzBounds_ {HorzBounds::left};
+	VertBounds vertBounds_ {VertBounds::middle};
     Font* font_ {nullptr};
 
 public:
@@ -277,8 +285,11 @@ public:
 	void size(float s){ size_ = s; }
     float size() const { return size_; }
 
-    Bounds bounds() const { return bounds_; }
-    void bounds(Bounds b) { bounds_ = b; }
+    HorzBounds horzBounds() const { return horzBounds_; }
+    void horzBounds(HorzBounds b) { horzBounds_ = b; }
+
+    VertBounds vertBounds() const { return vertBounds_; }
+    void vertBounds(VertBounds b) { vertBounds_ = b; }
 
     Font* font() const { return font_; }
     void font(Font& f) { font_ = &f; }

@@ -11,7 +11,7 @@
 #include <ny/app/keyboard.hpp>
 
 #include <nytl/misc.hpp>
-#include <nytl/log.hpp>
+#include <ny/base/log.hpp>
 
 #include <iostream>
 #include <climits>
@@ -45,12 +45,16 @@ void Window::create(const vec2ui& size, const WindowSettings& settings)
 
 	windowContext_ = nyMainApp()->backend().createWindowContext(*this, settings);
     hints_ |= windowContext_->additionalWindowHints();
+
+	nyMainApp()->windowCreated();
 }
 
 void Window::close()
 {
     onClose(*this);
     windowContext_.reset();
+
+	nyMainApp()->windowClosed();
 }
 
 bool Window::handleEvent(const Event& ev)
@@ -106,6 +110,7 @@ bool Window::handleEvent(const Event& ev)
 
 void Window::refresh()
 {
+	if(!windowContext_) return;
     windowContext_->refresh();
 }
 
@@ -165,15 +170,14 @@ void Window::minSize(const vec2ui& size)
 
 void Window::draw(DrawContext& dc)
 {
-	dc.clear(Color::white);
+	//dc.clear(Color::white);
     onDraw(*this, dc);
 }
 
 //event callbacks
 void Window::closeEvent(const CloseEvent&)
 {
-	windowContext_.reset();
-	onClose(*this);
+	close();
 }
 void Window::mouseMoveEvent(const MouseMoveEvent& e)
 {
@@ -223,7 +227,6 @@ void Window::focusEvent(const FocusEvent& e)
     focus_ = e.gained;
     onFocus(*this, e);
 }
-
 
 void Window::cursor(const Cursor& curs)
 {

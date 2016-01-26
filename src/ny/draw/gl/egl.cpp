@@ -1,5 +1,5 @@
 #include <ny/draw/gl/egl.hpp>
-#include <nytl/log.hpp>
+#include <ny/base/log.hpp>
 
 #include <EGL/egl.h>
 
@@ -73,19 +73,19 @@ bool EglContext::makeCurrentImpl()
 {
     if(!valid())
     {
-        nytl::sendWarning("eglContext::makeCurrentImpl: invalid");
+        sendWarning("eglContext::makeCurrentImpl: invalid");
         return 0;
     }
 
 	if(!eglSurface_)
 	{
-		nytl::sendWarning("EglContext::makeCurrentImpl: no egl surface. Trying to make a "
+		sendWarning("EglContext::makeCurrentImpl: no egl surface. Trying to make a "
 				"context current without surface - may fail");
 	}
 
     if(!eglMakeCurrent(eglDisplay_, eglSurface_, eglSurface_, eglContext_))
     {
-        nytl::sendWarning("eglContext::makeCurrentImpl: eglMakeCurrent failed\n\t", 
+        sendWarning("eglContext::makeCurrentImpl: eglMakeCurrent failed\n\t", 
 				errorMessage(eglError()));
         return 0;
     }
@@ -97,13 +97,13 @@ bool EglContext::makeNotCurrentImpl()
 {
     if(!valid())
     {
-        nytl::sendWarning("eglContext::makeNotCurrentImpl: invalid");
+        sendWarning("eglContext::makeNotCurrentImpl: invalid");
         return 0;
     }
 
     if(!eglMakeCurrent(eglDisplay_, nullptr, nullptr, nullptr))
     {
-        nytl::sendWarning("eglContext::makeNotCurrentImpl: eglMakeCurrent failed\n\t",
+        sendWarning("eglContext::makeNotCurrentImpl: eglMakeCurrent failed\n\t",
 				errorMessage(eglError()));
         return 0;
     }
@@ -115,14 +115,14 @@ bool EglContext::apply()
 {
     if(!isCurrent() || !valid())
     {
-		nytl::sendWarning("eglContext::apply: invalid or not current");
+		sendWarning("eglContext::apply: invalid or not current");
         return 0;
     }
 
 	//TODO: single buffered?
     if(!eglSwapBuffers(eglDisplay_, eglSurface_))
     {
-		nytl::sendWarning("eglContext::apply: eglSwapBuffers failed\n\t",
+		sendWarning("eglContext::apply: eglSwapBuffers failed\n\t",
 				errorMessage(eglError()));
         return 0;
     }
@@ -182,7 +182,7 @@ int EglContext::eglErrorWarn()
 	int error = eglError();
 	if(error != EGL_SUCCESS)
 	{
-		nytl::sendWarning("EglContext error: ", errorMessage(error));
+		sendWarning("EglContext error: ", errorMessage(error));
 	}
 
 	return error;

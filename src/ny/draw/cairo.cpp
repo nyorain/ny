@@ -2,7 +2,7 @@
 #include <ny/draw/image.hpp>
 #include <ny/draw/font.hpp>
 
-#include <nytl/log.hpp>
+#include <ny/base/log.hpp>
 #include <nytl/cache.hpp>
 #include <nytl/cloneable.hpp>
 
@@ -19,7 +19,7 @@
 
 //assuring cairo
 #define VALIDATE_CTX(x) if(!cairoCR_)\
-	{ nytl::sendWarning(FUNC_NAME, ": no cairoCR handle."); return x; }
+	{ sendWarning(FUNC_NAME, ": no cairoCR handle."); return x; }
 
 namespace ny
 {
@@ -46,7 +46,7 @@ CairoFontHandle::CairoFontHandle(const std::string& name, bool)
 			CAIRO_FONT_WEIGHT_NORMAL);
 
     if(!handle_)
-        nytl::sendWarning("CairoFontHandle: failed to create cairo font");
+        sendWarning("CairoFontHandle: failed to create cairo font");
 }
 
 CairoFontHandle::~CairoFontHandle()
@@ -202,7 +202,6 @@ void CairoDrawContext::mask(const Text& obj)
         return;
 
     applyTransform(obj.transformObject());
-    cairo_move_to(cairoCR_, obj.position().x, obj.position().y);
 
 	auto font = static_cast<CairoFontHandle*>(obj.font()->getCache("ny::CairoFontHandle"));
 	if(!font)
@@ -214,6 +213,21 @@ void CairoDrawContext::mask(const Text& obj)
 
     cairo_set_font_face(cairoCR_, font->cairoFontFace());
     cairo_set_font_size(cairoCR_, obj.size());
+
+	vec2i position = {0, 0};
+	cairo_text_extents_t extents;
+	cairo_text_extents(cairoCR_, obj.string().c_str(), &extents);
+
+	if(obj.horzBounds() == Text::HorzBounds::center)
+	{
+		position.x -= extents.width / 2 + extents.x_bearing;
+	}
+	if(obj.vertBounds() == Text::VertBounds::middle)
+	{
+		position.y -= extents.height / 2 + extents.y_bearing;
+	}
+
+    cairo_move_to(cairoCR_, position.x, position.y);
     cairo_text_path(cairoCR_, obj.string().c_str());
 
     resetTransform();

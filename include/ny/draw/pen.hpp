@@ -10,7 +10,7 @@ namespace ny
 ///The points member does hold an array of positive float values. If the array is e.g. {2.0, 1.0}
 ///it menas that 2 points of the line are drawn, then 1 is not drawn and it continues from the
 ///beginning. The size member holds the size of valued specified in points.
-///TODO: think about pointer ownership, unique_ptr, raw pointer, potential_ptr?
+///TODO: think about pointer ownership, unique_ptr, raw pointer, potential_ptr? use vector? wtf
 struct DashStyle
 {
     float* points = nullptr;
@@ -25,8 +25,8 @@ public:
 
 protected:
     float width_ = 0;
-    DashStyle dashStyle_;
-    Brush brush_;
+    DashStyle dashStyle_ {};
+    Brush brush_ {Brush::none};
 
 public:
     Pen() = default;

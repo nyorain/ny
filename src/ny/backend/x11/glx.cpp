@@ -3,7 +3,7 @@
 #include <ny/backend/x11/appContext.hpp>
 
 #include <nytl/misc.hpp>
-#include <nytl/log.hpp>
+#include <ny/base/log.hpp>
 
 #include <GL/glx.h>
 #include <algorithm>
@@ -17,7 +17,7 @@ namespace
 	bool errorOccured = 0;
 	int ctxErrorHandler(Display*, XErrorEvent*)
 	{
-		nytl::sendWarning("GlxContext::GlxContext: Error occured");
+		sendWarning("GlxContext::GlxContext: Error occured");
 	    errorOccured = true;
 	    return 0;
 	}
@@ -37,7 +37,7 @@ GlxContext::GlxContext(X11WindowContext& wc, GLXFBConfig fbc) : wc_(&wc)
     const char* glxExts = glXQueryExtensionsString(xDisplay(), DefaultScreen(xDisplay()));
 	auto extVec = split(glxExts, ' ');
 	
-	//nytl::sendLog("glx extensions: ", glxExts);
+	//sendLog("glx extensions: ", glxExts);
 	auto it = std::find(extVec.begin(), extVec.end(), "GLX_ARB_create_context");
 	bool supported = (it != extVec.end());
 
@@ -57,7 +57,7 @@ GlxContext::GlxContext(X11WindowContext& wc, GLXFBConfig fbc) : wc_(&wc)
         {
             errorOccured = 0;
             glxContext_ = nullptr;
-			nytl::sendWarning("modern GL context could not be created, creating legacy GL context");
+			sendWarning("modern GL context could not be created, creating legacy GL context");
         }
 
         if(!glxContext_)
@@ -71,7 +71,7 @@ GlxContext::GlxContext(X11WindowContext& wc, GLXFBConfig fbc) : wc_(&wc)
             {
                 errorOccured = 0;
                 glxContext_ = nullptr;
-				nytl::sendWarning("legacy GL context could not be created, trying old method");
+				sendWarning("legacy GL context could not be created, trying old method");
             }
         }
     }
@@ -105,7 +105,7 @@ bool GlxContext::makeCurrentImpl()
 {
     if(!glXMakeCurrent(xDisplay(), glxWindow_, glxContext_))
     {
-		nytl::sendWarning("Glx::makeCurrentImpl: glxmakecurrent failed");
+		sendWarning("Glx::makeCurrentImpl: glxmakecurrent failed");
         return 0;
     }
 
@@ -116,7 +116,7 @@ bool GlxContext::makeNotCurrentImpl()
 {
     if(!glXMakeCurrent(xDisplay(), 0, nullptr))
     {
-		nytl::sendWarning("Glx::makeNotCurrentImpl: glxmakecurrent failed");
+		sendWarning("Glx::makeNotCurrentImpl: glxmakecurrent failed");
         return 0;
 
     }

@@ -1,5 +1,5 @@
 #include <ny/draw/svg.hpp>
-#include <nytl/log.hpp>
+#include <ny/base/log.hpp>
 
 #include <fstream>
 
@@ -9,27 +9,40 @@
 namespace ny
 {
 
+//TODO
 bool SvgImage::save(const std::string& path) const
 {
 	pugi::xml_document doc;
+	auto svgNode = doc.append_child("svg");
+
 	for(auto& shape : shapes_)
 	{
 		switch(shape.pathBase().type())
 		{
 			case PathBase::Type::text:
 			{
+				auto& txt = shape.pathBase().text();
+
+				auto node = svgNode.append_child("text");
+				node.append_attribute("x") = std::to_string(txt.position().x).c_str();
+				node.append_attribute("y") = std::to_string(txt.position().y).c_str();
+				node.set_value(txt.string().c_str());
+
 				break;
 			}
 			case PathBase::Type::rectangle:
 			{
+				auto node = svgNode.append_child("rect");
 				break;
 			}
 			case PathBase::Type::path:
 			{
+				auto node = svgNode.append_child("path");
 				break;
 			}
 			case PathBase::Type::circle:
 			{
+				auto node = svgNode.append_child("circle");
 				break;
 			}
 		}	
@@ -37,7 +50,7 @@ bool SvgImage::save(const std::string& path) const
 
 	if(!doc.save_file(path.c_str()))
 	{
-		nytl::sendWarning("SvgImage::save: failed to save svg file");
+		sendWarning("SvgImage::save: failed to save svg file");
 		return 0;
 	}
 
@@ -49,11 +62,11 @@ bool SvgImage::load(const std::string& path)
 	pugi::xml_document doc;
 	if(!doc.load_file(path.c_str()))
 	{
-		nytl::sendWarning("SvgImage::load: failed to load/parse svg file");
+		sendWarning("SvgImage::load: failed to load/parse svg file");
 		return 0;
 	}
 
-	for(auto node : doc)
+	for(auto& node : doc)
 	{
 		if(std::string(node.name()) == "circle")
 		{
@@ -70,12 +83,15 @@ bool SvgImage::load(const std::string& path)
 		else if(std::string(node.name()) == "polyline")
 		{
 		}
+		else if(std::string(node.name()) == "polygon")
+		{
+		}
 		else if(std::string(node.name()) == "path")
 		{
 		}
 		else
 		{
-			nytl::sendWarning("SvgImage::load: invalid node type ", node.name());
+			sendWarning("SvgImage::load: invalid node type ", node.name());
 		}
 	}
 

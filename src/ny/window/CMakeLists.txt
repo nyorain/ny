@@ -1,4 +1,5 @@
 set(include-window ${include-ny})
+set(libs-window ny-base)
 
 set(src-window
 		window.cpp

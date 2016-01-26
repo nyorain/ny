@@ -53,7 +53,7 @@ protected:
     Backend* backend_ {nullptr}; //the chosen backend. only existing if(valid_), one of backends
     std::unique_ptr<AppContext> appContext_;
 
-	unsigned int windowCount_ = 0; //to make exiting possible when last window closes
+	int windowCount_ = 0; //to make exiting possible when last window closes
 
     //changed/read by eventLoop and by eventDispatcher thread:
     std::atomic<Window*> focus_ {nullptr}; //eventHandler which has current focus
@@ -66,6 +66,10 @@ protected:
     void mouseCross(Event& event);
     void mouseWheel(Event& event);
     void windowFocus(Event& event);
+
+	friend class Window;
+	void windowCreated();
+	void windowClosed();
 
 public:
     App(const Settings& settings = {});

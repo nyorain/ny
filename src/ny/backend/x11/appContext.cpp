@@ -7,7 +7,7 @@
 
 #include <nytl/vec.hpp>
 #include <nytl/misc.hpp>
-#include <nytl/log.hpp>
+#include <ny/base/log.hpp>
 
 #include <X11/Xlibint.h>
 #include <cstring>

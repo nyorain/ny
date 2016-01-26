@@ -184,6 +184,22 @@ X11WindowContext::X11WindowContext(Window& win, const X11WindowSettings& setting
     }
 
 	addWindowHints(window().windowHints());
+
+	//make it transparent (even with opengl)
+	/*
+	auto alpha = 0.2;
+	auto cardinal_alpha = (uint32_t) (alpha * (uint32_t) -1);
+
+	if (cardinal_alpha == (uint32_t)-1) 
+	{
+		XDeleteProperty(xDisplay(), xWindow_, XInternAtom(xDisplay(), "_NET_WM_WINDOW_OPACITY", 0)) ;
+	} 
+	else 
+	{
+		XChangeProperty(xDisplay(), xWindow_, XInternAtom(xDisplay(), "_NET_WM_WINDOW_OPACITY", 0),
+			XA_CARDINAL, 32, PropModeReplace, (uint8_t*) &cardinal_alpha, 1) ;
+	}
+   */
 }
 
 void X11WindowContext::create()
@@ -236,7 +252,6 @@ GLXFBConfig X11WindowContext::matchGLXVisualInfo()
         None
     };
 
-
     int glxMajor, glxMinor;
     if(!glXQueryVersion(xDisplay(), &glxMajor, &glxMinor) 
 			|| ((glxMajor == 1) && (glxMinor < 3) ) || (glxMajor < 1))
@@ -257,23 +272,19 @@ GLXFBConfig X11WindowContext::matchGLXVisualInfo()
     {
         XVisualInfo *vi = glXGetVisualFromFBConfig(xDisplay(), fbc[i]);
 
-        if(!vi)
-        {
-            XFree(vi);
-            continue;
-        }
+        if(!vi) continue;
 
         int samp_buf, samples;
-        glXGetFBConfigAttrib(xDisplay(), fbc[i], GLX_SAMPLE_BUFFERS, &samp_buf );
-        glXGetFBConfigAttrib(xDisplay(), fbc[i], GLX_SAMPLES       , &samples  );
+        glXGetFBConfigAttrib(xDisplay(), fbc[i], GLX_SAMPLE_BUFFERS, &samp_buf);
+        glXGetFBConfigAttrib(xDisplay(), fbc[i], GLX_SAMPLES, &samples);
 
-        if ( best_fbc < 0 || (samp_buf && samples > best_num_samp))
+        if(best_fbc < 0 || (samp_buf && samples > best_num_samp))
         {
             best_fbc = i;
             best_num_samp = samples;
         }
 
-        if ( worst_fbc < 0 || (!samp_buf || samples < worst_num_samp))
+        if(worst_fbc < 0 || (!samp_buf || samples < worst_num_samp))
         {
             worst_fbc = i;
             worst_num_samp = samples;
@@ -439,8 +450,18 @@ void X11WindowContext::addWindowHints(unsigned long hints)
 {
     unsigned long motifDeco = 0;
     unsigned long motifFunc = 0;
+	bool customDecorated = 0;
 
+	if(window().windowHints() & windowHints::customDecorated)
+	{
+		if(mwmDecoHints_ != 0)
+		{
+			mwmDecoHints_ = 0;
+			mwmHints(mwmDecoHints_, mwmFuncHints_);
+		}
 
+		customDecorated = 1;
+	}
     if(hints & windowHints::close)
     {
         motifFunc |= x11::MwmFuncClose;
@@ -486,10 +507,17 @@ void X11WindowContext::addWindowHints(unsigned long hints)
         addState(x11::StateAbove);
     }
 
-    mwmFuncHints_ |= motifFunc;
-    mwmDecoHints_ |= motifDeco;
+	if(customDecorated)
+	{
+		motifDeco = 0;
+	}
 
-    mwmHints(mwmDecoHints_, mwmFuncHints_);
+	if(motifFunc != 0 || motifDeco != 0)
+	{
+		mwmFuncHints_ |= motifFunc;
+		mwmDecoHints_ |= motifDeco;
+		mwmHints(mwmDecoHints_, mwmFuncHints_);
+	}
 }
 void X11WindowContext::removeWindowHints(unsigned long hints)
 {
@@ -760,7 +788,7 @@ void X11WindowContext::beginMove(const MouseButtonEvent* ev)
     if(!xbev)
         return;
 
-    XEvent xev = (XEvent&)xbev->event;
+    auto& xev = reinterpret_cast<xcb_button_press_event_t&>(xbev->event);
 
     XEvent mev;
     XUngrabPointer(xDisplay(), 0L);
@@ -769,10 +797,10 @@ void X11WindowContext::beginMove(const MouseButtonEvent* ev)
     mev.xclient.window = xWindow_;
     mev.xclient.message_type = x11::MoveResize;
     mev.xclient.format = 32;
-    mev.xclient.data.l[0] = xev.xbutton.x_root;
-    mev.xclient.data.l[1] = xev.xbutton.y_root;
+    mev.xclient.data.l[0] = xev.root_x;
+    mev.xclient.data.l[1] = xev.root_y;
     mev.xclient.data.l[2] = x11::MoveResizeMove;
-    mev.xclient.data.l[3] = xev.xbutton.button;
+    mev.xclient.data.l[3] = xev.detail;
     mev.xclient.data.l[4] = 1; //default. could be set to 2 for pager
 
     XSendEvent(xDisplay(), DefaultRootWindow(xDisplay()), False, SubstructureNotifyMask , &mev);
@@ -800,7 +828,7 @@ void X11WindowContext::beginResize(const MouseButtonEvent* ev, WindowEdge edge)
         default: return;
     }
 
-    XEvent xev = (XEvent&)xbev->event;
+    auto& xev = reinterpret_cast<xcb_button_press_event_t&>(xbev->event);
 
     XEvent mev;
     XUngrabPointer(xDisplay(), 0L);
@@ -809,10 +837,10 @@ void X11WindowContext::beginResize(const MouseButtonEvent* ev, WindowEdge edge)
     mev.xclient.window = xWindow_;
     mev.xclient.message_type = x11::MoveResize;
     mev.xclient.format = 32;
-    mev.xclient.data.l[0] = xev.xbutton.x_root;
-    mev.xclient.data.l[1] = xev.xbutton.y_root;
+    mev.xclient.data.l[0] = xev.root_x;
+    mev.xclient.data.l[1] = xev.root_y;
     mev.xclient.data.l[2] = x11Edge;
-    mev.xclient.data.l[3] = xev.xbutton.button;
+    mev.xclient.data.l[3] = xev.detail;
     mev.xclient.data.l[4] = 1; //default. could be set to 2 for pager
 
     XSendEvent(xDisplay(), DefaultRootWindow(xDisplay()), False, SubstructureNotifyMask , &mev);

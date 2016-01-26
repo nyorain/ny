@@ -1,5 +1,5 @@
 #include <ny/draw/gl/context.hpp>
-#include <nytl/log.hpp>
+#include <ny/base/log.hpp>
 #include <nytl/misc.hpp>
 #include <EGL/egl.h>
 
@@ -70,15 +70,17 @@ void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)
 			std::string ver = (const char*) glGetStringi(GL_SHADING_LANGUAGE_VERSION, i);
 			try
 			{
+				auto verSub = ver.substr(ver.find_first_of('.') - 1, std::string::npos);
+
 				std::size_t idx;
-				int major = std::stoi(ver, &idx);
-				int minor = std::stoi(ver.substr(idx + 1));
+				int major = std::stoi(verSub, &idx);
+				int minor = std::stoi(verSub.substr(idx + 1));
 
 				glslVersions_.push_back(major * 10 + minor / 10);
 			}
 			catch(const std::exception& err)
 			{
-				nytl::sendWarning("GlContext::init: invalid glsl version string: ", ver);
+				sendWarning("GlContext::init: invalid glsl version string: ", ver);
 			}
 		}
 	}
@@ -87,15 +89,17 @@ void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)
 		std::string ver = (const char*) glGetString(GL_SHADING_LANGUAGE_VERSION);
 		try
 		{
+			auto verSub = ver.substr(ver.find_first_of('.') - 1, std::string::npos);
+
 			std::size_t idx;
-			int major = std::stoi(ver, &idx);
-			int minor = std::stoi(ver.substr(idx + 1));
+			int major = std::stoi(verSub, &idx);
+			int minor = std::stoi(verSub.substr(idx + 1));
 
 			glslVersions_.push_back(major * 10 + minor / 10);
 		}
 		catch(const std::exception& err)
 		{
-			nytl::sendWarning("GlContext::init: invalid glsl version string: ", ver);
+			sendWarning("GlContext::init: invalid glsl version string: ", ver);
 		}
 	}
 
@@ -105,7 +109,7 @@ void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)
 	//restore saved one
 	if(saved && !saved->makeCurrent())
 	{
-		nytl::sendWarning("GlContext::initContext: failed to make saved context current again.");
+		sendWarning("GlContext::initContext: failed to make saved context current again.");
 		return;
 	}
 }
@@ -179,7 +183,7 @@ void GlContext::updateViewport(const rect2f& viewport)
 {
 	if(!current())
 	{
-		nytl::sendWarning("GlContext::updateViewport called with not-current context");
+		sendWarning("GlContext::updateViewport called with not-current context");
 		return;
 	}
 

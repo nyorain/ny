@@ -12,8 +12,12 @@ namespace ny
 class Gui : public hierachyRoot<WidgetBase>
 {
 protected:
-	Window* window_;
+	Window* window_ {nullptr};
 	std::vector<raiiConnection> connections_;
+
+	Widget* focusWidget_ {nullptr};
+	Widget* mouseFocusWidget_ {nullptr};
+	Widget* mouseOverWidget_ {nullptr};
 
 public:
 	Gui() = default; //independent gui
@@ -21,9 +25,21 @@ public:
 	virtual ~Gui();
 
 	virtual bool handleEvent(const Event& event) override;
-	virtual void draw(DrawContext& dc);
+	virtual void mouseCrossEvent(const MouseCrossEvent& event) override;
+	virtual void mouseMoveEvent(const MouseMoveEvent& event);
+	virtual void mouseButtonEvent(const MouseButtonEvent& event);
+	virtual void keyEvent(const KeyEvent& event);
+
+	virtual void draw(DrawContext& dc) override;
+	virtual void requestRedraw() override;
 
 	Window* window() const { return window_; }
 };
+
+/*
+class GuiWindow : public virtual Gui, public virtual Window
+{
+};
+*/
 
 }

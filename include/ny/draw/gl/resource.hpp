@@ -30,8 +30,15 @@ protected:
 	unsigned int handle_;
 
 public:
+	GlVertexArray(unsigned int handle) : handle_(handle) {}
+	virtual ~GlVertexArray();
+
 	void bind() const;
-	virtual bool shareable() const { return 0; }
+	void unbind() const;
+	
+	unsigned int handle() const { return handle_; }
+
+	virtual bool shareable() const override { return 0; }
 };
 
 ///OpenGL(ES) Buffer
@@ -42,9 +49,16 @@ protected:
 	unsigned int type_;
 
 public:
-	void bind() const;
-	virtual bool shareable() const { return 1; }
-};
+	GlBuffer(unsigned int handle, unsigned int type) : handle_(handle), type_(type) {}
+	virtual ~GlBuffer();
 
+	void bind() const;
+	void unbind() const;
+
+	unsigned int handle() const { return handle_; }
+	unsigned int type() const { return type_; }
+
+	virtual bool shareable() const override { return 1; }
+};
 
 }

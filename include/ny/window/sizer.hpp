@@ -1,22 +1,18 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <ny/eventHandler.hpp>
-#include <ny/window.hpp>
-#include <nytl/misc.hpp>
+#include <ny/gui/widget.hpp>
+
 #include <nytl/vec.hpp>
 
 namespace ny
 {
 
-enum class sizerDir : unsigned int
+class BoxSizer : public Widget
 {
-    vertical,
-    horizontal
 };
 
-template<sizerDir dir>
-class boxSizer : public eventHandler
+/*
 {
 protected:
     void cbResize(vec2ui size)
@@ -84,8 +80,6 @@ public:
     }
 };
 
-using spacer = eventHandler;
-using hboxSizer = boxSizer<sizerDir::horizontal>;
-using vboxSizer = boxSizer<sizerDir::vertical>;
+*/
 
 }

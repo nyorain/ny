@@ -25,7 +25,7 @@ public:
 public:
     static Font& defaultFont()
     {
-        static Font instance_;
+        static Font instance_("Ubuntu-M");
         return instance_;
     }
 };

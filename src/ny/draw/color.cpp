@@ -10,11 +10,50 @@ const Color Color::blue{0, 0, 255};
 const Color Color::white{255, 255, 255};
 const Color Color::black{0, 0, 0};
 
+//TODO: endianess?
 
-unsigned int Color::asInt()
+Color::Color(std::uint32_t color) noexcept
 {
-    unsigned int ret = (a << 24) | (r << 16) | (g << 8) | (b);
+	value_type* ptr = reinterpret_cast<value_type*>(&color);
+	a = *ptr;	
+	b = *++ptr;	
+	g = *++ptr;	
+	r = *++ptr;
+}
+
+std::uint32_t Color::rgbaInt() const
+{
+	std::uint32_t ret = (a << 24) | (b << 16) | (g << 8) | (r);
     return ret;
+}
+
+std::uint32_t Color::argbInt() const
+{
+	std::uint32_t ret = (b << 24) | (g << 16) | (r << 8) | (a);
+    return ret;
+}
+
+std::uint32_t& Color::asInt()
+{
+	return reinterpret_cast<std::uint32_t&>(r);
+}
+
+void Color::argbInt(std::uint32_t color)
+{
+	value_type* ptr = reinterpret_cast<value_type*>(&color);
+	b = *ptr;	
+	g = *++ptr;	
+	r = *++ptr;	
+	a = *++ptr;
+}
+
+void Color::rgbaInt(std::uint32_t color)
+{
+	value_type* ptr = reinterpret_cast<value_type*>(&color);
+	a = *ptr;
+	b = *++ptr;	
+	g = *++ptr;	
+	r = *++ptr;	
 }
 
 void Color::normalized(float& pr, float& pg, float& pb, float& pa) const

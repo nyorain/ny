@@ -7,3 +7,4 @@
 #include <ny/window.hpp>
 #include <ny/draw.hpp>
 #include <ny/backend.hpp>
+#include <ny/gui.hpp>

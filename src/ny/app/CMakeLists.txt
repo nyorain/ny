@@ -1,4 +1,5 @@
 set(include-app ${include-ny})
+set(libs-app ny-base)
 
 set(src-app
 		app.cpp

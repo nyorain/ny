@@ -14,6 +14,9 @@ protected:
     std::string title_{};
 
 protected:
+	virtual void mouseMoveEvent(const MouseMoveEvent& event) override;
+	virtual void mouseButtonEvent(const MouseButtonEvent& event) override;
+
 	ToplevelWindow() = default;
 	void create(const vec2ui& size, const std::string& name = "", const WindowSettings& = {});
 

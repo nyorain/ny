@@ -24,7 +24,8 @@ protected:
 	std::string parseCode(const Version& version) const;
 
 public:
-	ShaderGenerator(const std::string& code = "") : code_(code) {};	
+	ShaderGenerator() = default;
+	ShaderGenerator(const std::string& code) : code_(code) {};	
 	
 	void code(const std::string& text) { code_ = text; }
 	std::string& code() { return code_; }
@@ -37,12 +38,18 @@ public:
 class FragmentShaderGenerator : public ShaderGenerator
 {
 public:
+	using ShaderGenerator::ShaderGenerator;
+
+	using ShaderGenerator::generate;
 	virtual std::string generate(const Version& version) const override;
 };
 
 class VertexShaderGenerator : public ShaderGenerator
 {
 public:
+	using ShaderGenerator::ShaderGenerator;
+
+	using ShaderGenerator::generate;
 	virtual std::string generate(const Version& version) const override;
 };
 

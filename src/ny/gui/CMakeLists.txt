@@ -1,9 +1,12 @@
 set(include-gui ${include-ny})
+set(libs-gui ny-base)
 
 set(src-gui
 	gui.cpp
 	widget.cpp
-	widgetBase.cpp)
+	widgetBase.cpp
+	button.cpp
+	style.cpp)
 
 add_library(ny-gui SHARED ${src-gui})
 target_compile_features(ny-gui PRIVATE cxx_range_for)

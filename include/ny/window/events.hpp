@@ -50,7 +50,8 @@ class ShowEvent : public EventBase<eventType::windowShow, ShowEvent>
 {
 public:
 	using EvBase::EvBase;
-    bool change = 0;
+
+    bool show = 0;
     //showState here
 };
 

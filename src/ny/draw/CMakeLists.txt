@@ -1,4 +1,5 @@
 set(include-draw ${include-ny})
+set(libs-draw ny-base)
 
 set(src-draw
 		drawContext.cpp

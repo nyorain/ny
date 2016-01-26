@@ -1,6 +1,6 @@
 #include <ny/draw/image.hpp>
 #include <nytl/make_unique.hpp>
-#include <nytl/log.hpp>
+#include <ny/base/log.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -150,7 +150,7 @@ bool Image::save(const std::string& path) const
 	std::ofstream ofs(path);
 	if(!ofs.is_open())
 	{
-		nytl::sendWarning("Image::save: failed to open file ", path);
+		sendWarning("Image::save: failed to open file ", path);
 		return 0;
 	}
 
@@ -162,7 +162,7 @@ bool Image::load(const std::string& path)
 	std::ifstream ifs(path);
 	if(!ifs.is_open())
 	{
-		nytl::sendWarning("Image::load: failed to open file ", path);
+		sendWarning("Image::load: failed to open file ", path);
 		return 0;
 	}
 
@@ -188,11 +188,11 @@ bool Image::save(std::ostream& os, const std::string& type) const
 	}
 	else
 	{
-		nytl::sendWarning("Image::save(stream): unknown/unsupported type ", type);
+		sendWarning("Image::save(stream): unknown/unsupported type ", type);
 		return 0;
 	}
 
-	nytl::sendWarning("Image::save: failed to load from stream with type ", type);
+	sendWarning("Image::save: failed to load from stream with type ", type);
 	return 0;
 }
 
@@ -221,7 +221,7 @@ bool Image::load(std::istream& is)
         return true;
     }
 
-	nytl::sendWarning("Image::load: failed to load image from stream:\n\t", stbi_failure_reason());
+	sendWarning("Image::load: failed to load image from stream:\n\t", stbi_failure_reason());
 	return 0;
 }
 

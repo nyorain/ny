@@ -23,20 +23,20 @@ void main()
 
 constexpr auto* uvVS =
 R"SRC(
-%i vec2 position;
-%i vec2 vUv;
+%i vec4 vertex;
 %o vec2 fUv;
 uniform vec2 vViewSize;
 uniform mat3 vTransform;
 
 void main()
 {
+	vec2 position = vertex.xy;
+	fUv = vertex.zw;
+
 	vec3 transpoint = vec3(position, 1.f) * vTransform;
 	transpoint.x = (transpoint.x / vViewSize.x) * 2.f - 1.f;
 	transpoint.y = ((vViewSize.y - transpoint.y) / vViewSize.y) * 2.f - 1.f;
 	gl_Position = vec4(transpoint, 1.f);
-
-	fUv = vUv;
 }
 )SRC";
 
@@ -52,11 +52,10 @@ uniform vec2 vTextureSize;
 void main()
 {
 	vec3 transpoint = vec3(position, 1.f) * vTransform;
-	fUv = (transpoint.xy - fTexturePosition) / fTextureSize;
+	fUv = (transpoint.xy - vTexturePosition) / vTextureSize;
 	transpoint.x = (transpoint.x / vViewSize.x) * 2.f - 1.f;
 	transpoint.y = ((vViewSize.y - transpoint.y) / vViewSize.y) * 2.f - 1.f;
 	gl_Position = vec4(transpoint, 1.f);
-
 }
 )SRC";
 
@@ -100,7 +99,7 @@ uniform sampler2D fTexture;
 
 void main()
 {
-    %fragColor = fColor;
+	%fragColor = fColor;
 	%fragColor.a *= %texture2D(fTexture, fUv).r;
 }
 )SRC";

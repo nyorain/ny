@@ -1,7 +1,7 @@
 #include <ny/app/eventDispatcher.hpp>
 #include <ny/app/eventHandler.hpp>
 
-#include <nytl/log.hpp>
+#include <ny/base/log.hpp>
 
 namespace ny
 {
@@ -33,7 +33,7 @@ void EventDispatcher::sendEvent(Event& event)
 	}
 
 	if(event.handler) event.handler->handleEvent(event);
-	else nytl::sendWarning("EventDispatcher: Got event with no handler, type ", event.type());
+	else sendWarning("EventDispatcher: Got event with no handler, type ", event.type());
 }
 
 void EventDispatcher::dispatcherThreadFunc()
@@ -47,7 +47,7 @@ void EventDispatcher::dispatcherThreadFunc()
 		}
         if(exit_.load())
 		{
-			nytl::sendLog("EventDispatcher: exiting thread");
+			sendLog("EventDispatcher: exiting thread");
 			return;
 		}
 
@@ -64,7 +64,7 @@ void EventDispatcher::dispatch(EventPtr&& event)
 {
     if(!event.get())
     {
-		nytl::sendWarning("EventDispatcher::dispatch: invalid event");
+		sendWarning("EventDispatcher::dispatch: invalid event");
         return;
     }
 

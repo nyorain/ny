@@ -1,6 +1,9 @@
 #include <ny/draw/freeType.hpp>
 #include <ny/draw/font.hpp>
-#include <nytl/log.hpp>
+#include <ny/base/log.hpp>
+
+#include <freetype2/ft2build.h>
+#include FT_FREETYPE_H
 
 namespace ny
 {
@@ -47,7 +50,7 @@ FreeTypeFontHandle::FreeTypeFontHandle(const std::string& name, bool fromFile)
     int ftErr = FT_New_Face(FreeTypeLibrary::instance().handle(), str.c_str(), 0, &face_);
     if(ftErr)
     {
-        throw std::runtime_error("could lot load font");
+        throw std::runtime_error("FTFont::FTFont: could lot load freetype font");
         return;
     }
 }

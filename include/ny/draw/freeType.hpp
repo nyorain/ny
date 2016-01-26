@@ -7,12 +7,12 @@
 #include <nytl/cloneable.hpp>
 #include <nytl/vec.hpp>
 
-#include <freetype2/ft2build.h>
-#include FT_FREETYPE_H
-
 #include <string>
 #include <memory>
 #include <map>
+
+typedef struct FT_LibraryRec_  *FT_Library;
+typedef struct FT_FaceRec_*  FT_Face;
 
 namespace ny
 {
@@ -46,7 +46,7 @@ public:
 class FreeTypeFontHandle : public deriveCloneable<cache, FreeTypeFontHandle>
 {
 protected:
-    FT_Face face_;
+    FT_Face face_ = nullptr;
 	mutable std::map<char, Character> charCache_;
 
 public:

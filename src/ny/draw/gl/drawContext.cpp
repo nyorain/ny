@@ -7,10 +7,11 @@
 #include <ny/draw/font.hpp>
 
 #include <ny/draw/gl/validate.hpp>
+#include <ny/draw/gl/shaderGenerator.hpp>
 #include <ny/draw/gl/shaderSources/default.hpp>
 #include <ny/draw/gl/glad/glad.h>
 
-#include <nytl/log.hpp>
+#include <ny/base/log.hpp>
 
 
 namespace ny
@@ -56,8 +57,28 @@ GlDrawContext::ShaderPrograms& GlDrawContext::shaderPrograms()
 	auto& prog = shaderPrograms_[GlContext::current()]; 
 	if(!prog.initialized)
 	{
-		prog.brush.color.loadFromString(defaultShaderVS, modernColorShaderFS);
-		prog.brush.colorTextureA.loadFromString(uvShaderVS, modernColorShaderTextureAFS);
+		using namespace shaderSources;
+
+		FragmentShaderGenerator fgen;
+		VertexShaderGenerator vgen(defaultVS);
+
+		auto defaultVSCode = vgen.generate();
+
+		fgen.code(colorFS);
+		prog.brush.color.loadFromString(defaultVSCode, fgen.generate());
+
+		vgen.code(uvVS);
+		auto uvVSCode = vgen.generate();
+
+		fgen.code(textureRColorFS);
+		prog.brush.colorTextureA.loadFromString(uvVSCode, fgen.generate());
+
+		vgen.code(textureVS);
+		auto textureVSCode = vgen.generate();
+
+		fgen.code(textureRGBAFS);
+		prog.brush.textureRGBA.loadFromString(textureVSCode, fgen.generate());
+
 		prog.initialized = 1;
 	}
 
@@ -80,13 +101,13 @@ Shader& GlDrawContext::shaderProgramForBrush(const Brush& b)
 		{
 		   ret = &shaderPrograms().brush.textureRGBA;
 		   ret->use();
-		   ret->uniform("fTexturePosition", b.textureBrush().extents.position);
-		   ret->uniform("fTextureSize", b.textureBrush().extents.size);
+		   ret->uniform("vTexturePosition", b.textureBrush().extents.position);
+		   ret->uniform("vTextureSize", b.textureBrush().extents.size);
 
 		   auto* glTex = dynamic_cast<const GlTexture*>(b.textureBrush().texture);
 		   if(!glTex || !glTex->glTexture())
 		   {
-			   nytl::sendWarning("glDraw textureBrush: invalid texture");
+			   sendWarning("glDraw textureBrush: invalid texture");
 			   break;
 		   }
 
@@ -127,13 +148,13 @@ Shader& GlDrawContext::shaderProgramForPen(const Pen& p)
 		{
 		   ret = &shaderPrograms().pen.texture;
 		   ret->use();
-		   ret->uniform("fTexturePosition", b.textureBrush().extents.position);
-		   ret->uniform("fTextureSize", b.textureBrush().extents.size);
+		   ret->uniform("vTexturePosition", b.textureBrush().extents.position);
+		   ret->uniform("vTextureSize", b.textureBrush().extents.size);
 
 		   auto* glTex = dynamic_cast<const GlTexture*>(b.textureBrush().texture);
 		   if(!glTex)
 		   {
-			   nytl::sendWarning("glDraw textureBrush: invalid texture");
+			   sendWarning("glDraw textureBrush: invalid texture");
 			   break;
 		   }
 
@@ -160,6 +181,9 @@ Shader& GlDrawContext::shaderProgramForPen(const Pen& p)
 void GlDrawContext::fillTriangles(const std::vector<triangle2f>& triangles, 
 		const Brush& brush, const mat3f& transMatrix)
 {
+	ny::sendLog("fill", triangles[0]);
+	ny::sendLog("filltrans", transMatrix.col(2));
+
 	GLuint vbo, vao;
 	glGenBuffers(1, &vbo);
 	glGenVertexArrays(1, &vao);
@@ -265,7 +289,7 @@ void GlDrawContext::fillText(const Text& t, const Brush& b)
 		auto xpos = pos.x;
 		auto ypos = pos.y;
 	
-		GLfloat vertices[6][4] = {
+		float vertices[6][4] = {
        	     { xpos,     ypos + h,   0.0, 1.0 },            
        	     { xpos,     ypos,       0.0, 0.0 },
        	     { xpos + w, ypos,       1.0, 0.0 },
@@ -274,9 +298,6 @@ void GlDrawContext::fillText(const Text& t, const Brush& b)
        	     { xpos + w, ypos,       1.0, 0.0 },
        	     { xpos + w, ypos + h,   1.0, 1.0 }           
        	 };
-
-		shader.uniform("fTextureSize", size);
-		shader.uniform("fTexturePosition", pos);
 
 		auto glTex = GlTexture(ch.image);
 		glTex.bind();
@@ -320,7 +341,7 @@ void GlDrawContext::clear(const Brush& brush)
 void GlDrawContext::paint(const Brush& alpha, const Brush& fill) 
 {
 	VALIDATE_CTX();
-	nytl::sendWarning("glDC::paint: not implemented yet...");
+	sendWarning("glDC::paint: not implemented yet...");
 }
 
 void GlDrawContext::fillPreserve(const Brush& brush)
@@ -357,6 +378,7 @@ void GlDrawContext::fillPreserve(const Brush& brush)
 void GlDrawContext::strokePreserve(const Pen& pen)
 {
 	VALIDATE_CTX();
+	return;
 
 	for(auto& pth : storedMask())
 	{
@@ -396,7 +418,7 @@ void GlDrawContext::clipRectangle(const rect2f& rct)
 {
 	VALIDATE_CTX();
 	auto size = viewport().size;
-	auto normRect = asGlNormalize(rct, size);
+	auto normRect = asGlInvert(rct, size.y);
 
 	glEnable(GL_SCISSOR_TEST);
 	glScissor(normRect.position.x, normRect.position.y, normRect.size.x, normRect.size.y);
@@ -405,6 +427,8 @@ void GlDrawContext::clipRectangle(const rect2f& rct)
 rect2f GlDrawContext::rectangleClip() const
 {
 	VALIDATE_CTX({});
+	return viewport(); //TODO
+
 	GLint vals[4];
 	glGetIntegerv(GL_SCISSOR_BOX, vals);
 	return {{float(vals[0]), float(vals[1])}, {float(vals[2]), float(vals[3])}};	

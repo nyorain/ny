@@ -9,7 +9,7 @@
 
 //macro for assuring a valid context (warn and return if there is none)
 #define VALIDATE_CTX(x) if(!GlContext::current())\
-	{ nytl::sendWarning(FUNC_NAME, ": no current opengl context."); return x; }
+	{ sendWarning(FUNC_NAME, ": no current opengl context."); return x; }
 
 #define RES_VALIDATE_CTX(x) if(!this->validContext())\
-	{ nytl::sendWarning(FUNC_NAME, ": no or invalid current opengl context."); return x; }
+	{ sendWarning(FUNC_NAME, ": no or invalid current opengl context."); return x; }

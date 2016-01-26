@@ -2,6 +2,10 @@
 
 #include <ny/include.hpp>
 #include <nytl/vec.hpp>
+#include <nytl/refVec.hpp>
+
+#include <string>
+#include <cstdint>
 
 namespace ny
 {
@@ -10,27 +14,45 @@ namespace ny
 class Color
 {
 public:
-    unsigned char r;
-    unsigned char g;
-    unsigned char b;
-    unsigned char a;
+	using value_type = std::uint8_t;
 
 public:
-    constexpr Color(unsigned char rx = 0, unsigned char gx = 0,
-			unsigned char bx = 0, unsigned char ax = 255) noexcept
+	value_type r;
+	value_type g;
+	value_type b;
+	value_type a;
+
+public:
+	Color() = default;
+    Color(value_type rx, value_type gx, value_type bx, value_type ax = 255) noexcept 
 		: r(rx), g(gx), b(bx), a(ax) {}
 
-	constexpr Color(const vec3uc& comps) noexcept
-		: r(comps.x), g(comps.y), b(comps.z), a(255) {}
-	constexpr Color(const vec4uc& comps) noexcept
-		: r(comps.x), g(comps.y), b(comps.z), a(comps.w) {}
+	Color(const vec3uc& comps) noexcept : r(comps.x), g(comps.y), b(comps.z), a(255) {}
+	Color(const vec4uc& comps) noexcept : r(comps.x), g(comps.y), b(comps.z), a(comps.w) {}
 
-    unsigned int asInt();
+	///Create the Color object from a packaged rgba-color int.
+	Color(std::uint32_t color) noexcept;
+
+	//TODO
+	//Create the Color object from an string (color name or hexadecimal [e.g. #ccca or #ffffff]).
+	//Color(const std::string& color);
+
+	std::uint32_t& asInt();
+
+	std::uint32_t rgbaInt() const;
+	std::uint32_t argbInt() const;
+
+	void rgbaInt(std::uint32_t color);
+	void argbInt(std::uint32_t color);
+
     void normalized(float& pr, float& pg, float& pb, float& pa) const;
     void normalized(float& pr, float& pg, float& pb) const;
 
-    vec4uc rgba() const { return vec4uc(r,g,b,a); }
-    vec3uc rgb() const { return vec3uc(r,g,a); }
+    refVec4uc rgba() { return {r ,g, b, a}; }
+    refVec3uc rgb() { return {r, g, b}; }
+
+    vec4uc rgba() const { return {r ,g, b, a}; }
+    vec3uc rgb() const { return {r, g, b}; }
 
     vec4f rgbaNorm() const { return vec4f(r / 255.f, g / 255.f, b / 255.f, a / 255.f); }
     vec3f rgbNorm() const { return vec3f(r / 255.f, g / 255.f, b / 255.f); }

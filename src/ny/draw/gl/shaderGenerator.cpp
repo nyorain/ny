@@ -1,7 +1,7 @@
 #include <ny/draw/gl/shaderGenerator.hpp>
 #include <ny/draw/gl/validate.hpp>
 
-#include <nytl/log.hpp>
+#include <ny/base/log.hpp>
 #include <regex>
 
 namespace ny
@@ -14,8 +14,8 @@ std::string ShaderGenerator::generate() const
 
 	Version version;
 	unsigned int ver = GlContext::current()->preferredGlslVersion();
-	version.minor = (ver % 100) / 10;
-	version.major = (ver - version.minor) / 100;
+	version.minor = (ver % 10);
+	version.major = (ver - version.minor) / 10;
 	version.api = GlContext::current()->api();
 
 	return generate(version);
@@ -53,7 +53,7 @@ std::string ShaderGenerator::parseCode(const Version& version) const
 		else
 		{
 			inputString = "in";
-			inputString = "out";
+			outputString = "out";
 			texture2DString = "texture";
 			textureCubeString = "texture";
 		}
@@ -63,14 +63,14 @@ std::string ShaderGenerator::parseCode(const Version& version) const
 		if(version.major == 2)
 		{
 			inputString = "attribute";
-			inputString = "varying";
+			outputString = "varying";
 			texture2DString = "texture2D";
 			textureCubeString = "textureCube";
 		}
 		else
 		{
 			inputString = "in";
-			inputString = "out";
+			outputString = "out";
 			texture2DString = "texture";
 			textureCubeString = "texture";
 		}
@@ -113,7 +113,7 @@ std::string FragmentShaderGenerator::generate(const Version& version) const
 
 	//custom fragColor output
 	std::string fragString = "gl_FragColor";
-	if((opengl && version.major >= 1 && version.minor >= 3) || (!opengl && version.major >= 3))
+	if((opengl && (version.major > 1 || version.minor >= 3)) || (!opengl && version.major >= 3))
 	{
 		ret += "out vec4 fragColor;\n";
 		fragString = "fragColor";
@@ -141,7 +141,7 @@ std::string VertexShaderGenerator::generate(const Version& version) const
 	{
 		if(version.major < 2)
 		{
-			nytl::sendWarning("ShaderGenerator::generate: there is no glsl version for opengl 1");
+			sendWarning("ShaderGenerator::generate: there is no glsl version for opengl 1");
 			return {};
 		}
 

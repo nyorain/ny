@@ -5,7 +5,7 @@
 #include <ny/draw/gl/validate.hpp>
 #include <ny/draw/gl/glad/glad.h>
 
-#include <nytl/log.hpp>
+#include <ny/base/log.hpp>
 
 
 #include <fstream>
@@ -29,7 +29,7 @@ void Shader::reset()
 	{
 		if(!validContext())
 		{
-			nytl::sendWarning("Shader::reset: Inalid current opengl context");
+			sendWarning("Shader::reset: Invalid current opengl context");
 			return;
 		}
 
@@ -53,7 +53,7 @@ bool Shader::loadFromFile(const std::string& vertexFile, const std::string& frag
     }
 	else
 	{
-		nytl::sendWarning("Shader::loadFromFile: failed to open fragment file ", vertexFile);
+		sendWarning("Shader::loadFromFile: failed to open fragment file ", vertexFile);
 		return 0;
 	}
 
@@ -68,7 +68,7 @@ bool Shader::loadFromFile(const std::string& vertexFile, const std::string& frag
     }
 	else
 	{
-		nytl::sendWarning("Shader::loadFromFile: failed to open fragment file ", fragmentFile);
+		sendWarning("Shader::loadFromFile: failed to open fragment file ", fragmentFile);
 		return 0;
 	}
 
@@ -83,7 +83,7 @@ bool Shader::loadFromFile(const std::string& file, Shader::Type type)
 
     if(!stream.is_open())
     {
-		nytl::sendWarning("Shader::loadFromFile: failed to open file ", file);
+		sendWarning("Shader::loadFromFile: failed to open file ", file);
 		return 0;
     }
 
@@ -176,7 +176,7 @@ bool Shader::compile(const std::string& vertexShader, const std::string& fragmen
 {
 	if(!GlContext::currentValid())
 	{
-		nytl::sendWarning("Shader::compile: no valid current GlContext");
+		sendWarning("Shader::compile: no valid current GlContext");
 		return 0;
 	}
 
@@ -201,7 +201,7 @@ bool Shader::compile(const std::string& vertexShader, const std::string& fragmen
             glGetShaderiv(vsID, GL_INFO_LOG_LENGTH, &infoLength);
             std::vector<char> info(infoLength);
             glGetShaderInfoLog(vsID, infoLength, nullptr, info.data());
-			nytl::sendWarning("failed to compile vertex shader:\n\t", info.data());
+			sendWarning("failed to compile vertex shader:\n\t", info.data());
             vsID = 0;
         }
     }
@@ -222,7 +222,7 @@ bool Shader::compile(const std::string& vertexShader, const std::string& fragmen
             glGetShaderiv(fsID, GL_INFO_LOG_LENGTH, &infoLength);
             std::vector<char> info(infoLength);
             glGetShaderInfoLog(fsID, infoLength, nullptr, info.data());
-			nytl::sendWarning("failed to compile fragment shader:\n\t", info.data());
+			sendWarning("failed to compile fragment shader:\n\t", info.data());
             fsID = 0;
         }
     }
@@ -248,7 +248,7 @@ void Shader::use() const
 	VALIDATE_CTX();
 
     if(program_) glUseProgram(program_);
-	else nytl::sendWarning("Shader::use: shader has no compiled program");
+	else sendWarning("Shader::use: shader has no compiled program");
 }
 
 

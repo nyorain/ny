@@ -1,7 +1,7 @@
 #include <ny/draw/drawContext.hpp>
 #include <ny/draw/shape.hpp>
 
-#include <nytl/log.hpp>
+#include <ny/base/log.hpp>
 
 namespace ny
 {
@@ -37,10 +37,10 @@ void DrawContext::draw(const Shape& obj)
 {
     mask(obj.pathBase());
 
-    fillPreserve(obj.brush());
-    strokePreserve(obj.pen());
+    if(&obj.brush() != &Brush::none) fillPreserve(obj.brush());
+    if(&obj.pen() != &Pen::none) strokePreserve(obj.pen());
 
-    resetMask();
+	resetMask();
 }
 
 void DrawContext::clear(const Brush& b)
@@ -87,8 +87,13 @@ RedirectDrawContext::RedirectDrawContext(DrawContext& redirect, const vec2f& pos
 		const vec2f& size)
     : DrawContext(), size_(size), position_(position), redirect_(&redirect)
 {
+	startDrawing();
 }
 
+RedirectDrawContext::~RedirectDrawContext()
+{
+	endDrawing();
+}
 
 void RedirectDrawContext::apply()
 {
@@ -256,6 +261,7 @@ void RedirectDrawContext::endDrawing()
         redirect_->clipMask();
     }
 
+	//redirect_->resetRectangleClip();
     redirect_->clipRectangle(rectangleClipSave_);
 }
 

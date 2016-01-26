@@ -6,10 +6,11 @@
 #include <ny/app/keyboard.hpp>
 #include <ny/app/mouse.hpp>
 #include <ny/window/window.hpp>
+#include <ny/draw/freeType.hpp>
 
 #include <nytl/time.hpp>
 #include <nytl/misc.hpp>
-#include <nytl/log.hpp>
+#include <ny/base/log.hpp>
 
 #include <iostream>
 #include <thread>
@@ -80,6 +81,9 @@ App::App(const App::Settings& settings) : settings_(settings)
 		}
 	}
 
+	//TODO: hack to create (static) freetype lib before any (static) freetype font
+	FreeTypeLibrary::instance();
+
     appContext_ = backend_->createAppContext();
 }
 
@@ -101,26 +105,19 @@ void App::exit()
 	if(appContext_) appContext_->exit();
 }
 
-/*
-bool App::removeChild(EventHandlerNode& child)
+void App::windowCreated()
 {
-    if(focus_.load() == static_cast<Window*>(&child)) focus_ = nullptr;
-    if(mouseOver_.load() == static_cast<Window*>(&child)) mouseOver_ = nullptr;
-
-    bool ret = EventHandlerRoot::removeChild(child);
-    if(children().size() == 0 && settings_.exitWithoutChildren)
-    {
-		this->exit();
-    }
-
-    return ret;
+	windowCount_++;
 }
 
-void App::destroy()
+void App::windowClosed()
 {
-    EventHandlerRoot::destroy();
+	windowCount_--;
+	if(windowCount_ < 1 && settings_.exitWithoutWindows)
+	{
+		exit();
+	}
 }
-*/
 
 //keyboard Events
 void App::windowFocus(Event&)
