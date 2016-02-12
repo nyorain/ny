@@ -120,7 +120,7 @@ const wl_buffer_listener bufferListener =
 };
 
 //shmBuffer
-shmBuffer::shmBuffer(vec2ui size, bufferFormat form) : size_(size), format(form)
+shmBuffer::shmBuffer(Vec2ui size, bufferFormat form) : size_(size), format(form)
 {
     create();
 }
@@ -154,8 +154,8 @@ void shmBuffer::create()
 
     unsigned int stride = size_.x * getBufferFormatSize(format);
 
-    unsigned int vecSize = stride * size_.y;
-    shmSize_ = std::max(vecSize, shmSize_);
+    unsigned int VecSize = stride * size_.y;
+    shmSize_ = std::max(VecSize, shmSize_);
 
     int fd;
 
@@ -186,14 +186,14 @@ void shmBuffer::destroy()
     if(data_) munmap(data_, shmSize_);
 }
 
-void shmBuffer::setSize(const vec2ui& size)
+void shmBuffer::setSize(const Vec2ui& size)
 {
     size_ = size;
 
     unsigned int stride = size_.x * getBufferFormatSize(format);
-    unsigned int vecSize = stride * size_.y;
+    unsigned int VecSize = stride * size_.y;
 
-    if(vecSize > shmSize_)
+    if(VecSize > shmSize_)
     {
         destroy();
         create();
@@ -205,27 +205,27 @@ void shmBuffer::setSize(const vec2ui& size)
     }
 }
 
-//callback////////////////////////////////////
-void callbackDone(void *data, struct wl_callback* callback, uint32_t callbackData)
+//Callback////////////////////////////////////
+void CallbackDone(void *data, struct wl_Callback* Callback, uint32_t CallbackData)
 {
     serverCallback* call = (serverCallback*) data;
-    call->done(callback, callbackData);
+    call->done(Callback, CallbackData);
 }
 
-const wl_callback_listener callbackListener =
+const wl_Callback_listener CallbackListener =
 {
-    &callbackDone,
+    &CallbackDone,
 };
 
 //
-serverCallback::serverCallback(wl_callback* callback)
+serverCallback::serverCallback(wl_Callback* Callback)
 {
-    wl_callback_add_listener(callback, &callbackListener, this);
+    wl_Callback_add_listener(Callback, &CallbackListener, this);
 }
 
-void serverCallback::done(wl_callback* cb, unsigned int data)
+void serverCallback::done(wl_Callback* cb, unsigned int data)
 {
-    callback_(cb, data);
+    Callback_(cb, data);
 }
 
 

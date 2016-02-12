@@ -17,7 +17,7 @@ void gdiDrawContext::clear(color col)
 }
 
 //
-void gdiDrawContext::mask(const rectangle& obj)
+void gdiDrawContext::mask(const Rectangle& obj)
 {
     currentPath_.AddRectangle(Rect(obj.getPosition().x, obj.getPosition().y, obj.getSize().x, obj.getSize().y));
 }

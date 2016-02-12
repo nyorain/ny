@@ -6,18 +6,18 @@ namespace ny
 {
 
 //PathSegment
-PathSegment::PathSegment(const vec2f& position, PathSegment::Type t) noexcept
+PathSegment::PathSegment(const Vec2f& position, PathSegment::Type t) noexcept
  : type_(t), position_(position)
 {
     switch(type_)
     {
         case Type::cubicCurve:
-            controlPoint_.~vec();
+            controlPoint_.~Vec();
             cubicCurveControlPoints_ = {{0, 0}, {0, 0}};
             break;
 
         case Type::arc:
-            controlPoint_.~vec();
+            controlPoint_.~Vec();
             arc_ = ArcData{};
             break;
 
@@ -36,12 +36,12 @@ PathSegment::PathSegment(const PathSegment& other) noexcept
     switch(type_)
     {
         case Type::cubicCurve:
-            controlPoint_.~vec();
+            controlPoint_.~Vec();
             cubicCurveControlPoints_ = other.cubicCurveControlPoints_;
             break;
 
         case Type::arc:
-            controlPoint_.~vec();
+            controlPoint_.~Vec();
             arc_ = other.arc_;
             break;
 
@@ -74,7 +74,7 @@ void PathSegment::resetUnion()
     {
         case Type::cubicCurve: cubicCurveControlPoints_.~pair(); break;
         case Type::arc: arc_.~ArcData(); break;
-        default: controlPoint_.~vec(); break;
+        default: controlPoint_.~Vec(); break;
     }
 }
 
@@ -95,7 +95,7 @@ void PathSegment::smoothQuadCurve()
     controlPoint_ = {};
 }
 
-void PathSegment::quadCurve(const vec2f& control)
+void PathSegment::quadCurve(const Vec2f& control)
 {
     resetUnion();
 
@@ -103,7 +103,7 @@ void PathSegment::quadCurve(const vec2f& control)
     controlPoint_ = control;
 }
 
-void PathSegment::smoothCubicCurve(const vec2f& control)
+void PathSegment::smoothCubicCurve(const Vec2f& control)
 {
     resetUnion();
 
@@ -111,7 +111,7 @@ void PathSegment::smoothCubicCurve(const vec2f& control)
     controlPoint_ = control;
 }
 
-void PathSegment::cubicCurve(const vec2f& control1, const vec2f& control2)
+void PathSegment::cubicCurve(const Vec2f& control1, const Vec2f& control2)
 {
     resetUnion();
 
@@ -127,7 +127,7 @@ void PathSegment::arc(const ArcData& data)
     arc_ = data;
 }
 
-vec2f PathSegment::controlPoint() const
+Vec2f PathSegment::controlPoint() const
 {
     if(type_ == Type::quadCurve || type_ == Type::smoothCubicCurve)
     {
@@ -138,7 +138,7 @@ vec2f PathSegment::controlPoint() const
     return {};
 }
 
-std::pair<vec2f, vec2f> PathSegment::cubicCurveControlPoints() const
+std::pair<Vec2f, Vec2f> PathSegment::cubicCurveControlPoints() const
 {
     if(type_ == Type::cubicCurve)
     {
@@ -162,57 +162,57 @@ ArcData PathSegment::arcData() const
 
 
 //PlainSubpath
-PlainSubpath::PlainSubpath(const std::vector<vec2f>& points, bool closed)
-    : std::vector<vec2f>(points), closed_(closed)
+PlainSubpath::PlainSubpath(const std::vector<Vec2f>& points, bool closed)
+    : std::vector<Vec2f>(points), closed_(closed)
 {
 }
 
 //Subpath
-Subpath::Subpath(const vec2f& start) : start_(start)
+Subpath::Subpath(const Vec2f& start) : start_(start)
 {
 }
 
-const PathSegment& Subpath::line(const vec2f& position)
+const PathSegment& Subpath::line(const Vec2f& position)
 {
     segments_.emplace_back(position, PathSegment::Type::line);
     return segments_.back();
 }
 
-const PathSegment& Subpath::smoothQuadCurve(const vec2f& position)
+const PathSegment& Subpath::smoothQuadCurve(const Vec2f& position)
 {
     segments_.emplace_back(position, PathSegment::Type::smoothQuadCurve);
     return segments_.back();
 }
 
-const PathSegment& Subpath::quadCurve(const vec2f& position, const vec2f& control)
+const PathSegment& Subpath::quadCurve(const Vec2f& position, const Vec2f& control)
 {
     segments_.emplace_back(position, PathSegment::Type::quadCurve);
     segments_.back().quadCurve(control);
     return segments_.back();
 }
 
-const PathSegment& Subpath::smoothCubicCurve(const vec2f& position, const vec2f& control)
+const PathSegment& Subpath::smoothCubicCurve(const Vec2f& position, const Vec2f& control)
 {
     segments_.emplace_back(position, PathSegment::Type::smoothCubicCurve);
     segments_.back().smoothCubicCurve(control);
     return segments_.back();
 }
 
-const PathSegment& Subpath::cubicCurve(const vec2f& pos, const vec2f& con1, const vec2f& con2)
+const PathSegment& Subpath::cubicCurve(const Vec2f& pos, const Vec2f& con1, const Vec2f& con2)
 {
     segments_.emplace_back(pos, PathSegment::Type::cubicCurve);
     segments_.back().cubicCurve(con1, con2);
     return segments_.back();
 }
 
-const PathSegment& Subpath::arc(const vec2f& pos, const ArcData& data)
+const PathSegment& Subpath::arc(const Vec2f& pos, const ArcData& data)
 {
     segments_.emplace_back(pos, PathSegment::Type::arc);
     segments_.back().arc(data);
     return segments_.back();
 }
 
-const vec2f& Subpath::currentPosition() const
+const Vec2f& Subpath::currentPosition() const
 {
     if(segments_.empty()) return start_;
     return segments_.back().position();
@@ -237,7 +237,7 @@ PlainSubpath Subpath::bake() const
 
 
 //Path
-Path::Path(const vec2f& start)
+Path::Path(const Vec2f& start)
 {
     subpaths_.emplace_back(start);
 }
@@ -252,7 +252,7 @@ Subpath& Path::newSubpath()
     return subpaths_.back();
 }
 
-Subpath& Path::move(const vec2f& position)
+Subpath& Path::move(const Vec2f& position)
 {
     //rlly check this case? is this behaviour expected? -> interface
     if(currentSubpath().segments().empty())
@@ -265,27 +265,27 @@ Subpath& Path::move(const vec2f& position)
     return subpaths_.back();
 }
 
-const PathSegment& Path::line(const vec2f& position)
+const PathSegment& Path::line(const Vec2f& position)
 {
     return currentSubpath().line(position);
 }
-const PathSegment& Path::Path::smoothQuadCurve(const vec2f& position)
+const PathSegment& Path::Path::smoothQuadCurve(const Vec2f& position)
 {
     return currentSubpath().smoothQuadCurve(position);
 }
-const PathSegment& Path::quadCurve(const vec2f& position, const vec2f& control)
+const PathSegment& Path::quadCurve(const Vec2f& position, const Vec2f& control)
 {
     return currentSubpath().quadCurve(position, control);
 }
-const PathSegment& Path::smoothCubicCurve(const vec2f& position, const vec2f& control)
+const PathSegment& Path::smoothCubicCurve(const Vec2f& position, const Vec2f& control)
 {
     return currentSubpath().smoothCubicCurve(position, control);
 }
-const PathSegment& Path::cubicCurve(const vec2f& pos, const vec2f& con1, const vec2f& con2)
+const PathSegment& Path::cubicCurve(const Vec2f& pos, const Vec2f& con1, const Vec2f& con2)
 {
     return currentSubpath().cubicCurve(pos, con1, con2);
 }
-const PathSegment& Path::arc(const vec2f& position, const ArcData& data)
+const PathSegment& Path::arc(const Vec2f& position, const ArcData& data)
 {
     return currentSubpath().arc(position, data);
 }
@@ -296,26 +296,26 @@ Subpath& Path::close()
     return newSubpath();
 }
 
-const vec2f& Path::currentPosition() const
+const Vec2f& Path::currentPosition() const
 {
     return currentSubpath().currentPosition();
 }
 
-//rectangle baking
+//Rectangle baking
 Path Rectangle::asPath() const
 {
 	//todo: borderradius values.
 	//
 	//auto testVec = lessThanEqual(borderRadius_, 0);
 	//sendLog("radius: ", borderRadius_);
-	//sendLog("testvec: ", testVec);
+	//sendLog("testVec: ", testVec);
 
     if(1) //all(testVec)
     {
         Path p({0.f, 0.f});
-        p.line(vec2f(size_.x, 0));
+        p.line(Vec2f(size_.x, 0));
         p.line(size_);
-        p.line(vec2f(0, size_.y));
+        p.line(Vec2f(0, size_.y));
         p.close();
 
         p.copyTransform(*this);
@@ -323,24 +323,24 @@ Path Rectangle::asPath() const
     }
     else
     {
-        rect2f me;
+        Rect2f me;
         me.size = size_; //dont copy position since it will be copied with copyTransform()
 
-        Path p(me.topLeft() + vec2f(0, borderRadius_[0]));
-        p.arc(me.topLeft() + vec2f(borderRadius_[0], 0),
-            {vec2f(borderRadius_[0], borderRadius_[0]), 0, 1});
+        Path p(me.topLeft() + Vec2f(0, borderRadius_[0]));
+        p.arc(me.topLeft() + Vec2f(borderRadius_[0], 0),
+            {Vec2f(borderRadius_[0], borderRadius_[0]), 0, 1});
 
-        p.line(me.topRight() - vec2f(borderRadius_[1], 0));
-        p.arc(me.topRight() + vec2f(0, borderRadius_[1]),
-            {vec2f(borderRadius_[1], borderRadius_[1]), 0, 1});
+        p.line(me.topRight() - Vec2f(borderRadius_[1], 0));
+        p.arc(me.topRight() + Vec2f(0, borderRadius_[1]),
+            {Vec2f(borderRadius_[1], borderRadius_[1]), 0, 1});
 
-        p.line(me.bottomRight() - vec2f(0, borderRadius_[2]));
-        p.arc(me.bottomRight() - vec2f(borderRadius_[2], 0),
-            {vec2f(borderRadius_[2], borderRadius_[2]), 0, 1});
+        p.line(me.bottomRight() - Vec2f(0, borderRadius_[2]));
+        p.arc(me.bottomRight() - Vec2f(borderRadius_[2], 0),
+            {Vec2f(borderRadius_[2], borderRadius_[2]), 0, 1});
 
-        p.line(me.bottomLeft() + vec2f(borderRadius_[3], 0));
-        p.arc(me.bottomLeft() - vec2f(0, borderRadius_[3]),
-            {vec2f(borderRadius_[3], borderRadius_[3]), 0, 1});
+        p.line(me.bottomLeft() + Vec2f(borderRadius_[3], 0));
+        p.arc(me.bottomLeft() - Vec2f(0, borderRadius_[3]),
+            {Vec2f(borderRadius_[3], borderRadius_[3]), 0, 1});
 
         p.close();
         p.copyTransform(*this);
@@ -355,7 +355,7 @@ Text::Text(const std::string& s, float size)
 {
 }
 
-Text::Text(const vec2f& position, const std::string& s, float size)
+Text::Text(const Vec2f& position, const std::string& s, float size)
     : transformable2(position), size_(size), string_(s), font_(&Font::defaultFont())
 {
 }
@@ -363,12 +363,12 @@ Text::Text(const vec2f& position, const std::string& s, float size)
 //Circle
 Path Circle::asPath() const
 {
-    //TODO: better solution should be possible; kinda hacky here; 2 arcs, not correctly closed
+    //TODO: better solution should be possible; kinda hacky here; 2 arcs, not corRectly closed
 
-    Path p(vec2f(-radius_, 0)); //top point
+    Path p(Vec2f(-radius_, 0)); //top point
 
-    p.arc(vec2f(radius_, 0), {vec2f(radius_, radius_), 0, 1}); //bottom point
-    p.arc(vec2f(-radius_, 0), {vec2f(radius_, radius_), 0, 1}); //top point
+    p.arc(Vec2f(radius_, 0), {Vec2f(radius_, radius_), 0, 1}); //bottom point
+    p.arc(Vec2f(-radius_, 0), {Vec2f(radius_, radius_), 0, 1}); //top point
 
     p.close();
     p.copyTransform(*this);
@@ -387,7 +387,7 @@ PathBase::PathBase(const PathBase& other)
 	switch(type_)
 	{
 		case Type::text: new(&text_) Text(other.text_); break;
-		case Type::rectangle: new(&rectangle_) Rectangle(other.rectangle_); break;
+		case Type::Rectangle: new(&Rectangle_) Rectangle(other.Rectangle_); break;
 		case Type::circle: new(&circle_) Circle(other.circle_); break;
 		case Type::path: new(&path_) Path(other.path_); break;
 	}
@@ -401,7 +401,7 @@ PathBase& PathBase::operator=(const PathBase& other)
 	switch(type_)
 	{
 		case Type::text: new(&text_) Text(other.text_); break;
-		case Type::rectangle: new(&rectangle_) Rectangle(other.rectangle_); break;
+		case Type::Rectangle: new(&Rectangle_) Rectangle(other.Rectangle_); break;
 		case Type::circle: new(&circle_) Circle(other.circle_); break;
 		case Type::path: new(&path_) Path(other.path_); break;
 	}
@@ -415,7 +415,7 @@ PathBase::PathBase(PathBase&& other) noexcept
 	switch(type_)
 	{
 		case Type::text: new(&text_) Text(std::move(other.text_)); break;
-		case Type::rectangle: new(&rectangle_) Rectangle(std::move(other.rectangle_)); break;
+		case Type::Rectangle: new(&Rectangle_) Rectangle(std::move(other.Rectangle_)); break;
 		case Type::circle: new(&circle_) Circle(std::move(other.circle_)); break;
 		case Type::path: new(&path_) Path(std::move(other.path_)); break;
 	}
@@ -432,7 +432,7 @@ PathBase& PathBase::operator=(PathBase&& other) noexcept
 	switch(type_)
 	{
 		case Type::text: new(&text_) Text(std::move(other.text_)); break;
-		case Type::rectangle: new(&rectangle_) Rectangle(std::move(other.rectangle_)); break;
+		case Type::Rectangle: new(&Rectangle_) Rectangle(std::move(other.Rectangle_)); break;
 		case Type::circle: new(&circle_) Circle(std::move(other.circle_)); break;
 		case Type::path: new(&path_) Path(std::move(other.path_)); break;
 	}
@@ -448,7 +448,7 @@ void PathBase::resetUnion()
 	switch(type_)
 	{
 		case Type::text: text_.~Text(); break;
-		case Type::rectangle: rectangle_.~Rectangle(); break;
+		case Type::Rectangle: Rectangle_.~Rectangle(); break;
 		case Type::circle: circle_.~Circle(); break;
 		case Type::path: path_.~Path(); break;
 	}
@@ -461,11 +461,11 @@ void PathBase::text(const Text& obj)
 	text_ = obj;
 }
 
-void PathBase::rectangle(const Rectangle& obj)
+void PathBase::Rectangle(const Rectangle& obj)
 {
 	resetUnion();
-	type_ = Type::rectangle;
-	rectangle_ = obj;
+	type_ = Type::Rectangle;
+	Rectangle_ = obj;
 }
 
 void PathBase::circle(const Circle& obj)
@@ -493,7 +493,7 @@ const transformable2& PathBase::transformable() const
 	switch(type_)
 	{
 		case Type::text: return text_;
-		case Type::rectangle: return rectangle_;
+		case Type::Rectangle: return Rectangle_;
 		case Type::circle: return circle_; 
 		case Type::path: return path_;
 	}
@@ -504,7 +504,7 @@ transformable2& PathBase::transformable()
 	switch(type_)
 	{
 		case Type::text: return text_;
-		case Type::rectangle: return rectangle_;
+		case Type::Rectangle: return Rectangle_;
 		case Type::circle: return circle_; 
 		case Type::path: return path_;
 	}

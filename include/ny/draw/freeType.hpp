@@ -22,7 +22,7 @@ class Character
 {
 public:
 	Image image;
-	vec2i bearing {0, 0};
+	Vec2i bearing {0, 0};
 	unsigned int advance {0};
 };
 
@@ -55,7 +55,7 @@ public:
     ~FreeTypeFontHandle();
 
 	FT_Face face() const { return face_; }
-	void characterSize(const vec2ui& size);
+	void characterSize(const Vec2ui& size);
 
 	void cacheAscii() const;
 	Character& load(char c) const;

@@ -6,26 +6,53 @@
 
 #include <nytl/vec.hpp>
 #include <nytl/rect.hpp>
-#include <nytl/region.hpp>
 #include <nytl/nonCopyable.hpp>
 
 namespace ny
 {
+
+///RAII guard for using DrawContexts.
+///Simplex Assures that the DrawContext is initialized before using it and will be applied
+///on guard destruction.
+class DrawGuard
+{
+protected:
+	DrawContext& drawContext_;
+
+public:
+	DrawGuard(DrawContext& ctx);
+	~DrawGuard();
+
+	///Returns the associated DrawContext.
+	///Note that the function signature specifies that this function can be only called on lvalue
+	///instances which should prevent to abuse DrawGuard in expressions mistakenly instead of
+	///storing them.
+	DrawContext& get() & { return drawContext_; }
+};
 
 ///The DrawContext is the abstract base class interface which defines how to draw on a surface.
 ///The surface can be e.g. a window, an image or a svg document.
 ///To draw with a given DrawContext you can either clear/paint the entire
 ///surface with a given Brush, or you specifiy a Mask which should then be
 ///filled with a given Brush or stroked with a given Pen.
-class DrawContext : public nonCopyable
+class DrawContext : public NonCopyable
 {
 public:
 	DrawContext() = default;
 	virtual ~DrawContext() = default;
 
-	///Applies the pending drawContext state to the surface.
+	///Assures that the DrawContext is ready to be drawn on.
+	///This should be called before starting to draw.
+	///Note that this function might throw if the implementation is unable to initialize.
+	///See the different implementations for more information on that (many do not actually need
+	///this function at all).
+	///Especially needed for more complex (e.g. hardware-acclerated) implementations, e.g. to
+	///make the needed opengl context current.
+	virtual void init(){}
+
+	///Applies the pending DrawContext state to the surface.
 	///This should always be called when finishing drawing, altough some implementations
-	///may automatically apply any shape that was drawn.
+	///may automatically apply any shape that was drawn. 
 	virtual void apply(){}
 
 
@@ -78,7 +105,7 @@ public:
 	///Returns if this DrawContext suppports mask clipping. You should always check this before
 	///using mask clipping function calls, since they will have no effect and raise a warning
 	///if it is not. The OpenGL implementations which deal with a context without stencil buffers
-	///are for example not able to support mask clipping. If you just need to clip a rectangle
+	///are for example not able to support mask clipping. If you just need to clip a Rectangle
 	///you should use clipRectangle().
 	virtual bool maskClippingSupported() const { return 0; }
 
@@ -103,21 +130,21 @@ public:
 	virtual void resetMaskClip();
 
 
-	///Uses the given rectangle as additional clip area. If there is already a mask clip
-	///area it will remain the same. Everything outside this rectangle (or outside the
-	///mask clipping area) will not be drawn. If there was already set a rectangle clip before
-	///it will be changed to the new one, you can always just clip one rectangle with rectangle
+	///Uses the given Rectangle as additional clip area. If there is already a mask clip
+	///area it will remain the same. Everything outside this Rectangle (or outside the
+	///mask clipping area) will not be drawn. If there was already set a Rectangle clip before
+	///it will be changed to the new one, you can always just clip one Rectangle with Rectangle
 	///clipping. This is intented as some kind of fallback if mask clipping is not supported
 	///(e.g. gl implementation without stencil buffer), it must be supported by every
 	///implementation.
-	virtual void clipRectangle(const rect2f& rectangle) = 0;
+	virtual void clipRectangle(const Rect2f& rectangle) = 0;
 
-	///Returns the current clipped rectangle. By default, this is a rectangle with the
+	///Returns the current clipped Rectangle. By default, this is a Rectangle with the
 	///position(0,0) and the same size as the surface, since everything outside the clipping
-	///rectangle is not be drawn. For more information see clipRectangle().
-	virtual rect2f rectangleClip() const = 0;
+	///Rectangle is not be drawn. For more information see clipRectangle().
+	virtual Rect2f rectangleClip() const = 0;
 
-	///Resets the current clipping rectangle, so everything drawn on the surface
+	///Resets the current clipping Rectangle, so everything drawn on the surface
 	///will be visible and nothing will be clipped. For more information see clipRectangle().
 	virtual void resetRectangleClip() = 0;
 };
@@ -129,22 +156,32 @@ public:
 ///It is basically able to redirect its draw calls to a certain area in another drawContext, it
 ///will translate every mask call and clip the draw context it redirects to.
 ///Useful for e.g. drawing child gui elements on a parent window
+///RAII class that directly influences the redirected context (i.e. clips) during its lifetime.
 class RedirectDrawContext : public DrawContext
 {
 protected:
-	rect2f rectangleClipSave_;
-	std::vector<PathBase> maskClipSave_;
+	Rect2f rectangleClipSave_ {};
+	std::vector<PathBase> maskClipSave_ {};
 
-	vec2f size_;
-    vec2f position_;
+	Vec2f size_ {};
+    Vec2f position_ {};
 
-    DrawContext* redirect_;
+    DrawContext* redirect_ = nullptr;
+
+protected:
+	///This function prepares the redirected draw context for drawing. To call any DrawContext
+	///function of this object before startDrawing is called is undefined behaviour.
+    void startDrawing();
+
+	///This function cleans up the redirected DrawContext. To call any DrawContext
+	///function of this object after endDrawing is called is undefined behaviour.
+	void endDrawing();
 
 public:
 	///Constructs the RedirectDrawContext with a given original DrawContext, to which all
 	///drawings should be redirected in the rectangular area that the position and size
 	///describe.
-	RedirectDrawContext(DrawContext& redirect, const vec2f& position, const vec2f& size);
+	RedirectDrawContext(DrawContext& redirect, const Vec2f& position, const Vec2f& size);
 	virtual ~RedirectDrawContext();
 
 	virtual void apply() override;
@@ -170,39 +207,27 @@ public:
 	virtual std::vector<PathBase> maskClip() const override;
 	virtual void resetMaskClip() override;
 
-	virtual void clipRectangle(const rect2f& obj) override;
-    virtual rect2f rectangleClip() const override;
+	virtual void clipRectangle(const Rect2f& obj) override;
+    virtual Rect2f rectangleClip() const override;
 	virtual void resetRectangleClip() override;
 
 	///Changes the size of the area that should be drawn on.
-	void size(const vec2f& size);
+	void size(const Vec2f& size);
 
 	///Changes the position of the area that should be drawn on.
-	void position(const vec2f& position);
-
-	///Changes the DrawContext on which all drawings are redirected.
-	void redirect(DrawContext& dc);
-
+	void position(const Vec2f& position);
 
 	///Returns the size of the virtual surface (the area this DrawContext draws on).
-	const vec2f& size() const { return size_; }
+	const Vec2f& size() const { return size_; }
 
 	///Returns the position of the area all drawings are redirected to.
-	const vec2f& position() const { return position_; }
+	const Vec2f& position() const { return position_; }
 
 	///Returns the extents of the area all drawing are redirected to.
-	rect2f extents() const { return rect2f(position(), size()); }
+	Rect2f extents() const { return Rect2f(position(), size()); }
 
 	///Returns the DrawContext that all drawings are redirected to.
 	DrawContext& redirect() const { return *redirect_; }
-
-	///This function prepares the redirected draw context for drawing. To call any DrawContext
-	///function of this object before startDrawing is called is undefined behaviour.
-    void startDrawing();
-
-	///This function cleans up the redirected DrawContext. To call any DrawContext
-	///function of this object after endDrawing is called is undefined behaviour.
-	void endDrawing();
 };
 
 
@@ -226,7 +251,7 @@ public:
 	virtual void mask(const PathBase& b) override;
 	virtual void resetMask() override;
 
-	///Returns the current (just stored, not real) mask of this context.
+	///Returns the current (stored) mask of this context.
 	const std::vector<PathBase>& storedMask() const { return mask_; }
 };
 

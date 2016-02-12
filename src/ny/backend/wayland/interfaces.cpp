@@ -42,12 +42,12 @@ const wl_shell_surface_listener shellSurfaceListener =
 };
 
 //frameCallback//////////////////////////////////////////////////////////////////
-void surfaceHandleFrame(void* data, wl_callback *callback, uint32_t time)
+void surfaceHandleFrame(void* data, wl_Callback *Callback, uint32_t time)
 {
     waylandWC* wc = (waylandWindowContext*)data;
     nyMainApp()->sendEvent(make_unique<waylandFrameEvent>(&wc->getWindow()));
 }
-const wl_callback_listener frameListener =
+const wl_Callback_listener frameListener =
 {
     surfaceHandleFrame
 };
@@ -178,10 +178,10 @@ const wl_keyboard_listener keyboardListener =
 
 
 //display sync////////////////////////////////////////////////////////
-void displayHandleSync(void* data, wl_callback* callback, uint32_t time)
+void displayHandleSync(void* data, wl_Callback* Callback, uint32_t time)
 {
 }
-const wl_callback_listener displaySyncListener =
+const wl_Callback_listener displaySyncListener =
 {
     displayHandleSync
 };
@@ -266,7 +266,7 @@ const xdg_shell_listener xdgShellListener =
 void xdgSurfaceConfigure(void *data, struct xdg_surface *xdg_surface, int32_t width, int32_t height, struct wl_array *states, uint32_t serial)
 {
     waylandWindowContext* wc = (waylandWindowContext*) data;
-    nyMainApp()->sendEvent(make_unique<sizeEvent>(&wc->getWindow(), vec2ui(width, height), 1, new waylandEventData(serial)));
+    nyMainApp()->sendEvent(make_unique<sizeEvent>(&wc->getWindow(), Vec2ui(width, height), 1, new waylandEventData(serial)));
 }
 void xdgSurfaceClose(void *data, struct xdg_surface *xdg_surface)
 {

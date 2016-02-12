@@ -60,7 +60,7 @@ FreeTypeFontHandle::~FreeTypeFontHandle()
     if(face_) FT_Done_Face(face_);
 }
 
-void FreeTypeFontHandle::characterSize(const vec2ui& size)
+void FreeTypeFontHandle::characterSize(const Vec2ui& size)
 {
 	FT_Set_Pixel_Sizes(face_, size.x, size.y);
 }
@@ -84,7 +84,7 @@ void FreeTypeFontHandle::cacheAscii() const
 		ret.bearing = {face_->glyph->bitmap_left, face_->glyph->bitmap_top};
 		ret.advance = face_->glyph->advance.x;
 
-		auto size = vec2ui{face_->glyph->bitmap.width, face_->glyph->bitmap.rows};
+		auto size = Vec2ui{face_->glyph->bitmap.width, face_->glyph->bitmap.rows};
 		ret.image = Image(face_->glyph->bitmap.buffer, size, Image::Format::a8); 
 
 		charCache_[c] = ret;
@@ -107,7 +107,7 @@ Character& FreeTypeFontHandle::load(char c) const
 		ret.bearing = {face_->glyph->bitmap_left, face_->glyph->bitmap_top};
 		ret.advance = face_->glyph->advance.x;
 
-		auto size = vec2ui{face_->glyph->bitmap.width, face_->glyph->bitmap.rows};
+		auto size = Vec2ui{face_->glyph->bitmap.width, face_->glyph->bitmap.rows};
 		ret.image = Image(face_->glyph->bitmap.buffer, size, Image::Format::a8); 
 
 		charCache_[c] = ret;

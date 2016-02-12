@@ -94,7 +94,7 @@ winapiWindowContext* winapiAppContext::getWindowContext(HWND w)
 //wndProc
 LRESULT winapiAppContext::eventProc(HWND handler, UINT message, WPARAM wparam, LPARAM lparam)
 {
-    //todo: implement all events correctly, look em up
+    //todo: implement all events corRectly, look em up
 
     switch(message)
     {
@@ -144,7 +144,7 @@ LRESULT winapiAppContext::eventProc(HWND handler, UINT message, WPARAM wparam, L
         {
             winapiWindowContext* w = getWindowContext(handler);
             if(!w) break;
-            vec2ui size = vec2ui(LOWORD(lparam), HIWORD(lparam)); //todo
+            Vec2ui size = Vec2ui(LOWORD(lparam), HIWORD(lparam)); //todo
             nyMainApp()->sendEvent(make_unique<sizeEvent>(&w->getWindow(), size, 0));
             break;
         }
@@ -153,7 +153,7 @@ LRESULT winapiAppContext::eventProc(HWND handler, UINT message, WPARAM wparam, L
         {
             winapiWindowContext* w = getWindowContext(handler);
             if(!w) break;
-            vec2i pos = vec2i(); //todo
+            Vec2i pos = Vec2i(); //todo
             nyMainApp()->sendEvent(make_unique<positionEvent>(&w->getWindow(), pos, 0));
             break;
         }

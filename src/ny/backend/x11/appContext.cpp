@@ -240,8 +240,8 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev)
     {
 		auto& motion = reinterpret_cast<xcb_motion_notify_event_t&>(ev);  
 		auto event = make_unique<MouseMoveEvent>(handler(motion.event));
-        event->position = vec2i(motion.event_x, motion.event_y);
-        event->screenPosition = vec2i(motion.root_x, motion.root_y);
+        event->position = Vec2i(motion.event_x, motion.event_y);
+        event->screenPosition = Vec2i(motion.root_x, motion.root_y);
         event->delta = event->position - Mouse::position();
 
 		nyMainApp()->dispatch(std::move(event));
@@ -267,7 +267,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev)
 		auto event = make_unique<MouseButtonEvent>(handler(button.event));
 		event->data = make_unique<X11EventData>(ev);
         event->button = x11ToButton(button.detail);
-        event->position = vec2i(button.event_x, button.event_y);
+        event->position = Vec2i(button.event_x, button.event_y);
 		event->pressed = 1;
 
         nyMainApp()->dispatch(std::move(event));
@@ -280,7 +280,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev)
 		auto event = make_unique<MouseButtonEvent>(handler(button.event));
 		event->data = make_unique<X11EventData>(ev);
         event->button = x11ToButton(button.detail);
-        event->position = vec2i(button.event_x, button.event_y);
+        event->position = Vec2i(button.event_x, button.event_y);
 		event->pressed = 0;
 
         nyMainApp()->dispatch(std::move(event));
@@ -291,7 +291,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev)
     {
 		auto& enter = reinterpret_cast<xcb_enter_notify_event_t&>(ev);  
 		auto event = make_unique<MouseCrossEvent>(handler(enter.event));
-        event->position = vec2i(enter.event_x, enter.event_y);
+        event->position = Vec2i(enter.event_x, enter.event_y);
 		event->entered = 1;
         nyMainApp()->dispatch(std::move(event));
 
@@ -302,7 +302,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev)
     {
 		auto& leave = reinterpret_cast<xcb_enter_notify_event_t&>(ev);  
 		auto event = make_unique<MouseCrossEvent>(handler(leave.event));
-        event->position = vec2i(leave.event_x, leave.event_y);
+        event->position = Vec2i(leave.event_x, leave.event_y);
 		event->entered = 0;
         nyMainApp()->dispatch(std::move(event));
 
@@ -376,8 +376,8 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev)
 		auto& configure = (xcb_configure_notify_event_t &)ev;  
 
         //todo: something about window state
-        auto nsize = vec2ui(configure.width, configure.height);
-        auto npos = vec2i(configure.x, configure.y); //positionEvent
+        auto nsize = Vec2ui(configure.width, configure.height);
+        auto npos = Vec2i(configure.x, configure.y); //positionEvent
 
         if(!handler(configure.window))
             return 1;
@@ -401,7 +401,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev)
         return 1;
     }
 /*
-    case ReparentNotify: //nothing similar in other backend. done directly
+    case ReparentNotify: //nothing similar in other backend. done diRectly
     {
         if(handler(ev.xreparent.window))
 		{
@@ -575,14 +575,14 @@ void x11AppContext::setClipboard(dataObject& obj)
     clipboardPaste_ = &obj;
 }
 
-bool x11AppContext::getClipboard(dataTypes types, std::function<void(dataObject*)> callback)
+bool x11AppContext::getClipboard(dataTypes types, std::function<void(dataObject*)> Callback)
 {
     Window w = XGetSelectionOwner(xDisplay_, x11::Clipboard);
     if(!w)
         return 0;
 
     clipboardRequest_ = 1;
-    clipboardCallback_ = callback;
+    clipboardCallback_ = Callback;
     clipboardTypes_ = types;
 
     XConvertSelection(xDisplay_, x11::Clipboard, x11::Targets, x11::Clipboard, selectionWindow_, CurrentTime);

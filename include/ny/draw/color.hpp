@@ -27,8 +27,8 @@ public:
     Color(value_type rx, value_type gx, value_type bx, value_type ax = 255) noexcept 
 		: r(rx), g(gx), b(bx), a(ax) {}
 
-	Color(const vec3uc& comps) noexcept : r(comps.x), g(comps.y), b(comps.z), a(255) {}
-	Color(const vec4uc& comps) noexcept : r(comps.x), g(comps.y), b(comps.z), a(comps.w) {}
+	Color(const Vec3uc& comps) noexcept : r(comps.x), g(comps.y), b(comps.z), a(255) {}
+	Color(const Vec4uc& comps) noexcept : r(comps.x), g(comps.y), b(comps.z), a(comps.w) {}
 
 	///Create the Color object from a packaged rgba-color int.
 	Color(std::uint32_t color) noexcept;
@@ -51,11 +51,11 @@ public:
     refVec4uc rgba() { return {r ,g, b, a}; }
     refVec3uc rgb() { return {r, g, b}; }
 
-    vec4uc rgba() const { return {r ,g, b, a}; }
-    vec3uc rgb() const { return {r, g, b}; }
+    Vec4uc rgba() const { return {r ,g, b, a}; }
+    Vec3uc rgb() const { return {r, g, b}; }
 
-    vec4f rgbaNorm() const { return vec4f(r / 255.f, g / 255.f, b / 255.f, a / 255.f); }
-    vec3f rgbNorm() const { return vec3f(r / 255.f, g / 255.f, b / 255.f); }
+    Vec4f rgbaNorm() const { return Vec4f(r / 255.f, g / 255.f, b / 255.f, a / 255.f); }
+    Vec3f rgbNorm() const { return Vec3f(r / 255.f, g / 255.f, b / 255.f); }
 
 public:
     const static Color red;

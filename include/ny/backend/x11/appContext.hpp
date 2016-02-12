@@ -58,7 +58,7 @@ public:
     virtual void exit() override;
 
     //virtual void setClipboard(dataObject& obj);
-    //virtual bool getClipboard(dataTypes types, std::function<void(dataObject*)> callback);
+    //virtual bool getClipboard(dataTypes types, std::function<void(dataObject*)> Callback);
 
     Display* xDisplay() const { return xDisplay_; }
     int xDefaultScreenNumber() const { return xDefaultScreenNumber_; }

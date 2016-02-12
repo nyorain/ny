@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <ny/app/event.hpp>
+#include <ny/base/event.hpp>
 
 #include <bitset>
 
@@ -11,9 +11,6 @@ namespace ny
 //keyboard
 class Keyboard
 {
-
-friend class App;
-
 public:
     enum class Key
     {
@@ -32,22 +29,10 @@ public:
 	enum class Modifier
 	{
 		caps = 1,
-		shift = 4,
-		alt = 8,
-		num = 16
+		shift = 2,
+		alt = 4,
+		num = 8
 	};
-
-protected:
-    static std::bitset<255> states_;
-	static Modifier modifier_;
-
-protected:
-    static void keyPressed(Key key, bool pressed);
-	static void modifier(Modifier mod, bool active);
-
-public:
-    static bool keyPressed(Key k);
-	static bool modifier(Modifier mod);
 };
 
 //events

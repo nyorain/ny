@@ -13,19 +13,19 @@ namespace ny
 class Widget : public hierachyNode<WidgetBase>
 {
 protected:
-	vec2i position_ {0, 0};
-	vec2ui size_ {0, 0};
+	Vec2i position_ {0, 0};
+	Vec2ui size_ {0, 0};
 
 	std::unique_ptr<NativeWidget> nativeWidget_;
 
 public:
 	Widget() = default;
-	Widget(WidgetBase& parent, const vec2i& position, const vec2ui& size);
+	Widget(WidgetBase& parent, const Vec2i& position, const Vec2ui& size);
 	~Widget();
 
-	vec2i position() const { return position_; }
-	vec2ui size() const { return size_; }
-	rect2i extents() const { return {position(), size()}; }
+	Vec2i position() const { return position_; }
+	Vec2ui size() const { return size_; }
+	Rect2i extents() const { return {position(), size()}; }
 
 	//virtual bool handleEvent(const Event& event) override;
 	virtual void mouseCrossEvent(const MouseCrossEvent& event) override;
@@ -35,16 +35,16 @@ public:
 	virtual void draw(DrawContext& dc) override;
 	virtual void requestRedraw() override;
 
-	virtual Widget* widget(const vec2i& position) override;
-	virtual const Widget* widget(const vec2i& position) const override;
+	virtual Widget* widget(const Vec2i& position) override;
+	virtual const Widget* widget(const Vec2i& position) const override;
 
 	virtual std::string widgetClass() const { return "ny::Widget"; }
 	NativeWidget* nativeWidget() const { return nativeWidget_.get(); }
 
 public:
-	callback<void(Widget&, const MouseCrossEvent&)> onMouseCross;
-	callback<void(Widget&, const FocusEvent&)> onFocus;
-	callback<void(Widget&, const ShowEvent&)> onShow;
+	Callback<void(Widget&, const MouseCrossEvent&)> onMouseCross;
+	Callback<void(Widget&, const FocusEvent&)> onFocus;
+	Callback<void(Widget&, const ShowEvent&)> onShow;
 };
 
 }

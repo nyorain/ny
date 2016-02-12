@@ -12,7 +12,7 @@ namespace ny
 ///serialized type. Keeps track of the file path this file is saved to and 
 ///loaded from as well as the changed
 ///state of the file. When deriving from this class you have to implement the load from and
-///save to stream functions and if you want to correctly keep tracked of the changed state
+///save to stream functions and if you want to corRectly keep tracked of the changed state
 ///you have to call setChanged() everytime something at your object was changed.
 ///File is an inline, header-only class since it is pretty lightweight and classes like
 ///ny::image derive from it which are not linked against the ny-app library.

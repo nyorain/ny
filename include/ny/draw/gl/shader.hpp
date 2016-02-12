@@ -43,9 +43,9 @@ public:
     void uniform(const std::string& name, float x, float y, float z);
     void uniform(const std::string& name, float x, float y, float z, float w);
 
-    void uniform(const std::string& name, const vec2f& value);
-    void uniform(const std::string& name, const vec3f& value);
-    void uniform(const std::string& name, const vec4f& value);
+    void uniform(const std::string& name, const Vec2f& value);
+    void uniform(const std::string& name, const Vec3f& value);
+    void uniform(const std::string& name, const Vec4f& value);
 
     void uniform(const std::string& name, const mat2f& value);
     void uniform(const std::string& name, const mat3f& value);

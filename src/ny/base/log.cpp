@@ -4,31 +4,31 @@ namespace ny
 {
 
 
-logger& warningLogger()
+Logger& warningLogger()
 {
-	static logger object("", "warning", std::cout);
+	static Logger object("", "warning", std::cout);
 	return object;
 }
 
-logger& logLogger()
+Logger& logLogger()
 {
-	static logger object("", "log", std::clog);
+	static Logger object("", "log", std::clog);
 	return object;
 }
 
-logger& errorLogger()
+Logger& errorLogger()
 {
-	static logger object("", "error", std::cerr);
+	static Logger object("", "error", std::cerr);
 	return object;
 }
 
-logger& debugLogger()
+Logger& debugLogger()
 {
 #ifndef NDEBUG
-	static logger object("", "error", std::cerr);
+	static Logger object("", "error", std::cerr);
 	return object;
 #else
-	static logger object("", "error"); //invalid object - no stream
+	static Logger object("", "error"); //invalid object - no stream
 	return object;
 #endif
 }

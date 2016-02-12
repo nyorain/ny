@@ -46,8 +46,8 @@ public:
     virtual void fillPreserve(const Brush& col) override;
 	virtual void strokePreserve(const Pen& col) override;
 
-    virtual rect2f rectangleClip() const override;
-    virtual void clipRectangle(const rect2f& obj) override;
+    virtual Rect2f RectangleClip() const override;
+    virtual void clipRectangle(const Rect2f& obj) override;
 	virtual void resetRectangleClip() override;
 
 	//

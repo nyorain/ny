@@ -6,48 +6,42 @@
 namespace ny
 {
 
-namespace windowHints
+enum WindowHint
 {
-    //toplevel specific
-    constexpr unsigned long move = (1L << 1);
-    constexpr unsigned long close = (1L << 2);
-    constexpr unsigned long maximize = (1L << 3);
-    constexpr unsigned long minimize = (1L << 4);
-    constexpr unsigned long resize = (1L << 5);
-    constexpr unsigned long customDecorated = (1L << 7);
-    constexpr unsigned long acceptDrop = (1L << 10);
-    constexpr unsigned long alwaysOnTop = (1L << 11);
-    constexpr unsigned long showInTaskbar = (1L << 12);
+    close = (1L << 2),
+    maximize = (1L << 3),
+    minimize = (1L << 4),
+    resize = (1L << 5),
+    customDecorated = (1L << 7),
+    acceptDrop = (1L << 10),
+    alwaysOnTop = (1L << 11),
+    showInTaskbar = (1L << 12)
 };
 
-namespace nativeWidgetType
-{
-    constexpr unsigned int nativeButton = 1;
-    constexpr unsigned int nativeTextfield = 2;
-    constexpr unsigned int nativeText = 3;
-    constexpr unsigned int nativeCheckbox = 4;
-    constexpr unsigned int nativeMenuBar = 5;
-    constexpr unsigned int nativeToolbar = 6;
-    constexpr unsigned int nativeProgressbar = 7;
-    constexpr unsigned int nativeDialog = 8;
-};
-
-//windowEdge
+///Typesafe enum that specifies the edges of a window (e.g. for resizing).
+///Note that e.g. (WindowEdge::top | WindowEdge::right) == (WindowEdge::topRight). You have
+///to include <nytl/enumOps.hpp> to make those operations with typesafe enums work.
 enum class WindowEdge : unsigned char
 {
-    top,
-    right,
-    bottom,
-    left,
-    topLeft,
-    topRight,
-    bottomLeft,
-    bottomRight,
+    unknown = 0,
 
-    unknown
+    top = 1,
+    right = 2,
+    bottom = 4,
+    left = 8,
+    topRight = 3,
+    bottomRight = 6,
+    topLeft = 9,
+    bottomLeft = 12,
 };
 
-//virtuality
+///Typesafe enums that can be used for various settings with more control than just a bool.
+///- must or mustNot: if the preference cannot be fulfilled an exception will be thrown or the
+///  function will simply fail
+///- should or shouldNot: if the preference cannot be fulfilled a warning will be raised but the
+///  function will normally continue. Useful if there is method to check afterwards if preference
+///  could be fulfilled.
+///- dontCare: the function will decide what to do in this case. Usually the best choice.
 enum class Preference : unsigned char
 {
     must,
@@ -57,7 +51,7 @@ enum class Preference : unsigned char
     mustNot
 };
 
-//toplevelState
+///Typesafe enum for the current state of a toplevel window.
 enum class ToplevelState : unsigned char
 {
     unknown = 0,
@@ -68,5 +62,37 @@ enum class ToplevelState : unsigned char
     normal
 };
 
+///Class to reprsent the window handle of the underlaying window system api.
+class NativeWindowHandle
+{
+protected:
+	union
+	{
+		void* pointer_ = nullptr;
+		std::uint64_t uint_;
+	};
+
+public:
+	NativeWindowHandle(void* pointer = nullptr) : pointer_(pointer) {}
+	NativeWindowHandle(std::uint64_t uint) : uint_(uint) {}
+
+	operator void*() const { return pointer_; }
+	operator std::uint64_t() const { return uint_; }
+	operator int() const { return uint_; }
+	operator unsigned int() const { return uint_; }
+};
+
+///Settings for a Window.
+class WindowSettings
+{
+public:
+    virtual ~WindowSettings() = default;
+
+	NativeWindowHandle nativeHandle {};
+    Preference virtualPref = Preference::dontCare;
+    Preference glPref = Preference::dontCare;
+    ToplevelState initState = ToplevelState::normal; //only used if window is toplevel window
+    bool initShown = true; //unmapped if set to false
+};
 
 }

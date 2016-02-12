@@ -11,7 +11,7 @@ namespace ny
 {
 
 //todo: single steps of algorithm, different algorithms, complete interface & class
-std::vector<triangle2f> 
-triangulate(const std::vector<vec2f>& pth);
+std::vector<Triangle2f> 
+triangulate(const std::vector<Vec2f>& pth);
 
 }

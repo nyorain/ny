@@ -124,7 +124,7 @@ void waylandEGLDrawContext::initEGL(const waylandWindowContext& wc)
 
 }
 
-void waylandEGLDrawContext::setSize(vec2ui size)
+void waylandEGLDrawContext::setSize(Vec2ui size)
 {
     if(wlEGLWindow_) wl_egl_window_resize(wlEGLWindow_, size.x, size.y, 0, 0);
 

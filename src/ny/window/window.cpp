@@ -23,7 +23,7 @@ Window::Window()
 {
 }
 
-Window::Window(const vec2ui& size, const WindowSettings& settings) 
+Window::Window(const Vec2ui& size, const WindowSettings& settings) 
 	: maxSize_(UINT_MAX, UINT_MAX)
 {
     create(size, settings);
@@ -33,7 +33,7 @@ Window::~Window()
 {
 }
 
-void Window::create(const vec2ui& size, const WindowSettings& settings)
+void Window::create(const Vec2ui& size, const WindowSettings& settings)
 {
     size_ = size;
 
@@ -114,7 +114,7 @@ void Window::refresh()
     windowContext_->refresh();
 }
 
-void Window::size(const vec2ui& size)
+void Window::size(const Vec2ui& size)
 {
     size_ = size;
     windowContext_->size(size, 1);
@@ -122,7 +122,7 @@ void Window::size(const vec2ui& size)
     onResize(*this, size_);
 }
 
-void Window::position(const vec2i& position)
+void Window::position(const Vec2i& position)
 {
     position_ = position;
     windowContext_->position(position_, 1);
@@ -130,7 +130,7 @@ void Window::position(const vec2i& position)
 	onMove(*this, position_);
 }
 
-void Window::move(const vec2i& delta)
+void Window::move(const Vec2i& delta)
 {
     position_ += delta;
     windowContext_->position(position_, 1);
@@ -156,13 +156,13 @@ void Window::toggleShow()
     else windowContext_->show();
 }
 
-void Window::maxSize(const vec2ui& size)
+void Window::maxSize(const Vec2ui& size)
 {
     maxSize_ = size;
     windowContext_->maxSize(size);
 }
 
-void Window::minSize(const vec2ui& size)
+void Window::minSize(const Vec2ui& size)
 {
     minSize_ = size;
     windowContext_->minSize(size);
@@ -174,7 +174,7 @@ void Window::draw(DrawContext& dc)
     onDraw(*this, dc);
 }
 
-//event callbacks
+//event Callbacks
 void Window::closeEvent(const CloseEvent&)
 {
 	close();
@@ -365,7 +365,7 @@ bool toplevelWindow::setCustomDecorated(bool set)
     if(set)windowContext_->addWindowHints(windowHints::CustomDecorated);
     else windowContext_->removeWindowHints(windowHints::CustomDecorated);
 
-    return 1; //todo: this ans 2 following: correct return, if it was successful
+    return 1; //todo: this ans 2 following: corRect return, if it was successful
 }
 
 bool toplevelWindow::setCustomResized(bool set)
@@ -448,12 +448,12 @@ childWindow::childWindow() : window()
 {
 }
 
-childWindow::childWindow(window& parent, vec2i position, vec2ui size, windowContextSettings settings) : window()
+childWindow::childWindow(window& parent, Vec2i position, Vec2ui size, windowContextSettings settings) : window()
 {
     create(parent, position, size, settings);
 }
 
-void childWindow::create(window& parent, vec2i position, vec2ui size, windowContextSettings settings)
+void childWindow::create(window& parent, Vec2i position, Vec2ui size, windowContextSettings settings)
 {
     //hints_ |= windowHints::Child;
     window::create(parent, position, size, settings);

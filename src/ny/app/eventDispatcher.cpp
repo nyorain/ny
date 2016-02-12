@@ -26,8 +26,8 @@ void EventDispatcher::exit()
 
 void EventDispatcher::sendEvent(Event& event)
 {
-	auto it = callbacks_.find(event.type());
-	if(it != callbacks_.cend())
+	auto it = Callbacks_.find(event.type());
+	if(it != Callbacks_.cend())
 	{
 		it->second(event);
 	}

@@ -32,10 +32,10 @@ public:
 
 	///Returns a relative position of a child widget.
 	///\exception std::invalid_argument if the widget parameter is not a child.
-	vec2i relativePosition(const Widget& widget) const;
+	Vec2i relativePosition(const Widget& widget) const;
 
-	virtual Widget* widget(const vec2i& position);
-	virtual const Widget* widget(const vec2i& position) const;
+	virtual Widget* widget(const Vec2i& position);
+	virtual const Widget* widget(const Vec2i& position) const;
 
 	virtual void draw(DrawContext& dc);
 	virtual void requestRedraw() = 0;

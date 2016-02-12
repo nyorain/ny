@@ -88,7 +88,7 @@ public:
 
     bool contains(unsigned char type) const;
 
-    std::vector<unsigned char> getVector() const { return types_; }
+    std::vector<unsigned char> getvector() const { return types_; }
 };
 
 //dataObject

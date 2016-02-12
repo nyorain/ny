@@ -18,10 +18,10 @@ protected:
 	virtual void mouseButtonEvent(const MouseButtonEvent& event) override;
 
 	ToplevelWindow() = default;
-	void create(const vec2ui& size, const std::string& name = "", const WindowSettings& = {});
+	void create(const Vec2ui& size, const std::string& name = "", const WindowSettings& = {});
 
 public:
-	ToplevelWindow(const vec2ui& size, const std::string& name = "",
+	ToplevelWindow(const Vec2ui& size, const std::string& name = "",
 			const WindowSettings& settings = {});
 
 	virtual ~ToplevelWindow();

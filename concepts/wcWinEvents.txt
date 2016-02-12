@@ -1,0 +1,53 @@
+in this file the relation between WindowContext and Window shall be furhter investigated, with
+a focus on how the ny::Window class (an ny::EventHandler) receives its events platform-independent.
+
+WindowContext is part of ny-backend with does only require ny-base and ny-draw.
+Window is part of ny-window with does require ny-backend ny-app ny-base and ny-draw.
+
+Therefore has the WindowContext class no real knowlegde of the existent of a Window class (and is
+furthermore designed to be used independent from that convinient higher abstraction) while the 
+Window class does always own a WindowContext instance(impl) as its "heart" which does basically
+perform its interface operations.
+
+AppContext is not aware of the Window class aswell. It receives events and dispatches them
+to the windowContext. The majority of the events are not needed by the windowContext, just by
+the window so we need a way to make a window receive events from its windowContext.
+
+#####################
+solution #1a: register EventHandler
+Window::Window:
+	auto wc = createWindowContext();
+	wc->registerEventHandler(*this);
+
+WindowContext::handleEvent:
+	if(registeredEventHandler())
+		registeredEventHandler()->handleEvent(event);
+
+
+#####################
+solution #1b: register function/callback
+Window::Window;
+	auto wc = createWindowContext();
+	wc->onEvent = {(&Window::handleEvent, this)};
+	
+WindowContext::handleEvent:
+	if(onEvent) onEvent(event);
+
+#####################
+solution #2: appContext event seperation
+The appContext does already filter where to send the events
+Combined with some general eventSource system (->eventDispatcher) for registering eventHandlers
+for certain eventSources
+
+Window::Window:
+	auto wc = createWindowContext();
+	wc->eventSource().handler = this;
+
+AppContext::sendEvent(event, windowContext, dispatcher):
+	windowContext->eventSource().send(dispatcher, event);
+
+
+just first mockup, event source system needs more work (in this case the solution is basically equal
+to #1a, with the difference that the appContext differentiates between context events and non-context
+events). 
+This early differentiation is def good.

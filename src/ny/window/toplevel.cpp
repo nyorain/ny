@@ -5,7 +5,7 @@
 namespace ny
 {
 
-ToplevelWindow::ToplevelWindow(const vec2ui& size, const std::string& title, 
+ToplevelWindow::ToplevelWindow(const Vec2ui& size, const std::string& title, 
 		const WindowSettings& settings) : Window(), title_(title)
 {
 	create(size, title, settings);
@@ -15,7 +15,7 @@ ToplevelWindow::~ToplevelWindow()
 {
 }
 
-void ToplevelWindow::create(const vec2ui& size, const std::string& title, 
+void ToplevelWindow::create(const Vec2ui& size, const std::string& title, 
 		const WindowSettings& settings)
 {
 	hints_ |= windowHints::maximize | windowHints::minimize | windowHints::close | 

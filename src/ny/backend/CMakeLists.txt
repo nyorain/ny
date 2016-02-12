@@ -1,5 +1,5 @@
 set(include-backend ${include-ny})
-set(libs-backend ny-base)
+set(libs-backend ${libs-backend} ny-base ny-app ny-draw)
 
 set(src-backend
 		backend.cpp)

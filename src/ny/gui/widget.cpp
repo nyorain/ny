@@ -7,7 +7,7 @@
 namespace ny
 {
 
-Widget::Widget(WidgetBase& parent, const vec2i& position, const vec2ui& size) 
+Widget::Widget(WidgetBase& parent, const Vec2i& position, const Vec2ui& size) 
 	: hierachyNode<WidgetBase>(parent), position_(position), size_(size), nativeWidget_(nullptr)
 {
 }
@@ -32,14 +32,14 @@ void Widget::showEvent(const ShowEvent& event)
 	onShow(*this, event);
 }
 
-Widget* Widget::widget(const vec2i& position)
+Widget* Widget::widget(const Vec2i& position)
 {
 	auto ret = WidgetBase::widget(position);
 	if(!ret) return this;
 	return ret;
 }
 
-const Widget* Widget::widget(const vec2i& position) const
+const Widget* Widget::widget(const Vec2i& position) const
 {
 	auto ret = WidgetBase::widget(position);
 	if(!ret) return this;

@@ -26,7 +26,7 @@ unsigned int Image::formatSize(Image::Format f)
 	}
 }
 
-//stbi callbacks/util
+//stbi Callbacks/util
 namespace
 {    
 	int read(void* user, char* data, int size)
@@ -60,7 +60,7 @@ namespace
 }
 
 //Image
-Image::Image(const vec2ui& size, Format format) : File(), size_(size), format_(format)
+Image::Image(const Vec2ui& size, Format format) : File(), size_(size), format_(format)
 {
 	data_ = make_unique<std::uint8_t[]>(dataSize());
 }
@@ -71,14 +71,14 @@ Image::Image(const std::string& path) : File(path)
 	load(path);
 }
 
-Image::Image(const std::uint8_t* data, const vec2ui& size, Format format)
+Image::Image(const std::uint8_t* data, const Vec2ui& size, Format format)
 	: File(), size_(size), format_(format)
 {
 	data_ = make_unique<std::uint8_t[]>(dataSize());
 	std::memcpy(data_.get(), data, dataSize());
 }
 
-Image::Image(std::unique_ptr<std::uint8_t[]>&& data, const vec2ui& size, Format format)
+Image::Image(std::unique_ptr<std::uint8_t[]>&& data, const Vec2ui& size, Format format)
 	: File(), data_(std::move(data)), size_(size), format_(format)
 {
 }
@@ -99,7 +99,7 @@ Image& Image::operator=(const Image& other)
 	return *this;
 }
 
-void Image::data(const std::uint8_t* newdata, const vec2ui& newsize, Format newFormat)
+void Image::data(const std::uint8_t* newdata, const Vec2ui& newsize, Format newFormat)
 {
 	format_ = newFormat;
 	size_ = newsize;
@@ -110,7 +110,7 @@ void Image::data(const std::uint8_t* newdata, const vec2ui& newsize, Format newF
 	change();
 }
 
-void Image::data(std::unique_ptr<std::uint8_t[]>&& newdata, const vec2ui& newsize, Format newFormat)
+void Image::data(std::unique_ptr<std::uint8_t[]>&& newdata, const Vec2ui& newsize, Format newFormat)
 {
 	format_ = newFormat;
 	size_ = newsize;
@@ -201,13 +201,13 @@ bool Image::load(std::istream& is)
 	//TODO: format loading!
 	data_.reset();
 
-	stbi_io_callbacks callbacks;
-    callbacks.read = &read;
-    callbacks.skip = &skip;
-    callbacks.eof  = &eof;
+	stbi_io_Callbacks Callbacks;
+    Callbacks.read = &read;
+    Callbacks.skip = &skip;
+    Callbacks.eof  = &eof;
 
     int width, height, channels;
-    unsigned char* ptr = stbi_load_from_callbacks(&callbacks, &is, &width, 
+    unsigned char* ptr = stbi_load_from_Callbacks(&Callbacks, &is, &width, 
 			&height, &channels, STBI_rgb_alpha);
 
     if (ptr && width && height)

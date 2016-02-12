@@ -11,10 +11,10 @@ namespace ny
 {
 
 //EventData, used by backends
-class EventData : public cloneable<EventData> {};
+class EventData : public Cloneable<EventData> {};
 
 //Event
-class Event : public abstractCloneable<Event>
+class Event : public AbstractCloneable<Event>
 {
 public:
     Event(EventHandler* h = nullptr, EventData* d = nullptr) : handler(h), data(d) {};
@@ -45,7 +45,7 @@ using EventPtr = std::unique_ptr<Event>;
 
 //eventBase
 template<unsigned int Type, typename T = void, bool Override = 0>
-class EventBase : public deriveCloneable<Event, T>
+class EventBase : public DeriveCloneable<Event, T>
 {
 public:
 	using EvBase = EventBase;
@@ -62,7 +62,7 @@ public:
 //void specialization
 template<unsigned int Type, bool Override>
 class EventBase<Type, void, Override> 
-	: public deriveCloneable<Event, EventBase<Type, void, Override>>
+	: public DeriveCloneable<Event, EventBase<Type, void, Override>>
 {
 public:
 	using EvBase = EventBase;

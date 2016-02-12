@@ -17,35 +17,35 @@
 namespace ny
 {
 
-vec2f GlDrawContext::asGlInvert(const vec2f& point, float ySize)
+Vec2f GlDrawContext::asGlInvert(const Vec2f& point, float ySize)
 {
 	return {point.x, ySize - point.y};
 }
 
-rect2f GlDrawContext::asGlInvert(const rect2f& rct, float ySize)
+Rect2f GlDrawContext::asGlInvert(const Rect2f& rct, float ySize)
 {
-	rect2f ret = rct;
+	Rect2f ret = rct;
 	ret.position = rct.bottomLeft();
 	ret.position.y = ySize - ret.position.y;
 	return ret;
 }
 
-vec2f GlDrawContext::asGlNormalize(const vec2f& point, const vec2f& size)
+Vec2f GlDrawContext::asGlNormalize(const Vec2f& point, const Vec2f& size)
 {
 	return point / size;
 }
 
-rect2f GlDrawContext::asGlNormalize(const rect2f& rct, const vec2f& size)
+Rect2f GlDrawContext::asGlNormalize(const Rect2f& rct, const Vec2f& size)
 {
 	return {rct.position / size, rct.size / size};
 }
 
-vec2f GlDrawContext::asGlCoords(const vec2f& point, const vec2f& size)
+Vec2f GlDrawContext::asGlCoords(const Vec2f& point, const Vec2f& size)
 {
 	return asGlInvert(asGlNormalize(point, size));
 }	
 
-rect2f GlDrawContext::asGlCoords(const rect2f& rct, const vec2f& size)
+Rect2f GlDrawContext::asGlCoords(const Rect2f& rct, const Vec2f& size)
 {
 	return asGlInvert(asGlNormalize(rct, size));
 }
@@ -178,10 +178,10 @@ Shader& GlDrawContext::shaderProgramForPen(const Pen& p)
 	return *ret;
 }
 
-void GlDrawContext::fillTriangles(const std::vector<triangle2f>& triangles, 
+void GlDrawContext::fillTriangles(const std::vector<Triangle2f>& Triangles, 
 		const Brush& brush, const mat3f& transMatrix)
 {
-	ny::sendLog("fill", triangles[0]);
+	ny::sendLog("fill", Triangles[0]);
 	ny::sendLog("filltrans", transMatrix.col(2));
 
 	GLuint vbo, vao;
@@ -191,8 +191,8 @@ void GlDrawContext::fillTriangles(const std::vector<triangle2f>& triangles,
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glBindVertexArray(vao);
 
-	glBufferData(GL_ARRAY_BUFFER, triangles.size() * 6 * sizeof(GLfloat), 
-		(GLfloat*) triangles.data(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, Triangles.size() * 6 * sizeof(GLfloat), 
+		(GLfloat*) Triangles.data(), GL_STATIC_DRAW);
 
 	auto& program = shaderProgramForBrush(brush);
 	program.uniform("vViewSize", viewport().size);
@@ -202,7 +202,7 @@ void GlDrawContext::fillTriangles(const std::vector<triangle2f>& triangles,
 	glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
 	glEnableVertexAttribArray(posAttrib);
 	
-	glDrawArrays(GL_TRIANGLES, 0, triangles.size() * 3);
+	glDrawArrays(GL_TRIANGLES, 0, Triangles.size() * 3);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
@@ -211,7 +211,7 @@ void GlDrawContext::fillTriangles(const std::vector<triangle2f>& triangles,
 	glDeleteVertexArrays(1, &vao);
 }
 
-void GlDrawContext::strokePath(const std::vector<vec2f>& path, const Pen& pen, 
+void GlDrawContext::strokePath(const std::vector<Vec2f>& path, const Pen& pen, 
 	const mat3f& transMatrix)
 {
 	GLuint vbo;
@@ -262,8 +262,8 @@ void GlDrawContext::fillText(const Text& t, const Brush& b)
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glBindVertexArray(vao);
 	
-	vec2f position = {0, 0};
-	vec2f size = {0, 0};
+	Vec2f position = {0, 0};
+	Vec2f size = {0, 0};
 
 	glBufferData(GL_ARRAY_BUFFER, 24 * sizeof(GLfloat), nullptr, GL_DYNAMIC_DRAW);
 
@@ -328,13 +328,13 @@ void GlDrawContext::clear(const Brush& brush)
 	}
 	else
 	{
-		vec2f size = viewport().size;
-		std::vector<triangle2f> triangles = {
+		Vec2f size = viewport().size;
+		std::vector<Triangle2f> Triangles = {
 			{{0.f, 0.f}, {size.x, 0.f}, {size.x, size.y}},
 			{{0.f, 0.f}, {size.x, size.y}, {0.f, size.y}}
 		};
 	
-		fillTriangles(triangles, brush);
+		fillTriangles(Triangles, brush);
 	}
 }
 
@@ -357,11 +357,11 @@ void GlDrawContext::fillPreserve(const Brush& brush)
 				fillTriangles(triangulate(subpth.bake()), brush, pth.transformMatrix());
 			}
 		}
-		else if(pth.type() == PathBase::Type::rectangle)
+		else if(pth.type() == PathBase::Type::Rectangle)
 		{
-			auto points = pth.rectangle().asPath().subpaths()[0].bake();
-			auto triangles = triangulate(points);
-			fillTriangles(triangles, brush, pth.transformMatrix());
+			auto points = pth.Rectangle().asPath().subpaths()[0].bake();
+			auto Triangles = triangulate(points);
+			fillTriangles(Triangles, brush, pth.transformMatrix());
 		}
 		else if(pth.type() == PathBase::Type::circle)
 		{
@@ -390,9 +390,9 @@ void GlDrawContext::strokePreserve(const Pen& pen)
 				strokePath(subpth.bake(), pen, pth.transformMatrix());
 			}
 		}
-		else if(pth.type() == PathBase::Type::rectangle)
+		else if(pth.type() == PathBase::Type::Rectangle)
 		{
-			auto points = pth.rectangle().asPath().subpaths()[0].bake();
+			auto points = pth.Rectangle().asPath().subpaths()[0].bake();
 			strokePath(points, pen, pth.transformMatrix());
 		}
 		else if(pth.type() == PathBase::Type::circle)
@@ -414,7 +414,7 @@ void GlDrawContext::apply()
 	glFinish();
 }
 
-void GlDrawContext::clipRectangle(const rect2f& rct)
+void GlDrawContext::clipRectangle(const Rect2f& rct)
 {
 	VALIDATE_CTX();
 	auto size = viewport().size;
@@ -424,7 +424,7 @@ void GlDrawContext::clipRectangle(const rect2f& rct)
 	glScissor(normRect.position.x, normRect.position.y, normRect.size.x, normRect.size.y);
 }
 
-rect2f GlDrawContext::rectangleClip() const
+Rect2f GlDrawContext::RectangleClip() const
 {
 	VALIDATE_CTX({});
 	return viewport(); //TODO
@@ -440,13 +440,13 @@ void GlDrawContext::resetRectangleClip()
 	glDisable(GL_SCISSOR_TEST);
 }
 
-void GlDrawContext::viewport(const rect2f& viewport)
+void GlDrawContext::viewport(const Rect2f& viewport)
 {
 	VALIDATE_CTX();
 	glViewport(viewport.position.x, viewport.position.y, viewport.size.x, viewport.size.y);
 }
 
-rect2f GlDrawContext::viewport() const
+Rect2f GlDrawContext::viewport() const
 {
 	VALIDATE_CTX({});
 

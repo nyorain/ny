@@ -15,7 +15,7 @@ namespace ny
 struct TextureBrush
 {
 	const Texture* texture;
-	rect2f extents;
+	Rect2f extents;
 };
 
 //LinearGradientBrush
@@ -29,7 +29,7 @@ struct LinearGradientBrush
 struct RadialGradientBrush
 {
 	ColorGradient gradient;
-	vec2f center;
+	Vec2f center;
 	float radius;
 };
 

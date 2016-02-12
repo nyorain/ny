@@ -7,7 +7,7 @@ namespace ny
 {
 
 ///Represents an openGL(ES) resource with a corresponding context.
-class GlResource : public nonCopyable
+class GlResource : public NonCopyable
 {
 protected:
 	GlContext* glContext_ = nullptr;

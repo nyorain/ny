@@ -133,10 +133,10 @@ bool GlxContext::apply()
     return 1;
 }
 
-void GlxContext::size(const vec2ui& size)
+void GlxContext::size(const Vec2ui& size)
 {
 	makeCurrent();
-	updateViewport(rect2f({0.f, 0.f}, size));
+	updateViewport(Rect2f({0.f, 0.f}, size));
 }
 
 }

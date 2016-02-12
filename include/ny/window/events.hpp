@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <ny/app/event.hpp>
+#include <ny/base/event.hpp>
 
 #include <nytl/vec.hpp>
 #include <nytl/cloneable.hpp>
@@ -42,7 +42,7 @@ class SizeEvent : public EventBase<eventType::windowSize, SizeEvent>
 public:
 	using EvBase::EvBase;
 
-    vec2ui size {0, 0};
+    Vec2ui size {0, 0};
     bool change = 0;
 };
 
@@ -66,7 +66,7 @@ class PositionEvent : public EventBase<eventType::windowPosition, PositionEvent,
 public:
 	using EvBase::EvBase;
 
-    vec2i position {0, 0};
+    Vec2i position {0, 0};
     bool change = 0;
 };
 
@@ -74,6 +74,8 @@ class DrawEvent : public EventBase<eventType::windowDraw, DrawEvent, 1>
 {
 public:
 	using EvBase::EvBase;
+
+	DrawContext& drawContext;
 };
 
 class RefreshEvent : public EventBase<eventType::windowRefresh, RefreshEvent, 1>
@@ -93,23 +95,23 @@ public:
 };
 
 template<unsigned int ContextType, typename T, bool Override = 0>
-class ContextEventBase : public deriveCloneable<ContextEvent, T>
+class ContextEventBase : public DeriveCloneable<ContextEvent, T>
 {
 public:
 	using ContextEvBase = ContextEventBase;
-	using typename deriveCloneable<ContextEvent, T>::cloneableBase;
+	using typename DeriveCloneable<ContextEvent, T>::CloneableBase;
 
 public:
-	using cloneableBase::cloneableBase;
+	using CloneableBase::CloneableBase;
 
 	virtual bool overrideable() const override { return Override; }
 	virtual unsigned int contextType() const override { return ContextType; }
 };
 
-class ContextCreateEvent : public deriveCloneable<ContextEvent, ContextCreateEvent>
+class ContextCreateEvent : public DeriveCloneable<ContextEvent, ContextCreateEvent>
 {
 public:
-	using cloneableBase::cloneableBase;
+	using CloneableBase::CloneableBase;
     virtual unsigned int contextType() const override { return eventType::context::create; }
 };
 

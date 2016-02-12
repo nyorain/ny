@@ -12,7 +12,7 @@
 namespace ny
 {
 
-class Backend : public nonMoveable
+class Backend : public NonMoveable
 {
 public:
 	using AppContextPtr = std::unique_ptr<AppContext>;
@@ -29,10 +29,8 @@ protected:
 
 public:
     virtual bool available() const = 0;
-
     virtual AppContextPtr createAppContext() = 0;
-	virtual WindowContextPtr createWindowContext(Window& win, const WindowSettings& s = {}) = 0;
-
+	virtual WindowContextPtr createWindowContext(const WindowContextSettings& s = {}) = 0;
 	virtual std::string name() const = 0;
 };
 

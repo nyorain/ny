@@ -33,8 +33,8 @@ public:
 	virtual std::string widgetClass() const override { return "ny::Textfield"; }
 
 public:
-	callback<void(Textfield&)> onChange;
-	callback<void(Textfield&)> onEnter;
+	Callback<void(Textfield&)> onChange;
+	Callback<void(Textfield&)> onEnter;
 };
 
 }

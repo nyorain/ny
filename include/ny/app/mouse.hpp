@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <ny/app/event.hpp>
+#include <ny/base/event.hpp>
 
 #include <nytl/vec.hpp>
 #include <nytl/callback.hpp>
@@ -15,9 +15,6 @@ namespace ny
 //mouse
 class Mouse
 {
-
-friend class App;
-
 public:
     enum class Button : int
     {
@@ -30,27 +27,6 @@ public:
         custom3,
         custom4,
     };
-
-protected:
-    static std::bitset<8> states_;
-    static vec2i position_;
-
-protected:
-    static void buttonPressed(Button button, bool pressed);
-    static void wheelMoved(float value);
-    static void position(const vec2i& pos);
-
-    static callback<void(const vec2i&)> moveCallback_;
-    static callback<void(Button, bool)> buttonCallback_;
-    static callback<void(float)> wheelCallback_;
-
-public:
-    static bool buttonPressed(Button button);
-    static vec2i position();
-
-    template<typename F> connection onMove(F&& func) { return moveCallback_.add(func); }
-    template<typename F> connection onButton(F&& func) { return buttonCallback_.add(func); }
-    template<typename F> connection onWheel(F&& func) { return wheelCallback_.add(func); }
 };
 
 //events
@@ -69,7 +45,7 @@ public:
 
     bool pressed;
     Mouse::Button button;
-    vec2i position;
+    Vec2i position;
 };
 
 //really overrideable? delta!
@@ -78,9 +54,9 @@ class MouseMoveEvent : public EventBase<eventType::mouseMove, MouseMoveEvent, 1>
 public:
 	using EvBase::EvBase;
 
-    vec2i position; //position in relation to the eventHandler
-    vec2i screenPosition;
-    vec2i delta;
+    Vec2i position; //position in relation to the eventHandler
+    Vec2i screenPosition;
+    Vec2i delta;
 };
 
 class MouseCrossEvent : public EventBase<eventType::mouseCross, MouseCrossEvent>
@@ -89,7 +65,7 @@ public:
 	using EvBase::EvBase;
 
     bool entered;
-    vec2i position;
+    Vec2i position;
 };
 
 class MouseWheelEvent : public EventBase<eventType::mouseWheel, MouseWheelEvent>

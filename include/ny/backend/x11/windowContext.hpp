@@ -93,13 +93,13 @@ public:
     virtual void show() override;
     virtual void hide() override;
 
-    virtual void size(const vec2ui& size, bool change = 1) override;
-    virtual void position(const vec2i& position, bool change = 1) override;
+    virtual void size(const Vec2ui& size, bool change = 1) override;
+    virtual void position(const Vec2i& position, bool change = 1) override;
 
     virtual void cursor(const Cursor& c) override;
 
-    virtual void minSize(const vec2ui& size) override;
-    virtual void maxSize(const vec2ui& size) override;
+    virtual void minSize(const Vec2ui& size) override;
+    virtual void maxSize(const Vec2ui& size) override;
 
     virtual void addWindowHints(unsigned long hints) override;
     virtual void removeWindowHints(unsigned long hints) override;
@@ -133,7 +133,7 @@ public:
 		{ return (drawType_ == DrawType::glx) ? glx_.get() : nullptr; }
 
     //general
-    void overrideRedirect(bool redirect);
+    void overrideRedirect(bool rediRect);
     void transientFor(Window& win);
     void cursor(unsigned int xCusrsorID);
 

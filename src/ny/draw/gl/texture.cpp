@@ -39,7 +39,7 @@ void GlTexture::create(const Image& content)
 	create(content.size(), content.data(), content.format());
 }
 
-void GlTexture::create(const vec2ui& size, const std::uint8_t* data, Image::Format format)
+void GlTexture::create(const Vec2ui& size, const std::uint8_t* data, Image::Format format)
 {
 	destroy();
 
@@ -84,7 +84,7 @@ void GlTexture::bind(unsigned int place) const
 	glBindTexture(GL_TEXTURE_2D, texture_);
 }
 
-void GlTexture::glTexture(unsigned int texture, const vec2ui& siz, Image::Format format)
+void GlTexture::glTexture(unsigned int texture, const Vec2ui& siz, Image::Format format)
 {
 	destroy();
 	texture_ = texture;

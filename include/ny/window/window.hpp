@@ -20,11 +20,11 @@ class Window : public EventHandler
 {
 protected:
     //position and max/min - size. size itself inherited from surface
-    vec2i position_ {0, 0};
-    vec2ui size_ {0, 0};
+    Vec2i position_ {0, 0};
+    Vec2ui size_ {0, 0};
 
-    vec2ui minSize_ {0, 0};
-    vec2ui maxSize_ {1 << 30, 1 << 30};
+    Vec2ui minSize_ {0, 0};
+    Vec2ui maxSize_ {1 << 30, 1 << 30};
 
     //states saved in window, not in the context
     bool focus_ {0};
@@ -71,22 +71,22 @@ protected:
 
 	//init
     Window();
-    Window(const vec2ui& size, const WindowSettings& settings = {});
+    Window(const Vec2ui& size, const WindowSettings& settings = {});
 
-    void create(const vec2ui& size, const WindowSettings& settings = {});
+    void create(const Vec2ui& size, const WindowSettings& settings = {});
 
 public:
-    callback<void(Window&)> onClose;
-    callback<void(Window&, DrawContext&)> onDraw;
-    callback<void(Window&, const vec2ui&)> onResize;
-    callback<void(Window&, const vec2i&)> onMove;
-    callback<void(Window&, const FocusEvent&)> onFocus;
-    callback<void(Window&, const ShowEvent&)> onShow;
-    callback<void(Window&, const MouseMoveEvent&)> onMouseMove;
-    callback<void(Window&, const MouseButtonEvent&)> onMouseButton;
-    callback<void(Window&, const MouseCrossEvent&)> onMouseCross;
-    callback<void(Window&, const MouseWheelEvent&)> onMouseWheel;
-    callback<void(Window&, const KeyEvent&)> onKey;
+    Callback<void(Window&)> onClose;
+    Callback<void(Window&, DrawContext&)> onDraw;
+    Callback<void(Window&, const Vec2ui&)> onResize;
+    Callback<void(Window&, const Vec2i&)> onMove;
+    Callback<void(Window&, const FocusEvent&)> onFocus;
+    Callback<void(Window&, const ShowEvent&)> onShow;
+    Callback<void(Window&, const MouseMoveEvent&)> onMouseMove;
+    Callback<void(Window&, const MouseButtonEvent&)> onMouseButton;
+    Callback<void(Window&, const MouseCrossEvent&)> onMouseCross;
+    Callback<void(Window&, const MouseWheelEvent&)> onMouseWheel;
+    Callback<void(Window&, const KeyEvent&)> onKey;
 
 public:
 	Window(const NativeWindowHandle& nativeHandle);
@@ -95,15 +95,15 @@ public:
     virtual bool handleEvent(const Event& event) override;
 	virtual void close();
 
-    void size(const vec2ui& size);
-    void position(const vec2i& position);
+    void size(const Vec2ui& size);
+    void position(const Vec2i& position);
 
     std::vector<ChildWindow*> windowChildren() const;
 
-    void move(const vec2i& delta);
+    void move(const Vec2i& delta);
 
-    void minSize(const vec2ui& size);
-    void maxSize(const vec2ui& size);
+    void minSize(const Vec2ui& size);
+    void maxSize(const Vec2ui& size);
 
     void refresh();
 
@@ -112,11 +112,11 @@ public:
     void toggleShow();
 
     //const getters
-    const vec2i& position() const { return position_; }
-    const vec2ui& size() const { return size_; }
+    const Vec2i& position() const { return position_; }
+    const Vec2ui& size() const { return size_; }
 
-    const vec2ui& minSize() const { return minSize_; }
-    const vec2ui& maxSize() const { return maxSize_; }
+    const Vec2ui& minSize() const { return minSize_; }
+    const Vec2ui& maxSize() const { return maxSize_; }
 
     bool focus() const { return focus_; }
     bool mouseOver() const { return mouseOver_; }

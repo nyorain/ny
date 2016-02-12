@@ -45,21 +45,21 @@ public:
 	};
 
 public:
-	vec2f asGlInvert(const vec2f& point, float ySize = 1);
-	rect2f asGlInvert(const rect2f& rct, float ySize = 1);
+	Vec2f asGlInvert(const Vec2f& point, float ySize = 1);
+	Rect2f asGlInvert(const Rect2f& rct, float ySize = 1);
 
-	vec2f asGlNormalize(const vec2f& point, const vec2f& size);
-	rect2f asGlNormalize(const rect2f& rct, const vec2f& size);
+	Vec2f asGlNormalize(const Vec2f& point, const Vec2f& size);
+	Rect2f asGlNormalize(const Rect2f& rct, const Vec2f& size);
 
-	vec2f asGlCoords(const vec2f& point, const vec2f& size);
-	rect2f asGlCoords(const rect2f& point, const vec2f& size);
+	Vec2f asGlCoords(const Vec2f& point, const Vec2f& size);
+	Rect2f asGlCoords(const Rect2f& point, const Vec2f& size);
 
 	ShaderPrograms& shaderPrograms();
 	Shader& shaderProgramForBrush(const Brush& b);
 	Shader& shaderProgramForPen(const Pen& b);
 
-	void fillTriangles(const std::vector<triangle2f>&, const Brush&, const mat3f& = {});
-	void strokePath(const std::vector<vec2f>& points, const Pen& b, const mat3f& = {});
+	void fillTriangles(const std::vector<Triangle2f>&, const Brush&, const mat3f& = {});
+	void strokePath(const std::vector<Vec2f>& points, const Pen& b, const mat3f& = {});
 	void fillText(const Text& t, const Brush& b);
 	void strokeText(const Text& t, const Pen& p);
 
@@ -72,15 +72,15 @@ public:
 
 	virtual bool maskClippingSupported() const override { return 0; }
 
-	virtual void clipRectangle(const rect2f& rct) override;
-	virtual rect2f rectangleClip() const override;
+	virtual void clipRectangle(const Rect2f& rct) override;
+	virtual Rect2f RectangleClip() const override;
 	virtual void resetRectangleClip() override;
 
 	virtual void apply() override;
 
 	//gl-specific
-	virtual void viewport(const rect2f& viewport);
-	rect2f viewport() const;
+	virtual void viewport(const Rect2f& viewport);
+	Rect2f viewport() const;
 };
 
 }

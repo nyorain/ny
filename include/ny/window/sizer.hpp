@@ -15,20 +15,20 @@ class BoxSizer : public Widget
 /*
 {
 protected:
-    void cbResize(vec2ui size)
+    void cbResize(Vec2ui size)
     {
         if(sizerChildren_.empty())
             return;
 
         size_ = size;
-        vec2ui siz = size_;
+        Vec2ui siz = size_;
 
         if(dir == sizerDir::horizontal) siz.x /= sizerChildren_.size();
         else siz.y /= sizerChildren_.size();
 
         for(unsigned int i(0); i < sizerChildren_.size(); i++)
         {
-            vec2ui pos = position_;
+            Vec2ui pos = position_;
             if(dir == sizerDir::horizontal) pos.x += siz.x * i;
             else pos.y += siz.y * i;
 
@@ -37,8 +37,8 @@ protected:
         }
     }
 
-    vec2ui size_;
-    vec2i position_;
+    Vec2ui size_;
+    Vec2i position_;
 
     std::vector<eventHandler*> sizerChildren_;
     eventHandler* sizerParent_;

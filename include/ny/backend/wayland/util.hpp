@@ -41,7 +41,7 @@ protected:
     //static const unsigned int defaultSize_ = 1024 * 1024 * 5; //5MB
     unsigned int shmSize_ = 1024 * 1024 * 5; //5MB
 
-    vec2ui size_;
+    Vec2ui size_;
     wl_buffer* buffer_;
     wl_shm_pool* pool_;
     void* data_;
@@ -56,12 +56,12 @@ protected:
     void wasReleased(){ used_.store(0); }
 
 public:
-    shmBuffer(vec2ui size, bufferFormat form = bufferFormat::argb8888);
+    shmBuffer(Vec2ui size, bufferFormat form = bufferFormat::argb8888);
     ~shmBuffer();
 
     const bufferFormat format;
 
-    vec2ui getSize() const { return size_; }
+    Vec2ui getSize() const { return size_; }
     unsigned int getAbsSize() const { return size_.x * getBufferFormatSize(format) * size_.y; }
     wl_buffer* getWlBuffer() const { return buffer_; }
     void* getData(){ return data_; }
@@ -69,21 +69,21 @@ public:
     void wasAttached() { used_.store(1); }
     bool used() const { return used_.load(); }
 
-    void setSize(const vec2ui& size);
+    void setSize(const Vec2ui& size);
 };
 
 //serverCallback/////////////////
 class serverCallback
 {
 protected:
-    friend void callbackDone(void*, struct wl_callback*, uint32_t);
-    void done(wl_callback*, unsigned int data);
+    friend void CallbackDone(void*, struct wl_Callback*, uint32_t);
+    void done(wl_Callback*, unsigned int data);
 
-    callback<void(wl_callback*, unsigned int)> callback_;
+    Callback<void(wl_Callback*, unsigned int)> Callback_;
 public:
-    serverCallback(wl_callback* callback);
+    serverCallback(wl_Callback* Callback);
 
-   template<typename F> connection add(F&& func){ return callback_.add(func); }
+   template<typename F> connection add(F&& func){ return Callback_.add(func); }
 };
 
 //output
@@ -98,9 +98,9 @@ friend void outputScale(void*, wl_output*, int);
 protected:
     wl_output* wlOutput_ = nullptr;
 
-    vec2i position_;
-    vec2i size_;
-    vec2i physicalSize_;
+    Vec2i position_;
+    Vec2i size_;
+    Vec2i physicalSize_;
 
     int subpixel_;
     int refreshRate_;
@@ -117,9 +117,9 @@ public:
     output(wl_output* outp);
     ~output();
 
-    vec2i getPosition() const { return position_; }
-    vec2i getSize() const { return size_; }
-    vec2i getPhysicalSize() const { return physicalSize_; }
+    Vec2i getPosition() const { return position_; }
+    Vec2i getSize() const { return size_; }
+    Vec2i getPhysicalSize() const { return physicalSize_; }
 
     int getSubpixel() const { return subpixel_; }
     int getRefreshRate() const { return refreshRate_; }

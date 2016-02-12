@@ -39,7 +39,7 @@ protected:
     Type type_ = Type::leftPtr;
 
     Image image_{};
-    vec2i hotspot_{};
+    Vec2i hotspot_{};
 
 public:
     Cursor() = default;
@@ -47,14 +47,14 @@ public:
     Cursor(const Image& data);
 
     void image(const Image& data);
-    void image(const Image& data, const vec2i& hotspot);
+    void image(const Image& data, const Vec2i& hotspot);
     void nativeType(Type t);
 
     bool isImage() const;
     bool isNativeType() const;
 
     const Image* image() const;
-    vec2i imageHotspot() const;
+    Vec2i imageHotspot() const;
     Type nativeType() const;
 };
 

@@ -69,8 +69,8 @@ public:
 
     //virtual void setSettings(const windowContextSettings& s);
 
-    virtual void setSize(vec2ui size, bool change = 1) override;
-    virtual void setPosition(vec2i position, bool change = 1) override;
+    virtual void setSize(Vec2ui size, bool change = 1) override;
+    virtual void setPosition(Vec2i position, bool change = 1) override;
 
     virtual void setCursor(const cursor& c) override;
     virtual void updateCursor(const mouseCrossEvent* ev) override {};
@@ -84,8 +84,8 @@ public:
     virtual void setFullscreen() override {};
     virtual void setNormal() override {};
 
-    virtual void setMinSize(vec2ui size) override {};
-    virtual void setMaxSize(vec2ui size) override {};
+    virtual void setMinSize(Vec2ui size) override {};
+    virtual void setMaxSize(Vec2ui size) override {};
 
     virtual void beginMove(const mouseButtonEvent* ev) override {};
     virtual void beginResize(const mouseButtonEvent* ev, windowEdge edges) override {};

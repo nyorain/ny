@@ -15,7 +15,7 @@ namespace ny
 ///for the calling thread. Classes that deal with openGL(ES) like the gl DrawContext
 ///implementation or the shader class need a current context for their openGL(ES) operations.
 ///This class is useful as abstraction for the different backends.
-class GlContext : public nonCopyable
+class GlContext : public NonCopyable
 {
 protected:
 	static GlContext* threadLocalCurrent(bool change = 0, GlContext* = nullptr);
@@ -129,7 +129,7 @@ public:
 	bool sharedWith(const GlContext& other) const;
 
 	///Updates the openGL viewport
-	void updateViewport(const rect2f& viewport);
+	void updateViewport(const Rect2f& viewport);
 
 	///Applies the contents of this context to its surface. Usually this means, the context will
 	///swap the back and the front buffer. No guarantess are given that the contents of the

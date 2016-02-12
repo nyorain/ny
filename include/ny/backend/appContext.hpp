@@ -6,7 +6,7 @@
 namespace ny
 {
 
-class AppContext : public nonCopyable
+class AppContext : public NonCopyable
 {
 public:
     AppContext() = default;
@@ -14,6 +14,10 @@ public:
 
 	virtual int mainLoop() = 0;
 	virtual void exit() {}
+
+	///Dispatches all retrieved events to the registered handlers using the given EventDispatcher.
+	///\return false if the display conncetion was destroyed, true otherwise (normally).
+	virtual bool dispatchEvents(EventDispatcher& dispatcher) = 0;
 
     //data
 	/*

@@ -81,7 +81,7 @@ public:
 
     //specific
     void setCursor(std::string curs, unsigned int serial = 0);
-    void setCursor(const image* img, vec2i hotspot, unsigned int serial = 0);
+    void setCursor(const image* img, Vec2i hotspot, unsigned int serial = 0);
 
     void registryHandler(wl_registry *registry, unsigned int id, std::string interface, unsigned int version);
     void registryRemover(wl_registry *registry, unsigned int id);

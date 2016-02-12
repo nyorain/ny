@@ -60,7 +60,7 @@ private:
 
 protected:
     wl_surface* wlSurface_ = nullptr;
-    wl_callback* wlFrameCallback_ = nullptr; //if this is == nullptr, the window is ready to be redrawn, else wayland is rendering the framebuffer and it should not be redrawn directly
+    wl_Callback* wlFrameCallback_ = nullptr; //if this is == nullptr, the window is ready to be redrawn, else wayland is rendering the framebuffer and it should not be redrawn diRectly
 
     bool refreshFlag_ = 0; //signals, if window should be refreshed
 
@@ -101,8 +101,8 @@ public:
     virtual void addContextHints(unsigned long hints) override;
     virtual void removeContextHints(unsigned long hints) override;
 
-    virtual void setSize(vec2ui size, bool change = 1) override;
-    virtual void setPosition(vec2i position, bool change = 1) override;
+    virtual void setSize(Vec2ui size, bool change = 1) override;
+    virtual void setPosition(Vec2i position, bool change = 1) override;
 
     virtual void setCursor(const cursor& c) override;
     virtual void updateCursor(const mouseCrossEvent* ev) override;

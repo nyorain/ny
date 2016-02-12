@@ -34,7 +34,7 @@ public:
 	virtual std::string widgetClass() const override { return "ny::Button"; }
 
 public:
-	callback<void(Button&)> onClick;
+	Callback<void(Button&)> onClick;
 };
 
 }

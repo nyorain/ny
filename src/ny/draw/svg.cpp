@@ -30,9 +30,9 @@ bool SvgImage::save(const std::string& path) const
 
 				break;
 			}
-			case PathBase::Type::rectangle:
+			case PathBase::Type::Rectangle:
 			{
-				auto node = svgNode.append_child("rect");
+				auto node = svgNode.append_child("Rect");
 				break;
 			}
 			case PathBase::Type::path:
@@ -71,7 +71,7 @@ bool SvgImage::load(const std::string& path)
 		if(std::string(node.name()) == "circle")
 		{
 		}
-		else if(std::string(node.name()) == "rect")
+		else if(std::string(node.name()) == "Rect")
 		{
 		}
 		else if(std::string(node.name()) == "ellipse")

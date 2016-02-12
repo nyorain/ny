@@ -8,16 +8,16 @@ constexpr const char* defaultShaderVS =
 
     #version 300 es
 
-    in vec2 position;
-    uniform vec2 vViewSize;
+    in Vec2 position;
+    uniform Vec2 vViewSize;
     uniform mat3 vTransform;
 
     void main()
     {
-        vec3 transpoint = vec3(position, 1.f) * vTransform;
+        Vec3 transpoint = Vec3(position, 1.f) * vTransform;
         transpoint.x = (transpoint.x / vViewSize.x) * 2.f - 1.f;
         transpoint.y = ((vViewSize.y - transpoint.y) / vViewSize.y) * 2.f - 1.f;
-        gl_Position = vec4(transpoint, 1.f);
+        gl_Position = Vec4(transpoint, 1.f);
     }
 
     )SRC";
@@ -27,18 +27,18 @@ constexpr const char* uvShaderVS =
 
     #version 300 es
 
-    in vec4 vertex; //2 position, 2 uv
+    in Vec4 vertex; //2 position, 2 uv
 
-	out vec2 uv;
-    uniform vec2 vViewSize;
+	out Vec2 uv;
+    uniform Vec2 vViewSize;
     uniform mat3 vTransform;
 
     void main()
     {
-        vec3 transpoint = vec3(vertex.xy, 1.f) * vTransform;
+        Vec3 transpoint = Vec3(vertex.xy, 1.f) * vTransform;
         transpoint.x = (transpoint.x / vViewSize.x) * 2.f - 1.f;
         transpoint.y = ((vViewSize.y - transpoint.y) / vViewSize.y) * 2.f - 1.f;
-        gl_Position = vec4(transpoint, 1.f);
+        gl_Position = Vec4(transpoint, 1.f);
 		uv = vertex.zw;
     }
 
@@ -51,8 +51,8 @@ constexpr const char* modernColorShaderFS =
     #version 300 es
 	precision mediump float;
 
-    out vec4 outColor;
-    uniform vec4 fColor;
+    out Vec4 outColor;
+    uniform Vec4 fColor;
 
     void main()
     {
@@ -67,17 +67,17 @@ constexpr const char* modernTextureShaderRGBAFS =
 	#version 300 es
 	precision mediump float;
 
-	out vec4 outColor;
-	uniform vec2 vViewSize;
-	uniform vec2 fTexturePosition;
-	uniform vec2 fTextureSize;
+	out Vec4 outColor;
+	uniform Vec2 vViewSize;
+	uniform Vec2 fTexturePosition;
+	uniform Vec2 fTextureSize;
 	uniform sampler2D fTexture;
 
 	void main()
 	{
-		vec2 fragCoords = gl_FragCoord.xy;
+		Vec2 fragCoords = gl_FragCoord.xy;
 		fragCoords.y = vViewSize.y - fragCoords.y;
-		vec2 texcoords = (fragCoords - fTexturePosition) / fTextureSize;
+		Vec2 texcoords = (fragCoords - fTexturePosition) / fTextureSize;
 		outColor = texture(fTexture, texcoords);		
 	} 
 	
@@ -89,18 +89,18 @@ constexpr const char* modernTextureShaderRGBFS =
 	#version 300 es
 	precision mediump float;
 
-	out vec4 outColor;
-	uniform vec2 vViewSize;
-	uniform vec2 fTexturePosition;
-	uniform vec2 fTextureSize;
+	out Vec4 outColor;
+	uniform Vec2 vViewSize;
+	uniform Vec2 fTexturePosition;
+	uniform Vec2 fTextureSize;
 	uniform sampler2D fTexture;
 
 	void main()
 	{
-		vec2 fragCoords = gl_FragCoord.xy;
+		Vec2 fragCoords = gl_FragCoord.xy;
 		fragCoords.y = vViewSize.y - fragCoords.y;
-		vec2 texcoords = (fragCoords - fTexturePosition) / fTextureSize;
-		outColor = vec4(texture(fTexture, texcoords).rgb, 1.);		
+		Vec2 texcoords = (fragCoords - fTexturePosition) / fTextureSize;
+		outColor = Vec4(texture(fTexture, texcoords).rgb, 1.);		
 	} 
 	
 	)SRC";
@@ -111,10 +111,10 @@ constexpr const char* modernColorShaderTextureAFS =
 	#version 300 es
 	precision mediump float;
 
-	in vec2 uv;
-	out vec4 outColor;
+	in Vec2 uv;
+	out Vec4 outColor;
 
-	uniform vec4 fColor;
+	uniform Vec4 fColor;
 	uniform sampler2D fTexture;
 
 	void main()
@@ -132,16 +132,16 @@ constexpr const char* defaultShaderVS =
 
     #version 330 core
 
-    layout (location = 0) in vec2 position;
-    uniform vec2 vViewSize;
+    layout (location = 0) in Vec2 position;
+    uniform Vec2 vViewSize;
     uniform mat3 vTransform;
 
     void main()
     {
-        //vec3 transpoint = vec3(position, 1.f) * vTransform;
+        //Vec3 transpoint = Vec3(position, 1.f) * vTransform;
         //transpoint.x = (transpoint.x / vViewSize.x) * 2.f - 1.f;
         //transpoint.y = ((vViewSize.y - transpoint.y) / vViewSize.y) * 2.f - 1.f;
-        gl_Position = vec4(position, 1.f, 1.f);
+        gl_Position = Vec4(position, 1.f, 1.f);
     }
 
     )SRC";
@@ -152,8 +152,8 @@ constexpr const char* modernColorShaderFS =
 
     #version 330 core
 
-    out vec4 outColor;
-    uniform vec4 fColor;
+    out Vec4 outColor;
+    uniform Vec4 fColor;
 
     void main()
     {

@@ -11,7 +11,7 @@
 namespace ny
 {
 
-//TODO: correct double-buffering WITHOUT (!) leak
+//TODO: corRect double-buffering WITHOUT (!) leak
 
 //x11CairoContext
 X11CairoDrawContext::X11CairoDrawContext(X11WindowContext& wc)
@@ -30,7 +30,7 @@ X11CairoDrawContext::~X11CairoDrawContext()
     //cairo_surface_destroy(xlibSurface_);
 }
 
-void X11CairoDrawContext::size(const vec2ui& size)
+void X11CairoDrawContext::size(const Vec2ui& size)
 {
     cairo_destroy(cairoCR_);
     //cairo_surface_destroy(cairoSurface_);

@@ -8,60 +8,60 @@ namespace shaderSources
 
 constexpr auto* defaultVS =
 R"SRC(
-%i vec2 position;
-uniform vec2 vViewSize;
+%i Vec2 position;
+uniform Vec2 vViewSize;
 uniform mat3 vTransform;
 
 void main()
 {
-	vec3 transpoint = vec3(position, 1.f) * vTransform;
+	Vec3 transpoint = Vec3(position, 1.f) * vTransform;
 	transpoint.x = (transpoint.x / vViewSize.x) * 2.f - 1.f;
 	transpoint.y = ((vViewSize.y - transpoint.y) / vViewSize.y) * 2.f - 1.f;
-	gl_Position = vec4(transpoint, 1.f);
+	gl_Position = Vec4(transpoint, 1.f);
 }
 )SRC";
 
 constexpr auto* uvVS =
 R"SRC(
-%i vec4 vertex;
-%o vec2 fUv;
-uniform vec2 vViewSize;
+%i Vec4 vertex;
+%o Vec2 fUv;
+uniform Vec2 vViewSize;
 uniform mat3 vTransform;
 
 void main()
 {
-	vec2 position = vertex.xy;
+	Vec2 position = vertex.xy;
 	fUv = vertex.zw;
 
-	vec3 transpoint = vec3(position, 1.f) * vTransform;
+	Vec3 transpoint = Vec3(position, 1.f) * vTransform;
 	transpoint.x = (transpoint.x / vViewSize.x) * 2.f - 1.f;
 	transpoint.y = ((vViewSize.y - transpoint.y) / vViewSize.y) * 2.f - 1.f;
-	gl_Position = vec4(transpoint, 1.f);
+	gl_Position = Vec4(transpoint, 1.f);
 }
 )SRC";
 
 constexpr auto* textureVS =
 R"SRC(
-%i vec2 position;
-%o vec2 fUv;
-uniform vec2 vViewSize;
+%i Vec2 position;
+%o Vec2 fUv;
+uniform Vec2 vViewSize;
 uniform mat3 vTransform;
-uniform vec2 vTexturePosition;
-uniform vec2 vTextureSize; 
+uniform Vec2 vTexturePosition;
+uniform Vec2 vTextureSize; 
 
 void main()
 {
-	vec3 transpoint = vec3(position, 1.f) * vTransform;
+	Vec3 transpoint = Vec3(position, 1.f) * vTransform;
 	fUv = (transpoint.xy - vTexturePosition) / vTextureSize;
 	transpoint.x = (transpoint.x / vViewSize.x) * 2.f - 1.f;
 	transpoint.y = ((vViewSize.y - transpoint.y) / vViewSize.y) * 2.f - 1.f;
-	gl_Position = vec4(transpoint, 1.f);
+	gl_Position = Vec4(transpoint, 1.f);
 }
 )SRC";
 
 constexpr auto* colorFS = 
 R"SRC(
-uniform vec4 fColor;
+uniform Vec4 fColor;
 
 void main()
 {
@@ -71,7 +71,7 @@ void main()
 
 constexpr auto* textureRGBAFS = 
 R"SRC(
-%i vec2 fUv;
+%i Vec2 fUv;
 uniform sampler2D fTexture;
 
 void main()
@@ -82,19 +82,19 @@ void main()
 
 constexpr auto* textureRGBFS = 
 R"SRC(
-%i vec2 fUv;
+%i Vec2 fUv;
 uniform sampler2D fTexture;
 
 void main()
 {
-    %fragColor = vec4(%texture2D(fTexture, fUv).rgb, 1.); 
+    %fragColor = Vec4(%texture2D(fTexture, fUv).rgb, 1.); 
 }
 )SRC";
 
 constexpr auto* textureRColorFS = 
 R"SRC(
-%i vec2 fUv;
-uniform vec4 fColor;
+%i Vec2 fUv;
+uniform Vec4 fColor;
 uniform sampler2D fTexture;
 
 void main()

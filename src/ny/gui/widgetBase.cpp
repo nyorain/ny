@@ -78,7 +78,7 @@ void WidgetBase::hide()
 	shown_ = 0;
 }
 
-Widget* WidgetBase::widget(const vec2i& position)
+Widget* WidgetBase::widget(const Vec2i& position)
 {
 	for(auto& child : children())
 	{
@@ -91,7 +91,7 @@ Widget* WidgetBase::widget(const vec2i& position)
 	return nullptr;
 }
 
-const Widget* WidgetBase::widget(const vec2i& position) const
+const Widget* WidgetBase::widget(const Vec2i& position) const
 {
 	for(auto& child : children())
 	{
@@ -104,9 +104,9 @@ const Widget* WidgetBase::widget(const vec2i& position) const
 	return nullptr;
 }
 
-vec2i WidgetBase::relativePosition(const Widget& widgt) const
+Vec2i WidgetBase::relativePosition(const Widget& widgt) const
 {
-	auto ret = vec2i{0, 0};
+	auto ret = Vec2i{0, 0};
 	const Widget* wit = &widgt; //horizontal widget iterator
 
 	while(wit != this)

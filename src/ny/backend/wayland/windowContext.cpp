@@ -35,7 +35,7 @@ waylandWindowContext::waylandWindowContext(window& win, const waylandWindowConte
     waylandAppContext* ac = getWaylandAppContext();
     if(!ac)
     {
-        throw std::runtime_error("wayland App Context not correctly initialized");
+        throw std::runtime_error("wayland App Context not corRectly initialized");
         return;
     }
 
@@ -127,7 +127,7 @@ waylandWindowContext::waylandWindowContext(window& win, const waylandWindowConte
 waylandWindowContext::~waylandWindowContext()
 {
     if(wlFrameCallback_ != nullptr)
-        wl_callback_destroy(wlFrameCallback_); //needed? is it automatically destroy by the wayland server?
+        wl_Callback_destroy(wlFrameCallback_); //needed? is it automatically destroy by the wayland server?
 
     //role
     if(getWlShellSurface())
@@ -305,7 +305,7 @@ void waylandWindowContext::finishDraw()
         cairo_->apply();
 
         wlFrameCallback_ = wl_surface_frame(wlSurface_);
-        wl_callback_add_listener(wlFrameCallback_, &frameListener, this);
+        wl_Callback_add_listener(wlFrameCallback_, &frameListener, this);
 
         cairo_->attach();
         wl_surface_damage(wlSurface_, 0, 0, window_.getWidth(), window_.getHeight());
@@ -318,7 +318,7 @@ void waylandWindowContext::finishDraw()
         egl_->apply();
 
         wlFrameCallback_ = wl_surface_frame(wlSurface_);
-        wl_callback_add_listener(wlFrameCallback_, &frameListener, this);
+        wl_Callback_add_listener(wlFrameCallback_, &frameListener, this);
 
         if(!egl_->swapBuffers())
             nyWarning("waylandWC::finishDraw: failed to swap egl buffers");
@@ -360,7 +360,7 @@ void waylandWindowContext::removeContextHints(unsigned long hints)
 
 }
 
-void waylandWindowContext::setSize(vec2ui size, bool change)
+void waylandWindowContext::setSize(Vec2ui size, bool change)
 {
     if(getEGL())
     {
@@ -370,7 +370,7 @@ void waylandWindowContext::setSize(vec2ui size, bool change)
     refresh();
 }
 
-void waylandWindowContext::setPosition(vec2i position, bool change)
+void waylandWindowContext::setPosition(Vec2i position, bool change)
 {
     if(getWlSubsurface())
     {
@@ -424,7 +424,7 @@ void waylandWindowContext::processEvent(const contextEvent& e)
     {
         if(wlFrameCallback_)
         {
-            wl_callback_destroy(wlFrameCallback_); //?
+            wl_Callback_destroy(wlFrameCallback_); //?
             wlFrameCallback_ = nullptr;
         }
 

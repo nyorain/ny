@@ -69,18 +69,18 @@ X11WindowContext::X11WindowContext(Window& win, const X11WindowSettings& setting
 
     if(!ac)
     {
-        throw std::runtime_error("x11 App was not correctly initialized");
+        throw std::runtime_error("x11 App was not corRectly initialized");
         return;
     }
 
     Display* dpy = xDisplay();
     if(!dpy)
     {
-        throw std::runtime_error("x11 App was not correctly initialized");
+        throw std::runtime_error("x11 App was not corRectly initialized");
         return;
     }
 
-    xScreenNumber_ = ac->xDefaultScreenNumber(); //todo: implement correctly
+    xScreenNumber_ = ac->xDefaultScreenNumber(); //todo: implement corRectly
     bool gl = usingGLX(settings.glPref);
 
     //window type
@@ -329,7 +329,7 @@ DrawContext& X11WindowContext::beginDraw()
 		#ifdef NY_WithGL
          glx_->makeCurrent();
 		 auto& ret = glx_->drawContext();
-		 ret.viewport(rect2f({0.f, 0.f}, window().size()));
+		 ret.viewport(Rect2f({0.f, 0.f}, window().size()));
 		 return ret;
 		#endif
     }
@@ -379,7 +379,7 @@ void X11WindowContext::requestFocus()
     addState(x11::StateFocused); //todo: fix
 }
 
-void X11WindowContext::size(const vec2ui& size, bool change)
+void X11WindowContext::size(const Vec2ui& size, bool change)
 {
     if(change) XResizeWindow(xDisplay(), xWindow_, size.x, size.y);
 
@@ -392,7 +392,7 @@ void X11WindowContext::size(const vec2ui& size, bool change)
     refresh();
 }
 
-void X11WindowContext::position(const vec2i& position, bool change)
+void X11WindowContext::position(const Vec2i& position, bool change)
 {
     if(change) XMoveWindow(xDisplay(), xWindow_, position.x, position.y);
 }
@@ -416,7 +416,7 @@ NativeWindowHandle X11WindowContext::nativeHandle() const
 	return NativeWindowHandle(xWindow_);
 }
 
-void X11WindowContext::minSize(const vec2ui& size)
+void X11WindowContext::minSize(const Vec2ui& size)
 {
     long a;
     XSizeHints s;
@@ -427,7 +427,7 @@ void X11WindowContext::minSize(const vec2ui& size)
     XSetWMNormalHints(xDisplay(), xWindow_, &s);
 }
 
-void X11WindowContext::maxSize(const vec2ui& size)
+void X11WindowContext::maxSize(const Vec2ui& size)
 {
     long a;
     XSizeHints s;
@@ -736,10 +736,10 @@ Atom X11WindowContext::xWindowType()
     //todo
 }
 
-void X11WindowContext::overrideRedirect(bool redirect)
+void X11WindowContext::overrideRedirect(bool rediRect)
 {
     XSetWindowAttributes attr;
-    attr.override_redirect = redirect;
+    attr.override_rediRect = rediRect;
 
     XChangeWindowAttributes(xDisplay(), xWindow_, CWOverrideRedirect, &attr);
 }
@@ -752,7 +752,7 @@ void X11WindowContext::cursor(unsigned int xCursorID)
 
 void X11WindowContext::reparented(const XReparentEvent&)
 {
-    position(window_->position()); //set position correctly
+    position(window_->position()); //set position corRectly
 }
 
 void X11WindowContext::maximized()

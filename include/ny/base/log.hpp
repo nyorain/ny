@@ -7,10 +7,10 @@ namespace ny
 {
 
 //objects
-logger& warningLogger();
-logger& logLogger();
-logger& errorLogger();
-logger& debugLogger();
+Logger& warningLogger();
+Logger& logLogger();
+Logger& errorLogger();
+Logger& debugLogger();
 
 //functions
 template<typename... Args>

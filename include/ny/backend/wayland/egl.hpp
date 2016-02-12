@@ -32,7 +32,7 @@ public:
     void initEGL(const waylandWindowContext& wc);
 
     wl_egl_window& getWlEGLWindow() const { return *wlEGLWindow_; };
-    void setSize(vec2ui size);
+    void setSize(Vec2ui size);
 };
 
 

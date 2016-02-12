@@ -21,7 +21,7 @@ void Cursor::image(const Image& data)
     type_ = Type::unknown;
 }
 
-void Cursor::image(const Image& data, const vec2i& hotspot)
+void Cursor::image(const Image& data, const Vec2i& hotspot)
 {
     image_ = data;
     hotspot_ = hotspot;
@@ -49,7 +49,7 @@ const Image* Cursor::image() const
     return (type_ == Type::image) ? &image_ : nullptr;
 }
 
-vec2i Cursor::imageHotspot() const
+Vec2i Cursor::imageHotspot() const
 {
     return hotspot_;
 }

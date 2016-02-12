@@ -179,7 +179,7 @@ unsigned int GlContext::glpVersion() const
 	return 0;
 }
 
-void GlContext::updateViewport(const rect2f& viewport)
+void GlContext::updateViewport(const Rect2f& viewport)
 {
 	if(!current())
 	{

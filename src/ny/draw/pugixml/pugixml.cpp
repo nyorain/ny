@@ -550,7 +550,7 @@ PUGI__NS_BEGIN
 				out_page->compact_page_marker = marker;
 
 				// since we don't reuse the page space until we reallocate it, we can just pretend that we freed the marker block
-				// this will make sure deallocate_memory correctly tracks the size
+				// this will make sure deallocate_memory corRectly tracks the size
 				out_page->freed_size += sizeof(uint32_t);
 
 				return marker + 1;
@@ -3629,7 +3629,7 @@ PUGI__NS_BEGIN
 			}
 		}
 
-		void write_direct(const char_t* data, size_t length)
+		void write_diRect(const char_t* data, size_t length)
 		{
 			// flush the remaining buffer contents
 			flush();
@@ -3679,7 +3679,7 @@ PUGI__NS_BEGIN
 			}
 			else
 			{
-				write_direct(data, length);
+				write_diRect(data, length);
 			}
 		}
 
@@ -3704,7 +3704,7 @@ PUGI__NS_BEGIN
 
 				bufsize = offset - extra;
 
-				write_direct(data - extra, strlength(data) + extra);
+				write_diRect(data - extra, strlength(data) + extra);
 			}
 		}
 
@@ -6946,19 +6946,19 @@ namespace pugi
 namespace std
 {
 	// Workarounds for (non-standard) iterator category detection for older versions (MSVC7/IC8 and earlier)
-	PUGI__FN std::bidirectional_iterator_tag _Iter_cat(const pugi::xml_node_iterator&)
+	PUGI__FN std::bidiRectional_iterator_tag _Iter_cat(const pugi::xml_node_iterator&)
 	{
-		return std::bidirectional_iterator_tag();
+		return std::bidiRectional_iterator_tag();
 	}
 
-	PUGI__FN std::bidirectional_iterator_tag _Iter_cat(const pugi::xml_attribute_iterator&)
+	PUGI__FN std::bidiRectional_iterator_tag _Iter_cat(const pugi::xml_attribute_iterator&)
 	{
-		return std::bidirectional_iterator_tag();
+		return std::bidiRectional_iterator_tag();
 	}
 
-	PUGI__FN std::bidirectional_iterator_tag _Iter_cat(const pugi::xml_named_node_iterator&)
+	PUGI__FN std::bidiRectional_iterator_tag _Iter_cat(const pugi::xml_named_node_iterator&)
 	{
-		return std::bidirectional_iterator_tag();
+		return std::bidiRectional_iterator_tag();
 	}
 }
 #endif
@@ -6967,19 +6967,19 @@ namespace std
 namespace std
 {
 	// Workarounds for (non-standard) iterator category detection
-	PUGI__FN std::bidirectional_iterator_tag __iterator_category(const pugi::xml_node_iterator&)
+	PUGI__FN std::bidiRectional_iterator_tag __iterator_category(const pugi::xml_node_iterator&)
 	{
-		return std::bidirectional_iterator_tag();
+		return std::bidiRectional_iterator_tag();
 	}
 
-	PUGI__FN std::bidirectional_iterator_tag __iterator_category(const pugi::xml_attribute_iterator&)
+	PUGI__FN std::bidiRectional_iterator_tag __iterator_category(const pugi::xml_attribute_iterator&)
 	{
-		return std::bidirectional_iterator_tag();
+		return std::bidiRectional_iterator_tag();
 	}
 
-	PUGI__FN std::bidirectional_iterator_tag __iterator_category(const pugi::xml_named_node_iterator&)
+	PUGI__FN std::bidiRectional_iterator_tag __iterator_category(const pugi::xml_named_node_iterator&)
 	{
-		return std::bidirectional_iterator_tag();
+		return std::bidiRectional_iterator_tag();
 	}
 }
 #endif
@@ -11552,7 +11552,7 @@ PUGI__NS_BEGIN
 			if (_lexer.current() != lex_eof)
 			{
 				// there are still unparsed tokens left, error
-				throw_error("Incorrect query");
+				throw_error("IncorRect query");
 			}
 			
 			return result;

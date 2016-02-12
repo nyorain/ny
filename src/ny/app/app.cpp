@@ -8,7 +8,6 @@
 #include <ny/window/window.hpp>
 #include <ny/draw/freeType.hpp>
 
-#include <nytl/time.hpp>
 #include <nytl/misc.hpp>
 #include <ny/base/log.hpp>
 
@@ -21,33 +20,8 @@ namespace ny
 {
 
 //
-App* nyMainApp()
-{
-	return App::app();
-}
-
-App* App::app()
-{
-	return appFunc();
-}
-
-App* App::appFunc(App* app, bool reg)
-{
-	static App* instance_ = nullptr;
-	if(reg) instance_ = app;
-	return instance_;
-}
-
-//
 App::App(const App::Settings& settings) : settings_(settings)
 {
-	if(app())
-	{
-		throw std::logic_error("App::App: There can only be one app object");
-	}
-
-	appFunc(this, 1);
-
     if(!backend_)
     {
 		auto backends = Backend::backends();
@@ -91,7 +65,6 @@ App::~App()
 {
     this->exit();
 	EventDispatcher::exit();
-	appFunc(nullptr, 1);
 }
 
 int App::mainLoop()

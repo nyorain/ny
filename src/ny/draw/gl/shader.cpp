@@ -138,15 +138,15 @@ void Shader::uniform(const std::string& name, float x, float y, float z, float w
     int location = glGetUniformLocation(program_, name.c_str());
     glUniform4f(location, x, y, z, w);
 }
-void Shader::uniform(const std::string& name, const vec2f& value)
+void Shader::uniform(const std::string& name, const Vec2f& value)
 {
     uniform(name, value.x, value.y);
 }
-void Shader::uniform(const std::string& name, const vec3f& value)
+void Shader::uniform(const std::string& name, const Vec3f& value)
 {
     uniform(name, value.x, value.y, value.z);
 }
-void Shader::uniform(const std::string& name, const vec4f& value)
+void Shader::uniform(const std::string& name, const Vec4f& value)
 {
     uniform(name, value.x, value.y, value.z, value.w);
 }

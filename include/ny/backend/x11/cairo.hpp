@@ -15,7 +15,7 @@ public:
     X11CairoDrawContext(X11WindowContext& wc);
     virtual ~X11CairoDrawContext();
 
-    void size(const vec2ui& size);
+    void size(const Vec2ui& size);
     virtual void apply() override;
 };
 

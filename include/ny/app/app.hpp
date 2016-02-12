@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <ny/app/eventHandler.hpp>
+#include <ny/base/eventHandler.hpp>
 #include <ny/app/eventDispatcher.hpp>
 
 #include <vector>
@@ -16,8 +16,9 @@
 namespace ny
 {
 
-App* nyMainApp();
-
+///\brief Main Application class.
+///\details The main responsibilities on ny::App are to initialize an ny::Backend with an
+///ny::AppContext as well as dispatching all received events (ny::EventDispatcher).
 class App : public EventDispatcher
 {
 public:
@@ -35,25 +36,19 @@ public:
 
 		std::string name;
 		bool exitWithoutWindows = 1;
-		App::ErrorAction onError = ErrorAction::AskWindow;
+		ErrorAction errorAction = ErrorAction::AskWindow;
 		std::vector<std::string> allowedBackends;
 		bool allBackends = 1;
 		int threadpoolSize = -1; //auto size, 0 for no threadpool
 		bool useEventThread = 1;
 	};
 
-public:
-	static App* app();
-
-protected:
-	static App* appFunc(App* app = nullptr, bool reg = 0);	
-
 protected:
     Settings settings_;
     Backend* backend_ {nullptr}; //the chosen backend. only existing if(valid_), one of backends
     std::unique_ptr<AppContext> appContext_;
 
-	int windowCount_ = 0; //to make exiting possible when last window closes
+	std::size_t windowCount_ = 0; //to make exiting possible when last window closes
 
     //changed/read by eventLoop and by eventDispatcher thread:
     std::atomic<Window*> focus_ {nullptr}; //eventHandler which has current focus
@@ -86,6 +81,8 @@ public:
 
     AppContext& appContext() const { return *appContext_.get(); };
     Backend& backend() const { return *backend_; }
+
+	std::size_t windowCount() const { return windowCount_; }
 
     const Settings& settings() const { return settings_; }
     const std::string& name() const { return settings_.name; }

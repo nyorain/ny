@@ -40,8 +40,8 @@ public:
 	virtual void stroke(const Pen& pen) override;
 	virtual void strokePreserve(const Pen& pen) override;
 
-    virtual rect2f rectangleClip() override;
-    virtual void clipRectangle(const rect2f& obj) override;
+    virtual Rect2f RectangleClip() override;
+    virtual void clipRectangle(const Rect2f& obj) override;
 	virtual void resetRectangleClip() override;
 };
 

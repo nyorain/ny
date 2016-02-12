@@ -35,7 +35,7 @@ winapiWindowContext::winapiWindowContext(window& win, const winapiWindowContextS
     //init check
     winapiAppContext* ac = nyWinapiAppContext();
 
-    if(!ac) throw std::runtime_error("winapiWindowContext::create: winapiAppContext not correctly set");
+    if(!ac) throw std::runtime_error("winapiWindowContext::create: winapiAppContext not corRectly set");
     if(!ac->getInstance()) throw std::runtime_error("winapiWindowContext::create: hInstance invalid");
 
     //toplevel or child, gl or gdi
@@ -221,12 +221,12 @@ void winapiWindowContext::processEvent(const contextEvent& e)
     }
 }
 
-void winapiWindowContext::setSize(vec2ui size, bool change)
+void winapiWindowContext::setSize(Vec2ui size, bool change)
 {
     if(getWGL())
         wgl_->updateViewport(size);
 }
-void winapiWindowContext::setPosition(vec2i position, bool change)
+void winapiWindowContext::setPosition(Vec2i position, bool change)
 {
 }
 

@@ -18,11 +18,11 @@ using namespace wayland;
 //cairo/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 waylandCairoDrawContext::waylandCairoDrawContext(const waylandWindowContext& wc) : cairoDrawContext(wc.getWindow()), wc_(wc)
 {
-    vec2ui size = wc.getWindow().getSize();
+    Vec2ui size = wc.getWindow().getSize();
     buffer_[0] = new wayland::shmBuffer(size, bufferFormat::argb8888); //front buffer
     buffer_[1] = new wayland::shmBuffer(size, bufferFormat::argb8888);
 
-    //todo: correct dynamic format
+    //todo: corRect dynamic format
     cairoSurface_ = cairo_image_surface_create_for_data((unsigned char*) frontBuffer()->getData(), CAIRO_FORMAT_ARGB32, size.x, size.y, size.x * 4);
     cairoBackSurface_ = cairo_image_surface_create_for_data((unsigned char*) backBuffer()->getData(), CAIRO_FORMAT_ARGB32, size.x, size.y, size.x * 4);
 
@@ -42,7 +42,7 @@ waylandCairoDrawContext::~waylandCairoDrawContext()
     if(backBuffer()) delete backBuffer();
 }
 
-void waylandCairoDrawContext::updateSize(const vec2ui& size)
+void waylandCairoDrawContext::updateSize(const Vec2ui& size)
 {
     if(size != frontBuffer()->getSize())
     {
@@ -64,7 +64,7 @@ void waylandCairoDrawContext::swapBuffers()
     std::swap(cairoCR_, cairoBackCR_);
 }
 
-void waylandCairoDrawContext::attach(const vec2i& pos)
+void waylandCairoDrawContext::attach(const Vec2i& pos)
 {
     wl_surface_attach(wc_.getWlSurface(), frontBuffer()->getWlBuffer(), pos.x, pos.y);
     frontBuffer()->wasAttached();

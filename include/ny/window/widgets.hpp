@@ -20,10 +20,10 @@ protected:
     std::string label_ {};
     bool pressed_ {0};
 
-    callback<void(button&)> clickCallback_ {};
+    Callback<void(button&)> clickCallback_ {};
 
 public:
-    button(window& parent, vec2ui position, vec2ui size, const std::string& label = "", const windowContextSettings& = windowContextSettings());
+    button(window& parent, Vec2ui position, Vec2ui size, const std::string& label = "", const windowContextSettings& = windowContextSettings());
 
     template<typename F> connection onClick(F&& func){ return clickCallback_.add(func); };
 
@@ -49,11 +49,11 @@ protected:
     timePoint lastBlinkTime_ {};
     bool showCursor_ {};
 
-    callback<void(textfield&, const std::string&)> editCallback_ {};
-    callback<void(textfield&, const std::string&)> enterCallback_ {};
+    Callback<void(textfield&, const std::string&)> editCallback_ {};
+    Callback<void(textfield&, const std::string&)> enterCallback_ {};
 
 public:
-    textfield(window& parent, vec2i position, vec2ui size, std::string label, const windowContextSettings& = windowContextSettings());
+    textfield(window& parent, Vec2i position, Vec2ui size, std::string label, const windowContextSettings& = windowContextSettings());
 
     template<typename F> connection onEdit(F&& func){ return editCallback_.add(func); };
     template<typename F> connection onEnter(F&& func){ return enterCallback_.add(func); };
@@ -74,7 +74,7 @@ protected:
     void cbDraw(drawContext& dc);
 
 public:
-    headerbar(window& parent, vec2i position, vec2ui size, const windowContextSettings& = windowContextSettings());
+    headerbar(window& parent, Vec2i position, Vec2ui size, const windowContextSettings& = windowContextSettings());
 
     virtual std::string getWidgetName() const override { return "ny::headerbar"; }
 };

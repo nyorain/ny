@@ -1,17 +1,28 @@
 #include <ny/draw/drawContext.hpp>
 #include <ny/draw/shape.hpp>
-
 #include <ny/base/log.hpp>
 
 namespace ny
 {
 
+//DrawGuard
+DrawGuard::DrawGuard(DrawContext& dc) : drawContext_(dc)
+{
+	drawContext_.init();
+}
+
+DrawGuard::~DrawGuard()
+{
+	drawContext_.apply();
+}
+
+//DrawContext
 void DrawContext::mask(const PathBase& obj)
 {
     switch(obj.type())
     {
 		case PathBase::Type::text: mask(obj.text()); return;
-		case PathBase::Type::rectangle: mask(obj.rectangle()); return;
+		case PathBase::Type::Rectangle: mask(obj.Rectangle()); return;
 		case PathBase::Type::path: mask(obj.path()); return;
 		case PathBase::Type::circle: mask(obj.circle()); return;
     }
@@ -63,7 +74,7 @@ void DrawContext::stroke(const Pen& col)
 
 void DrawContext::clipMask()
 {
-    sendWarning("DrawContext::clipMak: mask clipping not supported, object ", this);
+    sendWarning("DrawContext::clipMask: mask clipping not supported, object ", this);
 }
 
 void DrawContext::clipMaskPreserve()
@@ -83,8 +94,8 @@ void DrawContext::resetMaskClip()
 }
 
 //redirectDrawContext
-RedirectDrawContext::RedirectDrawContext(DrawContext& redirect, const vec2f& position, 
-		const vec2f& size)
+RedirectDrawContext::RedirectDrawContext(DrawContext& redirect, const Vec2f& position, 
+		const Vec2f& size)
     : DrawContext(), size_(size), position_(position), redirect_(&redirect)
 {
 	startDrawing();
@@ -102,13 +113,13 @@ void RedirectDrawContext::apply()
 
 void RedirectDrawContext::clear(const Brush& b)
 {
-    //todo: transklate brushes correctly
+    //TODO: translate brushes correctly
     redirect_->clear(b);
 }
 
 void RedirectDrawContext::paint(const Brush& alphaMask, const Brush& fillBrush)
 {
-    //todo: transklate brushes correctly
+    //TODO: transklate brushes correctly
     redirect_->paint(alphaMask, fillBrush);
 }
 
@@ -199,23 +210,18 @@ void RedirectDrawContext::resetMaskClip()
     redirect_->resetMaskClip();
 }
 
-void RedirectDrawContext::size(const vec2f& size)
+void RedirectDrawContext::size(const Vec2f& size)
 {
     size_ = size;
 }
-void RedirectDrawContext::position(const vec2f& position)
+void RedirectDrawContext::position(const Vec2f& position)
 {
     position_ = position;
 }
 
-void RedirectDrawContext::redirect(DrawContext& dc)
+void RedirectDrawContext::clipRectangle(const Rect2f& obj)
 {
-    redirect_= &dc;
-}
-
-void RedirectDrawContext::clipRectangle(const rect2f& obj)
-{
-    rect2f clipRect;
+    Rect2f clipRect;
     clipRect.position = max(obj.position, {0.f, 0.f}) + position_;
     clipRect.size = min(obj.size, position_ + size_ - clipRect.position);
 
@@ -227,7 +233,7 @@ void RedirectDrawContext::resetRectangleClip()
     redirect_->clipRectangle(extents());
 }
 
-rect2f RedirectDrawContext::rectangleClip() const
+Rect2f RedirectDrawContext::rectangleClip() const
 {
     auto r = redirect_->rectangleClip();
     r.position -= position_;
@@ -245,7 +251,7 @@ void RedirectDrawContext::startDrawing()
         redirect_->resetMaskClip();
     }
 
-    rectangleClipSave_ = redirect_->rectangleClip();
+    RectangleClipSave_ = redirect_->RectangleClip();
     redirect_->clipRectangle(extents());
 }
 

@@ -11,12 +11,16 @@ class App;
 class WindowContext;
 class AppContext;
 class DrawContext;
+class DrawGuard;
 class Image;
 class AnimatedImage;
 class SvgImage;
 class SvgDrawContext;
 class Event;
 class EventHandler;
+class EventDispatcher;
+class DefaultEventDispatcher;
+class ThreadedEventDispatcher;
 class Gui;
 class Widget;
 class WidgetBase;
@@ -69,6 +73,8 @@ class Mouse;
 class GlContext;
 class GlResource;
 class GlDrawContext;
+class GlVertexArray;
+class GlBuffer;
 class Shader;
 class FreeTypeFontHandle;
 class CairoFontHandle;
@@ -78,6 +84,9 @@ class DelayedDrawContext;
 
 enum class ToplevelState : unsigned char;
 enum class Preference : unsigned char;
+enum class NativeWidgetType : unsigned char;
+enum class WindowEdge : unsigned char;
+enum class WindowHint : unsigned char;
 
 }
 

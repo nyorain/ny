@@ -14,7 +14,7 @@ namespace ny
 //
 struct ppoint
 {
-    vec2f pos;
+    Vec2f pos;
     float angle;
 };
 
@@ -22,7 +22,7 @@ struct ppoint
 namespace
 {
     std::vector<ppoint> points;
-    std::vector<triangle2f> triangles;
+    std::vector<Triangle2f> Triangles;
     bool clockwise;
     float fullangle;
 }
@@ -42,8 +42,8 @@ std::size_t prevPoint(std::size_t i)
 
 float updateAngle(std::size_t i)
 {
-    vec2f l1(points[i].pos - points[prevPoint(i)].pos);
-    vec2f l2(points[nextPoint(i)].pos - points[i].pos);
+    Vec2f l1(points[i].pos - points[prevPoint(i)].pos);
+    Vec2f l2(points[nextPoint(i)].pos - points[i].pos);
 
     points[i].angle = cangle(l1, l2) / cDeg;
     fullangle += (points[i].pos.x - points[prevPoint(i)].pos.x) * 
@@ -57,7 +57,7 @@ bool isConvex(std::size_t i)
     return (clockwise) ? (points[i].angle >= 180.f) : (points[i].angle < 180.f);
 }
 
-vec<3, std::size_t> findNextEar()
+Vec<3, std::size_t> findNextEar()
 {
     for(std::size_t i(0); i < points.size(); i++)
     {
@@ -66,7 +66,7 @@ vec<3, std::size_t> findNextEar()
 
         if(isConvex(i)) //if point is convex
         {
-            triangle2f test(points[prev].pos, points[i].pos, points[next].pos);
+            Triangle2f test(points[prev].pos, points[i].pos, points[next].pos);
 
             bool found = 1;
             for(std::size_t o(0); o < points.size(); o++)
@@ -87,14 +87,14 @@ vec<3, std::size_t> findNextEar()
     return {0,0,0}; //should never occur
 }
 
-std::vector<triangle2f> triangulate(const std::vector<vec2f>& xpoints)
+std::vector<Triangle2f> triangulate(const std::vector<Vec2f>& xpoints)
 {
     //init
     points.clear();
-    triangles.clear();
+    Triangles.clear();
 
     points.resize(xpoints.size());
-    triangles.resize(xpoints.size() - 2);
+    Triangles.resize(xpoints.size() - 2);
 
     fullangle = 0;
     for(std::size_t i(0); i < xpoints.size(); i++)
@@ -114,9 +114,9 @@ std::vector<triangle2f> triangulate(const std::vector<vec2f>& xpoints)
     std::size_t i(0);
     while(points.size() > 3)
     {
-        vec<3, std::size_t> ear = findNextEar();
-        triangles[i] = triangle2f(points[ear.x].pos, points[ear.y].pos, points[ear.z].pos);
-        //nyDebug("c: ", i, " ", ear.x, " ", ear.y, " ", ear.z, " ", triangles[i]);
+        Vec<3, std::size_t> ear = findNextEar();
+        Triangles[i] = Triangle2f(points[ear.x].pos, points[ear.y].pos, points[ear.z].pos);
+        //nyDebug("c: ", i, " ", ear.x, " ", ear.y, " ", ear.z, " ", Triangles[i]);
         points.erase(points.begin() + ear.y);
 
         updateAngle(ear.x);
@@ -126,10 +126,10 @@ std::vector<triangle2f> triangulate(const std::vector<vec2f>& xpoints)
     }
 	//nyDebug("some debug");
 
-    triangles[i] = triangle2f(points[0].pos, points[1].pos, points[2].pos); //triangles.back()
+    Triangles[i] = Triangle2f(points[0].pos, points[1].pos, points[2].pos); //Triangles.back()
     points.clear();
 
-    return triangles;
+    return Triangles;
 }
 
 

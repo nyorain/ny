@@ -28,14 +28,14 @@ public:
 
 protected:
 	std::unique_ptr<std::uint8_t[]> data_ {nullptr};
-	vec2ui size_ {0u, 0u};
+	Vec2ui size_ {0u, 0u};
 	Format format_ {Format::rgba8888};
 
 public:
-    Image(const vec2ui& size = {0u, 0u}, Format format = Format::rgba8888);
+    Image(const Vec2ui& size = {0u, 0u}, Format format = Format::rgba8888);
     Image(const std::string& path);
-	Image(const std::uint8_t* data, const vec2ui& size, Format format);
-	Image(std::unique_ptr<std::uint8_t[]>&& data, const vec2ui& size, Format format);
+	Image(const std::uint8_t* data, const Vec2ui& size, Format format);
+	Image(std::unique_ptr<std::uint8_t[]>&& data, const Vec2ui& size, Format format);
 
     virtual ~Image() = default;
 
@@ -51,15 +51,15 @@ public:
 
 	std::uint8_t* data() { return data_.get(); }
 	const std::uint8_t* data() const { return data_.get(); }
-    void data(const std::uint8_t* newdata, const vec2ui& newsize, Format newFormat);
-    void data(std::unique_ptr<std::uint8_t[]>&& newdata, const vec2ui& newsize, Format newFormat);
+    void data(const std::uint8_t* newdata, const Vec2ui& newsize, Format newFormat);
+    void data(std::unique_ptr<std::uint8_t[]>&& newdata, const Vec2ui& newsize, Format newFormat);
 	std::unique_ptr<std::uint8_t[]> copyData() const;
 
     unsigned int pixelSize() const;
     Format format() const { return format_; }
 
-    const vec2ui& size() const { return size_; }
-	void size(const vec2ui& newSize);
+    const Vec2ui& size() const { return size_; }
+	void size(const Vec2ui& newSize);
 
     bool load(std::istream& is);
     bool save(std::ostream& os, const std::string& type) const;
@@ -76,14 +76,14 @@ class animatedImage : public File
 {
 protected:
 	std::vector<std::pair<Image, unsigned int>> images_;
-	vec2ui size_;
+	Vec2ui size_;
 
 public:
     Image* image(std::size_t i);
     Image* operator[](std::size_t i) { return image(i); }
 
     size_t imageCount() const { return images_.size(); }
-    const vec2ui& size() const { return size_; };
+    const Vec2ui& size() const { return size_; };
 
     //from file
     virtual bool load(const std::string& path) override;

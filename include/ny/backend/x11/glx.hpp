@@ -30,7 +30,7 @@ public:
     GlxContext(X11WindowContext& wc, GLXFBConfig fbc);
     ~GlxContext();
 
-    void size(const vec2ui& size);
+    void size(const Vec2ui& size);
     virtual bool apply() override;
 
 	GlDrawContext& drawContext() { return drawContext_; }

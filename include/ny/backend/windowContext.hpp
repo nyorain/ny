@@ -1,116 +1,143 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <ny/window/settings.hpp>
+#include <ny/base/eventHandler.hpp>
+#include <ny/window/defs.hpp>
 
 #include <nytl/nonCopyable.hpp>
 #include <nytl/vec.hpp>
 
 #include <memory>
+#include <bitset>
 
 namespace ny
 {
 
-//windowContex
-class WindowContext : public nonCopyable
+///Defines all possible native widgets that may be implemented on the specific backends.
+///Note that none of them are guaranteed to exist, some backends to not have native widgets
+///at all (linux backends). 
+enum class NativeWidgetType : unsigned char
 {
-protected:
-    Window* window_;
+	none = 0,
 
+    button,
+    textfield,
+    text,
+    checkbox,
+    menuBar,
+    toolbar,
+    progressbar,
+    dialog,
+	dropdown
+};
+
+///POD Structure that holds settings for the native window creation.
+struct WindowContextSettings
+{
+	std::bitset<64> events = {1};
+	NativeWindowHandle nativeHandle = nullptr;
+	NativeWindowHandle parent = nullptr;
+	ToplevelState initState = ToplevelState::normal;
+	NativeWidgetType nativeWidgetType = NativeWidgetType::none;
+	bool initShown = true;
+};
+
+///\brief Abstract interface for a window context in the underlaying window system.
+///The term "window" used in the documentation for this class is used for the underlaying native
+///window, ny::WindowContext is totally independent from ny::Window and can even be used without it.
+class WindowContext : public NonCopyable
+{
 public:
-    WindowContext(Window& win) : window_(&win) {}
-    virtual ~WindowContext(){}
+	WindowContext() = default;
+    virtual ~WindowContext() = default;
 
-    Window& window() const { return *window_; }
-    virtual unsigned long additionalWindowHints() const { return 0; }
+	///Starts to draw on the window.
+	///This function can always be called. The return (wrapped-up) DrawContext will only
+	///be valid as long as the DrawGuard exists. 
+	///\warning There shall be always only one DrawGuard (= valid and active DrawContext, 
+	///drawing operation) per thread and only one drawing thread per DrawGuard/DrawContext.
+	///\return A DrawGuard wrapper instance that holds the DrawContext that can be used to draw
+	///the windows contents.
+	virtual DrawGuard draw() = 0;
 
-    virtual bool isVirtual() const { return 0; }
-    virtual bool hasGL() const = 0; //defines if this window uses gl for rendering
-
+	///Asks the platform-specific windowing api for a window refresh.
     virtual void refresh() = 0;
-    virtual void redraw() {} //???
 
-    virtual DrawContext& beginDraw() = 0; //may throw
-    virtual void finishDraw() = 0;
-
+	///Makes the window visible.
     virtual void show() = 0;
+
+	///Hides the window.
     virtual void hide() = 0;
 
-    virtual void droppable(const DataTypes&){};
-    virtual void addDropType(unsigned char){};
-    virtual void removeDropType(unsigned char){};
+	///Signals that the window accepts drag-and-drops of the given DataTypes.
+    virtual void droppable(const DataTypes&) = 0;
 
-    virtual void addWindowHints(unsigned long) {};
-    virtual void removeWindowHints(unsigned long) {};
+	///Sets the minimal size of the window.
+    virtual void minSize(const Vec2ui&) = 0;
 
-    virtual void minSize(const vec2ui&){};
-    virtual void maxSize(const vec2ui&){};
+	///Sets the maximal size of the window.
+    virtual void maxSize(const Vec2ui&) = 0;
 
-    virtual void processEvent(const ContextEvent&){};
+	///Resizes the window.
+    virtual void size(const Vec2ui& size) = 0; 
 
-    virtual void size(const vec2ui& size, bool change = 1) = 0; 
-    virtual void position(const vec2i& position, bool change = 1) = 0; //...
+	///Sets the position of the window.
+    virtual void position(const Vec2i& position) = 0; //...
 
+	///Sets the mouse cursor of the window.
     virtual void cursor(const Cursor& c) = 0;
-    virtual void updateCursor(const MouseCrossEvent*){}; //not needed in all
 
+	///Returns the underlaying native window handle.
 	virtual NativeWindowHandle nativeHandle() const = 0;
 
     //toplevel-specific
-    virtual void maximized() = 0;
-    virtual void minimized() = 0;
+	///Maximized the window.
+	///\warning Shall have only an effect for toplevel windows.
+    virtual void maximize() = 0;
+
+	///Minimized the window.
+	///\warning Shall have only an effect for toplevel windows.
+    virtual void minimize() = 0;
+
+	///Sets the window in a fullscreen state.
+	///\warning Shall have only an effect for toplevel windows.
     virtual void fullscreen() = 0;
+
+	///Resets the window in normal toplevel state.
+	///\warning Shall have only an effect for toplevel windows.
     virtual void toplevel() = 0; //or reset()?
 
+	///Asks the window manager to start an interactive move for the window.
+	///\param event A pointer to a MouseButtonEvent. Only required for some implementations, so
+	///may also be a nullptr (does work then only on some backends!)
+	///\warning Shall have only an effect for toplevel windows.
     virtual void beginMove(const MouseButtonEvent* ev) = 0;
-    virtual void beginResize(const MouseButtonEvent* ev, WindowEdge edges) = 0;
 
+	///Asks the window manager to start an interactive resizing for the window.
+	///\param event A pointer to a MouseButtonEvent. Only required for some implementations, so
+	///may also be a nullptr (does work then only on some backends!)
+	///\warning Shall have only an effect for toplevel windows.
+    virtual void beginResize(const MouseButtonEvent* event, WindowEdge edges) = 0;
+
+	///Sets the title for the native window.
+	///\warning Shall have only an effect for toplevel windows.
     virtual void title(const std::string& name) = 0;
-	virtual void icon(const Image*){}; //may be only important for client decoration
+
+	///Sets the icon of the native window.
+	///\warning Shall have only an effect for toplevel windows.
+	virtual void icon(const Image*) = 0; //may be only important for client decoration
+
+	///Returns whether the window should be custom decorated.
+	///\warning Will only return a valid value for toplevel windows.
+	virtual bool customDecorated() const = 0;
+
+	///Tires to adds the given window hints to the window.
+	///\warning Window hints are only valid for toplevel windows.
+	virtual void addWindowHints(WindowHint hints) = 0;
+
+	///Tries to remove the given window hints from the window.
+	///\warning Window  hints are only valid for toplevel windows.
+	virtual void removeWindowHints(WindowHint hints) = 0;
 };
-
-/*
-//virtual
-class VirtualWindowContext : public WindowContext
-{
-protected:
-    std::unique_ptr<RedirectDrawContext> drawContext_;
-
-public:
-    VirtualWindowContext(ChildWindow& win);
-    virtual ~VirtualWindowContext();
-
-    virtual bool isVirtual() const override { return 1; }
-    virtual bool hasGL() const override { return parentContext().hasGL(); };
-
-    virtual void refresh() override;
-
-    virtual DrawContext& beginDraw() override;
-    DrawContext& beginDraw(DrawContext& dc); //custom overload
-    virtual void finishDraw() override;
-
-    virtual void show() override {}
-    virtual void hide() override {}
-
-    virtual void cursor(const Cursor& c) override;
-    virtual void updateCursor(const MouseCrossEvent* ev) override;
-
-    virtual void size(const vec2ui& size, bool change = 1) override;
-    virtual void position(const vec2i& position, bool change = 1) override;
-
-    //throw at these functions? warning at least?
-    virtual void maximized() override;
-    virtual void minimized() override;
-    virtual void fullscreen() override;
-    virtual void toplevel() override;
-
-    virtual void beginMove(const MouseButtonEvent*) override {}
-    virtual void beginResize(const MouseButtonEvent*, windowEdge) override {}
-
-    virtual void title(const std::string&) override {};
-
-    WindowContext& parentContext() const;
-};
-*/
 
 }

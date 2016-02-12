@@ -1,0 +1,36 @@
+This file lists the most important ny concepts, guidelines and design rules.
+All of those guidelines are changeable, but not instantly in the code, first it shall be 
+notices here and changes are only allowed after a constructive discussion.
+Those points are not (yet) really ordered by importance.
+
+- the implementation has to follow the interfaces. Of course must the interfaces be
+  implementable, but they shall not be designed after the final implementations (which may
+  change).
+- good interfaces. Easy to use right, hard to use wrong. Everything in c++ is allowed, legacy
+  things like macros or heavily relaying on the preprocessor are not desired. The interfaces
+  shall be as easy as possible. C pods are as desireable as complex virtual template interface
+  idioms. Always choose the best solution on the whole.
+- ny is built modular. The individual modules shall be as independent as possible and
+  all of them shall be reasonable on their own. All modules shall be as generic as possible.
+  Easy integration with other libraires/concepts/idioms/language techniques is always desirable.
+  Hierachical modul design/dependency is ok.
+- ny is a highly reactive and changeable interfaces, if one wants a static stable library which
+  does not change its core even if it would gain great profits they can still go with other, older
+  gui libs.
+- raii is usually the best way to go. There may be cases where it is not the best solution (rare),
+  but there have to be serious reasons to not go with raii
+- ny is exceptions safe, all interfaces are designed against exceptions and all implementations are
+  written exception safe, unkownig which functions might throw (except when trying to catch an
+  exception)
+- ny is always as soon as ration updated to the new standards, tries to use stl where possible
+  and tries to neverreimplement or use reimplemented stl classes
+- ny tries to go with as few external dependencies as possible
+- ny generally tries to go with existent standard where possible (e.g. drawing designed after svg)
+- everything shall be documented inside the code (mainly header files but impl docs are also
+  desirable), for added features examples are always useful
+- altough ny tries to do multiple (really connected, though) things at once, it shall be not 
+  extended to far (NOT a general toolkit for everything) and always follow the concept of 
+  modularity (->) to may be splitted in different projects up later on.
+- ny follows the concepts of open source and free software and shall not be the personal project
+  by one (or few) people; it shall therfore always stay theoretically independent from larger 
+  projects (-> ny desktop concept shall not directly influence the library itself)

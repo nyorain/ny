@@ -55,22 +55,22 @@ CairoFontHandle::~CairoFontHandle()
 }
 
 //util
-enum class direction
+enum class diRection
 {
     Left,
     Right
 };
 
-vec2d circleCenter(vec2d p1, vec2d p2,double radius, direction m)
+Vec2d circleCenter(Vec2d p1, Vec2d p2,double radius, diRection m)
 {
     double distance = sqrt(pow(p2.x - p1.x,2) + pow(p2.y - p1.y, 2));
 
-    vec2d p3;
+    Vec2d p3;
     p3.x = (p1.x + p2.x) / 2;
     p3.y = (p1.y + p2.y) / 2;
 
-    vec2d ret;
-    if(m == direction::Left)
+    Vec2d ret;
+    if(m == diRection::Left)
     {
         ret.x = p3.x - sqrt(pow(radius,2) - pow(distance / 2, 2)) * (p1.y - p2.y)/ distance;
         ret.y = p3.y - sqrt(pow(radius,2) - pow(distance / 2, 2)) * (p2.x - p1.x)/ distance;
@@ -99,7 +99,7 @@ CairoDrawContext::CairoDrawContext(cairo_surface_t& cairoSurface)
 
 CairoDrawContext::CairoDrawContext(Image& img)
 {
-	//todo: correct format and stuff
+	//todo: corRect format and stuff
     cairoSurface_ = cairo_image_surface_create_for_data(img.data(), CAIRO_FORMAT_ARGB32, 
 		img.size().x, img.size().y, img.size().x * 4);
 }
@@ -146,28 +146,28 @@ void CairoDrawContext::apply()
     cairoCR_ = cairo_create(cairoSurface_);
 }
 
-rect2f CairoDrawContext::rectangleClip() const
+Rect2f CairoDrawContext::RectangleClip() const
 {
-    rect2f ret;
+    Rect2f ret;
 
 	VALIDATE_CTX(ret);
 
-    cairo_rectangle_list_t* recList = cairo_copy_clip_rectangle_list(cairoCR_);
-    if(recList->num_rectangles == 0)
-        return rect2f();
+    cairo_Rectangle_list_t* recList = cairo_copy_clip_Rectangle_list(cairoCR_);
+    if(recList->num_Rectangles == 0)
+        return Rect2f();
 
-    cairo_rectangle_t& r = recList->rectangles[0];
-    ret.position = vec2f(r.x, r.y);
-    ret.size =  vec2f(r.width, r.height);
+    cairo_Rectangle_t& r = recList->Rectangles[0];
+    ret.position = Vec2f(r.x, r.y);
+    ret.size =  Vec2f(r.width, r.height);
 
     return ret;
 }
 
-void CairoDrawContext::clipRectangle(const rect2f& obj)
+void CairoDrawContext::clipRectangle(const Rect2f& obj)
 {
 	VALIDATE_CTX();
 
-    cairo_rectangle(cairoCR_, obj.left(), obj.top(), obj.width(), obj.height());
+    cairo_Rectangle(cairoCR_, obj.left(), obj.top(), obj.width(), obj.height());
     cairo_clip(cairoCR_);
 }
 
@@ -214,7 +214,7 @@ void CairoDrawContext::mask(const Text& obj)
     cairo_set_font_face(cairoCR_, font->cairoFontFace());
     cairo_set_font_size(cairoCR_, obj.size());
 
-	vec2i position = {0, 0};
+	Vec2i position = {0, 0};
 	cairo_text_extents_t extents;
 	cairo_text_extents(cairoCR_, obj.string().c_str(), &extents);
 
@@ -237,13 +237,13 @@ void CairoDrawContext::mask(const Rectangle& obj)
 {
 	VALIDATE_CTX();
 
-    if(all(obj.size() == vec2f()))
+    if(all(obj.size() == Vec2f()))
         return;
 
     applyTransform(obj.transformObject());
     if(all(obj.borderRadius() == 0)) //no border radius
     {
-        cairo_rectangle(cairoCR_, 0, 0, obj.size().x, obj.size().y);
+        cairo_Rectangle(cairoCR_, 0, 0, obj.size().x, obj.size().y);
     }
     else
     {
@@ -316,21 +316,21 @@ void CairoDrawContext::mask(const Path& obj)
         {
             //TODO
 
-            vec2f p1 = points[i - 1].position;
+            Vec2f p1 = points[i - 1].position;
 
-            vec2f center;
+            Vec2f center;
             double angle1 = 0, angle2 = 0;
 
             if(points[i].getArcData().type ==  arcType::left || points[i].getArcData().type == arcType::leftInverted)
             {
-                center = circleCenter((vec2f) p1, points[i].position, points[i].getArcData().radius, direction::Left);
+                center = circleCenter((Vec2f) p1, points[i].position, points[i].getArcData().radius, diRection::Left);
 
                 angle1 += M_PI / 2;
                 angle2 += M_PI / 2;
             }
             else
             {
-                center = circleCenter((vec2f) p1, points[i].position, points[i].getArcData().radius, direction::Right);
+                center = circleCenter((Vec2f) p1, points[i].position, points[i].getArcData().radius, diRection::Right);
             }
 
             if(p1.y != center.y) angle1 += asin((p1.y - center.y) / points[i].getArcData().radius);

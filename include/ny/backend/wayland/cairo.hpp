@@ -28,8 +28,8 @@ public:
     waylandCairoDrawContext(const waylandWindowContext& wc);
     virtual ~waylandCairoDrawContext();
 
-    void attach(const vec2i& pos = vec2i());
-    void updateSize(const vec2ui& size);
+    void attach(const Vec2i& pos = Vec2i());
+    void updateSize(const Vec2ui& size);
 
     void swapBuffers();
     bool frontBufferUsed() const;

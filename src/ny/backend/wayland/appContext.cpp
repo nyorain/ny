@@ -57,15 +57,15 @@ void waylandAppContext::init()
     wl_display_dispatch(wlDisplay_);
     wl_display_roundtrip(wlDisplay_);
 
-    //compositor added by registry callback listener
+    //compositor added by registry Callback listener
     if(!wlCompositor_)
     {
         throw std::runtime_error("could not find wayland compositor");
         return;
     }
 
-    wl_callback* syncer = wl_display_sync(wlDisplay_);
-    wl_callback_add_listener(syncer, &displaySyncListener, this);
+    wl_Callback* syncer = wl_display_sync(wlDisplay_);
+    wl_Callback_add_listener(syncer, &displaySyncListener, this);
 
     //wlCursorSurface_ = wl_compositor_create_surface(wlCompositor_);
 
@@ -127,9 +127,9 @@ void waylandAppContext::startDataOffer(dataSource& source, const image& img, con
 	wlDataSource_ = wl_data_device_manager_create_data_source(wlDataManager_);
 	wl_data_source_add_listener(wlDataSource_, &dataSourceListener, &source);
 
-    std::vector<std::string> vec = dataTypesToString(source.getPossibleTypes(), 1); //only mime
-	for(size_t i(0); i < vec.size(); i++)
-        wl_data_source_offer(wlDataSource_, vec[i].c_str());
+    std::vector<std::string> Vec = dataTypesToString(source.getPossibleTypes(), 1); //only mime
+	for(size_t i(0); i < Vec.size(); i++)
+        wl_data_source_offer(wlDataSource_, Vec[i].c_str());
 
     waylandEventData* data;
     if(!ev->data || !(data = dynamic_cast<waylandEventData*>(ev->data.get())))
@@ -262,10 +262,10 @@ void waylandAppContext::seatCapabilities(wl_seat* seat, unsigned int caps)
 
 void waylandAppContext::eventMouseMove(wl_pointer *pointer, unsigned int time, int sx, int sy)
 {
-    auto pos = vec2i(wl_fixed_to_int(sx), wl_fixed_to_int(sy));
+    auto pos = Vec2i(wl_fixed_to_int(sx), wl_fixed_to_int(sy));
     auto delta = pos - mouse::getPosition();
 
-    nyMainApp()->mouseMove(make_unique<mouseMoveEvent>(nullptr, pos, vec2i(), delta));
+    nyMainApp()->mouseMove(make_unique<mouseMoveEvent>(nullptr, pos, Vec2i(), delta));
 }
 
 void waylandAppContext::eventMouseEnterSurface(wl_pointer *pointer, unsigned int serial, wl_surface *surface, int sx, int sy)
@@ -276,7 +276,7 @@ void waylandAppContext::eventMouseEnterSurface(wl_pointer *pointer, unsigned int
     if(!data) return;
 
     auto handler = &(static_cast<waylandWC*>(data))->getWindow();
-    auto pos = vec2i(wl_fixed_to_int(sx), wl_fixed_to_int(sy));
+    auto pos = Vec2i(wl_fixed_to_int(sx), wl_fixed_to_int(sy));
 
     nyMainApp()->mouseCross(make_unique<mouseCrossEvent>(handler, 1, pos, new waylandEventData(serial)));
 }
@@ -290,7 +290,7 @@ void waylandAppContext::eventMouseLeaveSurface(wl_pointer *pointer, unsigned int
 
     auto handler = &(static_cast<waylandWC*>(data))->getWindow();
 
-    nyMainApp()->mouseCross(make_unique<mouseCrossEvent>(handler, 0, vec2i(), new waylandEventData(serial)));
+    nyMainApp()->mouseCross(make_unique<mouseCrossEvent>(handler, 0, Vec2i(), new waylandEventData(serial)));
 }
 
 void waylandAppContext::eventMouseButton(wl_pointer *wl_pointer, unsigned int serial, unsigned int time, unsigned int button, unsigned int state)
@@ -355,7 +355,7 @@ void waylandAppContext::eventWindowResized(wl_shell_surface* shellSurface, unsig
     }
 
     auto handler = &static_cast<waylandWindowContext*>(wl_shell_surface_get_user_data(shellSurface))->getWindow();
-    auto size = vec2ui(width, height);
+    auto size = Vec2ui(width, height);
 
     nyMainApp()->sendEvent(make_unique<sizeEvent>(handler, size, 1));
 }
@@ -417,7 +417,7 @@ void waylandAppContext::setCursor(std::string curse, unsigned int serial)
   //  if(del) wl_buffer_destroy(del);
 }
 
-void waylandAppContext::setCursor(const image* img, vec2i hotspot, unsigned int serial)
+void waylandAppContext::setCursor(const image* img, Vec2i hotspot, unsigned int serial)
 {
     /*
     if(cursorIsCustomImage_)

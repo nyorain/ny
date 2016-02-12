@@ -29,8 +29,8 @@ public:
 	virtual void fillPreserve(const Brush& col) override;
 	virtual void strokePreserve(const Pen& col) override;
 
-	virtual void clipRectangle(const rect2f& rectangle) override;
-	virtual rect2f rectangleClip() const override;
+	virtual void clipRectangle(const Rect2f& Rectangle) override;
+	virtual Rect2f RectangleClip() const override;
 	virtual void resetRectangleClip() override;
 };
 
@@ -38,14 +38,14 @@ public:
 class SvgImage : public File
 {
 protected:
-    vec2ui size_;
+    Vec2ui size_;
     std::vector<Shape> shapes_;
 
 public:
-    SvgImage(vec2ui size) : size_(size) {}
+    SvgImage(Vec2ui size) : size_(size) {}
     ~SvgImage() = default;
 
-    vec2ui size() const { return size_; };
+    Vec2ui size() const { return size_; };
 
     void addShape(const Shape& shape);
     const std::vector<Shape>& shapes() const { return shapes_; }
