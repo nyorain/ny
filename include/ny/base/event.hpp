@@ -1,11 +1,8 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <nytl/make_unique.hpp>
 #include <nytl/cloneable.hpp>
-
-#include <type_traits>
-#include <stdexcept>
+#include <memory>
 
 namespace ny
 {
@@ -49,10 +46,10 @@ class EventBase : public DeriveCloneable<Event, T>
 {
 public:
 	using EvBase = EventBase;
-	using typename deriveCloneable<Event, T>::cloneableBase;
+	using typename DeriveCloneable<Event, T>::CloneableBase;
 
 public:
-	using cloneableBase::cloneableBase;
+	using CloneableBase::CloneableBase;
 
     //event
     virtual unsigned int type() const override final { return Type; }
@@ -66,10 +63,10 @@ class EventBase<Type, void, Override>
 {
 public:
 	using EvBase = EventBase;
-	using typename deriveCloneable<Event, EvBase>::cloneableBase;
+	using typename DeriveCloneable<Event, EvBase>::CloneableBase;
 
 public:
-	using cloneableBase::cloneableBase;
+	using CloneableBase::CloneableBase;
 
     //event
     virtual unsigned int type() const override final { return Type; }

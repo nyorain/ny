@@ -5,10 +5,7 @@ using namespace nytl::enumOps;
 namespace ny
 {
 
-std::bitset<255> Keyboard::states_;
-Keyboard::Modifier Keyboard::modifier_;
-
-
+/*
 bool Keyboard::keyPressed(Keyboard::Key id)
 {
     if(id == Keyboard::Key::none) return 0;
@@ -133,4 +130,5 @@ std::string Keyboard::utf8(Keyboard::Key k)
 
 }
 */
+
 }

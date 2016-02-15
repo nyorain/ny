@@ -1,12 +1,13 @@
 #include <ny/app/app.hpp>
 
-#include <ny/app/event.hpp>
+#include <ny/base/event.hpp>
+#include <ny/base/loopControl.hpp>
 #include <ny/backend/appContext.hpp>
 #include <ny/backend/backend.hpp>
 #include <ny/app/keyboard.hpp>
 #include <ny/app/mouse.hpp>
+#include <ny/app/eventDispatcher.hpp>
 #include <ny/window/window.hpp>
-#include <ny/draw/freeType.hpp>
 
 #include <nytl/misc.hpp>
 #include <ny/base/log.hpp>
@@ -55,27 +56,63 @@ App::App(const App::Settings& settings) : settings_(settings)
 		}
 	}
 
-	//TODO: hack to create (static) freetype lib before any (static) freetype font
-	FreeTypeLibrary::instance();
-
     appContext_ = backend_->createAppContext();
+
+	if(settings.multiThreaded)
+	{
+		eventDispatcher_.reset(new ThreadedEventDispatcher());
+	}
+	else
+	{
+		eventDispatcher_.reset(new EventDispatcher());
+	}
 }
 
 App::~App()
 {
-    this->exit();
-	EventDispatcher::exit();
+	if(mainLoopControl_) mainLoopControl_->stop();
 }
 
-int App::mainLoop()
+int App::run(LoopControl& control)
 {
-	int ret = appContext_->mainLoop();
-	return ret;
+	bool mainLoop_ = 0;
+	if(!mainLoopControl_)
+	{
+		mainLoopControl_ = &control;
+		mainLoop_ = 1;
+	}
+
+	if(settings_.multiThreaded)
+	{
+		if(!backendThread_.joinable())
+		{
+			backendThread_ = std::thread(&AppContext::dispatchLoop, appContext_.get(), 
+					backendLoopControl_);
+		}
+
+		auto& dispatcher = static_cast<ThreadedEventDispatcher&>(*eventDispatcher_);
+		dispatcher.dispatchLoop(control);
+
+		backendLoopControl_.stop();
+	}
+
+	else
+	{
+		appContext_->dispatchLoop(*eventDispatcher_, control);
+	}
+
+	if(mainLoop_)
+	{
+		mainLoopControl_ = nullptr;
+	}
+
+	return EXIT_SUCCESS;
 }
 
-void App::exit()
+int App::run()
 {
-	if(appContext_) appContext_->exit();
+	LoopControl control;
+	return run(control);
 }
 
 void App::windowCreated()
@@ -88,45 +125,43 @@ void App::windowClosed()
 	windowCount_--;
 	if(windowCount_ < 1 && settings_.exitWithoutWindows)
 	{
-		exit();
+		if(mainLoopControl_) mainLoopControl_->stop();
 	}
-}
-
-//keyboard Events
-void App::windowFocus(Event&)
-{
-}
-
-void App::keyboardKey(Event&)
-{
-}
-
-
-//mouseEvents
-void App::mouseMove(Event&)
-{
-}
-
-void App::mouseButton(Event&)
-{
-}
-
-void App::mouseCross(Event&)
-{
-}
-
-void App::mouseWheel(Event& event)
-{
-	MouseWheelEvent& ev = static_cast<MouseWheelEvent&>(event);
-    Mouse::wheelMoved(ev.value);
 }
 
 void App::error(const std::string& msg)
 {
-    if(settings_.onError == ErrorAction::Exit)
+    if(settings_.errorAction == ErrorAction::throwing)
     {
-        std::exit(-1);
+		throw std::runtime_error(msg);
     }
+	else if (settings_.errorAction == ErrorAction::continuing)
+	{
+		return;
+	}
+
+	if(appContext_) //try window
+	{
+		/*
+		MessageBox::Button result = MessageBox::Button::none;
+		try
+		{
+			MessageBox message(*this, "Error Occured: " + msg, 
+					MessageBox::Button::ok | MessageBox::Button::cancel);
+
+			result = message.runModal();
+		}
+		catch(...)
+		{
+		}
+		
+		if(result != MessageBox::Button::none)
+		{
+			if(result == MessageBox::Button::ok) return;
+			else throw std::runtime_error(msg);
+		}
+		*/
+	}
 
     std::cout << "Error: " << msg << "\nContinue? (y/n)" << std::endl;
 
@@ -137,10 +172,9 @@ void App::error(const std::string& msg)
     {
         return;
     }
-
     else
     {
-        std::exit(-1);
+		throw std::runtime_error(msg);
     }
 }
 

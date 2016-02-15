@@ -52,6 +52,8 @@ class Dialog;
 class MessageBox;
 class Popup;
 class Texture;
+class LoopControl;
+class LoopControlImpl;
 
 class FocusEvent;
 class MouseMoveEvent;
@@ -86,7 +88,7 @@ enum class ToplevelState : unsigned char;
 enum class Preference : unsigned char;
 enum class NativeWidgetType : unsigned char;
 enum class WindowEdge : unsigned char;
-enum class WindowHint : unsigned char;
+enum class WindowHint : unsigned int;
 
 }
 

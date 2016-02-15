@@ -15,7 +15,7 @@ include_directories("${CMAKE_CURRENT_BINARY_DIR}/src")
 option(NY_BUILD_EXAMPLES "build the ny examples" ON)
 option(NY_BUILD_TESTS "build the ny tests" OFF)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
 
 #todo

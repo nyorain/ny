@@ -47,6 +47,8 @@ struct WindowContextSettings
 ///window, ny::WindowContext is totally independent from ny::Window and can even be used without it.
 class WindowContext : public NonCopyable
 {
+protected:
+	EventHandler* eventHandler_ {nullptr};
 public:
 	WindowContext() = default;
     virtual ~WindowContext() = default;
@@ -59,6 +61,12 @@ public:
 	///\return A DrawGuard wrapper instance that holds the DrawContext that can be used to draw
 	///the windows contents.
 	virtual DrawGuard draw() = 0;
+
+	///Sets the EventHandler that should receive the events associated with this windowContext.
+	virtual void eventHandler(EventHandler& handler) { eventHandler_ = &handler; }
+
+	///Returns the associated EventHandler of this windowContext, nullptr if there is none.
+	virtual EventHandler* eventHandler() const { return eventHandler_; }
 
 	///Asks the platform-specific windowing api for a window refresh.
     virtual void refresh() = 0;

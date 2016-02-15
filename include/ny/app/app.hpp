@@ -1,17 +1,14 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <ny/base/eventHandler.hpp>
-#include <ny/app/eventDispatcher.hpp>
+#include <ny/base/loopControl.hpp>
+#include <nytl/nonCopyable.hpp>
 
 #include <vector>
 #include <string>
-#include <map>
-#include <mutex>
+#include <memory>
 #include <thread>
 #include <atomic>
-#include <queue>
-#include <condition_variable>
 
 namespace ny
 {
@@ -19,49 +16,42 @@ namespace ny
 ///\brief Main Application class.
 ///\details The main responsibilities on ny::App are to initialize an ny::Backend with an
 ///ny::AppContext as well as dispatching all received events (ny::EventDispatcher).
-class App : public EventDispatcher
+class App : public NonMoveable
 {
 public:
 	enum class ErrorAction
 	{
-		Exit,
-    	Continue,
-    	AskWindow, //with fallback to AskConsole
-    	AskConsole
+		throwing,
+    	continuing,
+    	askWindow, //with fallback to AskConsole
+    	askConsole
 	};
 
 	struct Settings
 	{
 		Settings(){};
 
-		std::string name;
+		std::string name {"nyApp"};
 		bool exitWithoutWindows = 1;
-		ErrorAction errorAction = ErrorAction::AskWindow;
+		ErrorAction errorAction = ErrorAction::askWindow;
 		std::vector<std::string> allowedBackends;
 		bool allBackends = 1;
-		int threadpoolSize = -1; //auto size, 0 for no threadpool
-		bool useEventThread = 1;
+		bool multiThreaded = 1;
 	};
 
 protected:
     Settings settings_;
-    Backend* backend_ {nullptr}; //the chosen backend. only existing if(valid_), one of backends
+    Backend* backend_ {nullptr}; 
     std::unique_ptr<AppContext> appContext_;
+	LoopControl* mainLoopControl_ {nullptr};
+
+	std::thread backendThread_;
+	LoopControl backendLoopControl_;
 
 	std::size_t windowCount_ = 0; //to make exiting possible when last window closes
-
-    //changed/read by eventLoop and by eventDispatcher thread:
-    std::atomic<Window*> focus_ {nullptr}; //eventHandler which has current focus
-    std::atomic<Window*> mouseOver_ {nullptr}; //eventHandler on which is the mouse
+	std::unique_ptr<EventDispatcher> eventDispatcher_ {nullptr};
 
 protected:
-    void keyboardKey(Event& event);
-    void mouseMove(Event& event);
-    void mouseButton(Event& event);
-    void mouseCross(Event& event);
-    void mouseWheel(Event& event);
-    void windowFocus(Event& event);
-
 	friend class Window;
 	void windowCreated();
 	void windowClosed();
@@ -70,14 +60,10 @@ public:
     App(const Settings& settings = {});
     virtual ~App();
 
-    virtual int mainLoop();
-	virtual void exit();
+    virtual int run(LoopControl& control);
+	virtual int run();
+
     virtual void error(const std::string& msg);
-
-	bool running() const { return !exit_; }
-
-    Window* mouseOver() const { return mouseOver_; };
-    Window* focus() const { return focus_; };
 
     AppContext& appContext() const { return *appContext_.get(); };
     Backend& backend() const { return *backend_; }

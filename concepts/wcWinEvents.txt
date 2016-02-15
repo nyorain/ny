@@ -51,3 +51,13 @@ just first mockup, event source system needs more work (in this case the solutio
 to #1a, with the difference that the appContext differentiates between context events and non-context
 events). 
 This early differentiation is def good.
+
+class EventSource
+{
+public:
+	EventHandler* handler {nullptr};
+
+public:
+	void send(EventDispatcher& dispatcher, const Event& event) 
+		{ event.handler = handler; dispatcher.send(event); }
+};

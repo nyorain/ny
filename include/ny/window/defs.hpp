@@ -6,16 +6,16 @@
 namespace ny
 {
 
-enum WindowHint
+enum class WindowHint : unsigned int
 {
-    close = (1L << 2),
-    maximize = (1L << 3),
-    minimize = (1L << 4),
-    resize = (1L << 5),
-    customDecorated = (1L << 7),
-    acceptDrop = (1L << 10),
-    alwaysOnTop = (1L << 11),
-    showInTaskbar = (1L << 12)
+    close = (1L << 1),
+    maximize = (1L << 2),
+    minimize = (1L << 3),
+    resize = (1L << 4),
+    customDecorated = (1L << 5),
+    acceptDrop = (1L << 6),
+    alwaysOnTop = (1L << 7),
+    showInTaskbar = (1L << 8)
 };
 
 ///Typesafe enum that specifies the edges of a window (e.g. for resizing).

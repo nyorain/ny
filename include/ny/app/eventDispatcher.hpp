@@ -14,11 +14,17 @@
 namespace ny
 {
 
-///\brief Abstract EventDispatcher interface.
+///\brief EventDispatcher base class.
+///Instantly sends the events to their EventHandler and outputs a warning if it receives an event
+///without specified handler. Is able to call additionally callbacks when dispatching events.
 class EventDispatcher
 {
 protected:
-	virtual void sendEvent(const Event& event) = 0;
+	virtual void sendEvent(const Event& event);
+	virtual void noEventHandler(const Event& event) const;
+
+public:
+	std::map<unsigned int, Callback<void(const Event&)>> onEvent;
 
 public:
 	EventDispatcher() = default;
@@ -29,37 +35,43 @@ public:
 	virtual void dispatch(Event&& event){ sendEvent(event); }
 };
 
-///\brief Default EventDispatcher implementation which sends the events to the specified handlers.
-class DefaultEventDispatcher : public EventDispatcher
+///\brief Threadsafe event dispatcher implementation. 
+///It is safe to call dispatch() from multiple threads because this functions just pushes
+///the event to the thread-safe event queue. Only a call to dispatchEvents() really sends all
+///events.
+class ThreadedEventDispatcher : public EventDispatcher
 {
-};
+public:
 
-///\brief Threadsafe event dispatcher class.
-class ThreadedEventDispatcher
-{
 protected:
-    std::thread eventDispatcher_;
     std::deque<EventPtr> events_;
     std::mutex eventMtx_;
     std::condition_variable eventCV_;
-	std::atomic<bool> exit_ {0};
-
-	std::map<unsigned int, Callback<void(Event&)>> Callbacks_;
-
-protected:
-	void dispatcherThreadFunc();
-	void sendEvent(Event& event);
 
 public:
-	EventDispatcher();
-	~EventDispatcher();
+	ThreadedEventDispatcher();
+	~ThreadedEventDispatcher();
 
-	void exit();
-	void dispatch(EventPtr&& event);
-	void dispatch(const Event& event);
+	virtual void dispatch(EventPtr&& event) override;
+	virtual void dispatch(const Event& event) override;
+	virtual void dispatch(Event&& event) override;
 
-	template<typename F> 
-	Connection onEvent(unsigned int type, F&& func){ return Callbacks_[type].add(func); }
+	///Dispatches all currently queued events.
+	virtual void dispatchEvents();
+
+	///Dispatches all incoming events until ThreadEventDispatcher::exit() is called.
+	///This function runs in the calling thread and does not return until exit() is called.
+	///Therefore exit() must be called from inside the event dispatching system or from a 
+	///different thread.
+	virtual void dispatchLoop(LoopControl& control);
+
+	///\{
+	///Returns the condition variable that will be notified every time a event is received.
+	///This condition variable will addtionally notified when ThreadedEventDispatcher::exit() 
+	///is called.
+	const std::condition_variable& cv() const { return eventCV_; }
+	std::condition_variable& cv() { return eventCV_; }
+	///\}
 };
 
 }

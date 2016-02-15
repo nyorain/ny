@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <ny/app/file.hpp>
+#include <ny/base/file.hpp>
 #include <nytl/vec.hpp>
 
 #include <string>
@@ -72,7 +72,7 @@ public:
 
 ///Represents an animatedImage (e.g. gif file) which can hold multiple images with animation
 ///delays.
-class animatedImage : public File
+class AnimatedImage : public File
 {
 protected:
 	std::vector<std::pair<Image, unsigned int>> images_;

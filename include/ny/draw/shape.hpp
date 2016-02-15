@@ -6,13 +6,17 @@
 
 #include <nytl/transform.hpp>
 #include <nytl/vec.hpp>
+#include <nytl/cache.hpp>
 #include <nytl/rect.hpp>
 
 #include <utility>
 #include <vector>
+#include <string>
 
 namespace ny
 {
+
+class ShapeBase : public Transform2, public MultiCache<std::string> {};
 
 ///Represents the data of an arc-type path segment.
 struct ArcData
@@ -183,7 +187,7 @@ public:
 
 ///The Path class holds a vector of subpaths and can be transformed.
 ///It represents the svg <path> node.
-class Path : public transformable2
+class Path : public ShapeBase
 {
 protected:
     std::vector<Subpath> subpaths_;
@@ -225,20 +229,24 @@ public:
 };
 
 //The Rectangle class represents a svg Rectangle shape.
-class Rectangle : public transformable2
+class Rectangle : public ShapeBase
 {
 protected:
-    Vec2f size_;
+	Vec2f position_ {};
+    Vec2f size_ {};
     Vec4f borderRadius_ {0.f, 0.f, 0.f, 0.f};
 
 public:
     Rectangle(const Vec2f& position = Vec2f(), const Vec2f& size = Vec2f())
-		: transformable2(position), size_(size) {}
+		: position_(position), size_(size) {}
 	Rectangle(const Rect2f& rct)
-		: transformable2(rct.position), size_(rct.size) {}
+		: position_(rct.position), size_(rct.size) {}
 
     void size(const Vec2f& size){ size_ = size; }
 	const Vec2f& size() const { return size_; }
+
+	void position(const Vec2f& position){ position_ = position; }
+	const Vec2f& position() const { return position_; }
 
     void borderRadius(const Vec4f& br){ borderRadius_ = br; }
     void borderRadius(float value){ borderRadius_.fill(value); }
@@ -247,11 +255,11 @@ public:
     Path asPath() const;
 
     template<class prec> operator Rect2<prec>() const { return Rect2<prec>(position(), size_); }
-    virtual Rect2f extents() const override { return Rect2f(position(), size_); }
+    virtual Rect2f extents() const { return Rect2f(position(), size_); }
 };
 
 //Text
-class Text : public transformable2
+class Text : public ShapeBase
 {
 public:
 	enum class HorzBounds
@@ -270,6 +278,7 @@ public:
 
 protected:
     float size_ {14};
+	Vec2f position_ {};
     std::string string_ {};
     HorzBounds horzBounds_ {HorzBounds::left};
 	VertBounds vertBounds_ {VertBounds::middle};
@@ -285,6 +294,9 @@ public:
 	void size(float s){ size_ = s; }
     float size() const { return size_; }
 
+	void position(const Vec2f& position){ position_ = position; }
+	const Vec2f& position() const { return position_; }
+
     HorzBounds horzBounds() const { return horzBounds_; }
     void horzBounds(HorzBounds b) { horzBounds_ = b; }
 
@@ -295,29 +307,32 @@ public:
     void font(Font& f) { font_ = &f; }
 
     //inherited from transformable, TODO, requires font check
-    virtual Rect2f extents() const override { Rect2f ret; ret.position = position(); return ret; }
+    virtual Rect2f extents() const { Rect2f ret; ret.position = position(); return ret; }
 };
 
 ///The Circle class is able to hold a circle shape. It inherits the transformable2 class.
 ///There is no explicit ellipse class, one can use a Circle with matching scaling instead.
-class Circle : public transformable2
+class Circle : public ShapeBase
 {
 protected:
+	Vec2f center_ {0};
     float radius_ {0};
 
 public:
     Circle(float radius = 0) : radius_(radius) {}
-    Circle(const Vec2f& position, float radius = 0)
-	 	: transformable2(position), radius_(radius) {}
+    Circle(const Vec2f& center, float radius = 0)
+	 	: center_(center), radius_(radius) {}
 
     void radius(float r){ radius_ = r; }
     float radius() const { return radius_; }
 
-    Vec2f center() const { return position() - origin() + Vec2f(radius_, radius_); }
+	void center(const Vec2f& center){ center_ = center; }
+	const Vec2f& center() const { return center_; }
+
     Path asPath() const;
 
-    virtual Rect2f extents() const override
-		{ return Rect2f(position(), 2 * Vec2f(radius_, radius_)); }
+    virtual Rect2f extents() const 
+		{ return Rect2f(center() - radius_, 2 * Vec2f(radius_, radius_)); }
 };
 
 //The PathBase is able to hold an Text, Rectangle, Circle or Path object. It can represent any
@@ -328,7 +343,7 @@ public:
     enum class Type
     {
         text,
-        Rectangle,
+        rectangle,
         path,
         circle
     };
@@ -339,7 +354,7 @@ protected:
     union
 	{
 		Text text_;
-		Rectangle Rectangle_;
+		Rectangle rectangle_;
 		Circle circle_;
 		Path path_;
 	};
@@ -353,7 +368,7 @@ public:
 	///since it is the most lightweight and easy type.
 	PathBase(Type type = Type::circle) : type_(type), circle_() {};
 
-    PathBase(const Rectangle& obj) : type_(Type::Rectangle), Rectangle_(obj) {}
+    PathBase(const Rectangle& obj) : type_(Type::rectangle), rectangle_(obj) {}
     PathBase(const Circle& obj) : type_(Type::circle), circle_(obj) {}
     PathBase(const Text& obj) : type_(Type::text), text_(obj) {}
     PathBase(const Path& obj) : type_(Type::path), path_(obj) {}
@@ -368,7 +383,7 @@ public:
 
 	///
 	void text(const Text& obj);
-	void Rectangle(const Rectangle& obj);
+	void rectangle(const Rectangle& obj);
 	void circle(const Circle& obj);
 	void path(const Path& obj);
 	void path(Path&& obj);
@@ -376,33 +391,21 @@ public:
 	Type type() const { return type_; }
 
 	const Text& text() const { return text_; }
-	const Rectangle& Rectangle() const { return Rectangle_; }
+	const Rectangle& rectangle() const { return rectangle_; }
 	const Circle& circle() const { return circle_; }
 	const Path& path() const { return path_; }
 
-	const transformable2& transformable() const;
-	transformable2& transformable();
+	const Transform2& transform() const;
+	Transform2& transform();
 
     //transformable
-    void rotate(float rotation){ transformable().rotate(rotation); }
-    void move(const Vec2f& translation){ transformable().move(translation); }
-    void scale(const Vec2f& pscale){ transformable().scale(pscale); }
-    void moveOrigin(const Vec2f& m) { transformable().moveOrigin(m); };
+    void rotate(float rotation){ transform().rotate(rotation); }
+    void translate(const Vec2f& translation){ transform().translate(translation); }
+    void scale(const Vec2f& pscale){ transform().scale(pscale); }
 
-    void rotation(float rotation){ transformable().rotation(rotation); }
-    void position(const Vec2f& translation){ transformable().position(translation); }
-    void scaling(const Vec2f& pscale){ transformable().scaling(pscale); }
-    void origin(const Vec2f& origin) { transformable().origin(origin); }
-
-    float rotation() const { return transformable().rotation(); }
-    const Vec2f& position() const { return transformable().position(); }
-    const Vec2f& scaling() const { return transformable().scaling(); }
-    const Vec2f& origin() const { return transformable().origin(); }
-
-	void copyTransform(const transformable2& other){ transformable().copyTransform(other); };
-    mat3f transformMatrix() const { return transformable().transformMatrix(); }
-
-	Rect2f extents() const { return transformable().extents(); }
+	void copyTransform(const Transform2& other)
+		{ transform().transformMatrix() = other.transformMatrix(); };
+    const Mat3f transformMatrix() const { return transform().transformMatrix(); }
 };
 
 
