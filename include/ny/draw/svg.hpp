@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <ny/app/file.hpp>
+#include <ny/base/file.hpp>
 #include <ny/draw/drawContext.hpp>
 #include <ny/draw/image.hpp>
 
@@ -30,11 +30,11 @@ public:
 	virtual void strokePreserve(const Pen& col) override;
 
 	virtual void clipRectangle(const Rect2f& Rectangle) override;
-	virtual Rect2f RectangleClip() const override;
+	virtual Rect2f rectangleClip() const override;
 	virtual void resetRectangleClip() override;
 };
 
-//svg/////////////////////////////////////////////
+//svg
 class SvgImage : public File
 {
 protected:

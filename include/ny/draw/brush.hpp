@@ -22,7 +22,7 @@ struct TextureBrush
 struct LinearGradientBrush
 {
 	ColorGradient gradient;
-	line2f line;
+	Line2f line;
 };
 
 //RadialGradientBrush

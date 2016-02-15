@@ -733,7 +733,7 @@ namespace pugi
 	bool PUGIXML_FUNCTION operator||(const xml_text& lhs, bool rhs);
 #endif
 
-	// Child node iterator (a bidiRectional iterator over a collection of xml_node)
+	// Child node iterator (a bidirectional iterator over a collection of xml_node)
 	class PUGIXML_CLASS xml_node_iterator
 	{
 		friend class xml_node;
@@ -752,7 +752,7 @@ namespace pugi
 		typedef xml_node& reference;
 
 	#ifndef PUGIXML_NO_STL
-		typedef std::bidiRectional_iterator_tag iterator_category;
+		typedef std::bidirectional_iterator_tag iterator_category;
 	#endif
 
 		// Default constructor
@@ -775,7 +775,7 @@ namespace pugi
 		xml_node_iterator operator--(int);
 	};
 
-	// Attribute iterator (a bidiRectional iterator over a collection of xml_attribute)
+	// Attribute iterator (a bidirectional iterator over a collection of xml_attribute)
 	class PUGIXML_CLASS xml_attribute_iterator
 	{
 		friend class xml_node;
@@ -794,7 +794,7 @@ namespace pugi
 		typedef xml_attribute& reference;
 
 	#ifndef PUGIXML_NO_STL
-		typedef std::bidiRectional_iterator_tag iterator_category;
+		typedef std::bidirectional_iterator_tag iterator_category;
 	#endif
 
 		// Default constructor
@@ -830,7 +830,7 @@ namespace pugi
 		typedef xml_node& reference;
 
 	#ifndef PUGIXML_NO_STL
-		typedef std::bidiRectional_iterator_tag iterator_category;
+		typedef std::bidirectional_iterator_tag iterator_category;
 	#endif
 
 		// Default constructor
@@ -906,7 +906,7 @@ namespace pugi
 		status_bad_start_element,	// Parsing error occurred while parsing start element tag
 		status_bad_attribute,		// Parsing error occurred while parsing element attribute
 		status_bad_end_element,		// Parsing error occurred while parsing end element tag
-		status_end_element_mismatch,// There was a mismatch of start-end tags (closing tag had incorRect name, some tag was not closed or there was an excessive closing tag)
+		status_end_element_mismatch,// There was a mismatch of start-end tags (closing tag had incorrect name, some tag was not closed or there was an excessive closing tag)
 
 		status_append_invalid_root,	// Unable to append nodes since root type is not node_element or node_document (exclusive to xml_node::append_buffer)
 
@@ -1349,9 +1349,9 @@ namespace pugi
 namespace std
 {
 	// Workarounds for (non-standard) iterator category detection for older versions (MSVC7/IC8 and earlier)
-	std::bidiRectional_iterator_tag PUGIXML_FUNCTION _Iter_cat(const pugi::xml_node_iterator&);
-	std::bidiRectional_iterator_tag PUGIXML_FUNCTION _Iter_cat(const pugi::xml_attribute_iterator&);
-	std::bidiRectional_iterator_tag PUGIXML_FUNCTION _Iter_cat(const pugi::xml_named_node_iterator&);
+	std::bidirectional_iterator_tag PUGIXML_FUNCTION _Iter_cat(const pugi::xml_node_iterator&);
+	std::bidirectional_iterator_tag PUGIXML_FUNCTION _Iter_cat(const pugi::xml_attribute_iterator&);
+	std::bidirectional_iterator_tag PUGIXML_FUNCTION _Iter_cat(const pugi::xml_named_node_iterator&);
 }
 #endif
 
@@ -1359,9 +1359,9 @@ namespace std
 namespace std
 {
 	// Workarounds for (non-standard) iterator category detection
-	std::bidiRectional_iterator_tag PUGIXML_FUNCTION __iterator_category(const pugi::xml_node_iterator&);
-	std::bidiRectional_iterator_tag PUGIXML_FUNCTION __iterator_category(const pugi::xml_attribute_iterator&);
-	std::bidiRectional_iterator_tag PUGIXML_FUNCTION __iterator_category(const pugi::xml_named_node_iterator&);
+	std::bidirectional_iterator_tag PUGIXML_FUNCTION __iterator_category(const pugi::xml_node_iterator&);
+	std::bidirectional_iterator_tag PUGIXML_FUNCTION __iterator_category(const pugi::xml_attribute_iterator&);
+	std::bidirectional_iterator_tag PUGIXML_FUNCTION __iterator_category(const pugi::xml_named_node_iterator&);
 }
 #endif
 

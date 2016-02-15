@@ -22,7 +22,7 @@ void DrawContext::mask(const PathBase& obj)
     switch(obj.type())
     {
 		case PathBase::Type::text: mask(obj.text()); return;
-		case PathBase::Type::Rectangle: mask(obj.Rectangle()); return;
+		case PathBase::Type::rectangle: mask(obj.rectangle()); return;
 		case PathBase::Type::path: mask(obj.path()); return;
 		case PathBase::Type::circle: mask(obj.circle()); return;
     }
@@ -126,35 +126,35 @@ void RedirectDrawContext::paint(const Brush& alphaMask, const Brush& fillBrush)
 void RedirectDrawContext::mask(const Path& obj)
 {
     auto scopy = obj;
-    scopy.move(position_);
+    scopy.translate(position_);
     redirect_->mask(scopy);
 }
 
 void RedirectDrawContext::mask(const Rectangle& obj)
 {
     auto scopy = obj;
-    scopy.move(position_);
+    scopy.translate(position_);
     redirect_->mask(scopy);
 }
 
 void RedirectDrawContext::mask(const Text& obj)
 {
     auto scopy = obj;
-    scopy.move(position_);
+    scopy.translate(position_);
     redirect_->mask(scopy);
 }
 
 void RedirectDrawContext::mask(const Circle& obj)
 {
     auto scopy = obj;
-    scopy.move(position_);
+    scopy.translate(position_);
     redirect_->mask(scopy);
 }
 
 void RedirectDrawContext::mask(const PathBase& obj)
 {
     auto scopy = obj;
-    scopy.move(position_);
+    scopy.translate(position_);
     redirect_->mask(scopy);
 }
 
@@ -200,7 +200,7 @@ std::vector<PathBase> RedirectDrawContext::maskClip() const
 {
     auto ret = redirect_->maskClip();
     for(auto& p : ret)
-        p.move(-position_);
+        p.translate(-position_);
 
     return ret;
 }
@@ -251,7 +251,7 @@ void RedirectDrawContext::startDrawing()
         redirect_->resetMaskClip();
     }
 
-    RectangleClipSave_ = redirect_->RectangleClip();
+    rectangleClipSave_ = redirect_->rectangleClip();
     redirect_->clipRectangle(extents());
 }
 

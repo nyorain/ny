@@ -318,13 +318,12 @@ Path Rectangle::asPath() const
         p.line(Vec2f(0, size_.y));
         p.close();
 
-        p.copyTransform(*this);
+        p.transformMatrix() = transformMatrix();
         return p;
     }
     else
     {
-        Rect2f me;
-        me.size = size_; //dont copy position since it will be copied with copyTransform()
+        Rect2f me = *this;
 
         Path p(me.topLeft() + Vec2f(0, borderRadius_[0]));
         p.arc(me.topLeft() + Vec2f(borderRadius_[0], 0),
@@ -343,7 +342,7 @@ Path Rectangle::asPath() const
             {Vec2f(borderRadius_[3], borderRadius_[3]), 0, 1});
 
         p.close();
-        p.copyTransform(*this);
+        p.transformMatrix() = transformMatrix();
         return p;
     }
 }
@@ -356,7 +355,7 @@ Text::Text(const std::string& s, float size)
 }
 
 Text::Text(const Vec2f& position, const std::string& s, float size)
-    : transformable2(position), size_(size), string_(s), font_(&Font::defaultFont())
+    : position_(position), size_(size), string_(s), font_(&Font::defaultFont())
 {
 }
 
@@ -371,7 +370,7 @@ Path Circle::asPath() const
     p.arc(Vec2f(-radius_, 0), {Vec2f(radius_, radius_), 0, 1}); //top point
 
     p.close();
-    p.copyTransform(*this);
+    p.transformMatrix() = transformMatrix();
     return p;
 }
 
@@ -387,7 +386,7 @@ PathBase::PathBase(const PathBase& other)
 	switch(type_)
 	{
 		case Type::text: new(&text_) Text(other.text_); break;
-		case Type::Rectangle: new(&Rectangle_) Rectangle(other.Rectangle_); break;
+		case Type::rectangle: new(&rectangle_) Rectangle(other.rectangle_); break;
 		case Type::circle: new(&circle_) Circle(other.circle_); break;
 		case Type::path: new(&path_) Path(other.path_); break;
 	}
@@ -401,7 +400,7 @@ PathBase& PathBase::operator=(const PathBase& other)
 	switch(type_)
 	{
 		case Type::text: new(&text_) Text(other.text_); break;
-		case Type::Rectangle: new(&Rectangle_) Rectangle(other.Rectangle_); break;
+		case Type::rectangle: new(&rectangle_) Rectangle(other.rectangle_); break;
 		case Type::circle: new(&circle_) Circle(other.circle_); break;
 		case Type::path: new(&path_) Path(other.path_); break;
 	}
@@ -415,7 +414,7 @@ PathBase::PathBase(PathBase&& other) noexcept
 	switch(type_)
 	{
 		case Type::text: new(&text_) Text(std::move(other.text_)); break;
-		case Type::Rectangle: new(&Rectangle_) Rectangle(std::move(other.Rectangle_)); break;
+		case Type::rectangle: new(&rectangle_) Rectangle(std::move(other.rectangle_)); break;
 		case Type::circle: new(&circle_) Circle(std::move(other.circle_)); break;
 		case Type::path: new(&path_) Path(std::move(other.path_)); break;
 	}
@@ -432,7 +431,7 @@ PathBase& PathBase::operator=(PathBase&& other) noexcept
 	switch(type_)
 	{
 		case Type::text: new(&text_) Text(std::move(other.text_)); break;
-		case Type::Rectangle: new(&Rectangle_) Rectangle(std::move(other.Rectangle_)); break;
+		case Type::rectangle: new(&rectangle_) Rectangle(std::move(other.rectangle_)); break;
 		case Type::circle: new(&circle_) Circle(std::move(other.circle_)); break;
 		case Type::path: new(&path_) Path(std::move(other.path_)); break;
 	}
@@ -448,7 +447,7 @@ void PathBase::resetUnion()
 	switch(type_)
 	{
 		case Type::text: text_.~Text(); break;
-		case Type::Rectangle: Rectangle_.~Rectangle(); break;
+		case Type::rectangle: rectangle_.~Rectangle(); break;
 		case Type::circle: circle_.~Circle(); break;
 		case Type::path: path_.~Path(); break;
 	}
@@ -461,11 +460,11 @@ void PathBase::text(const Text& obj)
 	text_ = obj;
 }
 
-void PathBase::Rectangle(const Rectangle& obj)
+void PathBase::rectangle(const Rectangle& obj)
 {
 	resetUnion();
-	type_ = Type::Rectangle;
-	Rectangle_ = obj;
+	type_ = Type::rectangle;
+	rectangle_ = obj;
 }
 
 void PathBase::circle(const Circle& obj)
@@ -488,23 +487,23 @@ void PathBase::path(Path&& obj)
 	path_ = std::move(obj);
 }
 
-const transformable2& PathBase::transformable() const
+const ShapeBase& PathBase::shapeBase() const
 {
 	switch(type_)
 	{
 		case Type::text: return text_;
-		case Type::Rectangle: return Rectangle_;
+		case Type::rectangle: return rectangle_;
 		case Type::circle: return circle_; 
 		case Type::path: return path_;
 	}
 }
 
-transformable2& PathBase::transformable() 
+ShapeBase& PathBase::shapeBase() 
 {
 	switch(type_)
 	{
 		case Type::text: return text_;
-		case Type::Rectangle: return Rectangle_;
+		case Type::rectangle: return rectangle_;
 		case Type::circle: return circle_; 
 		case Type::path: return path_;
 	}

@@ -179,7 +179,7 @@ Shader& GlDrawContext::shaderProgramForPen(const Pen& p)
 }
 
 void GlDrawContext::fillTriangles(const std::vector<Triangle2f>& Triangles, 
-		const Brush& brush, const mat3f& transMatrix)
+		const Brush& brush, const Mat3f& transMatrix)
 {
 	ny::sendLog("fill", Triangles[0]);
 	ny::sendLog("filltrans", transMatrix.col(2));
@@ -212,7 +212,7 @@ void GlDrawContext::fillTriangles(const std::vector<Triangle2f>& Triangles,
 }
 
 void GlDrawContext::strokePath(const std::vector<Vec2f>& path, const Pen& pen, 
-	const mat3f& transMatrix)
+	const Mat3f& transMatrix)
 {
 	GLuint vbo;
 	glGenBuffers(1, &vbo);
@@ -245,12 +245,12 @@ void GlDrawContext::fillText(const Text& t, const Brush& b)
 	shader.uniform("vTransform", t.transformMatrix());
 
 	auto fontHandle = 
-		static_cast<FreeTypeFontHandle*>(t.font()->getCache("ny::FreeTypeFontHandle"));
+		static_cast<FreeTypeFontHandle*>(t.font()->cache("ny::FreeTypeFontHandle"));
 	if(!fontHandle)
 	{
-		auto h = make_unique<FreeTypeFontHandle>(*t.font());
+		auto h = std::make_unique<FreeTypeFontHandle>(*t.font());
 		fontHandle = h.get();
-		t.font()->storeCache("ny::FreeTypeFontHandle", std::move(h));
+		t.font()->cache("ny::FreeTypeFontHandle", std::move(h));
 	}
 
 	fontHandle->characterSize({0, static_cast<unsigned int>(t.size())});
@@ -357,9 +357,9 @@ void GlDrawContext::fillPreserve(const Brush& brush)
 				fillTriangles(triangulate(subpth.bake()), brush, pth.transformMatrix());
 			}
 		}
-		else if(pth.type() == PathBase::Type::Rectangle)
+		else if(pth.type() == PathBase::Type::rectangle)
 		{
-			auto points = pth.Rectangle().asPath().subpaths()[0].bake();
+			auto points = pth.rectangle().asPath().subpaths()[0].bake();
 			auto Triangles = triangulate(points);
 			fillTriangles(Triangles, brush, pth.transformMatrix());
 		}
@@ -390,9 +390,9 @@ void GlDrawContext::strokePreserve(const Pen& pen)
 				strokePath(subpth.bake(), pen, pth.transformMatrix());
 			}
 		}
-		else if(pth.type() == PathBase::Type::Rectangle)
+		else if(pth.type() == PathBase::Type::rectangle)
 		{
-			auto points = pth.Rectangle().asPath().subpaths()[0].bake();
+			auto points = pth.rectangle().asPath().subpaths()[0].bake();
 			strokePath(points, pen, pth.transformMatrix());
 		}
 		else if(pth.type() == PathBase::Type::circle)
@@ -424,7 +424,7 @@ void GlDrawContext::clipRectangle(const Rect2f& rct)
 	glScissor(normRect.position.x, normRect.position.y, normRect.size.x, normRect.size.y);
 }
 
-Rect2f GlDrawContext::RectangleClip() const
+Rect2f GlDrawContext::rectangleClip() const
 {
 	VALIDATE_CTX({});
 	return viewport(); //TODO

@@ -150,21 +150,21 @@ void Shader::uniform(const std::string& name, const Vec4f& value)
 {
     uniform(name, value.x, value.y, value.z, value.w);
 }
-void Shader::uniform(const std::string& name, const mat2f& value)
+void Shader::uniform(const std::string& name, const Mat2f& value)
 {
 	VALIDATE_CTX();
 
     int location = glGetUniformLocation(program_, name.c_str());
     glUniformMatrix2fv(location, 1, GL_FALSE, value.data());
 }
-void Shader::uniform(const std::string& name, const mat3f& value)
+void Shader::uniform(const std::string& name, const Mat3f& value)
 {
 	VALIDATE_CTX();
 
     int location = glGetUniformLocation(program_, name.c_str());
     glUniformMatrix3fv(location, 1, GL_FALSE, value.data());
 }
-void Shader::uniform(const std::string& name, const mat4f& value)
+void Shader::uniform(const std::string& name, const Mat4f& value)
 {
 	VALIDATE_CTX();
 

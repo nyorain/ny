@@ -43,7 +43,7 @@ public:
 };
 
 //Cache Name: "ny::FreeTypeFontHandle"
-class FreeTypeFontHandle : public deriveCloneable<cache, FreeTypeFontHandle>
+class FreeTypeFontHandle : public DeriveCloneable<Cache, FreeTypeFontHandle>
 {
 protected:
     FT_Face face_ = nullptr;

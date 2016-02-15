@@ -58,8 +58,8 @@ public:
 	Shader& shaderProgramForBrush(const Brush& b);
 	Shader& shaderProgramForPen(const Pen& b);
 
-	void fillTriangles(const std::vector<Triangle2f>&, const Brush&, const mat3f& = {});
-	void strokePath(const std::vector<Vec2f>& points, const Pen& b, const mat3f& = {});
+	void fillTriangles(const std::vector<Triangle2f>&, const Brush&, const Mat3f& = {});
+	void strokePath(const std::vector<Vec2f>& points, const Pen& b, const Mat3f& = {});
 	void fillText(const Text& t, const Brush& b);
 	void strokeText(const Text& t, const Pen& p);
 
@@ -73,7 +73,7 @@ public:
 	virtual bool maskClippingSupported() const override { return 0; }
 
 	virtual void clipRectangle(const Rect2f& rct) override;
-	virtual Rect2f RectangleClip() const override;
+	virtual Rect2f rectangleClip() const override;
 	virtual void resetRectangleClip() override;
 
 	virtual void apply() override;

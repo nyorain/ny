@@ -61,7 +61,7 @@ void ThreadedEventDispatcher::dispatchEvents()
 void ThreadedEventDispatcher::dispatchLoop(LoopControl& control)
 {
 	std::atomic<bool> stop {0};
-	control.impl_ = std::make_unique<DispatcherControlImpl>(&stop, &eventCV_);
+	control.impl_ = std::make_unique<DispatcherControlImpl>(stop, eventCV_);
     std::unique_lock<std::mutex> lck(eventMtx_);
 
     while(1)

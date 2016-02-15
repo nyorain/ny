@@ -1,5 +1,4 @@
 #include <ny/draw/image.hpp>
-#include <nytl/make_unique.hpp>
 #include <ny/base/log.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -62,7 +61,7 @@ namespace
 //Image
 Image::Image(const Vec2ui& size, Format format) : File(), size_(size), format_(format)
 {
-	data_ = make_unique<std::uint8_t[]>(dataSize());
+	data_ = std::make_unique<std::uint8_t[]>(dataSize());
 }
 
 Image::Image(const std::string& path) : File(path)
@@ -74,7 +73,7 @@ Image::Image(const std::string& path) : File(path)
 Image::Image(const std::uint8_t* data, const Vec2ui& size, Format format)
 	: File(), size_(size), format_(format)
 {
-	data_ = make_unique<std::uint8_t[]>(dataSize());
+	data_ = std::make_unique<std::uint8_t[]>(dataSize());
 	std::memcpy(data_.get(), data, dataSize());
 }
 
@@ -104,7 +103,7 @@ void Image::data(const std::uint8_t* newdata, const Vec2ui& newsize, Format newF
 	format_ = newFormat;
 	size_ = newsize;
 
-	data_ = make_unique<std::uint8_t[]>(dataSize());
+	data_ = std::make_unique<std::uint8_t[]>(dataSize());
 	std::memcpy(data_.get(), newdata, dataSize());
 
 	change();
@@ -121,7 +120,7 @@ void Image::data(std::unique_ptr<std::uint8_t[]>&& newdata, const Vec2ui& newsiz
 
 std::unique_ptr<std::uint8_t[]> Image::copyData() const
 {
-	auto ret = make_unique<std::uint8_t[]>(dataSize());
+	auto ret = std::make_unique<std::uint8_t[]>(dataSize());
 	std::memcpy(ret.get(), data_.get(), dataSize());
 	return ret;
 }
@@ -201,13 +200,13 @@ bool Image::load(std::istream& is)
 	//TODO: format loading!
 	data_.reset();
 
-	stbi_io_Callbacks Callbacks;
-    Callbacks.read = &read;
-    Callbacks.skip = &skip;
-    Callbacks.eof  = &eof;
+	stbi_io_callbacks callbacks;
+    callbacks.read = &read;
+    callbacks.skip = &skip;
+    callbacks.eof  = &eof;
 
     int width, height, channels;
-    unsigned char* ptr = stbi_load_from_Callbacks(&Callbacks, &is, &width, 
+    unsigned char* ptr = stbi_load_from_callbacks(&callbacks, &is, &width, 
 			&height, &channels, STBI_rgb_alpha);
 
     if (ptr && width && height)

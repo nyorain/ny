@@ -277,8 +277,8 @@ public:
 	};
 
 protected:
-    float size_ {14};
 	Vec2f position_ {};
+    float size_ {14};
     std::string string_ {};
     HorzBounds horzBounds_ {HorzBounds::left};
 	VertBounds vertBounds_ {VertBounds::middle};
@@ -395,17 +395,17 @@ public:
 	const Circle& circle() const { return circle_; }
 	const Path& path() const { return path_; }
 
-	const Transform2& transform() const;
-	Transform2& transform();
+	const ShapeBase& shapeBase() const;
+	ShapeBase& shapeBase();
 
     //transformable
-    void rotate(float rotation){ transform().rotate(rotation); }
-    void translate(const Vec2f& translation){ transform().translate(translation); }
-    void scale(const Vec2f& pscale){ transform().scale(pscale); }
+    void rotate(float rotation){ shapeBase().rotate(rotation); }
+    void translate(const Vec2f& translation){ shapeBase().translate(translation); }
+    void scale(const Vec2f& pscale){ shapeBase().scale(pscale); }
 
 	void copyTransform(const Transform2& other)
-		{ transform().transformMatrix() = other.transformMatrix(); };
-    const Mat3f transformMatrix() const { return transform().transformMatrix(); }
+		{ shapeBase().transformMatrix() = other.transformMatrix(); };
+    const Mat3f transformMatrix() const { return shapeBase().transformMatrix(); }
 };
 
 

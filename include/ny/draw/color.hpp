@@ -48,8 +48,8 @@ public:
     void normalized(float& pr, float& pg, float& pb, float& pa) const;
     void normalized(float& pr, float& pg, float& pb) const;
 
-    refVec4uc rgba() { return {r ,g, b, a}; }
-    refVec3uc rgb() { return {r, g, b}; }
+    RefVec4uc rgba() { return {r ,g, b, a}; }
+    RefVec3uc rgb() { return {r, g, b}; }
 
     Vec4uc rgba() const { return {r ,g, b, a}; }
     Vec3uc rgb() const { return {r, g, b}; }

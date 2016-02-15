@@ -30,9 +30,9 @@ bool SvgImage::save(const std::string& path) const
 
 				break;
 			}
-			case PathBase::Type::Rectangle:
+			case PathBase::Type::rectangle:
 			{
-				auto node = svgNode.append_child("Rect");
+				auto node = svgNode.append_child("rect");
 				break;
 			}
 			case PathBase::Type::path:

@@ -20,7 +20,7 @@ protected:
 protected:
     CairoDrawContext();
 
-    void applyTransform(const transform2& xtransform);
+    void applyTransform(const Transform2& xtransform);
     void resetTransform();
 
 public:
@@ -28,7 +28,7 @@ public:
     CairoDrawContext(Image& img);
     virtual ~CairoDrawContext();
 
-    bool init(cairo_surface_t& cairoSurface);
+    bool create(cairo_surface_t& cairoSurface);
 
     virtual void clear(const Brush& b = Brush::none) override;
 	virtual void paint(const Brush& b, const Brush& alpha) override;
@@ -46,7 +46,7 @@ public:
     virtual void fillPreserve(const Brush& col) override;
 	virtual void strokePreserve(const Pen& col) override;
 
-    virtual Rect2f RectangleClip() const override;
+    virtual Rect2f rectangleClip() const override;
     virtual void clipRectangle(const Rect2f& obj) override;
 	virtual void resetRectangleClip() override;
 

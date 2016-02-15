@@ -25,7 +25,7 @@ namespace ny
 {
 
 //Cache Name: "ny::CairoFontHandle"
-class CairoFontHandle : public deriveCloneable<cache, CairoFontHandle>
+class CairoFontHandle : public DeriveCloneable<Cache, CairoFontHandle>
 {
 protected:
     cairo_font_face_t* handle_;
@@ -55,13 +55,13 @@ CairoFontHandle::~CairoFontHandle()
 }
 
 //util
-enum class diRection
+enum class direction
 {
     Left,
     Right
 };
 
-Vec2d circleCenter(Vec2d p1, Vec2d p2,double radius, diRection m)
+Vec2d circleCenter(Vec2d p1, Vec2d p2,double radius, direction m)
 {
     double distance = sqrt(pow(p2.x - p1.x,2) + pow(p2.y - p1.y, 2));
 
@@ -70,7 +70,7 @@ Vec2d circleCenter(Vec2d p1, Vec2d p2,double radius, diRection m)
     p3.y = (p1.y + p2.y) / 2;
 
     Vec2d ret;
-    if(m == diRection::Left)
+    if(m == direction::Left)
     {
         ret.x = p3.x - sqrt(pow(radius,2) - pow(distance / 2, 2)) * (p1.y - p2.y)/ distance;
         ret.y = p3.y - sqrt(pow(radius,2) - pow(distance / 2, 2)) * (p2.x - p1.x)/ distance;

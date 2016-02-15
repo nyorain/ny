@@ -47,9 +47,9 @@ public:
     void uniform(const std::string& name, const Vec3f& value);
     void uniform(const std::string& name, const Vec4f& value);
 
-    void uniform(const std::string& name, const mat2f& value);
-    void uniform(const std::string& name, const mat3f& value);
-    void uniform(const std::string& name, const mat4f& value);
+    void uniform(const std::string& name, const Mat2f& value);
+    void uniform(const std::string& name, const Mat3f& value);
+    void uniform(const std::string& name, const Mat4f& value);
 
 	void uniform(const std::string& name, const GlTexture& texture);
 
@@ -62,7 +62,7 @@ public:
 	///Deletes the compiled shader program if existent.
 	void reset();
 
-	virtual bool shareable() const { return 1; }
+	virtual bool shareable() const override { return 1; }
 };
 
 }

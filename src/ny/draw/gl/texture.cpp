@@ -2,8 +2,6 @@
 #include <ny/draw/gl/context.hpp>
 #include <ny/draw/gl/glad/glad.h>
 
-#include <nytl/make_unique.hpp>
-
 namespace ny
 {
 
@@ -101,7 +99,7 @@ Image* GlTexture::image() const
 	if(GlContext::current()->api() == GlContext::Api::openGL)
 	{
 		auto psize = Image::formatSize(format_);
-		auto pixels = make_unique<std::uint8_t[]>(size_.x * size_.y * psize);
+		auto pixels = std::make_unique<std::uint8_t[]>(size_.x * size_.y * psize);
 		glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.get());
 
 		return new Image(std::move(pixels), size_, Image::Format::rgba8888);
@@ -117,7 +115,7 @@ Image* GlTexture::image() const
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture_, 0);
 
 		auto psize = Image::formatSize(format_);
-		auto pixels = make_unique<std::uint8_t[]>(size_.x * size_.y * psize);
+		auto pixels = std::make_unique<std::uint8_t[]>(size_.x * size_.y * psize);
 		glReadPixels(0, 0, size_.x, size_.y, GL_RGBA, GL_UNSIGNED_BYTE, pixels.get());
 
 		glDeleteFramebuffers(1, &fb);

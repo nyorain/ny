@@ -7,7 +7,7 @@ namespace ny
 {
 
 ///The Font class holds the settings for a specific font to load, and caches the backend handles.
-class Font : public multiCache<std::string>
+class Font : public MultiCache<std::string>
 {
 protected:
     std::string name_; //can contain file name or fontname
