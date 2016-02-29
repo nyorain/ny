@@ -23,7 +23,7 @@ set(NY_WithGL 1)
 set(NY_WithEGL 1)
 set(NY_WithFreeType 1)
 set(NY_WithCairo 1)
-set(NY_WithX11 1)
+#set(NY_WithX11 1)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 

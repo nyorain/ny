@@ -2,7 +2,7 @@
 #include <ny/window/events.hpp>
 #include <ny/window/cursor.hpp>
 
-#include <ny/app/event.hpp>
+#include <ny/base/event.hpp>
 #include <ny/app/app.hpp>
 #include <ny/backend/backend.hpp>
 #include <ny/backend/windowContext.hpp>
@@ -23,30 +23,23 @@ Window::Window()
 {
 }
 
-Window::Window(const Vec2ui& size, const WindowSettings& settings) 
+Window::Window(App& app, const Vec2ui& size, const WindowSettings& settings) 
 	: maxSize_(UINT_MAX, UINT_MAX)
 {
-    create(size, settings);
+    create(app, size, settings);
 }
 
 Window::~Window()
 {
 }
 
-void Window::create(const Vec2ui& size, const WindowSettings& settings)
+void Window::create(App& papp, const Vec2ui& size, const WindowSettings& settings)
 {
+	app_ = &papp;
     size_ = size;
 
-    if(!nyMainApp())
-    {
-		throw std::logic_error("Window::Window: Need an initialized app instance");
-        return;
-    }
-
-	windowContext_ = nyMainApp()->backend().createWindowContext(*this, settings);
-    hints_ |= windowContext_->additionalWindowHints();
-
-	nyMainApp()->windowCreated();
+	windowContext_ = app().backend().createWindowContext({});
+	app().windowCreated();
 }
 
 void Window::close()
@@ -54,7 +47,7 @@ void Window::close()
     onClose(*this);
     windowContext_.reset();
 
-	nyMainApp()->windowClosed();
+	app().windowClosed();
 }
 
 bool Window::handleEvent(const Event& ev)
@@ -99,9 +92,6 @@ bool Window::handleEvent(const Event& ev)
     case eventType::windowRefresh:
         refresh();
         return true;
-    case eventType::windowContext:
-        windowContext_->processEvent(static_cast<const ContextEvent&>(ev));
-        return true;
 
     default:
         return false;
@@ -117,7 +107,7 @@ void Window::refresh()
 void Window::size(const Vec2ui& size)
 {
     size_ = size;
-    windowContext_->size(size, 1);
+    windowContext_->size(size);
 
     onResize(*this, size_);
 }
@@ -125,7 +115,7 @@ void Window::size(const Vec2ui& size)
 void Window::position(const Vec2i& position)
 {
     position_ = position;
-    windowContext_->position(position_, 1);
+    windowContext_->position(position_);
 
 	onMove(*this, position_);
 }
@@ -133,7 +123,7 @@ void Window::position(const Vec2i& position)
 void Window::move(const Vec2i& delta)
 {
     position_ += delta;
-    windowContext_->position(position_, 1);
+    windowContext_->position(position_);
 
     onMove(*this, position_);
 }
@@ -203,20 +193,19 @@ void Window::keyEvent(const KeyEvent& e)
 void Window::sizeEvent(const SizeEvent& e)
 {
     size_ = e.size;
-    windowContext_->size(size_, e.change);
+    windowContext_->size(size_);
     onResize.call(*this, size_);
 }
 void Window::positionEvent(const PositionEvent& e)
 {
     position_ = e.position;
-    windowContext_->position(position_, e.change);
+    windowContext_->position(position_);
     onMove(*this, position_);
 }
 void Window::drawEvent(const DrawEvent&)
 {
-    auto& dc = windowContext_->beginDraw();
-    draw(dc);
-    windowContext_->finishDraw();
+    auto guard = windowContext_->draw();
+    draw(guard.dc());
 }
 void Window::showEvent(const ShowEvent& e)
 {
@@ -233,22 +222,6 @@ void Window::cursor(const Cursor& curs)
     windowContext_->cursor(curs);
 }
 
-void Window::addWindowHints(unsigned long hints)
-{
-    hints &= ~hints_;
-    hints_ |= hints;
-
-    windowContext_->addWindowHints(hints);
-}
-
-void Window::removeWindowHints(unsigned int hints)
-{
-    hints &= hints_;
-    hints_ &= ~hints;
-
-    windowContext_->removeWindowHints(hints);
-}
-
 /*
 void toplevelWindow::setIcon(const image* icon)
 {
@@ -260,7 +233,6 @@ void toplevelWindow::mouseButton(const mouseButtonEvent& ev)
 {
     window::mouseButton(ev);
 
-/*
     if(!isCustomResized() || !hasResizeHint())
         return;
 * /
@@ -311,7 +283,6 @@ void toplevelWindow::mouseMove(const mouseMoveEvent& ev)
 {
     window::mouseMove(ev);
 
-/*
     if(!isCustomResized() || !hasResizeHint())
         return;
 * /
@@ -355,7 +326,6 @@ void toplevelWindow::setTitle(const std::string& n)
     getWindowContext()->setTitle(n);
 };
 
-/*
 bool toplevelWindow::setCustomDecorated(bool set)
 {
     hints_ |= windowHints::CustomDecorated;
@@ -391,7 +361,6 @@ bool toplevelWindow::setCustomMoved(bool set)
 
     return 1;
 }
-//*,///
 void toplevelWindow::setMaximizeHint(bool hint)
 {
     hints_ |= windowHints::Maximize;

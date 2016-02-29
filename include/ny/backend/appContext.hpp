@@ -23,20 +23,6 @@ public:
 	///\return true if loop was exited because stop() was called by the LoopControl.
 	///\return false if loop was exited because the display conncetion was destroyed.
 	virtual bool dispatchLoop(EventDispatcher& dispatcher, LoopControl& control) = 0;
-
-    //data
-	/*
-	virtual void startDataOffer(){}
-    virtual bool isOffering() const { return 0; }
-    virtual void endDataOffer(){}
-
-    virtual dataOffer* getClipboard(){ return nullptr; };
-    virtual void clipboard(dataSource& source, const event* ev){}
-
-    //data specifications
-    void clipboard(const std::string& str);
-    void clipboard(const image& str);
-	*/
 };
 
 }

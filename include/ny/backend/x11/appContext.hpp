@@ -3,74 +3,50 @@
 #include <ny/backend/x11/include.hpp>
 #include <ny/backend/appContext.hpp>
 
-#include <X11/Xlib.h>
-using XWindow = XID;
-
-#include <X11/Xlib-xcb.h> /* for XGetXCBConnection, link with libX11-xcb */
 #include <xcb/xcb.h>
+typedef struct _XDisplay Display;
 
 #include <map>
 
 namespace ny
 {
 
-enum class selectionType
-{
-    none = 0,
-
-    clipboard,
-    primary,
-    dnd
-};
-
 class X11AppContext : public AppContext
 {
 protected:
-    Display* xDisplay_;
-    int xDefaultScreenNumber_;
-    Screen* xDefaultScreen_;
 
-	xcb_connection_t* xConnection_;
+protected:
+    Display* xDisplay_  = nullptr;
+	xcb_connection_t* xConnection_ = nullptr;
+	xcb_window_t xDummyWindow_ = {};
 
-    XWindow selectionWindow_;
+    int xDefaultScreenNumber_ = 0;
+    xcb_screen_t* xDefaultScreen_ = nullptr;
 
-    selectionType lastSelection_ = selectionType::none; //needed?
-	bool runMainLoop_ = 0;
+    std::map<xcb_window_t, X11WindowContext*> contexts_;
+	std::map<std::string, xcb_atom_t> atoms_;
 
-    //clipboard
-    //bool clipboardRequest_;
-    //std::function<void(dataObject*)> clipboardCallback_;
-    //dataTypes clipboardTypes_;
-
-    //dataObject* clipboardPaste_ = 0;
-
-    std::map<XWindow, X11WindowContext*> contexts_;
-
-    void sendRedrawEvent(XWindow w);
-    bool processEvent(xcb_generic_event_t& ev);
-    Window* handler(XWindow w);
+protected:
+    bool processEvent(xcb_generic_event_t& ev, EventDispatcher& dispatcher);
+    EventHandler* eventHandler(xcb_window_t w);
 
 public:
     X11AppContext();
     virtual ~X11AppContext();
 
-    virtual int mainLoop() override;
-    virtual void exit() override;
-
-    //virtual void setClipboard(dataObject& obj);
-    //virtual bool getClipboard(dataTypes types, std::function<void(dataObject*)> Callback);
+	virtual bool dispatchEvents(EventDispatcher& dispatcher) override;
+	virtual bool dispatchLoop(EventDispatcher& dispatcher, LoopControl& control) override;
 
     Display* xDisplay() const { return xDisplay_; }
+	xcb_connection_t* xConnection() const { return xConnection_; }
     int xDefaultScreenNumber() const { return xDefaultScreenNumber_; }
-    Screen* xDefaultScreen() const { return xDefaultScreen_; }
+    xcb_screen_t* xDefaultScreen() const { return xDefaultScreen_; }
 
-    void registerContext(XWindow w, X11WindowContext& c);
-    void unregisterContext(XWindow w);
-    X11WindowContext* windowContext(XWindow win);
+    void registerContext(xcb_window_t w, X11WindowContext& c);
+    void unregisterContext(xcb_window_t w);
+    X11WindowContext* windowContext(xcb_window_t win);
 
+	xcb_atom_t atom(const std::string& name) const;
 };
-
-Display* xDisplay();
-X11AppContext* x11AppContext();
 
 }

@@ -1,19 +1,41 @@
 #include <ny/backend/x11/appContext.hpp>
 #include <ny/backend/x11/windowContext.hpp>
 #include <ny/backend/x11/util.hpp>
+#include <ny/base/loopControl.hpp>
+#include <ny/base/log.hpp>
 #include <ny/app/app.hpp>
 #include <ny/window/window.hpp>
 #include <ny/window/events.hpp>
 
-#include <nytl/vec.hpp>
-#include <nytl/misc.hpp>
-#include <ny/base/log.hpp>
-
 #include <X11/Xlibint.h>
+#include <X11/Xlib-xcb.h> 
 #include <cstring>
 
 namespace ny
 {
+
+//LoopControlImpl
+class X11ACLoopControlImpl : public LoopControlImpl
+{
+public:
+	std::atomic<bool> run;
+	xcb_connection_t* xConnection;
+	xcb_window_t xDummyWindow;
+
+	virtual void stop() override
+	{
+		if(!run.load()) return;
+
+		//send dummy event to interrupt loop
+		xcb_client_message_event_t dummyEvent {};
+		dummyEvent.window = xDummyWindow;
+		dummyEvent.type = XCB_CLIENT_MESSAGE;
+		dummyEvent.format = 32;
+
+		xcb_send_event(xConnection, 0, xDummyWindow, 0, reinterpret_cast<char*>(&dummyEvent));
+		xcb_flush(xConnection);
+	}
+};
 
 //appContext
 X11AppContext::X11AppContext()
@@ -23,32 +45,38 @@ X11AppContext::X11AppContext()
     xDisplay_ = XOpenDisplay(nullptr);
     if(!xDisplay_)
     {
-        throw std::runtime_error("could not connect to X Server");
-        return;
+        throw std::runtime_error("ny::x11AC: could not connect to X Server");
     }
 
     xDefaultScreenNumber_ = DefaultScreen(xDisplay_);
-    xDefaultScreen_ = XScreenOfDisplay(xDisplay_, xDefaultScreenNumber_);
 
  	xConnection_ = XGetXCBConnection(xDisplay_);
     if(!xConnection_)
     {
-		throw 0;
+		throw std::runtime_error("ny::x11AC: unable to get xcb connection");
+    }
+
+	auto iter = xcb_setup_roots_iterator(xcb_get_setup(xConnection_));
+	for(std::size_t i(0); iter.rem; ++i, xcb_screen_next(&iter))
+    if(i == std::size_t(xDefaultScreenNumber_)) 
+	{
+		xDefaultScreen_ = iter.data;
+		break;
     }
 
     XSetEventQueueOwner(xDisplay_, XCBOwnsEventQueue);
 
     //selection events will be sent to this window -> they need no window argument
     //does not need to be mapped
-    selectionWindow_ = XCreateSimpleWindow(xDisplay_, DefaultRootWindow(xDisplay_), 0, 0, 
-			100, 100, 0, BlackPixel(xDisplay_, xDefaultScreenNumber_), 
-			BlackPixel(xDisplay_, xDefaultScreenNumber_));
+	xDummyWindow_ = xcb_generate_id(xConnection_);
+    xcb_create_window(xConnection_, XCB_COPY_FROM_PARENT, xDummyWindow_, xDefaultScreen_->root, 
+		0, 0, 50, 50, 10, XCB_WINDOW_CLASS_INPUT_ONLY, xDefaultScreen_->root_visual, 0, nullptr);
 
 	//atoms
     const char* names[] = {
+		"WM_PROTOCOLS",
         "WM_DELETE_WINDOW",
         "_MOTIF_WM_HINTS",
-
         "_NET_WM_STATE",
         "_NET_WM_STATE_MAXIMIZED_HORZ",
         "_NET_WM_STATE_MAXIMIZED_VERT",
@@ -63,7 +91,6 @@ X11AppContext::X11AppContext()
         "_NET_WM_STATE_SKIP_PAGER",
         "_NET_WM_STATE_SKIP_TASKBAR",
         "_NET_WM_STATE_SHADED",
-
         "_NET_WM_ALLOWED_ACTIONS",
         "_NET_WM_ACTIONS_MINIMIZE",
         "_NET_WM_ACTIONS_MAX_HORZ",
@@ -77,7 +104,6 @@ X11AppContext::X11AppContext()
         "_NET_WM_ACTIONS_CHANGE_DESKTOP",
         "_NET_WM_ACTIONS_SHADE",
         "_NET_WM_ACTIONS_STICK",
-
         "_NET_WM_WINDOW_TYPE",
         "_NET_WM_WINDOW_TYPE_DESKTOP",
         "_NET_WM_WINDOW_TYPE_DOCK",
@@ -93,13 +119,11 @@ X11AppContext::X11AppContext()
         "_NET_WM_WINDOW_TYPE_COMBO",
         "_NET_WM_WINDOW_TYPE_DND",
         "_NET_WM_WINDOW_TYPE_NORMAL",
-
         "_NET_FRAME_EXTENTS",
         "_NET_STRUT",
         "_NET_STRUT_PARTIAL",
         "_NET_WM_MOVERESIZE",
         "_NET_DESKTOP"
-
         "XdndEnter",
         "XdndPosition",
         "XdndStatus",
@@ -111,189 +135,138 @@ X11AppContext::X11AppContext()
         "XdndSelection",
         "XdndProxy",
         "XdndAware",
-
         "PRIMARY",
         "CLIPBOARD",
         "TARGETS",
-
         "Text",
         "UTF8_STRING",
-
         "_NET_WM_ICON",
-
         "CARDINAL"
     };
 
-    unsigned int count = sizeof(names) / sizeof(char*);
-    Atom ret[count];
+	auto count = sizeof(names);
 
-    XInternAtoms(xDisplay_, (char**) names, count, False, ret);
+	std::vector<xcb_intern_atom_cookie_t> atomCookies;
+	atomCookies.reserve(count);
 
-    unsigned int i = 0;
+	for(auto& name : names)
+	{
+		atomCookies.push_back(xcb_intern_atom(xConnection_, 0, std::strlen(name), name));
+	}
 
-    x11::WindowDelete = ret[i++];
-    x11::MwmHints = ret[i++];
-
-    x11::State = ret[i++];
-    x11::StateMaxHorz = ret[i++];
-    x11::StateMaxVert = ret[i++];
-    x11::StateFullscreen = ret[i++];
-    x11::StateModal = ret[i++];
-    x11::StateHidden = ret[i++];
-    x11::StateSticky = ret[i++];
-    x11::StateAbove = ret[i++];
-    x11::StateBelow = ret[i++];
-    x11::StateDemandAttention = ret[i++];
-    x11::StateFocused = ret[i++];
-    x11::StateSkipPager = ret[i++];
-    x11::StateSkipTaskbar = ret[i++];
-    x11::StateShaded = ret[i++];
-
-    x11::AllowedActions = ret[i++];
-    x11::AllowedActionMinimize = ret[i++];
-    x11::AllowedActionMaximizeHorz = ret[i++];
-    x11::AllowedActionMaximizeVert = ret[i++];
-    x11::AllowedActionMove = ret[i++];
-    x11::AllowedActionResize = ret[i++];
-    x11::AllowedActionClose = ret[i++];
-    x11::AllowedActionFullscreen = ret[i++];
-    x11::AllowedActionAbove = ret[i++];
-    x11::AllowedActionBelow = ret[i++];
-    x11::AllowedActionChangeDesktop = ret[i++];
-    x11::AllowedActionShade = ret[i++];
-    x11::AllowedActionStick = ret[i++];
-
-    x11::Type = ret[i++];
-    x11::TypeDesktop = ret[i++];
-    x11::TypeDock = ret[i++];
-    x11::TypeToolbar = ret[i++];
-    x11::TypeMenu = ret[i++];
-    x11::TypeUtility = ret[i++];
-    x11::TypeSplash = ret[i++];
-    x11::TypeDialog = ret[i++];
-    x11::TypeDropdownMenu = ret[i++];
-    x11::TypePopupMenu = ret[i++];
-    x11::TypeTooltip = ret[i++];
-    x11::TypeNotification = ret[i++];
-    x11::TypeCombo = ret[i++];
-    x11::TypeDnd = ret[i++];
-    x11::TypeNormal = ret[i++];
-
-    x11::FrameExtents = ret[i++];
-    x11::Strut = ret[i++];
-    x11::StrutPartial = ret[i++];
-    x11::MoveResize = ret[i++];
-
-    x11::DndEnter = ret[i++];
-    x11::DndPosition = ret[i++];
-    x11::DndStatus = ret[i++];
-    x11::DndTypeList = ret[i++];
-    x11::DndActionCopy = ret[i++];
-    x11::DndDrop = ret[i++];
-    x11::DndLeave = ret[i++];
-    x11::DndFinished = ret[i++];
-    x11::DndSelection = ret[i++];
-    x11::DndProxy = ret[i++];
-    x11::DndAware = ret[i++];
-
-    x11::Primary = ret[i++];
-    x11::Clipboard = ret[i++];
-    x11::Targets = ret[i++];
-
-    x11::TypeText = ret[i++];
-    x11::TypeUTF8 = ret[i++];
-
-    x11::WMIcon = ret[i++];
-
-    x11::Cardinal = ret[i++];
+	for(std::size_t i(0); i < count; ++i)
+	{
+		auto reply = xcb_intern_atom_reply(xConnection_, atomCookies[i], 0);
+		if(reply)
+		{
+			atoms_[names[i]] = reply->atom;
+		}
+		else
+		{
+			sendWarning("ny::X11AC: Failed to load atom ", names[i]);
+		}
+	}
 }
 
 X11AppContext::~X11AppContext()
 {
+	if(xDummyWindow_)
+	{
+		xcb_destroy_window(xConnection_, xDummyWindow_);
+	}
+
     if(xDisplay_)
 	{
 		XFlush(xDisplay_);
 		XCloseDisplay(xDisplay_);
-		xDisplay_ = nullptr;
-	}	
+	}
+
+	xDisplay_ = nullptr;
+	xConnection_ = nullptr;
+	xDefaultScreen_ = nullptr;
+
+	atoms_.clear();
+	contexts_.clear();
 }
 
-Window* X11AppContext::handler(XWindow w)
+EventHandler* X11AppContext::eventHandler(xcb_window_t w)
 {
     auto* wc = windowContext(w);
-    return wc ? &wc->window() : nullptr;
+    return wc ? wc->eventHandler() : nullptr;
 }
 
-void X11AppContext::sendRedrawEvent(XWindow w)
+bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispatcher)
 {
-    auto* wc = windowContext(w);
-    if(wc) nyMainApp()->dispatch(make_unique<DrawEvent>(&wc->window()));
-    return;
-}
+	#define EventHandlerEvent(T, W) \
+		auto handler = eventHandler(W); \
+		if(!handler) return 1; \
+		auto event = std::make_unique<T>(handler); 
 
-bool X11AppContext::processEvent(xcb_generic_event_t& ev)
-{
 	auto responseType = ev.response_type & ~0x80;
     switch(responseType)
     {
     case XCB_MOTION_NOTIFY:
     {
 		auto& motion = reinterpret_cast<xcb_motion_notify_event_t&>(ev);  
-		auto event = make_unique<MouseMoveEvent>(handler(motion.event));
+		EventHandlerEvent(MouseMoveEvent, motion.event);
         event->position = Vec2i(motion.event_x, motion.event_y);
         event->screenPosition = Vec2i(motion.root_x, motion.root_y);
-        event->delta = event->position - Mouse::position();
 
-		nyMainApp()->dispatch(std::move(event));
+		dispatcher.dispatch(std::move(event));
         return 1;
     }
 
     case XCB_EXPOSE:
     {
-		auto& expose = (xcb_expose_event_t &)ev;  
-        if(expose.count == 0) sendRedrawEvent(expose.window);
+		auto& expose = reinterpret_cast<xcb_expose_event_t&>(ev);  
+        if(expose.count == 0) 
+		{
+			EventHandlerEvent(DrawEvent, expose.window);
+			dispatcher.dispatch(std::move(event));
+		}
         return 1;
     }
     case XCB_MAP_NOTIFY:
     {
-		auto& map = (xcb_map_notify_event_t &)ev;  
-        sendRedrawEvent(map.window);
+		auto& map = reinterpret_cast<xcb_map_notify_event_t&>(ev);
+		EventHandlerEvent(DrawEvent, map.window);
+		dispatcher.dispatch(std::move(event));
         return 1;
     }
 
     case XCB_BUTTON_PRESS:
     {
 		auto& button = reinterpret_cast<xcb_button_press_event_t&>(ev);  
-		auto event = make_unique<MouseButtonEvent>(handler(button.event));
-		event->data = make_unique<X11EventData>(ev);
+		EventHandlerEvent(MouseButtonEvent, button.event);
+		event->data = std::make_unique<X11EventData>(ev);
         event->button = x11ToButton(button.detail);
         event->position = Vec2i(button.event_x, button.event_y);
 		event->pressed = 1;
 
-        nyMainApp()->dispatch(std::move(event));
+		dispatcher.dispatch(std::move(event));
         return 1;
     }
 
     case XCB_BUTTON_RELEASE:
     {
 		auto& button = reinterpret_cast<xcb_button_release_event_t&>(ev);  
-		auto event = make_unique<MouseButtonEvent>(handler(button.event));
-		event->data = make_unique<X11EventData>(ev);
+		EventHandlerEvent(MouseButtonEvent, button.event);
+		event->data = std::make_unique<X11EventData>(ev);
         event->button = x11ToButton(button.detail);
         event->position = Vec2i(button.event_x, button.event_y);
 		event->pressed = 0;
 
-        nyMainApp()->dispatch(std::move(event));
+		dispatcher.dispatch(std::move(event));
         return 1;
     }
 
     case XCB_ENTER_NOTIFY:
     {
 		auto& enter = reinterpret_cast<xcb_enter_notify_event_t&>(ev);  
-		auto event = make_unique<MouseCrossEvent>(handler(enter.event));
+		EventHandlerEvent(MouseCrossEvent, enter.event);
         event->position = Vec2i(enter.event_x, enter.event_y);
 		event->entered = 1;
-        nyMainApp()->dispatch(std::move(event));
+		dispatcher.dispatch(std::move(event));
 
         return 1;
     }
@@ -301,10 +274,10 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev)
     case XCB_LEAVE_NOTIFY:
     {
 		auto& leave = reinterpret_cast<xcb_enter_notify_event_t&>(ev);  
-		auto event = make_unique<MouseCrossEvent>(handler(leave.event));
+		EventHandlerEvent(MouseCrossEvent, leave.event);
         event->position = Vec2i(leave.event_x, leave.event_y);
 		event->entered = 0;
-        nyMainApp()->dispatch(std::move(event));
+		dispatcher.dispatch(std::move(event));
 
         return 1;
     }
@@ -312,9 +285,9 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev)
     case XCB_FOCUS_IN:
     {
 		auto& focus = reinterpret_cast<xcb_focus_in_event_t&>(ev);  
-		auto event = make_unique<FocusEvent>(handler(focus.event));
+		EventHandlerEvent(FocusEvent, focus.event);
 		event->gained = 1;
-        nyMainApp()->dispatch(std::move(event));
+		dispatcher.dispatch(std::move(event));
 
         return 1;
     }
@@ -322,9 +295,9 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev)
     case XCB_FOCUS_OUT:
     {
 		auto& focus = reinterpret_cast<xcb_focus_in_event_t&>(ev);  
-		auto event = make_unique<FocusEvent>(handler(focus.event));
+		EventHandlerEvent(FocusEvent, focus.event);
 		event->gained = 0;
-        nyMainApp()->dispatch(std::move(event));
+		dispatcher.dispatch(std::move(event));
 
         return 1;
     }
@@ -341,11 +314,11 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev)
         char buffer[5];
         XLookupString(&xkey, buffer, 5, &keysym, nullptr);
 
-		auto event = make_unique<KeyEvent>(handler(key.event));
+		EventHandlerEvent(KeyEvent, key.event);
 		event->pressed = 1;
 		event->key = x11ToKey(keysym);
 		event->text = buffer;
-        nyMainApp()->dispatch(std::move(event));
+		dispatcher.dispatch(std::move(event));
 
         return 1;
     }
@@ -362,11 +335,11 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev)
         char buffer[5];
         XLookupString(&xkey, buffer, 5, &keysym, nullptr);
 
-		auto event = make_unique<KeyEvent>(handler(key.event));
+		EventHandlerEvent(KeyEvent, key.event);
 		event->pressed = 0;
 		event->key = x11ToKey(keysym);
 		event->text = buffer;
-        nyMainApp()->dispatch(std::move(event));
+		dispatcher.dispatch(std::move(event));
 
         return 1;
     }
@@ -379,43 +352,153 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev)
         auto nsize = Vec2ui(configure.width, configure.height);
         auto npos = Vec2i(configure.x, configure.y); //positionEvent
 
-        if(!handler(configure.window))
+        if(!eventHandler(configure.window))
             return 1;
 
-        if(any(windowContext(configure.window)->window().size() != nsize)) //sizeEvent
+        //if(any(windowContext(configure.window)->window().size() != nsize)) //sizeEvent
 		{
-			auto event = make_unique<SizeEvent>(handler(configure.window));
+			EventHandlerEvent(SizeEvent, configure.window);
 			event->size = nsize;
 			event->change = 0;
-			nyMainApp()->dispatch(std::move(event));
+			dispatcher.dispatch(std::move(event));
 		}
 
-        if(any(windowContext(configure.window)->window().position() != npos))
+        //if(any(windowContext(configure.window)->window().position() != npos))
 		{
-			auto event = make_unique<PositionEvent>(handler(configure.window));
+			EventHandlerEvent(PositionEvent, configure.window);
 			event->position = npos;
 			event->change = 0;
-			nyMainApp()->dispatch(std::move(event));
+			dispatcher.dispatch(std::move(event));
 		}
 
         return 1;
     }
+
+    case XCB_CLIENT_MESSAGE:
+    {
+		auto& client = reinterpret_cast<xcb_client_message_event_t&>(ev);
+        if((unsigned long)client.data.data32[0] == x11::WindowDelete)
+        {
+			EventHandlerEvent(CloseEvent, client.window);
+			dispatcher.dispatch(std::move(event));
+
+            return 1;
+        }
+	}
+
+	default:
+	{
+		XLockDisplay(xDisplay_);
+	    auto proc = XESetWireToEvent(xDisplay_, ev.response_type & ~0x80, nullptr);
+	    if(proc) 
+		{
+	        XESetWireToEvent(xDisplay_, ev.response_type & ~0x80, proc);
+	        XEvent dummy;
+	        ev.sequence = LastKnownRequestProcessed(xDisplay_);
+	        if(proc(xDisplay_, &dummy, (xEvent*) &ev)) //not handled
+			{
+				//TODO
+			}
+	    }
+		XUnlockDisplay(xDisplay_);
+	}
+    
+	}
+
+    return 1;
+	#undef EventHandlerEvent 
+}
+
+bool X11AppContext::dispatchEvents(EventDispatcher& dispatcher)
+{
+	xcb_generic_event_t* ev;
+	while((ev = xcb_poll_for_event(xConnection_)))
+	{
+		processEvent(*ev, dispatcher);
+		free(ev);
+	}
+
+	if(xcb_connection_has_error(xConnection_))
+	{
+		return 0;
+	}
+
+	return 1;
+}
+
+bool X11AppContext::dispatchLoop(EventDispatcher& dispatcher, LoopControl& control)
+{
+	std::atomic<bool> run;
+	control.impl_ = std::make_unique<X11ACLoopControlImpl>(run, xConnection_, xDummyWindow_);
+
+	while(run.load())
+	{
+		xcb_generic_event_t* event = xcb_wait_for_event(xConnection_);
+		if(!event) return 0;
+
+		processEvent(*event, dispatcher);
+		free(event);
+	}
+
+	return 1;
+}
+
+void X11AppContext::registerContext(xcb_window_t w, X11WindowContext& c)
+{
+    contexts_[w] = &c;
+}
+
+void X11AppContext::unregisterContext(xcb_window_t w)
+{
+    contexts_.erase(w);
+}
+
+X11WindowContext* X11AppContext::windowContext(xcb_window_t win)
+{
+    if(contexts_.find(win) != contexts_.end())
+        return contexts_[win];
+
+    return nullptr;
+}
+
+/*
+void x11AppContext::setClipboard(dataObject& obj)
+{
+    XSetSelectionOwner(xDisplay_, x11::Clipboard, selectionWindow_, CurrentTime);
+
+    clipboardPaste_ = &obj;
+}
+
+bool x11AppContext::getClipboard(dataTypes types, std::function<void(dataObject*)> Callback)
+{
+    Window w = XGetSelectionOwner(xDisplay_, x11::Clipboard);
+    if(!w)
+        return 0;
+
+    clipboardRequest_ = 1;
+    clipboardCallback_ = Callback;
+    clipboardTypes_ = types;
+
+    XConvertSelection(xDisplay_, x11::Clipboard, x11::Targets, x11::Clipboard, selectionWindow_, CurrentTime);
+
+    return 1;
+}
+*/
+
 /*
     case ReparentNotify: //nothing similar in other backend. done diRectly
     {
         if(handler(ev.xreparent.window))
 		{
-			auto event = make_unique<X11ReparentEvent>(handler(ev.xreparent.window));
+			auto event = std::make_unique<X11ReparentEvent>(handler(ev.xreparent.window));
 			event->event = ev.xreparent;
 			nyMainApp()->dispatch(std::move(event));
 		}
 
         return 1;
     }
-*/
     case SelectionNotify:
     {
-        /*
         std::cout << "selectionNotify" << std::endl;
 
         if(ev.xselection.target == x11::Targets)
@@ -427,17 +510,16 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev)
 
             }
         }
-        */
     }
 
     case SelectionClear:
     {
-        //std::cout << "selectionClear" << std::endl;
+        std::cout << "selectionClear" << std::endl;
     }
 
     case SelectionRequest:
     {
-        /*
+        
         std::cout << "selectionRequest: " << XGetAtomName(xDisplay_, ev.xselectionrequest.target) << " " <<  XGetAtomName(xDisplay_, ev.xselectionrequest.property) << " " <<  XGetAtomName(xDisplay_, ev.xselectionrequest.selection) << std::endl;
 
         if(ev.xselectionrequest.selection == x11::Clipboard && ev.xselectionrequest.target == x11::Targets)
@@ -476,13 +558,10 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev)
 
             XSendEvent(xDisplay_, ev.xselectionrequest.requestor, False, 0, &m);
         }
-        */
+        
 
     }
-
-    case ClientMessage:
-    {
-		auto& client = (xcb_client_message_event_t&)ev;
+	*/
 		/*
         if(ev.xclient.message_type == x11::DndEnter)
         {
@@ -511,125 +590,4 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev)
   
         }
 */
-        if((unsigned long)client.data.data32[0] == x11::WindowDelete)
-        {
-            if(handler(client.window)) 
-			{
-				auto event = make_unique<CloseEvent>(handler(client.window));
-				nyMainApp()->dispatch(std::move(event));
-			}
-
-            return 1;
-        }
-    }
-
-	}
-
-    XLockDisplay(xDisplay_);
-    Bool(*proc)(Display*, XEvent*, xEvent*) = 
-		XESetWireToEvent(xDisplay_, ev.response_type & ~0x80, nullptr);
-    if(proc) 
-	{
-        XESetWireToEvent(xDisplay_, ev.response_type & ~0x80, proc);
-        XEvent dummy;
-        ev.sequence = LastKnownRequestProcessed(xDisplay_);
-        if(proc(xDisplay_, &dummy, (xEvent*) &ev)) //not handled
-		{
-			//goddamit
-		}
-    }
-	XUnlockDisplay(xDisplay_);
-
-
-    return 1;
-}
-
-int X11AppContext::mainLoop()
-{
-	//XSetWindowAttributes attr;
-	//attr.event_mask = SubstructureNotifyMask;
-	//XChangeWindowAttributes(xDisplay_, DefaultRootWindow(xDisplay_), CWEventMask, &attr);
-
-	runMainLoop_ = 1;
-	while(runMainLoop_)
-	{
-		xcb_generic_event_t *event = xcb_wait_for_event(xConnection_);
-		processEvent(*event);
-		free(event);
-	}
-	
-	return 1;
-}
-
-void X11AppContext::exit()
-{
-	runMainLoop_ = 0;
-    XFlush(xDisplay_);
-}
-
-/*
-void x11AppContext::setClipboard(dataObject& obj)
-{
-    XSetSelectionOwner(xDisplay_, x11::Clipboard, selectionWindow_, CurrentTime);
-
-    clipboardPaste_ = &obj;
-}
-
-bool x11AppContext::getClipboard(dataTypes types, std::function<void(dataObject*)> Callback)
-{
-    Window w = XGetSelectionOwner(xDisplay_, x11::Clipboard);
-    if(!w)
-        return 0;
-
-    clipboardRequest_ = 1;
-    clipboardCallback_ = Callback;
-    clipboardTypes_ = types;
-
-    XConvertSelection(xDisplay_, x11::Clipboard, x11::Targets, x11::Clipboard, selectionWindow_, CurrentTime);
-
-    return 1;
-}
-*/
-
-void X11AppContext::registerContext(XWindow w, X11WindowContext& c)
-{
-    contexts_[w] = &c;
-}
-
-void X11AppContext::unregisterContext(XWindow w)
-{
-    if(contexts_.find(w) != contexts_.end())
-        contexts_[w] = nullptr;
-}
-
-X11WindowContext* X11AppContext::windowContext(XWindow win)
-{
-    if(contexts_.find(win) != contexts_.end())
-        return contexts_[win];
-
-    return nullptr;
-}
-
-/////
-Display* xDisplay()
-{
-    X11AppContext* a;
-    if(!nyMainApp() || !(a = asX11(&nyMainApp()->appContext())))
-        return nullptr;
-
-    return a->xDisplay();
-}
-
-X11AppContext* x11AppContext()
-{
-    X11AppContext* ret = nullptr;
-
-    if(nyMainApp())
-    {
-        ret = asX11(&nyMainApp()->appContext());
-    }
-
-    return ret;
-}
-
 }

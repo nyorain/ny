@@ -30,7 +30,7 @@ protected:
 public:
     virtual bool available() const = 0;
     virtual AppContextPtr createAppContext() = 0;
-	virtual WindowContextPtr createWindowContext(const WindowContextSettings& s = {}) = 0;
+	virtual WindowContextPtr createWindowContext(AppContext& ctx, const WindowSettings& s = {}) = 0;
 	virtual std::string name() const = 0;
 };
 

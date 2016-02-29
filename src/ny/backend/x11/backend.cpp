@@ -16,7 +16,7 @@ X11Backend::X11Backend()
 
 bool X11Backend::available() const
 {
-    //XInitThreads(); //todo, make this optional
+    XInitThreads(); //todo, make this optional
     Display* dpy = XOpenDisplay(nullptr);
 
     if(!dpy)
@@ -31,11 +31,11 @@ bool X11Backend::available() const
 
 std::unique_ptr<AppContext> X11Backend::createAppContext()
 {
-    return make_unique<X11AppContext>();
+    return std::make_unique<X11AppContext>();
 }
 
 std::unique_ptr<WindowContext> 
-X11Backend::createWindowContext(Window& win, const WindowSettings& s)
+X11Backend::createWindowContext(AppContext& ctx, const WindowSettings& s)
 {
     X11WindowSettings settings;
     const X11WindowSettings* ws = dynamic_cast<const X11WindowSettings*>(&s);

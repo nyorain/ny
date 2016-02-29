@@ -8,7 +8,7 @@ namespace ny
 {
 
 Widget::Widget(WidgetBase& parent, const Vec2i& position, const Vec2ui& size) 
-	: hierachyNode<WidgetBase>(parent), position_(position), size_(size), nativeWidget_(nullptr)
+	: HierachyNode<WidgetBase>(parent), position_(position), size_(size), nativeWidget_(nullptr)
 {
 }
 

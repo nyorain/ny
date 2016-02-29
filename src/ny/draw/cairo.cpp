@@ -146,17 +146,17 @@ void CairoDrawContext::apply()
     cairoCR_ = cairo_create(cairoSurface_);
 }
 
-Rect2f CairoDrawContext::RectangleClip() const
+Rect2f CairoDrawContext::rectangleClip() const
 {
     Rect2f ret;
 
 	VALIDATE_CTX(ret);
 
-    cairo_Rectangle_list_t* recList = cairo_copy_clip_Rectangle_list(cairoCR_);
-    if(recList->num_Rectangles == 0)
+    cairo_rectangle_list_t* recList = cairo_copy_clip_rectangle_list(cairoCR_);
+    if(recList->num_rectangles == 0)
         return Rect2f();
 
-    cairo_Rectangle_t& r = recList->Rectangles[0];
+    cairo_rectangle_t& r = recList->rectangles[0];
     ret.position = Vec2f(r.x, r.y);
     ret.size =  Vec2f(r.width, r.height);
 
@@ -167,7 +167,7 @@ void CairoDrawContext::clipRectangle(const Rect2f& obj)
 {
 	VALIDATE_CTX();
 
-    cairo_Rectangle(cairoCR_, obj.left(), obj.top(), obj.width(), obj.height());
+    cairo_rectangle(cairoCR_, obj.left(), obj.top(), obj.width(), obj.height());
     cairo_clip(cairoCR_);
 }
 
@@ -177,12 +177,12 @@ void CairoDrawContext::resetRectangleClip()
     cairo_reset_clip(cairoCR_);
 }
 
-void CairoDrawContext::applyTransform(const transform2& xtransform)
+void CairoDrawContext::applyTransform(const Transform2& xtransform)
 {
 	VALIDATE_CTX();
 
     cairo_matrix_t tm {};
-    auto& om = xtransform.matrix();
+    auto& om = xtransform.transformMatrix();
 
     cairo_matrix_init(&tm, om[0][0], om[1][0], om[0][1], om[1][1], om[0][2], om[1][2]);
     cairo_set_matrix(cairoCR_, &tm);
@@ -201,14 +201,14 @@ void CairoDrawContext::mask(const Text& obj)
     if(!obj.font() || obj.string().empty())
         return;
 
-    applyTransform(obj.transformObject());
+    applyTransform(obj);
 
-	auto font = static_cast<CairoFontHandle*>(obj.font()->getCache("ny::CairoFontHandle"));
+	auto font = static_cast<CairoFontHandle*>(obj.font()->cache("ny::CairoFontHandle"));
 	if(!font)
 	{
-		auto created = nytl::make_unique<CairoFontHandle>(*obj.font());
+		auto created = std::make_unique<CairoFontHandle>(*obj.font());
 		font = created.get();
-		obj.font()->storeCache("ny::CairoFontHandle", std::move(created));
+		obj.font()->cache("ny::CairoFontHandle", std::move(created));
 	}
 
     cairo_set_font_face(cairoCR_, font->cairoFontFace());
@@ -240,10 +240,10 @@ void CairoDrawContext::mask(const Rectangle& obj)
     if(all(obj.size() == Vec2f()))
         return;
 
-    applyTransform(obj.transformObject());
+    applyTransform(obj);
     if(all(obj.borderRadius() == 0)) //no border radius
     {
-        cairo_Rectangle(cairoCR_, 0, 0, obj.size().x, obj.size().y);
+        cairo_rectangle(cairoCR_, 0, 0, obj.size().x, obj.size().y);
     }
     else
     {
@@ -268,7 +268,7 @@ void CairoDrawContext::mask(const Circle& obj)
     if(obj.radius() == 0)
         return;
 
-    applyTransform(obj.transformObject());
+    applyTransform(obj);
     cairo_arc(cairoCR_, obj.radius(), obj.radius(), obj.radius(), 0, 360 * cDeg);
 
     resetTransform();
@@ -281,7 +281,7 @@ void CairoDrawContext::mask(const Path& obj)
     if(obj.subpaths().size() <= 1)
         return;
 
-    applyTransform(obj.transformObject());
+    applyTransform(obj);
 
 	//TODO!
 	/*

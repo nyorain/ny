@@ -27,7 +27,7 @@ public:
 	///Note that the function signature specifies that this function can be only called on lvalue
 	///instances which should prevent to abuse DrawGuard in expressions mistakenly instead of
 	///storing them.
-	DrawContext& get() & { return drawContext_; }
+	DrawContext& dc() & { return drawContext_; }
 };
 
 ///The DrawContext is the abstract base class interface which defines how to draw on a surface.

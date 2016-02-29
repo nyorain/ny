@@ -28,10 +28,31 @@ X11WindowContext* asX11(WindowContext* c);
 X11CairoDrawContext* asX11Cairo(DrawContext* c);
 GlxContext* asGlx(DrawContext* c);
 
+//x11Event
+class X11EventData : public DeriveCloneable<EventData, X11EventData>
+{
+public:
+    X11EventData(const xcb_generic_event_t& e) : event(e) {};
+    xcb_generic_event_t event;
+};
+
+namespace eventType
+{
+	namespace context
+	{
+		constexpr unsigned int x11Reparent = 11;
+	}
+}
+class X11ReparentEvent : public ContextEventBase<eventType::context::x11Reparent, X11ReparentEvent>
+{
+public:
+	using ContextEvBase::ContextEvBase;
+    XReparentEvent event;
+};
+
+
 namespace x11
 {
-
-const unsigned int hintOverrideRedirect = (1 << 1);
 
 //
 extern Atom WindowDelete;
@@ -119,57 +140,8 @@ extern Atom WMIcon;
 extern Atom Cardinal;
 
 
-
-const unsigned long MwmDecoBorder = (1L << 1);
-const unsigned long MwmDecoResize = (1L << 2);
-const unsigned long MwmDecoTitle = (1L << 3);
-const unsigned long MwmDecoMenu = (1L << 4);
-const unsigned long MwmDecoMinimize = (1L << 5);
-const unsigned long MwmDecoMaximize = (1L << 5);
-const unsigned long MwmDecoAll = 
-	MwmDecoBorder | MwmDecoResize | MwmDecoTitle | MwmDecoMenu | MwmDecoMinimize | MwmDecoMaximize;
-
-const unsigned long MwmFuncResize = MwmDecoBorder;
-const unsigned long MwmFuncMove = MwmDecoResize;
-const unsigned long MwmFuncMinimize = MwmDecoTitle;
-const unsigned long MwmFuncMaximize = MwmDecoMenu;
-const unsigned long MwmFuncClose = MwmDecoMinimize;
-const unsigned long MwmFuncAll = 
-	MwmFuncResize | MwmFuncMove | MwmFuncMaximize | MwmFuncMinimize | MwmFuncClose;
-
-const unsigned long MwmHintsFunc = (1L << 0);
-const unsigned long MwmHintsDeco = MwmDecoBorder;
-const unsigned long MwmHintsInput = MwmDecoResize;
-const unsigned long MwmHintsStatus = MwmDecoTitle;
-
-const unsigned long MwmInputModeless = (1L << 0);
-const unsigned long MwmInputPrimaryModal = MwmDecoBorder; //MWM_INPUT_PRIMARY_APPLICATION_MODAL
-const unsigned long MwmInputSystemModal = MwmDecoResize;
-const unsigned long MwmInputFullModal = MwmDecoTitle; //MWM_INPUT_FULL_APPLICATION_MODAL
-
-const unsigned long MwmTearoffWindow = (1L << 0);
-
-const unsigned long MwmInfoStartupStandard = (1L << 0);
-const unsigned long MwmInfoStartupCustom = MwmDecoBorder;
-
-struct mwmHints
-{
-    unsigned long flags;
-    unsigned long functions;
-    unsigned long decorations;
-    long inputMode;
-    unsigned long status;
-};
-
-//info
-struct mwmInfo
-{
-    long flags;
-    XWindow wm_window;
-};
-
 //Property
-class property //ny::x11::property -> dont need to be called xproperty
+class Property //ny::x11::property -> dont need to be called xproperty
 {
 public:
     unsigned char* data;
@@ -191,7 +163,7 @@ const unsigned char MoveResizeSizeKeyboard     = 9;
 const unsigned char MoveResizeMoveKeyboard     = 10;
 const unsigned char MoveResizeCancel           = 11;
 
-property windowProperty(XWindow w, Atom property);
+Property windowProperty(XWindow w, Atom property);
 
 }
 

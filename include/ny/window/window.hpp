@@ -52,6 +52,7 @@ protected:
 	//through this object
     std::unique_ptr<WindowContext> windowContext_;
 
+protected:
     //events - have to be protected?
     virtual void mouseMoveEvent(const MouseMoveEvent&);
     virtual void mouseCrossEvent(const MouseCrossEvent&);

@@ -1,7 +1,9 @@
 #pragma once
 
 #include <ny/include.hpp>
+#include <nytl/vec.hpp>
 #include <cstdint>
+#include <bitset>
 
 namespace ny
 {
@@ -46,9 +48,36 @@ enum class Preference : unsigned char
 {
     must,
     should,
-    dontCare,
+    dontCare = 0,
     shouldNot,
     mustNot
+};
+
+///Defines all possible native widgets that may be implemented on the specific backends.
+///Note that none of them are guaranteed to exist, some backends to not have native widgets
+///at all (linux backends). 
+enum class NativeWidgetType : unsigned char
+{
+	none = 0,
+
+    button,
+    textfield,
+    text,
+    checkbox,
+    menuBar,
+    toolbar,
+    progressbar,
+    dialog,
+	dropdown
+};
+
+///Typesafe enums that represent the available drawing backends.
+enum class DrawType : unsigned char
+{
+	dontCare = 0,
+	opengl,
+	software,
+	vulkan
 };
 
 ///Typesafe enum for the current state of a toplevel window.
@@ -88,11 +117,16 @@ class WindowSettings
 public:
     virtual ~WindowSettings() = default;
 
-	NativeWindowHandle nativeHandle {};
-    Preference virtualPref = Preference::dontCare;
-    Preference glPref = Preference::dontCare;
-    ToplevelState initState = ToplevelState::normal; //only used if window is toplevel window
-    bool initShown = true; //unmapped if set to false
+    DrawType draw = DrawType::dontCare;
+	std::bitset<64> events = {1};
+	NativeWindowHandle nativeHandle = nullptr;
+	NativeWindowHandle parent = nullptr;
+	ToplevelState initState = ToplevelState::normal;
+	NativeWidgetType nativeWidgetType = NativeWidgetType::none;
+	Vec2ui size = {800, 500};
+	Vec2i position = {~0, ~0};
+	std::string title = "ny::Window";
+	bool initShown = true;
 };
 
 }

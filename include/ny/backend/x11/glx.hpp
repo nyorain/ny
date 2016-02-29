@@ -1,9 +1,7 @@
 #pragma once
 
-#include <ny/config.hpp>
-#ifdef NY_WithGL
-
 #include <ny/backend/x11/include.hpp>
+#include <ny/backend/x11/windowContext.hpp>
 #include <ny/draw/gl/context.hpp>
 #include <ny/draw/gl/drawContext.hpp>
 
@@ -36,6 +34,8 @@ public:
 	GlDrawContext& drawContext() { return drawContext_; }
 };
 
-}
+class GlxWindowContext : public X11WindowContext
+{
+};
 
-#endif
+}

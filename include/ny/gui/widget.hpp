@@ -10,7 +10,7 @@
 namespace ny
 {
 
-class Widget : public hierachyNode<WidgetBase>
+class Widget : public HierachyNode<WidgetBase>
 {
 protected:
 	Vec2i position_ {0, 0};

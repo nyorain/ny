@@ -399,7 +399,7 @@ public:
 	ShapeBase& shapeBase();
 
     //transformable
-    void rotate(float rotation){ shapeBase().rotate(rotation); }
+    void rotate(const Vec<1, float>& rotation){ shapeBase().rotate(rotation); }
     void translate(const Vec2f& translation){ shapeBase().translate(translation); }
     void scale(const Vec2f& pscale){ shapeBase().scale(pscale); }
 

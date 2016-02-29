@@ -5,36 +5,29 @@
 namespace ny
 {
 
-ToplevelWindow::ToplevelWindow(const Vec2ui& size, const std::string& title, 
+ToplevelWindow::ToplevelWindow(App& app, const Vec2ui& size, const std::string& title, 
 		const WindowSettings& settings) : Window(), title_(title)
 {
-	create(size, title, settings);
+	create(app, size, title, settings);
 }
 
 ToplevelWindow::~ToplevelWindow()
 {
 }
 
-void ToplevelWindow::create(const Vec2ui& size, const std::string& title, 
+void ToplevelWindow::create(App& app, const Vec2ui& size, const std::string& title, 
 		const WindowSettings& settings)
 {
-	hints_ |= windowHints::maximize | windowHints::minimize | windowHints::close | 
-		windowHints::showInTaskbar | windowHints::move | windowHints::resize;
-
 	title_ = title;
-	Window::create(size, settings);
+	Window::create(app, size, settings);
 }
 
 void ToplevelWindow::maximizeHint(bool hint)
 {
-	if(hint) addWindowHints(windowHints::maximize);
-	else removeWindowHints(windowHints::maximize);
 }
 
 bool ToplevelWindow::customDecorated(bool hint)
 {
-	if(hint) addWindowHints(windowHints::customDecorated);
-	else removeWindowHints(windowHints::customDecorated);
 
 	return 1;
 }

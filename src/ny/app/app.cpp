@@ -87,7 +87,7 @@ int App::run(LoopControl& control)
 		if(!backendThread_.joinable())
 		{
 			backendThread_ = std::thread(&AppContext::dispatchLoop, appContext_.get(), 
-					backendLoopControl_);
+				std::ref(*eventDispatcher_), std::ref(backendLoopControl_));
 		}
 
 		auto& dispatcher = static_cast<ThreadedEventDispatcher&>(*eventDispatcher_);

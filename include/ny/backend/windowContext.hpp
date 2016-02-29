@@ -13,42 +13,14 @@
 namespace ny
 {
 
-///Defines all possible native widgets that may be implemented on the specific backends.
-///Note that none of them are guaranteed to exist, some backends to not have native widgets
-///at all (linux backends). 
-enum class NativeWidgetType : unsigned char
-{
-	none = 0,
-
-    button,
-    textfield,
-    text,
-    checkbox,
-    menuBar,
-    toolbar,
-    progressbar,
-    dialog,
-	dropdown
-};
-
-///POD Structure that holds settings for the native window creation.
-struct WindowContextSettings
-{
-	std::bitset<64> events = {1};
-	NativeWindowHandle nativeHandle = nullptr;
-	NativeWindowHandle parent = nullptr;
-	ToplevelState initState = ToplevelState::normal;
-	NativeWidgetType nativeWidgetType = NativeWidgetType::none;
-	bool initShown = true;
-};
-
 ///\brief Abstract interface for a window context in the underlaying window system.
 ///The term "window" used in the documentation for this class is used for the underlaying native
 ///window, ny::WindowContext is totally independent from ny::Window and can even be used without it.
-class WindowContext : public NonCopyable
+class WindowContext : public EventHandler
 {
 protected:
 	EventHandler* eventHandler_ {nullptr};
+
 public:
 	WindowContext() = default;
     virtual ~WindowContext() = default;

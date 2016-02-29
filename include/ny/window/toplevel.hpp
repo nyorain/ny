@@ -12,27 +12,35 @@ class ToplevelWindow : public Window
 protected:
     ToplevelState state_{};
     std::string title_{};
+	
+	bool maximizeHint_ {0};
+	bool minimizeHint_ {0};
+	bool resizeHint_ {0};
+	bool moveHint_ {0};
+	bool closeHint_ {0};
+	bool customDecorated_ {0};
 
 protected:
 	virtual void mouseMoveEvent(const MouseMoveEvent& event) override;
 	virtual void mouseButtonEvent(const MouseButtonEvent& event) override;
 
 	ToplevelWindow() = default;
-	void create(const Vec2ui& size, const std::string& name = "", const WindowSettings& = {});
+	void create(App& app, const Vec2ui& size, const std::string& name = "", 
+			const WindowSettings& = {});
 
 public:
-	ToplevelWindow(const Vec2ui& size, const std::string& name = "",
+	ToplevelWindow(App& app, const Vec2ui& size, const std::string& name = "",
 			const WindowSettings& settings = {});
 
 	virtual ~ToplevelWindow();
 
     //hints
-    bool hasMaximizeHint() const { return (hints_ & windowHints::maximize); }
-    bool hasMinimizeHint() const { return (hints_ & windowHints::minimize); }
-    bool hasResizeHint() const { return (hints_ & windowHints::resize); }
-    bool hasMoveHint() const { return (hints_ & windowHints::move); }
-    bool hasCloseHint() const { return (hints_ & windowHints::close); }
-    bool customDecorated() const {  return (hints_ & windowHints::customDecorated); }
+    bool hasMaximizeHint() const { return (maximizeHint_); }
+    bool hasMinimizeHint() const { return (minimizeHint_); }
+    bool hasResizeHint() const { return (resizeHint_); }
+    bool hasMoveHint() const { return (moveHint_); }
+    bool hasCloseHint() const { return (closeHint_); }
+    bool customDecorated() const {  return (customDecorated_); }
 
     void maximizeHint(bool set);
     void minimizeHint(bool set);

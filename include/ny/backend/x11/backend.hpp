@@ -19,8 +19,8 @@ public:
     virtual bool available() const override;
 
     virtual AppContextPtr createAppContext() override;
-	virtual WindowContextPtr 
-		createWindowContext(Window& win, const WindowSettings& s = {}) override;
+	virtual WindowContextPtr createWindowContext(AppContext& app, 
+			const WindowSettings& s = {}) override;
 
 	virtual std::string name() const override { return "x11"; }
 };

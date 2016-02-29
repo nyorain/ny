@@ -7,7 +7,7 @@
 #include <ny/window/window.hpp>
 #include <ny/window/child.hpp>
 #include <ny/window/toplevel.hpp>
-#include <ny/app/event.hpp>
+#include <ny/base/event.hpp>
 #include <ny/window/cursor.hpp>
 #include <ny/window/events.hpp>
 #include <ny/draw/image.hpp>
@@ -17,19 +17,10 @@
 #include <memory.h>
 #include <iostream>
 
-#ifdef NY_WithGL
- #include <ny/backend/x11/glx.hpp>
- #include <GL/glx.h>
-#endif // NY_WithGL
-
-#ifdef NY_WithCairo
- #include <ny/backend/x11/cairo.hpp>
-#endif // NY_WithCairo
-
 namespace ny
 {
 
-
+/*
 bool usingGLX(Preference glPref)
 {
     //renderer - nothing available
@@ -60,130 +51,58 @@ bool usingGLX(Preference glPref)
 
 	return 0;
 }
+*/
 
 //windowContext
-X11WindowContext::X11WindowContext(Window& win, const X11WindowSettings& settings) 
-	: WindowContext(win), cairo_(nullptr)
+X11WindowContext::X11WindowContext(X11AppContext& ctx, const X11WindowSettings& settings) 
+	: appContext_(&ctx)
 {
-    auto* ac = x11AppContext();
-
-    if(!ac)
+    auto xconn = appContext_->xConnection();
+	auto xscreen = appContext_->xDefaultScreen();
+    if(!xconn || !xscreen)
     {
-        throw std::runtime_error("x11 App was not corRectly initialized");
+        throw std::runtime_error("ny::X11WC: x11 App was not corRectly initialized");
         return;
     }
-
-    Display* dpy = xDisplay();
-    if(!dpy)
-    {
-        throw std::runtime_error("x11 App was not corRectly initialized");
-        return;
-    }
-
-    xScreenNumber_ = ac->xDefaultScreenNumber(); //todo: implement corRectly
-    bool gl = usingGLX(settings.glPref);
 
     //window type
-    XWindow xParent = 0;
+	bool toplvl = 0;
+	auto pos = settings.position;
+	auto size = settings.size;
 
-    auto* toplvlw = dynamic_cast<ToplevelWindow*>(&win);
-    auto* childw = dynamic_cast<ChildWindow*>(&win);
-
-	GLXFBConfig glxconfig = nullptr;
-    if((!toplvlw && !childw) || (toplvlw && childw))
+    xcb_window_t xparent = settings.nativeHandle;
+	if(!xparent)
 	{
-		throw std::runtime_error("x11WC::x11WC: window is neither toplvel nor child");
-	}
-    else if(toplvlw)
-    {
-        if(gl) glxconfig = matchGLXVisualInfo();
-        else matchVisualInfo();
-
-        xParent = DefaultRootWindow(xDisplay());
-    }
-    else if(childw)
-    {
-        auto* parentWC = asX11(childw->parent().windowContext());
-        if(!parentWC || !(xParent = parentWC->xWindow()))
-        {
-            throw std::runtime_error("x11WC::x11WC: could not find xParent");
-            return;
-        }
-
-        if(gl)
-        {
-			//copyFromParent?
-            if(parentWC->drawType() == DrawType::glx)
-			{
-				xVinfo_ = parentWC->xVinfo();
-			}
-            else
-			{
-				glxconfig = matchGLXVisualInfo();
-			}	
-        }
-        else
-        {
-            if(parentWC->drawType() == DrawType::cairo) xVinfo_ = parentWC->xVinfo();
-            else matchVisualInfo();
-        }
-    }
-
-    unsigned int mask = CWColormap | CWEventMask;
-
-    XSetWindowAttributes attr;
-    attr.colormap = 
-		XCreateColormap(xDisplay(), DefaultRootWindow(xDisplay()), xVinfo_->visual, AllocNone);
-    attr.event_mask = ExposureMask | StructureNotifyMask | PointerMotionMask | KeyPressMask | 
-		KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | EnterWindowMask | LeaveWindowMask;
-
-    if(!gl)
-    {
-        mask |= CWBackPixel | CWBorderPixel;
-        attr.background_pixel = 0;
-        attr.border_pixel = 0;
-    }
-    else
-    {
-        mask |= CWBackPixmap | CWBorderPixmap | CWBorderPixel;
-        attr.background_pixmap = None;
-        attr.border_pixmap = None;
-        attr.border_pixel = 0;
-    }
-
-    xWindow_ = XCreateWindow(xDisplay(), xParent, win.position().x, win.position().y, win.size().x, 
-			win.size().y, 0, xVinfo_->depth, InputOutput, xVinfo_->visual, mask, &attr);
-	XMapWindow(xDisplay(), xWindow_);
-
-    ac->registerContext(xWindow_, *this);
-    if(toplvlw) 
-	{
-		XSetWMProtocols(xDisplay(), xWindow_, &x11::WindowDelete, 1);
-		XStoreName(xDisplay(), xWindow_, toplvlw->title().c_str());
+		xparent = xscreen->root;
+		toplvl = 1;
 	}
 
-    if(gl)
-    {
-		if(!glxconfig)
-		{
-			throw std::runtime_error("X11WC::X11WC: Failed to create glxfbconfig");
-		}
+	xcb_colormap_t colormap = xcb_generate_id(xconn);
+	xcb_create_colormap(xconn, XCB_COLORMAP_ALLOC_NONE, colormap, xscreen->root, xVisualID_);
 
-		#ifdef NY_WithGL
-         drawType_ = DrawType::glx;
-		 glx_.reset(new GlxContext(*this, glxconfig));
-		 glx_->makeNotCurrent();
-		#endif
-    }
-    else
-    {
-		#ifdef NY_WithCairo
-         drawType_ = DrawType::cairo;
-         cairo_.reset(new X11CairoDrawContext(*this));
-		#endif
-    }
+	std::uint32_t eventmask = 
+		XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_STRUCTURE_NOTIFY | XCB_EVENT_MASK_KEY_PRESS |
+		XCB_EVENT_MASK_KEY_RELEASE | XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE |
+		XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_LEAVE_WINDOW | XCB_EVENT_MASK_POINTER_MOTION;
 
-	addWindowHints(window().windowHints());
+	std::uint32_t valuelist[] = {eventmask, colormap, 0};
+	std::uint32_t valuemask = XCB_CW_EVENT_MASK | XCB_CW_COLORMAP;
+
+	xWindow_ = xcb_generate_id(xconn);
+	xcb_create_window(xconn, XCB_COPY_FROM_PARENT, xWindow_, xparent, pos.x, pos.y,
+		size.x, size.y, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT, xVisualID_, valuemask, valuelist);
+
+    appContext_->registerContext(xWindow_, *this);
+    if(toplvl) 
+	{
+		auto protocols = appContext_->atom("WM_WINDOW_PROTOCOLS");
+		auto list = appContext_->atom("WM_WINDOW_DELETE");
+
+		xcb_change_property(xconn, XCB_PROP_MODE_REPLACE, xWindow_, protocols, 
+				XCB_ATOM_ATOM, 32, 1, &list);
+		xcb_change_property(xconn, XCB_PROP_MODE_REPLACE, xWindow_, XCB_ATOM_WM_NAME, 
+				XCB_ATOM_STRING, 8, settings.title.size(), settings.title.c_str());
+	}
 
 	//make it transparent (even with opengl)
 	/*

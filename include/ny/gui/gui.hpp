@@ -9,11 +9,11 @@
 namespace ny
 {
 
-class Gui : public hierachyRoot<WidgetBase>
+class Gui : public HierachyRoot<WidgetBase>
 {
 protected:
 	Window* window_ {nullptr};
-	std::vector<raiiConnection> connections_;
+	std::vector<RaiiConnection> connections_;
 
 	Widget* focusWidget_ {nullptr};
 	Widget* mouseFocusWidget_ {nullptr};
