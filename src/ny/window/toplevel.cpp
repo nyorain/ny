@@ -22,14 +22,95 @@ void ToplevelWindow::create(App& app, const Vec2ui& size, const std::string& tit
 	Window::create(app, size, settings);
 }
 
-void ToplevelWindow::maximizeHint(bool hint)
+void ToplevelWindow::maximizeHint(bool set)
 {
+	constexpr auto hint = WindowHints::maximize;
+
+	if(set && !nytl::bitsSet(hints_, hint))
+	{
+		hints_ |= hint;
+		windowContext()->addWindowHints(hint);
+	}
+	else if(!set && nytl::bitsSet(hints_, hint))
+	{
+		hints_ &= ~hint;
+		windowContext()->removeWindowHints(hint);
+	}
 }
 
-bool ToplevelWindow::customDecorated(bool hint)
+void ToplevelWindow::minimizeHint(bool set)
 {
+	constexpr auto hint = WindowHints::maximize;
 
-	return 1;
+	if(set && !nytl::bitsSet(hints_, hint))
+	{
+		hints_ |= hint;
+		windowContext()->addWindowHints(hint);
+	}
+	else if(!set && nytl::bitsSet(hints_, hint))
+	{
+		hints_ &= ~hint;
+		windowContext()->removeWindowHints(hint);
+	}
+}
+void ToplevelWindow::resizeHint(bool set)
+{
+	constexpr auto hint = WindowHints::maximize;
+
+	if(set && !nytl::bitsSet(hints_, hint))
+	{
+		hints_ |= hint;
+		windowContext()->addWindowHints(hint);
+	}
+	else if(!set && nytl::bitsSet(hints_, hint))
+	{
+		hints_ &= ~hint;
+		windowContext()->removeWindowHints(hint);
+	}
+}
+void ToplevelWindow::closeHint(bool set)
+{
+	constexpr auto hint = WindowHints::maximize;
+
+	if(set && !nytl::bitsSet(hints_, hint))
+	{
+		hints_ |= hint;
+		windowContext()->addWindowHints(hint);
+	}
+	else if(!set && nytl::bitsSet(hints_, hint))
+	{
+		hints_ &= ~hint;
+		windowContext()->removeWindowHints(hint);
+	}
+}
+
+bool ToplevelWindow::customDecorated(bool set)
+{
+	constexpr auto hint = WindowHints::maximize;
+
+	if(set && !nytl::bitsSet(hints_, hint))
+	{
+		hints_ |= hint;
+		windowContext()->addWindowHints(hint);
+	}
+	else if(!set && nytl::bitsSet(hints_, hint))
+	{
+		hints_ &= ~hint;
+		windowContext()->removeWindowHints(hint);
+	}
+
+	return (windowContext()->customDecorated() == set);
+}
+
+void ToplevelWindow::icon(const Image& icon)
+{
+	windowContext()->icon(&icon);
+}
+
+void ToplevelWindow::title(const std::string& title)
+{
+	title_ = title;
+	windowContext()->title(title);
 }
 
 void ToplevelWindow::mouseMoveEvent(const MouseMoveEvent& ev)

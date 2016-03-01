@@ -11,6 +11,7 @@
 #include <ny/window/cursor.hpp>
 #include <ny/window/events.hpp>
 #include <ny/draw/image.hpp>
+#include <ny/draw/drawContext.hpp>
 
 #include <X11/Xatom.h>
 
@@ -20,48 +21,21 @@
 namespace ny
 {
 
-/*
-bool usingGLX(Preference glPref)
-{
-    //renderer - nothing available
-    #if (!defined NY_WithGL && !defined NY_WithCairo)
-     throw std::runtime_error("x11WC::x11WC: no renderer available");
-    #endif
-
-    //WithGL
-    #if (!defined NY_WithGL)
-     if(glPref == Preference::must) 
-		throw std::runtime_error("x11WC::x11WC: no gl renderer available, preference is must");
-     else return 0;
-
-    #else
-     if(glPref == Preference::must || glPref == Preference::should) return 1;
-    #endif
-
-    //WithCairo
-    #if (!defined NY_WithCairo)
-     if(glPref == Preference::mustNot) 
-		throw std::runtime_error("x11WC::x11WC: no software renderer available");
-     else return 1;
-
-    #else
-     if(glPref == Preference::mustNot || glPref == Preference::shouldNot) return 0;
-
-    #endif
-
-	return 0;
-}
-*/
-
 //windowContext
 X11WindowContext::X11WindowContext(X11AppContext& ctx, const X11WindowSettings& settings) 
-	: appContext_(&ctx)
 {
+	create(ctx, settings);
+}
+
+void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& settings) 
+{
+	appContext_ = &ctx;
+
     auto xconn = appContext_->xConnection();
 	auto xscreen = appContext_->xDefaultScreen();
     if(!xconn || !xscreen)
     {
-        throw std::runtime_error("ny::X11WC: x11 App was not corRectly initialized");
+        throw std::runtime_error("ny::X11WC: x11 App was not correctly initialized");
         return;
     }
 
@@ -103,58 +77,21 @@ X11WindowContext::X11WindowContext(X11AppContext& ctx, const X11WindowSettings& 
 		xcb_change_property(xconn, XCB_PROP_MODE_REPLACE, xWindow_, XCB_ATOM_WM_NAME, 
 				XCB_ATOM_STRING, 8, settings.title.size(), settings.title.c_str());
 	}
-
-	//make it transparent (even with opengl)
-	/*
-	auto alpha = 0.2;
-	auto cardinal_alpha = (uint32_t) (alpha * (uint32_t) -1);
-
-	if (cardinal_alpha == (uint32_t)-1) 
-	{
-		XDeleteProperty(xDisplay(), xWindow_, XInternAtom(xDisplay(), "_NET_WM_WINDOW_OPACITY", 0)) ;
-	} 
-	else 
-	{
-		XChangeProperty(xDisplay(), xWindow_, XInternAtom(xDisplay(), "_NET_WM_WINDOW_OPACITY", 0),
-			XA_CARDINAL, 32, PropModeReplace, (uint8_t*) &cardinal_alpha, 1) ;
-	}
-   */
-}
-
-void X11WindowContext::create()
-{
 }
 
 X11WindowContext::~X11WindowContext()
 {
-	if(cairo()) cairo_.reset();
-	else if(glx()) glx_.reset();
+    appContext().unregisterContext(xWindow_);
 
-    if(ownedXVinfo_ && xVinfo_) delete xVinfo_;
-    x11AppContext()->unregisterContext(xWindow_);
-
-    XDestroyWindow(xDisplay(), xWindow_);
-    XFlush(xDisplay());
-
+    xcb_destroy_window(xConnection(), xWindow_);
+    xcb_flush(xConnection());
 }
 
-void X11WindowContext::matchVisualInfo()
+void X11WindowContext::initVisual()
 {
-    if(!xVinfo_)
-    {
-        xVinfo_ = new XVisualInfo;
-        ownedXVinfo_ = 1;
-    }
-
-    //todo: other visuals possible
-    if(!XMatchVisualInfo(xDisplay(), x11AppContext()->xDefaultScreenNumber(), 32, 
-				TrueColor, xVinfo_))
-    {
-        throw std::runtime_error("cant match X Visual info");
-        return;
-    }
 }
 
+/*
 GLXFBConfig X11WindowContext::matchGLXVisualInfo()
 {
 #ifdef NY_WithGL	
@@ -219,11 +156,16 @@ GLXFBConfig X11WindowContext::matchGLXVisualInfo()
 	return ret;
 #endif
 }
+*/
 
+DrawGuard X11WindowContext::draw()
+{
+	throw std::logic_error("ny::X11WC: called draw() on draw-less windowContext");
+}
 
 void X11WindowContext::refresh()
 {
-    nyMainApp()->dispatch(make_unique<DrawEvent>(&window()));
+   // nyMainApp()->dispatch(make_unique<DrawEvent>(&window()));
 
 /*
     //x11 method
@@ -237,60 +179,22 @@ void X11WindowContext::refresh()
 */
 }
 
-DrawContext& X11WindowContext::beginDraw()
-{
-    if(cairo())
-    {
-        return *cairo_;
-    }
-    else if(glx())
-    {
-		#ifdef NY_WithGL
-         glx_->makeCurrent();
-		 auto& ret = glx_->drawContext();
-		 ret.viewport(Rect2f({0.f, 0.f}, window().size()));
-		 return ret;
-		#endif
-    }
-
-	throw std::runtime_error("X11WC:beginDraw on invalid x11WC");
-}
-
-void X11WindowContext::finishDraw()
-{
-    if(cairo())
-    {
-        cairo_->apply();
-    }
-    else if(glx())
-    {
-		#ifdef NY_WithGL
-         glx_->apply();
-         glx_->makeNotCurrent();
-		#endif
-    }
-
-    XFlush(xDisplay());
-}
-
 void X11WindowContext::show()
 {
-    XMapWindow(xDisplay(), xWindow_);
+    xcb_map_window(xConnection(), xWindow_);
 }
 
 void X11WindowContext::hide()
 {
-    XUnmapWindow(xDisplay(), xWindow_);
+    xcb_unmap_window(xConnection(), xWindow_);
 }
 
 void X11WindowContext::raise()
 {
-    XRaiseWindow(xDisplay(), xWindow_);
 }
 
 void X11WindowContext::lower()
 {
-    XLowerWindow(xDisplay(), xWindow_);
 }
 
 void X11WindowContext::requestFocus()
@@ -298,22 +202,19 @@ void X11WindowContext::requestFocus()
     addState(x11::StateFocused); //todo: fix
 }
 
-void X11WindowContext::size(const Vec2ui& size, bool change)
+void X11WindowContext::size(const Vec2ui& size)
 {
-    if(change) XResizeWindow(xDisplay(), xWindow_, size.x, size.y);
-
-    if(cairo()) cairo_->size(size);
-
-	#ifdef NY_WithGL
-     else if(glx()) glx_->size(size);
-	#endif
-
+	xcb_configure_window(xConnection(), xWindow_, 
+		XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT, size.data());
     refresh();
 }
 
-void X11WindowContext::position(const Vec2i& position, bool change)
+void X11WindowContext::position(const Vec2i& position)
 {
-    if(change) XMoveWindow(xDisplay(), xWindow_, position.x, position.y);
+	auto data = reinterpret_cast<const unsigned int*>(position.data());
+	xcb_configure_window(xConnection(), xWindow_, 
+		XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, data);
+    refresh();
 }
 
 void X11WindowContext::cursor(const Cursor& curs)
@@ -357,15 +258,21 @@ void X11WindowContext::maxSize(const Vec2ui& size)
     XSetWMNormalHints(xDisplay(), xWindow_, &s);
 }
 
-void X11WindowContext::processEvent(const ContextEvent& e)
+bool X11WindowContext::handleEvent(const Event& e)
 {
-    if(e.contextType() == eventType::context::x11Reparent) 
+    if(e.type() == eventType::x11::reparent) 
 	{
-		reparented(static_cast<const X11ReparentEvent&>(e).event);
 	}
+
+	return 0;
 }
 
-void X11WindowContext::addWindowHints(unsigned long hints)
+bool X11WindowContext::customDecorated() const
+{
+	return 0;
+}
+
+void X11WindowContext::addWindowHints(WindowHints hints)
 {
     unsigned long motifDeco = 0;
     unsigned long motifFunc = 0;
@@ -438,7 +345,7 @@ void X11WindowContext::addWindowHints(unsigned long hints)
 		mwmHints(mwmDecoHints_, mwmFuncHints_);
 	}
 }
-void X11WindowContext::removeWindowHints(unsigned long hints)
+void X11WindowContext::removeWindowHints(WindowHints hints)
 {
     unsigned long motifDeco = 0;
     unsigned long motifFunc = 0;
@@ -495,7 +402,7 @@ void X11WindowContext::removeWindowHints(unsigned long hints)
 }
 
 //x11 specific
-void X11WindowContext::addState(Atom state)
+void X11WindowContext::addState(xcb_atom_t state)
 {
     XEvent ev;
 
@@ -513,7 +420,7 @@ void X11WindowContext::addState(Atom state)
     states_ |= state;
 }
 
-void X11WindowContext::removeState(Atom state)
+void X11WindowContext::removeState(xcb_atom_t state)
 {
     XEvent ev;
 
@@ -531,7 +438,7 @@ void X11WindowContext::removeState(Atom state)
     states_ = states_ & ~state;
 }
 
-void X11WindowContext::toggleState(Atom state)
+void X11WindowContext::toggleState(xcb_atom_t state)
 {
     XEvent ev;
 
@@ -593,7 +500,7 @@ unsigned long X11WindowContext::mwmDecorationHints() const
     return 0;
 }
 
-void X11WindowContext::addAllowedAction(Atom action)
+void X11WindowContext::addAllowedAction(xcb_atom_t action)
 {
     XEvent ev;
 
@@ -609,7 +516,7 @@ void X11WindowContext::addAllowedAction(Atom action)
     XSendEvent(xDisplay(), DefaultRootWindow(xDisplay()), False, SubstructureNotifyMask, &ev);
 }
 
-void X11WindowContext::removeAllowedAction(Atom action)
+void X11WindowContext::removeAllowedAction(xcb_atom_t action)
 {
     XEvent ev;
 
@@ -625,9 +532,9 @@ void X11WindowContext::removeAllowedAction(Atom action)
     XSendEvent(xDisplay(), DefaultRootWindow(xDisplay()), False, SubstructureNotifyMask, &ev);
 }
 
-std::vector<Atom> X11WindowContext::allowedActions() const
+std::vector<xcb_atom_t> X11WindowContext::allowedActions() const
 {
-    std::vector<Atom> ret;
+    std::vector<xcb_atom_t> ret;
     return ret;
 
     //todo
@@ -638,24 +545,23 @@ void X11WindowContext::refreshStates()
     //todo
 }
 
-void X11WindowContext::transientFor(Window& w)
+void X11WindowContext::transientFor(xcb_window_t other)
 {
-    auto* other = asX11(w.windowContext());
-    XSetTransientForHint(xDisplay(), other->xWindow(), xWindow_);
+    XSetTransientForHint(xDisplay(), other, xWindow_);
 }
 
-void X11WindowContext::xWindowType(const Atom type)
+void X11WindowContext::xWindowType(xcb_window_t type)
 {
     XChangeProperty(xDisplay(), xWindow_, x11::Type, XA_ATOM, 32, PropModeReplace, (unsigned char*) &type, 1);
 }
 
-Atom X11WindowContext::xWindowType()
+xcb_atom_t X11WindowContext::xWindowType()
 {
     return 0;
     //todo
 }
 
-void X11WindowContext::overrideRedirect(bool rediRect)
+void X11WindowContext::overrideRedirect(bool redirect)
 {
     XSetWindowAttributes attr;
     attr.override_rediRect = rediRect;
@@ -669,18 +575,13 @@ void X11WindowContext::cursor(unsigned int xCursorID)
     XDefineCursor(xDisplay(), xWindow_, c);
 }
 
-void X11WindowContext::reparented(const XReparentEvent&)
-{
-    position(window_->position()); //set position corRectly
-}
-
-void X11WindowContext::maximized()
+void X11WindowContext::maximize()
 {
     addState(x11::StateMaxHorz);
     addState(x11::StateMaxVert);
 }
 
-void X11WindowContext::minimized()
+void X11WindowContext::minimize()
 {
     XWMHints hints;
     hints.flags = StateHint;
@@ -786,65 +687,5 @@ void X11WindowContext::title(const std::string&)
 {
 
 }
-
-/*
-//toplevel///
-////////////
-x11ToplevelWindowContext::x11ToplevelWindowContext(toplevelWindow& win, const X11WindowContextSettings& settings, bool pcreate) : windowContext(win, settings), toplevelWindowContext(win, settings), X11WindowContext(win, settings)
-{
-    if(pcreate)
-        create();
-}
-
-void x11ToplevelWindowContext::create(unsigned int winType, unsigned long attrMask, XSetWindowAttributes attr)
-{
-    if(!xVinfo_)
-    {
-        if(!matchVisualInfo())
-        {
-            throw std::runtime_error("could not match visual");
-            return;
-        }
-    }
-
-    xWindow_ = XCreateWindow(xDisplay(), DefaultRootWindow(xDisplay()), window_.getPositionX(), window_.getPositionY(), window_.getWidth(), window_.getHeight(), getToplevelWindow().getBorderSize(), xVinfo_->depth, winType, xVinfo_->visual, attrMask, &attr);
-
-    //XClassHint hint;
-    //hint.res_class = (char*) getToplevelWindow().getName().c_str();
-    //hint.res_name = (char*) getToplevelWindow().getName().c_str();
-    //XSetClassHint(xDisplay(), xWindow_, &hint);
-
-    XStoreName(xDisplay(), xWindow_, getToplevelWindow().getName().c_str());
-
-    XSetWMProtocols(xDisplay(), xWindow_, &x11::WindowDelete, 1);
-    context_->registerContext(xWindow_, this); //like user data for window
-}
-
-
-
-//x11ChildWC////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////77
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-x11ChildWindowContext::x11ChildWindowContext(childWindow& win, const X11WindowContextSettings& settings, bool pcreate) : windowContext(win, settings), childWindowContext(win, settings), X11WindowContext(win, settings)
-{
-    if(pcreate)
-        create();
-}
-
-void x11ChildWindowContext::create(unsigned int winType, unsigned long attrMask, XSetWindowAttributes attr)
-{
-    if(!xVinfo_)
-    {
-        if(!matchVisualInfo())
-        {
-            throw std::runtime_error("could not match visual");
-            return;
-        }
-    }
-
-    xWindow_ = XCreateWindow(xDisplay(), asX11(window_.getParent()->getWindowContext())->getXWindow(), window_.getPositionX(), window_.getPositionY(), window_.getWidth(), window_.getHeight(), 0, xVinfo_->depth, winType, xVinfo_->visual, attrMask, &attr);
-
-    context_->registerContext(xWindow_, this); //like user data for window
-}
-*/
 
 }

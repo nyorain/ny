@@ -13,12 +13,12 @@ typedef struct __GLXFBConfigRec* GLXFBConfig;
 namespace ny
 {
 
+///GLX GL Context implementation.
 class GlxContext: public GlContext
 {
 protected:
     X11WindowContext* wc_;
     GLXContext glxContext_ = nullptr;
-	GlDrawContext drawContext_;
 	unsigned int glxWindow_;
 
     virtual bool makeCurrentImpl() override;
@@ -30,12 +30,22 @@ public:
 
     void size(const Vec2ui& size);
     virtual bool apply() override;
-
-	GlDrawContext& drawContext() { return drawContext_; }
 };
 
+///WindowContext implementation on a x11 backend with opengl (glx) used for rendering.
 class GlxWindowContext : public X11WindowContext
 {
+protected:
+	std::unique_ptr<GlxContext> glxContext_;
+	std::unique_ptr<GlDrawContext> drawContext_;
+
+protected:
+	virtual void initVisual() override;
+
+public:
+	GlxWindowContext(X11AppContext& ctx, const X11WindowSettings& settings = {});
+	
+	virtual DrawGuard draw() override;
 };
 
 }

@@ -5,6 +5,9 @@
 
 #include <xcb/xcb.h>
 
+#include <cstdint>
+#include <vector>
+
 namespace ny
 {
 
@@ -15,6 +18,15 @@ class X11WindowSettings : public WindowSettings {};
 ///Tries to use xcb where possible, for some things (e.g. glx context) xlib is needed though.
 class X11WindowContext : public WindowContext
 {
+public:
+	struct Property
+	{
+		std::vector<std::uint8_t> data;
+    	unsigned int format;
+    	unsigned int count;
+    	xcb_atom_t type;
+	};
+
 protected:
 	X11AppContext* appContext_ = nullptr;
     xcb_window_t xWindow_ = 0;
@@ -25,8 +37,11 @@ protected:
     unsigned long mwmDecoHints_ = 0;
 
 protected:
-	void create();
-    void initVisual();
+	X11WindowContext() = default;
+	void create(X11AppContext& ctx, const X11WindowSettings& settings);
+	xcb_connection_t* xConnection() const;
+
+    virtual void initVisual();
 
 public:
     X11WindowContext(X11AppContext& ctx, const X11WindowSettings& settings = {});
@@ -35,7 +50,7 @@ public:
     //high-level virtual interface
     virtual void refresh() override;
 
-    virtual DrawGuard draw() override;
+    virtual DrawGuard draw() override = 0;
 
     virtual void show() override;
     virtual void hide() override;
@@ -62,10 +77,16 @@ public:
 
     virtual void title(const std::string& title) override;
 	virtual void icon(const Image* img) override;
+	virtual bool customDecorated() const override;
+
+	virtual void addWindowHints(WindowHints hints) override;
+	virtual void removeWindowHints(WindowHints hints) override;
 
     //x11-specific
 	X11AppContext& appContext() const { return *appContext_; }
     xcb_window_t xWindow() const { return xWindow_; }
+
+	Property property(xcb_atom_t property);
 
     //general
     void overrideRedirect(bool redirect);

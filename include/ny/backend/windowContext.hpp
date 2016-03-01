@@ -113,11 +113,11 @@ public:
 
 	///Tires to adds the given window hints to the window.
 	///\warning Window hints are only valid for toplevel windows.
-	virtual void addWindowHints(WindowHint hints) = 0;
+	virtual void addWindowHints(WindowHints hints) = 0;
 
 	///Tries to remove the given window hints from the window.
 	///\warning Window  hints are only valid for toplevel windows.
-	virtual void removeWindowHints(WindowHint hints) = 0;
+	virtual void removeWindowHints(WindowHints hints) = 0;
 };
 
 }

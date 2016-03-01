@@ -17,32 +17,15 @@ namespace ny
 {
 
 ///OpenGL(ES) draw context implementation.
+///Will always draw on the current opengl context (GlContext) in the drawing thread. Is not 
+///directly associated or bound with one specific context which makes it possible to use
+///just one GlDrawContext for multiple GlContexts. Basically just implements drawing using
+///the openGL(ES) functions which use the currently bound context.
 ///\todo mask clipping
 class GlDrawContext : public DelayedDrawContext
 {
 public:
-	struct ShaderPrograms
-	{
-		bool initialized = 0;
-	
-		struct
-		{
-			Shader color;
-			Shader textureRGBA;
-			Shader textureRGB;
-			Shader colorTextureA;
-			Shader radialGradient;
-			Shader linearGradient;
-		} brush;
-	
-		struct
-		{
-			Shader color;
-			Shader texture;
-			Shader radialGradient;
-			Shader linearGradient;
-		} pen;
-	};
+	struct ShaderPrograms;
 
 public:
 	Vec2f asGlInvert(const Vec2f& point, float ySize = 1);

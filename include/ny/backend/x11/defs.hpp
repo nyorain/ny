@@ -40,6 +40,19 @@ constexpr unsigned long MwmTearoffWindow = (1L << 0);
 constexpr unsigned long MwmInfoStartupStandard = (1L << 0);
 constexpr unsigned long MwmInfoStartupCustom = MwmDecoBorder;
 
+constexpr unsigned char MoveResizeSizeTopLeft = 0;
+constexpr unsigned char MoveResizeSizeTop = 1;
+constexpr unsigned char MoveResizeSizeTopRight = 2;
+constexpr unsigned char MoveResizeSizeRight = 3;
+constexpr unsigned char MoveResizeSizeBottomRight = 4;
+constexpr unsigned char MoveResizeSizeBottom = 5;
+constexpr unsigned char MoveResizeSizeBottomLeft = 6;
+constexpr unsigned char MoveResizeSizeLeft = 7;
+constexpr unsigned char MoveResizeMove = 8;
+constexpr unsigned char MoveResizeSizeKeyboard = 9;
+constexpr unsigned char MoveResizeMoveKeyboard = 10;
+constexpr unsigned char MoveResizeCancel = 11;
+
 struct MwmHints
 {
     unsigned long flags;

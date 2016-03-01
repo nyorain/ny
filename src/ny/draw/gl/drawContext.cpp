@@ -17,6 +17,32 @@
 namespace ny
 {
 
+//shaderprograms
+
+struct GlDrawContext::ShaderPrograms
+{
+	bool initialized = 0;
+
+	struct
+	{
+		Shader color;
+		Shader textureRGBA;
+		Shader textureRGB;
+		Shader colorTextureA;
+		Shader radialGradient;
+		Shader linearGradient;
+	} brush;
+
+	struct
+	{
+		Shader color;
+		Shader texture;
+		Shader radialGradient;
+		Shader linearGradient;
+	} pen;
+};
+
+//utility
 Vec2f GlDrawContext::asGlInvert(const Vec2f& point, float ySize)
 {
 	return {point.x, ySize - point.y};
@@ -312,7 +338,7 @@ void GlDrawContext::fillText(const Text& t, const Brush& b)
 	glDeleteBuffers(1, &vbo);
 }
 
-void GlDrawContext::strokeText(const Text& t, const Pen& p)
+void GlDrawContext::strokeText(const Text&, const Pen&)
 {
 }
 
@@ -338,7 +364,7 @@ void GlDrawContext::clear(const Brush& brush)
 	}
 }
 
-void GlDrawContext::paint(const Brush& alpha, const Brush& fill) 
+void GlDrawContext::paint(const Brush&, const Brush&) 
 {
 	VALIDATE_CTX();
 	sendWarning("glDC::paint: not implemented yet...");

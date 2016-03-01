@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ny/include.hpp>
+#include <ny/draw/gl/resource.hpp>
 #include <nytl/nonCopyable.hpp>
 #include <nytl/rect.hpp>
 
@@ -17,9 +18,6 @@ namespace ny
 ///This class is useful as abstraction for the different backends.
 class GlContext : public NonCopyable
 {
-protected:
-	static GlContext* threadLocalCurrent(bool change = 0, GlContext* = nullptr);
-
 public:
 	///The possible apis a context may have. 
 	enum class Api
@@ -39,6 +37,9 @@ public:
 		{ return current() && current()->valid()? current() : nullptr; }
 
 protected:
+	static GlContext* threadLocalCurrent(bool change = 0, GlContext* = nullptr);
+
+protected:
 	Api api_ {Api::openGL};
 
 	unsigned int depthBits_ {0};
@@ -52,6 +53,9 @@ protected:
 	std::vector<unsigned int> glslVersions_;
 	unsigned int preferredGlslVersion_;
 
+	std::vector<std::unique_ptr<GlResource>> resources_; //TODO
+
+protected:
 	///This should be called by implementations at some point of context creation/initialisation
 	///to init the context (e.g. function pointer resolution; glew/glbinding). 
 	virtual void initContext(Api api, unsigned int depth = 0, unsigned int stencil = 0);
@@ -136,7 +140,7 @@ public:
 	///context will not be visible BEFORE a call to this function (since some backends may
 	///use a single buffer to draw its contents). AFTER a call to this function
 	///all contents should be applied.
-	///Alternative name(may not be matching for all backends though): swapBuffers()
+	///Alternative name(may not be matching for all backends though) would be swapBuffers().
 	virtual bool apply();
 
 	///Checks if this context is in a valid state. Usually all contexts that exist should

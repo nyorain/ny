@@ -10,15 +10,9 @@ namespace ny
 class ToplevelWindow : public Window
 {
 protected:
-    ToplevelState state_{};
-    std::string title_{};
-	
-	bool maximizeHint_ {0};
-	bool minimizeHint_ {0};
-	bool resizeHint_ {0};
-	bool moveHint_ {0};
-	bool closeHint_ {0};
-	bool customDecorated_ {0};
+    ToplevelState state_ {};
+    std::string title_ {};
+	WindowHints hints_ {};	
 
 protected:
 	virtual void mouseMoveEvent(const MouseMoveEvent& event) override;
@@ -35,17 +29,15 @@ public:
 	virtual ~ToplevelWindow();
 
     //hints
-    bool hasMaximizeHint() const { return (maximizeHint_); }
-    bool hasMinimizeHint() const { return (minimizeHint_); }
-    bool hasResizeHint() const { return (resizeHint_); }
-    bool hasMoveHint() const { return (moveHint_); }
-    bool hasCloseHint() const { return (closeHint_); }
-    bool customDecorated() const {  return (customDecorated_); }
+    bool maximizeHint() const { return nytl::bitsSet(hints_, WindowHints::maximize); }
+    bool minimizeHint() const { return nytl::bitsSet(hints_, WindowHints::minimize); }
+    bool resizeHint() const { return nytl::bitsSet(hints_, WindowHints::resize); }
+    bool closeHint() const { return nytl::bitsSet(hints_, WindowHints::close); }
+    bool customDecorated() const {  return nytl::bitsSet(hints_, WindowHints::customDecorated); }
 
     void maximizeHint(bool set);
     void minimizeHint(bool set);
     void resizeHint(bool set);
-    void moveHint(bool set);
     void closeHint(bool set);
     bool customDecorated(bool set);
 
@@ -58,6 +50,12 @@ public:
     bool maximized() const { return (state_ == ToplevelState::maximized); };
     bool minimized() const { return (state_ == ToplevelState::minimized); };
     bool fullscreen() const { return (state_ == ToplevelState::fullscreen); };
+	bool normalState() const { return (state_ == ToplevelState::normal); }
+
+	void maximize();
+	void minimize();
+	void setFullscreen();
+	void setNormalState();
 };
 
 }

@@ -38,7 +38,7 @@ void Window::create(App& papp, const Vec2ui& size, const WindowSettings& setting
 	app_ = &papp;
     size_ = size;
 
-	windowContext_ = app().backend().createWindowContext({});
+	windowContext_ = app().backend().createWindowContext(app().appContext(), settings);
 	app().windowCreated();
 }
 
@@ -160,7 +160,6 @@ void Window::minSize(const Vec2ui& size)
 
 void Window::draw(DrawContext& dc)
 {
-	//dc.clear(Color::white);
     onDraw(*this, dc);
 }
 
@@ -223,101 +222,6 @@ void Window::cursor(const Cursor& curs)
 }
 
 /*
-void toplevelWindow::setIcon(const image* icon)
-{
-    if(!checkValid()) return;
-    getWindowContext()->setIcon(icon);
-}
-
-void toplevelWindow::mouseButton(const mouseButtonEvent& ev)
-{
-    window::mouseButton(ev);
-
-    if(!isCustomResized() || !hasResizeHint())
-        return;
-* /
-
-    windowEdge medge = windowEdge::Unknown;
-
-    int length = 100;
-
-    bool found = 0;
-
-    if(ev.position.y > (int) size_.y - length)
-    {
-        medge = windowEdge::Bottom;
-
-        found = 1;
-    }
-
-    else if(ev.position.y < length)
-    {
-        medge = windowEdge::Top;
-
-        found = 1;
-    }
-
-    if(ev.position.x > (int) size_.x - length)
-    {
-        if(medge == windowEdge::Top) medge = windowEdge::TopRight;
-        else if(medge == windowEdge::Bottom) medge = windowEdge::BottomRight;
-        else medge = windowEdge::Right;
-
-        found = 1;
-    }
-
-    if(ev.position.x < length)
-    {
-        if(medge == windowEdge::Top) medge = windowEdge::TopLeft;
-        else if(medge == windowEdge::Bottom) medge = windowEdge::BottomLeft;
-        else medge = windowEdge::Left;
-
-        found = 1;
-    }
-
-    if(found) getWindowContext()->beginResize(&ev, medge);
-    else getWindowContext()->beginMove(&ev);
-}
-
-void toplevelWindow::mouseMove(const mouseMoveEvent& ev)
-{
-    window::mouseMove(ev);
-
-    if(!isCustomResized() || !hasResizeHint())
-        return;
-* /
-    cursorType t = cursorType::grab;
-
-    int length = 100;
-
-    if(ev.position.y > (int) size_.y - length)
-    {
-        t = cursorType::sizeBottom;
-    }
-
-    else if(ev.position.y < length)
-    {
-        t = cursorType::sizeTop;
-    }
-
-    if(ev.position.x > (int) size_.x - length)
-    {
-        if(t == cursorType::sizeTop) t = cursorType::sizeTopRight;
-        else if(t == cursorType::sizeBottom) t = cursorType::sizeBottomRight;
-        else t = cursorType::sizeRight;
-    }
-
-    if(ev.position.x < length)
-    {
-        if(t == cursorType::sizeTop) t = cursorType::sizeTopLeft;
-        else if(t == cursorType::sizeBottom) t = cursorType::sizeBottomLeft;
-        else t = cursorType::sizeLeft;
-    }
-
-    cursor_.fromNativeType(t);
-    windowContext_->updateCursor(nullptr);
-}
-
 void toplevelWindow::setTitle(const std::string& n)
 {
     title_ = n;
@@ -411,27 +315,6 @@ void toplevelWindow::setCloseHint(bool hint)
     else windowContext_->removeWindowHints(windowHints::Close);
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//childWindow///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-childWindow::childWindow() : window()
-{
-}
-
-childWindow::childWindow(window& parent, Vec2i position, Vec2ui size, windowContextSettings settings) : window()
-{
-    create(parent, position, size, settings);
-}
-
-void childWindow::create(window& parent, Vec2i position, Vec2ui size, windowContextSettings settings)
-{
-    //hints_ |= windowHints::Child;
-    window::create(parent, position, size, settings);
-}
-
-bool childWindow::isVirtual() const
-{
-    if(!checkValid()) return 0;
-    return windowContext_->isVirtual();
 }
 */
 

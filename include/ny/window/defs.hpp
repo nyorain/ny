@@ -2,13 +2,16 @@
 
 #include <ny/include.hpp>
 #include <nytl/vec.hpp>
+#include <nytl/enumOps.hpp>
+
 #include <cstdint>
 #include <bitset>
 
 namespace ny
 {
 
-enum class WindowHint : unsigned int
+///Toplevel window stsyle hints.
+enum class WindowHints : unsigned int
 {
     close = (1L << 1),
     maximize = (1L << 2),
@@ -130,3 +133,5 @@ public:
 };
 
 }
+
+NYTL_ENABLE_ENUM_OPS(ny::WindowHints)

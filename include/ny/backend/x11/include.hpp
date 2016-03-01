@@ -8,9 +8,4 @@ namespace ny
     class X11AppContext;
     class X11CairoDrawContext;
     class GlxContext;
-
-    namespace x11
-    {
-        class property;
-    }
 }
