@@ -15,4 +15,4 @@ ExternalProject_Add(nytl
 	CMAKE_ARGS ${ExternalProjectCMakeArgs})
 
 #install them
-install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/external/install" DESTINATION .)
+install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/install/." DESTINATION .)
