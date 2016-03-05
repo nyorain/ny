@@ -46,9 +46,9 @@ configure_file	( "${CMAKE_CURRENT_SOURCE_DIR}/src/ny/config.hpp.in"
 
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/include/ny/config.hpp" DESTINATION include/ny)
 
+add_subdirectory(external)
 add_subdirectory(src/ny)
 add_subdirectory(include/ny)
-add_subdirectory(external)
 
 if(NY_BUILD_EXAMPLES)
 	add_subdirectory(examples)
