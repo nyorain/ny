@@ -11,7 +11,7 @@ The winapi backend is broken, there is no os x backend (but there will be porbab
 Clone ny from this repository and cd to the toplevel-folder of it (.../ny/).
 
 Buidling ny with cmake and ninja: (recommended)
-`````````````
+`````````````Bash
 mkdir build
 cd build
 cmake -G "Ninja" -DCMAKE_INSTALL_PREFIX=/usr ..
@@ -20,7 +20,7 @@ ninja install
 ```````````
 
 Alternativley you can use gnu Makefiles to build it (might not work):
-``````````````
+``````````````Bash
 cmake -DCMAKE_INSTALL_PREFIX=/usr
 make
 make install
@@ -41,28 +41,18 @@ Here is a list for the optional or needed backends and dependencies on different
 <h2> Example </h2>
 This basic example demonstrates how to create a toplevelWindow in just a few lines.
 
-`````````````
+`````````````cpp
 #include <ny/ny.hpp>
-using namespace ny;
 
 int main()
 {
-  app myApp;
-  
-  if(!myApp.init())
-  {
-    return 0;
-  }
-  
-  toplevelWindow win(vec2i(100, 100), vec2ui(800, 500), "Hello World");
-  win.show();
+  ny::App app;
+  ny::Frame frame(app, ny::Vec2ui(800, 500), "Hello World");
 
-  win.onDraw([](dc& context){
-  		context.clear(color::white);
-  	});
+  frame.onDraw = [](ny::DrawContext& dc){ dc.clear(ny::Color::red); };
   
-  return myApp.mainLoop();
+  return app.run();
 }
 ````````````
 
-The line in which we specify the draw-procedure for the window `win.onDraw(...)` shows the possibilities of c++11 features like std::function. Where other gui-libraries rely on custom implemented or preprocessed signal-slot methods, ny simply uses callbacks. You could also specify a member function of your own class in `win.onDraw(...)`.
+The line in which we specify the draw-procedure for the window `frame.onDraw = ...` shows the possibilities of c++11 features like std::function. Where other gui-libraries rely on custom implemented or preprocessed signal-slot methods, ny simply uses callbacks. You could also specify a member function of your own class in `frame.onDraw`.
