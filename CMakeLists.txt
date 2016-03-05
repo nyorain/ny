@@ -4,8 +4,17 @@ project(ny)
 
 set(NY_VMAJOR 0)
 set(NY_VMINOR 1)
+set(NY_VPATCH 0)
 
-set(CMAKE_BUILD_TYPE Debug)
+option(NY_BUILD_EXAMPLES "build the ny examples" OFF)
+option(NY_BUILD_TESTS "build the ny tests" OFF)
+option(NY_DEBUG "include debug symbols" ON)
+
+if(NY_DEBUG)
+	set(CMAKE_BUILD_TYPE Debug)
+else(NY_DEBUG)
+	set(CMAKE_BUILD_TYPE Release)
+endif(NY_DEBUG)
 
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
 include_directories("${CMAKE_CURRENT_BINARY_DIR}/include")
@@ -15,9 +24,6 @@ include_directories("${CMAKE_CURRENT_BINARY_DIR}/src")
 include_directories("${CMAKE_CURRENT_BINARY_DIR}/external/install/include")
 link_directories("${CMAKE_CURRENT_BINARY_DIR}/external/install/lib")
 link_directories("${CMAKE_CURRENT_BINARY_DIR}/external/install/bin")
-
-option(NY_BUILD_EXAMPLES "build the ny examples" ON)
-option(NY_BUILD_TESTS "build the ny tests" OFF)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
