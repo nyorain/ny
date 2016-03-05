@@ -1,32 +1,28 @@
 #pragma once
 
-#include <ny/include.hpp>
-#include <ny/backend.hpp>
-
-#include <memory>
+#include <ny/backend/winapi/include.hpp>
+#include <ny/backend/backend.hpp>
 
 namespace ny
 {
 
-class winapiBackend : public backend
+class WinapiBackend : public Backend
 {
 protected:
-    static winapiBackend object;
-
-    virtual std::unique_ptr<windowContext> createWindowContextImpl(window& win, const windowContextSettings& settings = windowContextSettings()) override;
+    static WinapiBackend instance_;
+	WinapiBackend() = default;
 
 public:
-    winapiBackend();
+	static WinapiBackend& instance(){ return instance_; }
 
-    virtual bool isAvailable() const { return 1; } //todo: can this be implemented? should always be available under windows
+public:
+    virtual bool available() const { return 1; } //TODO: sth to check here?
 
-    virtual std::unique_ptr<appContext> createAppContext() override;
+    virtual AppContextPtr createAppContext() override;
+	virtual WindowContextPtr createWindowContext(AppContext& app,
+			const WindowSettings& s = {}) override;
 
-    virtual bool hasNativeHandling() const { return 1; };
-    virtual bool hasNativeDecoration() const { return 1; };
-
-    virtual bool hasCustomHandling() const { return 1; };
-    virtual bool hasCustomDecoration() const { return 1; };
+	virtual std::string name() const override { return "winapi"; }
 };
 
 }

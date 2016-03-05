@@ -5,7 +5,7 @@
 namespace ny
 {
 
-ToplevelWindow::ToplevelWindow(App& app, const Vec2ui& size, const std::string& title, 
+ToplevelWindow::ToplevelWindow(App& app, const Vec2ui& size, const std::string& title,
 		const WindowSettings& settings) : Window(), title_(title)
 {
 	create(app, size, title, settings);
@@ -15,7 +15,7 @@ ToplevelWindow::~ToplevelWindow()
 {
 }
 
-void ToplevelWindow::create(App& app, const Vec2ui& size, const std::string& title, 
+void ToplevelWindow::create(App& app, const Vec2ui& size, const std::string& title,
 		const WindowSettings& settings)
 {
 	title_ = title;
@@ -155,7 +155,7 @@ void ToplevelWindow::mouseButtonEvent(const MouseButtonEvent& ev)
     Window::mouseButtonEvent(ev);
     if(!customDecorated()) return;
 
-    WindowEdge medge = WindowEdge::unknown;
+    WindowEdges medge = WindowEdges::unknown;
 
     int length = 100;
 
@@ -163,32 +163,32 @@ void ToplevelWindow::mouseButtonEvent(const MouseButtonEvent& ev)
 
     if(ev.position.y > (int) size_.y - length)
     {
-        medge = WindowEdge::bottom;
+        medge = WindowEdges::bottom;
 
         found = 1;
     }
 
     else if(ev.position.y < length)
     {
-        medge = WindowEdge::top;
+        medge = WindowEdges::top;
 
         found = 1;
     }
 
     if(ev.position.x > (int) size_.x - length)
     {
-        if(medge == WindowEdge::top) medge = WindowEdge::topRight;
-        else if(medge == WindowEdge::bottom) medge = WindowEdge::bottomRight;
-        else medge = WindowEdge::right;
+        if(medge == WindowEdges::top) medge = WindowEdges::topRight;
+        else if(medge == WindowEdges::bottom) medge = WindowEdges::bottomRight;
+        else medge = WindowEdges::right;
 
         found = 1;
     }
 
     if(ev.position.x < length)
     {
-        if(medge == WindowEdge::top) medge = WindowEdge::topLeft;
-        else if(medge == WindowEdge::bottom) medge = WindowEdge::bottomLeft;
-        else medge = WindowEdge::left;
+        if(medge == WindowEdges::top) medge = WindowEdges::topLeft;
+        else if(medge == WindowEdges::bottom) medge = WindowEdges::bottomLeft;
+        else medge = WindowEdges::left;
 
         found = 1;
     }

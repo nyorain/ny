@@ -11,14 +11,15 @@ set(src-draw
 		image.cpp
 		svg.cpp
 		font.cpp
-		triangulate.cpp
-		pugixml/pugixml.cpp)
+	triangulate.cpp)
+		#pugixml/pugixml.cpp)
 
 if(NY_WithGL)
-	set(src-draw ${src-draw} 
+	set(include-draw ${include-draw} "${CMAKE_SOURCE_DIR}/include/ny/draw/gl/glad")
+	set(src-draw ${src-draw}
 		gl/glad/glad.c
-		gl/context.cpp 
-		gl/drawContext.cpp 
+		gl/context.cpp
+		gl/drawContext.cpp
 		gl/texture.cpp
 		gl/shader.cpp
 		gl/shaderGenerator.cpp
@@ -48,8 +49,6 @@ if(NY_WithWinapi)
 endif(NY_WithWinapi)
 
 add_library(ny-draw SHARED ${src-draw})
-target_compile_features(ny-draw PRIVATE cxx_range_for)
-
 target_link_libraries(ny-draw ${libs-draw})
 target_include_directories(ny-draw PUBLIC ${include-draw})
 
@@ -60,4 +59,3 @@ install (TARGETS ${targets-draw}
 	ARCHIVE DESTINATION lib
 	LIBRARY DESTINATION lib
 	RUNTIME DESTINATION bin)
-

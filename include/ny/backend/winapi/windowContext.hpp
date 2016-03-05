@@ -1,106 +1,78 @@
 #pragma once
 
-#include <ny/winapi/winapiInclude.hpp>
-#include <ny/windowContext.hpp>
-#include <ny/winapi/gdiDrawContext.hpp>
+#include <ny/backend/winapi/include.hpp>
+#include <ny/backend/windowContext.hpp>
+#include <nytl/rect.hpp>
 
-#include <winsock2.h>
 #include <windows.h>
 
 namespace ny
 {
 
-class winapiWindowContextSettings : public windowContextSettings
-{
-};
+///Extents the WindowSettings class with extra winapi-specific settings.
+class WinapiWindowSettings : public WindowSettings {};
 
-typedef winapiWindowContextSettings winapiWS;
-
-//enum
-enum class winapiDrawType : unsigned char
-{
-    none,
-
-    wgl,
-    gdi
-};
-
-
-//windowContext
-class winapiWindowContext : public windowContext
+///WindowContext for winapi windows using the winapi backend on a windows OS.
+class WinapiWindowContext : public WindowContext
 {
 protected:
-    static unsigned int highestID; //just for window class registration
+	WinapiAppContext* appContext_;
 
-protected:
     HWND handle_;
     WNDCLASSEX wndClass_;
-    PAINTSTRUCT tmpPS_;
 
-    winapiDrawType drawType_ = winapiDrawType::none;
-    union
-    {
-        std::unique_ptr<gdiDrawContext> gdi_ {nullptr};
-
-        #ifdef NY_WithGL
-         std::unique_ptr<wglDrawContext> wgl_;
-        #endif //GL
-    };
+protected:
+	void initWindowClass(const WinapiWindowSettings& settings);
+	void initWindow(const WinapiWindowSettings& settings);
 
 public:
-    winapiWindowContext(window& win, const winapiWindowContextSettings& settings = winapiWindowContextSettings());
-    virtual ~winapiWindowContext();
+    WinapiWindowContext(WinapiAppContext& ctx, const WinapiWindowSettings& settings = {});
+    virtual ~WinapiWindowContext();
 
     virtual void refresh() override;
 
-    virtual drawContext* beginDraw() override;
-    virtual void finishDraw() override;
+    virtual DrawGuard draw() override;
 
     virtual void show() override;
     virtual void hide() override;
 
-    //virtual void setWindowHints(const unsigned long hints) override;
-    virtual void addWindowHints(const unsigned long hint) override;
-    virtual void removeWindowHints(const unsigned long hint) override;
+	virtual void droppable(const DataTypes&) override {}
 
-    //virtual void setContextHints(const unsigned long hints);
-    virtual void addContextHints(const unsigned long hints) override;
-    virtual void removeContextHints(const unsigned long hints) override;
+    virtual void addWindowHints(WindowHints hints) override;
+    virtual void removeWindowHints(WindowHints hints) override;
 
-    //virtual void setSettings(const windowContextSettings& s);
+    virtual void size(const Vec2ui& size) override;
+    virtual void position(const Vec2i& position) override;
 
-    virtual void setSize(Vec2ui size, bool change = 1) override;
-    virtual void setPosition(Vec2i position, bool change = 1) override;
+    virtual void cursor(const Cursor& c) override;
+    virtual bool handleEvent(const Event& e) override;
 
-    virtual void setCursor(const cursor& c) override;
-    virtual void updateCursor(const mouseCrossEvent* ev) override {};
-
-    virtual bool hasGL() const override { return 0; };
-    virtual void processEvent(const contextEvent& e) override;
+	virtual NativeWindowHandle nativeHandle() const override;
 
     //toplevel
-    virtual void setMaximized() override {};
-    virtual void setMinimized() override {};
-    virtual void setFullscreen() override {};
-    virtual void setNormal() override {};
+    virtual void maximize() override;
+    virtual void minimize() override;
+    virtual void fullscreen() override;
+    virtual void normalState() override;
 
-    virtual void setMinSize(Vec2ui size) override {};
-    virtual void setMaxSize(Vec2ui size) override {};
+    virtual void minSize(const Vec2ui& size) override {};
+    virtual void maxSize(const Vec2ui& size) override {};
 
-    virtual void beginMove(const mouseButtonEvent* ev) override {};
-    virtual void beginResize(const mouseButtonEvent* ev, windowEdge edges) override {};
+    virtual void beginMove(const MouseButtonEvent* ev) override {};
+    virtual void beginResize(const MouseButtonEvent* ev, WindowEdges edges) override {};
 
-    virtual void setIcon(const image* img) override {};
-    virtual void setTitle(const std::string& title) override {};
+	virtual bool customDecorated() const override { return 0; };
 
-    /////////////////////////////////////////
+    virtual void icon(const Image* img) override {};
+    virtual void title(const std::string& title) override {};
+
     //winapi specific
-    HWND getHandle() const { return handle_; }
-    WNDCLASSEX getWndClassEx() const { return wndClass_; }
+	WinapiAppContext& appContext() const { return *appContext_; }
 
-    gdiDrawContext* getGDI() const { if(drawType_ == winapiDrawType::gdi) return gdi_.get(); return nullptr; }
-    wglDrawContext* getWGL() const { if(drawType_ == winapiDrawType::wgl) return wgl_.get(); return nullptr; }
-    winapiDrawType getDrawType() const { return drawType_;}
+    HWND handle() const { return handle_; }
+    WNDCLASSEX windowClass() const { return wndClass_; }
+
+	Rect2i extents() const;
 };
 
 

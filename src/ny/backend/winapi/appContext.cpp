@@ -1,21 +1,47 @@
-#include <ny/winapi/winapiAppContext.hpp>
+#include <ny/backend/winapi/appContext.hpp>
+#include <ny/backend/winapi/windowContext.hpp>
 
-#include <ny/winapi/winapiWindowContext.hpp>
+#include <ny/base/log.hpp>
+#include <ny/base/event.hpp>
+#include <ny/base/loopControl.hpp>
+#include <ny/window/events.hpp>
+#include <ny/app/mouse.hpp>
+#include <ny/app/keyboard.hpp>
+#include <ny/app/eventDispatcher.hpp>
 
-#include <ny/error.hpp>
-#include <ny/app.hpp>
-#include <ny/event.hpp>
-#include <ny/windowEvents.hpp>
-#include <ny/mouse.hpp>
-#include <ny/keyboard.hpp>
-#include <ny/window.hpp>
-
-#include <iostream>
+#include <stdexcept>
 
 namespace ny
 {
 
-winapiAppContext::winapiAppContext()
+//todo - kinda hacky atm
+namespace
+{
+	WinapiAppContext* gAC;
+};
+
+//LoopControl
+class WinapiAppContext::LoopControlImpl : public ny::LoopControlImpl
+{
+public:
+	DWORD threadHandle;
+	std::atomic<bool>* run;
+
+public:
+	LoopControlImpl(std::atomic<bool>& prun) : run(&prun)
+	{
+		threadHandle = GetCurrentThreadId();
+	}
+
+	virtual void stop() override
+	{
+		run->store(0);
+		PostThreadMessage(threadHandle, WM_USER, 0, 0);
+	};
+};
+
+//WinapiAC
+WinapiAppContext::WinapiAppContext()
 {
     instance_ = GetModuleHandle(nullptr);
 
@@ -28,90 +54,107 @@ winapiAppContext::winapiAppContext()
     GetStartupInfo(&startupInfo_);
     GdiplusStartup(&gdiplusToken_, &gdiplusStartupInput_, nullptr);
 
-    //eventSource
-    eventSource_.reset(new idleEventSource(nyMainApp()->getEventLoop(), 1));
-    eventSource_->onNotify = memberCallback(&winapiAppContext::mainLoop, this);
+	gAC = this;
 }
 
-winapiAppContext::~winapiAppContext()
+WinapiAppContext::~WinapiAppContext()
 {
     if(gdiplusToken_) GdiplusShutdown(gdiplusToken_);
 }
 
-bool winapiAppContext::mainLoop()
+bool WinapiAppContext::dispatchEvents(EventDispatcher& dispatcher)
 {
+	receivedQuit_ = 0;
+
     MSG msg;
-    BOOL ret = GetMessage(&msg, nullptr, 0, 0);
+    while(PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
+	{
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+	}
 
-    if(ret == -1)
-    {
-        //error
-        return 0;
-    }
-
-    else if(ret == 0)
-    {
-        //exit
-        return 0;
-    }
-
-    else
-    {
-        //eventProc(msg.hwnd, msg.message, msg.wParam, msg.lParam);
-
-        //ok
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
-
-        return 1;
-    }
+	return !receivedQuit_;
 }
 
-void winapiAppContext::registerContext(HWND w, winapiWindowContext* c)
+bool WinapiAppContext::dispatchLoop(EventDispatcher& dispatcher, LoopControl& control)
 {
-    contexts_[w] = c;
+	std::atomic<bool> run {1};
+	control.impl_ = std::make_unique<LoopControlImpl>(run);
+
+	dispatcherLoopControl_ = &control;
+	eventDispatcher_ = &dispatcher;
+
+	MSG msg;
+	while(run.load())
+	{
+		auto ret = GetMessage(&msg, nullptr, 0, 0);
+		if(ret == -1)
+		{
+			//error
+			sendWarning("WinapiAC::dispatchLoop: error code ", GetLastError());
+			return false;
+		}
+		else if(ret == 0)
+		{
+			//quit
+			return false;
+		}
+		else
+		{
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+	}
+
+	dispatcherLoopControl_ = nullptr;
+	control.impl_.reset();
+	return true;
 }
 
-void winapiAppContext::unregisterContext(HWND w)
+void WinapiAppContext::registerContext(HWND w, WinapiWindowContext& c)
+{
+    contexts_[w] = &c;
+}
+
+void WinapiAppContext::unregisterContext(HWND w)
 {
     contexts_.erase(w);
 }
 
-void winapiAppContext::unregisterContext(winapiWindowContext* c)
-{
-    //todo: implement
-}
-
-winapiWindowContext* winapiAppContext::getWindowContext(HWND w)
+WinapiWindowContext* WinapiAppContext::windowContext(HWND w)
 {
     if(contexts_.find(w) != contexts_.end())
         return contexts_[w];
 
-    nyDebug("winapiAC::getWC: could find windowContext for handle ", w);
     return nullptr;
 }
 
 //wndProc
-LRESULT winapiAppContext::eventProc(HWND handler, UINT message, WPARAM wparam, LPARAM lparam)
+LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LPARAM lparam)
 {
-    //todo: implement all events corRectly, look em up
+    //todo: implement all events correctly, look em up
+	auto context = windowContext(window);
+	auto handler = context ? context->eventHandler() : nullptr;
+
+	bool handlerEvents = (handler && eventDispatcher_);
+	bool contextEvents = (context && eventDispatcher_);
 
     switch(message)
     {
         case WM_CREATE:
         {
-            //CREATESTRUCT* cr = (CREATESTRUCT*) lparam;
-            //winapiWindowContext* w = (winapiWindowContext*) cr->lpCreateParams;
-            //nyMainApp()->sendEvent(make_unique<contextCreateEvent>(&w->getWindow()));
-            break;
+            return 0;
         }
 
         case WM_MOUSEMOVE:
         {
-            winapiWindowContext* w = getWindowContext(handler);
-            if(!w) break;
-            nyMainApp()->mouseMove(make_unique<mouseMoveEvent>(&w->getWindow()));
-            break;
+			if(handlerEvents)
+			{
+				auto ev = std::make_unique<MouseMoveEvent>(handler);
+				eventDispatcher_->dispatch(std::move(ev));
+			}
+
+			return 0;
         }
 
         case WM_MBUTTONDOWN:
@@ -126,42 +169,46 @@ LRESULT winapiAppContext::eventProc(HWND handler, UINT message, WPARAM wparam, L
 
         case WM_PAINT:
         {
-            winapiWindowContext* w = getWindowContext(handler);
-            if(!w) break;
-            nyMainApp()->sendEvent(make_unique<drawEvent>(&w->getWindow()));
-            break;
+			if(handlerEvents)
+			{
+				auto ev = std::make_unique<DrawEvent>(handler);
+				eventDispatcher_->dispatch(std::move(ev));
+			}
+
+            return DefWindowProc(window, message, wparam, lparam); //to validate the rgn
         }
 
-        case WM_DESTROY:
-        {
-            winapiWindowContext* w = getWindowContext(handler);
-            if(!w) break;
-            nyMainApp()->sendEvent(make_unique<destroyEvent>(&w->getWindow()));
-            break;
-        }
+		case WM_DESTROY:
+		{
+			if(handlerEvents)
+			{
+				auto ev = std::make_unique<CloseEvent>(handler);
+				eventDispatcher_->dispatch(std::move(ev));
+			}
+
+			return 0;
+		}
 
         case WM_SIZE:
         {
-            winapiWindowContext* w = getWindowContext(handler);
-            if(!w) break;
-            Vec2ui size = Vec2ui(LOWORD(lparam), HIWORD(lparam)); //todo
-            nyMainApp()->sendEvent(make_unique<sizeEvent>(&w->getWindow(), size, 0));
-            break;
+			if(handlerEvents)
+			{
+				auto ev = std::make_unique<SizeEvent>(handler);
+				eventDispatcher_->dispatch(std::move(ev));
+			}
+
+			return 0;
         }
 
         case WM_MOVE:
         {
-            winapiWindowContext* w = getWindowContext(handler);
-            if(!w) break;
-            Vec2i pos = Vec2i(); //todo
-            nyMainApp()->sendEvent(make_unique<positionEvent>(&w->getWindow(), pos, 0));
-            break;
-        }
+			if(handlerEvents)
+			{
+				auto ev = std::make_unique<PositionEvent>(handler);
+				eventDispatcher_->dispatch(std::move(ev));
+			}
 
-        case WM_QUIT:
-        {
-            nyMainApp()->exit();
-            break;
+			return 0;
         }
 
         case WM_ERASEBKGND:
@@ -169,21 +216,21 @@ LRESULT winapiAppContext::eventProc(HWND handler, UINT message, WPARAM wparam, L
             return 1;
         }
 
-        default:
-            return DefWindowProc (handler, message, wparam, lparam);
-
+		case WM_QUIT:
+		{
+			receivedQuit_ = 1;
+			if(dispatcherLoopControl_) dispatcherLoopControl_->stop();
+			return 0;
+		}
     }
 
-    return 0;
+	return DefWindowProc (window, message, wparam, lparam);
 }
 
 
-//////////////////////////////////////////////////////////////////////////////////////////
-LRESULT CALLBACK dummyWndProc(HWND a, UINT b, WPARAM c, LPARAM d)
+LRESULT CALLBACK WinapiAppContext::wndProcCallback(HWND a, UINT b, WPARAM c, LPARAM d)
 {
-    winapiAppContext* aco = (winapiAppContext*) nyMainApp()->getAppContext();
-    //return DefWindowProc(a,b,c,d);
-    return aco->eventProc(a,b,c,d);
+    return gAC->eventProc(a,b,c,d);
 }
 
 }

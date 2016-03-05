@@ -25,10 +25,10 @@ Logger& errorLogger()
 Logger& debugLogger()
 {
 #ifndef NDEBUG
-	static Logger object("", "error", std::cerr);
+	static Logger object("", "debug", std::cerr);
 	return object;
 #else
-	static Logger object("", "error"); //invalid object - no stream
+	static Logger object("", "debug"); //invalid object - no stream
 	return object;
 #endif
 }

@@ -1,7 +1,8 @@
 #pragma once
 
-#include <ny/winapi/winapiInclude.hpp>
-#include <ny/gl/glDrawContext.hpp>
+#include <ny/backend/winapi/include.hpp>
+#include <ny/backend/winapi/windowContext.hpp>
+#include <ny/draw/gl/context.hpp>
 
 #include <windows.h>
 #include <GL/gl.h>
@@ -9,10 +10,9 @@
 namespace ny
 {
 
-class wglDrawContext : public glDrawContext
+///OpenGL context implementation using the wgl api on windows.
+class WglContext : public GlContext
 {
-friend class winapiWindowContext;
-
 protected:
     virtual bool makeCurrentImpl() override;
     virtual bool makeNotCurrentImpl() override;
@@ -26,10 +26,22 @@ protected:
     bool setupContext();
 
 public:
-    wglDrawContext(winapiWindowContext& wc);
-    ~wglDrawContext();
+    WglDrawContext(winapiWindowContext& wc);
+    virtual ~WglDrawContext();
 
     virtual bool swapBuffers() override;
+};
+
+///Winapi WindowContext using wgl (OpenGL) to draw.
+class WglWindowContext : public WinapiWindowContext
+{
+protected:
+	std::unique_ptr<WglContext> wglContext_;
+	std::unique_ptr<GlDrawContext> drawContext_;
+
+public:
+	WglWindowContext(WinapiAppContext& ctx, const WinapiWindowSettings& settings = {});
+	virtual DrawGuard draw() override;
 };
 
 }

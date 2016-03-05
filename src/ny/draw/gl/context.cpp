@@ -1,7 +1,6 @@
 #include <ny/draw/gl/context.hpp>
 #include <ny/base/log.hpp>
 #include <nytl/misc.hpp>
-#include <EGL/egl.h>
 
 #include <ny/draw/gl/glad/glad.h>
 

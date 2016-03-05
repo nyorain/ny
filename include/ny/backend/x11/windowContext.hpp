@@ -14,7 +14,7 @@ namespace ny
 ///Additional settings for a X11 Window.
 class X11WindowSettings : public WindowSettings {};
 
-///The X11 implementation of a WindowContext. 
+///The X11 implementation of a WindowContext.
 ///Tries to use xcb where possible, for some things (e.g. glx context) xlib is needed though.
 class X11WindowContext : public WindowContext
 {
@@ -30,7 +30,7 @@ public:
 protected:
 	X11AppContext* appContext_ = nullptr;
     xcb_window_t xWindow_ = 0;
-	xcb_visualid_t xVisualID_ = 0; 
+	xcb_visualid_t xVisualID_ = 0;
 
 	unsigned long states_ = 0;
     unsigned long mwmFuncHints_ = 0;
@@ -50,7 +50,7 @@ public:
     //high-level virtual interface
     virtual void refresh() override;
 
-    virtual DrawGuard draw() override = 0;
+    virtual DrawGuard draw() override;
 
     virtual void show() override;
     virtual void hide() override;
@@ -73,7 +73,7 @@ public:
     virtual void toplevel() override;
 
     virtual void beginMove(const MouseButtonEvent* ev) override;
-    virtual void beginResize(const MouseButtonEvent* ev, WindowEdge edges) override;
+    virtual void beginResize(const MouseButtonEvent* ev, WindowEdges edges) override;
 
     virtual void title(const std::string& title) override;
 	virtual void icon(const Image* img) override;

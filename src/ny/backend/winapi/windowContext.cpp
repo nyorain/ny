@@ -1,300 +1,176 @@
-#include <ny/winapi/winapiWindowContext.hpp>
-#include <ny/winapi/winapiAppContext.hpp>
-#include <ny/winapi/gdiDrawContext.hpp>
-#include <ny/winapi/wgl.hpp>
-
-#include <ny/app.hpp>
-#include <ny/error.hpp>
-#include <ny/window.hpp>
+#include <ny/backend/winapi/windowContext.hpp>
+#include <ny/backend/winapi/appContext.hpp>
+#include <ny/draw/drawContext.hpp>
 
 #include <tchar.h>
+#include <stdexcept>
 
 namespace ny
 {
 
-unsigned int winapiWindowContext::highestID = 0;
-
-bool usingGLWin(preference glPref)
-{
-    //WithGL
-    #if (!defined NY_WithGL)
-     if(glPref == preference::Must) throw std::runtime_error("winapiWC::winapiWC: no gl renderer available, glPreference was set to MUST");
-     else return 0;
-
-    #else
-     if(glPref == preference::Must || glPref == preference::Should) return 1;
-     else return 0;
-
-    #endif
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//windowContext///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-winapiWindowContext::winapiWindowContext(window& win, const winapiWindowContextSettings& settings) : windowContext(win, settings)
+//windowContext
+WinapiWindowContext::WinapiWindowContext(WinapiAppContext& appContext,
+	const WinapiWindowSettings& settings)
 {
     //init check
-    winapiAppContext* ac = nyWinapiAppContext();
+	appContext_ = &appContext;
 
-    if(!ac) throw std::runtime_error("winapiWindowContext::create: winapiAppContext not corRectly set");
-    if(!ac->getInstance()) throw std::runtime_error("winapiWindowContext::create: hInstance invalid");
+    if(!appContext.hinstance())
+	{
+		throw std::runtime_error("winapiWC::create: uninitialized appContext");
+	}
 
-    //toplevel or child, gl or gdi
-    bool gl = usingGLWin(settings.glPref);
+	initWindowClass(settings);
 
-    auto* toplvlw = dynamic_cast<toplevelWindow*>(&win);
-    auto* childw = dynamic_cast<childWindow*>(&win);
+	if (!RegisterClassEx(&wndClass_))
+	{
+		throw std::runtime_error("winapiWC::create: could not register window class");
+		return;
+	}
 
-    HWND parentHandle = nullptr;
-    std::string windowName;
-
-    if((!toplvlw && !childw) || (toplvlw && childw)) throw std::runtime_error("winapiWC::winapiWC: window must be either of childWindow or of toplevelWindow type");
-    else if(toplvlw)
-    {
-        parentHandle = HWND_DESKTOP;
-        windowName = toplvlw->getTitle();
-    }
-    else if(childw)
-    {
-        winapiWC* parentWC = dynamic_cast<winapiWindowContext*>(childw->getParent()->getWC());
-        if(!parentWC || !(parentHandle = parentWC->getHandle())) throw std::runtime_error("winapiWC::winapiWC: could not find xParent");
-
-        windowName = "test: childWindowName";
-    }
-
-    //register window class
-    highestID++;
-    std::string name = "regName" + std::to_string(highestID);
-
-    wndClass_.hInstance = ac->getInstance();
-    wndClass_.lpszClassName = _T(name.c_str());
-    wndClass_.lpfnWndProc = &dummyWndProc;
-    wndClass_.style = CS_DBLCLKS;
-    wndClass_.cbSize = sizeof (WNDCLASSEX);
-    wndClass_.hIcon = LoadIcon (nullptr, IDI_APPLICATION);
-    wndClass_.hIconSm = LoadIcon (nullptr, IDI_APPLICATION);
-    wndClass_.hCursor = LoadCursor (nullptr, IDC_ARROW);
-    wndClass_.lpszMenuName = nullptr;
-    wndClass_.cbClsExtra = 0;
-    wndClass_.cbWndExtra = 0;
-
-    if(gl)
-    {
-        wndClass_.style |= CS_OWNDC;
-        wndClass_.hbrBackground = (HBRUSH) GetStockObject(COLOR_BACKGROUND);
-    }
-    else
-    {
-        wndClass_.hbrBackground = (HBRUSH) GetStockObject(WHITE_BRUSH);
-    }
-
-    if (!RegisterClassEx(&wndClass_))
-    {
-        throw std::runtime_error("winapiWindowContext::create: could not register window class");
-        return;
-    }
-
-    //create and check
-    handle_ = CreateWindowEx(0, wndClass_.lpszClassName, _T(windowName.c_str()), WS_OVERLAPPEDWINDOW, win.getPosition().x, win.getPosition().y, win.getSize().x,
-                             win.getSize().y, parentHandle, nullptr, ac->getInstance(), this);
-
-    if(!handle_)
-    {
-        auto code = GetLastError();
-        throw std::runtime_error("winapiWindowContext::create: CreateWindowEx failed with error " + std::to_string(code));
-    }
-
-    //register this wc
-    //todo: unregister if creation fails?
-    ac->registerContext(handle_, this);
-
-    //dc
-    if(gl)
-    {
-        drawType_ = winapiDrawType::wgl;
-        wgl_.reset(new wglDrawContext(*this));
-        wgl_->setupContext();
-    }
-    else
-    {
-        drawType_ = winapiDrawType::gdi;
-        gdi_.reset(new gdiDrawContext(*this));
-    }
-
-    //here?
-    ShowWindow(handle_, 10); //why 10? more generic?
-    UpdateWindow(handle_);
+	initWindow(settings);
 }
 
-winapiWindowContext::~winapiWindowContext()
+WinapiWindowContext::~WinapiWindowContext()
 {
-    CloseWindow(handle_);
+    if(handle_)
+	{
+		CloseWindow(handle_);
+		appContext().unregisterContext(handle_);
+	}
 }
 
-void winapiWindowContext::refresh()
+void WinapiWindowContext::initWindowClass(const WinapiWindowSettings& settings)
+{
+	static unsigned int highestID = 0;
+
+	highestID++;
+	std::string name = "ny::WinapiWindowClass" + std::to_string(highestID);
+
+	wndClass_.hInstance = appContext().hinstance();
+	wndClass_.lpszClassName = _T(name.c_str());
+	wndClass_.lpfnWndProc = &WinapiAppContext::wndProcCallback;
+	wndClass_.style = CS_DBLCLKS;
+	wndClass_.cbSize = sizeof(WNDCLASSEX);
+	wndClass_.hIcon = LoadIcon (nullptr, IDI_APPLICATION);
+	wndClass_.hIconSm = LoadIcon (nullptr, IDI_APPLICATION);
+	wndClass_.hCursor = LoadCursor (nullptr, IDC_ARROW);
+	wndClass_.lpszMenuName = nullptr;
+	wndClass_.cbClsExtra = 0;
+	wndClass_.cbWndExtra = 0;
+	wndClass_.hbrBackground = (HBRUSH) GetStockObject(WHITE_BRUSH);
+}
+
+void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
+{
+	auto size = settings.size;
+	auto position = settings.position;
+
+	if(position.x == -1) position.x = CW_USEDEFAULT;
+	if(position.y == -1) position.y = CW_USEDEFAULT;
+
+	if(size.x == -1) size.x = CW_USEDEFAULT;
+	if(size.y == -1) size.y = CW_USEDEFAULT;
+
+	auto parent = static_cast<HWND>(settings.parent.pointer());
+	auto hinstance = appContext().hinstance();
+	auto style = WS_OVERLAPPEDWINDOW;
+
+	handle_ = CreateWindowEx(0, wndClass_.lpszClassName, _T(settings.title.c_str()), style,
+		position.x, position.y, size.x, size.y, parent, nullptr, hinstance, this);
+
+	appContext().registerContext(handle_, *this);
+
+	if(settings.initShown)
+	{
+		if(settings.initState == ToplevelState::maximized) ShowWindow(handle_, SW_SHOWMAXIMIZED);
+		else if(settings.initState == ToplevelState::minimized) ShowWindow(handle_, SW_SHOWMINIMIZED);
+		else ShowWindow(handle_, SW_SHOWDEFAULT);
+
+		UpdateWindow(handle_);
+	}
+}
+
+void WinapiWindowContext::refresh()
 {
     RedrawWindow(handle_, nullptr, nullptr, RDW_INVALIDATE | RDW_NOERASE);
 }
 
-drawContext* winapiWindowContext::beginDraw()
+DrawGuard WinapiWindowContext::draw()
 {
-    if(getGDI())
-    {
-        gdi_->beginDraw();
-        return gdi_.get();
-    }
-    else if(getWGL())
-    {
-        BeginPaint(handle_, &tmpPS_);
-
-        wgl_->makeCurrent();
-        return wgl_.get();
-    }
-    else
-    {
-        nyWarning("winapiWC::beginDraw: no valid drawContext.");
-        return nullptr;
-    }
-}
-void winapiWindowContext::finishDraw()
-{
-    if(getGDI())
-    {
-        gdi_->finishDraw();
-    }
-    else if(getWGL())
-    {
-        EndPaint(handle_, &tmpPS_);
-
-        wgl_->swapBuffers(); //todo check
-        //wgl_->makeNotCurrent();
-    }
-    else
-    {
-        //todo
-    }
-}
-
-void winapiWindowContext::show()
-{
-}
-void winapiWindowContext::hide()
-{
-}
+	throw std::logic_error("ny::WinapiWC: called draw() on draw-less windowContext");
 
 /*
-void winapiWindowContext::setWindowHints(const unsigned long hints)
-{
-}
+	PAINTSTRUCT ps;
+	BeginPaint(handle_, &ps);
+	EndPaint(handle_, &ps);
 */
-void winapiWindowContext::addWindowHints(const unsigned long hint)
+}
+
+void WinapiWindowContext::show()
+{
+	ShowWindow(handle_, SW_SHOWDEFAULT);
+}
+void WinapiWindowContext::hide()
+{
+	ShowWindow(handle_, SW_HIDE);
+}
+
+void WinapiWindowContext::addWindowHints(WindowHints hints)
 {
 }
-void winapiWindowContext::removeWindowHints(const unsigned long hint)
+void WinapiWindowContext::removeWindowHints(WindowHints hints)
 {
 }
 
-/*
-void winapiWindowContext::setContextHints(const unsigned long hints)
-{
-}
-*/
-void winapiWindowContext::addContextHints(const unsigned long hints)
-{
-}
-void winapiWindowContext::removeContextHints(const unsigned long hints)
+bool WinapiWindowContext::handleEvent(const Event& e)
 {
 }
 
-/*
-void winapiWindowContext::setSettings(const windowContextSettings& s)
+void WinapiWindowContext::size(const Vec2ui& size)
 {
-}
-*/
+	SetWindowPos(handle_, HWND_TOP, 0, 0, size.x, size.y, SWP_NOMOVE);
 
-void winapiWindowContext::processEvent(const contextEvent& e)
+}
+void WinapiWindowContext::position(const Vec2i& position)
 {
-    if(e.contextType() == eventType::contextCreate)
-    {
-        //if(getWGL())
-        //    if(!getWGL()->setupContext())
-        //        nyError("winapiWC::failed to init wgl context.");
-    }
+	SetWindowPos(handle_, HWND_TOP, position.x, position.y, 0, 0, SWP_NOSIZE);
 }
 
-void winapiWindowContext::setSize(Vec2ui size, bool change)
-{
-    if(getWGL())
-        wgl_->updateViewport(size);
-}
-void winapiWindowContext::setPosition(Vec2i position, bool change)
+void WinapiWindowContext::cursor(const Cursor& c)
 {
 }
 
-void winapiWindowContext::setCursor(const cursor& c)
+void WinapiWindowContext::fullscreen()
 {
 }
 
-//////////////////////////////////////////////////
-//
-/*
-winapiToplevelWindowContext::winapiToplevelWindowContext(toplevelWindow* win, const winapiWindowContextSettings& settings) : windowContext(win, settings), toplevelWindowContext(win, settings), winapiWindowContext(win, settings)
+void WinapiWindowContext::maximize()
 {
-    winapiAppContext* ac = dynamic_cast<winapiAppContext*> (nyMainApp()->getAppContext());
-
-    if (!RegisterClassEx(&m_wndClass))
-    {
-        throw std::runtime_error("winapiWindowContext::create: could not register window class");
-        return;
-    }
-
-    m_handle = CreateWindowEx(0, m_wndClass.lpszClassName, _T(win->getName().c_str()), WS_OVERLAPPEDWINDOW, win->getPosition().x, win->getPosition().y, win->getSize().x, win->getSize().y, HWND_DESKTOP, NULL, m_instance, NULL);
-
-
-    if(!m_handle)
-    {
-        throw std::runtime_error("winapiWindowContext::create: could not create window");
-        return;
-    }
-
-    ShowWindow(m_handle, 10);
-    UpdateWindow(m_handle);
-
-    ac->registerContext(m_handle, this);
+	ShowWindow(handle_, SW_MAXIMIZE);
 }
 
-
-void winapiToplevelWindowContext::setMaximized()
+void WinapiWindowContext::minimize()
 {
-}
-void winapiToplevelWindowContext::setMinimized()
-{
-}
-void winapiToplevelWindowContext::setFullscreen()
-{
+	ShowWindow(handle_, SW_MINIMIZE);
 }
 
-void winapiToplevelWindowContext::setNormal()
+void WinapiWindowContext::normalState()
 {
-}
-void winapiToplevelWindowContext::setMinSize()
-{
-}
-void winapiToplevelWindowContext::setMaxSize()
-{
+	ShowWindow(handle_, SW_RESTORE);
 }
 
-void winapiToplevelWindowContext::beginMove(mouseButtonEvent* ev)
+NativeWindowHandle WinapiWindowContext::nativeHandle() const
 {
-}
-void winapiToplevelWindowContext::beginResize(mouseButtonEvent* ev, windowEdge edges)
-{
+	return handle_;
 }
 
-
-//////////////////////////////////////////////////////
-//
-winapiChildWindowContext::winapiChildWindowContext(childWindow* win, const winapiWindowContextSettings& settings) : windowContext(win, settings), childWindowContext(win, settings), winapiWindowContext(win, settings)
+//specific
+Rect2i WinapiWindowContext::extents() const
 {
+	RECT ext;
+	GetWindowRect(handle_, &ext);
+	return {ext.left, ext.top, ext.right - ext.left, ext.bottom - ext.top};
 }
-*/
+
 }

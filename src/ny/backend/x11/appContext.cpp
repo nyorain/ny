@@ -8,14 +8,14 @@
 #include <ny/window/events.hpp>
 
 #include <X11/Xlibint.h>
-#include <X11/Xlib-xcb.h> 
+#include <X11/Xlib-xcb.h>
 #include <cstring>
 
 namespace ny
 {
 
 //LoopControlImpl
-class X11ACLoopControlImpl : public LoopControlImpl
+class X11AppControl::LoopControlImpl : public LoopControlImpl
 {
 public:
 	std::atomic<bool> run;
@@ -58,7 +58,7 @@ X11AppContext::X11AppContext()
 
 	auto iter = xcb_setup_roots_iterator(xcb_get_setup(xConnection_));
 	for(std::size_t i(0); iter.rem; ++i, xcb_screen_next(&iter))
-    if(i == std::size_t(xDefaultScreenNumber_)) 
+    if(i == std::size_t(xDefaultScreenNumber_))
 	{
 		xDefaultScreen_ = iter.data;
 		break;
@@ -69,7 +69,7 @@ X11AppContext::X11AppContext()
     //selection events will be sent to this window -> they need no window argument
     //does not need to be mapped
 	xDummyWindow_ = xcb_generate_id(xConnection_);
-    xcb_create_window(xConnection_, XCB_COPY_FROM_PARENT, xDummyWindow_, xDefaultScreen_->root, 
+    xcb_create_window(xConnection_, XCB_COPY_FROM_PARENT, xDummyWindow_, xDefaultScreen_->root,
 		0, 0, 50, 50, 10, XCB_WINDOW_CLASS_INPUT_ONLY, xDefaultScreen_->root_visual, 0, nullptr);
 
 	//atoms
@@ -200,14 +200,14 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
 	#define EventHandlerEvent(T, W) \
 		auto handler = eventHandler(W); \
 		if(!handler) return 1; \
-		auto event = std::make_unique<T>(handler); 
+		auto event = std::make_unique<T>(handler);
 
 	auto responseType = ev.response_type & ~0x80;
     switch(responseType)
     {
     case XCB_MOTION_NOTIFY:
     {
-		auto& motion = reinterpret_cast<xcb_motion_notify_event_t&>(ev);  
+		auto& motion = reinterpret_cast<xcb_motion_notify_event_t&>(ev);
 		EventHandlerEvent(MouseMoveEvent, motion.event);
         event->position = Vec2i(motion.event_x, motion.event_y);
         event->screenPosition = Vec2i(motion.root_x, motion.root_y);
@@ -218,8 +218,8 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
 
     case XCB_EXPOSE:
     {
-		auto& expose = reinterpret_cast<xcb_expose_event_t&>(ev);  
-        if(expose.count == 0) 
+		auto& expose = reinterpret_cast<xcb_expose_event_t&>(ev);
+        if(expose.count == 0)
 		{
 			EventHandlerEvent(DrawEvent, expose.window);
 			dispatcher.dispatch(std::move(event));
@@ -236,7 +236,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
 
     case XCB_BUTTON_PRESS:
     {
-		auto& button = reinterpret_cast<xcb_button_press_event_t&>(ev);  
+		auto& button = reinterpret_cast<xcb_button_press_event_t&>(ev);
 		EventHandlerEvent(MouseButtonEvent, button.event);
 		event->data = std::make_unique<X11EventData>(ev);
         event->button = x11ToButton(button.detail);
@@ -249,7 +249,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
 
     case XCB_BUTTON_RELEASE:
     {
-		auto& button = reinterpret_cast<xcb_button_release_event_t&>(ev);  
+		auto& button = reinterpret_cast<xcb_button_release_event_t&>(ev);
 		EventHandlerEvent(MouseButtonEvent, button.event);
 		event->data = std::make_unique<X11EventData>(ev);
         event->button = x11ToButton(button.detail);
@@ -262,7 +262,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
 
     case XCB_ENTER_NOTIFY:
     {
-		auto& enter = reinterpret_cast<xcb_enter_notify_event_t&>(ev);  
+		auto& enter = reinterpret_cast<xcb_enter_notify_event_t&>(ev);
 		EventHandlerEvent(MouseCrossEvent, enter.event);
         event->position = Vec2i(enter.event_x, enter.event_y);
 		event->entered = 1;
@@ -273,7 +273,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
 
     case XCB_LEAVE_NOTIFY:
     {
-		auto& leave = reinterpret_cast<xcb_enter_notify_event_t&>(ev);  
+		auto& leave = reinterpret_cast<xcb_enter_notify_event_t&>(ev);
 		EventHandlerEvent(MouseCrossEvent, leave.event);
         event->position = Vec2i(leave.event_x, leave.event_y);
 		event->entered = 0;
@@ -284,7 +284,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
 
     case XCB_FOCUS_IN:
     {
-		auto& focus = reinterpret_cast<xcb_focus_in_event_t&>(ev);  
+		auto& focus = reinterpret_cast<xcb_focus_in_event_t&>(ev);
 		EventHandlerEvent(FocusEvent, focus.event);
 		event->gained = 1;
 		dispatcher.dispatch(std::move(event));
@@ -294,7 +294,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
 
     case XCB_FOCUS_OUT:
     {
-		auto& focus = reinterpret_cast<xcb_focus_in_event_t&>(ev);  
+		auto& focus = reinterpret_cast<xcb_focus_in_event_t&>(ev);
 		EventHandlerEvent(FocusEvent, focus.event);
 		event->gained = 0;
 		dispatcher.dispatch(std::move(event));
@@ -304,7 +304,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
 
     case XCB_KEY_PRESS:
     {
-		auto& key = reinterpret_cast<xcb_key_press_event_t&>(ev);  
+		auto& key = reinterpret_cast<xcb_key_press_event_t&>(ev);
 		XKeyEvent xkey {};
 		xkey.keycode = key.detail;
 		xkey.state = key.state;
@@ -325,7 +325,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
 
     case XCB_KEY_RELEASE:
     {
-		auto& key = reinterpret_cast<xcb_key_press_event_t&>(ev);  
+		auto& key = reinterpret_cast<xcb_key_press_event_t&>(ev);
 		XKeyEvent xkey {};
 		xkey.keycode = key.detail;
 		xkey.state = key.state;
@@ -346,7 +346,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
 
     case XCB_CONFIGURE_NOTIFY:
 	{
-		auto& configure = (xcb_configure_notify_event_t &)ev;  
+		auto& configure = (xcb_configure_notify_event_t &)ev;
 
         //todo: something about window state
         auto nsize = Vec2ui(configure.width, configure.height);
@@ -390,7 +390,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
 	{
 		XLockDisplay(xDisplay_);
 	    auto proc = XESetWireToEvent(xDisplay_, ev.response_type & ~0x80, nullptr);
-	    if(proc) 
+	    if(proc)
 		{
 	        XESetWireToEvent(xDisplay_, ev.response_type & ~0x80, proc);
 	        XEvent dummy;
@@ -402,11 +402,11 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
 	    }
 		XUnlockDisplay(xDisplay_);
 	}
-    
+
 	}
 
     return 1;
-	#undef EventHandlerEvent 
+	#undef EventHandlerEvent
 }
 
 bool X11AppContext::dispatchEvents(EventDispatcher& dispatcher)
@@ -429,7 +429,7 @@ bool X11AppContext::dispatchEvents(EventDispatcher& dispatcher)
 bool X11AppContext::dispatchLoop(EventDispatcher& dispatcher, LoopControl& control)
 {
 	std::atomic<bool> run;
-	control.impl_ = std::make_unique<X11ACLoopControlImpl>(run, xConnection_, xDummyWindow_);
+	control.impl_ = std::make_unique<LoopControlImpl>(run, xConnection_, xDummyWindow_);
 
 	while(run.load())
 	{
@@ -519,7 +519,7 @@ bool x11AppContext::getClipboard(dataTypes types, std::function<void(dataObject*
 
     case SelectionRequest:
     {
-        
+
         std::cout << "selectionRequest: " << XGetAtomName(xDisplay_, ev.xselectionrequest.target) << " " <<  XGetAtomName(xDisplay_, ev.xselectionrequest.property) << " " <<  XGetAtomName(xDisplay_, ev.xselectionrequest.selection) << std::endl;
 
         if(ev.xselectionrequest.selection == x11::Clipboard && ev.xselectionrequest.target == x11::Targets)
@@ -558,7 +558,7 @@ bool x11AppContext::getClipboard(dataTypes types, std::function<void(dataObject*
 
             XSendEvent(xDisplay_, ev.xselectionrequest.requestor, False, 0, &m);
         }
-        
+
 
     }
 	*/
@@ -587,7 +587,7 @@ bool x11AppContext::getClipboard(dataTypes types, std::function<void(dataObject*
             if(!w) return 1;
             nyMainApp()->sendEvent(e, w->getWindow());
             return 1;
-  
+
         }
 */
 }

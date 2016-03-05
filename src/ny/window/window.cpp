@@ -23,7 +23,7 @@ Window::Window()
 {
 }
 
-Window::Window(App& app, const Vec2ui& size, const WindowSettings& settings) 
+Window::Window(App& app, const Vec2ui& size, const WindowSettings& settings)
 	: maxSize_(UINT_MAX, UINT_MAX)
 {
     create(app, size, settings);
@@ -39,6 +39,8 @@ void Window::create(App& papp, const Vec2ui& size, const WindowSettings& setting
     size_ = size;
 
 	windowContext_ = app().backend().createWindowContext(app().appContext(), settings);
+
+	windowContext_->eventHandler(*this);
 	app().windowCreated();
 }
 
@@ -52,7 +54,7 @@ void Window::close()
 
 bool Window::handleEvent(const Event& ev)
 {
-    if(EventHandler::handleEvent(ev)) return 1;
+    //if(EventHandler::handleEvent(ev)) return 1;
 
     switch(ev.type())
     {
@@ -192,19 +194,17 @@ void Window::keyEvent(const KeyEvent& e)
 void Window::sizeEvent(const SizeEvent& e)
 {
     size_ = e.size;
-    windowContext_->size(size_);
     onResize.call(*this, size_);
 }
 void Window::positionEvent(const PositionEvent& e)
 {
     position_ = e.position;
-    windowContext_->position(position_);
     onMove(*this, position_);
 }
 void Window::drawEvent(const DrawEvent&)
 {
-    auto guard = windowContext_->draw();
-    draw(guard.dc());
+    //auto guard = windowContext_->draw();
+    //draw(guard.dc());
 }
 void Window::showEvent(const ShowEvent& e)
 {

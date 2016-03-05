@@ -3,6 +3,7 @@
 #include <ny/include.hpp>
 #include <ny/draw/drawContext.hpp>
 #include <nytl/cache.hpp>
+#include <nytl/cloneable.hpp>
 
 #include <windows.h>
 #include <gdiplus.h>
@@ -11,12 +12,14 @@ using namespace Gdiplus;
 namespace ny
 {
 
-//Cache Name: "ny::GdiFontHandle"
-class GdiFontHandle : public cacheBase<GdiFontHandle>
+///Font Handle for gdi fonts.
+///Cache Name: "ny::GdiFontHandle"
+class GdiFontHandle : public DeriveCloneable<Cache, GdiFontHandle>
 {
 
 };
 
+///Gdi+ implementation of the DrawContext interface.
 class GdiDrawContext : public DrawContext
 {
 protected:
@@ -25,6 +28,7 @@ protected:
 
 public:
 	GdiDrawContext(Graphics& graphics);
+	virtual ~GdiDrawContext();
 
 	virtual void clear(const Brush& b = Brush::none) override;
 	virtual void paint(const Brush& alphaMask, const Brush& brush) override;
@@ -40,10 +44,9 @@ public:
 	virtual void stroke(const Pen& pen) override;
 	virtual void strokePreserve(const Pen& pen) override;
 
-    virtual Rect2f RectangleClip() override;
+    virtual Rect2f rectangleClip() const override;
     virtual void clipRectangle(const Rect2f& obj) override;
 	virtual void resetRectangleClip() override;
 };
 
 }
-

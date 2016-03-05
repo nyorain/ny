@@ -66,13 +66,13 @@ void ThreadedEventDispatcher::dispatchLoop(LoopControl& control)
 
     while(1)
     {
-        while(events_.empty() && !stop.load()) 
+        while(events_.empty() && !stop.load())
 		{
 			eventCV_.wait(lck);
 		}
         if(stop.load())
 		{
-			return;
+			break;
 		}
 
         auto ev = std::move(events_.front());
@@ -82,6 +82,8 @@ void ThreadedEventDispatcher::dispatchLoop(LoopControl& control)
         sendEvent(*ev);
 		lck.lock();
     }
+
+	control.impl_.reset();
 }
 
 void ThreadedEventDispatcher::dispatch(EventPtr&& event)
@@ -95,7 +97,7 @@ void ThreadedEventDispatcher::dispatch(EventPtr&& event)
 	//sendEvent(*event);
 	//return;
 
-    { 
+    {
 		std::lock_guard<std::mutex> lck(eventMtx_);
         if(event->overrideable() && 0)
         {
@@ -110,7 +112,7 @@ void ThreadedEventDispatcher::dispatch(EventPtr&& event)
         }
 
 		if(event) events_.emplace_back(std::move(event));
-    } 
+    }
 
     eventCV_.notify_one();
 }

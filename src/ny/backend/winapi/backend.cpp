@@ -1,28 +1,29 @@
-#include <ny/winapi/winapiBackend.hpp>
-#include <ny/winapi/winapiAppContext.hpp>
-#include <ny/winapi/winapiWindowContext.hpp>
-
-#include <nytl/make_unique.hpp>
+#include <ny/backend/winapi/backend.hpp>
+#include <ny/backend/winapi/appContext.hpp>
+#include <ny/backend/winapi/windowContext.hpp>
 
 namespace ny
 {
 
-winapiBackend winapiBackend::object{};
+WinapiBackend WinapiBackend::instance_;
 
 //
-winapiBackend::winapiBackend() : backend(Winapi)
+std::unique_ptr<AppContext> WinapiBackend::createAppContext()
 {
+    return std::make_unique<WinapiAppContext>();
 }
 
-std::unique_ptr<appContext> winapiBackend::createAppContext()
+std::unique_ptr<WindowContext> WinapiBackend::createWindowContext(AppContext& context,
+	const WindowSettings& settings)
 {
-    return make_unique<winapiAppContext>();
-}
+	auto wac = dynamic_cast<WinapiAppContext*>(&context);
+	if(!wac)
+	{
+		throw std::logic_error("WinapiBackend::CreateWindow: invalid appContext type.");
+	}
 
-std::unique_ptr<windowContext> winapiBackend::createWindowContextImpl(window& win, const windowContextSettings& settings)
-{
-    winapiWindowContextSettings s;
-    const winapiWindowContextSettings* sTest = dynamic_cast<const winapiWindowContextSettings*>(&settings);
+    WinapiWindowSettings s;
+    const WinapiWindowSettings* sTest = dynamic_cast<const WinapiWindowSettings*>(&settings);
 
     if(sTest)
     {
@@ -30,12 +31,11 @@ std::unique_ptr<windowContext> winapiBackend::createWindowContextImpl(window& wi
     }
     else
     {
-        s.hints = settings.hints;
-        s.glPref = settings.glPref;
-        s.virtualPref = settings.virtualPref;
+        auto wsettings = static_cast<WindowSettings&>(s);
+		wsettings = settings;
     }
 
-    return make_unique<winapiWindowContext>(win, s);
+    return std::make_unique<WinapiWindowContext>(*wac, s);
 }
 
 }

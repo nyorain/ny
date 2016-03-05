@@ -1,5 +1,5 @@
 set(include-gui ${include-ny})
-set(libs-gui ${libs-window} ny-base ny-app ny-backend ny-draw)
+set(libs-gui ${libs-window} ny-base ny-app ny-backend ny-draw ny-window)
 
 set(src-gui
 	gui.cpp

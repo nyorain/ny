@@ -6,18 +6,18 @@ int main()
 	ny::App app {};
 
 	ny::WindowSettings settings;
-	settings.glPref = ny::Preference::should;
-	ny::ToplevelWindow window(ny::vec2ui(800, 500), "test", settings);
+	ny::ToplevelWindow window(app, ny::Vec2ui(800, 500), "test", settings);
 
 	ny::Rectangle rct({100, 100}, {100, 100});
 
-	ny::Gui myGui(window);
-	ny::Button myButton(myGui, {650, 400}, {100, 45});
-	myButton.label("Close");
+	//ny::Gui myGui(window);
+	//ny::Button myButton(myGui, {650, 400}, {100, 45});
+	//myButton.label("Close");
 
-	myButton.onClick = [&]{ std::cout << "Clicked!\n"; window.close(); };
-	
+	//myButton.onClick = [&]{ std::cout << "Clicked!\n"; window.close(); };
+
 	window.show();
 
-	return app.mainLoop();
+	ny::LoopControl control;
+	return app.run(control);
 }

@@ -1,13 +1,10 @@
 #pragma once
 
-#include <ny/appContext.hpp>
-#include <ny/eventLoop.hpp>
+#include <ny/backend/winapi/include.hpp>
+#include <ny/backend/appContext.hpp>
 
-#include <winsock2.h>
 #include <windows.h>
 #include <gdiplus.h>
-
-#include <memory>
 #include <map>
 
 using namespace Gdiplus;
@@ -15,58 +12,45 @@ using namespace Gdiplus;
 namespace ny
 {
 
-class winapiAppContext;
-class winapiWindowContext;
-typedef winapiAppContext winapiAC;
-
-class winapiAppContext : public appContext
+class WinapiAppContext : public AppContext
 {
 public:
-    typedef LRESULT CALLBACK (*wndProc)(HWND, UINT, WPARAM, LPARAM);
+	class LoopControlImpl;
+	static LRESULT CALLBACK wndProcCallback(HWND a, UINT b, WPARAM c, LPARAM d);
 
 protected:
     HINSTANCE instance_ = nullptr;
     STARTUPINFO startupInfo_;
 
-    std::map<HWND, winapiWindowContext*> contexts_;
+    std::map<HWND, WinapiWindowContext*> contexts_;
 
     GdiplusStartupInput gdiplusStartupInput_;
     ULONG_PTR gdiplusToken_;
 
-    std::unique_ptr<idleEventSource> eventSource_;
+	LoopControl* dispatcherLoopControl_ = nullptr;
+	EventDispatcher* eventDispatcher_ = nullptr;
+
+	bool receivedQuit_ = 0;
 
 public:
-    winapiAppContext();
-    ~winapiAppContext();
+    WinapiAppContext();
+    ~WinapiAppContext();
 
-    virtual bool mainLoop();
-
-    virtual void startDataOffer(dataSource& source, const image& img, const window& w, const event* ev){}
-    virtual bool isOffering() const { return 0; }
-    virtual void endDataOffer(){}
-
-    virtual dataOffer* getClipboard(){ return nullptr; }
-    virtual void setClipboard(dataSource& source, const event* ev){}
+	virtual bool dispatchEvents(EventDispatcher& dispatcher) override;
+	virtual bool dispatchLoop(EventDispatcher& dispatcher, LoopControl& control) override;
 
     //data specifications
-    void setClipboard(const std::string& str){}
-    void setClipboard(const image& str){}
+    LRESULT eventProc(HWND, UINT, WPARAM, LPARAM);
 
-
-    virtual LRESULT eventProc(HWND, UINT, WPARAM, LPARAM);
-
-    void registerContext(HWND w, winapiWindowContext* c);
+    void registerContext(HWND w, WinapiWindowContext& c);
     void unregisterContext(HWND w);
-    void unregisterContext(winapiWindowContext* c);
-    winapiWindowContext* getWindowContext(HWND win);
+    WinapiWindowContext* windowContext(HWND win);
 
     void setCursor(unsigned int cursorID);
-    void setCursor(image* img);
+    void setCursor(Image* img);
 
-    const HINSTANCE& getInstance() const { return instance_; };
-    const STARTUPINFO& getStartInfo() const { return startupInfo_; };
+    HINSTANCE hinstance() const { return instance_; };
+    const STARTUPINFO& startupInfo() const { return startupInfo_; };
 };
-
-LRESULT CALLBACK dummyWndProc(HWND a, UINT b, WPARAM c, LPARAM d);
 
 }

@@ -1,5 +1,5 @@
-find_package(NYTL REQUIRED)
-set(include-ny ${NYTL_INCLUDE_DIRS})
+find_package(nytl REQUIRED)
+include_directories(${nytl_INCLUDE_DIRS})
 
 add_subdirectory(base)
 add_subdirectory(draw)

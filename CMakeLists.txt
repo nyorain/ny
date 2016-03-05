@@ -12,30 +12,37 @@ include_directories("${CMAKE_CURRENT_BINARY_DIR}/include")
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src")
 include_directories("${CMAKE_CURRENT_BINARY_DIR}/src")
 
+include_directories("${CMAKE_CURRENT_BINARY_DIR}/external/install/include")
+link_directories("${CMAKE_CURRENT_BINARY_DIR}/external/install/lib")
+link_directories("${CMAKE_CURRENT_BINARY_DIR}/external/install/bin")
+
 option(NY_BUILD_EXAMPLES "build the ny examples" ON)
 option(NY_BUILD_TESTS "build the ny tests" OFF)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
 
-#todo
-set(NY_WithGL 1)
-set(NY_WithEGL 1)
-set(NY_WithFreeType 1)
-set(NY_WithCairo 1)
-#set(NY_WithX11 1)
-
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
+
+#todo
+set(NY_WithGL 0)
+set(NY_WithEGL 0)
+set(NY_WithFreeType 0)
+set(NY_WithCairo 0)
+#set(NY_WithX11 1)
+set(NY_WithWinapi 1)
+
 
 #config, TODO: install
 configure_file	( "${CMAKE_CURRENT_SOURCE_DIR}/src/ny/config.hpp.in"
-	"${CMAKE_CURRENT_BINARY_DIR}/include/ny/config.hpp"
-	     	)
+	"${CMAKE_CURRENT_BINARY_DIR}/include/ny/config.hpp")
 
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/include/ny/config.hpp" DESTINATION include/ny)
 
 add_subdirectory(src/ny)
 add_subdirectory(include/ny)
+add_subdirectory(external)
 
 if(NY_BUILD_EXAMPLES)
 	add_subdirectory(examples)

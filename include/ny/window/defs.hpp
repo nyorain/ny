@@ -26,7 +26,7 @@ enum class WindowHints : unsigned int
 ///Typesafe enum that specifies the edges of a window (e.g. for resizing).
 ///Note that e.g. (WindowEdge::top | WindowEdge::right) == (WindowEdge::topRight). You have
 ///to include <nytl/enumOps.hpp> to make those operations with typesafe enums work.
-enum class WindowEdge : unsigned char
+enum class WindowEdges : unsigned char
 {
     unknown = 0,
 
@@ -58,7 +58,7 @@ enum class Preference : unsigned char
 
 ///Defines all possible native widgets that may be implemented on the specific backends.
 ///Note that none of them are guaranteed to exist, some backends to not have native widgets
-///at all (linux backends). 
+///at all (linux backends).
 enum class NativeWidgetType : unsigned char
 {
 	none = 0,
@@ -108,6 +108,9 @@ public:
 	NativeWindowHandle(void* pointer = nullptr) : pointer_(pointer) {}
 	NativeWindowHandle(std::uint64_t uint) : uint_(uint) {}
 
+	void* pointer() const { return pointer_; }
+	std::uint64_t uint() const { return uint_; }
+
 	operator void*() const { return pointer_; }
 	operator std::uint64_t() const { return uint_; }
 	operator int() const { return uint_; }
@@ -135,3 +138,4 @@ public:
 }
 
 NYTL_ENABLE_ENUM_OPS(ny::WindowHints)
+NYTL_ENABLE_ENUM_OPS(ny::WindowEdges)

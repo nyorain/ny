@@ -27,9 +27,10 @@ public:
 
 	///Starts to draw on the window.
 	///This function can always be called. The return (wrapped-up) DrawContext will only
-	///be valid as long as the DrawGuard exists. 
-	///\warning There shall be always only one DrawGuard (= valid and active DrawContext, 
+	///be valid as long as the DrawGuard exists.
+	///\warning There shall be always only one DrawGuard (= valid and active DrawContext,
 	///drawing operation) per thread and only one drawing thread per DrawGuard/DrawContext.
+	///\exception std::exception If the windowContext type is DrawContext-less.
 	///\return A DrawGuard wrapper instance that holds the DrawContext that can be used to draw
 	///the windows contents.
 	virtual DrawGuard draw() = 0;
@@ -59,7 +60,7 @@ public:
     virtual void maxSize(const Vec2ui&) = 0;
 
 	///Resizes the window.
-    virtual void size(const Vec2ui& size) = 0; 
+    virtual void size(const Vec2ui& size) = 0;
 
 	///Sets the position of the window.
     virtual void position(const Vec2i& position) = 0; //...
@@ -85,7 +86,7 @@ public:
 
 	///Resets the window in normal toplevel state.
 	///\warning Shall have only an effect for toplevel windows.
-    virtual void toplevel() = 0; //or reset()?
+    virtual void normalState() = 0; //or reset()?
 
 	///Asks the window manager to start an interactive move for the window.
 	///\param event A pointer to a MouseButtonEvent. Only required for some implementations, so
@@ -97,7 +98,7 @@ public:
 	///\param event A pointer to a MouseButtonEvent. Only required for some implementations, so
 	///may also be a nullptr (does work then only on some backends!)
 	///\warning Shall have only an effect for toplevel windows.
-    virtual void beginResize(const MouseButtonEvent* event, WindowEdge edges) = 0;
+    virtual void beginResize(const MouseButtonEvent* event, WindowEdges edges) = 0;
 
 	///Sets the title for the native window.
 	///\warning Shall have only an effect for toplevel windows.

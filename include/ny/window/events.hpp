@@ -74,8 +74,6 @@ class DrawEvent : public EventBase<eventType::windowDraw, DrawEvent, 1>
 {
 public:
 	using EvBase::EvBase;
-
-	DrawContext& drawContext;
 };
 
 class RefreshEvent : public EventBase<eventType::windowRefresh, RefreshEvent, 1>

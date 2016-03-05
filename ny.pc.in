@@ -4,6 +4,7 @@ libdir=${prefix}/lib
 
 Name: ny
 Description: modern c++ gui toolkit
-Version: @NY_VMAJOR@.@NY_VMINOR@
+Version: @NY_VMAJOR@.@NY_VMINOR@.@NY_VPATCH@
 Libs: -L${libdir} -lny
 Cflags: -I${includedir}
+Requires.private: nytl >= 0.1.0

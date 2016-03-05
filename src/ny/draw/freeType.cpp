@@ -2,7 +2,7 @@
 #include <ny/draw/font.hpp>
 #include <ny/base/log.hpp>
 
-#include <freetype2/ft2build.h>
+#include <ft2build.h>
 #include FT_FREETYPE_H
 
 namespace ny
@@ -30,7 +30,7 @@ FreeTypeLibrary::~FreeTypeLibrary()
 }
 
 //FreeTypeFontHandle
-FreeTypeFontHandle::FreeTypeFontHandle(const Font& font) 
+FreeTypeFontHandle::FreeTypeFontHandle(const Font& font)
 	: FreeTypeFontHandle(font.name(), font.fromFile())
 {
 }
@@ -85,7 +85,7 @@ void FreeTypeFontHandle::cacheAscii() const
 		ret.advance = face_->glyph->advance.x;
 
 		auto size = Vec2ui{face_->glyph->bitmap.width, face_->glyph->bitmap.rows};
-		ret.image = Image(face_->glyph->bitmap.buffer, size, Image::Format::a8); 
+		ret.image = Image(face_->glyph->bitmap.buffer, size, Image::Format::a8);
 
 		charCache_[c] = ret;
 	}
@@ -99,7 +99,7 @@ Character& FreeTypeFontHandle::load(char c) const
 		auto ftErr = FT_Load_Char(face_, c, FT_LOAD_RENDER);
 		if(ftErr)
 		{
-			throw std::runtime_error("Failed to load freeType char: " + 
+			throw std::runtime_error("Failed to load freeType char: " +
 					std::to_string(static_cast<int>(c)) + ", Error: " + std::to_string(ftErr));
 		}
 
@@ -108,11 +108,11 @@ Character& FreeTypeFontHandle::load(char c) const
 		ret.advance = face_->glyph->advance.x;
 
 		auto size = Vec2ui{face_->glyph->bitmap.width, face_->glyph->bitmap.rows};
-		ret.image = Image(face_->glyph->bitmap.buffer, size, Image::Format::a8); 
+		ret.image = Image(face_->glyph->bitmap.buffer, size, Image::Format::a8);
 
 		charCache_[c] = ret;
 	}
-	
+
 	return charCache_[c];
 }
 

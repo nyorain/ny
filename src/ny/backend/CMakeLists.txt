@@ -1,11 +1,11 @@
 set(include-backend ${include-ny})
-set(libs-backend ${libs-backend} ny-base ny-app ny-draw)
+set(libs-backend ${libs-backend} ny-base ny-draw)
 
 set(src-backend
 		backend.cpp)
 
 if(NY_WithWinapi)
-	set(src-backend ${src-backend} 
+	set(src-backend ${src-backend}
 		winapi/appContext.cpp
 		winapi/backend.cpp
 		winapi/util.cpp

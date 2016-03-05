@@ -52,7 +52,7 @@ public:
 
 	///Applies the pending DrawContext state to the surface.
 	///This should always be called when finishing drawing, altough some implementations
-	///may automatically apply any shape that was drawn. 
+	///may automatically apply any shape that was drawn.
 	virtual void apply(){}
 
 
@@ -235,7 +235,7 @@ public:
 ///All mask calls will be stored in a vector<PathBase> and will only be applied to the
 ///surface when some fill or stroke method is called (or clear).
 ///Does not differ the masking functions from its DrawContext base class.
-///The pure virtual stroke and fill functions from DrawContext must be implemented in 
+///The pure virtual stroke and fill functions from DrawContext must be implemented in
 ///derived classes (as well as masking-related functions), they can just use the storedMask()
 ///function to get the current mask.
 class DelayedDrawContext : public DrawContext
@@ -254,5 +254,10 @@ public:
 	///Returns the current (stored) mask of this context.
 	const std::vector<PathBase>& storedMask() const { return mask_; }
 };
+
+
+///Dummy DrawContext implementation that does not draw at all and outputs warnings instead.
+///Useful for DrawContext-less windowContexts to not make their draw() functio not fail and to
+///pass drawing-related parameter around.
 
 }

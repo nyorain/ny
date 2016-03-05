@@ -3,7 +3,59 @@
 namespace ny
 {
 
-GdiDrawContext::GdiDrawContext(Graphics& graphics) : graphics_(graphics)
+GdiDrawContext::GdiDrawContext(Graphics& graphics) : graphics_(&graphics)
+{
+}
+
+GdiDrawContext::~GdiDrawContext()
+{
+
+}
+
+void GdiDrawContext::clear(const Brush& b)
+{
+}
+void GdiDrawContext::paint(const Brush& alphaMask, const Brush& brush)
+{
+}
+
+void GdiDrawContext::mask(const Path& obj)
+{
+}
+void GdiDrawContext::mask(const Text& obj)
+{
+}
+void GdiDrawContext::mask(const Rectangle& obj)
+{
+}
+void GdiDrawContext::mask(const Circle& obj)
+{
+}
+void GdiDrawContext::resetMask()
+{
+}
+
+void GdiDrawContext::fill(const Brush& brush)
+{
+}
+void GdiDrawContext::fillPreserve(const Brush& brush)
+{
+}
+void GdiDrawContext::stroke(const Pen& pen)
+{
+}
+void GdiDrawContext::strokePreserve(const Pen& pen)
+{
+}
+
+Rect2f GdiDrawContext::rectangleClip() const
+{
+	return {};
+}
+void GdiDrawContext::clipRectangle(const Rect2f& obj)
+{
+}
+void GdiDrawContext::resetRectangleClip()
 {
 }
 

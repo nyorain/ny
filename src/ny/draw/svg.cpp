@@ -3,7 +3,7 @@
 
 #include <fstream>
 
-#define PUGIXML_HEADER_ONLY
+#define PUGIXML_HEADER_ONLY 1
 #include "pugixml/pugixml.hpp"
 
 namespace ny
@@ -45,7 +45,7 @@ bool SvgImage::save(const std::string& path) const
 				auto node = svgNode.append_child("circle");
 				break;
 			}
-		}	
+		}
 	}
 
 	if(!doc.save_file(path.c_str()))
@@ -54,7 +54,7 @@ bool SvgImage::save(const std::string& path) const
 		return 0;
 	}
 
-	return 1;	
+	return 1;
 }
 
 bool SvgImage::load(const std::string& path)

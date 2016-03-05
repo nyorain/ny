@@ -1,6 +1,4 @@
 #include <ny/app/keyboard.hpp>
-#include <nytl/enumOps.hpp>
-using namespace nytl::enumOps;
 
 namespace ny
 {

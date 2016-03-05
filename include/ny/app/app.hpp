@@ -37,17 +37,17 @@ public:
 		ErrorAction errorAction = ErrorAction::askWindow;
 		std::vector<std::string> allowedBackends;
 		bool allBackends = 1;
-		bool multiThreaded = 1;
+		bool multithreaded = 1;
 	};
 
 protected:
     Settings settings_;
-    Backend* backend_ {nullptr}; 
+    Backend* backend_ {nullptr};
     std::unique_ptr<AppContext> appContext_;
 	LoopControl* mainLoopControl_ {nullptr};
 
-	std::thread backendThread_;
-	LoopControl backendLoopControl_;
+	std::thread dispatcherThread_;
+	LoopControl dispatcherLoopControl_;
 
 	std::size_t windowCount_ = 0; //to make exiting possible when last window closes
 	std::unique_ptr<EventDispatcher> eventDispatcher_ {nullptr};

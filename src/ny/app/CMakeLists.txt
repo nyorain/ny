@@ -1,5 +1,5 @@
 set(include-app ${include-ny})
-set(libs-app ny-base)
+set(libs-app ny-base ny-backend)
 
 set(src-app
 		app.cpp

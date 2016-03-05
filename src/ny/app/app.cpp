@@ -58,7 +58,7 @@ App::App(const App::Settings& settings) : settings_(settings)
 
     appContext_ = backend_->createAppContext();
 
-	if(settings.multiThreaded)
+	if(settings.multithreaded)
 	{
 		eventDispatcher_.reset(new ThreadedEventDispatcher());
 	}
@@ -76,24 +76,26 @@ App::~App()
 int App::run(LoopControl& control)
 {
 	bool mainLoop_ = 0;
-	if(!mainLoopControl_)
+	if(!mainLoopControl_) //"highest" recursion
 	{
 		mainLoopControl_ = &control;
 		mainLoop_ = 1;
 	}
 
-	if(settings_.multiThreaded)
+	if(settings_.multithreaded)
 	{
-		if(!backendThread_.joinable())
+		if(!dispatcherThread_.joinable()) //valid?
 		{
-			backendThread_ = std::thread(&AppContext::dispatchLoop, appContext_.get(), 
-				std::ref(*eventDispatcher_), std::ref(backendLoopControl_));
+			auto& dispatcher = static_cast<ThreadedEventDispatcher&>(*eventDispatcher_);
+			dispatcherThread_ = std::thread(&ThreadedEventDispatcher::dispatchLoop,
+				&dispatcher, std::ref(dispatcherLoopControl_));
 		}
 
-		auto& dispatcher = static_cast<ThreadedEventDispatcher&>(*eventDispatcher_);
-		dispatcher.dispatchLoop(control);
 
-		backendLoopControl_.stop();
+		appContext_->dispatchLoop(*eventDispatcher_, control);
+
+		dispatcherLoopControl_.stop();
+		dispatcherThread_.join();
 	}
 
 	else
@@ -106,6 +108,7 @@ int App::run(LoopControl& control)
 		mainLoopControl_ = nullptr;
 	}
 
+	control.impl_.reset();
 	return EXIT_SUCCESS;
 }
 
@@ -146,7 +149,7 @@ void App::error(const std::string& msg)
 		MessageBox::Button result = MessageBox::Button::none;
 		try
 		{
-			MessageBox message(*this, "Error Occured: " + msg, 
+			MessageBox message(*this, "Error Occured: " + msg,
 					MessageBox::Button::ok | MessageBox::Button::cancel);
 
 			result = message.runModal();
@@ -154,7 +157,7 @@ void App::error(const std::string& msg)
 		catch(...)
 		{
 		}
-		
+
 		if(result != MessageBox::Button::none)
 		{
 			if(result == MessageBox::Button::ok) return;

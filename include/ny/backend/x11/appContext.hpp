@@ -14,6 +14,7 @@ namespace ny
 class X11AppContext : public AppContext
 {
 protected:
+	class LoopControlImpl;
 
 protected:
     Display* xDisplay_  = nullptr;
