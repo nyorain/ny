@@ -1,7 +1,8 @@
 build/
 .git
-concepts/
+private/
 obj/
 bin/
 old/
 *.swp
+config.hpp

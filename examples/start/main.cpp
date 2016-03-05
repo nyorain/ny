@@ -3,20 +3,21 @@
 
 int main()
 {
-	ny::app myApp;
+	ny::App app {};
 
-	if(myApp.init())
-	{
-		std::cout << "could not init. exit" << std::endl;
-		//return 1;
-	}
+	ny::WindowSettings settings;
+	ny::ToplevelWindow window(app, ny::Vec2ui(800, 500), "test", settings);
 
-	ny::toplevelWindow win(ny::vec2ui(100, 100), ny::vec2ui(800, 500), "Test");
-	win.show();
+	ny::Rectangle rct({100, 100}, {100, 100});
 
-	win.onDraw([](ny::drawContext& dc){
-			dc.clear(ny::color::white);
-			});
+	//ny::Gui myGui(window);
+	//ny::Button myButton(myGui, {650, 400}, {100, 45});
+	//myButton.label("Close");
 
-	return myApp.mainLoop();
+	//myButton.onClick = [&]{ std::cout << "Clicked!\n"; window.close(); };
+
+	window.show();
+
+	ny::LoopControl control;
+	return app.run(control);
 }

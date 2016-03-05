@@ -1,0 +1,2 @@
+- close/destroy events (esp. important on winapi backend)
+- implement backends

@@ -1,0 +1,18 @@
+class Gui : public EventHandlerRoot
+{
+public:
+	Gui() = default;
+	Gui(Window& window);
+	virtual ~Gui() = default;
+
+	virtual bool processEvent(const Event& event) override;
+	virtual void draw(DrawContext& dc);
+};
+
+class Widget : public EventHandlerNode
+{
+public:
+	virtual bool processEvent(const Event& event) override;
+	virtual rect2ui extents() const;
+	virtual void draw(DrawContext& dc);
+};

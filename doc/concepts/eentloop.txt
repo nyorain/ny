@@ -1,0 +1,21 @@
+
+class EventDispatcher
+{
+protected:
+    std::thread eventDispatcher_;
+    std::deque<EventPtr> events_;
+    std::mutex eventMtx_;
+    std::condition_variable eventCV_;
+
+protected:
+	void dispatcherThreadFunc();
+
+public:
+	void dispatch(EventPtr&& event); //threadsafe
+};
+
+
+/*
+	-AppContext::mainLoop() gets a MouseMoveEvent from backend.
+	-Sends the Event via App::dispatch(event)
+
