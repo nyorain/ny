@@ -10,13 +10,12 @@ The winapi backend is broken, there is no os x backend (but there will be porbab
 <h2> Installation </h2>
 Clone ny from this repository and cd to the toplevel-folder of it (.../ny/).
 
-Buidling ny with cmake and ninja: (recommended)
+Buidling ny with cmake and make:
 `````````````Bash
-mkdir build
-cd build
-cmake -G "Ninja" -DCMAKE_INSTALL_PREFIX=/usr ..
-ninja
-ninja install
+mkdir build && cd build
+cmake ..
+make
+make install
 ```````````
 
 Alternativley you can use gnu Makefiles to build it (might not work):
