@@ -118,6 +118,13 @@ int App::run()
 	return run(control);
 }
 
+bool App::dispatch()
+{
+	EventDispatcher dispatcher;
+	auto ret = appContext_->dispatchEvents(dispatcher) && !exit_.load();
+	return ret;
+}
+
 void App::windowCreated()
 {
 	windowCount_++;
@@ -128,7 +135,11 @@ void App::windowClosed()
 	windowCount_--;
 	if(windowCount_ < 1 && settings_.exitWithoutWindows)
 	{
-		if(mainLoopControl_) mainLoopControl_->stop();
+		exit_.store(1);
+		if(mainLoopControl_)
+		{
+			mainLoopControl_->stop();
+		}
 	}
 }
 

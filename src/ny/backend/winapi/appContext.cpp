@@ -65,6 +65,7 @@ WinapiAppContext::~WinapiAppContext()
 bool WinapiAppContext::dispatchEvents(EventDispatcher& dispatcher)
 {
 	receivedQuit_ = 0;
+	eventDispatcher_ = &dispatcher;
 
     MSG msg;
     while(PeekMessage(&msg, 0, 0, 0, PM_REMOVE))

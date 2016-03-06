@@ -46,6 +46,7 @@ protected:
     std::unique_ptr<AppContext> appContext_;
 	LoopControl* mainLoopControl_ {nullptr};
 
+	std::atomic<bool> exit_ {0};
 	std::thread dispatcherThread_;
 	LoopControl dispatcherLoopControl_;
 
@@ -63,6 +64,8 @@ public:
 
     virtual int run(LoopControl& control);
 	virtual int run();
+
+	virtual bool dispatch();
 
     virtual void error(const std::string& msg);
 

@@ -8,7 +8,7 @@ int main()
 	ny::WindowSettings settings;
 	ny::ToplevelWindow window(app, ny::Vec2ui(800, 500), "test", settings);
 
-	ny::Rectangle rct({100, 100}, {100, 100});
+	//ny::Rectangle rct({100, 100}, {100, 100});
 
 	//ny::Gui myGui(window);
 	//ny::Button myButton(myGui, {650, 400}, {100, 45});
@@ -18,6 +18,8 @@ int main()
 
 	window.show();
 
-	ny::LoopControl control;
-	return app.run(control);
+	//ny::LoopControl control;
+	//return app.run(control);
+
+	while(app.dispatch() == true);
 }
