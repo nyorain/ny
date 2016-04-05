@@ -8,8 +8,8 @@ constexpr const char* defaultShaderVS =
 
     #version 300 es
 
-    in Vec2 position;
-    uniform Vec2 vViewSize;
+    in vec2 position;
+    uniform vec2 vViewSize;
     uniform mat3 vTransform;
 
     void main()
@@ -27,7 +27,7 @@ constexpr const char* uvShaderVS =
 
     #version 300 es
 
-    in Vec4 vertex; //2 position, 2 uv
+    in vec4 vertex; //2 position, 2 uv
 
 	out Vec2 uv;
     uniform Vec2 vViewSize;

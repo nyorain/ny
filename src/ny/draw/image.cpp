@@ -211,11 +211,16 @@ bool Image::load(std::istream& is)
 
     if (ptr && width && height)
     {
+		std::size_t dataSize = width * height * channels;
+
         size_.x = width;
         size_.y = height;
-		data_.reset(ptr);
 
-		//no free_image since we just use the data
+		//copy data, it cannot be used directly (without custom deleter)
+		data_ = std::make_unique<std::uint8_t[]>(dataSize);
+		std::memcpy(data_.get(), ptr, dataSize);
+
+		stbi_image_free(ptr);
 
         return true;
     }

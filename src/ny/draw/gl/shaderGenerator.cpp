@@ -115,7 +115,7 @@ std::string FragmentShaderGenerator::generate(const Version& version) const
 	std::string fragString = "gl_FragColor";
 	if((opengl && (version.major > 1 || version.minor >= 3)) || (!opengl && version.major >= 3))
 	{
-		ret += "out Vec4 fragColor;\n";
+		ret += "out vec4 fragColor;\n";
 		fragString = "fragColor";
 	}
 
