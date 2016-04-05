@@ -4,7 +4,7 @@
 
 #include <ny/base/log.hpp>
 #include <nytl/cache.hpp>
-#include <nytl/cloneable.hpp>
+#include <nytl/clone.hpp>
 
 #include <cairo/cairo.h>
 

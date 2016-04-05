@@ -4,7 +4,7 @@
 #include <ny/draw/image.hpp>
 
 #include <nytl/cache.hpp>
-#include <nytl/cloneable.hpp>
+#include <nytl/clone.hpp>
 #include <nytl/vec.hpp>
 
 #include <string>
