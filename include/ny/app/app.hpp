@@ -36,8 +36,8 @@ public:
 		bool exitWithoutWindows = 1;
 		ErrorAction errorAction = ErrorAction::askWindow;
 		std::vector<std::string> allowedBackends;
-		bool allBackends = 1;
-		bool multithreaded = 1;
+		bool allBackends = true;
+		bool multithreaded = true;
 	};
 
 protected:

@@ -33,17 +33,17 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 
 #todo
 if(UNIX)
-	set(NY_WithGL 1)
-	set(NY_WithEGL 1)
-	set(NY_WithFreeType 1)
+	set(NY_WithGL 0)
+	set(NY_WithEGL 0)
+	set(NY_WithFreeType 0)
 	set(NY_WithCairo 1)
-	set(NY_WithX11 0)
+	set(NY_WithX11 1)
 	set(NY_WithWayland 0)
 endif(UNIX)
 
-if(Win32)
+if(WIN32)
 	set(NY_WithWinapi 1)
-endif(Win32)
+endif(WIN32)
 
 
 #config, TODO: install

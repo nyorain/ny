@@ -3,7 +3,7 @@
 #include <ny/include.hpp>
 #include <ny/draw/drawContext.hpp>
 #include <nytl/cache.hpp>
-#include <nytl/cloneable.hpp>
+#include <nytl/clone.hpp>
 
 #include <windows.h>
 #include <gdiplus.h>

@@ -16,7 +16,7 @@ public:
 	static WinapiBackend& instance(){ return instance_; }
 
 public:
-    virtual bool available() const { return 1; } //TODO: sth to check here?
+    virtual bool available() const { return true; } //TODO: sth to check here?
 
     virtual AppContextPtr createAppContext() override;
 	virtual WindowContextPtr createWindowContext(AppContext& app,

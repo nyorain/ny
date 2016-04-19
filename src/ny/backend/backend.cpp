@@ -1,6 +1,7 @@
 #include <ny/backend/backend.hpp>
 #include <ny/app/app.hpp>
 #include <ny/window/window.hpp>
+#include <ny/base/log.hpp>
 
 namespace ny
 {
@@ -45,9 +46,7 @@ Backend::Backend()
 
 Backend::~Backend()
 {
-	backendsFunc(this, 1);
+	backendsFunc(this, true);
 }
 
 }
-
-

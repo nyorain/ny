@@ -9,8 +9,7 @@ if(NY_WithWinapi)
 		winapi/appContext.cpp
 		winapi/backend.cpp
 		winapi/util.cpp
-		winapi/windowContext.cpp
-		)
+		winapi/windowContext.cpp)
 
 	if(NY_WithGL)
 		set(src-backend ${src-backend} winapi/wgl.cpp)
