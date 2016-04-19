@@ -2,6 +2,8 @@
 
 #include <ny/include.hpp>
 #include <ny/base/file.hpp>
+#include <ny/draw/color.hpp>
+
 #include <nytl/vec.hpp>
 
 #include <string>
@@ -19,8 +21,9 @@ public:
 	enum class Format
 	{
 		rgba8888,
+		bgra8888,
+		argb8888,
 		rgb888,
-		xrgb8888,
 		a8
 	};
 
@@ -51,12 +54,18 @@ public:
 
 	std::uint8_t* data() { return data_.get(); }
 	const std::uint8_t* data() const { return data_.get(); }
+
     void data(const std::uint8_t* newdata, const Vec2ui& newsize, Format newFormat);
     void data(std::unique_ptr<std::uint8_t[]>&& newdata, const Vec2ui& newsize, Format newFormat);
+
 	std::unique_ptr<std::uint8_t[]> copyData() const;
 
-    unsigned int pixelSize() const;
     Format format() const { return format_; }
+	void format(Format format);
+
+	unsigned int pixelSize() const { return formatSize(format_); }
+
+	Color at(const Vec2ui& pos) const;
 
     const Vec2ui& size() const { return size_; }
 	void size(const Vec2ui& newSize);

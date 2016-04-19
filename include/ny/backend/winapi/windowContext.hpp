@@ -63,8 +63,8 @@ public:
 
 	virtual bool customDecorated() const override { return 0; };
 
-    virtual void icon(const Image* img) override {};
-    virtual void title(const std::string& title) override {};
+    virtual void icon(const Image* img) override;
+    virtual void title(const std::string& title) override;
 
     //winapi specific
 	WinapiAppContext& appContext() const { return *appContext_; }

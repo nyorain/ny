@@ -131,7 +131,7 @@ public:
 	NativeWidgetType nativeWidgetType = NativeWidgetType::none;
 	Vec2ui size = {800, 500};
 	Vec2i position = {~0, ~0};
-	std::string title = "ny::Window";
+	std::string title = "Some Random Window Title";
 	bool initShown = true;
 };
 

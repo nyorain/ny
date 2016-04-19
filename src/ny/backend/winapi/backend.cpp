@@ -31,7 +31,7 @@ std::unique_ptr<WindowContext> WinapiBackend::createWindowContext(AppContext& co
     }
     else
     {
-        auto wsettings = static_cast<WindowSettings&>(s);
+        auto& wsettings = static_cast<WindowSettings&>(s);
 		wsettings = settings;
     }
 

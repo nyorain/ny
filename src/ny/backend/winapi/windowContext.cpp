@@ -1,5 +1,8 @@
 #include <ny/backend/winapi/windowContext.hpp>
 #include <ny/backend/winapi/appContext.hpp>
+#include <ny/base/log.hpp>
+
+#include <ny/draw/image.hpp>
 #include <ny/draw/drawContext.hpp>
 
 #include <tchar.h>
@@ -143,6 +146,24 @@ void WinapiWindowContext::cursor(const Cursor& c)
 
 void WinapiWindowContext::fullscreen()
 {
+	DEVMODE mode;
+	mode.dmSize       = sizeof(mode);
+	mode.dmPelsWidth  = 1920;
+	mode.dmPelsHeight = 1080;
+	mode.dmBitsPerPel = 32;
+	mode.dmFields     = DM_PELSWIDTH | DM_PELSHEIGHT | DM_BITSPERPEL;
+
+	if (ChangeDisplaySettings(&mode, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
+	{
+		sendWarning("WinapiWindowContext::fullscreen: Failed to change display mode");
+		return;
+	}
+
+	SetWindowLongW(handle(), GWL_STYLE, WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
+	SetWindowLongW(handle(), GWL_EXSTYLE, WS_EX_APPWINDOW);
+
+	SetWindowPos(handle(), HWND_TOP, 0, 0, 1920, 1080, SWP_FRAMECHANGED);
+	ShowWindow(handle(), SW_SHOW);
 }
 
 void WinapiWindowContext::maximize()
@@ -158,6 +179,37 @@ void WinapiWindowContext::minimize()
 void WinapiWindowContext::normalState()
 {
 	ShowWindow(handle_, SW_RESTORE);
+}
+
+void WinapiWindowContext::icon(const Image* img)
+{
+	if(!img)
+	{
+		SendMessageW(handle(), WM_SETICON, ICON_BIG,   (LPARAM)nullptr);
+        SendMessageW(handle(), WM_SETICON, ICON_SMALL, (LPARAM)nullptr);
+		return;
+	}
+
+	auto cpy = *img;
+	cpy.format(Image::Format::bgra8888);
+
+	auto icon = CreateIcon(GetModuleHandleW(nullptr), cpy.size().x, cpy.size().y, 1, 32,
+		nullptr, cpy.data());
+
+   if(icon)
+   {
+       SendMessageW(handle(), WM_SETICON, ICON_BIG,   (LPARAM)icon);
+       SendMessageW(handle(), WM_SETICON, ICON_SMALL, (LPARAM)icon);
+   }
+   else
+   {
+		sendWarning("WinapiWindowContext::icon: Failed to create winapi icon handle");
+   }
+}
+
+void WinapiWindowContext::title(const std::string& title)
+{
+	SetWindowText(handle(), _T(title.c_str()));
 }
 
 NativeWindowHandle WinapiWindowContext::nativeHandle() const

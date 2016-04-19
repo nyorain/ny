@@ -5,21 +5,23 @@ int main()
 {
 	ny::App app {};
 
-	ny::WindowSettings settings;
-	ny::ToplevelWindow window(app, ny::Vec2ui(800, 500), "test", settings);
+	ny::ToplevelWindow window(app, ny::Vec2ui(800, 500), "ny Window Test");
 
-	//ny::Rectangle rct({100, 100}, {100, 100});
+	//window.fullscreen();
 
-	//ny::Gui myGui(window);
-	//ny::Button myButton(myGui, {650, 400}, {100, 45});
-	//myButton.label("Close");
+	ny::Image icon("icon.jpg");
+	window.icon(icon);
 
-	//myButton.onClick = [&]{ std::cout << "Clicked!\n"; window.close(); };
+	ny::Gui myGui(window);
+	ny::Button myButton(myGui, {650, 400}, {100, 45});
+	myButton.label("Close");
+
+	myButton.onClick = [&]{ std::cout << "Clicked!\n"; window.close(); };
 
 	window.show();
 
-	//ny::LoopControl control;
-	//return app.run(control);
+	ny::LoopControl control;
+	return app.run(control);
 
-	while(app.dispatch() == true);
+	//while(app.dispatch() == true);
 }

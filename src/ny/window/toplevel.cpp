@@ -19,7 +19,11 @@ void ToplevelWindow::create(App& app, const Vec2ui& size, const std::string& tit
 		const WindowSettings& settings)
 {
 	title_ = title;
-	Window::create(app, size, settings);
+
+	auto cpy = settings;
+	cpy.title = title;
+
+	Window::create(app, size, cpy);
 }
 
 void ToplevelWindow::maximizeHint(bool set)
@@ -195,6 +199,27 @@ void ToplevelWindow::mouseButtonEvent(const MouseButtonEvent& ev)
 
     if(found) windowContext()->beginResize(&ev, medge);
     else windowContext()->beginMove(&ev);
+}
+
+void ToplevelWindow::maximize()
+{
+	state_ = ToplevelState::maximized;
+	windowContext()->maximize();
+}
+void ToplevelWindow::minimize()
+{
+	state_ = ToplevelState::minimized;
+	windowContext()->minimize();
+}
+void ToplevelWindow::fullscreen()
+{
+	state_ = ToplevelState::fullscreen;
+	windowContext()->fullscreen();
+}
+void ToplevelWindow::reset()
+{
+	state_ = ToplevelState::normal;
+	windowContext()->normalState();
 }
 
 }

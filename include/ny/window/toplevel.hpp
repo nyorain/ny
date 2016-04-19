@@ -12,18 +12,18 @@ class ToplevelWindow : public Window
 protected:
     ToplevelState state_ {};
     std::string title_ {};
-	WindowHints hints_ {};	
+	WindowHints hints_ {};
 
 protected:
 	virtual void mouseMoveEvent(const MouseMoveEvent& event) override;
 	virtual void mouseButtonEvent(const MouseButtonEvent& event) override;
 
 	ToplevelWindow() = default;
-	void create(App& app, const Vec2ui& size, const std::string& name = "", 
+	void create(App& app, const Vec2ui& size, const std::string& title = "",
 			const WindowSettings& = {});
 
 public:
-	ToplevelWindow(App& app, const Vec2ui& size, const std::string& name = "",
+	ToplevelWindow(App& app, const Vec2ui& size, const std::string& title = "",
 			const WindowSettings& settings = {});
 
 	virtual ~ToplevelWindow();
@@ -44,18 +44,18 @@ public:
 	void icon(const Image& icon);
 
 	void title(const std::string& ptitle);
-	const std::string& title() const { return title_; } 
+	const std::string& title() const { return title_; }
 
 	ToplevelState state() const { return state_; }
     bool maximized() const { return (state_ == ToplevelState::maximized); };
     bool minimized() const { return (state_ == ToplevelState::minimized); };
-    bool fullscreen() const { return (state_ == ToplevelState::fullscreen); };
+    bool isFullscreen() const { return (state_ == ToplevelState::fullscreen); };
 	bool normalState() const { return (state_ == ToplevelState::normal); }
 
 	void maximize();
 	void minimize();
-	void setFullscreen();
-	void setNormalState();
+	void fullscreen();
+	void reset();
 };
 
 }

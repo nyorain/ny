@@ -1,0 +1,22 @@
+class SceneParameter
+{
+public:
+	enum class Type
+	{
+	};
+
+	std::vector<PathBase*> references_;
+};
+
+class Scene : public MulitCache<>
+{
+protected:
+	std::vector<PathBase> paths_;
+	std::vector<SceneParameter> parameter_;
+};
+
+class DrawContext
+{
+public:
+	draw(const Scene& scene);
+};

@@ -18,7 +18,7 @@ unsigned int Image::formatSize(Image::Format f)
 {
 	switch(f)
 	{
-		case Format::rgba8888: case Format::xrgb8888: return 4;
+		case Format::rgba8888: case Format::argb8888: case Format::bgra8888: return 4;
 		case Format::rgb888: return 3;
 		case Format::a8: return 1;
 		default: return 0;
@@ -27,7 +27,7 @@ unsigned int Image::formatSize(Image::Format f)
 
 //stbi Callbacks/util
 namespace
-{    
+{
 	int read(void* user, char* data, int size)
     {
         std::istream* stream = static_cast<std::istream*>(user);
@@ -42,13 +42,7 @@ namespace
     int eof(void* user)
     {
         std::istream* stream = static_cast<std::istream*>(user);
-
-		auto curr = stream->tellg();
-		stream->seekg(0, stream->end);
-		std::size_t size = static_cast<std::size_t>(stream->tellg());
-        stream->seekg(curr, stream->beg);
-
-        return static_cast<std::size_t>(stream->tellg()) >= size;
+		return stream->eof();
     }
 
 	void write(void* user, void* data, int size)
@@ -125,14 +119,61 @@ std::unique_ptr<std::uint8_t[]> Image::copyData() const
 	return ret;
 }
 
-unsigned int Image::pixelSize() const
-{
-	return formatSize(format_);
-}
-
 std::size_t Image::dataSize() const
 {
 	return size_.x * size_.y * pixelSize();
+}
+
+void Image::format(Format newformat)
+{
+	auto newsize = formatSize(newformat);
+	auto newdata = std::make_unique<std::uint8_t[]>(size_.x * size_.y * newsize);
+
+	for(auto y(0u); y < size_.y; ++y)
+	{
+		for(auto x(0u); x < size_.x; ++x)
+		{
+			auto i = y * size_.x + x;
+			auto color = at({x, y});
+
+			switch(newformat)
+			{
+				case Format::bgra8888:
+				{
+
+					newdata[i * 4 + 0] = color.b;
+					newdata[i * 4 + 1] = color.g;
+					newdata[i * 4 + 2] = color.r;
+					newdata[i * 4 + 3] = color.a;
+				}
+			}
+		}
+	}
+
+	data_ = std::move(newdata);
+	format_ =  newformat;
+}
+
+Color Image::at(const Vec2ui& pos) const
+{
+	auto i = pos.y * size_.x + pos.x;
+	auto d = &data_[i * pixelSize()];
+
+	std::uint8_t d1, d2, d3, d4;
+
+	if(pixelSize() > 0) d1 = *(d + 0);
+	if(pixelSize() > 1) d2 = *(d + 1);
+	if(pixelSize() > 2) d3 = *(d + 2);
+	if(pixelSize() > 3) d4 = *(d + 3);
+
+	switch(format())
+	{
+		case Format::bgra8888: return Color(d3, d2, d1, d4);
+		case Format::argb8888: return Color(d4, d1, d2, d3);
+		case Format::rgba8888: return Color(d1, d2, d3, d4);
+		case Format::rgb888: return Color(d1, d2, d3);
+		case Format::a8: return Color(0, 0, 0, d1);
+	}
 }
 
 //todo
@@ -141,8 +182,8 @@ bool Image::save(const std::string& path) const
 	if(!data_) return 0;
 
     const std::size_t dot = path.find_last_of('.');
-    std::string ext = (dot != std::string::npos) ? path.substr(dot + 1) : "";	   
-	if(ext.empty()) ext = "plain";
+    std::string ext = (dot != std::string::npos) ? path.substr(dot + 1) : "";
+	if(ext.empty()) ext = "png";
 
 	for(auto& c : ext) c = std::tolower(c);
 
@@ -158,18 +199,19 @@ bool Image::save(const std::string& path) const
 
 bool Image::load(const std::string& path)
 {
-	std::ifstream ifs(path);
+	//
+	std::ifstream ifs(path, std::ios_base::binary);
 	if(!ifs.is_open())
 	{
 		sendWarning("Image::load: failed to open file ", path);
-		return 0;
+		return false;
 	}
 
 	return load(ifs);
 }
 
 bool Image::save(std::ostream& os, const std::string& type) const
-{ 
+{
 	if(type == "bmp")
 	{
 		if(stbi_write_bmp_to_func(&write, &os, size_.x, size_.y, 4, data_.get()))
@@ -206,12 +248,12 @@ bool Image::load(std::istream& is)
     callbacks.eof  = &eof;
 
     int width, height, channels;
-    unsigned char* ptr = stbi_load_from_callbacks(&callbacks, &is, &width, 
+    unsigned char* ptr = stbi_load_from_callbacks(&callbacks, &is, &width,
 			&height, &channels, STBI_rgb_alpha);
 
     if (ptr && width && height)
     {
-		std::size_t dataSize = width * height * channels;
+		std::size_t dataSize = width * height * STBI_rgb_alpha;
 
         size_.x = width;
         size_.y = height;
@@ -222,11 +264,13 @@ bool Image::load(std::istream& is)
 
 		stbi_image_free(ptr);
 
+		format_ = Format::rgba8888;
+
         return true;
     }
 
 	sendWarning("Image::load: failed to load image from stream:\n\t", stbi_failure_reason());
-	return 0;
+	return false;
 }
 
 }
