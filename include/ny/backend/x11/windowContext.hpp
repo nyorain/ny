@@ -11,6 +11,9 @@
 namespace ny
 {
 
+//Dummy delcaration to not include xcb_ewmh.h
+struct dummy_xcb_ewmh_connection_t;
+
 ///Additional settings for a X11 Window.
 class X11WindowSettings : public WindowSettings {};
 
@@ -39,7 +42,9 @@ protected:
 protected:
 	X11WindowContext() = default;
 	void create(X11AppContext& ctx, const X11WindowSettings& settings);
+
 	xcb_connection_t* xConnection() const;
+	dummy_xcb_ewmh_connection_t* ewmhConnection() const;
 
     virtual void initVisual();
 
@@ -55,7 +60,7 @@ public:
     virtual void show() override;
     virtual void hide() override;
 
-    virtual void size(const Vec2ui& size)override;
+    virtual void size(const Vec2ui& size) override;
     virtual void position(const Vec2i& position) override;
 
     virtual void cursor(const Cursor& c) override;
@@ -66,11 +71,13 @@ public:
     virtual bool handleEvent(const Event& e) override;
 	virtual NativeWindowHandle nativeHandle() const override;
 
+	void droppable(const DataTypes&) override {};
+
     //toplevel window
     virtual void maximize() override;
     virtual void minimize() override;
     virtual void fullscreen() override;
-    virtual void toplevel() override;
+    virtual void normalState() override;
 
     virtual void beginMove(const MouseButtonEvent* ev) override;
     virtual void beginResize(const MouseButtonEvent* ev, WindowEdges edges) override;
@@ -82,11 +89,12 @@ public:
 	virtual void addWindowHints(WindowHints hints) override;
 	virtual void removeWindowHints(WindowHints hints) override;
 
+
     //x11-specific
 	X11AppContext& appContext() const { return *appContext_; }
     xcb_window_t xWindow() const { return xWindow_; }
 
-	Property property(xcb_atom_t property);
+	Vec2ui querySize() const; 
 
     //general
     void overrideRedirect(bool redirect);
@@ -98,17 +106,15 @@ public:
     void requestFocus();
 
     //motif
-    void mwmDecorationHints(unsigned long hints);
-    void mwmFunctionHints(unsigned long hints);
-    void mwmHints(unsigned long deco, unsigned long func);
+    void mwmHints(unsigned long deco, unsigned long func, bool d = true, bool f = true);
 
     unsigned long mwmDecorationHints() const;
     unsigned long mwmFunctionHints() const;
 
     //ewmh
-    void addState(xcb_atom_t state);
-    void removeState(xcb_atom_t state);
-    void toggleState(xcb_atom_t state);
+    void addState(xcb_atom_t state1, xcb_atom_t state2 = 0);
+    void removeState(xcb_atom_t state1, xcb_atom_t state2 = 0);
+    void toggleState(xcb_atom_t state1, xcb_atom_t state2 = 0);
 
     unsigned long states() const { return states_; };
     void refreshStates();

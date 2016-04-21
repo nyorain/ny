@@ -8,14 +8,6 @@
 #include <ny/app/app.hpp>
 #include <ny/window/events.hpp>
 
-#ifdef NY_WithGL
- #include <ny/backend/x11/glx.hpp>
-#endif // NY_WithGL
-
-#ifdef NY_WithCairo
- #include <ny/backend/x11/cairo.hpp>
-#endif // NY_WithGL
-
 #define XK_LATIN1
 #define XK_MISCELLANY
 #include <X11/keysymdef.h>
@@ -113,33 +105,5 @@ Cursor::Type x11ToCursor(int xcID)
         default: return Cursor::Type::unknown;
     }
 }
-
-namespace x11
-{
-
-Property windowProperty(xcb_window_t w, xcb_atom_t prop)
-{
-    if(!xDisplay() || !w || !prop) return property();
-    Atom actualType;
-	int actualFormat;
-	unsigned long count;
-	unsigned long bytesAfter;
-	unsigned char *data = nullptr;
-	int readBytes = 1024;
-
-	do
-	{
-		if(data) XFree(data);
-		XGetWindowProperty(xDisplay(), w, prop, 0, readBytes, False, AnyPropertyType, &actualType, 
-				&actualFormat, &count, &bytesAfter, &data);
-        readBytes *= 2;
-
-	} while(bytesAfter);
-
-	return {data, (unsigned int)actualFormat, (unsigned int)count, actualType};
-}
-
-}//x11
-
 
 }

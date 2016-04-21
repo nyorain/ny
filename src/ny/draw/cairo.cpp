@@ -118,6 +118,14 @@ CairoDrawContext::~CairoDrawContext()
 	}
 }
 
+void CairoDrawContext::create(cairo_surface_t& surface)
+{
+	if(cairoCR_) cairo_destroy(cairoCR_);
+
+	cairoSurface_ = cairo_surface_reference(&surface);
+	cairoCR_ = cairo_create(cairoSurface_);
+}
+
 void CairoDrawContext::clear(const Brush& brush)
 {
 	VALIDATE_CTX();

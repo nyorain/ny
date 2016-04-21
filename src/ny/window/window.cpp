@@ -203,8 +203,8 @@ void Window::positionEvent(const PositionEvent& e)
 }
 void Window::drawEvent(const DrawEvent&)
 {
-    //auto guard = windowContext_->draw();
-    //draw(guard.dc());
+    auto guard = windowContext_->draw();
+    draw(guard.dc());
 }
 void Window::showEvent(const ShowEvent& e)
 {

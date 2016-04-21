@@ -23,6 +23,8 @@ if(NY_WithX11)
 		x11/backend.cpp
 		x11/util.cpp
 		x11/windowContext.cpp)
+	
+	set(libs-backend ${libs-backend} X11 xcb xcb-icccm xcb-ewmh)
 
 	if(NY_WithGL)
 		set(src-backend ${src-backend} x11/glx.cpp)
@@ -30,6 +32,7 @@ if(NY_WithX11)
 
 	if(NY_WithCairo)
 		set(src-backend ${src-backend} x11/cairo.cpp)
+		set(libs-backend ${libs-backend} cairo)
 	endif(NY_WithCairo)
 
 endif(NY_WithX11)

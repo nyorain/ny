@@ -2,18 +2,21 @@
 
 #include <ny/backend/x11/util.hpp>
 #include <ny/backend/x11/appContext.hpp>
+#include <ny/backend/x11/internal.hpp>
 
 #include <ny/app/app.hpp>
 #include <ny/window/window.hpp>
 #include <ny/window/child.hpp>
 #include <ny/window/toplevel.hpp>
 #include <ny/base/event.hpp>
+#include <ny/base/log.hpp>
 #include <ny/window/cursor.hpp>
 #include <ny/window/events.hpp>
 #include <ny/draw/image.hpp>
 #include <ny/draw/drawContext.hpp>
 
 #include <X11/Xatom.h>
+#include <xcb/xcb_icccm.h>
 
 #include <memory.h>
 #include <iostream>
@@ -30,6 +33,8 @@ X11WindowContext::X11WindowContext(X11AppContext& ctx, const X11WindowSettings& 
 void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& settings) 
 {
 	appContext_ = &ctx;
+
+	if(!xVisualID_) initVisual();
 
     auto xconn = appContext_->xConnection();
 	auto xscreen = appContext_->xDefaultScreen();
@@ -66,11 +71,13 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 	xcb_create_window(xconn, XCB_COPY_FROM_PARENT, xWindow_, xparent, pos.x, pos.y,
 		size.x, size.y, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT, xVisualID_, valuemask, valuelist);
 
+	show(); //???
+
     appContext_->registerContext(xWindow_, *this);
     if(toplvl) 
 	{
-		auto protocols = appContext_->atom("WM_WINDOW_PROTOCOLS");
-		auto list = appContext_->atom("WM_WINDOW_DELETE");
+		auto protocols = ewmhConnection()->WM_PROTOCOLS;
+		auto list = appContext_->atom("WM_DELETE_WINDOW");
 
 		xcb_change_property(xconn, XCB_PROP_MODE_REPLACE, xWindow_, protocols, 
 				XCB_ATOM_ATOM, 32, 1, &list);
@@ -89,6 +96,16 @@ X11WindowContext::~X11WindowContext()
 
 void X11WindowContext::initVisual()
 {
+	xVisualID_ = appContext().xDefaultScreen()->root_visual;
+}
+
+xcb_connection_t* X11WindowContext::xConnection() const
+{
+	return appContext().xConnection();
+}
+dummy_xcb_ewmh_connection_t* X11WindowContext::ewmhConnection() const
+{
+	return appContext().ewmhConnection();
 }
 
 /*
@@ -184,23 +201,6 @@ void X11WindowContext::show()
     xcb_map_window(xConnection(), xWindow_);
 }
 
-void X11WindowContext::hide()
-{
-    xcb_unmap_window(xConnection(), xWindow_);
-}
-
-void X11WindowContext::raise()
-{
-}
-
-void X11WindowContext::lower()
-{
-}
-
-void X11WindowContext::requestFocus()
-{
-    addState(x11::StateFocused); //todo: fix
-}
 
 void X11WindowContext::size(const Vec2ui& size)
 {
@@ -231,6 +231,91 @@ void X11WindowContext::cursor(const Cursor& curs)
     //todo: image
 }
 
+void X11WindowContext::maximize()
+{
+    addState(ewmhConnection()->_NET_WM_STATE_MAXIMIZED_VERT,
+			ewmhConnection()->_NET_WM_STATE_MAXIMIZED_HORZ);
+}
+
+void X11WindowContext::minimize()
+{
+	xcb_icccm_wm_hints_t hints;
+    hints.flags = XCB_ICCCM_WM_HINT_STATE;
+    hints.initial_state = XCB_ICCCM_WM_STATE_ICONIC;
+    xcb_icccm_set_wm_hints(xConnection(), xWindow_, &hints);
+}
+
+void X11WindowContext::fullscreen()
+{
+    addState(ewmhConnection()->_NET_WM_STATE_FULLSCREEN);
+}
+
+void X11WindowContext::normalState()
+{
+	xcb_icccm_wm_hints_t hints;
+    hints.flags = XCB_ICCCM_WM_HINT_STATE;
+    hints.initial_state = XCB_ICCCM_WM_STATE_NORMAL;
+    xcb_icccm_set_wm_hints(xConnection(), xWindow_, &hints);
+}
+
+void X11WindowContext::beginMove(const MouseButtonEvent* ev)
+{
+	auto* xbev = dynamic_cast<X11EventData*>(ev->data.get());
+    if(!xbev) return;
+    auto& xev = reinterpret_cast<xcb_button_press_event_t&>(xbev->event);
+
+	//XXX: correct mouse button!
+	xcb_ewmh_request_wm_moveresize(ewmhConnection(), 0, xWindow(), xev.root_x, xev.root_y, 
+		XCB_EWMH_WM_MOVERESIZE_MOVE, XCB_BUTTON_INDEX_1, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL); 
+}
+
+void X11WindowContext::beginResize(const MouseButtonEvent* ev, WindowEdges edge)
+{
+	auto* xbev = dynamic_cast<X11EventData*>(ev->data.get());
+    if(!xbev) return;
+    auto& xev = reinterpret_cast<xcb_button_press_event_t&>(xbev->event);
+
+	xcb_ewmh_moveresize_direction_t x11Edge;
+	switch(edge)
+    {
+        case WindowEdges::top: x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_TOP; break;
+        case WindowEdges::left: x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_LEFT; break;
+        case WindowEdges::bottom: x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_BOTTOM; break;
+        case WindowEdges::right: x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_RIGHT; break;
+        case WindowEdges::topLeft: x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_TOPLEFT; break;
+        case WindowEdges::topRight: x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_TOPRIGHT; break;
+        case WindowEdges::bottomLeft: x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_BOTTOMLEFT; break;
+        case WindowEdges::bottomRight: x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_BOTTOMRIGHT; break;
+        default: return;
+    }
+
+	//XXX: correct mouse button!
+	xcb_ewmh_request_wm_moveresize(ewmhConnection(), 0, xWindow(), xev.root_x, xev.root_y, 
+		x11Edge, XCB_BUTTON_INDEX_1, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL); 
+}
+
+void X11WindowContext::icon(const Image* img)
+{
+    if(img)
+    {
+		auto cpy = *img;
+		cpy.format(Image::Format::rgba8888);
+		auto size = 2 + cpy.size().x * cpy.size().y;
+		auto data = reinterpret_cast<std::uint32_t*>(cpy.data());
+		xcb_ewmh_set_wm_icon(ewmhConnection(), XCB_PROP_MODE_REPLACE, xWindow(), size, data);
+    }
+	else
+	{
+		std::uint32_t buffer[2] = {0};
+		xcb_ewmh_set_wm_icon(ewmhConnection(), XCB_PROP_MODE_REPLACE, xWindow(), 2, buffer);
+	}
+}
+
+void X11WindowContext::title(const std::string& str)
+{
+	xcb_ewmh_set_wm_name(ewmhConnection(), xWindow(), str.size(), str.c_str());
+}
+
 NativeWindowHandle X11WindowContext::nativeHandle() const
 {
 	return NativeWindowHandle(xWindow_);
@@ -238,24 +323,20 @@ NativeWindowHandle X11WindowContext::nativeHandle() const
 
 void X11WindowContext::minSize(const Vec2ui& size)
 {
-    long a;
-    XSizeHints s;
-    XGetWMNormalHints(xDisplay(), xWindow_, &s, &a);
-    s.min_width = size.x;
-    s.min_height = size.y;
-    s.flags |= PMinSize;
-    XSetWMNormalHints(xDisplay(), xWindow_, &s);
+	xcb_size_hints_t hints {};
+	hints.min_width = size.x;
+	hints.min_height = size.y;
+	hints.flags = XCB_ICCCM_SIZE_HINT_P_MIN_SIZE;
+	xcb_icccm_set_wm_normal_hints(xConnection(), xWindow(), &hints);
 }
 
 void X11WindowContext::maxSize(const Vec2ui& size)
 {
-    long a;
-    XSizeHints s;
-    XGetWMNormalHints(xDisplay(), xWindow_, &s, &a);
-    s.max_width = size.x;
-    s.max_height = size.y;
-    s.flags |= PMaxSize;
-    XSetWMNormalHints(xDisplay(), xWindow_, &s);
+	xcb_size_hints_t hints {};
+	hints.max_width = size.x;
+	hints.max_height = size.y;
+	hints.flags = XCB_ICCCM_SIZE_HINT_P_MAX_SIZE;
+	xcb_icccm_set_wm_normal_hints(xConnection(), xWindow(), &hints);
 }
 
 bool X11WindowContext::handleEvent(const Event& e)
@@ -278,6 +359,7 @@ void X11WindowContext::addWindowHints(WindowHints hints)
     unsigned long motifFunc = 0;
 	bool customDecorated = 0;
 
+	/*
 	if(window().windowHints() & windowHints::customDecorated)
 	{
 		if(mwmDecoHints_ != 0)
@@ -344,12 +426,14 @@ void X11WindowContext::addWindowHints(WindowHints hints)
 		mwmDecoHints_ |= motifDeco;
 		mwmHints(mwmDecoHints_, mwmFuncHints_);
 	}
+	*/
 }
 void X11WindowContext::removeWindowHints(WindowHints hints)
 {
     unsigned long motifDeco = 0;
     unsigned long motifFunc = 0;
 
+	/*
     if(hints & windowHints::close)
     {
         motifFunc |= x11::MwmFuncClose;
@@ -399,93 +483,65 @@ void X11WindowContext::removeWindowHints(WindowHints hints)
     mwmDecoHints_ &= ~motifDeco;
 
     mwmHints(mwmDecoHints_, mwmFuncHints_);
+	*/
 }
 
 //x11 specific
-void X11WindowContext::addState(xcb_atom_t state)
+void X11WindowContext::hide()
 {
-    XEvent ev;
-
-    ev.type = ClientMessage;
-    ev.xclient.window = xWindow_;
-    ev.xclient.message_type = x11::State;
-    ev.xclient.format = 32;
-
-    ev.xclient.data.l[0] = 1; //add
-    ev.xclient.data.l[1] = state;
-    ev.xclient.data.l[2] = 0;
-
-    XSendEvent(xDisplay(), DefaultRootWindow(xDisplay()), False, SubstructureNotifyMask, &ev);
-
-    states_ |= state;
+    xcb_unmap_window(xConnection(), xWindow_);
 }
 
-void X11WindowContext::removeState(xcb_atom_t state)
+void X11WindowContext::raise()
 {
-    XEvent ev;
-
-    ev.type = ClientMessage;
-    ev.xclient.window = xWindow_;
-    ev.xclient.message_type = x11::State;
-    ev.xclient.format = 32;
-
-    ev.xclient.data.l[0] = 0; //remove
-    ev.xclient.data.l[1] = state;
-    ev.xclient.data.l[2] = 0;
-
-    XSendEvent(xDisplay(), DefaultRootWindow(xDisplay()), False, SubstructureNotifyMask, &ev);
-
-    states_ = states_ & ~state;
 }
 
-void X11WindowContext::toggleState(xcb_atom_t state)
+void X11WindowContext::lower()
 {
-    XEvent ev;
-
-    ev.type = ClientMessage;
-    ev.xclient.window = xWindow_;
-    ev.xclient.message_type = x11::State;
-    ev.xclient.format = 32;
-
-    ev.xclient.data.l[0] = 2; //toggle
-    ev.xclient.data.l[1] = state;
-    ev.xclient.data.l[2] = 0;
-
-    XSendEvent(xDisplay(), DefaultRootWindow(xDisplay()), False, SubstructureNotifyMask, &ev);
-
-    states_ = states_ xor state;
 }
 
-void X11WindowContext::mwmHints(unsigned long deco, unsigned long func)
+void X11WindowContext::requestFocus()
 {
-    mwmDecoHints_ = deco;
-    mwmFuncHints_ = func;
-
-    struct x11::mwmHints mhints;
-    mhints.flags = x11::MwmHintsDeco | x11::MwmHintsFunc;
-    mhints.decorations = deco;
-    mhints.functions = func;
-    XChangeProperty(xDisplay(), xWindow_, x11::MwmHints, XA_ATOM, 32, PropModeReplace, (unsigned char *)&mhints, sizeof (x11::mwmHints)/sizeof (long));
+    addState(appContext().atom("_NET_WM_STATE_FOCUSED")); //todo: fix
+}
+void X11WindowContext::addState(xcb_atom_t state1, xcb_atom_t state2)
+{
+	xcb_ewmh_request_change_wm_state(ewmhConnection(), 0, xWindow(), XCB_EWMH_WM_STATE_ADD, 
+			state1, state2, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
 }
 
-void X11WindowContext::mwmDecorationHints(const unsigned long hints)
+void X11WindowContext::removeState(xcb_atom_t state1, xcb_atom_t state2)
 {
-    mwmDecoHints_ = hints;
-
-    struct x11::mwmHints mhints;
-    mhints.flags = x11::MwmHintsDeco;
-    mhints.decorations = hints;
-    XChangeProperty(xDisplay(), xWindow_, x11::MwmHints, XA_ATOM, 32, PropModeReplace, (unsigned char *)&mhints, sizeof (x11::mwmHints)/sizeof (long));
+	xcb_ewmh_request_change_wm_state(ewmhConnection(), 0, xWindow(), XCB_EWMH_WM_STATE_REMOVE, 
+			state1, state2, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
 }
 
-void X11WindowContext::mwmFunctionHints(const unsigned long hints)
+void X11WindowContext::toggleState(xcb_atom_t state1, xcb_atom_t state2)
 {
-    mwmFuncHints_ = hints;
+	xcb_ewmh_request_change_wm_state(ewmhConnection(), 0, xWindow(), XCB_EWMH_WM_STATE_TOGGLE, 
+			state1, state2, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
+}
 
-    struct x11::mwmHints mhints;
-    mhints.flags = x11::MwmHintsFunc;
-    mhints.functions = hints;
-    XChangeProperty(xDisplay(), xWindow_, x11::MwmHints, XA_ATOM, 32, PropModeReplace, (unsigned char *)&mhints, sizeof (x11::mwmHints)/sizeof (long));
+void X11WindowContext::mwmHints(unsigned long deco, unsigned long func, bool d, bool f)
+{
+	/*
+    struct x11::MwmHints mhints;
+    if(d) 
+	{
+		mwmDecoHints_ = deco;
+		mhints.flags |= x11::MwmHintsDeco;
+		mhints.decorations = deco;
+	}
+    if(f) 
+	{
+		mwmFuncHints_ = func;
+		mhints.flags |= x11::MwmHintsFunc;
+		mhints.functions = func;
+	}
+
+    xcb_change_property(xConnection(), xWindow(), appContext().atom("_MOTIF_WM_HINTS"), XA_ATOM, 
+			32, PropModeReplace, (unsigned char *)&mhints, sizeof (x11::MwmHints)/sizeof (long));
+			*/
 }
 
 unsigned long X11WindowContext::mwmFunctionHints() const
@@ -502,6 +558,7 @@ unsigned long X11WindowContext::mwmDecorationHints() const
 
 void X11WindowContext::addAllowedAction(xcb_atom_t action)
 {
+	/*
     XEvent ev;
 
     ev.type = ClientMessage;
@@ -514,10 +571,12 @@ void X11WindowContext::addAllowedAction(xcb_atom_t action)
     ev.xclient.data.l[2] = 0;
 
     XSendEvent(xDisplay(), DefaultRootWindow(xDisplay()), False, SubstructureNotifyMask, &ev);
+	*/
 }
 
 void X11WindowContext::removeAllowedAction(xcb_atom_t action)
 {
+	/*
     XEvent ev;
 
     ev.type = ClientMessage;
@@ -530,6 +589,7 @@ void X11WindowContext::removeAllowedAction(xcb_atom_t action)
     ev.xclient.data.l[2] = 0;
 
     XSendEvent(xDisplay(), DefaultRootWindow(xDisplay()), False, SubstructureNotifyMask, &ev);
+	*/
 }
 
 std::vector<xcb_atom_t> X11WindowContext::allowedActions() const
@@ -547,12 +607,12 @@ void X11WindowContext::refreshStates()
 
 void X11WindowContext::transientFor(xcb_window_t other)
 {
-    XSetTransientForHint(xDisplay(), other, xWindow_);
+//    XSetTransientForHint(xDisplay(), other, xWindow_);
 }
 
 void X11WindowContext::xWindowType(xcb_window_t type)
 {
-    XChangeProperty(xDisplay(), xWindow_, x11::Type, XA_ATOM, 32, PropModeReplace, (unsigned char*) &type, 1);
+//    XChangeProperty(xDisplay(), xWindow_, x11::Type, XA_ATOM, 32, PropModeReplace, (unsigned char*) &type, 1);
 }
 
 xcb_atom_t X11WindowContext::xWindowType()
@@ -563,129 +623,20 @@ xcb_atom_t X11WindowContext::xWindowType()
 
 void X11WindowContext::overrideRedirect(bool redirect)
 {
+/*
     XSetWindowAttributes attr;
     attr.override_rediRect = rediRect;
 
     XChangeWindowAttributes(xDisplay(), xWindow_, CWOverrideRedirect, &attr);
+*/
 }
 
 void X11WindowContext::cursor(unsigned int xCursorID)
 {
+/*
     XCursor c = XCreateFontCursor(xDisplay(), xCursorID);
     XDefineCursor(xDisplay(), xWindow_, c);
-}
-
-void X11WindowContext::maximize()
-{
-    addState(x11::StateMaxHorz);
-    addState(x11::StateMaxVert);
-}
-
-void X11WindowContext::minimize()
-{
-    XWMHints hints;
-    hints.flags = StateHint;
-    hints.initial_state = IconicState;
-    XSetWMHints(xDisplay(), xWindow_, &hints);
-}
-
-void X11WindowContext::fullscreen()
-{
-    addState(x11::StateFullscreen);
-}
-
-void X11WindowContext::toplevel()
-{
-    XWMHints hints;
-    hints.flags = StateHint;
-    hints.initial_state = NormalState;
-    XSetWMHints(xDisplay(), xWindow_, &hints);
-}
-
-void X11WindowContext::beginMove(const MouseButtonEvent* ev)
-{
-	auto* xbev = dynamic_cast<X11EventData*>(ev->data.get());
-    if(!xbev)
-        return;
-
-    auto& xev = reinterpret_cast<xcb_button_press_event_t&>(xbev->event);
-
-    XEvent mev;
-    XUngrabPointer(xDisplay(), 0L);
-
-    mev.type = ClientMessage;
-    mev.xclient.window = xWindow_;
-    mev.xclient.message_type = x11::MoveResize;
-    mev.xclient.format = 32;
-    mev.xclient.data.l[0] = xev.root_x;
-    mev.xclient.data.l[1] = xev.root_y;
-    mev.xclient.data.l[2] = x11::MoveResizeMove;
-    mev.xclient.data.l[3] = xev.detail;
-    mev.xclient.data.l[4] = 1; //default. could be set to 2 for pager
-
-    XSendEvent(xDisplay(), DefaultRootWindow(xDisplay()), False, SubstructureNotifyMask , &mev);
-}
-
-void X11WindowContext::beginResize(const MouseButtonEvent* ev, WindowEdge edge)
-{
-    auto* xbev = dynamic_cast<X11EventData*>(ev->data.get());
-
-    if(!xbev)
-        return;
-
-    unsigned long x11Edge = 0;
-
-    switch(edge)
-    {
-        case WindowEdge::top: x11Edge = x11::MoveResizeSizeTop; break;
-        case WindowEdge::left: x11Edge = x11::MoveResizeSizeLeft; break;
-        case WindowEdge::bottom: x11Edge = x11::MoveResizeSizeBottom; break;
-        case WindowEdge::right: x11Edge = x11::MoveResizeSizeRight; break;
-        case WindowEdge::topLeft: x11Edge = x11::MoveResizeSizeTopLeft; break;
-        case WindowEdge::topRight: x11Edge = x11::MoveResizeSizeTopRight; break;
-        case WindowEdge::bottomLeft: x11Edge = x11::MoveResizeSizeBottomLeft; break;
-        case WindowEdge::bottomRight: x11Edge = x11::MoveResizeSizeBottomRight; break;
-        default: return;
-    }
-
-    auto& xev = reinterpret_cast<xcb_button_press_event_t&>(xbev->event);
-
-    XEvent mev;
-    XUngrabPointer(xDisplay(), 0L);
-
-    mev.type = ClientMessage;
-    mev.xclient.window = xWindow_;
-    mev.xclient.message_type = x11::MoveResize;
-    mev.xclient.format = 32;
-    mev.xclient.data.l[0] = xev.root_x;
-    mev.xclient.data.l[1] = xev.root_y;
-    mev.xclient.data.l[2] = x11Edge;
-    mev.xclient.data.l[3] = xev.detail;
-    mev.xclient.data.l[4] = 1; //default. could be set to 2 for pager
-
-    XSendEvent(xDisplay(), DefaultRootWindow(xDisplay()), False, SubstructureNotifyMask , &mev);
-}
-
-void X11WindowContext::icon(const Image* img)
-{
-    //TODO: only rgba images accepted atm
-    if(img)
-    {
-        auto imageData = img->data();
-        XChangeProperty(xDisplay(), xWindow_, x11::WMIcon, x11::Cardinal, 32, PropModeReplace, 
-				imageData, 2 + img->size().x * img->size().y);
-
-        return;
-    }
-
-	unsigned char buffer[8] = {0};
-    XChangeProperty(xDisplay(), xWindow_, x11::WMIcon, x11::Cardinal, 32, 
-			PropModeReplace, buffer, 2);
-}
-
-void X11WindowContext::title(const std::string&)
-{
-
+*/
 }
 
 }

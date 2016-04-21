@@ -28,7 +28,7 @@ public:
     CairoDrawContext(Image& img);
     virtual ~CairoDrawContext();
 
-    bool create(cairo_surface_t& cairoSurface);
+    void create(cairo_surface_t& cairoSurface);
 
     virtual void clear(const Brush& b = Brush::none) override;
 	virtual void paint(const Brush& b, const Brush& alpha) override;

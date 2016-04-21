@@ -7,9 +7,12 @@
 typedef struct _XDisplay Display;
 
 #include <map>
+#include <memory>
 
 namespace ny
 {
+
+struct dummy_xcb_ewmh_connection_t;
 
 class X11AppContext : public AppContext
 {
@@ -19,6 +22,8 @@ protected:
 protected:
     Display* xDisplay_  = nullptr;
 	xcb_connection_t* xConnection_ = nullptr;
+	std::unique_ptr<dummy_xcb_ewmh_connection_t> ewmhConnection_;
+
 	xcb_window_t xDummyWindow_ = {};
 
     int xDefaultScreenNumber_ = 0;
@@ -40,6 +45,7 @@ public:
 
     Display* xDisplay() const { return xDisplay_; }
 	xcb_connection_t* xConnection() const { return xConnection_; }
+	dummy_xcb_ewmh_connection_t* ewmhConnection() const { return ewmhConnection_.get(); }
     int xDefaultScreenNumber() const { return xDefaultScreenNumber_; }
     xcb_screen_t* xDefaultScreen() const { return xDefaultScreen_; }
 
@@ -47,7 +53,7 @@ public:
     void unregisterContext(xcb_window_t w);
     X11WindowContext* windowContext(xcb_window_t win);
 
-	xcb_atom_t atom(const std::string& name) const;
+	xcb_atom_t atom(const std::string& name);
 };
 
 }

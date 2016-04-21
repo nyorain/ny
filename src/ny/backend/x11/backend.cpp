@@ -1,9 +1,15 @@
 #include <ny/backend/x11/backend.hpp>
+#include <ny/config.hpp>
 
 #include <ny/backend/x11/windowContext.hpp>
 #include <ny/backend/x11/appContext.hpp>
 
+#ifdef NY_WithCairo
+  #include <ny/backend/x11/cairo.hpp>
+#endif //Cairo
+
 #include <X11/Xlib.h>
+#include <memory>
 
 namespace ny
 {
@@ -62,7 +68,7 @@ X11Backend::createWindowContext(AppContext& ctx, const WindowSettings& s)
 	else if(s.draw == DrawType::opengl)
 	{
 		#ifdef NY_WithGL	
-		 return std::make_unique<X11GlWindowContext>(xac, settings);
+		 return std::make_unique<X11GlWindowContext>(*xac, settings);
 		#else
 		 throw std::logic_error("ny::X11Backend::createWC: cannot match draw type");
 		#endif
@@ -70,14 +76,13 @@ X11Backend::createWindowContext(AppContext& ctx, const WindowSettings& s)
 	else if(s.draw == DrawType::software || s.draw == DrawType::dontCare)
 	{
 		#ifdef NY_WithCairo
-		 return std::make_unique<X11CairoWindowContext>(xac, settings);
+		 return std::make_unique<X11CairoWindowContext>(*xac, settings);
 		#else
 		 throw std::logic_error("ny::X11Backend::createWC: cannot match draw type");
 		#endif
 	}
 
-	return std::make_unique<X11WindowContext>(xac, settings);
-
+	return std::make_unique<X11WindowContext>(*xac, settings);
 }
 
 }

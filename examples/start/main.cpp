@@ -3,22 +3,26 @@
 
 int main()
 {
-	ny::App app {};
+	ny::App::Settings s;
+	//s.multithreaded = false;
+	ny::App app(s);
 
 	ny::ToplevelWindow window(app, ny::Vec2ui(800, 500), "ny Window Test");
 
 	//window.fullscreen();
 
-	ny::Image icon("icon.jpg");
-	window.icon(icon);
+	//ny::Image icon("icon.jpg");
+	//window.icon(icon);
 
-	ny::Gui myGui(window);
-	ny::Button myButton(myGui, {650, 400}, {100, 45});
-	myButton.label("Close");
+	//ny::Gui myGui(window);
+	//ny::Button myButton(myGui, {650, 400}, {100, 45});
+	//myButton.label("Close");
 
-	myButton.onClick = [&]{ std::cout << "Clicked!\n"; window.close(); };
+	//myButton.onClick = [&]{ std::cout << "Clicked!\n"; window.close(); };
 
-	window.show();
+	window.onDraw = [](ny::DrawContext& dc) { dc.clear(ny::Color::white); };
+
+	//window.show();
 
 	ny::LoopControl control;
 	return app.run(control);

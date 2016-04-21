@@ -1,26 +1,34 @@
 #include <ny/backend/x11/appContext.hpp>
 #include <ny/backend/x11/windowContext.hpp>
 #include <ny/backend/x11/util.hpp>
+#include <ny/backend/x11/internal.hpp>
 #include <ny/base/loopControl.hpp>
 #include <ny/base/log.hpp>
 #include <ny/app/app.hpp>
 #include <ny/window/window.hpp>
 #include <ny/window/events.hpp>
 
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
 #include <X11/Xlibint.h>
 #include <X11/Xlib-xcb.h>
+#include <xcb/xcb_ewmh.h>
 #include <cstring>
+
 
 namespace ny
 {
 
 //LoopControlImpl
-class X11AppControl::LoopControlImpl : public LoopControlImpl
+class X11AppContext::LoopControlImpl : public ny::LoopControlImpl
 {
 public:
-	std::atomic<bool> run;
+	std::atomic<bool>& run;
 	xcb_connection_t* xConnection;
 	xcb_window_t xDummyWindow;
+
+	LoopControlImpl(std::atomic<bool>& xrun, xcb_connection_t* conn, xcb_window_t win)
+		: run(xrun), xConnection(conn), xDummyWindow(win) {}
 
 	virtual void stop() override
 	{
@@ -42,6 +50,7 @@ X11AppContext::X11AppContext()
 {
     //XInitThreads(); //todo, make this optional
 
+	//xDisplay
     xDisplay_ = XOpenDisplay(nullptr);
     if(!xDisplay_)
     {
@@ -50,12 +59,18 @@ X11AppContext::X11AppContext()
 
     xDefaultScreenNumber_ = DefaultScreen(xDisplay_);
 
+	//xcb_connection
  	xConnection_ = XGetXCBConnection(xDisplay_);
     if(!xConnection_)
     {
 		throw std::runtime_error("ny::x11AC: unable to get xcb connection");
     }
 
+	//ewmh connection
+	ewmhConnection_.reset(new dummy_xcb_ewmh_connection_t());
+	auto ewmhCookie = xcb_ewmh_init_atoms(xConnection_, ewmhConnection());
+
+	//query screen
 	auto iter = xcb_setup_roots_iterator(xcb_get_setup(xConnection_));
 	for(std::size_t i(0); iter.rem; ++i, xcb_screen_next(&iter))
     if(i == std::size_t(xDefaultScreenNumber_))
@@ -64,6 +79,7 @@ X11AppContext::X11AppContext()
 		break;
     }
 
+	//events are queried with xcb
     XSetEventQueueOwner(xDisplay_, XCBOwnsEventQueue);
 
     //selection events will be sent to this window -> they need no window argument
@@ -73,57 +89,8 @@ X11AppContext::X11AppContext()
 		0, 0, 50, 50, 10, XCB_WINDOW_CLASS_INPUT_ONLY, xDefaultScreen_->root_visual, 0, nullptr);
 
 	//atoms
-    const char* names[] = {
-		"WM_PROTOCOLS",
-        "WM_DELETE_WINDOW",
-        "_MOTIF_WM_HINTS",
-        "_NET_WM_STATE",
-        "_NET_WM_STATE_MAXIMIZED_HORZ",
-        "_NET_WM_STATE_MAXIMIZED_VERT",
-        "_NET_WM_STATE_FULLSCREEN",
-        "_NET_WM_STATE_MODAL",
-        "_NET_WM_STATE_HIDDEN",
-        "_NET_WM_STATE_STICKY",
-        "_NET_WM_STATE_ABOVE",
-        "_NET_WM_STATE_BELOW",
-        "_NET_WM_STATE_DEMANDS_ATTENTION",
-        "_NET_WM_STATE_FOCUSED",
-        "_NET_WM_STATE_SKIP_PAGER",
-        "_NET_WM_STATE_SKIP_TASKBAR",
-        "_NET_WM_STATE_SHADED",
-        "_NET_WM_ALLOWED_ACTIONS",
-        "_NET_WM_ACTIONS_MINIMIZE",
-        "_NET_WM_ACTIONS_MAX_HORZ",
-        "_NET_WM_ACTIONS_MAX_VERT",
-        "_NET_WM_ACTIONS_MOVE",
-        "_NET_WM_ACTIONS_RESIZE",
-        "_NET_WM_ACTIONS_CLOSE",
-        "_NET_WM_ACTIONS_FULLSCREEN",
-        "_NET_WM_ACTIONS_ABOVE",
-        "_NET_WM_ACTIONS_BELOW",
-        "_NET_WM_ACTIONS_CHANGE_DESKTOP",
-        "_NET_WM_ACTIONS_SHADE",
-        "_NET_WM_ACTIONS_STICK",
-        "_NET_WM_WINDOW_TYPE",
-        "_NET_WM_WINDOW_TYPE_DESKTOP",
-        "_NET_WM_WINDOW_TYPE_DOCK",
-        "_NET_WM_WINDOW_TYPE_TOOLBAR",
-        "_NET_WM_WINDOW_TYPE_MENU",
-        "_NET_WM_WINDOW_TYPE_UTILITY",
-        "_NET_WM_WINDOW_TYPE_SPLASH",
-        "_NET_WM_WINDOW_TYPE_DIALOG",
-        "_NET_WM_WINDOW_TYPE_DROPDOWN_MENU",
-        "_NET_WM_WINDOW_TYPE_POPUP_MENU",
-        "_NET_WM_WINDOW_TYPE_TOOLTIP",
-        "_NET_WM_WINDOW_TYPE_NOTIFICATION",
-        "_NET_WM_WINDOW_TYPE_COMBO",
-        "_NET_WM_WINDOW_TYPE_DND",
-        "_NET_WM_WINDOW_TYPE_NORMAL",
-        "_NET_FRAME_EXTENTS",
-        "_NET_STRUT",
-        "_NET_STRUT_PARTIAL",
-        "_NET_WM_MOVERESIZE",
-        "_NET_DESKTOP"
+    std::vector<std::string> names = 
+	{
         "XdndEnter",
         "XdndPosition",
         "XdndStatus",
@@ -139,22 +106,18 @@ X11AppContext::X11AppContext()
         "CLIPBOARD",
         "TARGETS",
         "Text",
-        "UTF8_STRING",
-        "_NET_WM_ICON",
         "CARDINAL"
     };
 
-	auto count = sizeof(names);
-
 	std::vector<xcb_intern_atom_cookie_t> atomCookies;
-	atomCookies.reserve(count);
+	atomCookies.reserve(names.size());
 
 	for(auto& name : names)
 	{
-		atomCookies.push_back(xcb_intern_atom(xConnection_, 0, std::strlen(name), name));
+		atomCookies.push_back(xcb_intern_atom(xConnection_, 0, name.size(), name.c_str()));
 	}
 
-	for(std::size_t i(0); i < count; ++i)
+	for(std::size_t i(0); i < names.size(); ++i)
 	{
 		auto reply = xcb_intern_atom_reply(xConnection_, atomCookies[i], 0);
 		if(reply)
@@ -166,6 +129,9 @@ X11AppContext::X11AppContext()
 			sendWarning("ny::X11AC: Failed to load atom ", names[i]);
 		}
 	}
+
+	//ewmh
+	xcb_ewmh_init_atoms_replies(ewmhConnection(), ewmhCookie, nullptr);
 }
 
 X11AppContext::~X11AppContext()
@@ -361,6 +327,13 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
 			event->size = nsize;
 			event->change = 0;
 			dispatcher.dispatch(std::move(event));
+
+			auto wc = windowContext(configure.window);
+			if(!wc) return true;
+			auto wevent = std::make_unique<SizeEvent>(wc);
+			wevent->size = nsize;
+			wevent->change = 0;
+			dispatcher.dispatch(std::move(wevent));
 		}
 
         //if(any(windowContext(configure.window)->window().position() != npos))
@@ -377,7 +350,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
     case XCB_CLIENT_MESSAGE:
     {
 		auto& client = reinterpret_cast<xcb_client_message_event_t&>(ev);
-        if((unsigned long)client.data.data32[0] == x11::WindowDelete)
+        if((unsigned long)client.data.data32[0] == atom("WM_DELETE_WINDOW"))
         {
 			EventHandlerEvent(CloseEvent, client.window);
 			dispatcher.dispatch(std::move(event));
@@ -428,19 +401,19 @@ bool X11AppContext::dispatchEvents(EventDispatcher& dispatcher)
 
 bool X11AppContext::dispatchLoop(EventDispatcher& dispatcher, LoopControl& control)
 {
-	std::atomic<bool> run;
+	std::atomic<bool> run {true};
 	control.impl_ = std::make_unique<LoopControlImpl>(run, xConnection_, xDummyWindow_);
 
 	while(run.load())
 	{
 		xcb_generic_event_t* event = xcb_wait_for_event(xConnection_);
-		if(!event) return 0;
+		if(!event) return false;
 
 		processEvent(*event, dispatcher);
 		free(event);
 	}
 
-	return 1;
+	return true;
 }
 
 void X11AppContext::registerContext(xcb_window_t w, X11WindowContext& c)
@@ -460,6 +433,19 @@ X11WindowContext* X11AppContext::windowContext(xcb_window_t win)
 
     return nullptr;
 }
+
+xcb_atom_t X11AppContext::atom(const std::string& name)
+{
+	if(atoms_.find(name) == atoms_.end())
+	{
+		auto cookie = xcb_intern_atom(xConnection_, 0, name.size(), name.c_str());
+		auto reply = xcb_intern_atom_reply(xConnection_, cookie, nullptr);
+		atoms_[name] = reply->atom;
+	}
+	
+	return atoms_[name];
+}
+
 
 /*
 void x11AppContext::setClipboard(dataObject& obj)

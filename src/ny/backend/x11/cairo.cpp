@@ -1,62 +1,80 @@
 #include <ny/backend/x11/cairo.hpp>
-
 #include <ny/backend/x11/appContext.hpp>
 #include <ny/backend/x11/windowContext.hpp>
-
 #include <ny/draw/cairo.hpp>
-#include <ny/window/window.hpp>
+#include <ny/base/log.hpp>
+#include <ny/window/events.hpp>
 
-#include <cairo/cairo-xlib.h>
+#include <cairo/cairo-xcb.h>
 
 namespace ny
 {
 
-//TODO: corRect double-buffering WITHOUT (!) leak
-
-//x11CairoContext
-X11CairoDrawContext::X11CairoDrawContext(X11WindowContext& wc)
+X11CairoWindowContext::X11CairoWindowContext(X11AppContext& ctx, const X11WindowSettings& settings)
 {
-	auto size = wc.window().size();
+	X11WindowContext::create(ctx, settings);
+	auto surface = cairo_xcb_surface_create(xConnection(), xWindow(), visualType_, 
+			settings.size.x, settings.size.y);
 
-    xlibSurface_ = cairo_xlib_surface_create(xDisplay(), wc.xWindow(), wc.xVinfo()->visual, 
-			size.x, size.y);
-    //cairoSurface_ = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, size.x, size.y);
-	cairoSurface_ = xlibSurface_;
-    cairoCR_ = cairo_create(cairoSurface_);
+	drawContext_.reset(new CairoDrawContext(*surface));
+	cairo_surface_destroy(surface); //does just destroy the reference NOT the surface
 }
 
-X11CairoDrawContext::~X11CairoDrawContext()
+X11CairoWindowContext::~X11CairoWindowContext() = default;
+
+void X11CairoWindowContext::initVisual()
 {
-    //cairo_surface_destroy(xlibSurface_);
+	xcb_depth_iterator_t depth_iter;
+
+	depth_iter = xcb_screen_allowed_depths_iterator(appContext().xDefaultScreen());
+	while(depth_iter.rem)
+	{
+		xcb_visualtype_iterator_t visual_iter;
+
+		visual_iter = xcb_depth_visuals_iterator (depth_iter.data);
+		while(visual_iter.rem) 
+		{
+			if(appContext().xDefaultScreen()->root_visual == visual_iter.data->visual_id) 
+			{
+				visualType_ = visual_iter.data;
+				break;
+			}
+
+			xcb_visualtype_next(&visual_iter);
+		} 
+		
+		xcb_depth_next (&depth_iter);
+	}
+
+	xVisualID_ = visualType_->visual_id;
 }
 
-void X11CairoDrawContext::size(const Vec2ui& size)
+DrawGuard X11CairoWindowContext::draw()
 {
-    cairo_destroy(cairoCR_);
-    //cairo_surface_destroy(cairoSurface_);
-
-    //cairoSurface_ = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, size.x, size.y);
-
-    cairo_xlib_surface_set_size(cairoSurface_, size.x, size.y);
-    cairoCR_ = cairo_create(cairoSurface_);
+	return *drawContext_;
 }
 
-void X11CairoDrawContext::apply()
+
+void X11CairoWindowContext::resizeCairo(const Vec2ui& size)
 {
-	CairoDrawContext::apply();
-    cairo_surface_flush(cairoSurface_);
-    cairo_surface_show_page(cairoSurface_);
-/*
-    cairo_t* cr = cairo_create(xlibSurface_);
+	cairo_xcb_surface_set_size(drawContext_->cairoSurface(), size.x, size.y);
+}
 
-    cairo_set_source_surface(cr, cairoSurface_, 0, 0);
-    //cairo_paint(cr);
+void X11CairoWindowContext::size(const Vec2ui& size)
+{
+	X11WindowContext::size(size);
+	resizeCairo(size);
+}
 
-    cairo_destroy(cr);
+bool X11CairoWindowContext::handleEvent(const Event& e)
+{
+	if(X11WindowContext::handleEvent(e)) return true;
 
-	cairo_destroy(cairoCR_);
-	cairoCR_ = cairo_create(cairoSurface_);
-	*/
+	if(e.type() == eventType::windowSize)
+	{
+		resizeCairo(static_cast<const SizeEvent&>(e).size);
+		return true;
+	}
 }
 
 }
