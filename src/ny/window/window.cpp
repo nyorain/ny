@@ -38,7 +38,10 @@ void Window::create(App& papp, const Vec2ui& size, const WindowSettings& setting
 	app_ = &papp;
     size_ = size;
 
-	windowContext_ = app().backend().createWindowContext(app().appContext(), settings);
+	auto cpy = settings;
+	cpy.size = size;
+
+	windowContext_ = app().backend().createWindowContext(app().appContext(), cpy);
 
 	windowContext_->eventHandler(*this);
 	app().windowCreated();
@@ -101,9 +104,9 @@ bool Window::handleEvent(const Event& ev)
 void Window::refresh()
 {
 	//if(!windowContext_) return;
-    //windowContext_->refresh();
+    windowContext_->refresh();
 	
-	app().dispatcher().dispatch(std::make_unique<DrawEvent>(this));
+	//app().dispatcher().dispatch(std::make_unique<DrawEvent>(this));
 }
 
 void Window::size(const Vec2ui& size)

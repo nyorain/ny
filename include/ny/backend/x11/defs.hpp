@@ -8,50 +8,51 @@ namespace ny
 namespace x11
 {
 
-constexpr unsigned long MwmDecoBorder = (1L << 1);
-constexpr unsigned long MwmDecoResize = (1L << 2);
-constexpr unsigned long MwmDecoTitle = (1L << 3);
-constexpr unsigned long MwmDecoMenu = (1L << 4);
-constexpr unsigned long MwmDecoMinimize = (1L << 5);
-constexpr unsigned long MwmDecoMaximize = (1L << 5);
-constexpr unsigned long MwmDecoAll = 
-	MwmDecoBorder | MwmDecoResize | MwmDecoTitle | MwmDecoMenu | MwmDecoMinimize | MwmDecoMaximize;
+//All Motif WM Hints and structures.
+constexpr unsigned long mwmDecoBorder = (1L << 1);
+constexpr unsigned long mwmDecoResize = (1L << 2);
+constexpr unsigned long mwmDecoTitle = (1L << 3);
+constexpr unsigned long mwmDecomenu = (1L << 4);
+constexpr unsigned long mwmDecominimize = (1L << 5);
+constexpr unsigned long mwmDecomaximize = (1L << 5);
+constexpr unsigned long mwmDecoAll = 
+	mwmDecoBorder | mwmDecoResize | mwmDecoTitle | mwmDecomenu | mwmDecominimize | mwmDecomaximize;
 
-constexpr unsigned long MwmFuncResize = MwmDecoBorder;
-constexpr unsigned long MwmFuncMove = MwmDecoResize;
-constexpr unsigned long MwmFuncMinimize = MwmDecoTitle;
-constexpr unsigned long MwmFuncMaximize = MwmDecoMenu;
-constexpr unsigned long MwmFuncClose = MwmDecoMinimize;
-constexpr unsigned long MwmFuncAll = 
-	MwmFuncResize | MwmFuncMove | MwmFuncMaximize | MwmFuncMinimize | MwmFuncClose;
+constexpr unsigned long mwmFuncResize = mwmDecoBorder;
+constexpr unsigned long mwmFuncmove = mwmDecoResize;
+constexpr unsigned long mwmFuncminimize = mwmDecoTitle;
+constexpr unsigned long mwmFuncmaximize = mwmDecomenu;
+constexpr unsigned long mwmFuncClose = mwmDecominimize;
+constexpr unsigned long mwmFuncAll = 
+	mwmFuncResize | mwmFuncmove | mwmFuncmaximize | mwmFuncminimize | mwmFuncClose;
 
-constexpr unsigned long MwmHintsFunc = (1L << 0);
-constexpr unsigned long MwmHintsDeco = MwmDecoBorder;
-constexpr unsigned long MwmHintsInput = MwmDecoResize;
-constexpr unsigned long MwmHintsStatus = MwmDecoTitle;
+constexpr unsigned long mwmHintsFunc = (1L << 0);
+constexpr unsigned long mwmHintsDeco = mwmDecoBorder;
+constexpr unsigned long mwmHintsInput = mwmDecoResize;
+constexpr unsigned long mwmHintsStatus = mwmDecoTitle;
 
-constexpr unsigned long MwmInputModeless = (1L << 0);
-constexpr unsigned long MwmInputPrimaryAppModal = MwmDecoBorder; //MWM_INPUT_PRIMARY_APPLICATION_MODAL
-constexpr unsigned long MwmInputSystemModal = MwmDecoResize;
-constexpr unsigned long MwmInputFullAppModal = MwmDecoTitle; //MWM_INPUT_FULL_APPLICATION_MODAL
+constexpr unsigned long mwmInputmodeless = (1L << 0);
+constexpr unsigned long mwmInputPrimaryAppmodal = mwmDecoBorder; //mWm_INPUT_PRImARY_APPLICATION_mODAL
+constexpr unsigned long mwmInputSystemmodal = mwmDecoResize;
+constexpr unsigned long mwmInputFullAppmodal = mwmDecoTitle; //mWm_INPUT_FULL_APPLICATION_mODAL
 
-constexpr unsigned long MwmTearoffWindow = (1L << 0);
+constexpr unsigned long mwmTearoffWindow = (1L << 0);
 
-constexpr unsigned long MwmInfoStartupStandard = (1L << 0);
-constexpr unsigned long MwmInfoStartupCustom = MwmDecoBorder;
+constexpr unsigned long mwmInfoStartupStandard = (1L << 0);
+constexpr unsigned long mwmInfoStartupCustom = mwmDecoBorder;
 
-constexpr unsigned char MoveResizeSizeTopLeft = 0;
-constexpr unsigned char MoveResizeSizeTop = 1;
-constexpr unsigned char MoveResizeSizeTopRight = 2;
-constexpr unsigned char MoveResizeSizeRight = 3;
-constexpr unsigned char MoveResizeSizeBottomRight = 4;
-constexpr unsigned char MoveResizeSizeBottom = 5;
-constexpr unsigned char MoveResizeSizeBottomLeft = 6;
-constexpr unsigned char MoveResizeSizeLeft = 7;
-constexpr unsigned char MoveResizeMove = 8;
-constexpr unsigned char MoveResizeSizeKeyboard = 9;
-constexpr unsigned char MoveResizeMoveKeyboard = 10;
-constexpr unsigned char MoveResizeCancel = 11;
+constexpr unsigned char moveResizeSizeTopLeft = 0;
+constexpr unsigned char moveResizeSizeTop = 1;
+constexpr unsigned char moveResizeSizeTopRight = 2;
+constexpr unsigned char moveResizeSizeRight = 3;
+constexpr unsigned char moveResizeSizeBottomRight = 4;
+constexpr unsigned char moveResizeSizeBottom = 5;
+constexpr unsigned char moveResizeSizeBottomLeft = 6;
+constexpr unsigned char moveResizeSizeLeft = 7;
+constexpr unsigned char moveResizemove = 8;
+constexpr unsigned char moveResizeSizeKeyboard = 9;
+constexpr unsigned char moveResizemoveKeyboard = 10;
+constexpr unsigned char moveResizeCancel = 11;
 
 struct MwmHints
 {
@@ -65,7 +66,7 @@ struct MwmHints
 struct MwmInfo
 {
     long flags;
-	std::uint32_t wm_window;
+	std::uint32_t window;
 };
 
 }

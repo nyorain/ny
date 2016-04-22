@@ -27,6 +27,7 @@ class X11WindowContext : public WindowContext
 {
 protected:
 	X11AppContext* appContext_ = nullptr;
+	X11WindowSettings settings_ {};
 	std::uint32_t xWindow_ = 0;
 	std::uint32_t xVisualID_ = 0;
 

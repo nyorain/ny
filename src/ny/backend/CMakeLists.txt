@@ -24,7 +24,7 @@ if(NY_WithX11)
 		x11/util.cpp
 		x11/windowContext.cpp)
 	
-	set(libs-backend ${libs-backend} X11 xcb xcb-icccm xcb-ewmh X11-xcb)
+	set(libs-backend ${libs-backend} X11 xcb xcb-icccm xcb-ewmh X11-xcb pthread)
 
 	if(NY_WithGL)
 		set(src-backend ${src-backend} x11/glx.cpp)

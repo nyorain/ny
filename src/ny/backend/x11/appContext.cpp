@@ -138,10 +138,8 @@ X11AppContext::X11AppContext()
 
 X11AppContext::~X11AppContext()
 {
-	if(xDummyWindow_)
-	{
-		xcb_destroy_window(xConnection_, xDummyWindow_);
-	}
+	if(xDummyWindow_) xcb_destroy_window(xConnection_, xDummyWindow_);
+	if(ewmhConnection_) xcb_ewmh_connection_wipe(ewmhConnection());
 
     if(xDisplay_)
 	{
@@ -311,6 +309,18 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
 
         return 1;
     }
+
+	case XCB_REPARENT_NOTIFY:
+	{
+		auto& reparent = reinterpret_cast<xcb_reparent_notify_event_t&>(ev);
+		auto handler = windowContext(reparent.window);
+		if(!handler) return true;
+
+		auto event = std::make_unique<X11ReparentEvent>(handler);
+		dispatcher.dispatch(std::move(event));
+
+		return true;
+	}
 
     case XCB_CONFIGURE_NOTIFY:
 	{

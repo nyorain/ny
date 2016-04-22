@@ -140,4 +140,70 @@ void GlxContext::size(const Vec2ui& size)
 	updateViewport(Rect2f({0.f, 0.f}, size));
 }
 
+/*
+GLXFBConfig X11WindowContext::matchGLXVisualInfo()
+{
+#ifdef NY_WithGL	
+    const int attribs[] =
+    {
+        GLX_RENDER_TYPE, GLX_RGBA_BIT,
+        GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT,
+        GLX_DOUBLEBUFFER, True,
+        GLX_RED_SIZE, 8,
+        GLX_GREEN_SIZE, 8,
+        GLX_BLUE_SIZE, 8,
+        GLX_ALPHA_SIZE, 8,
+        GLX_DEPTH_SIZE, 24,
+        None
+    };
+
+    int glxMajor, glxMinor;
+    if(!glXQueryVersion(xDisplay(), &glxMajor, &glxMinor) 
+			|| ((glxMajor == 1) && (glxMinor < 3) ) || (glxMajor < 1))
+    {
+        throw std::runtime_error("Invalid glx version. glx Version must be > 1.3");
+    }
+
+    int fbcount = 0;
+    GLXFBConfig* fbc = glXChooseFBConfig(xDisplay(), DefaultScreen(xDisplay()), attribs, &fbcount);
+    if (!fbc || !fbcount)
+    {
+        throw std::runtime_error("failed to retrieve fbconfig");
+    }
+
+    //get the config with the most samples
+    int best_fbc = -1, worst_fbc = -1, best_num_samp = 0, worst_num_samp = 0;
+    for(int i(0); i < fbcount; i++)
+    {
+        XVisualInfo *vi = glXGetVisualFromFBConfig(xDisplay(), fbc[i]);
+
+        if(!vi) continue;
+
+        int samp_buf, samples;
+        glXGetFBConfigAttrib(xDisplay(), fbc[i], GLX_SAMPLE_BUFFERS, &samp_buf);
+        glXGetFBConfigAttrib(xDisplay(), fbc[i], GLX_SAMPLES, &samples);
+
+        if(best_fbc < 0 || (samp_buf && samples > best_num_samp))
+        {
+            best_fbc = i;
+            best_num_samp = samples;
+        }
+
+        if(worst_fbc < 0 || (!samp_buf || samples < worst_num_samp))
+        {
+            worst_fbc = i;
+            worst_num_samp = samples;
+        }
+
+        XFree(vi);
+    }
+
+	auto ret = fbc[best_fbc];
+    XFree(fbc);
+
+    xVinfo_ = glXGetVisualFromFBConfig(xDisplay(), ret);
+	return ret;
+#endif
+}
+*/
 }

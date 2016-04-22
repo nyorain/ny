@@ -10,6 +10,9 @@ typedef struct xcb_visualtype_t xcb_visualtype_t;
 namespace ny
 {
 
+//TODO: extra x11CairoDrawContext, see x11WC::cursor
+//put a xcb_flush on the apply function!
+
 ///WindowContext implementation on a x11 backend with cairo used for drawing.
 class X11CairoWindowContext : public X11WindowContext
 {

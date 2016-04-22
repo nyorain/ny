@@ -4,6 +4,7 @@
 		- implement WC
 		- extra fcuntionality, decoration
 		- glx context/window implementation
+		- multithreading has some problems
 		- cairo double buffers?
 		- egl (low priority)
 	- wayland backend (total rework needed to make it work)

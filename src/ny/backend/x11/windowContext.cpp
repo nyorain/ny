@@ -1,6 +1,7 @@
 #include <ny/backend/x11/windowContext.hpp>
 
 #include <ny/backend/x11/util.hpp>
+#include <ny/backend/x11/defs.hpp>
 #include <ny/backend/x11/appContext.hpp>
 #include <ny/backend/x11/internal.hpp>
 
@@ -12,8 +13,7 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
 
-#include <memory.h>
-#include <iostream>
+#include <cstring> //memcpy
 
 namespace ny
 {
@@ -27,6 +27,7 @@ X11WindowContext::X11WindowContext(X11AppContext& ctx, const X11WindowSettings& 
 void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& settings) 
 {
 	appContext_ = &ctx;
+	settings_ = settings;
 
 	if(!xVisualID_) initVisual();
 
@@ -38,7 +39,6 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
         return;
     }
 
-    //window type
 	bool toplvl = 0;
 	auto pos = settings.position;
 	auto size = settings.size;
@@ -64,8 +64,6 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 	xWindow_ = xcb_generate_id(xconn);
 	xcb_create_window(xconn, XCB_COPY_FROM_PARENT, xWindow_, xparent, pos.x, pos.y,
 		size.x, size.y, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT, xVisualID_, valuemask, valuelist);
-
-	//show(); //???
 
     appContext_->registerContext(xWindow_, *this);
     if(toplvl) 
@@ -105,73 +103,6 @@ DummyEwmhConnection* X11WindowContext::ewmhConnection() const
 	return appContext().ewmhConnection();
 }
 
-/*
-GLXFBConfig X11WindowContext::matchGLXVisualInfo()
-{
-#ifdef NY_WithGL	
-    const int attribs[] =
-    {
-        GLX_RENDER_TYPE, GLX_RGBA_BIT,
-        GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT,
-        GLX_DOUBLEBUFFER, True,
-        GLX_RED_SIZE, 8,
-        GLX_GREEN_SIZE, 8,
-        GLX_BLUE_SIZE, 8,
-        GLX_ALPHA_SIZE, 8,
-        GLX_DEPTH_SIZE, 24,
-        None
-    };
-
-    int glxMajor, glxMinor;
-    if(!glXQueryVersion(xDisplay(), &glxMajor, &glxMinor) 
-			|| ((glxMajor == 1) && (glxMinor < 3) ) || (glxMajor < 1))
-    {
-        throw std::runtime_error("Invalid glx version. glx Version must be > 1.3");
-    }
-
-    int fbcount = 0;
-    GLXFBConfig* fbc = glXChooseFBConfig(xDisplay(), DefaultScreen(xDisplay()), attribs, &fbcount);
-    if (!fbc || !fbcount)
-    {
-        throw std::runtime_error("failed to retrieve fbconfig");
-    }
-
-    //get the config with the most samples
-    int best_fbc = -1, worst_fbc = -1, best_num_samp = 0, worst_num_samp = 0;
-    for(int i(0); i < fbcount; i++)
-    {
-        XVisualInfo *vi = glXGetVisualFromFBConfig(xDisplay(), fbc[i]);
-
-        if(!vi) continue;
-
-        int samp_buf, samples;
-        glXGetFBConfigAttrib(xDisplay(), fbc[i], GLX_SAMPLE_BUFFERS, &samp_buf);
-        glXGetFBConfigAttrib(xDisplay(), fbc[i], GLX_SAMPLES, &samples);
-
-        if(best_fbc < 0 || (samp_buf && samples > best_num_samp))
-        {
-            best_fbc = i;
-            best_num_samp = samples;
-        }
-
-        if(worst_fbc < 0 || (!samp_buf || samples < worst_num_samp))
-        {
-            worst_fbc = i;
-            worst_num_samp = samples;
-        }
-
-        XFree(vi);
-    }
-
-	auto ret = fbc[best_fbc];
-    XFree(fbc);
-
-    xVinfo_ = glXGetVisualFromFBConfig(xDisplay(), ret);
-	return ret;
-#endif
-}
-*/
-
 DrawGuard X11WindowContext::draw()
 {
 	throw std::logic_error("ny::X11WC: called draw() on draw-less windowContext");
@@ -179,9 +110,6 @@ DrawGuard X11WindowContext::draw()
 
 void X11WindowContext::refresh()
 {
-   //nyMainApp()->dispatch(std::make_unique<DrawEvent>(eventHandler()));
-   
-	//x11 method
     xcb_expose_event_t ev{};
 
     ev.response_type = XCB_EXPOSE;
@@ -206,9 +134,13 @@ void X11WindowContext::size(const Vec2ui& size)
 
 void X11WindowContext::position(const Vec2i& position)
 {
-	auto data = reinterpret_cast<const unsigned int*>(position.data());
-	xcb_configure_window(xConnection(), xWindow_, 
+	std::uint32_t data[2];
+	data[0] = position.x;
+	data[1] = position.y;
+	
+	xcb_configure_window(xConnection(), xWindow(), 
 		XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, data);
+	xcb_flush(xConnection());
 }
 
 void X11WindowContext::cursor(const Cursor& curs)
@@ -222,7 +154,17 @@ void X11WindowContext::cursor(const Cursor& curs)
             cursor(num);
         }
     }
-    //todo: image
+
+    //TODO: image
+	//create pixmap
+	//draw on pixmap
+	//create cursor from pixmap
+	//set cursor for window
+	//
+	//Should be combined with a cairo abstraction
+	//->X11CairoDrawContext which can draw on any xcb_drawable_t (so also on a pixmap)
+	//Then simplex copy the image with cairo
+	//Way easier and less error-prone than using plain xcb
 }
 
 void X11WindowContext::maximize()
@@ -337,6 +279,8 @@ bool X11WindowContext::handleEvent(const Event& e)
 {
     if(e.type() == eventType::x11::reparent) 
 	{
+		position(settings_.position);
+		return true;
 	}
 
 	return 0;
@@ -488,15 +432,20 @@ void X11WindowContext::hide()
 
 void X11WindowContext::raise()
 {
+	const uint32_t values[] = {XCB_STACK_MODE_ABOVE};
+    xcb_configure_window(xConnection(), xWindow(), XCB_CONFIG_WINDOW_STACK_MODE, values);
 }
 
 void X11WindowContext::lower()
 {
+	const uint32_t values[] = {XCB_STACK_MODE_BELOW};
+    xcb_configure_window(xConnection(), xWindow(), XCB_CONFIG_WINDOW_STACK_MODE, values);
 }
 
 void X11WindowContext::requestFocus()
 {
-    addStates(appContext().atom("_NET_WM_STATE_FOCUSED")); //todo: fix
+	xcb_ewmh_request_change_active_window(ewmhConnection(), 0, xWindow(), 
+			XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL, XCB_TIME_CURRENT_TIME, XCB_NONE);
 }
 void X11WindowContext::addStates(xcb_atom_t state1, xcb_atom_t state2)
 {
@@ -518,24 +467,24 @@ void X11WindowContext::toggleStates(xcb_atom_t state1, xcb_atom_t state2)
 
 void X11WindowContext::mwmHints(unsigned long deco, unsigned long func, bool d, bool f)
 {
-	/*
     struct x11::MwmHints mhints;
     if(d) 
 	{
 		mwmDecoHints_ = deco;
-		mhints.flags |= x11::MwmHintsDeco;
+		mhints.flags |= x11::mwmHintsDeco;
 		mhints.decorations = deco;
 	}
     if(f) 
 	{
 		mwmFuncHints_ = func;
-		mhints.flags |= x11::MwmHintsFunc;
+		mhints.flags |= x11::mwmHintsFunc;
 		mhints.functions = func;
 	}
 
-    xcb_change_property(xConnection(), xWindow(), appContext().atom("_MOTIF_WM_HINTS"), XA_ATOM, 
-			32, PropModeReplace, (unsigned char *)&mhints, sizeof (x11::MwmHints)/sizeof (long));
-			*/
+	///XXX: use XCB_ATOM_ATOM? 
+    xcb_change_property(xConnection(), XCB_PROP_MODE_REPLACE, xWindow(), 
+			appContext().atom("_MOTIF_WM_HINTS"), XCB_ATOM_CARDINAL, 32, sizeof(x11::MwmHints) / 32,
+			reinterpret_cast<std::uint32_t*>(&mhints));
 }
 
 unsigned long X11WindowContext::mwmFunctionHints() const
@@ -565,7 +514,22 @@ void X11WindowContext::addAllowedAction(xcb_atom_t action)
     ev.xclient.data.l[2] = 0;
 
     XSendEvent(xDisplay(), DefaultRootWindow(xDisplay()), False, SubstructureNotifyMask, &ev);
+
+	///XXX
+	xcb_client_message_event_t ev;
+	ev.response_type = XCB_CLIENT_MESSAGE;
+	ev.type = ewmhConnection()->_NET_WM_ALLOWED_ACTIONS;
+
+	ev.data.data32[0] = 1; //add
+	ev.data.data32[1] = action;
+	ev.data.data32[2] = 0;
+
+	xcb_send_event(xConnection(), appContext().xDefaultScreen()->root, );
 	*/
+
+	std::uint32_t data[] = {1, action, 0};
+	xcb_ewmh_send_client_message(xConnection(), xWindow(), appContext().xDefaultScreen()->root, 
+		ewmhConnection()->_NET_WM_ALLOWED_ACTIONS, 3, data);
 }
 
 void X11WindowContext::removeAllowedAction(xcb_atom_t action)
@@ -584,29 +548,42 @@ void X11WindowContext::removeAllowedAction(xcb_atom_t action)
 
     XSendEvent(xDisplay(), DefaultRootWindow(xDisplay()), False, SubstructureNotifyMask, &ev);
 	*/
+
+	std::uint32_t data[] = {0, action, 0};
+	xcb_ewmh_send_client_message(xConnection(), xWindow(), appContext().xDefaultScreen()->root, 
+		ewmhConnection()->_NET_WM_ALLOWED_ACTIONS, 3, data);
 }
 
 std::vector<xcb_atom_t> X11WindowContext::allowedActions() const
 {
-    std::vector<xcb_atom_t> ret;
-    return ret;
+	auto cookie = xcb_ewmh_get_wm_allowed_actions(ewmhConnection(), xWindow());
+	
+	xcb_ewmh_get_atoms_reply_t reply;
+	xcb_ewmh_get_wm_allowed_actions_reply(ewmhConnection(), cookie, &reply, nullptr);
 
-    //todo
+    std::vector<xcb_atom_t> ret;
+	ret.reserve(reply.atoms_len);
+
+	std::memcpy(ret.data(), reply.atoms, ret.size() * sizeof(std::uint32_t));
+	xcb_ewmh_get_atoms_reply_wipe(&reply);
+
+    return ret;
 }
 
 void X11WindowContext::refreshStates()
 {
-    //todo
+    //TODO - needed?
 }
 
 void X11WindowContext::transientFor(xcb_window_t other)
 {
-//    XSetTransientForHint(xDisplay(), other, xWindow_);
+	xcb_change_property(xConnection(), XCB_PROP_MODE_REPLACE, xWindow(),
+        XCB_ATOM_WM_TRANSIENT_FOR, XCB_ATOM_WINDOW, 32,	1, &other);
 }
 
 void X11WindowContext::xWindowType(xcb_window_t type)
 {
-//    XChangeProperty(xDisplay(), xWindow_, x11::Type, XA_ATOM, 32, PropModeReplace, (unsigned char*) &type, 1);
+	xcb_ewmh_set_wm_window_type(ewmhConnection(), xWindow(), 1, &type);
 }
 
 xcb_atom_t X11WindowContext::xWindowType()
@@ -617,12 +594,8 @@ xcb_atom_t X11WindowContext::xWindowType()
 
 void X11WindowContext::overrideRedirect(bool redirect)
 {
-/*
-    XSetWindowAttributes attr;
-    attr.override_rediRect = rediRect;
-
-    XChangeWindowAttributes(xDisplay(), xWindow_, CWOverrideRedirect, &attr);
-*/
+	std::uint32_t data = redirect;
+	xcb_change_window_attributes(xConnection(), xWindow(), XCB_CW_OVERRIDE_REDIRECT, &data);
 }
 
 void X11WindowContext::cursor(unsigned int xCursorID)
@@ -631,6 +604,19 @@ void X11WindowContext::cursor(unsigned int xCursorID)
     XCursor c = XCreateFontCursor(xDisplay(), xCursorID);
     XDefineCursor(xDisplay(), xWindow_, c);
 */
+	xcb_font_t font = xcb_generate_id(xConnection());
+    auto fontCookie = xcb_open_font_checked(xConnection(), font, strlen ("cursor"), "cursor" );
+	//testCookie (fontCookie, connection, "can't open font");
+
+    xcb_cursor_t cursor = xcb_generate_id(xConnection());
+    xcb_create_glyph_cursor(xConnection(), cursor, font, font, xCursorID, xCursorID + 1, 
+			0, 0, 0, 0, 0, 0 );
+
+    xcb_change_window_attributes(xConnection(), xWindow(), XCB_CW_CURSOR, &cursor);
+    xcb_free_cursor(xConnection(), cursor);
+
+    fontCookie = xcb_close_font_checked(xConnection(), font);
+    //testCookie (fontCookie, connection, "can't close font");
 }
 
 }

@@ -44,5 +44,4 @@ public:
 	using EvBase::EvBase;
 };
 
-
 }

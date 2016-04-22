@@ -4,10 +4,13 @@
 int main()
 {
 	ny::App::Settings s;
-	s.multithreaded = false;
+	//s.multithreaded = false;
 	ny::App app(s);
 
-	ny::ToplevelWindow window(app, ny::Vec2ui(800, 500), "ny Window Test");
+	ny::WindowSettings settings;
+	settings.position = {300, 300};
+
+	ny::ToplevelWindow window(app, ny::Vec2ui(800, 500), "ny Window Test", settings);
 	window.windowContext()->show();
 
 	//window.maximize();
