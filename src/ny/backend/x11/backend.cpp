@@ -22,7 +22,7 @@ X11Backend::X11Backend()
 
 bool X11Backend::available() const
 {
-    XInitThreads(); //todo, make this optional
+    //XInitThreads(); //todo, make this optional
     Display* dpy = XOpenDisplay(nullptr);
     if(!dpy) return 0;
     XCloseDisplay(dpy);

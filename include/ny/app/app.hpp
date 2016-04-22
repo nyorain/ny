@@ -66,6 +66,7 @@ public:
 	virtual int run();
 
 	virtual bool dispatch();
+	EventDispatcher& dispatcher() { return *eventDispatcher_; }
 
     virtual void error(const std::string& msg);
 

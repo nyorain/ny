@@ -40,8 +40,10 @@ public:
 		dummyEvent.type = XCB_CLIENT_MESSAGE;
 		dummyEvent.format = 32;
 
-		xcb_send_event(xConnection, 0, xDummyWindow, 0, reinterpret_cast<char*>(&dummyEvent));
+		xcb_send_event(xConnection, 0, xDummyWindow, 0, reinterpret_cast<const char*>(&dummyEvent));
 		xcb_flush(xConnection);
+
+		run.store(false);
 	}
 };
 
@@ -384,17 +386,21 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
 
 bool X11AppContext::dispatchEvents(EventDispatcher& dispatcher)
 {
+	xcb_flush(xConnection());
+
 	xcb_generic_event_t* ev;
 	while((ev = xcb_poll_for_event(xConnection_)))
 	{
 		processEvent(*ev, dispatcher);
 		free(ev);
+		xcb_flush(xConnection());
 	}
 
 	if(xcb_connection_has_error(xConnection_))
 	{
 		return 0;
 	}
+		
 
 	return 1;
 }
@@ -410,9 +416,11 @@ bool X11AppContext::dispatchLoop(EventDispatcher& dispatcher, LoopControl& contr
 		if(!event) return false;
 
 		processEvent(*event, dispatcher);
-		free(event);
-	}
 
+		free(event);
+		xcb_flush(xConnection());
+	}
+		
 	return true;
 }
 

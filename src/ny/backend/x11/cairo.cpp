@@ -17,7 +17,7 @@ X11CairoWindowContext::X11CairoWindowContext(X11AppContext& ctx, const X11Window
 			settings.size.x, settings.size.y);
 
 	drawContext_.reset(new CairoDrawContext(*surface));
-	cairo_surface_destroy(surface); //does just destroy the reference NOT the surface
+	cairo_surface_destroy(surface);
 }
 
 X11CairoWindowContext::~X11CairoWindowContext() = default;
@@ -51,9 +51,9 @@ void X11CairoWindowContext::initVisual()
 
 DrawGuard X11CairoWindowContext::draw()
 {
+	cairo_reset_clip(drawContext_->cairoContext());
 	return *drawContext_;
 }
-
 
 void X11CairoWindowContext::resizeCairo(const Vec2ui& size)
 {
@@ -75,6 +75,8 @@ bool X11CairoWindowContext::handleEvent(const Event& e)
 		resizeCairo(static_cast<const SizeEvent&>(e).size);
 		return true;
 	}
+
+	return false;
 }
 
 }

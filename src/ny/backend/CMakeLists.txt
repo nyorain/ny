@@ -24,10 +24,11 @@ if(NY_WithX11)
 		x11/util.cpp
 		x11/windowContext.cpp)
 	
-	set(libs-backend ${libs-backend} X11 xcb xcb-icccm xcb-ewmh)
+	set(libs-backend ${libs-backend} X11 xcb xcb-icccm xcb-ewmh X11-xcb)
 
 	if(NY_WithGL)
 		set(src-backend ${src-backend} x11/glx.cpp)
+		set(libs-backend ${libs-backend} GL)
 	endif(NY_WithGL)
 
 	if(NY_WithCairo)
@@ -52,8 +53,6 @@ if(NY_WithWayland)
 endif(NY_WithWayland)
 
 add_library(ny-backend SHARED ${src-backend})
-target_compile_features(ny-backend PRIVATE cxx_range_for)
-
 target_link_libraries(ny-backend ${libs-backend})
 target_include_directories(ny-backend PUBLIC ${include-backend})
 

@@ -8,7 +8,7 @@ namespace ny
 //Drawer
 void Button::DefaultDrawer::draw(Button& b, DrawContext& dc)
 {
-	Color background(0x00000000);
+	Color background(0x00000099);
 	if(b.pressed())
 	{
 		background.rgbaInt(0xCCCCCC66);

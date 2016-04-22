@@ -102,6 +102,7 @@ CairoDrawContext::CairoDrawContext(Image& img)
 	//todo: corRect format and stuff
     cairoSurface_ = cairo_image_surface_create_for_data(img.data(), CAIRO_FORMAT_ARGB32, 
 		img.size().x, img.size().y, img.size().x * 4);
+	cairoCR_ = cairo_create(cairoSurface_);
 }
 
 CairoDrawContext::~CairoDrawContext()
@@ -147,11 +148,8 @@ void CairoDrawContext::apply()
 {
 	VALIDATE_CTX();
 
+	cairo_surface_flush(cairoSurface_);
     cairo_show_page(cairoCR_);
-
-	//needed?
-    cairo_destroy(cairoCR_);
-    cairoCR_ = cairo_create(cairoSurface_);
 }
 
 Rect2f CairoDrawContext::rectangleClip() const
@@ -222,7 +220,7 @@ void CairoDrawContext::mask(const Text& obj)
     cairo_set_font_face(cairoCR_, font->cairoFontFace());
     cairo_set_font_size(cairoCR_, obj.size());
 
-	Vec2i position = {0, 0};
+	Vec2i position = obj.position();
 	cairo_text_extents_t extents;
 	cairo_text_extents(cairoCR_, obj.string().c_str(), &extents);
 

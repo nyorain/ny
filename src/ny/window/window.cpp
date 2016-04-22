@@ -54,8 +54,6 @@ void Window::close()
 
 bool Window::handleEvent(const Event& ev)
 {
-    //if(EventHandler::handleEvent(ev)) return 1;
-
     switch(ev.type())
     {
 	case eventType::windowClose:
@@ -102,8 +100,10 @@ bool Window::handleEvent(const Event& ev)
 
 void Window::refresh()
 {
-	if(!windowContext_) return;
-    windowContext_->refresh();
+	//if(!windowContext_) return;
+    //windowContext_->refresh();
+	
+	app().dispatcher().dispatch(std::make_unique<DrawEvent>(this));
 }
 
 void Window::size(const Vec2ui& size)
@@ -133,7 +133,7 @@ void Window::move(const Vec2i& delta)
 void Window::show()
 {
     windowContext_->show();
-    shown_ = 1;
+    shown_ = true;
 }
 
 void Window::hide()

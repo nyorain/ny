@@ -267,8 +267,8 @@ void RedirectDrawContext::endDrawing()
         redirect_->clipMask();
     }
 
-	//redirect_->resetRectangleClip();
-    redirect_->clipRectangle(rectangleClipSave_);
+	redirect_->resetRectangleClip();
+	redirect_->clipRectangle(rectangleClipSave_);
 }
 
 //Delayed

@@ -112,7 +112,6 @@ void Gui::keyEvent(const KeyEvent& event)
 
 void Gui::draw(DrawContext& dc)
 {
-	sendDebug("guidraw");
 	dc.clear(Color(0x303030ff));
 	WidgetBase::draw(dc);
 }

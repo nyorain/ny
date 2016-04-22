@@ -49,7 +49,7 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 	auto pos = settings.position;
 	auto size = settings.size;
 
-    xcb_window_t xparent = settings.nativeHandle;
+    xcb_window_t xparent = settings.parent;
 	if(!xparent)
 	{
 		xparent = xscreen->root;
@@ -71,7 +71,7 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 	xcb_create_window(xconn, XCB_COPY_FROM_PARENT, xWindow_, xparent, pos.x, pos.y,
 		size.x, size.y, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT, xVisualID_, valuemask, valuelist);
 
-	show(); //???
+	//show(); //???
 
     appContext_->registerContext(xWindow_, *this);
     if(toplvl) 
@@ -84,6 +84,8 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 		xcb_change_property(xconn, XCB_PROP_MODE_REPLACE, xWindow_, XCB_ATOM_WM_NAME, 
 				XCB_ATOM_STRING, 8, settings.title.size(), settings.title.c_str());
 	}
+
+    xcb_flush(xConnection());
 }
 
 X11WindowContext::~X11WindowContext()
@@ -182,25 +184,23 @@ DrawGuard X11WindowContext::draw()
 
 void X11WindowContext::refresh()
 {
-   // nyMainApp()->dispatch(make_unique<DrawEvent>(&window()));
+   //nyMainApp()->dispatch(std::make_unique<DrawEvent>(eventHandler()));
+   
+	//x11 method
+    xcb_expose_event_t ev{};
 
-/*
-    //x11 method
-    XEvent ev{};
+    ev.response_type = XCB_EXPOSE;
+    ev.window = xWindow();
 
-    ev.type = Expose;
-    ev.xexpose.window = xWindow_;
-
-    XSendEvent(xDisplay(), xWindow_, False, ExposureMask, &ev);
-    XFlush(xDisplay());
-*/
+	xcb_send_event(xConnection(), 0, xWindow(), XCB_EVENT_MASK_EXPOSURE, (const char*)&ev);
+	xcb_flush(xConnection());
 }
 
 void X11WindowContext::show()
 {
     xcb_map_window(xConnection(), xWindow_);
+	refresh();
 }
-
 
 void X11WindowContext::size(const Vec2ui& size)
 {
@@ -214,7 +214,6 @@ void X11WindowContext::position(const Vec2i& position)
 	auto data = reinterpret_cast<const unsigned int*>(position.data());
 	xcb_configure_window(xConnection(), xWindow_, 
 		XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, data);
-    refresh();
 }
 
 void X11WindowContext::cursor(const Cursor& curs)
@@ -264,7 +263,7 @@ void X11WindowContext::beginMove(const MouseButtonEvent* ev)
     if(!xbev) return;
     auto& xev = reinterpret_cast<xcb_button_press_event_t&>(xbev->event);
 
-	//XXX: correct mouse button!
+	//XXX: correct mouse button (index)!
 	xcb_ewmh_request_wm_moveresize(ewmhConnection(), 0, xWindow(), xev.root_x, xev.root_y, 
 		XCB_EWMH_WM_MOVERESIZE_MOVE, XCB_BUTTON_INDEX_1, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL); 
 }
