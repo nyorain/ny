@@ -4,18 +4,12 @@
 #include <ny/backend/x11/appContext.hpp>
 #include <ny/backend/x11/internal.hpp>
 
-#include <ny/app/app.hpp>
-#include <ny/window/window.hpp>
-#include <ny/window/child.hpp>
-#include <ny/window/toplevel.hpp>
 #include <ny/base/event.hpp>
 #include <ny/base/log.hpp>
 #include <ny/window/cursor.hpp>
-#include <ny/window/events.hpp>
-#include <ny/draw/image.hpp>
 #include <ny/draw/drawContext.hpp>
 
-#include <X11/Xatom.h>
+#include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
 
 #include <memory.h>
@@ -105,7 +99,8 @@ xcb_connection_t* X11WindowContext::xConnection() const
 {
 	return appContext().xConnection();
 }
-dummy_xcb_ewmh_connection_t* X11WindowContext::ewmhConnection() const
+
+DummyEwmhConnection* X11WindowContext::ewmhConnection() const
 {
 	return appContext().ewmhConnection();
 }
@@ -232,7 +227,7 @@ void X11WindowContext::cursor(const Cursor& curs)
 
 void X11WindowContext::maximize()
 {
-    addState(ewmhConnection()->_NET_WM_STATE_MAXIMIZED_VERT,
+    addStates(ewmhConnection()->_NET_WM_STATE_MAXIMIZED_VERT,
 			ewmhConnection()->_NET_WM_STATE_MAXIMIZED_HORZ);
 }
 
@@ -246,7 +241,7 @@ void X11WindowContext::minimize()
 
 void X11WindowContext::fullscreen()
 {
-    addState(ewmhConnection()->_NET_WM_STATE_FULLSCREEN);
+    addStates(ewmhConnection()->_NET_WM_STATE_FULLSCREEN);
 }
 
 void X11WindowContext::normalState()
@@ -501,21 +496,21 @@ void X11WindowContext::lower()
 
 void X11WindowContext::requestFocus()
 {
-    addState(appContext().atom("_NET_WM_STATE_FOCUSED")); //todo: fix
+    addStates(appContext().atom("_NET_WM_STATE_FOCUSED")); //todo: fix
 }
-void X11WindowContext::addState(xcb_atom_t state1, xcb_atom_t state2)
+void X11WindowContext::addStates(xcb_atom_t state1, xcb_atom_t state2)
 {
 	xcb_ewmh_request_change_wm_state(ewmhConnection(), 0, xWindow(), XCB_EWMH_WM_STATE_ADD, 
 			state1, state2, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
 }
 
-void X11WindowContext::removeState(xcb_atom_t state1, xcb_atom_t state2)
+void X11WindowContext::removeStates(xcb_atom_t state1, xcb_atom_t state2)
 {
 	xcb_ewmh_request_change_wm_state(ewmhConnection(), 0, xWindow(), XCB_EWMH_WM_STATE_REMOVE, 
 			state1, state2, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
 }
 
-void X11WindowContext::toggleState(xcb_atom_t state1, xcb_atom_t state2)
+void X11WindowContext::toggleStates(xcb_atom_t state1, xcb_atom_t state2)
 {
 	xcb_ewmh_request_change_wm_state(ewmhConnection(), 0, xWindow(), XCB_EWMH_WM_STATE_TOGGLE, 
 			state1, state2, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);

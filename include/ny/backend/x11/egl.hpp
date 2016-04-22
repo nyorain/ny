@@ -1,16 +1,15 @@
 #pragma once
 
-#include <ny/x11/x11Include.hpp>
-#include <ny/gl/egl.hpp>
+#include <ny/backend/x11/include.hpp>
+#include <ny/draw/gl/egl.hpp>
 
 namespace ny
 {
 
-class x11EGLDrawContext : public eglDrawContext
+///TODO
+///Implements the draw functionality of the X11WindowContext with an egl context and GlDrawContext.
+class X11EglWindowContext : public EglContext
 {
-public:
-    x11EGLDrawContext(const x11WindowContext& wc);
-    virtual ~x11EGLDrawContext();
 };
 
 }

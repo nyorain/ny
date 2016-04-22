@@ -12,7 +12,7 @@ typedef struct _XDisplay Display;
 namespace ny
 {
 
-struct dummy_xcb_ewmh_connection_t;
+struct DummyEwmhConnection;
 
 class X11AppContext : public AppContext
 {
@@ -22,7 +22,7 @@ protected:
 protected:
     Display* xDisplay_  = nullptr;
 	xcb_connection_t* xConnection_ = nullptr;
-	std::unique_ptr<dummy_xcb_ewmh_connection_t> ewmhConnection_;
+	std::unique_ptr<DummyEwmhConnection> ewmhConnection_;
 
 	xcb_window_t xDummyWindow_ = {};
 
@@ -45,7 +45,7 @@ public:
 
     Display* xDisplay() const { return xDisplay_; }
 	xcb_connection_t* xConnection() const { return xConnection_; }
-	dummy_xcb_ewmh_connection_t* ewmhConnection() const { return ewmhConnection_.get(); }
+	DummyEwmhConnection* ewmhConnection() const { return ewmhConnection_.get(); }
     int xDefaultScreenNumber() const { return xDefaultScreenNumber_; }
     xcb_screen_t* xDefaultScreen() const { return xDefaultScreen_; }
 

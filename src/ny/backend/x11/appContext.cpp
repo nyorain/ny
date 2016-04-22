@@ -69,7 +69,7 @@ X11AppContext::X11AppContext()
     }
 
 	//ewmh connection
-	ewmhConnection_.reset(new dummy_xcb_ewmh_connection_t());
+	ewmhConnection_.reset(new DummyEwmhConnection());
 	auto ewmhCookie = xcb_ewmh_init_atoms(xConnection_, ewmhConnection());
 
 	//query screen

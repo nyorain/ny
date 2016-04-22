@@ -5,6 +5,7 @@
 #include <ny/base/log.hpp>
 #include <ny/window/events.hpp>
 
+#include <xcb/xcb.h>
 #include <cairo/cairo-xcb.h>
 
 namespace ny
