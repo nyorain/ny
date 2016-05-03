@@ -78,6 +78,7 @@ enum class NativeWidgetType : unsigned char
 enum class DrawType : unsigned char
 {
 	dontCare = 0,
+	none,
 	opengl,
 	software,
 	vulkan

@@ -1,6 +1,7 @@
 #include <ny/backend/winapi/backend.hpp>
 #include <ny/backend/winapi/appContext.hpp>
 #include <ny/backend/winapi/windowContext.hpp>
+#include <ny/backend/winapi/gdi.hpp>
 
 namespace ny
 {
@@ -35,7 +36,12 @@ std::unique_ptr<WindowContext> WinapiBackend::createWindowContext(AppContext& co
 		wsettings = settings;
     }
 
-    return std::make_unique<WinapiWindowContext>(*wac, s);
+	if(s.draw == DrawType::none)
+    	return std::make_unique<WinapiWindowContext>(*wac, s);
+	else if(s.draw == DrawType::dontCare || s.draw == DrawType::software)
+		return std::make_unique<GdiWinapiWindowContext>(*wac, s);
+	else
+		throw std::runtime_error("Winapi::CreateWindow: invalid draw type. only gdi implemented.");
 }
 
 }

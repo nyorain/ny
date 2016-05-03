@@ -16,7 +16,7 @@ bool WidgetBase::handleEvent(const Event& event)
 {
 	switch(event.type())
 	{
-		case eventType::mouseCross: 
+		case eventType::mouseCross:
 			mouseCrossEvent(static_cast<const MouseCrossEvent&>(event));
 			break;
 		case eventType::windowFocus:
@@ -25,7 +25,7 @@ bool WidgetBase::handleEvent(const Event& event)
 		case eventType::windowShow:
 			showEvent(static_cast<const ShowEvent&>(event));
 			break;
-		default: 
+		default:
 			return 0;
 	}
 
@@ -137,8 +137,9 @@ void WidgetBase::draw(DrawContext& dc)
 {
 	for(auto& child : children())
 	{
-		ny::RedirectDrawContext rdc(dc, child->position(), child->size());
-		child->draw(rdc);
+		//ny::RedirectDrawContext rdc(dc, child->position(), child->size());
+		//child->draw(rdc);
+		child->draw(dc);
 	}
 }
 

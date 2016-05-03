@@ -1,10 +1,13 @@
 #include <iostream>
 #include <ny/ny.hpp>
+#include <ny/backend/winapi/appContext.hpp>
+#include <ny/backend/winapi/windowContext.hpp>
+#include <ny/backend/winapi/gdi.hpp>
 
 int main()
 {
 	ny::App::Settings s;
-	//s.multithreaded = false;
+	s.multithreaded = false;
 	ny::App app(s);
 
 	ny::WindowSettings settings;
@@ -24,14 +27,28 @@ int main()
 
 	myButton.onClick = [&]{ std::cout << "Clicked!\n"; window.maximize(); };
 
-	/*
-	window.onDraw += [](ny::DrawContext& dc) { 
-		ny::sendDebug("DRAW"); dc.clear(ny::Color::white); };
-	*/
+	//window.onDraw += [](ny::DrawContext& dc) {
+	//	ny::sendDebug("DRAW"); dc.clear(ny::Color::white); };
 
 	ny::LoopControl control;
 	return app.run(control);
 	//
 
 	//while(app.dispatch() == true);
+
+/*
+	ny::WinapiAppContext appContext;
+	ny::GdiWinapiWindowContext wc(appContext);
+
+	ny::EventDispatcher dispatcher;
+	ny::LoopControl control;
+	//appContext.dispatchLoop(dispatcher, control);
+
+	while(true) {
+		appContext.dispatchEvents(dispatcher);
+
+		auto guard = wc.draw();
+		guard.dc().clear(ny::Color::white);
+	}
+	*/
 }

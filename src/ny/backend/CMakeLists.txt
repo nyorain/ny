@@ -9,10 +9,14 @@ if(NY_WithWinapi)
 		winapi/appContext.cpp
 		winapi/backend.cpp
 		winapi/util.cpp
+		winapi/gdi.cpp
 		winapi/windowContext.cpp)
+
+	set(libs-backend ${libs-backend} gdi32)
 
 	if(NY_WithGL)
 		set(src-backend ${src-backend} winapi/wgl.cpp)
+		set(libs-backend ${libs-backend} OpenGL32)
 	endif(NY_WithGL)
 
 endif(NY_WithWinapi)
@@ -23,7 +27,7 @@ if(NY_WithX11)
 		x11/backend.cpp
 		x11/util.cpp
 		x11/windowContext.cpp)
-	
+
 	set(libs-backend ${libs-backend} X11 xcb xcb-icccm xcb-ewmh X11-xcb pthread)
 
 	if(NY_WithGL)
@@ -47,7 +51,7 @@ if(NY_WithWayland)
 		wayland/interfaces.cpp
 		wayland/xdg-shell-client-protocol.c)
 
-	if(NY_WithGL)
+	if(NY_WithEGL)
 		set(src-backend ${src-backend} wayland/egl.cpp)
 	endif(NY_WithGL)
 endif(NY_WithWayland)

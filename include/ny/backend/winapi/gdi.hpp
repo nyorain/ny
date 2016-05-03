@@ -2,6 +2,7 @@
 
 #include <ny/backend/winapi/include.hpp>
 #include <ny/backend/winapi/windowContext.hpp>
+#include <ny/draw/gdi.hpp>
 
 #include <memory>
 

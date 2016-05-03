@@ -35,6 +35,8 @@ public:
 ///To draw with a given DrawContext you can either clear/paint the entire
 ///surface with a given Brush, or you specifiy a Mask which should then be
 ///filled with a given Brush or stroked with a given Pen.
+///The Clipping region of a DrawContext is defined as the region where paths can be drawn,
+///everything outside the clipping region will be clipped.
 class DrawContext : public NonCopyable
 {
 public:
@@ -120,7 +122,7 @@ public:
 	///will have no effect on DrawContext and surface, but it will raise a warning.
 	virtual void clipMaskPreserve();
 
-	///Returns the current mask clip area. Will return an empty mask vector and rasie a warning
+	///Returns the current mask clip area. Will return an empty mask vector and raise a warning
 	///if mask clipping is not supported.
 	virtual std::vector<PathBase> maskClip() const;
 

@@ -7,7 +7,6 @@
 
 #include <windows.h>
 #include <gdiplus.h>
-using namespace Gdiplus;
 
 namespace ny
 {
@@ -19,15 +18,19 @@ class GdiFontHandle : public DeriveCloneable<Cache, GdiFontHandle>
 
 };
 
+///TODO: gdiplus graphics object moveable? constructor with move
 ///Gdi+ implementation of the DrawContext interface.
 class GdiDrawContext : public DrawContext
 {
 protected:
-    Graphics* graphics_ = nullptr;
-    GraphicsPath currentPath_;
+    Gdiplus::Graphics graphics_;
+    Gdiplus::GraphicsPath currentPath_;
 
 public:
-	GdiDrawContext(Graphics& graphics);
+	GdiDrawContext(HDC hdc);
+	GdiDrawContext(HDC hdc, HANDLE handle);
+	GdiDrawContext(Gdiplus::Image& gdiimage);
+	GdiDrawContext(HWND window, bool adjust = true);
 	virtual ~GdiDrawContext();
 
 	virtual void clear(const Brush& b = Brush::none) override;
@@ -47,6 +50,13 @@ public:
     virtual Rect2f rectangleClip() const override;
     virtual void clipRectangle(const Rect2f& obj) override;
 	virtual void resetRectangleClip() override;
+
+	//specific
+	Gdiplus::Graphics& graphics() { return graphics_; }
+	const Gdiplus::Graphics& graphics() const { return graphics_; }
+
+	Gdiplus::GraphicsPath& currentPath() { return currentPath_; }
+	const Gdiplus::GraphicsPath& currentPath() const { return currentPath_; }
 };
 
 }

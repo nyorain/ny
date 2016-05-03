@@ -99,7 +99,7 @@ void ThreadedEventDispatcher::dispatch(EventPtr&& event)
 
     {
 		std::lock_guard<std::mutex> lck(eventMtx_);
-        if(event->overrideable() && 0)
+        if(event->overrideable())
         {
             for(auto& stored : events_)
             {

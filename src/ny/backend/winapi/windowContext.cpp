@@ -61,7 +61,8 @@ void WinapiWindowContext::initWindowClass(const WinapiWindowSettings& settings)
 	wndClass_.lpszMenuName = nullptr;
 	wndClass_.cbClsExtra = 0;
 	wndClass_.cbWndExtra = 0;
-	wndClass_.hbrBackground = (HBRUSH) GetStockObject(WHITE_BRUSH);
+	//wndClass_.hbrBackground = (HBRUSH) GetStockObject(WHITE_BRUSH);
+	wndClass_.hbrBackground = nullptr;
 }
 
 void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
@@ -102,12 +103,6 @@ void WinapiWindowContext::refresh()
 DrawGuard WinapiWindowContext::draw()
 {
 	throw std::logic_error("ny::WinapiWC: called draw() on draw-less windowContext");
-
-/*
-	PAINTSTRUCT ps;
-	BeginPaint(handle_, &ps);
-	EndPaint(handle_, &ps);
-*/
 }
 
 void WinapiWindowContext::show()

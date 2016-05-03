@@ -87,7 +87,7 @@ void Gui::mouseButtonEvent(const MouseButtonEvent& event)
 		if(!event.pressed)
 		{
 			mouseFocusWidget_ = nullptr;
-		}		
+		}
 	}
 	else if(mouseOverWidget_)
 	{
@@ -112,7 +112,8 @@ void Gui::keyEvent(const KeyEvent& event)
 
 void Gui::draw(DrawContext& dc)
 {
-	dc.clear(Color(0x303030ff));
+	//dc.clear(Color(0x303030ff));
+	dc.clear(Color(0xffffffff));
 	WidgetBase::draw(dc);
 }
 

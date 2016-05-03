@@ -16,7 +16,7 @@ mkdir build && cd build
 cmake ..
 make
 make install
-```````````
+`````````````
 
 Alternativley you can use gnu Makefiles to build it (might not work):
 ``````````````Bash
@@ -49,7 +49,7 @@ int main()
   ny::Frame frame(app, ny::Vec2ui(800, 500), "Hello World");
 
   frame.onDraw = [](ny::DrawContext& dc){ dc.clear(ny::Color::red); };
-  
+
   return app.run();
 }
 ````````````
