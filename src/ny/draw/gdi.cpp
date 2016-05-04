@@ -1,4 +1,6 @@
 #include <ny/draw/gdi.hpp>
+#include <ny/draw/font.hpp>
+#include <ny/base/log.hpp>
 
 #include <locale>
 #include <codecvt>
@@ -7,6 +9,47 @@ using namespace Gdiplus;
 namespace ny
 {
 
+std::wstring toUTF16(const std::string& str)
+{
+	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+	return converter.from_bytes(str);
+}
+
+//Font
+GdiFontHandle::GdiFontHandle(const Font& font) : GdiFontHandle(font.name(), font.fromFile())
+{
+}
+
+GdiFontHandle::GdiFontHandle(const std::string& name, bool fromFile)
+{
+	if(fromFile) {
+		int found;
+
+		PrivateFontCollection collection;
+		collection.AddFontFile(toUTF16(name).c_str());
+
+		handle_.reset(new FontFamily());
+		collection.GetFamilies(1, handle_.get(), &found);
+		if(found < 1) {
+			warning("Gdi+: Failed to load font from ", name);
+			handle_.reset(new FontFamily(L"Times New Roman"));
+			return;
+		}
+	} else {
+		handle_.reset(new FontFamily(toUTF16(name).c_str()));
+	}
+}
+
+GdiFontHandle::GdiFontHandle(const GdiFontHandle& other)
+{
+	handle_.reset(other.handle().Clone());
+}
+GdiFontHandle& GdiFontHandle::operator=(const GdiFontHandle& other)
+{
+	handle_.reset(other.handle().Clone());
+}
+
+//DrawContext
 GdiDrawContext::GdiDrawContext(Gdiplus::Image& gdiimage) : graphics_(&gdiimage)
 {
 }
@@ -37,63 +80,97 @@ void GdiDrawContext::paint(const Brush& alphaMask, const Brush& brush)
 	//TODO
 }
 
-void GdiDrawContext::mask(const Path& obj)
+void GdiDrawContext::gdiFill(const Path& obj, const Gdiplus::Brush& brush)
 {
+	setTransform(obj);
 	//TODO
+	graphics().ResetTransform();
 }
-void GdiDrawContext::mask(const Text& obj)
+void GdiDrawContext::gdiFill(const Text& obj, const Gdiplus::Brush& brush)
 {
-	Gdiplus::FontFamily family(L"Times New Roman");
+	if(!obj.font()) return;
+
+	setTransform(obj);
+
+	auto famHandle = static_cast<GdiFontHandle*>(obj.font()->cache("ny::GdiFontHandle"));
+	if(!famHandle)
+	{
+		auto cache = std::make_unique<GdiFontHandle>(*obj.font());
+		famHandle = &obj.font()->cache("ny::GdiFontHandle", std::move(cache));
+	}
+	Gdiplus::Font font(&famHandle->handle(), obj.size(), FontStyleRegular, UnitPixel);
+
 	PointF pos {obj.position().x , obj.position().y};
 
-	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-	auto string = converter.from_bytes(obj.string());
-
-	currentPath_.AddString(string.c_str(), -1, &family, 0, 48, pos, nullptr);
+	graphics().DrawString(toUTF16(obj.string()).c_str(), -1, &font, pos, &brush);
+	graphics().ResetTransform();
 }
-void GdiDrawContext::mask(const Rectangle& obj)
+void GdiDrawContext::gdiFill(const Rectangle& obj, const Gdiplus::Brush& brush)
 {
+	setTransform(obj);
 	RectF rect(obj.position().x, obj.position().y, obj.size().x, obj.size().y);
-	currentPath_.AddRectangle(rect);
+	graphics().FillRectangle(&brush, rect);
+	graphics().ResetTransform();
 }
-void GdiDrawContext::mask(const Circle& obj)
+void GdiDrawContext::gdiFill(const Circle& obj, const Gdiplus::Brush& brush)
 {
+	setTransform(obj);
 	auto start = obj.center() - obj.radius();
 	auto end = obj.center() + obj.radius();
-	currentPath_.AddEllipse(start.x, start.y, end.x, end.y);
-}
-void GdiDrawContext::resetMask()
-{
-	currentPath_.Reset();
+	graphics().FillEllipse(&brush, start.x, start.y, end.x, end.y);
+	graphics().ResetTransform();
 }
 
-void GdiDrawContext::fill(const Brush& brush)
+void GdiDrawContext::gdiStroke(const Path& obj, const Gdiplus::Pen& pen)
 {
-	auto col = brush.color();
-	Gdiplus::SolidBrush bb(Gdiplus::Color(col.a, col.r, col.g, col.b));
-	graphics().FillPath(&bb, &currentPath_);
-	resetMask();
+
 }
+void GdiDrawContext::gdiStroke(const Text& obj, const Gdiplus::Pen& pen)
+{
+
+}
+void GdiDrawContext::gdiStroke(const Rectangle& obj, const Gdiplus::Pen& pen)
+{
+
+}
+void GdiDrawContext::gdiStroke(const Circle& obj, const Gdiplus::Pen& pen)
+{
+
+}
+
 void GdiDrawContext::fillPreserve(const Brush& brush)
 {
 	auto col = brush.color();
 	Gdiplus::SolidBrush bb(Gdiplus::Color(col.a, col.r, col.g, col.b));
-	graphics().FillPath(&bb, &currentPath_);
+
+	for(auto& path : storedMask())
+	{
+		switch(path.type())
+		{
+		case PathBase::Type::text: gdiFill(path.text(), bb);
+		case PathBase::Type::circle: gdiFill(path.circle(), bb);
+		case PathBase::Type::rectangle: gdiFill(path.rectangle(), bb);
+		case PathBase::Type::path: gdiFill(path.path(), bb);
+		}
+	}
 }
-void GdiDrawContext::stroke(const Pen& pen)
-{
-	auto col = pen.brush().color();
-	Gdiplus::SolidBrush bb(Gdiplus::Color(col.a, col.r, col.g, col.b));
-	Gdiplus::Pen pp(&bb, pen.width());
-	graphics().DrawPath(&pp, &currentPath_);
-	resetMask();
-}
+
 void GdiDrawContext::strokePreserve(const Pen& pen)
 {
 	auto col = pen.brush().color();
 	Gdiplus::SolidBrush bb(Gdiplus::Color(col.a, col.r, col.g, col.b));
 	Gdiplus::Pen pp(&bb, pen.width());
-	graphics().DrawPath(&pp, &currentPath_);
+
+	for(auto& path : storedMask())
+	{
+		switch(path.type())
+		{
+		case PathBase::Type::text: gdiStroke(path.text(), pp);
+		case PathBase::Type::circle: gdiStroke(path.circle(), pp);
+		case PathBase::Type::rectangle: gdiStroke(path.rectangle(), pp);
+		case PathBase::Type::path: gdiStroke(path.path(), pp);
+		}
+	}
 }
 
 Rect2f GdiDrawContext::rectangleClip() const
@@ -110,6 +187,17 @@ void GdiDrawContext::clipRectangle(const Rect2f& obj)
 void GdiDrawContext::resetRectangleClip()
 {
 	graphics().ResetClip();
+}
+
+void GdiDrawContext::setTransform(const Transform2& transform)
+{
+	setTransform(transform.transformMatrix());
+}
+
+void GdiDrawContext::setTransform(const Mat3f& m)
+{
+	Gdiplus::Matrix matrix(m[0][0], m[1][0], m[0][1], m[1][1], m[0][2], m[1][2]);
+	graphics().SetTransform(&matrix);
 }
 
 }

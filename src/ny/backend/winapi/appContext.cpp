@@ -9,6 +9,8 @@
 #include <ny/app/keyboard.hpp>
 #include <ny/app/eventDispatcher.hpp>
 
+#include <windowsx.h>
+
 #include <stdexcept>
 
 namespace ny
@@ -152,20 +154,39 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 			if(handlerEvents)
 			{
 				auto ev = std::make_unique<MouseMoveEvent>(handler);
+				ev->position = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
 				eventDispatcher_->dispatch(std::move(ev));
 			}
 
 			return 0;
         }
 
-        case WM_MBUTTONDOWN:
+		case WM_LBUTTONDOWN:
         {
+			if(handlerEvents)
+			{
+				auto ev = std::make_unique<MouseButtonEvent>(handler);
+				ev->position = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+				ev->pressed = true;
+				ev->button = Mouse::Button::left;
+				eventDispatcher_->dispatch(std::move(ev));
+			}
 
+			return 0;
         }
 
-        case WM_MBUTTONUP:
+		case WM_LBUTTONUP:
         {
+			if(handlerEvents)
+			{
+				auto ev = std::make_unique<MouseButtonEvent>(handler);
+				ev->position = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+				ev->pressed = false;
+				ev->button = Mouse::Button::left;
+				eventDispatcher_->dispatch(std::move(ev));
+			}
 
+			return 0;
         }
 
         case WM_PAINT:

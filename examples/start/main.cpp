@@ -22,11 +22,18 @@ int main()
 	window.icon(icon);
 
 	ny::Gui myGui(window);
+
 	ny::Button myButton(myGui, {100, 100}, {100, 45});
 	myButton.label("Maximize");
-
 	myButton.onClick = [&]{ std::cout << "Clicked!\n"; window.maximize(); };
 
+	ny::Button myButton2(myGui, {300, 300}, {100, 45});
+	myButton2.label("Fullscreen");
+	myButton2.onClick = [&]{ std::cout << "Clicked!\n"; window.fullscreen(); };
+
+	ny::Button myButton3(myGui, {0, 400}, {100, 45});
+	myButton3.label("Normal");
+	myButton3.onClick = [&]{ std::cout << "Clicked!\n"; window.reset(); };
 	//window.onDraw += [](ny::DrawContext& dc) {
 	//	ny::sendDebug("DRAW"); dc.clear(ny::Color::white); };
 

@@ -12,7 +12,7 @@ if(NY_WithWinapi)
 		winapi/gdi.cpp
 		winapi/windowContext.cpp)
 
-	set(libs-backend ${libs-backend} gdi32)
+	set(libs-backend ${libs-backend} gdi32 gdiplus)
 
 	if(NY_WithGL)
 		set(src-backend ${src-backend} winapi/wgl.cpp)

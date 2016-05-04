@@ -41,4 +41,33 @@ inline void sendDebug(Args&&... args)
 #endif
 }
 
+//functions
+template<typename... Args>
+inline void warning(Args&&... args)
+{
+	warningLogger()(std::forward<Args>(args)...);
+}
+
+template<typename... Args>
+inline void log(Args&&... args)
+{
+	logLogger()(std::forward<Args>(args)...);
+}
+
+template<typename... Args>
+inline void error(Args&&... args)
+{
+	errorLogger()(std::forward<Args>(args)...);
+}
+
+template<typename... Args>
+inline void debug(Args&&... args)
+{
+#ifndef NDEBUG
+	debugLogger()(std::forward<Args>(args)...);
+#else
+	unused(args...);
+#endif
+}
+
 }
