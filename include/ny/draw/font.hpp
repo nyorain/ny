@@ -23,11 +23,8 @@ public:
 	const std::string& name() const { return name_; }
 
 public:
-    static Font& defaultFont()
-    {
-        static Font instance_("Ubuntu-M");
-        return instance_;
-    }
+    static Font& defaultFont();
+
 };
 
 }

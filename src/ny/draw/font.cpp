@@ -3,9 +3,16 @@
 namespace ny
 {
 
+Font& Font::defaultFont()
+{
+    static Font instance_("Times New Roman");
+    return instance_;
+}
+
 Font::Font(const std::string& name, bool fromFile)
 	: name_(name), fromFile_(fromFile)
 {
+
 }
 
 void Font::loadFromFile(const std::string& filename)

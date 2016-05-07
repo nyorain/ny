@@ -9,11 +9,29 @@
 namespace ny
 {
 
+///GdiDrawContext to draw on a winapi window
+class GdiWindowDrawContext : public GdiDrawContext
+{
+protected:
+	HWND window_ {nullptr};
+	//HDC hdc_ {};
+	PAINTSTRUCT ps_;
+
+	std::unique_ptr<Gdiplus::Bitmap> buffer_;
+	std::unique_ptr<Gdiplus::Graphics> windowGraphics_;
+
+public:
+	GdiWindowDrawContext(HWND window);
+
+	virtual void init() override;
+	virtual void apply() override;
+};
+
 ///Winapi WindowContext using gdi to draw.
 class GdiWinapiWindowContext : public WinapiWindowContext
 {
 protected:
-	std::unique_ptr<GdiDrawContext> drawContext_;
+	std::unique_ptr<GdiWindowDrawContext> drawContext_;
 
 public:
 	GdiWinapiWindowContext(WinapiAppContext& ctx, const WinapiWindowSettings& settings = {});

@@ -6,35 +6,38 @@
 #include <nytl/clone.hpp>
 
 #include <windows.h>
-#include <gdiplus.h>
 
 namespace ny
 {
+
+///Can be used on unique pointers for winapi handles.
+struct GdiObjectDestructor
+{
+	void operator()(GDIOBJ* obj) const { DeleteObject(obj); }
+};
+
+template <typename T>
+using GdiPointer = std::unique_ptr<T, GdiObjectDestructor>;
 
 ///FontFamily Handle for gdi fonts.
 ///Cache Name: "ny::GdiFontHandle"
 class GdiFontHandle : public DeriveCloneable<Cache, GdiFontHandle>
 {
-protected:
-	std::unique_ptr<Gdiplus::FontFamily> handle_;
-
 public:
 	GdiFontHandle(const Font& font);
 	GdiFontHandle(const std::string& name, bool fromFile);
-	~GdiFontHandle() { std::cout << "blrr" << handle_.get() << "\n"; };
-
-	GdiFontHandle(const GdiFontHandle& other);
-	GdiFontHandle& operator=(const GdiFontHandle& other);
+	~GdiFontHandle() = default;
 
 	GdiFontHandle(GdiFontHandle&& other) noexcept = default;
 	GdiFontHandle& operator=(GdiFontHandle&& other) noexcept = default;
 
-	const Gdiplus::FontFamily& handle() const { return *handle_; }
-	Gdiplus::FontFamily& handle() { return *handle_; }
+	Font& handle() { return *handle_; }
+
+protected:
+	GdiPointer<FONT> handle_;
 };
 
-///TODO: gdiplus graphics object moveable? constructor with move
-///Gdi+ implementation of the DrawContext interface.
+///Gdi implementation of the DrawContext interface.
 class GdiDrawContext : public DelayedDrawContext
 {
 public:
@@ -51,31 +54,33 @@ public:
 	virtual void strokePreserve(const Pen& pen) override;
 
 	//TODO: draw shape functions, more efficient directly
+	// virtual void draw(const Shape& shape) override;
 
     virtual Rect2f rectangleClip() const override;
     virtual void clipRectangle(const Rect2f& obj) override;
 	virtual void resetRectangleClip() override;
 
 	//specific
-	Gdiplus::Graphics& graphics() { return graphics_; }
-	const Gdiplus::Graphics& graphics() const { return graphics_; }
+	HDC hdc() const { return hdc_; }
 
 	void setTransform(const Transform2& transform);
 	void setTransform(const Mat3f& m);
 
 protected:
-	void gdiFill(const Path& obj, const Gdiplus::Brush& brush);
-	void gdiFill(const Text& obj, const Gdiplus::Brush& brush);
-	void gdiFill(const Rectangle& obj, const Gdiplus::Brush& brush);
-	void gdiFill(const Circle& obj, const Gdiplus::Brush& brush);
+	GdiDrawContext() = default;
 
-	void gdiStroke(const Path& obj, const Gdiplus::Pen& pen);
-	void gdiStroke(const Text& obj, const Gdiplus::Pen& pen);
-	void gdiStroke(const Rectangle& obj, const Gdiplus::Pen& pen);
-	void gdiStroke(const Circle& obj, const Gdiplus::Pen& pen);
+	void gdiFill(const Path& obj, const Brush& brush);
+	void gdiFill(const Text& obj, const Brush& brush);
+	void gdiFill(const Rectangle& obj, const Brush& brush);
+	void gdiFill(const Circle& obj, const Brush& brush);
+
+	void gdiStroke(const Path& obj, const Pen& pen);
+	void gdiStroke(const Text& obj, const Pen& pen);
+	void gdiStroke(const Rectangle& obj, const Pen& pen);
+	void gdiStroke(const Circle& obj, const Pen& pen);
 
 protected:
-    Gdiplus::Graphics graphics_;
+	HDC hdc_;
 };
 
 }

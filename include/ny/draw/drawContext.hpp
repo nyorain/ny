@@ -55,6 +55,8 @@ public:
 	///Applies the pending DrawContext state to the surface.
 	///This should always be called when finishing drawing, altough some implementations
 	///may automatically apply any shape that was drawn.
+	///Do not call further calling functions after calling this function and before reiniting the
+	///DrawContext since a call to apply may implicitly invalidate it.
 	virtual void apply(){}
 
 

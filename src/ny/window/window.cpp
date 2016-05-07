@@ -103,9 +103,7 @@ bool Window::handleEvent(const Event& ev)
 
 void Window::refresh()
 {
-	//if(!windowContext_) return;
     windowContext_->refresh();
-	
 	//app().dispatcher().dispatch(std::make_unique<DrawEvent>(this));
 }
 

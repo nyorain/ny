@@ -8,6 +8,7 @@
 #include <ny/app/mouse.hpp>
 #include <ny/app/keyboard.hpp>
 #include <ny/app/eventDispatcher.hpp>
+#include <ny/draw/font.hpp>
 
 #include <windowsx.h>
 
@@ -61,6 +62,7 @@ WinapiAppContext::WinapiAppContext()
 
 WinapiAppContext::~WinapiAppContext()
 {
+	Font::defaultFont().resetCache("ny::GdiFontHandle");
     if(gdiplusToken_) GdiplusShutdown(gdiplusToken_);
 }
 
