@@ -148,14 +148,16 @@ void WinapiWindowContext::fullscreen()
 	mode.dmBitsPerPel = 32;
 	mode.dmFields     = DM_PELSWIDTH | DM_PELSHEIGHT | DM_BITSPERPEL;
 
+	/*
 	if (ChangeDisplaySettings(&mode, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
 	{
 		sendWarning("WinapiWindowContext::fullscreen: Failed to change display mode");
 		return;
 	}
+	*/
 
 	SetWindowLongW(handle(), GWL_STYLE, WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
-	SetWindowLongW(handle(), GWL_EXSTYLE, WS_EX_APPWINDOW);
+	SetWindowLongW(handle(), GWL_EXSTYLE, WS_EX_APPWINDOW  | WS_EX_TOPMOST);
 
 	SetWindowPos(handle(), HWND_TOP, 0, 0, 1920, 1080, SWP_FRAMECHANGED);
 	ShowWindow(handle(), SW_SHOW);
@@ -173,6 +175,11 @@ void WinapiWindowContext::minimize()
 
 void WinapiWindowContext::normalState()
 {
+	//TODO: restore fullscreen correctly
+	// SetWindowLongW(handle(), GWL_STYLE, WS_OVERLAPPEDWINDOW);
+	// SetWindowLongW(handle(), GWL_EXSTYLE, 0);
+	// SetWindowPos(handle(), HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOSIZE | SWP_NOMOVE);
+
 	ShowWindow(handle_, SW_RESTORE);
 }
 

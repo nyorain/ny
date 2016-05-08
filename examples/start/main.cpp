@@ -7,7 +7,7 @@
 int main()
 {
 	ny::App::Settings s;
-	s.multithreaded = false;
+	//s.multithreaded = false;
 	ny::App app(s);
 
 	ny::WindowSettings settings;
@@ -21,7 +21,6 @@ int main()
 	ny::Image icon("icon.jpg");
 	window.icon(icon);
 
-/*
 	ny::Gui myGui(window);
 
 	ny::Button myButton(myGui, {100, 100}, {100, 45});
@@ -35,12 +34,13 @@ int main()
 	ny::Button myButton3(myGui, {0, 400}, {100, 45});
 	myButton3.label("Normal");
 	myButton3.onClick = [&]{ std::cout << "Clicked!\n"; window.reset(); };
-*/
 
+/*
 	window.onDraw += [](ny::DrawContext& dc) {
 		ny::debug("DRAW");
-		dc.clear(ny::Color::white);
+		dc.clear(ny::Color::green);
 	};
+*/
 
 	ny::LoopControl control;
 	return app.run(control);

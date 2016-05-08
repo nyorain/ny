@@ -4,7 +4,7 @@
 
 #include <locale>
 #include <codecvt>
-using namespace Gdiplus;
+#include <cstring>
 
 namespace ny
 {
@@ -22,88 +22,66 @@ GdiFontHandle::GdiFontHandle(const Font& font) : GdiFontHandle(font.name(), font
 
 GdiFontHandle::GdiFontHandle(const std::string& name, bool fromFile)
 {
-	if(fromFile) {
-		int found;
+	auto fontName = name;
+	auto res = 1;
 
-		collection_.AddFontFile(toUTF16(name).c_str());
-
-		handle_.reset(new FontFamily());
-		collection_.GetFamilies(1, handle_.get(), &found);
-		if(found < 1) {
-			warning("Gdi+: Failed to load font from ", name);
-			handle_.reset(new FontFamily(L"Times New Roman"));
-			return;
+	if(fromFile)
+	{
+		res = AddFontResourceEx(name.c_str(), FR_PRIVATE, nullptr);
+		if(!res)
+		{
+			warning("GdiFont: failed to load", name);
 		}
-	} else {
-		handle_.reset(new FontFamily(toUTF16(name).c_str()));
-	}
-}
 
-GdiFontHandle::GdiFontHandle(const GdiFontHandle& other)
-{
-	handle_.reset(other.handle().Clone());
-}
-GdiFontHandle& GdiFontHandle::operator=(const GdiFontHandle& other)
-{
-handle_.reset(other.handle().Clone());
+		fontName = name.substr(name.find_last_of('/'), -1);
+		fontName = fontName.substr(0, fontName.find_last_of('.'));
+	}
+
+	LOGFONT lf {};
+	lf.lfHeight = 0;
+	lf.lfWidth = 0;
+	lf.lfWeight = FW_NORMAL;
+	if(res) std::strcpy(lf.lfFaceName, fontName.c_str());
+
+	handle_.reset(CreateFontIndirect(&lf));
 }
 
 //DrawContext
-GdiDrawContext::GdiDrawContext(Gdiplus::Image& gdiimage)
+GdiDrawContext::GdiDrawContext(HDC xhdc) : hdc_(xhdc)
 {
-	graphics_.reset(new Graphics(&gdiimage));
-}
-
-GdiDrawContext::GdiDrawContext(HDC hdc)
-{
-	hdc_ = hdc;
-	//graphics_.reset(new Graphics(hdc));
-}
-
-GdiDrawContext::GdiDrawContext(HDC hdc, HANDLE handle)
-{
-	graphics_.reset(new Graphics(hdc, handle));
-}
-
-GdiDrawContext::GdiDrawContext(HWND window, bool adjust)
-{
-	graphics_.reset(new Graphics(window, adjust));
+	::SetGraphicsMode(hdc(), GM_ADVANCED);
 }
 
 GdiDrawContext::~GdiDrawContext()
 {
 }
 
-void GdiDrawContext::clear(const Brush& b)
+void GdiDrawContext::clear(const Brush& brush)
 {
-	auto c = b.color();
-	//graphics().Clear(Gdiplus::Color(c.r, c.g, c.b, c.a));
-	//SelectObject(hdc_, GetStockObject(WHITE_BRUSH));
-	//SetDCBrushColor(hdc_, RGB(c.r, c.g, c.b));
-	//::Rectangle(hdc_, 0, 0, 500, 500);
-
-	::RECT rect {0, 0, 2000, 1000};
-	auto brush = CreateSolidBrush(RGB(100, 100, 100));
-	FillRect(hdc_, &rect, brush);
+	auto c = brush.color();
+	::SetDCBrushColor(hdc(), RGB(c.r, c.g, c.b));
+	::SelectObject(hdc(), GetStockObject(NULL_PEN));
+	::SelectObject(hdc(), GetStockObject(DC_BRUSH));
+	::Rectangle(hdc(), 0, 0, 10000, 10000); ///XXX find correct dimensions
 }
 void GdiDrawContext::paint(const Brush& alphaMask, const Brush& brush)
 {
 	//TODO
 }
 
-void GdiDrawContext::gdiFill(const Path& obj, const Gdiplus::Brush& brush)
+void GdiDrawContext::gdiFill(const Path& obj, const Brush& brush)
 {
 	setTransform(obj);
 	//TODO
-	graphics().ResetTransform();
 }
-void GdiDrawContext::gdiFill(const Text& obj, const Gdiplus::Brush& brush)
+void GdiDrawContext::gdiFill(const Text& obj, const Brush& brush)
 {
 	if(!obj.font()) return;
 
 	setTransform(obj);
 
 	auto string = toUTF16(obj.string());
+
 	auto famHandle = static_cast<GdiFontHandle*>(obj.font()->cache("ny::GdiFontHandle"));
 	if(!famHandle)
 	{
@@ -111,106 +89,113 @@ void GdiDrawContext::gdiFill(const Text& obj, const Gdiplus::Brush& brush)
 		famHandle = &obj.font()->cache("ny::GdiFontHandle", std::move(cache));
 	}
 
-	Gdiplus::Font font(&famHandle->handle(), obj.size(), FontStyleRegular, UnitPixel);
+	//SIZE extent;
+	//GetTextExtentPoint32(hdc(), string.c_str(), string.size(), &extent);
 
-	RectF extent;
-	graphics().MeasureString(string.c_str(), -1, &font, {0.f, 0.f}, &extent);
+	auto align = 0u;
 
-	PointF pos {obj.position().x , obj.position().y};
+	if(obj.horzBounds() == Text::HorzBounds::left) align |= TA_LEFT;
+	else if(obj.horzBounds() == Text::HorzBounds::center) align |= TA_CENTER;
+	else if(obj.horzBounds() == Text::HorzBounds::right) align |= TA_RIGHT;
 
-	if(obj.horzBounds() == Text::HorzBounds::center) pos.X -= extent.Width / 2;
-	else if(obj.horzBounds() == Text::HorzBounds::right) pos.X -= extent.Width;
+	if(obj.vertBounds() == Text::VertBounds::top) align |= TA_TOP;
+	else if(obj.vertBounds() == Text::VertBounds::middle) align |= TA_BASELINE;
+	else if(obj.vertBounds() == Text::VertBounds::bottom) align |= TA_BOTTOM;
 
-	if(obj.vertBounds() == Text::VertBounds::middle) pos.Y -= extent.Height / 2;
-	else if(obj.vertBounds() == Text::VertBounds::bottom) pos.Y -= extent.Height;
+	auto c = brush.color();
+	::SelectObject(hdc(), GetStockObject(NULL_PEN));
+	::SelectObject(hdc(), GetStockObject(DC_BRUSH));
+	::SetDCBrushColor(hdc(), RGB(c.r, c.g, c.b));
+	::SelectObject(hdc(), famHandle->handle());
+	::SetTextAlign(hdc(), align);
 
-	graphics().DrawString(string.c_str(), -1, &font, pos, &brush);
-	graphics().ResetTransform();
+	auto pos = obj.position();
+	::TextOut(hdc(), pos.x, pos.y, obj.string().c_str(), obj.string().size());
 }
-void GdiDrawContext::gdiFill(const Rectangle& obj, const Gdiplus::Brush& brush)
+void GdiDrawContext::gdiFill(const Rectangle& obj, const Brush& brush)
 {
 	setTransform(obj);
-	RectF rect(obj.position().x, obj.position().y, obj.size().x, obj.size().y);
-	graphics().FillRectangle(&brush, rect);
-	graphics().ResetTransform();
+
+	auto c = brush.color();
+	::SelectObject(hdc(), GetStockObject(NULL_PEN));
+	::SelectObject(hdc(), GetStockObject(DC_BRUSH));
+	::SetDCBrushColor(hdc(), RGB(c.r, c.g, c.b));
+	::Rectangle(hdc(), obj.position().x, obj.position().y, obj.size().x, obj.size().y);
 }
-void GdiDrawContext::gdiFill(const Circle& obj, const Gdiplus::Brush& brush)
+void GdiDrawContext::gdiFill(const Circle& obj, const Brush& brush)
 {
 	setTransform(obj);
+
+	auto c = brush.color();
+	::SelectObject(hdc(), GetStockObject(NULL_PEN));
+	::SelectObject(hdc(), GetStockObject(DC_BRUSH));
+	::SetDCBrushColor(hdc(), RGB(c.r, c.g, c.b));
+
 	auto start = obj.center() - obj.radius();
 	auto end = obj.center() + obj.radius();
-	graphics().FillEllipse(&brush, start.x, start.y, end.x, end.y);
-	graphics().ResetTransform();
+	::Ellipse(hdc(), start.x, start.y, end.x, end.y);
 }
 
-void GdiDrawContext::gdiStroke(const Path& obj, const Gdiplus::Pen& pen)
+void GdiDrawContext::gdiStroke(const Path& obj, const Pen& pen)
 {
 
 }
-void GdiDrawContext::gdiStroke(const Text& obj, const Gdiplus::Pen& pen)
+void GdiDrawContext::gdiStroke(const Text& obj, const Pen& pen)
 {
 
 }
-void GdiDrawContext::gdiStroke(const Rectangle& obj, const Gdiplus::Pen& pen)
+void GdiDrawContext::gdiStroke(const Rectangle& obj, const Pen& pen)
 {
 
 }
-void GdiDrawContext::gdiStroke(const Circle& obj, const Gdiplus::Pen& pen)
+void GdiDrawContext::gdiStroke(const Circle& obj, const Pen& pen)
 {
 
 }
 
 void GdiDrawContext::fillPreserve(const Brush& brush)
 {
-	return;
-
-	auto col = brush.color();
-	Gdiplus::SolidBrush bb(Gdiplus::Color(col.a, col.r, col.g, col.b));
-
 	for(auto& path : storedMask())
 	{
 		switch(path.type())
 		{
-			case PathBase::Type::text: gdiFill(path.text(), bb); break;
-			case PathBase::Type::circle: gdiFill(path.circle(), bb); break;
-			case PathBase::Type::rectangle: gdiFill(path.rectangle(), bb); break;
-			case PathBase::Type::path: gdiFill(path.path(), bb); break;
+			case PathBase::Type::text: gdiFill(path.text(), brush); break;
+			case PathBase::Type::circle: gdiFill(path.circle(), brush); break;
+			case PathBase::Type::rectangle: gdiFill(path.rectangle(), brush); break;
+			case PathBase::Type::path: gdiFill(path.path(), brush); break;
 		}
 	}
 }
 
 void GdiDrawContext::strokePreserve(const Pen& pen)
 {
-	auto col = pen.brush().color();
-	Gdiplus::SolidBrush bb(Gdiplus::Color(col.a, col.r, col.g, col.b));
-	Gdiplus::Pen pp(&bb, pen.width());
-
 	for(auto& path : storedMask())
 	{
 		switch(path.type())
 		{
-			case PathBase::Type::text: gdiStroke(path.text(), pp); break;
-			case PathBase::Type::circle: gdiStroke(path.circle(), pp); break;
-			case PathBase::Type::rectangle: gdiStroke(path.rectangle(), pp); break;
-			case PathBase::Type::path: gdiStroke(path.path(), pp); break;
+			case PathBase::Type::text: gdiStroke(path.text(), pen); break;
+			case PathBase::Type::circle: gdiStroke(path.circle(), pen); break;
+			case PathBase::Type::rectangle: gdiStroke(path.rectangle(), pen); break;
+			case PathBase::Type::path: gdiStroke(path.path(), pen); break;
 		}
 	}
 }
 
 Rect2f GdiDrawContext::rectangleClip() const
 {
-	RectF ret;
-	graphics().GetClipBounds(&ret);
-	return {ret.X, ret.Y, ret.Width, ret.Height};
+	RECT ret;
+	::GetClipBox(hdc(), &ret);
+	return Rect2f(ret.left, ret.top, ret.right - ret.left, ret.bottom - ret.top);
 }
 void GdiDrawContext::clipRectangle(const Rect2f& obj)
 {
-	RectF rect(obj.position.x, obj.position.y, obj.size.x, obj.size.y);
-	graphics().SetClip(rect);
+	auto region = GdiPointer<HRGN>(CreateRectRgn(obj.left(), obj.top(), obj.right(), obj.bottom()));
+	SelectClipRgn(hdc(), region.get());
 }
 void GdiDrawContext::resetRectangleClip()
 {
-	graphics().ResetClip();
+	//SetMetaRgn(hdc());
+	SelectClipRgn(hdc(), nullptr);
 }
 
 void GdiDrawContext::setTransform(const Transform2& transform)
@@ -220,8 +205,14 @@ void GdiDrawContext::setTransform(const Transform2& transform)
 
 void GdiDrawContext::setTransform(const Mat3f& m)
 {
-	Gdiplus::Matrix matrix(m[0][0], m[1][0], m[0][1], m[1][1], m[0][2], m[1][2]);
-	graphics().SetTransform(&matrix);
+	XFORM xform{m[0][0], m[1][0], m[0][1], m[1][1], m[0][2], m[1][2]};
+	SetWorldTransform(hdc(), &xform);
+}
+
+void GdiDrawContext::resetTransform()
+{
+	XFORM xform{1, 0, 0, 1, 0, 0};
+	SetWorldTransform(hdc(), &xform);
 }
 
 }

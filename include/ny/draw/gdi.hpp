@@ -13,15 +13,15 @@ namespace ny
 ///Can be used on unique pointers for winapi handles.
 struct GdiObjectDestructor
 {
-	void operator()(GDIOBJ* obj) const { DeleteObject(obj); }
+	void operator()(HGDIOBJ obj) const { DeleteObject(obj); }
 };
 
 template <typename T>
-using GdiPointer = std::unique_ptr<T, GdiObjectDestructor>;
+using GdiPointer = std::unique_ptr<std::remove_pointer_t<T>, GdiObjectDestructor>;
 
 ///FontFamily Handle for gdi fonts.
 ///Cache Name: "ny::GdiFontHandle"
-class GdiFontHandle : public DeriveCloneable<Cache, GdiFontHandle>
+class GdiFontHandle : public Cache
 {
 public:
 	GdiFontHandle(const Font& font);
@@ -31,10 +31,10 @@ public:
 	GdiFontHandle(GdiFontHandle&& other) noexcept = default;
 	GdiFontHandle& operator=(GdiFontHandle&& other) noexcept = default;
 
-	Font& handle() { return *handle_; }
+	HFONT handle() { return handle_.get(); }
 
 protected:
-	GdiPointer<FONT> handle_;
+	GdiPointer<HFONT> handle_;
 };
 
 ///Gdi implementation of the DrawContext interface.
@@ -42,9 +42,6 @@ class GdiDrawContext : public DelayedDrawContext
 {
 public:
 	GdiDrawContext(HDC hdc);
-	GdiDrawContext(HDC hdc, HANDLE handle);
-	GdiDrawContext(Gdiplus::Image& gdiimage);
-	GdiDrawContext(HWND window, bool adjust = true);
 	virtual ~GdiDrawContext();
 
 	virtual void clear(const Brush& b = Brush::none) override;
@@ -65,6 +62,7 @@ public:
 
 	void setTransform(const Transform2& transform);
 	void setTransform(const Mat3f& m);
+	void resetTransform();
 
 protected:
 	GdiDrawContext() = default;

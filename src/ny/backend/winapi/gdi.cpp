@@ -11,22 +11,34 @@ GdiWindowDrawContext::GdiWindowDrawContext(HWND window) : window_(window)
 void GdiWindowDrawContext::init()
 {
 	RECT rect;
-	GetClientRect(window_, &rect);
+	::GetClientRect(window_, &rect);
+	auto size = Vec2ui(rect.right, rect.bottom);
 
 	//hdc_ = BeginPaint(window_, &ps_);
-	hdc_ = GetDC(window_);
+	windowHdc_ = ::GetDC(window_);
 
-	//buffer_.reset(new Gdiplus::Bitmap(rect.right, rect.bottom));
-	//graphics_.reset(new Gdiplus::Graphics(buffer_.get()));
-	//graphics_.reset(new Gdiplus::Graphics(hdc_));
+	buffer_.reset(::CreateCompatibleBitmap(windowHdc_, rect.right, rect.bottom));
 
-	//windowGraphics_.reset(new Gdiplus::Graphics(hdc_));
+	hdc_ = ::CreateCompatibleDC(windowHdc_);
+	oldBitmap_ = (HBITMAP) ::SelectObject(hdc(), buffer_.get());
+	::SetGraphicsMode(hdc(), GM_ADVANCED);
 }
 
 void GdiWindowDrawContext::apply()
 {
-	//windowGraphics_->DrawImage(buffer_.get(), 0, 0);
-	ReleaseDC(window_, hdc_);
+	resetTransform();
+
+	RECT rect;
+	::GetClientRect(window_, &rect);
+	auto size = Vec2ui(rect.right, rect.bottom);
+
+	::BitBlt(windowHdc_, 0, 0, size.x, size.y, hdc_, 0, 0, SRCCOPY);
+	::ReleaseDC(window_, windowHdc_);
+
+	SelectObject(hdc_, oldBitmap_);
+	//::DeleteDC(hdc_);
+	//buffer_.reset();
+
 	//EndPaint(window_, &ps_);
 }
 

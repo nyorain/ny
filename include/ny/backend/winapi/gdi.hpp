@@ -14,11 +14,10 @@ class GdiWindowDrawContext : public GdiDrawContext
 {
 protected:
 	HWND window_ {nullptr};
-	//HDC hdc_ {};
-	PAINTSTRUCT ps_;
 
-	std::unique_ptr<Gdiplus::Bitmap> buffer_;
-	std::unique_ptr<Gdiplus::Graphics> windowGraphics_;
+	HBITMAP oldBitmap_;
+	GdiPointer<HBITMAP> buffer_;
+	HDC windowHdc_;
 
 public:
 	GdiWindowDrawContext(HWND window);

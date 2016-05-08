@@ -139,7 +139,7 @@ void WidgetBase::draw(DrawContext& dc)
 	{
 		ny::RedirectDrawContext rdc(dc, child->position(), child->size());
 		child->draw(rdc);
-		//child->draw(dc);
+		// child->draw(dc);
 	}
 }
 
