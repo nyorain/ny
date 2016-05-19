@@ -1,5 +1,6 @@
 #include <ny/backend/winapi/appContext.hpp>
 #include <ny/backend/winapi/windowContext.hpp>
+#include <ny/backend/winapi/util.hpp>
 
 #include <ny/base/log.hpp>
 #include <ny/base/event.hpp>

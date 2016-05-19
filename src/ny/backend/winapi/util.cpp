@@ -1,4 +1,5 @@
 #include <ny/backend/winapi/util.hpp>
+#include <windows.h>
 
 namespace ny
 {
@@ -7,10 +8,10 @@ Keyboard::Key winapiToKey(unsigned int code)
 {
 	if(code >= 0x30 && code <= 0x39) return static_cast<Keyboard::Key>(27 + code - 0x30);
 	if(code >= 0x41 && code <= 0x5A) return static_cast<Keyboard::Key>(code - 0x41);
-	if(code >= 0x60 && code <= 0x69) return static_cast<Keyboard::Key>(37 + code - 0x60)
+	if(code >= 0x60 && code <= 0x69) return static_cast<Keyboard::Key>(37 + code - 0x60);
 	if(code >= 0x70 && code <= 0x87) return static_cast<Keyboard::Key>(47 + code - 0x70);
 
-	swtich(code)
+	switch(code)
 	{
 		case VK_BACK: return Keyboard::Key::back;
 		case VK_TAB: return Keyboard::Key::tab;
