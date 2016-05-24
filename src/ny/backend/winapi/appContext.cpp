@@ -1,5 +1,6 @@
 #include <ny/backend/winapi/appContext.hpp>
 #include <ny/backend/winapi/windowContext.hpp>
+#include <ny/backend/winapi/util.hpp>
 
 #include <ny/base/log.hpp>
 #include <ny/base/event.hpp>
@@ -190,6 +191,32 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 
 			return 0;
         }
+
+		case WM_KEYDOWN:
+		{
+			if(handlerEvents)
+			{
+				auto ev = std::make_unique<KeyEvent>(handler);
+				ev->key = winapiToKey(wparam);
+				ev->pressed = true;
+				eventDispatcher_->dispatch(std::move(ev));
+			}
+
+			return 0;
+		}
+
+		case WM_KEYUP:
+		{
+			if(handlerEvents)
+			{
+				auto ev = std::make_unique<KeyEvent>(handler);
+				ev->key = winapiToKey(wparam);
+				ev->pressed = false;
+				eventDispatcher_->dispatch(std::move(ev));
+			}
+
+			return 0;
+		}
 
         case WM_PAINT:
         {

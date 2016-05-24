@@ -16,13 +16,13 @@ public:
     {
         none = -1,
         a = 0, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z,
-        num1, num2, num3, num4, num5, num6, num7, num8, num9, num0, 
-		numpad1, numpad2, numpad3, numpad4, numpad5, numpad6, numpad7, numpad8, numpad9, numpad0,
-        f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14, f15, f16, f17, f18, f19, 
+        n0, n1, n2, n3, n4, n5, n6, n7, n8, n9,
+		numpad0, numpad1, numpad2, numpad3, numpad4, numpad5, numpad6, numpad7, numpad8, numpad9,
+        f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14, f15, f16, f17, f18, f19,
 		f20, f21, f22, f23, f24,
-        play, stop, next, previous, escape, comma, dot, sharp, plus, minus, tab, 
+        play, stop, pause, next, previous, escape, comma, dot, sharp, plus, minus, tab,
 		leftctrl, rightctrl, leftsuper, rightsuper, leftshift, rightshift,
-        space, enter, backspace, del, end, insert, pageUp, pageDown,  home,  back, left, up, 
+        space, enter, backspace, del, end, insert, pageUp, pageDown,  home,  back, left, up,
 		down, right, volumeup, volumedown, leftalt, rightalt, capsLock
     };
 
