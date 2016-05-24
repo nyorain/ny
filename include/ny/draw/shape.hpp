@@ -16,19 +16,37 @@
 namespace ny
 {
 
+///Utility base class for all shapes that allows drawing backends to store their own
+///generated data for the shapes directly inside them (using the nytl::MultiCache template).
 class ShapeBase : public Transform2, public MultiCache<std::string> {};
 
-///Represents the data of an arc-type path segment.
-struct ArcData
+///Represents the data of an arc-type path segment in endpoint paramertization.
+struct EndArcParams
 {
-	///The x and y radius of the arc.
+	///The radius values of the arc (ellipse). Must be > 0.
 	Vec2f radius;
 
 	///Defines if the arc should be >180 degrees.
-	bool largeArc;
+	bool largeArc = false;
 
 	///Defines if the arc should be clockwise
-    bool clockwise;
+    bool clockwise = false;
+};
+
+///Represents the data of an arc-type path segment in centerpoint paramertization.
+struct CenterArcParams
+{
+	///The center of the arc.
+	Vec2f center;
+
+	///The radius values of the arc (ellipse). Must be > 0.
+	Vec2f radius;
+
+	///The start angle in radians. Must be > 0 and < 2pi.
+	float start = 0;
+
+	///The end angle in radians. Must be > 0 and < 2pi.
+	float end = 0;
 };
 
 ///The PathSegment class represents a part of a Path object, it is able to represent all
@@ -58,7 +76,7 @@ protected:
 	{
         Vec2f controlPoint_ {0.f, 0.f}; //default activated
 		std::pair<Vec2f, Vec2f> cubicCurveControlPoints_;
-		ArcData arc_;
+		EndArcParams arc_; //TODO: cache heavily computed center form for drawing
 	};
 
 	///Calls the constructor of the current active type.
@@ -82,44 +100,74 @@ public:
 	///Sets the position this segment goes to.
     void position(const Vec2f& pos){ position_ = pos; }
 
-
 	///Returns the type of this Segment. See Segment::Type for information.
     Type type() const { return type_; }
 
-
-	///Sets the type of this segment to line.
-    void line();
+	///Sets the type of this segment to line. This type requires no additional parameters.
+	///Can be additionally used to set the position.
+	void line();
+    void line(const Vec2f& pos) { position(pos); line(); }
 
 	///Sets the type of this segment to smoothQuadCurve. This Requires no paremeters.
-    void smoothQuadCurve();
+	void smoothQuadCurve();
+    void smoothQuadCurve(const Vec2f& pos) { position(pos); smoothQuadCurve(); }
 
 	///Sets the type of this segment to quadCurve with the given control point.
-    void quadCurve(const Vec2f& control);
+	void quadCurve(const Vec2f& control);
+    void quadCurve(const Vec2f& control, const Vec2f& pos) { position(pos); quadCurve(control); }
 
 	///Sets the type of this segment to smoothCubicCurve with the given control point.
     void smoothCubicCurve(const Vec2f& control);
+    void smoothCubicCurve(const Vec2f& control, const Vec2f& pos)
+		{ position(pos); smoothCubicCurve(control); }
 
 	///Sets the type of this segment to cubicCurve with the 2 given control points.
     void cubicCurve(const Vec2f& control1, const Vec2f& control2);
+    void cubicCurve(const Vec2f& control1, const Vec2f& control2, const Vec2f& pos)
+		{ position(pos); cubicCurve(control1, control2); }
 
-	///Sets the type of this segment to arc with the given ArcData as description of the
-	///arc segment.
-    void arc(const ArcData& data);
+	///Sets the type of this segment to arc and constructs it with the given parameters.
+	///There are two types of parameter sets that can be used to construct arcs.
+	///The type this function uses are end point parameters (as e.g. used by the svg spec).
+	///This means that the arc is located between the previous point in the path
+	///and the position of this segment, radius, and direction flags specified in the params.
+	///This class does also provide a function to contruct the arc using center params,
+	///although the function should be avoided (since the given params may be invalid).
+	///\sa EndArcParams
+    void arc(const EndArcParams& params);
+    void arc(const EndArcParams& params, const Vec2f& pos) { position(pos); arc(params); }
 
+	///Sets the type of this segment to arc and constructs it with the given parameters in center
+	///form. This means that the position member of this segment represents the arc center,
+	///the params specify radius and the arc size (as an angle).
+	///Some graphic libraries (like e.g. cairo) use the centerpoint paramter form for
+	///arcs.
+	///\warning The arc should usually not be contructed using CenterArcParams since
+	///the they may be invalid if they dont match the given point positions.
+	///One should rather use parameters in endpoint form to construct the arc.
+	///\sa CenterArcParams
+	void arc(const CenterArcParams& params);
+	void arc(const CenterArcParams& params, const Vec2f& pos) { position(pos); arc(params); }
 
 	///Returns the control point this segment holds in its description. This will only return a
 	///valid value if the type of this segment holds one control point in its description i.e.
-	///if its quadCurve or smoothCubicCurve. Will raise a warning otherwise.
-    Vec2f controlPoint() const;
+	///if its quadCurve or smoothCubicCurve. Will throw a std::logic_error a warning otherwise.
+    const Vec2f& controlPoint() const;
 
-	///Returns the two control points this segment holds in its description. This will raise a
-	///warning and return 2 {0,0}-Vecs if the type of this segment is not cubicCurve.
+	///Returns the two control points this segment holds in its description.
+	///Will throw a std::logic_error if the type of this segment is not cubicCurve.
 	///TODO: Vec2<Vec2f> better as return type here?
-    std::pair<Vec2f, Vec2f> cubicCurveControlPoints() const;
+    const std::pair<Vec2f, Vec2f>& cubicCurveControlPoints() const;
 
-	///Will return the ArcData object this segment has stored. Will rasie a warning and return
-	///a default-constructed ArcData object if the type of this object is not arc.
-    ArcData arcData() const;
+	///Will return the arc params object this segment has stored in Endpoint form.
+	///Will throw a std::logic_error if the type of this segment is not arc.
+    const EndArcParams& endArcParams() const;
+
+	///Will return the ArcData object this segment has stored in center form.
+	///Needs the given parameter indicating the arcs start since this information is not stored
+	///inside the segment and the internal representation may have to be converted.
+	///Will throw a std::logic_error if the type of this segment is not arc.
+	CenterArcParams centerArcParams(const Vec2f& start) const;
 };
 
 ///The PlainSubpath class represents a closed path that consists of straight lines only.
@@ -159,7 +207,8 @@ public:
     const PathSegment& quadCurve(const Vec2f& position, const Vec2f& control);
     const PathSegment& smoothCubicCurve(const Vec2f& position, const Vec2f& control);
     const PathSegment& cubicCurve(const Vec2f& pos, const Vec2f& con1, const Vec2f& con2);
-    const PathSegment& arc(const Vec2f& position, const ArcData& data);
+    const PathSegment& arc(const Vec2f& position, const EndArcParams& params);
+    const PathSegment& arc(const Vec2f& position, const CenterArcParams& params);
 
 	///Returns the current Point the Subpath stays at.
 	const Vec2f& currentPosition() const;
@@ -182,6 +231,7 @@ public:
 	///Approximiates the curves of the Subpath to create a PlainSubpath just consisting of
 	///linear segments (basically a vertex array).
 	///TODO: some kind of precision argument
+	///TODO: caching?
     PlainSubpath bake() const;
 };
 
@@ -210,7 +260,8 @@ public:
     const PathSegment& quadCurve(const Vec2f& position, const Vec2f& control);
     const PathSegment& smoothCubicCurve(const Vec2f& position, const Vec2f& control);
     const PathSegment& cubicCurve(const Vec2f& pos, const Vec2f& con1, const Vec2f& con2);
-    const PathSegment& arc(const Vec2f& position, const ArcData& data);
+    const PathSegment& arc(const Vec2f& position, const EndArcParams& params);
+    const PathSegment& arc(const Vec2f& position, const CenterArcParams& params);
 
 	///Closes the current Subpath and start a new one. Returns the new Subpath.
     Subpath& close();
@@ -331,7 +382,7 @@ public:
 
     Path asPath() const;
 
-    virtual Rect2f extents() const 
+    virtual Rect2f extents() const
 		{ return Rect2f(center() - radius_, 2 * Vec2f(radius_, radius_)); }
 };
 
