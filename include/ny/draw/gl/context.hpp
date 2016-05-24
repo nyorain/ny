@@ -19,11 +19,11 @@ namespace ny
 class GlContext : public NonCopyable
 {
 public:
-	///The possible apis a context may have. 
+	///The possible apis a context may have.
 	enum class Api
 	{
-		openGL,
-		openGLES,
+		gl,
+		gles,
 	};
 
 	///Returns the current context in the calling thread, nullptr if there is none.
@@ -38,9 +38,11 @@ public:
 
 protected:
 	static GlContext* threadLocalCurrent(bool change = 0, GlContext* = nullptr);
+	static void assureGlLoaded(const GlContext& ctx);
+	static void assureGlesLoaded(const GlContext& ctx);
 
 protected:
-	Api api_ {Api::openGL};
+	Api api_ {Api::gl};
 
 	unsigned int depthBits_ {0};
     unsigned int stencilBits_ {0};
@@ -57,14 +59,14 @@ protected:
 
 protected:
 	///This should be called by implementations at some point of context creation/initialisation
-	///to init the context (e.g. function pointer resolution; glew/glbinding). 
+	///to init the context (e.g. function pointer resolution; glew/glbinding).
 	virtual void initContext(Api api, unsigned int depth = 0, unsigned int stencil = 0);
 
-	///This function will be called by makeCurrent() and should be implemented by derived 
+	///This function will be called by makeCurrent() and should be implemented by derived
 	///classes.
 	virtual bool makeCurrentImpl() = 0;
 
-	///This function will be called by makeNotCurrent() and should be implemented by derived 
+	///This function will be called by makeNotCurrent() and should be implemented by derived
 	///classes.
 	virtual bool makeNotCurrentImpl() = 0;
 
@@ -74,6 +76,12 @@ public:
 
 	///Returns the api this openGL context has, see the Api enum for more information.
 	Api api() const { return api_; }
+
+	///Return whether the api opengl
+	bool gl() const { return api() == Api::gl; }
+
+	///Returns whether the api is opengles
+	bool gles() const { return api() == Api::gles; }
 
 	///Returns the major version of the api this context has. If it runs e.g. on openGL 4.5 this
 	///function will return 4.
@@ -87,8 +95,13 @@ public:
 	///3.1 this function returns 31.
 	unsigned int version() const { return majorVersion_ * 10 + minorVersion_; }
 
-	///Returns the version in the opengl opengles compatiblity layer {20, 30, 31, 32}.
-	unsigned int glpVersion() const;
+	/*
+	///Returns an unsigned int that roughly specified the functionality of the used api,
+	///independent from gl or gles.
+	///gles {10, 20: 20, 30: 30, 31: 31, 32: 32}
+	///gl {10, >=30: 20, 33: 30, 44: 31, 45: 32}
+	unsigned int glCompVersion() const;
+	*/
 
 
 	///Returns the number of depth bits this context has. For contexts without depth buffer it
@@ -145,8 +158,14 @@ public:
 
 	///Checks if this context is in a valid state. Usually all contexts that exist should
 	///be in a valid state (RAII) but there may be cases where the used backend is not able
-	///to guarantee it, so it should usually be checked before using the context. 
+	///to guarantee it, so it should usually be checked before using the context.
 	virtual bool valid() const { return 1; }
+
+	///Returns a proc addr for a given function name of nullptr if it could not be found.
+	virtual void* procAddr(const char* name) const { return nullptr; }
+
+	///Returns a proc addr for a given function name of nullptr if it could not be found.
+	virtual void* procAddr(const std::string& name) const { return procAddr(name.c_str()); }
 };
 
 

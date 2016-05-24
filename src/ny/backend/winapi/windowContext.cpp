@@ -18,14 +18,15 @@ WinapiWindowContext::WinapiWindowContext(WinapiAppContext& appContext,
     //init check
 	appContext_ = &appContext;
 
-    if(!appContext.hinstance())
+    if(!appContext_->hinstance())
 	{
 		throw std::runtime_error("winapiWC::create: uninitialized appContext");
 	}
 
+	setStyle(settings);
 	initWindowClass(settings);
 
-	if (!RegisterClassEx(&wndClass_))
+	if(!::RegisterClassEx(&wndClass_))
 	{
 		throw std::runtime_error("winapiWC::create: could not register window class");
 		return;
@@ -38,7 +39,7 @@ WinapiWindowContext::~WinapiWindowContext()
 {
     if(handle_)
 	{
-		CloseWindow(handle_);
+		::CloseWindow(handle_);
 		appContext().unregisterContext(handle_);
 	}
 }
@@ -55,14 +56,19 @@ void WinapiWindowContext::initWindowClass(const WinapiWindowSettings& settings)
 	wndClass_.lpfnWndProc = &WinapiAppContext::wndProcCallback;
 	wndClass_.style = CS_DBLCLKS;
 	wndClass_.cbSize = sizeof(WNDCLASSEX);
-	wndClass_.hIcon = LoadIcon (nullptr, IDI_APPLICATION);
-	wndClass_.hIconSm = LoadIcon (nullptr, IDI_APPLICATION);
-	wndClass_.hCursor = LoadCursor (nullptr, IDC_ARROW);
+	wndClass_.hIcon = ::LoadIcon (nullptr, IDI_APPLICATION);
+	wndClass_.hIconSm = ::LoadIcon (nullptr, IDI_APPLICATION);
+	wndClass_.hCursor = ::LoadCursor (nullptr, IDC_ARROW);
 	wndClass_.lpszMenuName = nullptr;
 	wndClass_.cbClsExtra = 0;
 	wndClass_.cbWndExtra = 0;
-	//wndClass_.hbrBackground = (HBRUSH) GetStockObject(WHITE_BRUSH);
-	wndClass_.hbrBackground = nullptr;
+	wndClass_.hbrBackground = (HBRUSH) ::GetStockObject(WHITE_BRUSH);
+	//wndClass_.hbrBackground = nullptr;
+}
+
+void WinapiWindowContext::setStyle(const WinapiWindowSettings& settings)
+{
+	style_ = WS_OVERLAPPEDWINDOW;
 }
 
 void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
@@ -78,26 +84,25 @@ void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 
 	auto parent = static_cast<HWND>(settings.parent.pointer());
 	auto hinstance = appContext().hinstance();
-	auto style = WS_OVERLAPPEDWINDOW;
 
-	handle_ = CreateWindowEx(0, wndClass_.lpszClassName, _T(settings.title.c_str()), style,
+	handle_ = ::CreateWindowEx(0, wndClass_.lpszClassName, _T(settings.title.c_str()), style_,
 		position.x, position.y, size.x, size.y, parent, nullptr, hinstance, this);
 
 	appContext().registerContext(handle_, *this);
 
 	if(settings.initShown)
 	{
-		if(settings.initState == ToplevelState::maximized) ShowWindow(handle_, SW_SHOWMAXIMIZED);
-		else if(settings.initState == ToplevelState::minimized) ShowWindow(handle_, SW_SHOWMINIMIZED);
-		else ShowWindow(handle_, SW_SHOWDEFAULT);
+		if(settings.initState == ToplevelState::maximized) ::ShowWindow(handle_, SW_SHOWMAXIMIZED);
+		else if(settings.initState == ToplevelState::minimized) ::ShowWindow(handle_, SW_SHOWMINIMIZED);
+		else ::ShowWindow(handle_, SW_SHOWDEFAULT);
 
-		UpdateWindow(handle_);
+		::UpdateWindow(handle_);
 	}
 }
 
 void WinapiWindowContext::refresh()
 {
-    RedrawWindow(handle_, nullptr, nullptr, RDW_INVALIDATE | RDW_NOERASE);
+    ::RedrawWindow(handle_, nullptr, nullptr, RDW_INVALIDATE | RDW_NOERASE);
 }
 
 DrawGuard WinapiWindowContext::draw()
@@ -107,11 +112,11 @@ DrawGuard WinapiWindowContext::draw()
 
 void WinapiWindowContext::show()
 {
-	ShowWindow(handle_, SW_SHOWDEFAULT);
+	::ShowWindow(handle_, SW_SHOWDEFAULT);
 }
 void WinapiWindowContext::hide()
 {
-	ShowWindow(handle_, SW_HIDE);
+	::ShowWindow(handle_, SW_HIDE);
 }
 
 void WinapiWindowContext::addWindowHints(WindowHints hints)
@@ -127,12 +132,12 @@ bool WinapiWindowContext::handleEvent(const Event& e)
 
 void WinapiWindowContext::size(const Vec2ui& size)
 {
-	SetWindowPos(handle_, HWND_TOP, 0, 0, size.x, size.y, SWP_NOMOVE);
+	::SetWindowPos(handle_, HWND_TOP, 0, 0, size.x, size.y, SWP_NOMOVE);
 
 }
 void WinapiWindowContext::position(const Vec2i& position)
 {
-	SetWindowPos(handle_, HWND_TOP, position.x, position.y, 0, 0, SWP_NOSIZE);
+	::SetWindowPos(handle_, HWND_TOP, position.x, position.y, 0, 0, SWP_NOSIZE);
 }
 
 void WinapiWindowContext::cursor(const Cursor& c)
@@ -156,11 +161,11 @@ void WinapiWindowContext::fullscreen()
 	}
 	*/
 
-	SetWindowLongW(handle(), GWL_STYLE, WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
-	SetWindowLongW(handle(), GWL_EXSTYLE, WS_EX_APPWINDOW  | WS_EX_TOPMOST);
+	::SetWindowLongW(handle(), GWL_STYLE, WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
+	::SetWindowLongW(handle(), GWL_EXSTYLE, WS_EX_APPWINDOW  | WS_EX_TOPMOST);
 
-	SetWindowPos(handle(), HWND_TOP, 0, 0, 1920, 1080, SWP_FRAMECHANGED);
-	ShowWindow(handle(), SW_SHOW);
+	::SetWindowPos(handle(), HWND_TOP, 0, 0, 1920, 1080, SWP_FRAMECHANGED);
+	::ShowWindow(handle(), SW_SHOW);
 }
 
 void WinapiWindowContext::maximize()

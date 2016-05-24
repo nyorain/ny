@@ -7,13 +7,13 @@ namespace ny
 {
 
 //EglContext
-EglContext::EglContext(EGLDisplay disp, EGLConfig config, EGLSurface surf, GlContext::Api api) 
+EglContext::EglContext(EGLDisplay disp, EGLConfig config, EGLSurface surf, GlContext::Api api)
 	: GlContext(), eglDisplay_(disp), eglSurface_(surf), eglConfig_(config)
 {
 	initEglContext(api);
 }
 
-EglContext::EglContext(EGLDisplay disp, EGLSurface surf, GlContext::Api api) 
+EglContext::EglContext(EGLDisplay disp, EGLSurface surf, GlContext::Api api)
 	: GlContext(), eglDisplay_(disp), eglSurface_(surf)
 {
 	int attribs[] = {EGL_NONE};
@@ -22,7 +22,7 @@ EglContext::EglContext(EGLDisplay disp, EGLSurface surf, GlContext::Api api)
 	eglChooseConfig(eglDisplay_, attribs, &eglConfig_, 1, &number);
 	if(number != 0)
 	{
-		throw std::runtime_error("EglContext::EglContext: failed to choose EGLConfig\n\t" + 
+		throw std::runtime_error("EglContext::EglContext: failed to choose EGLConfig\n\t" +
 				errorMessage(eglError()));
 	}
 
@@ -41,13 +41,13 @@ void EglContext::initEglContext(Api api)
 {
 	api_ = api;
 
-	if(api_ == Api::openGLES)
+	if(api_ == Api::gles)
 	{
 		eglBindAPI(EGL_OPENGL_ES_API);
 		const int attrib[] = {EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
 		eglContext_ = eglCreateContext(eglDisplay_, eglConfig_, nullptr, attrib);
 	}
-	else if(api_ == Api::openGL)
+	else if(api_ == Api::gl)
 	{
 		eglBindAPI(EGL_OPENGL_API);
 		eglContext_ = eglCreateContext(eglDisplay_, eglConfig_, nullptr, nullptr);
@@ -85,7 +85,7 @@ bool EglContext::makeCurrentImpl()
 
     if(!eglMakeCurrent(eglDisplay_, eglSurface_, eglSurface_, eglContext_))
     {
-        sendWarning("eglContext::makeCurrentImpl: eglMakeCurrent failed\n\t", 
+        sendWarning("eglContext::makeCurrentImpl: eglMakeCurrent failed\n\t",
 				errorMessage(eglError()));
         return 0;
     }
@@ -172,7 +172,7 @@ std::string EglContext::errorMessage(int error)
 		case EGL_BAD_NATIVE_WINDOW: return "EGL_BAD_NATIVE_WINDOW";
 		case EGL_BAD_PARAMETER: return "EGL_BAD_PARAMETER";
 		case EGL_BAD_SURFACE: return "EGL_BAD_SURFACE";
-		case EGL_CONTEXT_LOST: return "EGL_CONTEXT_LOST";					  
+		case EGL_CONTEXT_LOST: return "EGL_CONTEXT_LOST";
 		default: return "unknown error code";
 	}
 }
@@ -188,5 +188,9 @@ int EglContext::eglErrorWarn()
 	return error;
 }
 
+void* EglContext::procAddr(const char* name) const
+{
+	return eglGetProcAddr(name);
 }
 
+}

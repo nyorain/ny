@@ -20,10 +20,13 @@ protected:
 
     HWND handle_;
     WNDCLASSEX wndClass_;
+	unsigned int style_;
 
 protected:
-	void initWindowClass(const WinapiWindowSettings& settings);
-	void initWindow(const WinapiWindowSettings& settings);
+	WinapiWindowContext() = default;
+	virtual void initWindowClass(const WinapiWindowSettings& settings);
+	virtual void initWindow(const WinapiWindowSettings& settings);
+	virtual void setStyle(const WinapiWindowSettings& settings);
 
 public:
     WinapiWindowContext(WinapiAppContext& ctx, const WinapiWindowSettings& settings = {});

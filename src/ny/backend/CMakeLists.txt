@@ -10,6 +10,7 @@ if(NY_WithWinapi)
 		winapi/backend.cpp
 		winapi/util.cpp
 		winapi/gdi.cpp
+		winapi/wgl.cpp
 		winapi/windowContext.cpp)
 
 	set(libs-backend ${libs-backend} gdi32 gdiplus)

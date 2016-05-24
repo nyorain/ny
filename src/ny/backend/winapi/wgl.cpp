@@ -1,26 +1,16 @@
-#include <ny/config.h>
-
-#ifdef NY_WithGL
-#include <ny/winapi/wgl.hpp>
-#include <ny/winapi/winapiWindowContext.hpp>
-#include <ny/window.hpp>
+#include <ny/backend/winapi/wgl.hpp>
+#include <ny/backend/winapi/windowContext.hpp>
+#include <ny/backend/winapi/appContext.hpp>
+#include <ny/draw/gl/drawContext.hpp>
+#include <ny/base/log.hpp>
 
 namespace ny
 {
 
-wglDrawContext::wglDrawContext(winapiWindowContext& wc) : glDrawContext(wc.getWindow()), wc_(wc)
+//WglContext
+WglContext::WglContext(WinapiWindowContext& wc) : GlContext(), wc_(&wc)
 {
-
-}
-
-wglDrawContext::~wglDrawContext()
-{
-    if(wglContext_) wglDeleteContext(wglContext_);
-}
-
-bool wglDrawContext::setupContext()
-{
-    //just one big pile of todo...
+	dc_ = ::GetDC(wc.handle());
 
     PIXELFORMATDESCRIPTOR pfd =
     {
@@ -42,50 +32,76 @@ bool wglDrawContext::setupContext()
         0, 0, 0
     };
 
-    handleDC_ = GetDC(wc_.getHandle());
     int pixelFormatVar;
-    pixelFormatVar = ChoosePixelFormat(handleDC_, &pfd);
-    SetPixelFormat(handleDC_, pixelFormatVar, &pfd);
+    pixelFormatVar = ::ChoosePixelFormat(dc_, &pfd);
+    ::SetPixelFormat(dc_, pixelFormatVar, &pfd);
 
-    wglContext_ = wglCreateContext(handleDC_);
+    wglContext_ = ::wglCreateContext(dc_);
 
-    init(glApi::openGL);
-
-/*
-    makeCurrent();
-    using swapFuncType = bool (*)(int);
-    swapFuncType swapFuncEXT = (swapFuncType) wglGetProcAddress("wglSwapIntervalEXT");
-    if(swapFuncEXT)
-    {
-        swapFuncEXT(0); //?
-    }
-    else
-    {
-        nyWarning("wgl: function wglSwapIntervalEXT not found");
-    }
-    makeNotCurrent();
-*/
+    GlContext::initContext(Api::openGL, 24, 8);
 }
 
-bool wglDrawContext::makeCurrentImpl()
+WglContext::~WglContext()
 {
-    if(!isCurrent()) return wglMakeCurrent(handleDC_, wglContext_);
-    return 1;
+	if(wglContext_) ::wglDeleteContext(wglContext_);
 }
 
-bool wglDrawContext::makeNotCurrentImpl()
+bool WglContext::makeCurrentImpl()
 {
-    if(isCurrent()) return wglMakeCurrent(nullptr, nullptr);
-    return 1;
+    if(!isCurrent()) return ::wglMakeCurrent(dc_, wglContext_);
+    return true;
 }
 
-bool wglDrawContext::swapBuffers()
+bool WglContext::makeNotCurrentImpl()
+{
+    if(isCurrent()) return ::wglMakeCurrent(nullptr, nullptr);
+    return true;
+}
+
+bool WglContext::apply()
 {
     //return wglSwapLayerBuffers(handleDC_, WGL_SWAP_MAIN_PLANE);
-    return SwapBuffers(handleDC_);
+	debug("swap");
+	GlContext::apply();
+    return ::SwapBuffers(dc_);
+}
+
+//WglWindowContext
+WglWindowContext::WglWindowContext(WinapiAppContext& ctx, const WinapiWindowSettings& settings)
+{
+	appContext_ = &ctx;
+
+    if(!appContext_->hinstance())
+	{
+		throw std::runtime_error("winapiWC::create: uninitialized appContext");
+	}
+
+	WinapiWindowContext::initWindowClass(settings);
+	wndClass_.style |= CS_OWNDC;
+
+	if(!::RegisterClassEx(&wndClass_))
+	{
+		throw std::runtime_error("winapiWC::create: could not register window class");
+		return;
+	}
+
+	WinapiWindowContext::setStyle(settings);
+	WinapiWindowContext::initWindow(settings);
+
+	wglContext_.reset(new WglContext(*this));
+	drawContext_.reset(new GlDrawContext());
+}
+
+WglWindowContext::~WglWindowContext()
+{
+}
+
+DrawGuard WglWindowContext::draw()
+{
+	if(!wglContext_->makeCurrent())
+		throw std::runtime_error("WglWC::draw: Failed to make wgl Context current");
+
+	return DrawGuard(*drawContext_);
 }
 
 }
-#endif // NY_WithGL
-
-

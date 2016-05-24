@@ -16,6 +16,10 @@ namespace ny
 class GlxContext: public GlContext
 {
 protected:
+	static void* glLibHandle();
+	static void* glesLibHandle();
+
+protected:
     X11WindowContext* wc_;
     GLXContext glxContext_ = nullptr;
 	std::uint32_t glxWindow_;
@@ -29,6 +33,7 @@ public:
 
     void size(const Vec2ui& size);
     virtual bool apply() override;
+	virtual void* procAddr(const char* name) const;
 };
 
 ///WindowContext implementation on an x11 backend with opengl (glx) used for rendering.
@@ -45,7 +50,7 @@ protected:
 
 public:
 	GlxWindowContext(X11AppContext& ctx, const X11WindowSettings& settings = {});
-	
+
 	///Returns a DrawGuard for the internal GlDrawContext.
 	virtual DrawGuard draw() override;
 };

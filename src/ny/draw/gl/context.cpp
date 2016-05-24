@@ -7,6 +7,44 @@
 namespace ny
 {
 
+namespace
+{
+
+//utiltity for loading gl and gles
+const GlContext* dummyCtx = nullptr;
+void* dummyLoad(const char* name)
+{
+	if(!dummyCtx) return nullptr;
+	return dummyCtx.procAddr(name);
+}
+
+//parsing shader version
+unsigned int parseGlslVersion(const std::string& name)
+{
+	unsigned int version;
+
+	int major, minor;
+	auto count = std::sscanf(ver, "%d.%d", &major, &minor);
+
+	if(count == 1)
+	{
+		if(major >= 100) return major;
+		else return major * 100;
+	}
+	else if(count == 2)
+	{
+		if(minor >= 10) return major * 10 + minor;
+		else return major * 10 + minor * 10;
+	}
+	else
+	{
+		sendWarning("GlContext::init: invalid glsl version string: ", ver);
+		return 0;
+	}
+}
+
+}
+
 GlContext* GlContext::threadLocalCurrent(bool change, GlContext* newOne)
 {
 	static thread_local GlContext* current_ = nullptr;
@@ -14,6 +52,20 @@ GlContext* GlContext::threadLocalCurrent(bool change, GlContext* newOne)
 		current_ = newOne;
 
 	return current_;
+}
+
+void GlContext::assureGlLoaded(const GlContext& ctx)
+{
+	gCtx = &ctx;
+	gladLoadGLLoader(dummyLoad);
+	gCtx = nullptr;
+}
+
+void GlContext::assureGlesLoaded(const GlContext& ctx)
+{
+	gCtx = &ctx;
+	gladLoadGLES2Loader(dummyLoad);
+	gCtx = nullptr;
 }
 
 void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)
@@ -29,18 +81,16 @@ void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)
 		return;
 	}
 
-	//may be a problem for opengl es
-	if(!gladLoadGL())
-	{
-		throw std::runtime_error("GlContext::initContext: failed to load opengl");
-	}
+	//load the api function pointers via glad
+	if(api_ == Api::gl) assureGlLoaded(*this);
+	else if(api_ == Api::gles) assureGlesLoaded(*this);
 
-	//version
+	//version from glad
 	majorVersion_ = GLVersion.major;
 	minorVersion_ = GLVersion.minor;
 
 	//extensions
-	if(glpVersion() >= 30)
+	if(version() >= 30)
 	{
 		auto number = 0;
 		glGetIntegerv(GL_NUM_EXTENSIONS, &number);
@@ -58,8 +108,7 @@ void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)
 	}
 
 	//glsl
-	//TODO
-	if(api_ == Api::openGL && version() >= 43)
+	if(api_ == Api::gl && version() >= 43)
 	{
 		auto number = 0;
 		glGetIntegerv(GL_NUM_SHADING_LANGUAGE_VERSIONS, &number);
@@ -67,43 +116,20 @@ void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)
 		for(auto i = 0; i < number; ++i)
 		{
 			std::string ver = (const char*) glGetStringi(GL_SHADING_LANGUAGE_VERSION, i);
-			try
-			{
-				auto verSub = ver.substr(ver.find_first_of('.') - 1, std::string::npos);
-
-				std::size_t idx;
-				int major = std::stoi(verSub, &idx);
-				int minor = std::stoi(verSub.substr(idx + 1));
-
-				glslVersions_.push_back(major * 10 + minor / 10);
-			}
-			catch(const std::exception& err)
-			{
-				sendWarning("GlContext::init: invalid glsl version string: ", ver);
-			}
+			auto version = parseGlslVersino(ver);
+			if(version != 0) glslVersions_.push_back(version);
 		}
 	}
 	else
 	{
 		std::string ver = (const char*) glGetString(GL_SHADING_LANGUAGE_VERSION);
-		try
-		{
-			auto verSub = ver.substr(ver.find_first_of('.') - 1, std::string::npos);
-
-			std::size_t idx;
-			int major = std::stoi(verSub, &idx);
-			int minor = std::stoi(verSub.substr(idx + 1));
-
-			glslVersions_.push_back(major * 10 + minor / 10);
-		}
-		catch(const std::exception& err)
-		{
-			sendWarning("GlContext::init: invalid glsl version string: ", ver);
-		}
+		auto version = parseGlslVersino(ver);
+		if(version != 0) glslVersions_.push_back(version);
 	}
 
 	//TODO: choose highest if multiple are available
-	preferredGlslVersion_ = glslVersions_[0];
+	if(glslVersions_.empty()) preferredGlslVersion_ = 430;
+	else preferredGlslVersion_ = glslVersions_[0];
 
 	//restore saved one
 	if(saved && !saved->makeCurrent())
@@ -152,28 +178,6 @@ bool GlContext::glExtensionSupported(const std::string& name) const
 {
 	for(auto& s : glExtensions())
 		if(s == name) return 1;
-
-	return 0;
-}
-
-unsigned int GlContext::glpVersion() const
-{
-	if(api_ == Api::openGL)
-	{
-		if(version() <= 20) return 0;
-		else if(version() < 30) return 20;
-		else if(version() < 31) return 30;
-		else if(version() < 32) return 31;
-		else if(version() >= 32) return 32;
-	}
-	else if(api_ == Api::openGLES)
-	{
-		if(version() <= 20) return 0;
-		else if(version() < 30) return 20;
-		else if(version() < 31) return 30;
-		else if(version() < 32) return 31;
-		else if(version() >= 32) return 32;
-	}
 
 	return 0;
 }

@@ -14,7 +14,7 @@ unsigned int asGlFormat(Image::Format format)
 	{
 		case Image::Format::rgb888: return static_cast<unsigned int>(GL_RGB);
 		case Image::Format::rgba8888: return static_cast<unsigned int>(GL_RGBA);
-		case Image::Format::xrgb8888: return static_cast<unsigned int>(GL_RGBA);
+		//case Image::Format::xrgb8888: return static_cast<unsigned int>(GL_RGBA);
 		case Image::Format::a8: return static_cast<unsigned int>(GL_RED); //GL_RED later
 	}
 }

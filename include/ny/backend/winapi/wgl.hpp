@@ -14,22 +14,24 @@ namespace ny
 class WglContext : public GlContext
 {
 protected:
+	static void* glLibHandle();
+	static void* glesLibHandle();
+
+protected:
     virtual bool makeCurrentImpl() override;
     virtual bool makeNotCurrentImpl() override;
 
-    winapiWindowContext& wc_;
+    WinapiWindowContext* wc_;
 
-    HDC handleDC_ = nullptr;
+    HDC dc_ = nullptr;
     HGLRC wglContext_ = nullptr;
 
-    //on WM_CREATE called from winapiWindowContext
-    bool setupContext();
-
 public:
-    WglDrawContext(winapiWindowContext& wc);
-    virtual ~WglDrawContext();
+    WglContext(WinapiWindowContext& wc);
+    virtual ~WglContext();
 
-    virtual bool swapBuffers() override;
+    virtual bool apply() override;
+	virtual void* procAddr(const char* name) const override;
 };
 
 ///Winapi WindowContext using wgl (OpenGL) to draw.
@@ -41,6 +43,7 @@ protected:
 
 public:
 	WglWindowContext(WinapiAppContext& ctx, const WinapiWindowSettings& settings = {});
+	~WglWindowContext();
 	virtual DrawGuard draw() override;
 };
 

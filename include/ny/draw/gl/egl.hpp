@@ -32,11 +32,11 @@ protected:
     virtual bool makeNotCurrentImpl() override;
 
 	EglContext() = default;
-	void initEglContext(Api api = Api::openGL);
+	void initEglContext(Api api = Api::gl);
 
 public:
-	EglContext(EGLDisplay disp, EGLSurface surf, Api api = Api::openGL);
-	EglContext(EGLDisplay disp, EGLConfig config, EGLSurface surf, Api api = Api::openGL);
+	EglContext(EGLDisplay disp, EGLSurface surf, Api api = Api::gl);
+	EglContext(EGLDisplay disp, EGLConfig config, EGLSurface surf, Api api = Api::gl);
 	virtual ~EglContext();
 
 	EGLDisplay eglDisplay() const { return eglDisplay_; }
@@ -52,6 +52,7 @@ public:
 	virtual bool apply() override;
 	virtual bool valid() const override;
 
+	virtual void* procAddr(const char* name) const override;
 };
 
 }
