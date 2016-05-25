@@ -11,11 +11,11 @@ namespace
 {
 
 //utiltity for loading gl and gles
-const GlContext* dummyCtx = nullptr;
-void* dummyLoad(const char* name)
+const GlContext* gCtx = nullptr;
+void* loadCallback(const char* name)
 {
-	if(!dummyCtx) return nullptr;
-	return dummyCtx.procAddr(name);
+	if(!gCtx) return nullptr;
+	return gCtx->procAddr(name);
 }
 
 //parsing shader version
@@ -24,7 +24,7 @@ unsigned int parseGlslVersion(const std::string& name)
 	unsigned int version;
 
 	int major, minor;
-	auto count = std::sscanf(ver, "%d.%d", &major, &minor);
+	auto count = std::sscanf(name.c_str(), "%d.%d", &major, &minor);
 
 	if(count == 1)
 	{
@@ -38,7 +38,7 @@ unsigned int parseGlslVersion(const std::string& name)
 	}
 	else
 	{
-		sendWarning("GlContext::init: invalid glsl version string: ", ver);
+		sendWarning("GlContext::init: invalid glsl version string: ", name);
 		return 0;
 	}
 }
@@ -56,16 +56,26 @@ GlContext* GlContext::threadLocalCurrent(bool change, GlContext* newOne)
 
 void GlContext::assureGlLoaded(const GlContext& ctx)
 {
-	gCtx = &ctx;
-	gladLoadGLLoader(dummyLoad);
-	gCtx = nullptr;
+	static bool loaded = false;
+	if(!loaded)
+	{
+		gCtx = &ctx;
+		gladLoadGLLoader(loadCallback);
+		gCtx = nullptr;
+		loaded = true;
+	}
 }
 
 void GlContext::assureGlesLoaded(const GlContext& ctx)
 {
-	gCtx = &ctx;
-	gladLoadGLES2Loader(dummyLoad);
-	gCtx = nullptr;
+	static bool loaded = false;
+	if(!loaded)
+	{
+		gCtx = &ctx;
+		gladLoadGLES2Loader(loadCallback);
+		gCtx = nullptr;
+		loaded = true;
+	}
 }
 
 void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)
@@ -116,14 +126,14 @@ void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)
 		for(auto i = 0; i < number; ++i)
 		{
 			std::string ver = (const char*) glGetStringi(GL_SHADING_LANGUAGE_VERSION, i);
-			auto version = parseGlslVersino(ver);
+			auto version = parseGlslVersion(ver);
 			if(version != 0) glslVersions_.push_back(version);
 		}
 	}
 	else
 	{
 		std::string ver = (const char*) glGetString(GL_SHADING_LANGUAGE_VERSION);
-		auto version = parseGlslVersino(ver);
+		auto version = parseGlslVersion(ver);
 		if(version != 0) glslVersions_.push_back(version);
 	}
 
@@ -195,7 +205,7 @@ void GlContext::updateViewport(const Rect2f& viewport)
 
 bool GlContext::apply()
 {
-	glFinish();
+	//glFinish();
 	return 1;
 }
 

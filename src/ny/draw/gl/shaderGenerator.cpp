@@ -26,10 +26,7 @@ std::string ShaderGenerator::versionString(const Version& version) const
 	unsigned int glslVersion = version.major * 100 + version.minor * 10;
 	std::string versionString = "#version " + std::to_string(glslVersion);
 
-	if(version.api == GlContext::Api::openGLES && version.major > 2)
-	{
-		versionString += " es";
-	}
+	if(version.api == GlContext::Api::gles && version.major > 2) versionString += " es";
 
 	return versionString;
 }
@@ -41,7 +38,7 @@ std::string ShaderGenerator::parseCode(const Version& version) const
 	std::string texture2DString {};
 	std::string textureCubeString {};
 
-	if(version.api == GlContext::Api::openGL)
+	if(version.api == GlContext::Api::gl)
 	{
 		if(version.major < 3)
 		{
@@ -58,7 +55,7 @@ std::string ShaderGenerator::parseCode(const Version& version) const
 			textureCubeString = "texture";
 		}
 	}
-	else if(version.api == GlContext::Api::openGLES)
+	else if(version.api == GlContext::Api::gles)
 	{
 		if(version.major == 2)
 		{
@@ -99,17 +96,14 @@ std::string ShaderGenerator::generate(const Version& version) const
 //fragment
 std::string FragmentShaderGenerator::generate(const Version& version) const
 {
-	bool opengl = (version.api == GlContext::Api::openGL);
+	bool opengl = (version.api == GlContext::Api::gl);
 	std::string ret;
 
 	//version
 	ret += versionString(version) + "\n";
 
 	//precision
-	if(version.api == GlContext::Api::openGLES)
-	{
-		ret += "precision mediump float;\n";
-	}
+	if(version.api == GlContext::Api::gles) ret += "precision mediump float;\n";
 
 	//custom fragColor output
 	std::string fragString = "gl_FragColor";

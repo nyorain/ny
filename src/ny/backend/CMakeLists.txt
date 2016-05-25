@@ -16,7 +16,7 @@ if(NY_WithWinapi)
 	set(libs-backend ${libs-backend} gdi32 gdiplus)
 
 	if(NY_WithGL)
-		set(src-backend ${src-backend} winapi/wgl.cpp)
+		set(src-backend ${src-backend} winapi/wgl.cpp winapi/wgl/glad_wgl.c)
 		set(libs-backend ${libs-backend} OpenGL32)
 	endif(NY_WithGL)
 

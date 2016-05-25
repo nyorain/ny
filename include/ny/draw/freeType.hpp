@@ -43,7 +43,7 @@ public:
 };
 
 //Cache Name: "ny::FreeTypeFontHandle"
-class FreeTypeFontHandle : public DeriveCloneable<Cache, FreeTypeFontHandle>
+class FreeTypeFontHandle : public Cache
 {
 protected:
     FT_Face face_ = nullptr;
@@ -55,11 +55,10 @@ public:
     ~FreeTypeFontHandle();
 
 	FT_Face face() const { return face_; }
-	void characterSize(const Vec2ui& size);
+	void characterSize(const Vec2ui& size) const;
 
 	void cacheAscii() const;
 	Character& load(char c) const;
 };
 
 }
-

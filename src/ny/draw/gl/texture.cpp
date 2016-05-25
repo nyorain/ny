@@ -61,7 +61,7 @@ void GlTexture::create(const Vec2ui& size, const std::uint8_t* data, Image::Form
 
 
 	auto formatGL = asGlFormat(format);
-	glTexImage2D(GL_TEXTURE_2D, 0, formatGL, size.x, 
+	glTexImage2D(GL_TEXTURE_2D, 0, formatGL, size.x,
 		size.y, 0, formatGL, GL_UNSIGNED_BYTE, data);
 }
 
@@ -96,7 +96,7 @@ Image* GlTexture::image() const
 	if(!GlContext::current() || !texture_) return nullptr;
 	bind();
 
-	if(GlContext::current()->api() == GlContext::Api::openGL)
+	if(GlContext::current()->api() == GlContext::Api::gl)
 	{
 		auto psize = Image::formatSize(format_);
 		auto pixels = std::make_unique<std::uint8_t[]>(size_.x * size_.y * psize);
@@ -104,7 +104,7 @@ Image* GlTexture::image() const
 
 		return new Image(std::move(pixels), size_, Image::Format::rgba8888);
 	}
-	else if(GlContext::current()->api() == GlContext::Api::openGLES)
+	else if(GlContext::current()->api() == GlContext::Api::gles)
 	{
 		GLint previousFrameBuffer;
 		glGetIntegerv(GL_FRAMEBUFFER_BINDING, &previousFrameBuffer);

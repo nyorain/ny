@@ -60,7 +60,7 @@ FreeTypeFontHandle::~FreeTypeFontHandle()
     if(face_) FT_Done_Face(face_);
 }
 
-void FreeTypeFontHandle::characterSize(const Vec2ui& size)
+void FreeTypeFontHandle::characterSize(const Vec2ui& size) const
 {
 	FT_Set_Pixel_Sizes(face_, size.x, size.y);
 }

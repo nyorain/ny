@@ -270,16 +270,15 @@ void GlDrawContext::fillText(const Text& t, const Brush& b)
 	shader.uniform("vViewSize", viewport().size);
 	shader.uniform("vTransform", t.transformMatrix());
 
-	auto fontHandle =
-		static_cast<FreeTypeFontHandle*>(t.font()->cache("ny::FreeTypeFontHandle"));
-	if(!fontHandle)
+	auto fhandle = static_cast<const FreeTypeFontHandle*>(t.font()->cache("ny::FreeTypeFontHandle"));
+	if(!fhandle)
 	{
-		auto h = std::make_unique<FreeTypeFontHandle>(*t.font());
-		fontHandle = h.get();
+		auto h = std::make_shared<FreeTypeFontHandle>(*t.font());
+		fhandle = h.get();
 		t.font()->cache("ny::FreeTypeFontHandle", std::move(h));
 	}
 
-	fontHandle->characterSize({0, static_cast<unsigned int>(t.size())});
+	fhandle->characterSize({0, static_cast<unsigned int>(t.size())});
 
 	GLuint vbo, vao;
 	glGenBuffers(1, &vbo);
@@ -302,7 +301,7 @@ void GlDrawContext::fillText(const Text& t, const Brush& b)
 
 	for(auto& c : string)
 	{
-		auto& ch = fontHandle->load(c);
+		auto& ch = fhandle->load(c);
 
         size = ch.image.size();
 		auto w = size.x;
@@ -316,14 +315,14 @@ void GlDrawContext::fillText(const Text& t, const Brush& b)
 		auto ypos = pos.y;
 
 		float vertices[6][4] = {
-       	     { xpos,     ypos + h,   0.0, 1.0 },
-       	     { xpos,     ypos,       0.0, 0.0 },
-       	     { xpos + w, ypos,       1.0, 0.0 },
+			{ xpos,     ypos + h,   0.0, 1.0 },
+			{ xpos,     ypos,       0.0, 0.0 },
+			{ xpos + w, ypos,       1.0, 0.0 },
 
-       	     { xpos,     ypos + h,   0.0, 1.0 },
-       	     { xpos + w, ypos,       1.0, 0.0 },
-       	     { xpos + w, ypos + h,   1.0, 1.0 }
-       	 };
+			{ xpos,     ypos + h,   0.0, 1.0 },
+			{ xpos + w, ypos,       1.0, 0.0 },
+			{ xpos + w, ypos + h,   1.0, 1.0 }
+		};
 
 		auto glTex = GlTexture(ch.image);
 		glTex.bind();
@@ -349,7 +348,7 @@ void GlDrawContext::clear(const Brush& brush)
 	if(brush.type() == Brush::Type::color)
 	{
 		auto col = brush.color().rgbaNorm();
-		debug("clear");
+		//debug("clear");
 		glClearColor(col.x, col.y, col.z, col.w);
 		glClear(GL_COLOR_BUFFER_BIT);
 	}

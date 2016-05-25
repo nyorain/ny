@@ -31,7 +31,7 @@ public:
 	GdiFontHandle(GdiFontHandle&& other) noexcept = default;
 	GdiFontHandle& operator=(GdiFontHandle&& other) noexcept = default;
 
-	HFONT handle() { return handle_.get(); }
+	HFONT handle() const { return handle_.get(); }
 
 protected:
 	GdiPointer<HFONT> handle_;

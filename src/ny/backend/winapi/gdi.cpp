@@ -14,7 +14,6 @@ void GdiWindowDrawContext::init()
 	::GetClientRect(window_, &rect);
 	auto size = Vec2ui(rect.right, rect.bottom);
 
-	//hdc_ = BeginPaint(window_, &ps_);
 	windowHdc_ = ::GetDC(window_);
 
 	buffer_.reset(::CreateCompatibleBitmap(windowHdc_, rect.right, rect.bottom));
@@ -36,10 +35,7 @@ void GdiWindowDrawContext::apply()
 	::ReleaseDC(window_, windowHdc_);
 
 	SelectObject(hdc_, oldBitmap_);
-	//::DeleteDC(hdc_);
-	//buffer_.reset();
-
-	//EndPaint(window_, &ps_);
+	::DeleteDC(hdc_);
 }
 
 ///WindowContext

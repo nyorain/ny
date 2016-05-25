@@ -7,7 +7,7 @@
     APIs: gl=4.5, gles2=3.2
     Profile: core
     Extensions:
-        
+
     Loader: No
 
     Commandline:
@@ -96,7 +96,7 @@ GLAPI int gladLoadGLLoader(GLADloadproc);
 GLAPI int gladLoadGLES2Loader(GLADloadproc);
 
 #include <stddef.h>
-#include <KHR/khrplatform.h>
+#include "KHR/khrplatform.h"
 #ifndef GLEXT_64_TYPES_DEFINED
 /* This code block is duplicated in glxext.h, so must be protected */
 #define GLEXT_64_TYPES_DEFINED

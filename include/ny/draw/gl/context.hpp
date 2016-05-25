@@ -145,6 +145,7 @@ public:
 	///Returns whether the context shares it resources with the other context.
 	bool sharedWith(const GlContext& other) const;
 
+	//XXX: should be deprecated?
 	///Updates the openGL viewport
 	void updateViewport(const Rect2f& viewport);
 

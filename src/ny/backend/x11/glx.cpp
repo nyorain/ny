@@ -32,12 +32,12 @@ GlxContext::GlxContext(X11WindowContext& wc, GLXFBConfig fbc) : wc_(&wc)
     int (*oldHandler)(Display*, XErrorEvent*) = XSetErrorHandler(&ctxErrorHandler);
     using procType = GLXContext(*)(Display*, GLXFBConfig, GLXContext, Bool, const int*);
 
-    procType glXCreateContextAttribsARB = 
+    procType glXCreateContextAttribsARB =
 		(procType) glXGetProcAddressARB((const GLubyte*) "glXCreateContextAttribsARB" );
 
     const char* glxExts = glXQueryExtensionsString(xDisplay(), DefaultScreen(xDisplay()));
 	auto extVec = split(glxExts, ' ');
-	
+
 	//sendLog("glx extensions: ", glxExts);
 	auto it = std::find(extVec.begin(), extVec.end(), "GLX_ARB_create_context");
 	bool supported = (it != extVec.end());
@@ -48,7 +48,6 @@ GlxContext::GlxContext(X11WindowContext& wc, GLXFBConfig fbc) : wc_(&wc)
         {
             GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
             GLX_CONTEXT_MINOR_VERSION_ARB, 3,
-            //GLX_CONTEXT_FLAGS_ARB        , GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
             None
         };
 
@@ -143,7 +142,7 @@ void GlxContext::size(const Vec2ui& size)
 /*
 GLXFBConfig X11WindowContext::matchGLXVisualInfo()
 {
-#ifdef NY_WithGL	
+#ifdef NY_WithGL
     const int attribs[] =
     {
         GLX_RENDER_TYPE, GLX_RGBA_BIT,
@@ -158,7 +157,7 @@ GLXFBConfig X11WindowContext::matchGLXVisualInfo()
     };
 
     int glxMajor, glxMinor;
-    if(!glXQueryVersion(xDisplay(), &glxMajor, &glxMinor) 
+    if(!glXQueryVersion(xDisplay(), &glxMajor, &glxMinor)
 			|| ((glxMajor == 1) && (glxMinor < 3) ) || (glxMajor < 1))
     {
         throw std::runtime_error("Invalid glx version. glx Version must be > 1.3");

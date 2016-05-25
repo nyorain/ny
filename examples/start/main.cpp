@@ -1,5 +1,7 @@
 #include <iostream>
 #include <ny/ny.hpp>
+#include <ny/backend/appContext.hpp>
+#include <nytl/time.hpp>
 //#include <ny/backend/winapi/appContext.hpp>
 //#include <ny/backend/winapi/windowContext.hpp>
 //#include <ny/backend/winapi/gdi.hpp>
@@ -12,10 +14,12 @@ int main()
 
 	ny::WindowSettings settings;
 	settings.position = {300, 300};
-	settings.draw = ny::DrawType::opengl;
+	settings.draw = ny::DrawType::dontCare;
 
+	ny::log("before");
 	ny::ToplevelWindow window(app, ny::Vec2ui(800, 500), "ny Window Test", settings);
 	window.windowContext()->show();
+	ny::log("after");
 
 	//window.maximize();
 
@@ -38,6 +42,7 @@ int main()
 	myButton3.onClick = [&]{ std::cout << "Clicked!\n"; window.reset(); };
 	*/
 
+/*
 	window.onDraw += [](ny::DrawContext& dc) {
 		//ny::debug("DRAW");
 		dc.clear(ny::Color::green);
@@ -45,6 +50,16 @@ int main()
 
 	ny::LoopControl control;
 	return app.run(control);
+*/
+
+	ny::Timer timer;
+	while(app.appContext().dispatchEvents(app.dispatcher()) && window.windowContext())
+	{
+		auto guard = window.windowContext()->draw();
+		guard.dc().clear(ny::Color::green);
+		ny::debug(timer.elapsedTime().microseconds());
+		timer.reset();
+	}
 	//
 
 	//while(app.dispatch() == true);

@@ -82,10 +82,10 @@ void GdiDrawContext::gdiFill(const Text& obj, const Brush& brush)
 
 	auto string = toUTF16(obj.string());
 
-	auto famHandle = static_cast<GdiFontHandle*>(obj.font()->cache("ny::GdiFontHandle"));
+	auto famHandle = static_cast<const GdiFontHandle*>(obj.font()->cache("ny::GdiFontHandle"));
 	if(!famHandle)
 	{
-		auto cache = std::make_unique<GdiFontHandle>(*obj.font());
+		auto cache = std::make_shared<GdiFontHandle>(*obj.font());
 		famHandle = &obj.font()->cache("ny::GdiFontHandle", std::move(cache));
 	}
 

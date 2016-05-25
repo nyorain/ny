@@ -8,5 +8,3 @@
 #include <ny/draw.hpp>
 #include <ny/backend.hpp>
 #include <ny/gui.hpp>
-
-#include <ny/config.hpp>

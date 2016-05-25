@@ -5,7 +5,6 @@
 #include <ny/draw/gl/context.hpp>
 
 #include <windows.h>
-#include <GL/gl.h>
 
 namespace ny
 {
@@ -13,25 +12,35 @@ namespace ny
 ///OpenGL context implementation using the wgl api on windows.
 class WglContext : public GlContext
 {
-protected:
-	static void* glLibHandle();
-	static void* glesLibHandle();
-
-protected:
-    virtual bool makeCurrentImpl() override;
-    virtual bool makeNotCurrentImpl() override;
-
-    WinapiWindowContext* wc_;
-
-    HDC dc_ = nullptr;
-    HGLRC wglContext_ = nullptr;
-
 public:
     WglContext(WinapiWindowContext& wc);
     virtual ~WglContext();
 
     virtual bool apply() override;
 	virtual void* procAddr(const char* name) const override;
+
+protected:
+	static HMODULE glLibHandle();
+	static HMODULE glesLibHandle();
+
+	static HGLRC dummyContext(HDC* hdcOut = nullptr);
+	static void assureWglLoaded();
+	static void* wglProcAddr(const char* name);
+
+protected:
+    virtual bool makeCurrentImpl() override;
+    virtual bool makeNotCurrentImpl() override;
+
+	void initPixelFormat(unsigned int depth, unsigned int stencil);
+	PIXELFORMATDESCRIPTOR pixelFormatDescriptor() const;
+	void createContext();
+	void activateVsync();
+
+protected:
+	int pixelFormat_ = 0;
+    WinapiWindowContext* wc_ = nullptr;
+    HDC dc_ = nullptr;
+    HGLRC wglContext_ = nullptr;
 };
 
 ///Winapi WindowContext using wgl (OpenGL) to draw.
