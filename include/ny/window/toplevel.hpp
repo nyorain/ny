@@ -12,7 +12,7 @@ class ToplevelWindow : public Window
 protected:
     ToplevelState state_ {};
     std::string title_ {};
-	WindowHints hints_ {};
+	Flags<WindowHints> hints_ {};
 
 protected:
 	virtual void mouseMoveEvent(const MouseMoveEvent& event) override;
@@ -29,11 +29,11 @@ public:
 	virtual ~ToplevelWindow();
 
     //hints
-    bool maximizeHint() const { return nytl::bitsSet(hints_, WindowHints::maximize); }
-    bool minimizeHint() const { return nytl::bitsSet(hints_, WindowHints::minimize); }
-    bool resizeHint() const { return nytl::bitsSet(hints_, WindowHints::resize); }
-    bool closeHint() const { return nytl::bitsSet(hints_, WindowHints::close); }
-    bool customDecorated() const {  return nytl::bitsSet(hints_, WindowHints::customDecorated); }
+    bool maximizeHint() const { return hints_ & WindowHints::maximize; }
+    bool minimizeHint() const { return hints_ & WindowHints::minimize; }
+    bool resizeHint() const { return hints_ & WindowHints::resize; }
+    bool closeHint() const { return hints_ & WindowHints::close; }
+    bool customDecorated() const {  return hints_ & WindowHints::customDecorated; }
 
     void maximizeHint(bool set);
     void minimizeHint(bool set);

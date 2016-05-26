@@ -10,12 +10,7 @@ namespace ny
 class ShaderGenerator
 {
 public:
-	struct Version
-	{
-		GlContext::Api api;
-		unsigned int major;
-		unsigned int minor;
-	};
+	using Version = GlContext::GlslVersion;
 
 protected:
 	std::string code_;

@@ -7,6 +7,7 @@
 
 #include <string>
 #include <vector>
+#include <memory>
 
 namespace ny
 {
@@ -24,6 +25,14 @@ public:
 	{
 		gl,
 		gles,
+	};
+
+	///Represents a glsl version
+	struct GlslVersion
+	{
+		Api api;
+		unsigned int major = 0;
+		unsigned int minor = 0;
 	};
 
 	///Returns the current context in the calling thread, nullptr if there is none.
@@ -52,8 +61,8 @@ protected:
 
 	std::vector<std::string> extensions_;
 	std::vector<GlContext*> sharedContexts_;
-	std::vector<unsigned int> glslVersions_;
-	unsigned int preferredGlslVersion_;
+	std::vector<GlslVersion> glslVersions_;
+	GlslVersion preferredGlslVersion_;
 
 	std::vector<std::unique_ptr<GlResource>> resources_; //TODO
 
@@ -95,15 +104,6 @@ public:
 	///3.1 this function returns 31.
 	unsigned int version() const { return majorVersion_ * 10 + minorVersion_; }
 
-	/*
-	///Returns an unsigned int that roughly specified the functionality of the used api,
-	///independent from gl or gles.
-	///gles {10, 20: 20, 30: 30, 31: 31, 32: 32}
-	///gl {10, >=30: 20, 33: 30, 44: 31, 45: 32}
-	unsigned int glCompVersion() const;
-	*/
-
-
 	///Returns the number of depth bits this context has. For contexts without depth buffer it
 	///returns therefore 0.
 	unsigned int depthBits() const { return depthBits_; }
@@ -134,10 +134,10 @@ public:
 	bool glExtensionSupported(const std::string& name) const;
 
 	///Returns all supported glsl versions
-	std::vector<unsigned int> glslVersions() const { return glslVersions_; }
+	std::vector<GlslVersion> glslVersions() const { return glslVersions_; }
 
 	///Returns the preferred glsl version
-	unsigned int preferredGlslVersion() const { return preferredGlslVersion_; }
+	GlslVersion preferredGlslVersion() const { return preferredGlslVersion_; }
 
 	///Returns a vector of all shared opengl contexts.
 	std::vector<GlContext*> sharedContexts() const { return sharedContexts_; }

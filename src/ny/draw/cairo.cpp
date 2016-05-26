@@ -25,7 +25,7 @@ namespace ny
 {
 
 //Cache Name: "ny::CairoFontHandle"
-class CairoFontHandle : public DeriveCloneable<Cache, CairoFontHandle>
+class CairoFontHandle : public Cache
 {
 protected:
     cairo_font_face_t* handle_;
@@ -209,10 +209,10 @@ void CairoDrawContext::mask(const Text& obj)
 
     applyTransform(obj);
 
-	auto font = static_cast<CairoFontHandle*>(obj.font()->cache("ny::CairoFontHandle"));
+	auto font = static_cast<const CairoFontHandle*>(obj.font()->cache("ny::CairoFontHandle"));
 	if(!font)
 	{
-		auto created = std::make_unique<CairoFontHandle>(*obj.font());
+		auto created = std::make_shared<CairoFontHandle>(*obj.font());
 		font = created.get();
 		obj.font()->cache("ny::CairoFontHandle", std::move(created));
 	}

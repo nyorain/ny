@@ -19,28 +19,70 @@ void* loadCallback(const char* name)
 }
 
 //parsing shader version
-unsigned int parseGlslVersion(const std::string& name)
+GlContext::GlslVersion parseGlslVersion(const std::string& name)
 {
-	unsigned int version;
+	GlContext::GlslVersion version;
+	version.api = GlContext::Api::gl;
+
+	auto pos = name.find(" es");
+	if(pos != std::string::npos)
+	{
+		auto next = pos + 3;
+		if(next >= name.size() || name[next] == ' ') version.api = GlContext::Api::gles;
+	}
+
+	pos = name.find(" ES");
+	if(pos != std::string::npos)
+	{
+		auto next = pos + 3;
+		if(next >= name.size() || name[next] == ' ') version.api = GlContext::Api::gles;
+	}
+
+
+	pos = 0u;
+	while(!std::isdigit(name[pos], std::locale()) && pos < name.size()) pos++;
+	if(pos == name.size())
+	{
+		sendWarning("GlContext::init: invalid glsl version string: '", name);
+		return version;
+	}
 
 	int major, minor;
-	auto count = std::sscanf(name.c_str(), "%d.%d", &major, &minor);
+	auto count = std::sscanf(name.substr(pos).c_str(), "%d.%d", &major, &minor);
 
 	if(count == 1)
 	{
-		if(major >= 100) return major;
-		else return major * 100;
+		if(major >= 100) //e.g. just 330 for version 3.3
+		{
+			version.major = major / 100;
+			version.minor = (major % 100) / 10;
+		}
+		else  //e.g. 33
+		{
+			version.major = major / 10;
+			version.minor = (major % 10) / 10;
+		}
 	}
 	else if(count == 2)
 	{
-		if(minor >= 10) return major * 10 + minor;
-		else return major * 10 + minor * 10;
+		if(minor >= 10) //e.g. 3.30
+		{
+			version.major = major;
+			version.minor = minor / 10;
+		}
+		else //e.g. 3.3
+		{
+			version.major = major;
+			version.minor = minor;
+		}
 	}
 	else
 	{
-		sendWarning("GlContext::init: invalid glsl version string: ", name);
-		return 0;
+		sendWarning("GlContext::init: invalid glsl version string: '", name, "' ", count);
+		return version;
 	}
+
+	return version;
 }
 
 }
@@ -127,18 +169,18 @@ void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)
 		{
 			std::string ver = (const char*) glGetStringi(GL_SHADING_LANGUAGE_VERSION, i);
 			auto version = parseGlslVersion(ver);
-			if(version != 0) glslVersions_.push_back(version);
+			if(version.major != 0) glslVersions_.push_back(version);
 		}
 	}
 	else
 	{
 		std::string ver = (const char*) glGetString(GL_SHADING_LANGUAGE_VERSION);
 		auto version = parseGlslVersion(ver);
-		if(version != 0) glslVersions_.push_back(version);
+		if(version.major != 0) glslVersions_.push_back(version);
 	}
 
 	//TODO: choose highest if multiple are available
-	if(glslVersions_.empty()) preferredGlslVersion_ = 430;
+	if(glslVersions_.empty()) throw std::runtime_error("ny::GlContext: failed to get glsl version");
 	else preferredGlslVersion_ = glslVersions_[0];
 
 	//restore saved one

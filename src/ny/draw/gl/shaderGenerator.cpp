@@ -12,11 +12,7 @@ std::string ShaderGenerator::generate() const
 {
 	VALIDATE_CTX({});
 
-	Version version;
-	unsigned int ver = GlContext::current()->preferredGlslVersion();
-	version.minor = (ver % 10);
-	version.major = (ver - version.minor) / 10;
-	version.api = GlContext::current()->api();
+	auto version = GlContext::current()->preferredGlslVersion();
 
 	return generate(version);
 }

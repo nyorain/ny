@@ -21,10 +21,6 @@ include_directories("${CMAKE_CURRENT_BINARY_DIR}/include")
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src")
 include_directories("${CMAKE_CURRENT_BINARY_DIR}/src")
 
-include_directories("${CMAKE_CURRENT_BINARY_DIR}/external/install/include")
-link_directories("${CMAKE_CURRENT_BINARY_DIR}/external/install/lib")
-link_directories("${CMAKE_CURRENT_BINARY_DIR}/external/install/bin")
-
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
 
@@ -54,7 +50,18 @@ configure_file	( "${CMAKE_CURRENT_SOURCE_DIR}/src/ny/config.hpp.in"
 
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/include/ny/config.hpp" DESTINATION include/ny)
 
-add_subdirectory(external)
+find_package(nytl "0.1")
+if(not ${nytl_found})
+	set(own_nytl_build 1)
+	add_subdirectory(external)
+	include_directories("${CMAKE_CURRENT_BINARY_DIR}/external/install/include")
+	link_directories("${CMAKE_CURRENT_BINARY_DIR}/external/install/lib")
+	link_directories("${CMAKE_CURRENT_BINARY_DIR}/external/install/bin")
+else()
+	set(own_nytl_build 0)
+	include_directories(${nytl_include_dirs})
+endif()
+
 add_subdirectory(src/ny)
 add_subdirectory(include/ny)
 

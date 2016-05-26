@@ -6,7 +6,9 @@ add_library(ny-base SHARED ${src-base})
 target_link_libraries(ny-base ${libs-base})
 target_include_directories(ny-base PUBLIC ${include-base})
 
-add_dependencies(ny-base nytl)
+if(${own_nytl_build})
+	add_dependencies(ny-base nytl)
+endif()
 
 set(targets-base ny-base)
 

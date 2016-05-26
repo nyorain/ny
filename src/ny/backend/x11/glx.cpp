@@ -27,7 +27,8 @@ namespace
 //
 GlxContext::GlxContext(X11WindowContext& wc, GLXFBConfig fbc) : wc_(&wc)
 {
-	glxWindow_ = glXCreateWindow(xDisplay(), fbc, wc_->xWindow(), 0);
+	auto xDisplay = wc.appContext().xDisplay();
+	glxWindow_ = glXCreateWindow(xDisplay, fbc, wc_->xWindow(), 0);
 
     int (*oldHandler)(Display*, XErrorEvent*) = XSetErrorHandler(&ctxErrorHandler);
     using procType = GLXContext(*)(Display*, GLXFBConfig, GLXContext, Bool, const int*);
@@ -35,7 +36,7 @@ GlxContext::GlxContext(X11WindowContext& wc, GLXFBConfig fbc) : wc_(&wc)
     procType glXCreateContextAttribsARB =
 		(procType) glXGetProcAddressARB((const GLubyte*) "glXCreateContextAttribsARB" );
 
-    const char* glxExts = glXQueryExtensionsString(xDisplay(), DefaultScreen(xDisplay()));
+    const char* glxExts = glXQueryExtensionsString(xDisplay, DefaultScreen(xDisplay()));
 	auto extVec = split(glxExts, ' ');
 
 	//sendLog("glx extensions: ", glxExts);

@@ -29,5 +29,5 @@
 #endif //Cairo
 
 #ifdef NY_WithFreeType
- #include <ny/draw/freetype.hpp>
+ #include <ny/draw/freeType.hpp>
 #endif //Freetype

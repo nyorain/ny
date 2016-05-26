@@ -30,12 +30,12 @@ void ToplevelWindow::maximizeHint(bool set)
 {
 	constexpr auto hint = WindowHints::maximize;
 
-	if(set && !nytl::bitsSet(hints_, hint))
+	if(set && !(hints_ & hint))
 	{
 		hints_ |= hint;
 		windowContext()->addWindowHints(hint);
 	}
-	else if(!set && nytl::bitsSet(hints_, hint))
+	else if(!set && hints_ & hint)
 	{
 		hints_ &= ~hint;
 		windowContext()->removeWindowHints(hint);
@@ -46,12 +46,12 @@ void ToplevelWindow::minimizeHint(bool set)
 {
 	constexpr auto hint = WindowHints::maximize;
 
-	if(set && !nytl::bitsSet(hints_, hint))
+	if(set && !(hints_ & hint))
 	{
 		hints_ |= hint;
 		windowContext()->addWindowHints(hint);
 	}
-	else if(!set && nytl::bitsSet(hints_, hint))
+	else if(!set && (hints_ & hint))
 	{
 		hints_ &= ~hint;
 		windowContext()->removeWindowHints(hint);
@@ -61,12 +61,12 @@ void ToplevelWindow::resizeHint(bool set)
 {
 	constexpr auto hint = WindowHints::maximize;
 
-	if(set && !nytl::bitsSet(hints_, hint))
+	if(set && !(hints_ & hint))
 	{
 		hints_ |= hint;
 		windowContext()->addWindowHints(hint);
 	}
-	else if(!set && nytl::bitsSet(hints_, hint))
+	else if(!set && (hints_ & hint))
 	{
 		hints_ &= ~hint;
 		windowContext()->removeWindowHints(hint);
@@ -76,12 +76,12 @@ void ToplevelWindow::closeHint(bool set)
 {
 	constexpr auto hint = WindowHints::maximize;
 
-	if(set && !nytl::bitsSet(hints_, hint))
+	if(set && !(hints_ & hint))
 	{
 		hints_ |= hint;
 		windowContext()->addWindowHints(hint);
 	}
-	else if(!set && nytl::bitsSet(hints_, hint))
+	else if(!set && (hints_ & hint))
 	{
 		hints_ &= ~hint;
 		windowContext()->removeWindowHints(hint);
@@ -92,12 +92,12 @@ bool ToplevelWindow::customDecorated(bool set)
 {
 	constexpr auto hint = WindowHints::maximize;
 
-	if(set && !nytl::bitsSet(hints_, hint))
+	if(set && !(hints_ & hint))
 	{
 		hints_ |= hint;
 		windowContext()->addWindowHints(hint);
 	}
-	else if(!set && nytl::bitsSet(hints_, hint))
+	else if(!set && (hints_ & hint))
 	{
 		hints_ &= ~hint;
 		windowContext()->removeWindowHints(hint);
@@ -130,6 +130,7 @@ void ToplevelWindow::mouseMoveEvent(const MouseMoveEvent& ev)
     {
         t = Cursor::Type::sizeBottom;
     }
+
 
     else if(ev.position.y < length)
     {

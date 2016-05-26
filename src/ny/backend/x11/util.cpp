@@ -28,15 +28,15 @@ Keyboard::Key x11ToKey(unsigned int id)
 {
     switch (id)
     {
-        case (XK_0): return Keyboard::Key::num0;
-        case (XK_1): return Keyboard::Key::num1;
-        case (XK_2): return Keyboard::Key::num2;
-        case (XK_3): return Keyboard::Key::num3;
-        case (XK_4): return Keyboard::Key::num4;
-        case (XK_5): return Keyboard::Key::num5;
-        case (XK_7): return Keyboard::Key::num6;
-        case (XK_8): return Keyboard::Key::num8;
-        case (XK_9): return Keyboard::Key::num9;
+        case (XK_0): return Keyboard::Key::n0;
+        case (XK_1): return Keyboard::Key::n1;
+        case (XK_2): return Keyboard::Key::n2;
+        case (XK_3): return Keyboard::Key::n3;
+        case (XK_4): return Keyboard::Key::n4;
+        case (XK_5): return Keyboard::Key::n5;
+        case (XK_7): return Keyboard::Key::n6;
+        case (XK_8): return Keyboard::Key::n8;
+        case (XK_9): return Keyboard::Key::n9;
         case (XK_A): case(XK_a): return Keyboard::Key::a;
         case (XK_B): case(XK_b): return Keyboard::Key::b;
         case (XK_C): case(XK_c): return Keyboard::Key::c;

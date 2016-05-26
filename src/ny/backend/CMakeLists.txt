@@ -32,8 +32,8 @@ if(NY_WithX11)
 	set(libs-backend ${libs-backend} X11 xcb xcb-icccm xcb-ewmh X11-xcb pthread)
 
 	if(NY_WithGL)
-		set(src-backend ${src-backend} x11/glx.cpp)
-		set(libs-backend ${libs-backend} GL)
+		#set(src-backend ${src-backend} x11/glx.cpp)
+		#set(libs-backend ${libs-backend} GL)
 	endif(NY_WithGL)
 
 	if(NY_WithCairo)
