@@ -4,6 +4,7 @@
 #include <ny/backend/windowContext.hpp>
 
 typedef struct xcb_connection_t xcb_connection_t;
+typedef struct _XDisplay Display;
 
 #include <cstdint>
 #include <vector>
@@ -18,7 +19,11 @@ namespace ny
 struct DummyEwmhConnection;
 
 ///Additional settings for a X11 Window.
-class X11WindowSettings : public WindowSettings {};
+class X11WindowSettings : public WindowSettings 
+{
+	xcb_connection_t* connection;
+	Display* display;
+};
 
 ///The X11 implementation of the WindowContext interface.
 ///Provides some extra functionality for x11.
@@ -31,7 +36,7 @@ protected:
 	std::uint32_t xWindow_ = 0;
 	std::uint32_t xVisualID_ = 0;
 
-	///XXX Should they be stored?
+	///Stored EWMH states can be used to check whether it is fullscreen, maximized etc.
 	std::vector<std::uint32_t> states_;
     unsigned long mwmFuncHints_ = 0;
     unsigned long mwmDecoHints_ = 0;

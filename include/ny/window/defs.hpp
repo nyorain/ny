@@ -17,15 +17,14 @@ enum class WindowHints : unsigned int
     maximize = (1L << 2),
     minimize = (1L << 3),
     resize = (1L << 4),
-    customDecorated = (1L << 5),
-    acceptDrop = (1L << 6),
-    alwaysOnTop = (1L << 7),
-    showInTaskbar = (1L << 8)
+    customDecorated = (1L << 5), 
+    acceptDrop = (1L << 6), //deprecated
+    alwaysOnTop = (1L << 7), //deprecated
+    showInTaskbar = (1L << 8) //deprecated
 };
 
 ///Typesafe enum that specifies the edges of a window (e.g. for resizing).
-///Note that e.g. (WindowEdge::top | WindowEdge::right) == (WindowEdge::topRight). You have
-///to include <nytl/enumOps.hpp> to make those operations with typesafe enums work.
+///Note that e.g. (WindowEdge::top | WindowEdge::right) == (WindowEdge::topRight).
 enum class WindowEdges : unsigned char
 {
     unknown = 0,
