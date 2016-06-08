@@ -207,8 +207,8 @@ Shader& GlDrawContext::shaderProgramForPen(const Pen& p)
 void GlDrawContext::fillTriangles(const std::vector<Triangle2f>& Triangles,
 		const Brush& brush, const Mat3f& transMatrix)
 {
-	ny::sendLog("fill", Triangles[0]);
-	ny::sendLog("filltrans", transMatrix.col(2));
+	//ny::sendLog("fill", Triangles[0]);
+	//ny::sendLog("filltrans", transMatrix.col(2));
 
 	GLuint vbo, vao;
 	glGenBuffers(1, &vbo);

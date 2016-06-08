@@ -195,7 +195,7 @@ void Window::keyEvent(const KeyEvent& e)
 void Window::sizeEvent(const SizeEvent& e)
 {
     size_ = e.size;
-    onResize.call(*this, size_);
+    onResize(*this, size_);
 }
 void Window::positionEvent(const PositionEvent& e)
 {

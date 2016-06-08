@@ -1,5 +1,5 @@
 execute_process(
-	COMMAND git submodule update --remote --merge
+	COMMAND git submodule update --remote --merge --init
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
 include(ExternalProject)

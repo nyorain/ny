@@ -9,24 +9,21 @@
 int main()
 {
 	ny::App::Settings s;
-	s.multithreaded = false;
+	s.multithreaded = true;
 	ny::App app(s);
 
 	ny::WindowSettings settings;
 	settings.position = {300, 300};
-	settings.draw = ny::DrawType::dontCare;
+	settings.draw = ny::DrawType::gl;
 
-	ny::log("before");
 	ny::ToplevelWindow window(app, ny::Vec2ui(800, 500), "ny Window Test", settings);
 	window.windowContext()->show();
-	ny::log("after");
 
 	//window.maximize();
 
 	ny::Image icon("icon.jpg");
 	window.icon(icon);
 
-	/*
 	ny::Gui myGui(window);
 
 	ny::Button myButton(myGui, {100, 100}, {100, 45});
@@ -40,18 +37,35 @@ int main()
 	ny::Button myButton3(myGui, {0, 400}, {100, 45});
 	myButton3.label("Normal");
 	myButton3.onClick = [&]{ std::cout << "Clicked!\n"; window.reset(); };
-	*/
 
-/*
-	window.onDraw += [](ny::DrawContext& dc) {
+	ny::Rectangle rect({100, 100}, {100, 100});
+
+	window.onDraw += [&](ny::DrawContext& dc) {
 		//ny::debug("DRAW");
-		dc.clear(ny::Color::green);
+		//dc.clear(ny::Color::green);
+		//dc.draw({rect, ny::Color::black});
+
+		static bool version = false;
+		if(!version)
+		{
+			auto glContext = ny::GlContext::current();
+			if(!glContext) return;
+
+			ny::log("GL Version: ", glContext->version().name());
+			ny::log("GLSL Version: ", glContext->preferredGlslVersion().name());
+
+			for(auto& glsl : glContext->glslVersions())
+				ny::log(glsl.name());
+
+			version = true;
+		}
 	};
 
 	ny::LoopControl control;
 	return app.run(control);
-*/
 
+
+/*
 	ny::Timer timer;
 	while(app.appContext().dispatchEvents(app.dispatcher()) && window.windowContext())
 	{
@@ -60,6 +74,7 @@ int main()
 		ny::debug(timer.elapsedTime().microseconds());
 		timer.reset();
 	}
+*/
 	//
 
 	//while(app.dispatch() == true);

@@ -133,7 +133,6 @@ bool WinapiWindowContext::handleEvent(const Event& e)
 void WinapiWindowContext::size(const Vec2ui& size)
 {
 	::SetWindowPos(handle_, HWND_TOP, 0, 0, size.x, size.y, SWP_NOMOVE);
-
 }
 void WinapiWindowContext::position(const Vec2i& position)
 {

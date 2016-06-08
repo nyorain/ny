@@ -66,10 +66,19 @@ void ThreadedEventDispatcher::dispatchLoop(LoopControl& control)
 
     while(1)
     {
-        while(events_.empty() && !stop.load())
+		if(events_.empty())
 		{
-			eventCV_.wait(lck);
+			//Just signal all stored promises since there cannot be any that are associated with
+			//queued events, since there are none.
+			for(auto& promise : promises_) promise.second.set_value();
+			promises_.clear();
+
+	        while(events_.empty() && !stop.load())
+			{
+				eventCV_.wait(lck);
+			}
 		}
+
         if(stop.load())
 		{
 			break;
@@ -81,6 +90,19 @@ void ThreadedEventDispatcher::dispatchLoop(LoopControl& control)
         lck.unlock();
         sendEvent(*ev);
 		lck.lock();
+
+		for(auto it = promises_.begin(); it < promises_.end();)
+		{
+			if(it->first == ev.get())
+			{
+				it->second.set_value();
+				it = promises_.erase(it);
+			}
+			else
+			{
+				++it;
+			}
+		}
     }
 
 	control.impl_.reset();
@@ -94,8 +116,11 @@ void ThreadedEventDispatcher::dispatch(EventPtr&& event)
         return;
     }
 
-	//sendEvent(*event);
-	//return;
+	if(!event->handler)
+	{
+		noEventHandler(*event);
+		return;
+	}
 
     {
 		std::lock_guard<std::mutex> lck(eventMtx_);
@@ -125,6 +150,59 @@ void ThreadedEventDispatcher::dispatch(const Event& event)
 void ThreadedEventDispatcher::dispatch(Event&& event)
 {
 	dispatch(cloneMove(std::move(event)));
+}
+
+void ThreadedEventDispatcher::dispatchSync(EventPtr&& event)
+{
+	dispatch(std::move(event));
+	auto fut = sync(); //XXX: may acually call sync after some additional events where queued.
+	fut.wait();
+}
+
+void ThreadedEventDispatcher::dispatchSync(const Event& event)
+{
+	dispatchSync(clone(event));
+}
+
+void ThreadedEventDispatcher::dispatchSync(Event&& event)
+{
+	dispatchSync(cloneMove(std::move(event)));
+}
+
+std::future<void> ThreadedEventDispatcher::sync()
+{
+	std::lock_guard<std::mutex> lck(eventMtx_);
+	if(events_.empty())
+	{
+		std::promise<void> prom;
+		prom.set_value();
+		return prom.get_future();
+	}
+
+	promises_.emplace_back();
+	promises_.back().first = events_.back().get();
+	return promises_.back().second.get_future();
+}
+
+std::future<void> ThreadedEventDispatcher::waitIdle()
+{
+	std::lock_guard<std::mutex> lck(eventMtx_);
+	if(events_.empty())
+	{
+		std::promise<void> prom;
+		prom.set_value();
+		return prom.get_future();
+	}
+
+	promises_.emplace_back();
+	promises_.back().first = nullptr;
+	return promises_.back().second.get_future();
+}
+
+std::size_t ThreadedEventDispatcher::eventCount() const
+{
+	std::lock_guard<std::mutex> lck(eventMtx_);
+	return events_.size();
 }
 
 }

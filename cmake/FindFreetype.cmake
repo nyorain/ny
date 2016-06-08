@@ -62,6 +62,7 @@ find_path(
     /usr/local/X11
     /usr/freeware
 	"$ENV{PROGRAMFILES\(X86\)}/Freetype"
+	"$ENV{PROGRAMFILES\(X86\)}/GnuWin32"
     ENV GTKMM_BASEPATH
     [HKEY_CURRENT_USER\\SOFTWARE\\gtkmm\\2.4;Path]
     [HKEY_LOCAL_MACHINE\\SOFTWARE\\gtkmm\\2.4;Path]
@@ -85,6 +86,7 @@ find_path(
     /usr/freeware
     ENV GTKMM_BASEPATH
 	"$ENV{PROGRAMFILES\(X86\)}/Freetype"
+	"$ENV{PROGRAMFILES\(X86\)}/GnuWin32"
     [HKEY_CURRENT_USER\\SOFTWARE\\gtkmm\\2.4;Path]
     [HKEY_LOCAL_MACHINE\\SOFTWARE\\gtkmm\\2.4;Path]
   PATH_SUFFIXES
@@ -106,6 +108,7 @@ find_library(FREETYPE_LIBRARY
     /usr/local/X11
     /usr/freeware
 	"$ENV{PROGRAMFILES\(X86\)}/Freetype"
+	"$ENV{PROGRAMFILES\(X86\)}/GnuWin32"
     ENV GTKMM_BASEPATH
     [HKEY_CURRENT_USER\\SOFTWARE\\gtkmm\\2.4;Path]
     [HKEY_LOCAL_MACHINE\\SOFTWARE\\gtkmm\\2.4;Path]

@@ -1,14 +1,12 @@
-#define NY_VMajor @NY_VMAJOR@
-#define NY_VMinor @NY_VMINOR@
+#define NY_VMAJOR @vmajor@
+#define NY_VMINOR @vminor@
+#define NY_VPATCH @vpatch@
 
-#cmakedefine NY_WithGL
-#cmakedefine NY_WithEGL
-#cmakedefine NY_WithGLES
-#cmakedefine NY_WithGlbinding
-#cmakedefine NY_WithGlesbinding
-#cmakedefine NY_WithX11
-#cmakedefine NY_WithWayland
-#cmakedefine NY_WithWinapi
-#cmakedefine NY_WithCairo
-#cmakedefine NY_WithFreeType
-#cmakedefine NY_WithXML
+#define NY_WithGL @WithGL@
+#define NY_WithEGL @WithEGL@
+#define NY_WithX11 @WithX11@
+#define NY_WithWinapi @WithWinapi@
+#define NY_WithWayland @WithWayland@
+#define NY_WithCairo @WithCairo@
+#define NY_WithVulkan @WithVulkan@
+#define NY_WithFreeType @WithFreeType@

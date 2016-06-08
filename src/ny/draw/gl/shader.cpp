@@ -201,7 +201,7 @@ bool Shader::compile(const std::string& vertexShader, const std::string& fragmen
             glGetShaderiv(vsID, GL_INFO_LOG_LENGTH, &infoLength);
             std::vector<char> info(infoLength);
             glGetShaderInfoLog(vsID, infoLength, nullptr, info.data());
-			sendWarning("failed to compile vertex shader:\n\t", info.data(), "\nSource: \n", 
+			sendWarning("failed to compile vertex shader:\n", info.data(), "\nSource: \n",
 				vertexShader);
             vsID = 0;
         }
@@ -223,7 +223,7 @@ bool Shader::compile(const std::string& vertexShader, const std::string& fragmen
             glGetShaderiv(fsID, GL_INFO_LOG_LENGTH, &infoLength);
             std::vector<char> info(infoLength);
             glGetShaderInfoLog(fsID, infoLength, nullptr, info.data());
-			sendWarning("failed to compile fragment shader:\n\t", info.data(), "\nSource: \n", 
+			sendWarning("failed to compile fragment shader:\n", info.data(), "\nSource: \n",
 				fragmentShader);
             fsID = 0;
         }
@@ -255,4 +255,3 @@ void Shader::use() const
 
 
 }
-

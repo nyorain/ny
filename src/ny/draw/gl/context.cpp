@@ -3,6 +3,7 @@
 #include <nytl/misc.hpp>
 
 #include <ny/draw/gl/glad/glad.h>
+#include <thread>
 
 namespace ny
 {
@@ -19,9 +20,9 @@ void* loadCallback(const char* name)
 }
 
 //parsing shader version
-GlContext::GlslVersion parseGlslVersion(const std::string& name)
+GlContext::Version parseGlslVersion(const std::string& name)
 {
-	GlContext::GlslVersion version;
+	GlContext::Version version;
 	version.api = GlContext::Api::gl;
 
 	auto pos = name.find(" es");
@@ -37,7 +38,6 @@ GlContext::GlslVersion parseGlslVersion(const std::string& name)
 		auto next = pos + 3;
 		if(next >= name.size() || name[next] == ' ') version.api = GlContext::Api::gles;
 	}
-
 
 	pos = 0u;
 	while(!std::isdigit(name[pos], std::locale()) && pos < name.size()) pos++;
@@ -87,12 +87,20 @@ GlContext::GlslVersion parseGlslVersion(const std::string& name)
 
 }
 
+//gl version to stirng
+std::string GlContext::Version::name() const
+{
+	auto ret = std::to_string(major) + "." + std::to_string(minor * 10);
+	if(api == GlContext::Api::gles) ret += " ES";
+	return ret;
+}
+
+
+//GlContext
 GlContext* GlContext::threadLocalCurrent(bool change, GlContext* newOne)
 {
 	static thread_local GlContext* current_ = nullptr;
-	if(change)
-		current_ = newOne;
-
+	if(change) current_ = newOne;
 	return current_;
 }
 
@@ -122,27 +130,26 @@ void GlContext::assureGlesLoaded(const GlContext& ctx)
 
 void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)
 {
-	api_ = api;
+	version_.api = api;
 	depthBits_ = depth;
 	stencilBits_ = stencil;
 
 	auto* saved = current();
-	if(!makeCurrent())
-	{
-		throw std::runtime_error("GlContext::initContext: failed to make context current");
-		return;
-	}
+
+	//some backends need to make it current before
+	if(saved == this) saved = nullptr;
+	else if(!makeCurrent()) throw std::runtime_error("GlCtx::initCtx: failed to make current");
 
 	//load the api function pointers via glad
-	if(api_ == Api::gl) assureGlLoaded(*this);
-	else if(api_ == Api::gles) assureGlesLoaded(*this);
+	if(api == Api::gl) assureGlLoaded(*this);
+	else if(api == Api::gles) assureGlesLoaded(*this);
 
 	//version from glad
-	majorVersion_ = GLVersion.major;
-	minorVersion_ = GLVersion.minor;
+	version_.major = GLVersion.major;
+	version_.minor = GLVersion.minor;
 
 	//extensions
-	if(version() >= 30)
+	if(versionNumber() >= 30)
 	{
 		auto number = 0;
 		glGetIntegerv(GL_NUM_EXTENSIONS, &number);
@@ -160,7 +167,7 @@ void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)
 	}
 
 	//glsl
-	if(api_ == Api::gl && version() >= 43)
+	if(api == Api::gl && versionNumber() >= 43)
 	{
 		auto number = 0;
 		glGetIntegerv(GL_NUM_SHADING_LANGUAGE_VERSIONS, &number);
@@ -179,37 +186,38 @@ void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)
 		if(version.major != 0) glslVersions_.push_back(version);
 	}
 
-	//TODO: choose highest if multiple are available
 	if(glslVersions_.empty()) throw std::runtime_error("ny::GlContext: failed to get glsl version");
-	else preferredGlslVersion_ = glslVersions_[0];
 
-	//restore saved one
-	if(saved && !saved->makeCurrent())
-	{
-		sendWarning("GlContext::initContext: failed to make saved context current again.");
-		return;
-	}
+	//choose highest version
+	auto& pgv = preferredGlslVersion_;
+	for(auto& glsl : glslVersions_)	if(glsl.number() > pgv.number()) pgv = glsl;
+
+	//make it not current - needed since it might be made current in another thread
+	makeNotCurrent();
+
+	//restore saved one if there is any
+	if(saved && !saved->makeCurrent()) sendWarning("GlCtx::initCtx: failed to make saved current.");
 }
 
 bool GlContext::makeCurrent()
 {
-	if(isCurrent()) return 1;
+	if(isCurrent()) return true;
 
 	if(makeCurrentImpl())
 	{
-		threadLocalCurrent(1, this);
-		return 1;
+		threadLocalCurrent(true, this);
+		return true;
 	}
 
-	return 0;
+	return false;
 }
 
 bool GlContext::makeNotCurrent()
 {
-	if(!isCurrent()) return 0;
+	if(!isCurrent()) return true;
 
 	//TODO: if branch like in makeCurrent?
-	threadLocalCurrent(1, nullptr);
+	threadLocalCurrent(true, nullptr);
 	return makeNotCurrentImpl();
 }
 
@@ -221,17 +229,17 @@ bool GlContext::isCurrent() const
 bool GlContext::sharedWith(const GlContext& other) const
 {
 	for(auto& ctx : sharedContexts())
-		if(ctx == &other) return 1;
+		if(ctx == &other) return true;
 
-	return 0;
+	return false;
 }
 
 bool GlContext::glExtensionSupported(const std::string& name) const
 {
 	for(auto& s : glExtensions())
-		if(s == name) return 1;
+		if(s == name) return true;
 
-	return 0;
+	return false;
 }
 
 void GlContext::updateViewport(const Rect2f& viewport)
@@ -248,7 +256,7 @@ void GlContext::updateViewport(const Rect2f& viewport)
 bool GlContext::apply()
 {
 	//glFinish();
-	return 1;
+	return true;
 }
 
 }

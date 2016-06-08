@@ -17,7 +17,7 @@ enum class WindowHints : unsigned int
     maximize = (1L << 2),
     minimize = (1L << 3),
     resize = (1L << 4),
-    customDecorated = (1L << 5), 
+    customDecorated = (1L << 5),
     acceptDrop = (1L << 6), //deprecated
     alwaysOnTop = (1L << 7), //deprecated
     showInTaskbar = (1L << 8) //deprecated
@@ -78,7 +78,7 @@ enum class DrawType : unsigned char
 {
 	dontCare = 0,
 	none,
-	opengl,
+	gl,
 	software,
 	vulkan
 };

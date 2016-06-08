@@ -38,7 +38,7 @@ std::string ShaderGenerator::parseCode(const Version& version) const
 	{
 		if(version.major < 3)
 		{
-			inputString = "attribute";
+			inputString = inputAttribName();
 			outputString = "varying";
 			texture2DString = "texture2D";
 			textureCubeString = "texture2D";
@@ -55,7 +55,7 @@ std::string ShaderGenerator::parseCode(const Version& version) const
 	{
 		if(version.major == 2)
 		{
-			inputString = "attribute";
+			inputString = inputAttribName();
 			outputString = "varying";
 			texture2DString = "texture2D";
 			textureCubeString = "textureCube";

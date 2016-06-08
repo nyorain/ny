@@ -46,4 +46,24 @@ unsigned int keyToWinapi(Keyboard::Key key)
 	//TODO
 }
 
+std::string errorMessage(unsigned int code, const char* msg)
+{
+	std::string ret;
+	if(msg) ret += msg;
+
+	char buffer[256] = {};
+	auto size = ::FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, nullptr, code, 0, buffer,
+		sizeof(buffer), nullptr);
+
+	if(size > 0 && msg) ret += ": ";
+	ret += buffer;
+
+	return ret;
+}
+
+std::string errorMessage(const char* msg)
+{
+	return errorMessage(::GetLastError(), msg);
+}
+
 }

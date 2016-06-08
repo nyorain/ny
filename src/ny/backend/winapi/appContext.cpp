@@ -223,10 +223,13 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 			if(handlerEvents)
 			{
 				auto ev = std::make_unique<DrawEvent>(handler);
-				eventDispatcher_->dispatch(std::move(ev));
+				eventDispatcher_->dispatchSync(std::move(ev));
 			}
 
-            return DefWindowProc(window, message, wparam, lparam); //to validate the rgn
+            return DefWindowProc(window, message, wparam, lparam); //to validate the window
+
+			//::ValidateRect(window, nullptr);
+			//return 0;
         }
 
 		case WM_DESTROY:
@@ -245,7 +248,7 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 			if(handlerEvents)
 			{
 				auto ev = std::make_unique<SizeEvent>(handler);
-				eventDispatcher_->dispatch(std::move(ev));
+				eventDispatcher_->dispatchSync(std::move(ev));
 			}
 
 			return 0;

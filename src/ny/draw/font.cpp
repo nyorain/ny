@@ -5,7 +5,7 @@ namespace ny
 
 Font& Font::defaultFont()
 {
-    static Font instance_("Times New Roman");
+    static Font instance_("consola");
     return instance_;
 }
 
