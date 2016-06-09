@@ -84,18 +84,21 @@ int App::run(LoopControl& control)
 
 	if(settings_.multithreaded)
 	{
+		/*
 		if(!dispatcherThread_.joinable()) //valid?
 		{
 			auto& dispatcher = static_cast<ThreadedEventDispatcher&>(*eventDispatcher_);
-			dispatcherThread_ = std::thread(&ThreadedEventDispatcher::dispatchLoop,
+			dispatcherThread_ = std::thread(&ThreadedEventDispatcher::processLoop,
 				&dispatcher, std::ref(dispatcherLoopControl_));
 		}
+		*/
 
 
-		appContext_->dispatchLoop(*eventDispatcher_, control);
+		auto& dispatcher = static_cast<ThreadedEventDispatcher&>(*eventDispatcher_);
+		appContext_->threadedDispatchLoop(dispatcher, control);
 
-		dispatcherLoopControl_.stop();
-		dispatcherThread_.join();
+		//dispatcherLoopControl_.stop();
+		//dispatcherThread_.join();
 	}
 
 	else

@@ -196,6 +196,7 @@ void Window::sizeEvent(const SizeEvent& e)
 {
     size_ = e.size;
     onResize(*this, size_);
+	refresh();
 }
 void Window::positionEvent(const PositionEvent& e)
 {

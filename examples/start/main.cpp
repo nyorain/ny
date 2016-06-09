@@ -6,6 +6,18 @@
 //#include <ny/backend/winapi/windowContext.hpp>
 //#include <ny/backend/winapi/gdi.hpp>
 
+class MyHandler : public ny::EventHandler
+{
+public:
+	virtual bool handleEvent(const ny::Event& event) override
+	{
+		ny::debug("Ayyyyy got the event");
+		return true;
+	}
+};
+
+class MyEvent : public ny::SizeEvent {};
+
 int main()
 {
 	ny::App::Settings s;
@@ -39,6 +51,7 @@ int main()
 	myButton3.onClick = [&]{ std::cout << "Clicked!\n"; window.reset(); };
 
 	ny::Rectangle rect({100, 100}, {100, 100});
+	MyHandler myHandler;
 
 	window.onDraw += [&](ny::DrawContext& dc) {
 		//ny::debug("DRAW");
@@ -48,6 +61,13 @@ int main()
 		static bool version = false;
 		if(!version)
 		{
+			ny::debug("SEND");
+
+			MyEvent myEvent;
+			myEvent.handler = &myHandler;
+			std::thread thread([&]{ app.dispatcher().dispatch(myEvent); });
+			thread.detach();
+
 			auto glContext = ny::GlContext::current();
 			if(!glContext) return;
 

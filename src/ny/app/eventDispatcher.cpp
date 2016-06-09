@@ -7,6 +7,10 @@
 namespace ny
 {
 
+namespace
+{
+
+//LoopControlImpl for ThreadedEvetnDispatchers dispatch loop.
 struct DispatcherControlImpl : public LoopControlImpl
 {
 	std::atomic<bool>* stop_;
@@ -17,14 +21,16 @@ struct DispatcherControlImpl : public LoopControlImpl
 	virtual void stop() override { if(!stop_) return; stop_->store(1); cv_->notify_one(); }
 };
 
+}
+
 //Default
-void EventDispatcher::sendEvent(const Event& event)
+void EventDispatcher::send(const Event& event)
 {
 	auto it = onEvent.find(event.type());
-	if(it != onEvent.cend())
-	{
-		it->second(event);
-	}
+	if(it != onEvent.cend()) it->second(*this, event);
+
+	it = onEvent.find(0);
+	if(it != onEvent.cend()) it->second(*this, event);
 
 	if(event.handler) event.handler->handleEvent(event);
 	else noEventHandler(event);
@@ -44,7 +50,7 @@ ThreadedEventDispatcher::~ThreadedEventDispatcher()
 {
 }
 
-void ThreadedEventDispatcher::dispatchEvents()
+void ThreadedEventDispatcher::processEvents()
 {
     std::unique_lock<std::mutex> lck(eventMtx_);
 	while(!events_.empty())
@@ -53,12 +59,12 @@ void ThreadedEventDispatcher::dispatchEvents()
         events_.pop_front();
 
         lck.unlock();
-        sendEvent(*ev);
+        send(*ev);
 		lck.lock();
 	}
 }
 
-void ThreadedEventDispatcher::dispatchLoop(LoopControl& control)
+void ThreadedEventDispatcher::processLoop(LoopControl& control)
 {
 	std::atomic<bool> stop {0};
 	control.impl_ = std::make_unique<DispatcherControlImpl>(stop, eventCV_);
@@ -88,9 +94,10 @@ void ThreadedEventDispatcher::dispatchLoop(LoopControl& control)
         events_.pop_front();
 
         lck.unlock();
-        sendEvent(*ev);
+        send(*ev);
 		lck.lock();
 
+		//signal all promises waiting for the processed event
 		for(auto it = promises_.begin(); it < promises_.end();)
 		{
 			if(it->first == ev.get())
@@ -121,6 +128,8 @@ void ThreadedEventDispatcher::dispatch(EventPtr&& event)
 		noEventHandler(*event);
 		return;
 	}
+
+	onDispatch(*this, *event);
 
     {
 		std::lock_guard<std::mutex> lck(eventMtx_);

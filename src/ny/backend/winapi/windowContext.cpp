@@ -54,7 +54,7 @@ void WinapiWindowContext::initWindowClass(const WinapiWindowSettings& settings)
 	wndClass_.hInstance = appContext().hinstance();
 	wndClass_.lpszClassName = _T(name.c_str());
 	wndClass_.lpfnWndProc = &WinapiAppContext::wndProcCallback;
-	wndClass_.style = CS_DBLCLKS;
+	wndClass_.style = CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW;
 	wndClass_.cbSize = sizeof(WNDCLASSEX);
 	wndClass_.hIcon = ::LoadIcon (nullptr, IDI_APPLICATION);
 	wndClass_.hIconSm = ::LoadIcon (nullptr, IDI_APPLICATION);
@@ -62,8 +62,8 @@ void WinapiWindowContext::initWindowClass(const WinapiWindowSettings& settings)
 	wndClass_.lpszMenuName = nullptr;
 	wndClass_.cbClsExtra = 0;
 	wndClass_.cbWndExtra = 0;
-	wndClass_.hbrBackground = (HBRUSH) ::GetStockObject(WHITE_BRUSH);
-	//wndClass_.hbrBackground = nullptr;
+	//wndClass_.hbrBackground = (HBRUSH) ::GetStockObject(WHITE_BRUSH);
+	wndClass_.hbrBackground = nullptr;
 }
 
 void WinapiWindowContext::setStyle(const WinapiWindowSettings& settings)
@@ -92,9 +92,9 @@ void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 
 	if(settings.initShown)
 	{
-		if(settings.initState == ToplevelState::maximized) ::ShowWindow(handle_, SW_SHOWMAXIMIZED);
-		else if(settings.initState == ToplevelState::minimized) ::ShowWindow(handle_, SW_SHOWMINIMIZED);
-		else ::ShowWindow(handle_, SW_SHOWDEFAULT);
+		if(settings.initState == ToplevelState::maximized) ::ShowWindowAsync(handle_, SW_SHOWMAXIMIZED);
+		else if(settings.initState == ToplevelState::minimized) ::ShowWindowAsync(handle_, SW_SHOWMINIMIZED);
+		else ::ShowWindowAsync(handle_, SW_SHOWDEFAULT);
 
 		::UpdateWindow(handle_);
 	}
@@ -112,11 +112,11 @@ DrawGuard WinapiWindowContext::draw()
 
 void WinapiWindowContext::show()
 {
-	::ShowWindow(handle_, SW_SHOWDEFAULT);
+	::ShowWindowAsync(handle_, SW_SHOWDEFAULT);
 }
 void WinapiWindowContext::hide()
 {
-	::ShowWindow(handle_, SW_HIDE);
+	::ShowWindowAsync(handle_, SW_HIDE);
 }
 
 void WinapiWindowContext::addWindowHints(WindowHints hints)
@@ -132,11 +132,11 @@ bool WinapiWindowContext::handleEvent(const Event& e)
 
 void WinapiWindowContext::size(const Vec2ui& size)
 {
-	::SetWindowPos(handle_, HWND_TOP, 0, 0, size.x, size.y, SWP_NOMOVE);
+	::SetWindowPos(handle_, HWND_TOP, 0, 0, size.x, size.y, SWP_NOMOVE | SWP_ASYNCWINDOWPOS);
 }
 void WinapiWindowContext::position(const Vec2i& position)
 {
-	::SetWindowPos(handle_, HWND_TOP, position.x, position.y, 0, 0, SWP_NOSIZE);
+	::SetWindowPos(handle_, HWND_TOP, position.x, position.y, 0, 0, SWP_NOSIZE | SWP_ASYNCWINDOWPOS);
 }
 
 void WinapiWindowContext::cursor(const Cursor& c)
@@ -145,72 +145,76 @@ void WinapiWindowContext::cursor(const Cursor& c)
 
 void WinapiWindowContext::fullscreen()
 {
-	DEVMODE mode;
-	mode.dmSize       = sizeof(mode);
-	mode.dmPelsWidth  = 1920;
-	mode.dmPelsHeight = 1080;
-	mode.dmBitsPerPel = 32;
-	mode.dmFields     = DM_PELSWIDTH | DM_PELSHEIGHT | DM_BITSPERPEL;
+	//TODO: maybe add possibilty for display modes?
+	//games *might* want to set a different resolution (low prio)
 
-	/*
-	if (ChangeDisplaySettings(&mode, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
-	{
-		sendWarning("WinapiWindowContext::fullscreen: Failed to change display mode");
-		return;
-	}
-	*/
+	//store current state
+	savedState_.style = GetWindowLong(handle(), GWL_STYLE);
+	savedState_.exstyle = GetWindowLong(handle(), GWL_EXSTYLE);
+	savedState_.extensts = extents();
 
-	::SetWindowLongW(handle(), GWL_STYLE, WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
-	::SetWindowLongW(handle(), GWL_EXSTYLE, WS_EX_APPWINDOW  | WS_EX_TOPMOST);
+ 	MONITORINFO monitorinfo;
+  	monitorinfo.cbSize = sizeof(monitorinfo);
+    GetMonitorInfo(MonitorFromWindow(handle(), MONITOR_DEFAULTTONEAREST), &monitorinfo);
+	auto& rect = monitorinfo.rcMonitor;
 
-	::SetWindowPos(handle(), HWND_TOP, 0, 0, 1920, 1080, SWP_FRAMECHANGED);
-	::ShowWindow(handle(), SW_SHOW);
+	::SetWindowLong(handle(), GWL_STYLE, WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
+	::SetWindowLong(handle(), GWL_EXSTYLE, WS_EX_APPWINDOW  | WS_EX_TOPMOST);
+
+	::SetWindowPos(handle(), HWND_TOP, rect.left, rect.top, rect.right, rect.bottom,
+		SWP_ASYNCWINDOWPOS | SWP_FRAMECHANGED);
+	::ShowWindowAsync(handle(), SW_SHOW);
+
+	fullscreen_ = true;
 }
 
 void WinapiWindowContext::maximize()
 {
-	ShowWindow(handle_, SW_MAXIMIZE);
+	ShowWindowAsync(handle_, SW_MAXIMIZE);
 }
 
 void WinapiWindowContext::minimize()
 {
-	ShowWindow(handle_, SW_MINIMIZE);
+	ShowWindowAsync(handle_, SW_MINIMIZE);
 }
 
 void WinapiWindowContext::normalState()
 {
-	//TODO: restore fullscreen correctly
-	// SetWindowLongW(handle(), GWL_STYLE, WS_OVERLAPPEDWINDOW);
-	// SetWindowLongW(handle(), GWL_EXSTYLE, 0);
-	// SetWindowPos(handle(), HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOSIZE | SWP_NOMOVE);
+	if(fullscreen_)
+	{
+		auto& rect = savedState_.extents;
+		SetWindowLong(handle(), GWL_STYLE, savedState_.style);
+		SetWindowLong(handle(), GWL_EXSTYLE, savedState_.exstyle);
+		SetWindowPos(handle(), nullptr, rect.left(), rect.top(), rect.width(), rect.height(),
+			SWP_FRAMECHANGED);
+
+		fullscreen_ = false;
+	}
 
 	ShowWindow(handle_, SW_RESTORE);
 }
 
 void WinapiWindowContext::icon(const Image* img)
 {
+	//if nullptr passed set no icon
 	if(!img)
 	{
-		SendMessageW(handle(), WM_SETICON, ICON_BIG,   (LPARAM)nullptr);
-        SendMessageW(handle(), WM_SETICON, ICON_SMALL, (LPARAM)nullptr);
+		PostMessage(handle(), WM_SETICON, ICON_BIG, (LPARAM) nullptr);
+        PostMessage(handle(), WM_SETICON, ICON_SMALL, (LPARAM) nullptr);
 		return;
 	}
 
+	//windows wants the data in bgra format
 	auto cpy = *img;
 	cpy.format(Image::Format::bgra8888);
 
-	auto icon = CreateIcon(GetModuleHandleW(nullptr), cpy.size().x, cpy.size().y, 1, 32,
-		nullptr, cpy.data());
+	auto module = GetModuleHandle(nullptr);
+	auto icon = CreateIcon(module, cpy.size().x, cpy.size().y, 1, 32, nullptr, cpy.data());
 
-   if(icon)
-   {
-       SendMessageW(handle(), WM_SETICON, ICON_BIG,   (LPARAM)icon);
-       SendMessageW(handle(), WM_SETICON, ICON_SMALL, (LPARAM)icon);
-   }
-   else
-   {
-		sendWarning("WinapiWindowContext::icon: Failed to create winapi icon handle");
-   }
+   if(!icon) warning("WinapiWindowContext::icon: Failed to create winapi icon handle");
+
+   PostMessageW(handle(), WM_SETICON, ICON_BIG, (LPARAM) icon);
+   PostMessageW(handle(), WM_SETICON, ICON_SMALL, (LPARAM) icon);
 }
 
 void WinapiWindowContext::title(const std::string& title)

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <ny/window.hpp>
+#include <ny/window/window.hpp>
 
 namespace ny
 {

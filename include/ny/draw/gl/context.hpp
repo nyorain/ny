@@ -53,7 +53,7 @@ public:
 
 public:
 	GlContext() = default;
-	virtual ~GlContext() = default;
+	virtual ~GlContext();
 
 	///Returns the api this openGL context has, see the Api enum for more information.
 	Api api() const { return version().api; }

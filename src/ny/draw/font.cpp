@@ -17,14 +17,20 @@ Font::Font(const std::string& name, bool fromFile)
 
 void Font::loadFromFile(const std::string& filename)
 {
+	if(name_ == filename && fromFile_) return;
+
     name_ = filename;
     fromFile_ = 1;
+	invalidateCache();
 }
 
 void Font::loadFromName(const std::string& fontname)
 {
+	if(name_ == fontname && !fromFile_) return;
+
     name_ = fontname;
     fromFile_ = 0;
+	invalidateCache();
 }
 
 }

@@ -47,6 +47,7 @@ FreeTypeLibrary::FreeTypeLibrary()
 
 FreeTypeLibrary::~FreeTypeLibrary()
 {
+	Font::defaultFont().loadFromName("");
 	FT_Done_FreeType(lib_);
 }
 

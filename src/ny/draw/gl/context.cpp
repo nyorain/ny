@@ -128,6 +128,12 @@ void GlContext::assureGlesLoaded(const GlContext& ctx)
 	}
 }
 
+//non-static
+GlContext::~GlContext()
+{
+	makeNotCurrent();
+}
+
 void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)
 {
 	version_.api = api;

@@ -97,7 +97,7 @@ bool WinapiAppContext::dispatchLoop(EventDispatcher& dispatcher, LoopControl& co
 		if(ret == -1)
 		{
 			//error
-			sendWarning("WinapiAC::dispatchLoop: error code ", GetLastError());
+			sendWarning(errorMessage("WinapiAC::dispatchLoop"));
 			return false;
 		}
 		else if(ret == 0)
@@ -114,6 +114,62 @@ bool WinapiAppContext::dispatchLoop(EventDispatcher& dispatcher, LoopControl& co
 
 	dispatcherLoopControl_ = nullptr;
 	control.impl_.reset();
+	return true;
+}
+
+bool WinapiAppContext::threadedDispatchLoop(ThreadedEventDispatcher& dispatcher,
+	LoopControl& control)
+{
+	auto threadid = std::this_thread::get_id();
+	auto threadHandle = GetCurrentThreadId();
+
+	threadsafe_ = true;
+
+	//register a callback that is called everytime the dispatcher gets an event
+	//if the event comes from this thread, this thread is not waiting, otherwise
+	//wait this thread with a message.
+	auto conn = dispatcher.onDispatch.add([&] {
+			if(std::this_thread::get_id() != threadid)
+				PostThreadMessage(threadHandle, WM_USER, 0, 0);
+		});
+
+
+	//modified loop from dispatchLoop
+	std::atomic<bool> run {1};
+	control.impl_ = std::make_unique<LoopControlImpl>(run);
+
+	dispatcherLoopControl_ = &control;
+	eventDispatcher_ = &dispatcher;
+
+	MSG msg;
+	while(run.load())
+	{
+		auto ret = GetMessage(&msg, nullptr, 0, 0);
+		if(ret == -1)
+		{
+			//error
+			sendWarning(errorMessage("WinapiAC::dispatchLoop"));
+			return false;
+		}
+		else if(ret == 0)
+		{
+			//quit
+			return false;
+		}
+		else
+		{
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+	}
+
+	dispatcherLoopControl_ = nullptr;
+	control.impl_.reset();
+
+	//unregistert the dispatcher callback
+	conn.destroy();
+	threadsafe_ = false;
+
 	return true;
 }
 
@@ -139,146 +195,164 @@ WinapiWindowContext* WinapiAppContext::windowContext(HWND w)
 LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LPARAM lparam)
 {
     //todo: implement all events correctly, look em up
-	auto context = windowContext(window);
+	auto context = eventDispatcher_ ? windowContext(window) : nullptr;
 	auto handler = context ? context->eventHandler() : nullptr;
 
 	bool handlerEvents = (handler && eventDispatcher_);
 	bool contextEvents = (context && eventDispatcher_);
 
+	auto threadedDispatcher = dynamic_cast<ThreadedEventDispatcher*>(eventDispatcher_);
+
+	//utilty function used to dispatch event
+	auto dispatch = [&](auto&& ev) {
+			if(threadsafe_) eventDispatcher_->send(std::move(ev));
+			else eventDispatcher_->dispatch(std::move(ev));
+		};
+
+	//to be returned
+	LRESULT result = 0;
+
     switch(message)
     {
         case WM_CREATE:
         {
-            return 0;
+			break;
         }
 
         case WM_MOUSEMOVE:
         {
 			if(handlerEvents)
 			{
-				auto ev = std::make_unique<MouseMoveEvent>(handler);
-				ev->position = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
-				eventDispatcher_->dispatch(std::move(ev));
+				MouseMoveEvent ev(handler);
+				ev.position = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+				dispatch(ev);
 			}
 
-			return 0;
+			break;
         }
 
 		case WM_LBUTTONDOWN:
         {
 			if(handlerEvents)
 			{
-				auto ev = std::make_unique<MouseButtonEvent>(handler);
-				ev->position = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
-				ev->pressed = true;
-				ev->button = Mouse::Button::left;
-				eventDispatcher_->dispatch(std::move(ev));
+				MouseButtonEvent ev(handler);
+				ev.position = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+				ev.pressed = true;
+				ev.button = Mouse::Button::left;
+				dispatch(ev);
 			}
 
-			return 0;
+			break;
         }
 
 		case WM_LBUTTONUP:
         {
 			if(handlerEvents)
 			{
-				auto ev = std::make_unique<MouseButtonEvent>(handler);
-				ev->position = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
-				ev->pressed = false;
-				ev->button = Mouse::Button::left;
-				eventDispatcher_->dispatch(std::move(ev));
+				MouseButtonEvent ev(handler);
+				ev.position = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+				ev.pressed = false;
+				ev.button = Mouse::Button::left;
+				dispatch(ev);
 			}
 
-			return 0;
+			break;
         }
 
 		case WM_KEYDOWN:
 		{
 			if(handlerEvents)
 			{
-				auto ev = std::make_unique<KeyEvent>(handler);
-				ev->key = winapiToKey(wparam);
-				ev->pressed = true;
+				KeyEvent ev(handler);
+				ev.key = winapiToKey(wparam);
+				ev.pressed = true;
 				eventDispatcher_->dispatch(std::move(ev));
 			}
 
-			return 0;
+			break;
 		}
 
 		case WM_KEYUP:
 		{
 			if(handlerEvents)
 			{
-				auto ev = std::make_unique<KeyEvent>(handler);
-				ev->key = winapiToKey(wparam);
-				ev->pressed = false;
+				KeyEvent ev(handler);
+				ev.key = winapiToKey(wparam);
+				ev.pressed = false;
 				eventDispatcher_->dispatch(std::move(ev));
 			}
 
-			return 0;
+			break;
 		}
 
         case WM_PAINT:
         {
 			if(handlerEvents)
 			{
-				auto ev = std::make_unique<DrawEvent>(handler);
-				eventDispatcher_->dispatchSync(std::move(ev));
+				DrawEvent ev(handler);
+				dispatch(ev);
 			}
 
-            return DefWindowProc(window, message, wparam, lparam); //to validate the window
-
-			//::ValidateRect(window, nullptr);
-			//return 0;
+            result = DefWindowProc(window, message, wparam, lparam); //to validate the window
+			break;
         }
 
 		case WM_DESTROY:
 		{
 			if(handlerEvents)
 			{
-				auto ev = std::make_unique<CloseEvent>(handler);
-				eventDispatcher_->dispatch(std::move(ev));
+				CloseEvent ev(handler);
+				dispatch(ev);
 			}
 
-			return 0;
+			break;
 		}
 
         case WM_SIZE:
         {
 			if(handlerEvents)
 			{
-				auto ev = std::make_unique<SizeEvent>(handler);
-				eventDispatcher_->dispatchSync(std::move(ev));
+				SizeEvent ev(handler);
+				dispatch(ev);
 			}
 
-			return 0;
+			break;
         }
 
         case WM_MOVE:
         {
 			if(handlerEvents)
 			{
-				auto ev = std::make_unique<PositionEvent>(handler);
-				eventDispatcher_->dispatch(std::move(ev));
+				PositionEvent ev(handler);
+				dispatch(ev);
 			}
 
-			return 0;
+			break;
         }
 
         case WM_ERASEBKGND:
         {
-            return 1;
+			result = 1;
+			break;
         }
 
 		case WM_QUIT:
 		{
 			receivedQuit_ = 1;
+			debug("Receive WM_QUIT message");
 			if(dispatcherLoopControl_) dispatcherLoopControl_->stop();
-			return 0;
+			break;
+		}
+
+		default:
+		{
+			result = DefWindowProc(window, message, wparam, lparam);
+			break;
 		}
     }
 
-	return DefWindowProc (window, message, wparam, lparam);
+	if(threadsafe_ && threadedDispatcher) threadedDispatcher->processEvents();
+	return result;
 }
 
 

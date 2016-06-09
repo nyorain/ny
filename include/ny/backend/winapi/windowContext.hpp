@@ -15,19 +15,6 @@ class WinapiWindowSettings : public WindowSettings {};
 ///WindowContext for winapi windows using the winapi backend on a windows OS.
 class WinapiWindowContext : public WindowContext
 {
-protected:
-	WinapiAppContext* appContext_;
-
-    HWND handle_;
-    WNDCLASSEX wndClass_;
-	unsigned int style_;
-
-protected:
-	WinapiWindowContext() = default;
-	virtual void initWindowClass(const WinapiWindowSettings& settings);
-	virtual void initWindow(const WinapiWindowSettings& settings);
-	virtual void setStyle(const WinapiWindowSettings& settings);
-
 public:
     WinapiWindowContext(WinapiAppContext& ctx, const WinapiWindowSettings& settings = {});
     virtual ~WinapiWindowContext();
@@ -76,6 +63,32 @@ public:
     WNDCLASSEX windowClass() const { return wndClass_; }
 
 	Rect2i extents() const;
+
+protected:
+	struct State
+	{
+		std::uint64_t style;
+		std::uint64_t exstyle;
+		Rect2i extents;
+		bool maximized;
+		bool minimized;
+	};
+
+protected:
+	WinapiWindowContext() = default;
+	virtual void initWindowClass(const WinapiWindowSettings& settings);
+	virtual void initWindow(const WinapiWindowSettings& settings);
+	virtual void setStyle(const WinapiWindowSettings& settings);
+
+protected:
+	WinapiAppContext* appContext_;
+
+    HWND handle_;
+    WNDCLASSEX wndClass_;
+
+	bool fullscreen_;
+	std::uint64_t style_;
+	State savedState_;
 };
 
 

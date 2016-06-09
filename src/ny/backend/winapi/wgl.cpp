@@ -118,6 +118,7 @@ WglContext::WglContext(WinapiWindowContext& wc) : GlContext(), wc_(&wc)
 
 WglContext::~WglContext()
 {
+	makeNotCurrent();
 	if(wglContext_) ::wglDeleteContext(wglContext_);
 }
 
@@ -256,7 +257,7 @@ WglWindowContext::WglWindowContext(WinapiAppContext& ctx, const WinapiWindowSett
 	}
 
 	WinapiWindowContext::initWindowClass(settings);
-	wndClass_.style |= CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
+	wndClass_.style |= CS_OWNDC;
 
 	if(!::RegisterClassEx(&wndClass_))
 	{
@@ -281,7 +282,7 @@ DrawGuard WglWindowContext::draw()
 		throw std::runtime_error(errorMessage("WglWC::draw: Failed to make wgl Context current"));
 
 	RECT rect;
-	::GetWindowRect(handle(), &rect);
+	::GetClientRect(handle(), &rect);
 	glViewport(0, 0, rect.right - rect.left, rect.bottom - rect.top);
 
 	return DrawGuard(*drawContext_);

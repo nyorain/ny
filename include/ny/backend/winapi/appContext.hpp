@@ -18,26 +18,20 @@ public:
 	class LoopControlImpl;
 	static LRESULT CALLBACK wndProcCallback(HWND a, UINT b, WPARAM c, LPARAM d);
 
-protected:
-    HINSTANCE instance_ = nullptr;
-    STARTUPINFO startupInfo_;
-
-    std::map<HWND, WinapiWindowContext*> contexts_;
-
-    GdiplusStartupInput gdiplusStartupInput_;
-    ULONG_PTR gdiplusToken_;
-
-	LoopControl* dispatcherLoopControl_ = nullptr;
-	EventDispatcher* eventDispatcher_ = nullptr;
-
-	bool receivedQuit_ = 0;
+	enum class DispatchStatus
+	{
+		dispatch,
+		send
+	};
 
 public:
     WinapiAppContext();
     ~WinapiAppContext();
 
-	virtual bool dispatchEvents(EventDispatcher& dispatcher) override;
-	virtual bool dispatchLoop(EventDispatcher& dispatcher, LoopControl& control) override;
+	//interface implementation
+	virtual bool dispatchEvents(EventDispatcher& disp) override;
+	virtual bool dispatchLoop(EventDispatcher& disp, LoopControl& control) override;
+	virtual bool threadedDispatchLoop(ThreadedEventDispatcher& disp, LoopControl& ctrl) override;
 
     //data specifications
     LRESULT eventProc(HWND, UINT, WPARAM, LPARAM);
@@ -51,6 +45,21 @@ public:
 
     HINSTANCE hinstance() const { return instance_; };
     const STARTUPINFO& startupInfo() const { return startupInfo_; };
+
+protected:
+    HINSTANCE instance_ = nullptr;
+    STARTUPINFO startupInfo_;
+
+    GdiplusStartupInput gdiplusStartupInput_;
+    ULONG_PTR gdiplusToken_;
+
+    std::map<HWND, WinapiWindowContext*> contexts_;
+
+	LoopControl* dispatcherLoopControl_ = nullptr;
+	EventDispatcher* eventDispatcher_ = nullptr;
+
+	bool receivedQuit_ = false;
+	bool threadsafe_ = false;
 };
 
 }
