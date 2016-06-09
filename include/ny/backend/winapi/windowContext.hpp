@@ -16,6 +16,9 @@ class WinapiWindowSettings : public WindowSettings {};
 class WinapiWindowContext : public WindowContext
 {
 public:
+	static const char* nativeWidgetClassName();
+
+public:
     WinapiWindowContext(WinapiAppContext& ctx, const WinapiWindowSettings& settings = {});
     virtual ~WinapiWindowContext();
 
@@ -79,6 +82,8 @@ protected:
 	virtual void initWindowClass(const WinapiWindowSettings& settings);
 	virtual void initWindow(const WinapiWindowSettings& settings);
 	virtual void setStyle(const WinapiWindowSettings& settings);
+
+	void unsetFullscreen();
 
 protected:
 	WinapiAppContext* appContext_;

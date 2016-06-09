@@ -50,6 +50,10 @@ int main()
 	myButton3.label("Normal");
 	myButton3.onClick = [&]{ std::cout << "Clicked!\n"; window.reset(); };
 
+	ny::Button myButton4(myGui, {500, 200}, {100, 45});
+	myButton4.label("Minimize");
+	myButton4.onClick = [&]{ std::cout << "Clicked!\n"; window.minimize(); };
+
 	ny::Rectangle rect({100, 100}, {100, 100});
 	MyHandler myHandler;
 

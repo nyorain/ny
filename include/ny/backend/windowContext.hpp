@@ -36,6 +36,7 @@ public:
 	virtual DrawGuard draw() = 0;
 
 	///Sets the EventHandler that should receive the events associated with this windowContext.
+	///The event handler will receive information about window state changes and input.
 	virtual void eventHandler(EventHandler& handler) { eventHandler_ = &handler; }
 
 	///Returns the associated EventHandler of this windowContext, nullptr if there is none.
@@ -63,7 +64,7 @@ public:
     virtual void size(const Vec2ui& size) = 0;
 
 	///Sets the position of the window.
-    virtual void position(const Vec2i& position) = 0; //...
+    virtual void position(const Vec2i& position) = 0;
 
 	///Sets the mouse cursor of the window.
     virtual void cursor(const Cursor& c) = 0;
@@ -85,6 +86,7 @@ public:
     virtual void fullscreen() = 0;
 
 	///Resets the window in normal toplevel state.
+	///If it is currently maximized, minimized or in fullscreen, these states will be removed.
 	///\warning Shall have only an effect for toplevel windows.
     virtual void normalState() = 0; //or reset()?
 
