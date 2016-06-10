@@ -8,11 +8,9 @@ set(src-draw
 	gradient.cpp
 	brush.cpp
 	pen.cpp
-	image.cpp
 	svg.cpp
 	font.cpp
 	triangulate.cpp)
-	#pugixml/pugixml.cpp)
 
 if(${WithGL})
 	set(include-draw ${include-draw} "${CMAKE_SOURCE_DIR}/include/ny/draw/gl/glad")

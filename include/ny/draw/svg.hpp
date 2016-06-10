@@ -3,7 +3,7 @@
 #include <ny/include.hpp>
 #include <ny/base/file.hpp>
 #include <ny/draw/drawContext.hpp>
-#include <ny/draw/image.hpp>
+#include <ny/base/image.hpp>
 
 #include <memory>
 

@@ -3,9 +3,9 @@
 #include <ny/backend/winapi/appContext.hpp>
 
 #include <ny/base/log.hpp>
-#include <ny/window/cursor.hpp>
+#include <ny/base/cursor.hpp>
 
-#include <ny/draw/image.hpp>
+#include <ny/base/image.hpp>
 #include <ny/draw/drawContext.hpp>
 
 #include <tchar.h>

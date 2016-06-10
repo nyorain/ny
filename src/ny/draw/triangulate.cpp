@@ -3,6 +3,8 @@
 #include <nytl/line.hpp>
 #include <nytl/vec.hpp>
 
+//TODO: REALLY needs a rework...
+
 namespace ny
 {
 
@@ -46,7 +48,7 @@ float updateAngle(std::size_t i)
     Vec2f l2(points[nextPoint(i)].pos - points[i].pos);
 
     points[i].angle = cangle(l1, l2) / cDeg;
-    fullangle += (points[i].pos.x - points[prevPoint(i)].pos.x) * 
+    fullangle += (points[i].pos.x - points[prevPoint(i)].pos.x) *
 		(points[i].pos.y + points[prevPoint(i)].pos.y);
 
     return points[i].angle;

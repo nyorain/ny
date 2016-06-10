@@ -1,5 +1,5 @@
 #include <ny/draw/cairo.hpp>
-#include <ny/draw/image.hpp>
+#include <ny/base/image.hpp>
 #include <ny/draw/font.hpp>
 
 #include <ny/base/log.hpp>

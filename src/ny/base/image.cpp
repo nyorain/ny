@@ -1,4 +1,4 @@
-#include <ny/draw/image.hpp>
+#include <ny/base/image.hpp>
 #include <ny/base/log.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION

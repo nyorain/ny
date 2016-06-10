@@ -1,17 +1,18 @@
 #include <ny/window/window.hpp>
 #include <ny/window/events.hpp>
-#include <ny/window/cursor.hpp>
 
+#include <ny/base/cursor.hpp>
 #include <ny/base/event.hpp>
+#include <ny/base/log.hpp>
+
 #include <ny/app/app.hpp>
+#include <ny/app/mouse.hpp>
+#include <ny/app/keyboard.hpp>
 #include <ny/backend/backend.hpp>
 #include <ny/backend/windowContext.hpp>
 #include <ny/draw/drawContext.hpp>
-#include <ny/app/mouse.hpp>
-#include <ny/app/keyboard.hpp>
 
 #include <nytl/misc.hpp>
-#include <ny/base/log.hpp>
 
 #include <iostream>
 #include <climits>

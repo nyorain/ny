@@ -2,7 +2,7 @@
 
 #include <ny/include.hpp>
 #include <ny/draw/texture.hpp>
-#include <ny/draw/image.hpp>
+#include <ny/base/image.hpp>
 #include <ny/draw/color.hpp>
 #include <ny/draw/gl/resource.hpp>
 

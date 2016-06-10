@@ -69,6 +69,9 @@ public:
 	std::unique_ptr<DialogSettingsData> data;
 
 public:
+	DialogSettings() = default;
+	~DialogSettings() = default;
+	
 	DialogSettings(const DialogSettings& other) : type(other.type)
 	{
 		data = clone(*other.data);

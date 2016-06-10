@@ -1,5 +1,5 @@
-#include <ny/window/cursor.hpp>
-#include <ny/draw/image.hpp>
+#include <ny/base/cursor.hpp>
+#include <ny/base/image.hpp>
 
 namespace ny
 {

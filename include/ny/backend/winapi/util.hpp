@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ny/app/keyboard.hpp>
-#include <ny/window/cursor.hpp>
+#include <ny/base/cursor.hpp>
 
 namespace ny
 {

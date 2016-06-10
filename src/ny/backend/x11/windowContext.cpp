@@ -7,7 +7,7 @@
 
 #include <ny/base/event.hpp>
 #include <ny/base/log.hpp>
-#include <ny/window/cursor.hpp>
+#include <ny/base/cursor.hpp>
 #include <ny/draw/drawContext.hpp>
 
 #include <xcb/xcb.h>

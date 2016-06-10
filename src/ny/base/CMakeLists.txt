@@ -1,6 +1,10 @@
 set(include-base ${include-ny})
 
-set(src-base log.cpp)
+set(src-base
+	log.cpp
+	image.cpp
+	pugixml.cpp
+	cursor.cpp)
 
 add_library(ny-base SHARED ${src-base})
 target_link_libraries(ny-base ${libs-base})
