@@ -18,9 +18,9 @@ enum class WindowHints : unsigned int
     minimize = (1L << 3),
     resize = (1L << 4),
     customDecorated = (1L << 5),
-    acceptDrop = (1L << 6), //deprecated
-    alwaysOnTop = (1L << 7), //deprecated
-    showInTaskbar = (1L << 8) //deprecated
+    acceptDrop = (1L << 6),
+    alwaysOnTop = (1L << 7),
+    showInTaskbar = (1L << 8) 
 };
 
 ///Typesafe enum that specifies the edges of a window (e.g. for resizing).

@@ -58,6 +58,10 @@ WinapiAppContext::WinapiAppContext()
     GetStartupInfo(&startupInfo_);
     GdiplusStartup(&gdiplusToken_, &gdiplusStartupInput_, nullptr);
 
+	//needed for dnd and clipboard
+	auto res = OleInitialize(nullptr);
+	if(res != S_OK) warning("WinapiWC: OleInitialize failed with code ", res);
+
 	gAC = this;
 }
 

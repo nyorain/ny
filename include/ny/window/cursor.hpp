@@ -55,7 +55,7 @@ public:
 
     const Image* image() const;
     Vec2i imageHotspot() const;
-    Type nativeType() const;
+    Type type() const;
 };
 
 }

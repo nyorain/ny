@@ -11,6 +11,41 @@
 namespace ny
 {
 
+namespace
+{
+
+//DropTarget winapi implementation
+class DropTargetImpl : public IDropTarget
+{
+public:
+	STDMETHODIMP DragEnter(IDataObject* data, DWORD keyState, POINTL pos, DWORD* effect)
+	{
+		*effect = DROPEFFECT_COPY;
+		return S_OK;
+	}
+
+	STDMETHODIMP DragOver(DWORD keyState, POINTL pos, DWORD* effect)
+	{
+		*effect = DROPEFFECT_COPY;
+		return S_OK;
+	}
+
+	STDMETHODIMP DragLeave()
+	{
+		return S_OK;
+	}
+
+	STDMETHODIMP Drop(IDataObject* data, DWORD keyState, POINTL pos, DWORD*  effect)
+	{
+		//XXX: do something with the data (e.g. fill event)
+		*effect = DROPEFFECT_COPY;
+		log("Got Drop");
+		return S_OK;
+	}
+};
+
+}
+
 //static
 const char* WinapiWindowContext::nativeWidgetClassName(NativeWidgetType type)
 {
@@ -151,9 +186,46 @@ void WinapiWindowContext::hide()
 
 void WinapiWindowContext::addWindowHints(WindowHints hints)
 {
+	if(hints & WindowHints::customDecorated)
+	{
+		auto style = ::GetWindowLong(handle(), GWL_STYLE);
+		style &= ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_CLOSE | WS_SYSMENU);
+		::SetWindowLong(handle(), GWL_STYLE, style);
+
+		auto exStyle = ::GetWindowLong(handle(), GWL_EXSTYLE);
+		exStyle &= ~(WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
+		::SetWindowLong(handle(), GWL_EXSTYLE, exStyle);
+	}
+	if(hints & WindowHints:::acceptDrop)
+	{
+		if(!dropTarget_) dropTarget_ = std::make_unique<DropTargetImpl>();
+		::RegisterDragDrop(handle(), dropTarget_.get());
+	}
+	if(hints & WindowHints::alwaysOnTop)
+	{
+		::SetWindowPos(handle(), HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
+	}
 }
 void WinapiWindowContext::removeWindowHints(WindowHints hints)
 {
+	if(hints & WindowHints::customDecorated)
+	{
+		auto style = ::GetWindowLong(handle(), GWL_STYLE);
+		style |= (WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_CLOSE | WS_SYSMENU);
+		::SetWindowLong(handle(), GWL_STYLE, style);
+
+		auto exStyle = ::GetWindowLong(handle(), GWL_EXSTYLE);
+		exStyle |= (WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
+		::SetWindowLong(handle(), GWL_EXSTYLE, exStyle);
+	}
+	if(hints & WindowHints:::acceptDrop)
+	{
+		::RevokeDragDrop(handle());
+	}
+	if(hints & WindowHints::alwaysOnTop)
+	{
+		::SetWindowPos(handle(), HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
+	}
 }
 
 bool WinapiWindowContext::handleEvent(const Event& e)
@@ -171,6 +243,53 @@ void WinapiWindowContext::position(const Vec2i& position)
 
 void WinapiWindowContext::cursor(const Cursor& c)
 {
+	//TODO: here and icon: system metrics
+	if(c.type() == Cursor::Type::Image)
+	{
+		auto cpy = *c.image();
+		cpy.format(Image::Format::bgra8888);
+
+		auto hs = c.imageHotspot();
+		auto size = c.image()->size();
+
+		auto bitmap = ::CreateBitmap(size.x, size.y, 1, 32, cpy.data());
+
+		ICONINFO iconinfo;
+		iconinfo.fIcon = false;
+		iconinfo.xHotspot = hs.x;
+		iconinfo.yHotspot = hs.y;
+		iconinfo.hbmMask = nullptr;
+		iconinfo.hbmColor = bitmap;
+
+		auto icon = ::CreateIconIndirect(&iconinfo);
+		cursor_ = reinterpret_cast<HCURSOR>(icon);
+		::SetCursor(cursor_);
+
+		DeleteObject(bitmap);
+	}
+	else if(c.type() == Cursor::Type::None)
+	{
+		cursor_ = nullptr;
+		::SetCursor(cursor_);
+	}
+	else
+	{
+		auto cursorName = cursorToWinapi(c.type());
+		if(!cursorName)
+		{
+			warning("WinapiWC::cursor: invalid native cursor type");
+			return;
+		}
+
+		cursor_ = ::LoadCursor(hinstance(), cursorName);
+		if(!cursor_)
+		{
+			warning("WinapiWC::cursor: failed to load native cursor ", cursorName);
+			return;
+		}
+
+		::SetCursor(cursor_);
+	}
 }
 
 void WinapiWindowContext::fullscreen()

@@ -5,6 +5,7 @@
 #include <nytl/rect.hpp>
 
 #include <windows.h>
+#include <oledl.h>
 
 namespace ny
 {
@@ -70,11 +71,11 @@ public:
 protected:
 	struct State
 	{
-		std::uint64_t style;
-		std::uint64_t exstyle;
-		Rect2i extents;
-		bool maximized;
-		bool minimized;
+		std::uint64_t style {};
+		std::uint64_t exstyle {};
+		Rect2i extents {};
+		bool maximized {};
+		bool minimized {};
 	};
 
 protected:
@@ -86,13 +87,15 @@ protected:
 	void unsetFullscreen();
 
 protected:
-	WinapiAppContext* appContext_;
+	WinapiAppContext* appContext_ = nullptr;
 
-    HWND handle_;
-    WNDCLASSEX wndClass_;
+    HWND handle_ = nullptr;
+    WNDCLASSEX wndClass_ {};
+	std::unique_ptr<IDropTarget> dropTarget_;
+	HCURSOR cursor_ = nullptr;
 
-	bool fullscreen_;
-	std::uint64_t style_;
+	bool fullscreen_ = false;
+	std::uint64_t style_ = 0;
 	State savedState_;
 };
 

@@ -6,6 +6,7 @@
 
 #include <nytl/nonCopyable.hpp>
 #include <nytl/vec.hpp>
+#include <nytl/any.hpp>
 
 #include <memory>
 #include <bitset>
@@ -111,6 +112,8 @@ public:
 	virtual void icon(const Image*) = 0; //may be only important for client decoration
 
 	///Returns whether the window should be custom decorated.
+	///Custom decoration can either be manually triggered by setting the custom decorated
+	///window hint or the backend may tell the client to decrate itself (i.e. wayland).
 	///\warning Will only return a valid value for toplevel windows.
 	virtual bool customDecorated() const = 0;
 
@@ -121,6 +124,31 @@ public:
 	///Tries to remove the given window hints from the window.
 	///\warning Window  hints are only valid for toplevel windows.
 	virtual void removeWindowHints(WindowHints hints) = 0;
+
+	///If this window is a native dialog, a dialog context pointer is returned, nullptr otherwise.
+	DialogContext* dialogContext() const = 0;
+};
+
+///Interface for native dialogs.
+class DialogContext
+{
+public:
+	///Returns the result of the dialog, or DialogResult::none if the dialog
+	///is not yet finished.
+	virtual DialogResult result() const = 0;
+
+	///Returns only once the dialog has finished and returns the result.
+	virtual DialogResult modal() = 0;
+
+	///Returns whether the dialog has already finished.
+	virtual bool finished() const = 0;
+
+	///Return the data the dialog was dealing with. This usually be something like
+	///Color, filepath or other variable type.
+	///If the dialog is not yet finished, an empty any object should be returned.
+	///There can also exist dialog contexts that do not have any data (e.g. messsage boxes)
+	///which should return an empty any object as well.
+	std::any data() const = 0;
 };
 
 }

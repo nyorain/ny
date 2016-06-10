@@ -54,7 +54,7 @@ Vec2i Cursor::imageHotspot() const
     return hotspot_;
 }
 
-Cursor::Type Cursor::nativeType() const
+Cursor::Type Cursor::type() const
 {
     return type_;
 }
