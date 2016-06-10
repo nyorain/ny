@@ -7,21 +7,10 @@
 namespace ny
 {
 
+///ToplevelWindows are all windows that have to parent window.
+///Some examples for further derived ToplevelWindow classes are Dialog and Frame.
 class ToplevelWindow : public Window
 {
-protected:
-    ToplevelState state_ {};
-    std::string title_ {};
-	Flags<WindowHints> hints_ {};
-
-protected:
-	virtual void mouseMoveEvent(const MouseMoveEvent& event) override;
-	virtual void mouseButtonEvent(const MouseButtonEvent& event) override;
-
-	ToplevelWindow() = default;
-	void create(App& app, const Vec2ui& size, const std::string& title = "",
-			const WindowSettings& = {});
-
 public:
 	ToplevelWindow(App& app, const Vec2ui& size, const std::string& title = "",
 			const WindowSettings& settings = {});
@@ -56,6 +45,19 @@ public:
 	void minimize();
 	void fullscreen();
 	void reset();
+
+protected:
+    ToplevelState state_ {};
+    std::string title_ {};
+	Flags<WindowHints> hints_ {};
+
+protected:
+	virtual void mouseMoveEvent(const MouseMoveEvent& event) override;
+	virtual void mouseButtonEvent(const MouseButtonEvent& event) override;
+
+	ToplevelWindow() = default;
+	void create(App& app, const Vec2ui& size, const std::string& title = "",
+			const WindowSettings& = {});
 };
 
 }

@@ -63,6 +63,7 @@ public:
     //winapi specific
 	WinapiAppContext& appContext() const { return *appContext_; }
 
+	HINSTANCE hinstance() const;
     HWND handle() const { return handle_; }
     WNDCLASSEX windowClass() const { return wndClass_; }
 
@@ -80,8 +81,14 @@ protected:
 
 protected:
 	WinapiWindowContext() = default;
+
 	virtual void initWindowClass(const WinapiWindowSettings& settings);
+	virtual WNDCLASSEX windowClass(const WinapiWindowSettings& settings);
+
 	virtual void initWindow(const WinapiWindowSettings& settings);
+	virtual void initDialog(const WinapiWindowSettings& settings);
+	virtual void showWindow(const WinapiWindowSettings& settings);
+
 	virtual void setStyle(const WinapiWindowSettings& settings);
 
 	void unsetFullscreen();
@@ -89,8 +96,9 @@ protected:
 protected:
 	WinapiAppContext* appContext_ = nullptr;
 
+	std::string wndClassName_;
+
     HWND handle_ = nullptr;
-    WNDCLASSEX wndClass_ {};
 	std::unique_ptr<IDropTarget> dropTarget_;
 	HCURSOR cursor_ = nullptr;
 

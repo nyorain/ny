@@ -52,6 +52,7 @@ public:
 	using EvBase::EvBase;
 
     bool show = 0;
+	ToplevelState state;
     //showState here
 };
 

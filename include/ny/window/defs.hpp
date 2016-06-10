@@ -20,7 +20,7 @@ enum class WindowHints : unsigned int
     customDecorated = (1L << 5),
     acceptDrop = (1L << 6),
     alwaysOnTop = (1L << 7),
-    showInTaskbar = (1L << 8) 
+    showInTaskbar = (1L << 8)
 };
 
 ///Typesafe enum that specifies the edges of a window (e.g. for resizing).
@@ -37,6 +37,33 @@ enum class WindowEdges : unsigned char
     bottomRight = 6,
     topLeft = 9,
     bottomLeft = 12,
+};
+
+///Result from a dialog.
+enum class DialogResult
+{
+	none, ///not finished yet
+	ok, ///Dialog finished as expected
+	cancel ///Dialog was canceled
+};
+
+///Type of a natvie dialog.
+enum class DialogType
+{
+	none, ///Default, no dialog type
+	color, ///Returns a color
+	path, ///Returns a file or directory path
+	custom ///Returns some custom value
+};
+
+///DialogSettings
+class DialogSettings
+{
+public:
+	DialogType type;
+
+public:
+	virtual ~DialogSettings();
 };
 
 ///Typesafe enums that can be used for various settings with more control than just a bool.
@@ -118,21 +145,26 @@ public:
 };
 
 ///Settings for a Window.
+///Backends usually have their own WindowSettings class derived from this one.
 class WindowSettings
 {
 public:
     virtual ~WindowSettings() = default;
 
     DrawType draw = DrawType::dontCare;
-	std::bitset<64> events = {1};
 	NativeWindowHandle nativeHandle = nullptr;
 	NativeWindowHandle parent = nullptr;
 	ToplevelState initState = ToplevelState::normal;
-	NativeWidgetType nativeWidgetType = NativeWidgetType::none;
+	DialogType dialogType = DialogType::none;
 	Vec2ui size = {800, 500};
 	Vec2i position = {~0, ~0};
 	std::string title = "Some Random Window Title";
 	bool initShown = true;
+
+	NativeWidgetType nativeWidgetType = NativeWidgetType::none;
+	std::unique_ptr<DialogSettings> dialogSettings = nullptr;
+
+	std::bitset<64> events = {1};
 };
 
 }

@@ -220,20 +220,48 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
     {
         case WM_CREATE:
         {
+			result = DefWindowProc(window, message, wparam, lparam);
 			break;
         }
 
         case WM_MOUSEMOVE:
         {
+			Vec2i position{GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+
+			if(mouseOver_ != window)
+			{
+				mouseOver_ = window;
+				if(handlerEvents)
+				{
+					MouseCrossEvent ev(handler);
+					ev.entered = true;
+					ev.position = position;
+					dispatch(ev);
+				}
+			}
+
 			if(handlerEvents)
 			{
 				MouseMoveEvent ev(handler);
-				ev.position = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+				ev.position = position;
 				dispatch(ev);
 			}
 
 			break;
         }
+
+		case WM_MOUSELEAVE:
+		{
+			mouseOver_ = nullptr;
+
+			if(handlerEvents)
+			{
+				MouseCrossEvent ev(handler);
+				ev.entered = false;
+				dispatch(ev);
+			}
+			break;
+		}
 
 		case WM_LBUTTONDOWN:
         {
@@ -245,7 +273,6 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 				ev.button = Mouse::Button::left;
 				dispatch(ev);
 			}
-
 			break;
         }
 
@@ -333,6 +360,33 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 
 			break;
         }
+
+		case WM_SYSCOMMAND:
+		{
+			if(handlerEvents)
+			{
+				ShowEvent ev(handler);
+				ev.shown = true;
+				if(wparam == SC_MAXIMIZE)
+				{
+					ev.state = ToplevelState::maximized;
+					dispatch(ev);
+				}
+				else if(wparam == SC_MINIMIZE)
+				{
+					ev.state = ToplevelState::minimized;
+					dispatch(ev);
+				}
+				else if(wparam == SC_RESTORE)
+				{
+					ev.state = ToplevelState::normal;
+					dispatch(ev);
+				}
+			}
+
+			result = DefWindowProc(window, message, wparam, lparam);
+			break;
+		}
 
         case WM_ERASEBKGND:
         {

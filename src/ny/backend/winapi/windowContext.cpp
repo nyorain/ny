@@ -64,21 +64,9 @@ WinapiWindowContext::WinapiWindowContext(WinapiAppContext& appContext,
 {
     //init check
 	appContext_ = &appContext;
+    if(!hinstance()) throw std::runtime_error("winapiWC::create: uninitialized appContext");
 
-    if(!appContext_->hinstance())
-	{
-		throw std::runtime_error("winapiWC::create: uninitialized appContext");
-	}
-
-	setStyle(settings);
 	initWindowClass(settings);
-
-	if(!::RegisterClassEx(&wndClass_))
-	{
-		throw std::runtime_error("winapiWC::create: could not register window class");
-		return;
-	}
-
 	initWindow(settings);
 }
 
@@ -86,7 +74,7 @@ WinapiWindowContext::~WinapiWindowContext()
 {
     if(handle_)
 	{
-		::CloseWindow(handle_);
+		::DestroyWindow(handle_);
 		appContext().unregisterContext(handle_);
 	}
 }
@@ -95,34 +83,51 @@ void WinapiWindowContext::initWindowClass(const WinapiWindowSettings& settings)
 {
 	if(settings.nativeWidget != NativeWidgetType::none)
 	{
-		if(settings.nativeWidget == NativeWidget::dialog) return;
+		if(settings.nativeWidget == NativeWidget::dialog)
+		{
+			return;
+		}
 
 		auto hinstance = ::GetModuleHande(nullptr);
-		auto name = nativeWidgetName(settings.nativeWidget);
-		if(!name || !::GetClassInfo(hinstance, name, &wndClass_))
-			throw std::logic_error("WinapiWC: invalid native widget type");
+		auto name = nativeWidgetClassName(settings.nativeWidget);
+		if(!name) throw std::logic_error("WinapiWC: invalid native widget type");
+		wndClassName_ = name;
 
 		return;
 	}
 
+	auto wndClass = windowClass(settings);
+	if(!::RegisterClassEx(&wndClass))
+	{
+		throw std::runtime_error("winapiWC::create: could not register window class");
+		return;
+	}
+}
+
+WNDCLASSEX WinapiWindowContext::windowClass(const WinapiWindowSettings& settings)
+{
+	///XXX: threadsafety?
 	static unsigned int highestID = 0;
-
 	highestID++;
-	std::string name = "ny::WinapiWindowClass" + std::to_string(highestID);
 
-	wndClass_.hInstance = appContext().hinstance();
-	wndClass_.lpszClassName = _T(name.c_str());
-	wndClass_.lpfnWndProc = &WinapiAppContext::wndProcCallback;
-	wndClass_.style = CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW;
-	wndClass_.cbSize = sizeof(WNDCLASSEX);
-	wndClass_.hIcon = ::LoadIcon (nullptr, IDI_APPLICATION);
-	wndClass_.hIconSm = ::LoadIcon (nullptr, IDI_APPLICATION);
-	wndClass_.hCursor = ::LoadCursor (nullptr, IDC_ARROW);
-	wndClass_.lpszMenuName = nullptr;
-	wndClass_.cbClsExtra = 0;
-	wndClass_.cbWndExtra = 0;
-	//wndClass_.hbrBackground = (HBRUSH) ::GetStockObject(WHITE_BRUSH);
-	wndClass_.hbrBackground = nullptr;
+	wndClassName_ = "ny::WinapiWindowClass" + std::to_string(highestID);
+
+	WNDCLASSEX ret;
+	ret.hInstance = appContext().hinstance();
+	ret.lpszClassName = _T(wndClassName_.c_str());
+	ret.lpfnWndProc = &WinapiAppContext::wndProcCallback;
+	ret.style = CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW;
+	ret.cbSize = sizeof(WNDCLASSEX);
+	ret.hIcon = ::LoadIcon (nullptr, IDI_APPLICATION);
+	ret.hIconSm = ::LoadIcon (nullptr, IDI_APPLICATION);
+	ret.hCursor = ::LoadCursor (nullptr, IDC_ARROW);
+	ret.lpszMenuName = nullptr;
+	ret.cbClsExtra = 0;
+	ret.cbWndExtra = 0;
+	//ret.hbrBackground = (HBRUSH) ::GetStockObject(WHITE_BRUSH);
+	ret.hbrBackground = nullptr;
+
+	return ret;
 }
 
 void WinapiWindowContext::setStyle(const WinapiWindowSettings& settings)
@@ -146,23 +151,49 @@ void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 
 	if(settings.nativeWidget == NativeWidgetType::dialog)
 	{
-		handle_ ::CreateDialog();
-		return;
+		initDialog();
 	}
-
-	handle_ = ::CreateWindowEx(0, wndClass_.lpszClassName, _T(settings.title.c_str()), style_,
-		position.x, position.y, size.x, size.y, parent, nullptr, hinstance, this);
+	else
+	{
+		handle_ = ::CreateWindowEx(0, wndClass_.lpszClassName, _T(settings.title.c_str()), style_,
+			position.x, position.y, size.x, size.y, parent, nullptr, hinstance, this);
+	}
 
 	appContext().registerContext(handle_, *this);
+}
 
-	if(settings.initShown)
+void WinapiWindowContext::initDialog(const WinapiWindowSettings& settings)
+{
+	auto parent = static_cast<HWND>(settings.parent.pointer());
+	auto dialogProc = appContext()::
+
+	DLGTEMPLATE dtemp {};
+	handle_ = ::CreateDialogIndirect(hinstance(), &dtemp, parent, dialogProc);
+}
+
+void WinapiWindowContext::showWindow(const WinapiWindowSettings& settings)
+{
+	if(!settings.initShown) return;
+
+	if(settings.initState == ToplevelState::maximized)
 	{
-		if(settings.initState == ToplevelState::maximized) ::ShowWindowAsync(handle_, SW_SHOWMAXIMIZED);
-		else if(settings.initState == ToplevelState::minimized) ::ShowWindowAsync(handle_, SW_SHOWMINIMIZED);
-		else ::ShowWindowAsync(handle_, SW_SHOWDEFAULT);
-
-		::UpdateWindow(handle_);
+		::ShowWindowAsync(handle_, SW_SHOWMAXIMIZED);
 	}
+	else if(settings.initState == ToplevelState::minimized)
+	{
+		::ShowWindowAsync(handle_, SW_SHOWMINIMIZED);
+	}
+	else
+	{
+		::ShowWindowAsync(handle_, SW_SHOWDEFAULT);
+	}
+
+	::UpdateWindow(handle_);
+}
+
+HINSTANCE WinapiWindowContext::hinstance() const
+{
+	return appContext().hinstance();
 }
 
 void WinapiWindowContext::refresh()

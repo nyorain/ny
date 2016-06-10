@@ -126,7 +126,7 @@ public:
 	virtual void removeWindowHints(WindowHints hints) = 0;
 
 	///If this window is a native dialog, a dialog context pointer is returned, nullptr otherwise.
-	DialogContext* dialogContext() const = 0;
+	virtual DialogContext* dialogContext() const { return nullptr; }
 };
 
 ///Interface for native dialogs.
@@ -145,10 +145,12 @@ public:
 
 	///Return the data the dialog was dealing with. This usually be something like
 	///Color, filepath or other variable type.
+	///The stored type is determined by the DialogType value the Window context associated
+	///with this DialogContext was created with.
 	///If the dialog is not yet finished, an empty any object should be returned.
 	///There can also exist dialog contexts that do not have any data (e.g. messsage boxes)
 	///which should return an empty any object as well.
-	std::any data() const = 0;
+	virtual std::any data() const = 0;
 };
 
 }

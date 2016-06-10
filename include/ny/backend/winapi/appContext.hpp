@@ -15,14 +15,8 @@ namespace ny
 class WinapiAppContext : public AppContext
 {
 public:
-	class LoopControlImpl;
-	static LRESULT CALLBACK wndProcCallback(HWND a, UINT b, WPARAM c, LPARAM d);
-
-	enum class DispatchStatus
-	{
-		dispatch,
-		send
-	};
+	static LONG_PTR CALLBACK wndProcCallback(HWND a, UINT b, WPARAM c, LPARAM d);
+	static INT_PTR CALLBACK wndProcCallback(HWND a, UINT b, WPARAM c, LPARAM d);
 
 public:
     WinapiAppContext();
@@ -47,6 +41,9 @@ public:
     const STARTUPINFO& startupInfo() const { return startupInfo_; };
 
 protected:
+	class LoopControlImpl;
+
+protected:
     HINSTANCE instance_ = nullptr;
     STARTUPINFO startupInfo_;
 
@@ -54,6 +51,7 @@ protected:
     ULONG_PTR gdiplusToken_;
 
     std::map<HWND, WinapiWindowContext*> contexts_;
+	HWND mouseOver_ = nullptr; //used to generate mouse enter events
 
 	LoopControl* dispatcherLoopControl_ = nullptr;
 	EventDispatcher* eventDispatcher_ = nullptr;

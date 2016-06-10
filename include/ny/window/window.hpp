@@ -28,64 +28,6 @@ namespace ny
 ///The Window class provides many Callbacks for various events.
 class Window : public EventHandler
 {
-protected:
-	//The app this windows belongs to
-	App* app_;
-
-    //position and max/min - size. size itself inherited from surface
-	Vec2i position_ {0, 0};
-    Vec2ui size_ {0, 0};
-
-    Vec2ui minSize_ {0, 0};
-    Vec2ui maxSize_ {1 << 30, 1 << 30};
-
-    //states saved in window, not in the context
-    bool focus_ {0};
-    bool mouseOver_ {0};
-    bool shown_ {0};
-
-    //current window cursor
-    Cursor cursor_;
-
-    //windowContext. backend specific object. Core element of window. 
-	//window itself is not able to change anything, it has to communicate with the backend 
-	//through this object
-    std::unique_ptr<WindowContext> windowContext_;
-
-protected:
-    //events - have to be protected?
-    virtual void mouseMoveEvent(const MouseMoveEvent&);
-    virtual void mouseCrossEvent(const MouseCrossEvent&);
-    virtual void mouseButtonEvent(const MouseButtonEvent&);
-    virtual void mouseWheelEvent(const MouseWheelEvent&);
-    virtual void keyEvent(const KeyEvent&);
-    virtual void sizeEvent(const SizeEvent&);
-    virtual void positionEvent(const PositionEvent&);
-    virtual void drawEvent(const DrawEvent&);
-    virtual void showEvent(const ShowEvent&);
-    virtual void focusEvent(const FocusEvent&);
-	virtual void closeEvent(const CloseEvent&);
-
-    //windowContext functions are protected, derived classes can make public aliases if needed. 
-	//User should not be able to change backend Hints for button e.g
-	///Sets the cursor apperance that should be used for this window.
-    void cursor(const Cursor& curs);
-
-	///Draws the windows contents on a given DrawContext.
-    virtual void draw(DrawContext& dc);
-
-	///Basically default-constructs the window. If this function is called by a derived class
-	///there MUST be a call to create() later, or all important variables have to be
-	///initialized later on manually.
-    Window();
-
-	///Constructs the Window object with all needed parameters to create a underlaying
-	///WindowContext.
-    Window(App& app, const Vec2ui& size, const WindowSettings& settings = {});
-
-	///Creates a WindowContext for the window and initializes all variables.
-    void create(App& app, const Vec2ui& size, const WindowSettings& settings = {});
-
 public:
     Callback<void(Window&)> onClose;
     Callback<void(Window&, DrawContext&)> onDraw;
@@ -100,7 +42,7 @@ public:
     Callback<void(Window&, const KeyEvent&)> onKey;
 
 public:
-	Window(const NativeWindowHandle& nativeHandle);
+	Window(App& app, const NativeWindowHandle& nativeHandle);
     virtual ~Window();
 
     virtual bool handleEvent(const Event& event) override;
@@ -170,7 +112,67 @@ public:
 
 	///Returns the cursor that is used for this window.
     const Cursor& cursor() const { return cursor_; }
+
+	///Returns the natvie handle for this window.
+	NativeWindowHandle nativeHandle() const;
+
+protected:
+	//The app this windows belongs to
+	App* app_;
+
+    //position and max/min - size. size itself inherited from surface
+	Vec2i position_ {0, 0};
+    Vec2ui size_ {0, 0};
+
+    Vec2ui minSize_ {0, 0};
+    Vec2ui maxSize_ {1 << 30, 1 << 30};
+
+    //states saved in window, not in the context
+    bool focus_ {0};
+    bool mouseOver_ {0};
+    bool shown_ {0};
+
+    //current window cursor
+    Cursor cursor_;
+
+    //windowContext. backend specific object. Core element of window.
+	//window itself is not able to change anything, it has to communicate with the backend
+	//through this object
+    std::unique_ptr<WindowContext> windowContext_;
+
+protected:
+    //events - have to be protected?
+    virtual void mouseMoveEvent(const MouseMoveEvent&);
+    virtual void mouseCrossEvent(const MouseCrossEvent&);
+    virtual void mouseButtonEvent(const MouseButtonEvent&);
+    virtual void mouseWheelEvent(const MouseWheelEvent&);
+    virtual void keyEvent(const KeyEvent&);
+    virtual void sizeEvent(const SizeEvent&);
+    virtual void positionEvent(const PositionEvent&);
+    virtual void drawEvent(const DrawEvent&);
+    virtual void showEvent(const ShowEvent&);
+    virtual void focusEvent(const FocusEvent&);
+	virtual void closeEvent(const CloseEvent&);
+
+    //windowContext functions are protected, derived classes can make public aliases if needed.
+	//User should not be able to change backend Hints for button e.g
+	///Sets the cursor apperance that should be used for this window.
+    void cursor(const Cursor& curs);
+
+	///Draws the windows contents on a given DrawContext.
+    virtual void draw(DrawContext& dc);
+
+	///Basically default-constructs the window. If this function is called by a derived class
+	///there MUST be a call to create() later, or all important variables have to be
+	///initialized later on manually.
+    Window();
+
+	///Constructs the Window object with all needed parameters to create a underlaying
+	///WindowContext.
+    Window(App& app, const Vec2ui& size, const WindowSettings& settings = {});
+
+	///Creates a WindowContext for the window and initializes all variables.
+    void create(App& app, const Vec2ui& size, const WindowSettings& settings = {});
 };
 
 }
-

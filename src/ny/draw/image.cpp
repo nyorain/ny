@@ -176,6 +176,11 @@ Color Image::at(const Vec2ui& pos) const
 	}
 }
 
+void Image::size(const Vec2ui& newsize)
+{
+	///TODO
+}
+
 //todo
 bool Image::save(const std::string& path) const
 {

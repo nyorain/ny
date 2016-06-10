@@ -223,6 +223,11 @@ void Window::cursor(const Cursor& curs)
     windowContext_->cursor(curs);
 }
 
+NativeWindowHandle Window::nativeHandle() const
+{
+	return windowContext_->nativeHandle();
+}
+
 /*
 void toplevelWindow::setTitle(const std::string& n)
 {
