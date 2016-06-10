@@ -5,7 +5,7 @@
 #include <nytl/rect.hpp>
 
 #include <windows.h>
-#include <oledl.h>
+#include <ole2.h>
 
 namespace ny
 {
@@ -17,7 +17,7 @@ class WinapiWindowSettings : public WindowSettings {};
 class WinapiWindowContext : public WindowContext
 {
 public:
-	static const char* nativeWidgetClassName();
+	static const char* nativeWidgetClassName(NativeWidgetType type);
 
 public:
     WinapiWindowContext(WinapiAppContext& ctx, const WinapiWindowSettings& settings = {});
@@ -65,7 +65,6 @@ public:
 
 	HINSTANCE hinstance() const;
     HWND handle() const { return handle_; }
-    WNDCLASSEX windowClass() const { return wndClass_; }
 
 	Rect2i extents() const;
 

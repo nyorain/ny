@@ -12,6 +12,7 @@ class WindowContext;
 class AppContext;
 class DrawContext;
 class DrawGuard;
+class DialogContext;
 class Image;
 class AnimatedImage;
 class SvgImage;
@@ -50,7 +51,6 @@ class Cursor;
 class Frame;
 class Dialog;
 class MessageBox;
-class Popup;
 class Texture;
 class LoopControl;
 class LoopControlImpl;
@@ -91,4 +91,3 @@ enum class WindowEdge : unsigned char;
 enum class WindowHint : unsigned int;
 
 }
-

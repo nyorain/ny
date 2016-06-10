@@ -12,6 +12,7 @@
 #include <ny/draw/font.hpp>
 
 #include <windowsx.h>
+#include <ole2.h>
 
 #include <stdexcept>
 
@@ -366,7 +367,7 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 			if(handlerEvents)
 			{
 				ShowEvent ev(handler);
-				ev.shown = true;
+				ev.show = true;
 				if(wparam == SC_MAXIMIZE)
 				{
 					ev.state = ToplevelState::maximized;

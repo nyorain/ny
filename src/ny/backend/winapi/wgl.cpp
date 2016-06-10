@@ -250,26 +250,21 @@ bool WglContext::apply()
 WglWindowContext::WglWindowContext(WinapiAppContext& ctx, const WinapiWindowSettings& settings)
 {
 	appContext_ = &ctx;
-
-    if(!appContext_->hinstance())
-	{
-		throw std::runtime_error("winapiWC::create: uninitialized appContext");
-	}
+    if(!hinstance()) throw std::runtime_error("winapiWC::create: uninitialized appContext");
 
 	WinapiWindowContext::initWindowClass(settings);
-	wndClass_.style |= CS_OWNDC;
-
-	if(!::RegisterClassEx(&wndClass_))
-	{
-		throw std::runtime_error("winapiWC::create: could not register window class");
-		return;
-	}
-
 	WinapiWindowContext::setStyle(settings);
 	WinapiWindowContext::initWindow(settings);
 
 	wglContext_.reset(new WglContext(*this));
 	drawContext_.reset(new GlDrawContext());
+}
+
+WNDCLASSEX WglWindowContext::windowClass(const WinapiWindowSettings& settings)
+{
+	auto ret = WinapiWindowContext::windowClass(settings);
+	ret.style |= CS_OWNDC;
+	return ret;
 }
 
 WglWindowContext::~WglWindowContext()

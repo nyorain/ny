@@ -1,6 +1,9 @@
 #include <ny/backend/winapi/windowContext.hpp>
+#include <ny/backend/winapi/util.hpp>
 #include <ny/backend/winapi/appContext.hpp>
+
 #include <ny/base/log.hpp>
+#include <ny/window/cursor.hpp>
 
 #include <ny/draw/image.hpp>
 #include <ny/draw/drawContext.hpp>
@@ -18,30 +21,61 @@ namespace
 class DropTargetImpl : public IDropTarget
 {
 public:
-	STDMETHODIMP DragEnter(IDataObject* data, DWORD keyState, POINTL pos, DWORD* effect)
+ 	HRESULT __stdcall QueryInterface(REFIID riid, void** ppv)
+	{
+		if(!ppv) return E_INVALIDARG;
+
+		if(riid == IID_IUnknown || riid == IID_IDropTarget)
+		{
+			*ppv = static_cast<void*>(this);
+			AddRef();
+			return S_OK;
+		}
+		else
+		{
+			*ppv = nullptr;
+			return E_NOINTERFACE;
+		}
+	}
+  	ULONG __stdcall AddRef()
+	{
+		::InterlockedIncrement(&refCount_);
+		return refCount_;
+	}
+  	ULONG __stdcall Release()
+	{
+		auto ret = refCount_;
+		if(InterlockedDecrement(&refCount_) <= 0) delete this;
+        return ret - 1;
+	}
+
+	HRESULT __stdcall DragEnter(IDataObject* data, DWORD keyState, POINTL pos, DWORD* effect)
 	{
 		*effect = DROPEFFECT_COPY;
 		return S_OK;
 	}
 
-	STDMETHODIMP DragOver(DWORD keyState, POINTL pos, DWORD* effect)
+	HRESULT __stdcall DragOver(DWORD keyState, POINTL pos, DWORD* effect)
 	{
 		*effect = DROPEFFECT_COPY;
 		return S_OK;
 	}
 
-	STDMETHODIMP DragLeave()
+	HRESULT __stdcall DragLeave()
 	{
 		return S_OK;
 	}
 
-	STDMETHODIMP Drop(IDataObject* data, DWORD keyState, POINTL pos, DWORD*  effect)
+	HRESULT __stdcall Drop(IDataObject* data, DWORD keyState, POINTL pos, DWORD*  effect)
 	{
-		//XXX: do something with the data (e.g. fill event)
+		//XXX: do something with the data (e.g. send event)
 		*effect = DROPEFFECT_COPY;
 		log("Got Drop");
 		return S_OK;
 	}
+
+private:
+	volatile LONG refCount_ = 0;
 };
 
 }
@@ -67,6 +101,7 @@ WinapiWindowContext::WinapiWindowContext(WinapiAppContext& appContext,
     if(!hinstance()) throw std::runtime_error("winapiWC::create: uninitialized appContext");
 
 	initWindowClass(settings);
+	setStyle(settings);
 	initWindow(settings);
 }
 
@@ -81,15 +116,11 @@ WinapiWindowContext::~WinapiWindowContext()
 
 void WinapiWindowContext::initWindowClass(const WinapiWindowSettings& settings)
 {
-	if(settings.nativeWidget != NativeWidgetType::none)
+	if(settings.nativeWidgetType != NativeWidgetType::none)
 	{
-		if(settings.nativeWidget == NativeWidget::dialog)
-		{
-			return;
-		}
+		if(settings.nativeWidgetType == NativeWidgetType::dialog) return;
 
-		auto hinstance = ::GetModuleHande(nullptr);
-		auto name = nativeWidgetClassName(settings.nativeWidget);
+		auto name = nativeWidgetClassName(settings.nativeWidgetType);
 		if(!name) throw std::logic_error("WinapiWC: invalid native widget type");
 		wndClassName_ = name;
 
@@ -149,13 +180,13 @@ void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 	if(size.x == -1) size.x = CW_USEDEFAULT;
 	if(size.y == -1) size.y = CW_USEDEFAULT;
 
-	if(settings.nativeWidget == NativeWidgetType::dialog)
+	if(settings.nativeWidgetType == NativeWidgetType::dialog)
 	{
-		initDialog();
+		initDialog(settings);
 	}
 	else
 	{
-		handle_ = ::CreateWindowEx(0, wndClass_.lpszClassName, _T(settings.title.c_str()), style_,
+		handle_ = ::CreateWindowEx(0, _T(wndClassName_.c_str()), _T(settings.title.c_str()), style_,
 			position.x, position.y, size.x, size.y, parent, nullptr, hinstance, this);
 	}
 
@@ -165,7 +196,7 @@ void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 void WinapiWindowContext::initDialog(const WinapiWindowSettings& settings)
 {
 	auto parent = static_cast<HWND>(settings.parent.pointer());
-	auto dialogProc = appContext()::
+	auto dialogProc = &WinapiAppContext::dlgProcCallback;
 
 	DLGTEMPLATE dtemp {};
 	handle_ = ::CreateDialogIndirect(hinstance(), &dtemp, parent, dialogProc);
@@ -220,14 +251,14 @@ void WinapiWindowContext::addWindowHints(WindowHints hints)
 	if(hints & WindowHints::customDecorated)
 	{
 		auto style = ::GetWindowLong(handle(), GWL_STYLE);
-		style &= ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_CLOSE | WS_SYSMENU);
+		style &= ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU);
 		::SetWindowLong(handle(), GWL_STYLE, style);
 
 		auto exStyle = ::GetWindowLong(handle(), GWL_EXSTYLE);
 		exStyle &= ~(WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
 		::SetWindowLong(handle(), GWL_EXSTYLE, exStyle);
 	}
-	if(hints & WindowHints:::acceptDrop)
+	if(hints & WindowHints::acceptDrop)
 	{
 		if(!dropTarget_) dropTarget_ = std::make_unique<DropTargetImpl>();
 		::RegisterDragDrop(handle(), dropTarget_.get());
@@ -242,14 +273,14 @@ void WinapiWindowContext::removeWindowHints(WindowHints hints)
 	if(hints & WindowHints::customDecorated)
 	{
 		auto style = ::GetWindowLong(handle(), GWL_STYLE);
-		style |= (WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_CLOSE | WS_SYSMENU);
+		style |= (WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU);
 		::SetWindowLong(handle(), GWL_STYLE, style);
 
 		auto exStyle = ::GetWindowLong(handle(), GWL_EXSTYLE);
 		exStyle |= (WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
 		::SetWindowLong(handle(), GWL_EXSTYLE, exStyle);
 	}
-	if(hints & WindowHints:::acceptDrop)
+	if(hints & WindowHints::acceptDrop)
 	{
 		::RevokeDragDrop(handle());
 	}
@@ -275,7 +306,7 @@ void WinapiWindowContext::position(const Vec2i& position)
 void WinapiWindowContext::cursor(const Cursor& c)
 {
 	//TODO: here and icon: system metrics
-	if(c.type() == Cursor::Type::Image)
+	if(c.type() == Cursor::Type::image)
 	{
 		auto cpy = *c.image();
 		cpy.format(Image::Format::bgra8888);
@@ -298,7 +329,7 @@ void WinapiWindowContext::cursor(const Cursor& c)
 
 		DeleteObject(bitmap);
 	}
-	else if(c.type() == Cursor::Type::None)
+	else if(c.type() == Cursor::Type::none)
 	{
 		cursor_ = nullptr;
 		::SetCursor(cursor_);

@@ -66,4 +66,13 @@ std::string errorMessage(const char* msg)
 	return errorMessage(::GetLastError(), msg);
 }
 
+const char* cursorToWinapi(Cursor::Type type)
+{
+	switch(type)
+	{
+		case Cursor::Type::leftPtr: return IDC_ARROW;
+		default: return nullptr;
+	}
+}
+
 }

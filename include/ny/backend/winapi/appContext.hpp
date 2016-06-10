@@ -16,7 +16,7 @@ class WinapiAppContext : public AppContext
 {
 public:
 	static LONG_PTR CALLBACK wndProcCallback(HWND a, UINT b, WPARAM c, LPARAM d);
-	static INT_PTR CALLBACK wndProcCallback(HWND a, UINT b, WPARAM c, LPARAM d);
+	static INT_PTR CALLBACK dlgProcCallback(HWND a, UINT b, WPARAM c, LPARAM d);
 
 public:
     WinapiAppContext();

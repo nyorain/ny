@@ -3,9 +3,11 @@
 #include <ny/include.hpp>
 #include <nytl/vec.hpp>
 #include <nytl/enumOps.hpp>
+#include <nytl/clone.hpp>
 
 #include <cstdint>
 #include <bitset>
+#include <memory>
 
 namespace ny
 {
@@ -56,14 +58,28 @@ enum class DialogType
 	custom ///Returns some custom value
 };
 
+///DialogSettingsData
+class DialogSettingsData : public Cloneable<DialogSettingsData> {};
+
 ///DialogSettings
 class DialogSettings
 {
 public:
 	DialogType type;
+	std::unique_ptr<DialogSettingsData> data;
 
 public:
-	virtual ~DialogSettings();
+	DialogSettings(const DialogSettings& other) : type(other.type)
+	{
+		data = clone(*other.data);
+	}
+
+	DialogSettings& operator=(const DialogSettings& other)
+	{
+		type = other.type;
+		data = clone(*other.data);
+		return *this;
+	}
 };
 
 ///Typesafe enums that can be used for various settings with more control than just a bool.
@@ -162,7 +178,7 @@ public:
 	bool initShown = true;
 
 	NativeWidgetType nativeWidgetType = NativeWidgetType::none;
-	std::unique_ptr<DialogSettings> dialogSettings = nullptr;
+	DialogSettings dialogSettings;
 
 	std::bitset<64> events = {1};
 };
