@@ -21,34 +21,6 @@ namespace
 class DropTargetImpl : public IDropTarget
 {
 public:
- 	HRESULT __stdcall QueryInterface(REFIID riid, void** ppv)
-	{
-		if(!ppv) return E_INVALIDARG;
-
-		if(riid == IID_IUnknown || riid == IID_IDropTarget)
-		{
-			*ppv = static_cast<void*>(this);
-			AddRef();
-			return S_OK;
-		}
-		else
-		{
-			*ppv = nullptr;
-			return E_NOINTERFACE;
-		}
-	}
-  	ULONG __stdcall AddRef()
-	{
-		::InterlockedIncrement(&refCount_);
-		return refCount_;
-	}
-  	ULONG __stdcall Release()
-	{
-		auto ret = refCount_;
-		if(InterlockedDecrement(&refCount_) <= 0) delete this;
-        return ret - 1;
-	}
-
 	HRESULT __stdcall DragEnter(IDataObject* data, DWORD keyState, POINTL pos, DWORD* effect)
 	{
 		*effect = DROPEFFECT_COPY;

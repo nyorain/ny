@@ -46,6 +46,21 @@ public:
 	///\return true if loop was exited because stop() was called by the LoopControl.
 	///\return false if loop was exited because the display conncetion was destroyed.
 	virtual bool threadedDispatchLoop(ThreadedEventDispatcher& dispatcher, LoopControl& control) = 0;
+
+
+	/* concepts for clipboard
+	///Sets the clipboard to the data provided by the given DataSource implementation.
+	///The data may be directly copied from the DataSource and the given object be destroyed,
+	///or it may be stored by an AppContext implementation and retrieve the data only when
+	///other applications need them.
+	///Therefore the given DataSource implementation must be able to provide data as long
+	///as it exists.
+	virtual void clipboard(std::unique_ptr<DataSource> source) = 0;
+
+	///Retrieves the data stored in the systems clipboard, or an nullptr if there is none.
+	///The DataOffer implementation can then be used to get the data in the needed formats.
+	virtual std::unique_ptr<DataOffer> clipboard() = 0;
+	*/
 };
 
 }
