@@ -50,16 +50,25 @@ public:
 
 	/* concepts for clipboard
 	///Sets the clipboard to the data provided by the given DataSource implementation.
+	///\param dataSource a DataSource implementation for the data to copy.
 	///The data may be directly copied from the DataSource and the given object be destroyed,
 	///or it may be stored by an AppContext implementation and retrieve the data only when
 	///other applications need them.
 	///Therefore the given DataSource implementation must be able to provide data as long
 	///as it exists.
-	virtual void clipboard(std::unique_ptr<DataSource> source) = 0;
+	///\sa DataSource
+	virtual void clipboard(std::unique_ptr<DataSource> dataSource) = 0;
 
 	///Retrieves the data stored in the systems clipboard, or an nullptr if there is none.
 	///The DataOffer implementation can then be used to get the data in the needed formats.
+	///\sa DataOffer
 	virtual std::unique_ptr<DataOffer> clipboard() = 0;
+
+	///Start a drag and drop action at the current cursor position.
+	///\param dataSource A DataSource implementation for the data to drag and drop.
+	///The implementation must be able to provide the data as long as it exists.
+	///\return true on success, false on failure (e.g. cursor is not over a window)
+	virtual bool startDragDrop(std::unique_ptr<DataSource> dataSource) = 0;
 	*/
 };
 

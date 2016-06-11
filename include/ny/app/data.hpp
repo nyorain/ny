@@ -3,10 +3,10 @@
 #include <ny/include.hpp>
 #include <ny/base/event.hpp>
 
-#include <iostream>
+#include <nytl/any.hpp>
+
 #include <vector>
-#include <functional>
-#include <fstream>
+#include <memory>
 
 namespace ny
 {
@@ -16,136 +16,152 @@ namespace eventType
     constexpr unsigned int dataReceive = 25;
 }
 
+///This namespace holds constants for all datatypes.
+///Since a namespace with constexpr declarations was chosen instead of an enum, applications
+///can extend this collection with their own dataTypes.
+///The given data types do mainly represent the most familiar mime types used for data transfer.
 namespace dataType
 {
-    const unsigned char allImage = 1;
-    const unsigned char allAudio = 2;
-    const unsigned char allVideo = 3;
-    const unsigned char filePath = 4;
+    constexpr std::uint8_t allImage = 1; //can provide all image formats
+    constexpr std::uint8_t allAudio = 2; //can provide all audio formats
+    constexpr std::uint8_t allVideo = 3; //can provide all video formats
+	constexpr std::uint8_t allText = 4; //can provide all text formats
 
     namespace text
     {
-        const unsigned char plain = 6;
-        const unsigned char utf8 = 7;
-        const unsigned char utf16 = 8;
-        const unsigned char utf32 = 9;
+        constexpr std::uint8_t plain = 6; //std::string
+        constexpr std::uint8_t utf8 = 7; //std::string
+        constexpr std::uint8_t utf16 = 8; //std::u16string
+        constexpr std::uint8_t utf32 = 9; //std::u32string
     }
 
     namespace image
     {
-        const unsigned char png = 10;
-        const unsigned char jpeg = 11;
-        const unsigned char gif = 12;
-        const unsigned char tiff = 13;
-        const unsigned char bmp = 14;
-        const unsigned char svg = 15;
+        constexpr std::uint8_t png = 10; //ny::Image
+        constexpr std::uint8_t jpeg = 11; //ny::Image
+        constexpr std::uint8_t gif = 12; //ny::AnimatedImage
+        constexpr std::uint8_t tiff = 13; //ny::Image
+        constexpr std::uint8_t bmp = 14; //ny::Image
+        constexpr std::uint8_t svg = 15; //ny::SvgImage
     }
 
-    namespace audio
+    namespace audio //usually a buffer, in future maybe some 3rd lib audio object
     {
-        const unsigned char mpeg = 21;
-        const unsigned char aac = 22;
-        const unsigned char flac = 23;
-        const unsigned char webm = 24;
-        const unsigned char mp4 = 25;
-        const unsigned char ogg = 26;
-        const unsigned char wave = 26;
+        constexpr std::uint8_t mpeg = 21;
+        constexpr std::uint8_t aac = 22;
+        constexpr std::uint8_t flac = 23;
+        constexpr std::uint8_t webm = 24;
+        constexpr std::uint8_t mp4 = 25;
+        constexpr std::uint8_t ogg = 26;
+        constexpr std::uint8_t wave = 26;
     }
 
-    namespace video
+    namespace video //usually a buffer, in future maybe some 3rd lib video object
     {
-        const unsigned char mp4 = 31;
-        const unsigned char mpeg = 32;
-        const unsigned char avi = 33;
-        const unsigned char ogg = 34;
-        const unsigned char webm = 35;
-        const unsigned char quicktime = 36;
-        const unsigned char flv = 37;
+        constexpr std::uint8_t mp4 = 31;
+        constexpr std::uint8_t mpeg = 32;
+        constexpr std::uint8_t avi = 33;
+        constexpr std::uint8_t ogg = 34;
+        constexpr std::uint8_t webm = 35;
+        constexpr std::uint8_t quicktime = 36;
+        constexpr std::uint8_t flv = 37;
     }
 
-    namespace app
+    namespace app //usually a buffer (DataObject) holding the data of the file
     {
-        const unsigned char atom = 41;
-        const unsigned char ogg = 42;
-        const unsigned char pdf = 43;
-        const unsigned char xml = 44;
-        const unsigned char zip = 45;
-        const unsigned char font = 46;
-        const unsigned char json = 47;
+        constexpr std::uint8_t atom = 41;
+        constexpr std::uint8_t ogg = 42;
+        constexpr std::uint8_t pdf = 43;
+        constexpr std::uint8_t xml = 44;
+        constexpr std::uint8_t zip = 45;
+        constexpr std::uint8_t font = 46;
+        constexpr std::uint8_t json = 47;
     }
+
+	constexpr std::uint8_t raw = 51; //DataObject
+    constexpr std::uint8_t filePath = 4; //c++17 ? std::path : std::string
 }
 
 
-//dataTypes
+///Represents multiple data type formats in which certain data can be retrieved.
+///Used by DataSource and DataOffer to signal in which types the data is available.
+///The constant types used should be defined as constexpr std::uint8_t in the ny::dataType
+///namespace. ny already provides the most common datatypes, applications can extent them with
+///their own definitions starting with number 100.
+///\sa dataTypes
 class DataTypes
 {
 protected:
-    std::vector<unsigned char> types_;
+    std::vector<std::uint8_t> types_;
 
 public:
-    void addType(unsigned char type);
-    void removeType(unsigned char type);
+    void addType(std::uint8_t type);
+    void removeType(std::uint8_t type);
 
-    bool contains(unsigned char type) const;
+    bool contains(std::uint8_t type) const;
 
-    std::vector<unsigned char> getvector() const { return types_; }
+    std::vector<std::uint8_t> getvector() const { return types_; }
 };
 
-//dataObject
-//used by the  to send other applications data
-class DataObject
+///Struct used to represent raw data.
+struct DataObject
 {
-public:
-    void* data;
-    unsigned int size; //size in bytes
+    std::unique_ptr<std::uint8_t> data;
+    std::size_t size;
 };
 
+///The DataSource class is an interface implemented by the application to start drag and drop
+///actions or copy data into the clipboard.
+///The interface gives information about in which formats data can be represented and then
+///provides the data for a given format.
 class DataSource
 {
-protected:
-	//std::function<dataObject(unsigned char)> converter_;
-    //dataTypes types_;
-
-    //dataSource() : converter_([](unsigned char){ return dataObject {nullptr, 0}; }) {};
-
 public:
-    //dataSource(std::function<dataObject(unsigned char)> convertCB, const dataTypes& types = dataTypes()) : converter_(convertCB), types_(types) {}
-    //virtual ~dataSource(){}
+    virtual ~DataSource() = default;
 
-    //virtual dataTypes getPossibleTypes(){ return types_; };
-
-	//virtual dataObject getData(unsigned char type){ return converter_(type); };
+	virtual DataTypes types() const = 0;
+	virtual std::any data(unsigned int format) const = 0;
 };
 
-//dataOffer
-//abstract class defined by the
-//makes it possible to recieve data from other applications
+///Class that allows app to retrieve data from other apps
+///The DataOffer interface is usually implemented by the backends and will be passed to the
+///application either as result from a clipboard request or with a DataOfferEvent, if there
+///was data dropped onto a window.
+///It can then be used to determine the different data types in which the data can be represented
+///or to retrieve the data in a supported format.
 class DataOffer
 {
 public:
 	virtual ~DataOffer() = default;
 
-	//virtual bool getPossibleTypes(std::function<void(const dataTypes&)> func) = 0;
-
-	//virtual bool getData(unsigned char format, std::function<void(const std::string&)> func) = 0;
-	//virtual bool getData(unsigned char format, std::function<void(const Image&)> func) = 0;
-	//virtual bool getData(unsigned char format, std::function<void(const File&)> func) = 0;
-	//virtual bool getData(unsigned char format, std::function<void(const DataObject&)> func) = 0;
+	virtual DataTypes types() const = 0;
+	virtual std::any data(std::uint8_t format) const = 0;
 };
 
-//event
-class DataReceiveEvent : public EventBase<eventType::dataReceive, DataReceiveEvent>
+///Event which will be sent when the application recieves data from another application.
+///If the event is sent as effect from a drag and drop action, the event will be sent
+///to the window on which the data was dropped, otherwise (e.g. clipboard) it will
+///be sent to the specified event handler.
+class DataOfferEvent : public EventBase<eventType::dataReceive, DataReceiveEvent>
 {
 public:
-    //dataReceiveEvent(std::unique_ptr<dataOffer> d) : evBase(), data(std::move(d)) {}
-    //~dataReceiveEvent() = default;
+    DataReceiveEvent(std::unique_ptr<DataOffer> offer) : data(std::move(offer)) {}
+	~DataOfferEvent() = default;
 
-    //std::unique_ptr<dataOffer> data;
+    std::unique_ptr<DataOffer> data;
+	//XXX:some source indication? clipboard or dnd?
 };
 
-unsigned char stringToDataType(const std::string& type);
-std::vector<std::string> dataTypeToString(unsigned char type, bool onlyMime = 0);
+///Converts the given string to a dataType constant. If the given string is not recognized,
+///0 is returned.
+std::uint8_t stringToDataType(const std::string& type);
+
+///Gives a number of strings for a given dataTypes constant.
+///\param onlyMime If set to true, only mime type strings are returned.
+std::vector<std::string> dataTypeToString(std::uint8_t type, bool onlyMime = 0);
+
+///Gives a number of strings for a given DataTypes object.
+///\param onlyMime If set to true, only mime type strings are returned.
 std::vector<std::string> dataTypesToString(DataTypes types, bool onlyMime = 0);
 
 }
-
