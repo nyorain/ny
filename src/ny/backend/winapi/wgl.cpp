@@ -112,7 +112,7 @@ WglContext::WglContext(WinapiWindowContext& wc) : GlContext(), wc_(&wc)
 	createContext();
 
 	makeCurrent();
-	//activateVsync();
+	activateVsync();
     GlContext::initContext(Api::gl, 24, 8);
 }
 
@@ -279,6 +279,8 @@ DrawGuard WglWindowContext::draw()
 	RECT rect;
 	::GetClientRect(handle(), &rect);
 	glViewport(0, 0, rect.right - rect.left, rect.bottom - rect.top);
+
+	drawContext_->resetRectangleClip();
 
 	return DrawGuard(*drawContext_);
 }

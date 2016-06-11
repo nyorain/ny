@@ -360,6 +360,7 @@ void WinapiWindowContext::fullscreen()
 
 	//TODO: maybe add possibilty for display modes?
 	//games *might* want to set a different resolution (low prio)
+	//discussion needed
 
 	//store current state
 	savedState_.style = ::GetWindowLong(handle(), GWL_STYLE);
@@ -367,21 +368,25 @@ void WinapiWindowContext::fullscreen()
 	savedState_.extents = extents();
 	savedState_.maximized = ::IsZoomed(handle());
 
-	//first restore it
-	::ShowWindowAsync(handle(), SW_RESTORE);
-
  	MONITORINFO monitorinfo;
   	monitorinfo.cbSize = sizeof(monitorinfo);
     ::GetMonitorInfo(::MonitorFromWindow(handle(), MONITOR_DEFAULTTONEAREST), &monitorinfo);
 	auto& rect = monitorinfo.rcMonitor;
+	rect.right -= rect.left;
+	rect.bottom -= rect.top;
 
-	::SetWindowLong(handle(), GWL_STYLE, savedState_.style & ~(WS_CAPTION | WS_THICKFRAME));
+	::SetWindowLong(handle(), GWL_STYLE, (savedState_.style | WS_POPUP) & ~(WS_OVERLAPPEDWINDOW));
 	::SetWindowLong(handle(), GWL_EXSTYLE, savedState_.exstyle & ~(WS_EX_DLGMODALFRAME |
 		WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE));
 
-	::SetWindowPos(handle(), HWND_TOP, rect.left, rect.top, rect.right, rect.bottom,
-		SWP_ASYNCWINDOWPOS | SWP_FRAMECHANGED);
-	::ShowWindowAsync(handle(), SW_SHOW);
+	//the rect.bottom + 1 is needed here since some (buggy?) winapi implementations
+	//go automatically in real fullscreen mode when the window is a popup and the size
+	//the same as the monitor (observed behaviour).
+	//ny does not handle/support real fullscreen mode (consideren bad) since then
+	//the window has to take care about correct alt-tab/minimize handling which becomes
+	//easily buggy
+	::SetWindowPos(handle(), HWND_TOP, rect.left, rect.top, rect.right, rect.bottom + 1,
+		SWP_NOOWNERZORDER |	SWP_ASYNCWINDOWPOS | SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOACTIVATE);
 
 	fullscreen_ = true;
 }

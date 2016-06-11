@@ -71,6 +71,23 @@ const char* cursorToWinapi(Cursor::Type type)
 	switch(type)
 	{
 		case Cursor::Type::leftPtr: return IDC_ARROW;
+		case Cursor::Type::rightPtr: return IDC_ARROW;
+		case Cursor::Type::load: return IDC_WAIT;
+		case Cursor::Type::loadPtr: return IDC_APPSTARTING;
+		case Cursor::Type::hand: return IDC_HAND;
+		case Cursor::Type::grab: return IDC_HAND;
+		case Cursor::Type::crosshair: return IDC_CROSS;
+		case Cursor::Type::no: return IDC_NO;
+		case Cursor::Type::help: return IDC_HELP;
+		case Cursor::Type::size: return IDC_SIZEALL;
+		case Cursor::Type::sizeLeft: return IDC_SIZENS;
+		case Cursor::Type::sizeRight: return IDC_SIZEWE;
+		case Cursor::Type::sizeTop: return IDC_SIZENS;
+		case Cursor::Type::sizeBottom: return IDC_SIZEWE;
+		case Cursor::Type::sizeBottomRight: return IDC_SIZENWSE;
+		case Cursor::Type::sizeBottomLeft: return IDC_SIZENESW;
+		case Cursor::Type::sizeTopRight: return IDC_SIZENESW;
+		case Cursor::Type::sizeTopLeft: return IDC_SIZENWSE;
 		default: return nullptr;
 	}
 }

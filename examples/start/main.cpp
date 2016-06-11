@@ -31,6 +31,8 @@ int main()
 	ny::ToplevelWindow window(app, ny::Vec2ui(800, 500), "ny Window Test", settings);
 	window.windowContext()->show();
 
+	window.windowContext()->addWindowHints(ny::WindowHints::acceptDrop);
+	//window.windowContext()->addWindowHints(ny::WindowHints::customDecorated);
 	//window.maximize();
 
 	ny::Image icon("icon.jpg");
@@ -56,19 +58,21 @@ int main()
 
 	ny::Rectangle rect({100, 100}, {100, 100});
 	MyHandler myHandler;
+	MyEvent myEvent;
+	myEvent.handler = &myHandler;
 
 	window.onDraw += [&](ny::DrawContext& dc) {
-		//ny::debug("DRAW");
+		ny::debug("DRAW");
 		//dc.clear(ny::Color::green);
 		//dc.draw({rect, ny::Color::black});
+
+		//myGui.draw(dc);
 
 		static bool version = false;
 		if(!version)
 		{
 			ny::debug("SEND");
 
-			MyEvent myEvent;
-			myEvent.handler = &myHandler;
 			std::thread thread([&]{ app.dispatcher().dispatch(myEvent); });
 			thread.detach();
 
@@ -84,6 +88,9 @@ int main()
 			version = true;
 		}
 	};
+
+	auto& ac = dynamic_cast<ny::WinapiAppContext&>(app.appContext());
+	ny::log("clipboard: ", ac.clipboard());
 
 	ny::LoopControl control;
 	return app.run(control);

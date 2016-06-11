@@ -71,16 +71,17 @@ public:
 public:
 	DialogSettings() = default;
 	~DialogSettings() = default;
-	
+
 	DialogSettings(const DialogSettings& other) : type(other.type)
 	{
-		data = clone(*other.data);
+		if(data) data = clone(*other.data);
 	}
 
 	DialogSettings& operator=(const DialogSettings& other)
 	{
 		type = other.type;
-		data = clone(*other.data);
+		data.reset();
+		if(other.data) data = clone(*other.data);
 		return *this;
 	}
 };

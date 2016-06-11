@@ -15,6 +15,7 @@
 #include <ole2.h>
 
 #include <stdexcept>
+#include <cstring>
 
 namespace ny
 {
@@ -45,17 +46,30 @@ public:
 	};
 };
 
+//winapi callbacks
+LRESULT CALLBACK WinapiAppContext::wndProcCallback(HWND a, UINT b, WPARAM c, LPARAM d)
+{
+    return gAC->eventProc(a,b,c,d);
+}
+
+LRESULT CALLBACK WinapiAppContext::dlgProcCallback(HWND a, UINT b, WPARAM c, LPARAM d)
+{
+    return gAC->eventProc(a,b,c,d);
+}
+
 //WinapiAC
 WinapiAppContext::WinapiAppContext()
 {
     instance_ = GetModuleHandle(nullptr);
 
+	//XXX: is this check needed?
     if(instance_ == nullptr)
     {
         throw std::runtime_error("winapiAppContext: could not get hInstance");
         return;
     }
 
+	//start gdiplus since some GdiDrawContext functions need it
     GetStartupInfo(&startupInfo_);
     GdiplusStartup(&gdiplusToken_, &gdiplusStartupInput_, nullptr);
 
@@ -101,13 +115,7 @@ bool WinapiAppContext::dispatchLoop(EventDispatcher& dispatcher, LoopControl& co
 		auto ret = GetMessage(&msg, nullptr, 0, 0);
 		if(ret == -1)
 		{
-			//error
 			sendWarning(errorMessage("WinapiAC::dispatchLoop"));
-			return false;
-		}
-		else if(ret == 0)
-		{
-			//quit
 			return false;
 		}
 		else
@@ -139,43 +147,66 @@ bool WinapiAppContext::threadedDispatchLoop(ThreadedEventDispatcher& dispatcher,
 		});
 
 
-	//modified loop from dispatchLoop
-	std::atomic<bool> run {1};
-	control.impl_ = std::make_unique<LoopControlImpl>(run);
-
-	dispatcherLoopControl_ = &control;
-	eventDispatcher_ = &dispatcher;
-
-	MSG msg;
-	while(run.load())
-	{
-		auto ret = GetMessage(&msg, nullptr, 0, 0);
-		if(ret == -1)
-		{
-			//error
-			sendWarning(errorMessage("WinapiAC::dispatchLoop"));
-			return false;
-		}
-		else if(ret == 0)
-		{
-			//quit
-			return false;
-		}
-		else
-		{
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-		}
-	}
-
-	dispatcherLoopControl_ = nullptr;
-	control.impl_.reset();
+	//just call the default dispatch loop
+	dispatchLoop(dispatcher, control);
 
 	//unregistert the dispatcher callback
 	conn.destroy();
 	threadsafe_ = false;
 
 	return true;
+}
+
+void WinapiAppContext::clipboard(const std::string& text) const
+{
+	if(!::OpenClipboard(nullptr)) return;
+	if(!::EmptyClipboard()) return;
+
+	auto handle = ::GlobalAlloc(GMEM_MOVEABLE, text.size() + 1);
+	if(!handle)
+	{
+		::CloseClipboard();
+		return;
+	}
+
+	auto ptr = ::GlobalLock(handle);
+	if(!ptr)
+	{
+		::CloseClipboard();
+		return;
+	}
+
+	std::memcpy(ptr, text.c_str(), text.size() + 1);
+	::GlobalUnlock(handle);
+
+	::SetClipboardData(CF_TEXT, handle);
+
+	::CloseClipboard();
+	//::GlobalFree(handle); //XXX: do this here? doc states no. memory leak?
+}
+
+std::string WinapiAppContext::clipboard() const
+{
+	std::string ret;
+	if(!::OpenClipboard(nullptr)) return ret;
+
+	auto handle = ::GetClipboardData(CF_TEXT);
+	if(!handle)
+	{
+		::CloseClipboard();
+		return ret;
+	}
+
+	auto ptr = ::GlobalLock(handle);
+	if(!ptr)
+	{
+		::CloseClipboard();
+		return ret;
+	}
+
+	ret = reinterpret_cast<const char*>(ptr);
+	::CloseClipboard();
+	return ret;
 }
 
 void WinapiAppContext::registerContext(HWND w, WinapiWindowContext& c)
@@ -398,7 +429,6 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 		case WM_QUIT:
 		{
 			receivedQuit_ = 1;
-			debug("Receive WM_QUIT message");
 			if(dispatcherLoopControl_) dispatcherLoopControl_->stop();
 			break;
 		}
@@ -414,10 +444,5 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 	return result;
 }
 
-
-LRESULT CALLBACK WinapiAppContext::wndProcCallback(HWND a, UINT b, WPARAM c, LPARAM d)
-{
-    return gAC->eventProc(a,b,c,d);
-}
 
 }

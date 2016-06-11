@@ -1,7 +1,7 @@
 #include <ny/draw/svg.hpp>
 #include <ny/base/log.hpp>
 
-#include <pugixml/pugixml.hpp>
+#include <pugixml.hpp>
 
 #include <fstream>
 

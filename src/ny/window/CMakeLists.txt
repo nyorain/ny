@@ -3,7 +3,6 @@ set(libs-window ${libs-window} ny-base ny-app ny-backend ny-draw)
 
 set(src-window
 		window.cpp
-		cursor.cpp
 		toplevel.cpp
 		child.cpp
 		dialog.cpp

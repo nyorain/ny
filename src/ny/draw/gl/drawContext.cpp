@@ -462,6 +462,8 @@ Rect2f GlDrawContext::rectangleClip() const
 void GlDrawContext::resetRectangleClip()
 {
 	VALIDATE_CTX();
+	auto vp = viewport();
+	glScissor(vp.left(), vp.top(), vp.width(), vp.height());
 	glDisable(GL_SCISSOR_TEST);
 }
 

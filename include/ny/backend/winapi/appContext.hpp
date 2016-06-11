@@ -27,15 +27,17 @@ public:
 	virtual bool dispatchLoop(EventDispatcher& disp, LoopControl& control) override;
 	virtual bool threadedDispatchLoop(ThreadedEventDispatcher& disp, LoopControl& ctrl) override;
 
-    //data specifications
-    LRESULT eventProc(HWND, UINT, WPARAM, LPARAM);
+	//further functionality
+	//TODO: extent to all formats, higher level clipboard api
+	void clipboard(const std::string& text) const;
+	std::string clipboard() const;
+
+    LONG_PTR eventProc(HWND, UINT, WPARAM, LPARAM);
+	//INT_PTR dlgEventProc(HWND, UINT, WPARAM, LPARAM); //needed?
 
     void registerContext(HWND w, WinapiWindowContext& c);
     void unregisterContext(HWND w);
     WinapiWindowContext* windowContext(HWND win);
-
-    void setCursor(unsigned int cursorID);
-    void setCursor(Image* img);
 
     HINSTANCE hinstance() const { return instance_; };
     const STARTUPINFO& startupInfo() const { return startupInfo_; };

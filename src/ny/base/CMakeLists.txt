@@ -3,6 +3,7 @@ set(include-base ${include-ny})
 set(src-base
 	log.cpp
 	image.cpp
+	cursor.cpp
 	pugixml.cpp
 	cursor.cpp)
 
