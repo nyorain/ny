@@ -23,11 +23,19 @@ template<typename T>
 class ComObject
 {
 public:
-	ComObject(const T& obj)	: obj_(&obj) { obj_->AddRef(); }
+	ComObject(T& obj)	: obj_(&obj) { obj_->AddRef(); }
 	~ComObject() { if(obj_) obj_->Release(); }
 
-	T& object() { return *obj_; };
-	const T& object() const { return *obj_; }
+	T& get() { return *obj_; };
+	const T& get() const { return *obj_; }
+
+	T& operator*() { return *get(); }
+	const T& operator*() const { return *get(); }
+
+	T* operator->() { return get(); }
+	const T* operator->() const { return get(); }
+
+	bool operator bool() const { return (obj_); }
 
 protected:
 	T* obj_ = nullptr;

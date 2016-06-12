@@ -11,6 +11,8 @@ namespace winapi
 class DataOfferImpl : public DataOffer
 {
 public:
+	DataOfferImpl(IDataObject& object);
+
 	virtual DataTypes types() const override { return types_; }
 	virtual std::any data(std::uint8_t format) const override;
 
@@ -18,6 +20,45 @@ protected:
 	DataTypes types_;
 	DataComObject data_;
 };
+
+DataOfferImpl::DataOfferImpl(IDataObject& object) : data_(object)
+{
+	IEnumFORMATETC* enumerator;
+	data_->EnumFormatEtc(DATADIR_GET, &enumerator);
+
+	CLIPBOARDFORMAT cf;
+	DWORD tymed;
+
+	using dt = namespace dataType;
+	auto checkAdd = [&](CLIPBOARDFORMAT checkcf, DWORD checktymed, unsigned int type) {
+			if(cf == checkcf && (tymed && checktymed)) types_.add(type);
+		};
+
+	FORMATETC* formats;
+	ULONG count;
+	do
+	{
+		enumerator->Next(10, formats, &count);
+		for(auto i = 0u; i < count; ++i)
+		{
+			cf = formats[i].cfFormat;
+			tymed = formats[i].tymed;
+
+			checkAdd(CF_TEXT, TYMED_HGLOBAL, dt::text::plain);
+			checkAdd(CF_TEXT, TYMED_HGLOBAL, dt::text::utf8);
+			checkAdd(CF_TEXT, TYMED_HGLOBAL, dt::text::utf16);
+			checkAdd(CF_TEXT, TYMED_HGLOBAL, dt::text::utf32);
+			checkAdd(CF_UNICODETEXT, TYMED_HGLOBAL, dt::text::plain);
+			checkAdd(CF_UNICODETEXT, TYMED_HGLOBAL, dt::text::utf8);
+			checkAdd(CF_UNICODETEXT, TYMED_HGLOBAL, dt::text::utf16);
+			checkAdd(CF_UNICODETEXT, TYMED_HGLOBAL, dt::text::utf32);
+			checkAdd(CF_BITMAP, TYMED_GDI, dt::image::raw);
+		}
+	}
+	while(count == 10);
+
+	enumerator->Release();
+}
 
 namespace com
 {
@@ -31,6 +72,7 @@ HRESULT DropTargetImpl::DragEnter(IDataObject* data, DWORD keyState, POINTL pos,
 
 HRESULT DropTargetImpl::DragOver(DWORD keyState, POINTL pos, DWORD* effect)
 {
+	///TODO: possibilty for different window areas to accept/not accept/move drops -> differ effect
 	*effect = DROPEFFECT_COPY;
 	return S_OK;
 }
@@ -40,11 +82,18 @@ HRESULT DropTargetImpl::DragLeave()
 	return S_OK;
 }
 
-HRESULT DropTargetImpl::Drop(IDataObject* data, DWORD keyState, POINTL pos, DWORD*  effect)
+HRESULT DropTargetImpl::Drop(IDataObject* data, DWORD keyState, POINTL pos, DWORD* effect)
 {
 	//XXX: do something with the data (e.g. send event)
 	*effect = DROPEFFECT_COPY;
-	log("Got Drop");
+
+	auto& ac = windowContext_->appContext();
+	if(!windowContext_->eventHandler() || !ac.eventDispatcher) return E_UNEXPECTED;
+
+	auto offer = std::make_unique<DataOfferImpl>(*data);
+	DataOfferEvent ev(windowContext_->eventHandler(), std::move(offer));
+	ac.eventDispatcher()->dispatch(ev);
+
 	return S_OK;
 }
 

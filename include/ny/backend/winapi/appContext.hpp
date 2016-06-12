@@ -35,6 +35,8 @@ public:
     LONG_PTR eventProc(HWND, UINT, WPARAM, LPARAM);
 	//INT_PTR dlgEventProc(HWND, UINT, WPARAM, LPARAM); //needed?
 
+	EventDispatcher* eventDispatcher() const { return eventDispatcher_; }
+
     void registerContext(HWND w, WinapiWindowContext& c);
     void unregisterContext(HWND w);
     WinapiWindowContext* windowContext(HWND win);

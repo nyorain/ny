@@ -29,7 +29,7 @@ namespace dataType
 
     namespace text
     {
-        constexpr std::uint8_t plain = 6; //std::string
+        constexpr std::uint8_t plain = 6; //std::string (ASCII)
         constexpr std::uint8_t utf8 = 7; //std::string
         constexpr std::uint8_t utf16 = 8; //std::u16string
         constexpr std::uint8_t utf32 = 9; //std::u32string
@@ -43,6 +43,7 @@ namespace dataType
         constexpr std::uint8_t tiff = 13; //ny::Image
         constexpr std::uint8_t bmp = 14; //ny::Image
         constexpr std::uint8_t svg = 15; //ny::SvgImage
+        constexpr std::uint8_t raw = 16; //ny::SvgImage
     }
 
     namespace audio //usually a buffer, in future maybe some 3rd lib audio object
@@ -78,8 +79,11 @@ namespace dataType
         constexpr std::uint8_t json = 47;
     }
 
-	constexpr std::uint8_t raw = 51; //DataObject
-    constexpr std::uint8_t filePath = 4; //c++17 ? std::path : std::string
+	constexpr std::uint8_t raw = 51; //DataObject, raw unspecified data buffer
+    constexpr std::uint8_t filePath = 52; //c++17 ? std::path : std::string
+	constexpr std::uint8_t utf8 = 53; //std::string with utf8 charset
+	constexpr std::uint8_t image = 54; //ny:Image
+
 }
 
 
@@ -165,7 +169,7 @@ public:
 class DataOfferEvent : public EventBase<eventType::dataReceive, DataReceiveEvent>
 {
 public:
-    DataReceiveEvent(std::unique_ptr<DataOffer> offer) : data(std::move(offer)) {}
+    DataOfferEvent(std::unique_ptr<DataOffer> offer) : data(std::move(offer)) {}
 	~DataOfferEvent() = default;
 
     std::unique_ptr<DataOffer> data;
