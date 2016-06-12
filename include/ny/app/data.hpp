@@ -16,76 +16,19 @@ namespace eventType
     constexpr unsigned int dataReceive = 25;
 }
 
-///This namespace holds constants for all datatypes.
-///Since a namespace with constexpr declarations was chosen instead of an enum, applications
-///can extend this collection with their own dataTypes.
-///The given data types do mainly represent the most familiar mime types used for data transfer.
+///This namespace holds constants for all data formats in which data from a DataSource/DataOffer
+///may be represented.
 namespace dataType
 {
-    constexpr std::uint8_t allImage = 1; //can provide all image formats
-    constexpr std::uint8_t allAudio = 2; //can provide all audio formats
-    constexpr std::uint8_t allVideo = 3; //can provide all video formats
-	constexpr std::uint8_t allText = 4; //can provide all text formats
+	constexpr std::uint8_t raw = 2; //DataObject, raw unspecified data buffer
+	constexpr std::uint8_t text = 3; //std::string encoded utf8
+    constexpr std::uint8_t filePaths = 4; //std::vector<c++17 ? std::path : std::string>
+	constexpr std::uint8_t image = 5; //ny:Image
+	constexpr std::uint8_t time = 6; //ny(tl)::Timepoint
 
-    namespace text
-    {
-        constexpr std::uint8_t plain = 6; //std::string (ASCII)
-        constexpr std::uint8_t utf8 = 7; //std::string
-        constexpr std::uint8_t utf16 = 8; //std::u16string
-        constexpr std::uint8_t utf32 = 9; //std::u32string
-    }
-
-    namespace image
-    {
-        constexpr std::uint8_t png = 10; //ny::Image
-        constexpr std::uint8_t jpeg = 11; //ny::Image
-        constexpr std::uint8_t gif = 12; //ny::AnimatedImage
-        constexpr std::uint8_t tiff = 13; //ny::Image
-        constexpr std::uint8_t bmp = 14; //ny::Image
-        constexpr std::uint8_t svg = 15; //ny::SvgImage
-        constexpr std::uint8_t raw = 16; //ny::SvgImage
-    }
-
-    namespace audio //usually a buffer, in future maybe some 3rd lib audio object
-    {
-        constexpr std::uint8_t mpeg = 21;
-        constexpr std::uint8_t aac = 22;
-        constexpr std::uint8_t flac = 23;
-        constexpr std::uint8_t webm = 24;
-        constexpr std::uint8_t mp4 = 25;
-        constexpr std::uint8_t ogg = 26;
-        constexpr std::uint8_t wave = 26;
-    }
-
-    namespace video //usually a buffer, in future maybe some 3rd lib video object
-    {
-        constexpr std::uint8_t mp4 = 31;
-        constexpr std::uint8_t mpeg = 32;
-        constexpr std::uint8_t avi = 33;
-        constexpr std::uint8_t ogg = 34;
-        constexpr std::uint8_t webm = 35;
-        constexpr std::uint8_t quicktime = 36;
-        constexpr std::uint8_t flv = 37;
-    }
-
-    namespace app //usually a buffer (DataObject) holding the data of the file
-    {
-        constexpr std::uint8_t atom = 41;
-        constexpr std::uint8_t ogg = 42;
-        constexpr std::uint8_t pdf = 43;
-        constexpr std::uint8_t xml = 44;
-        constexpr std::uint8_t zip = 45;
-        constexpr std::uint8_t font = 46;
-        constexpr std::uint8_t json = 47;
-    }
-
-	constexpr std::uint8_t raw = 51; //DataObject, raw unspecified data buffer
-    constexpr std::uint8_t filePath = 52; //c++17 ? std::path : std::string
-	constexpr std::uint8_t utf8 = 53; //std::string with utf8 charset
-	constexpr std::uint8_t image = 54; //ny:Image
-
+	constexpr std::uint8_t html = 11; //std::string encoded utf8 with html
+	constexpr std::uint8_t xml = 12; //std::string encoded utf8 with xml
 }
-
 
 ///Represents multiple data type formats in which certain data can be retrieved.
 ///Used by DataSource and DataOffer to signal in which types the data is available.
@@ -180,12 +123,12 @@ public:
 ///0 is returned.
 std::uint8_t stringToDataType(const std::string& type);
 
-///Gives a number of strings for a given dataTypes constant.
-///\param onlyMime If set to true, only mime type strings are returned.
-std::vector<std::string> dataTypeToString(std::uint8_t type, bool onlyMime = 0);
+///Returns a number of string that describe the given data type.
+///Will return an empty vector if the type is not known.
+std::vector<std::string> dataTypeToString(std::uint8_t type);
 
 ///Gives a number of strings for a given DataTypes object.
-///\param onlyMime If set to true, only mime type strings are returned.
-std::vector<std::string> dataTypesToString(DataTypes types, bool onlyMime = 0);
+///Will return an empty vector if the DataType holds no known types.
+std::vector<std::string> dataTypesToString(DataTypes types);
 
 }

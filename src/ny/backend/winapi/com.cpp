@@ -19,6 +19,7 @@ public:
 protected:
 	DataTypes types_;
 	DataComObject data_;
+	std::map<unsigned int, FORMATETC> typeFormats_;
 };
 
 DataOfferImpl::DataOfferImpl(IDataObject& object) : data_(object)
@@ -26,12 +27,14 @@ DataOfferImpl::DataOfferImpl(IDataObject& object) : data_(object)
 	IEnumFORMATETC* enumerator;
 	data_->EnumFormatEtc(DATADIR_GET, &enumerator);
 
-	CLIPBOARDFORMAT cf;
-	DWORD tymed;
-
 	using dt = namespace dataType;
+	FORMATETC* curr = nullptr;
 	auto checkAdd = [&](CLIPBOARDFORMAT checkcf, DWORD checktymed, unsigned int type) {
-			if(cf == checkcf && (tymed && checktymed)) types_.add(type);
+			if(curr->cfFormat == checkcf && (curr->tymed && checktymed))
+			{
+				types_.add(type);
+				typeFormats_[type] = *curr;
+			}
 		};
 
 	FORMATETC* formats;
@@ -41,24 +44,58 @@ DataOfferImpl::DataOfferImpl(IDataObject& object) : data_(object)
 		enumerator->Next(10, formats, &count);
 		for(auto i = 0u; i < count; ++i)
 		{
-			cf = formats[i].cfFormat;
-			tymed = formats[i].tymed;
+			curr = formats[i];
 
-			checkAdd(CF_TEXT, TYMED_HGLOBAL, dt::text::plain);
-			checkAdd(CF_TEXT, TYMED_HGLOBAL, dt::text::utf8);
-			checkAdd(CF_TEXT, TYMED_HGLOBAL, dt::text::utf16);
-			checkAdd(CF_TEXT, TYMED_HGLOBAL, dt::text::utf32);
-			checkAdd(CF_UNICODETEXT, TYMED_HGLOBAL, dt::text::plain);
-			checkAdd(CF_UNICODETEXT, TYMED_HGLOBAL, dt::text::utf8);
-			checkAdd(CF_UNICODETEXT, TYMED_HGLOBAL, dt::text::utf16);
-			checkAdd(CF_UNICODETEXT, TYMED_HGLOBAL, dt::text::utf32);
-			checkAdd(CF_BITMAP, TYMED_GDI, dt::image::raw);
+			checkAdd(CF_TEXT, TYMED_HGLOBAL, dt::text);
+			checkAdd(CF_UNICODETEXT, TYMED_HGLOBAL, dt::text);
+			checkAdd(CF_BITMAP, TYMED_GDI, dt::image);
+			checkAdd(CF_HDROP, TYMED_HGLOBAL, dt::filePaths);
 		}
 	}
 	while(count == 10);
 
 	enumerator->Release();
 }
+
+std::any DataOfferImpl::data(std::uint8_t format)
+{
+	if(!types_.contains(format)) return {};
+	using dt = namespace dataType;
+
+	if(format == dataType::text)
+	{
+		STGMEDIUM med;
+		if(data_->GetData(&typeFormats_[format], &med) != S_OK) return {};
+		auto txt = globalToString(med.hGlobal);
+		//replaceCLRF(txt);
+		return toUTF8(txt);
+	}
+	else if(format == dataType::image)
+	{
+		 //convert the HBitmap to a ny image
+		 //support for compression/decompression?
+		 return {};
+	}
+	else if(format == dataType::filePaths)
+	{
+		//something lockglobal bs
+		auto hdrop = ...;
+		auto count = DragQueryFile(hdrop, 0xFFFFFFFF, nullptr, 0); //query count
+
+		std::vector<std::string> paths;
+		for(auto i = 0u; i < count; ++i)
+		{
+			auto size = DragQueryFile(hdrop, i, nullptr, 0); //query buffer size
+			char buffer[sisze];
+			if(DragQueryFile(hdrop, i, buffer, size)) paths.push_back(buffer);
+		}
+
+		return paths;
+	}
+
+	return {};
+}
+
 
 namespace com
 {

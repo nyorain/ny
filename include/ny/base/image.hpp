@@ -15,6 +15,7 @@ namespace ny
 {
 
 //TODO: some functions (e.g. size, (TODO: add scale function)) not implemented
+//TODO: load from memory buffer
 ///Represents a single image which can be loaded from a file and on which can be rendered.
 class Image : public File
 {
