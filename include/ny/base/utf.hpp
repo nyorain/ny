@@ -42,14 +42,17 @@ std::size_t charCount(const std::string& utf8);
 ///the nth byte, but the nth utf8 character.
 ///Since every (unicode) utf8 character can take up to 4 bytes, an array holding
 ///4 chars is returned.
-///\exception std::out_of_bounds if n > charCount(utf8)
+///\exception std::out_of_range if n > charCount(utf8)
 std::array<char, 4> nth(const std::string& utf8, std::size_t n);
 
+///\{
 ///Returns a reference to the nth character from a utf8-encoded unicode stirng.
 ///\param size [out] Will hold the number of bytes of the returned character.
 ///Will be not greater than 4.
-///\exception std::out_of_bounds if n > charCount(utf8)
-char& nth(const std::string& utf8, std::size_t n, std::uint8_t& size);
+///\exception std::out_of_range if n > charCount(utf8)
+const char& nth(const std::string& utf8, std::size_t n, std::uint8_t& size);
+char& nth(std::string& utf8, std::size_t n, std::uint8_t& size);
+///\}
 
 ///\{
 ///Various conversion functions between different utf unicode encodings.

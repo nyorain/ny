@@ -111,6 +111,14 @@ protected:
 ///Duplicates and copies the given global memory.
 HGLOBAL duplicateGlobal(HGLOBAL mem);
 
+///Creates a global memory object for the given string.
+HGLOBAL stringToGlobal(const std::string& string);
+HGLOBAL stringToGlobalUnicode(const std::u16string& string);
+
+///Copies the data from a global memory object to a string.
+std::u16string globalToStringUnicode(HGLOBAL global);
+std::string globalToString(HGLOBAL global);
+
 //unkown implementation
 template<typename T, const GUID&... ids> HRESULT
 UnknownImplementation<T, ids...>::QueryInterface(REFIID riid, void** ppv)

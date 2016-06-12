@@ -1,55 +1,86 @@
 #include <ny/base/utf.hpp>
 #include <locale>
 #include <codecvt>
+#include <stdexcept>
 
 namespace ny
 {
 
-namespace
+std::size_t charCount(const std::string& utf8)
 {
+	std::size_t count = 0u;
+	for(auto& byte : utf8)
+      	if((byte & 0xc0) != 0x80) ++count;
 
-template<typename CVT>
-class Codecvt : public CVT
+	return count;
+}
+
+std::array<char, 4> nth(const std::string& utf8, std::size_t n)
 {
-public:
-	Codecvt() = default;
-	~Codecvt() = default;
-};
+	std::array<char, 4> ret {};
 
-template<typename CVT> std::basic_string<typename CVT::extern_type>
-convertOut(const std::basic_string<typename CVT::intern_type>& str)
-{
-	using IT = typename CVT::intern_type;
-	using ET = typename CVT::extern_type;
+	std::size_t count = 0u;
+	std::size_t charNum = 0u;
+	for(auto& byte : utf8)
+	{
+		if(count == n)
+		{
+			ret[charNum] = byte;
+			++charNum;
+		}
 
-	const IT* fromNext;
-	ET* toNext;
+      	if((byte & 0xc0) != 0x80) ++count;
+		if(count > n) break;
+	}
 
-	std::basic_string<ET> ret(str.size(), '\0');
-	std::mbstate_t state;
-	Codecvt<CVT> cvt;
-	cvt.out(state, &*str.begin(), &*str.end(), fromNext, &*ret.begin(), &*ret.end(), toNext);
-
+	if(!charNum) throw std::out_of_range("ny::nth(utf8)");
 	return ret;
 }
 
-template<typename CVT> std::basic_string<typename CVT::intern_type>
-convertIn(const std::basic_string<typename CVT::extern_type>& str)
+const char& nth(const std::string& utf8, std::size_t n, std::uint8_t& size)
 {
-	using IT = typename CVT::intern_type;
-	using ET = typename CVT::extern_type;
+	const char* ret = nullptr;
+	size = 0;
 
-	const ET* fromNext;
-	IT* toNext;
+	std::size_t count = 0u;
+	std::size_t charNum = 0u;
+	for(auto& byte : utf8)
+	{
+		if(count == n)
+		{
+			if(size == 0) ret = &byte;
+			++size;
+		}
 
-	std::basic_string<IT> ret(str.size(), '\0');
-	std::mbstate_t state;
-	Codecvt<CVT> cvt;
-	cvt.in(state, &*str.begin(), &*str.end(), fromNext, &*ret.begin(), &*ret.end(), toNext);
+      	if((byte & 0xc0) != 0x80) ++count;
+		if(count > n) break;
+	}
 
-	return ret;
+	if(!ret) throw std::out_of_range("ny::nth(utf8)");
+	return *ret;
 }
 
+char& nth(std::string& utf8, std::size_t n, std::uint8_t& size)
+{
+	char* ret = nullptr;
+	size = 0;
+
+	std::size_t count = 0u;
+	std::size_t charNum = 0u;
+	for(auto& byte : utf8)
+	{
+		if(count == n)
+		{
+			if(size == 0) ret = &byte;
+			++size;
+		}
+
+      	if((byte & 0xc0) != 0x80) ++count;
+		if(count > n) break;
+	}
+
+	if(!ret) throw std::out_of_range("ny::nth(utf8)");
+	return *ret;
 }
 
 std::u16string utf8to16(const std::string& utf8)

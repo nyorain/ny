@@ -147,32 +147,15 @@ HRESULT DropSourceImpl::GiveFeedback(DWORD dwEffect)
 }
 
 //DataObjectImpl
-HRESULT DataObjectImpl::GetData(FORMATETC* format, STGMEDIUM* medium)
+HRESULT DataObjectImpl::GetData(FORMATETC* format, STGMEDIUM* stgmed)
 {
 	if(!format) return DV_E_FORMATETC;
-	if(!medium) return E_UNEXPECTED;
+	if(!stgmed) return E_UNEXPECTED;
 
 	auto id = lookupFormat(*format);
 	if(id == -1) return DV_E_FORMATETC;
 
-	medium->tymed = formats(id).tymed;
-	medium->pUnkForRelease = nullptr;
-
-	//Code styles are like assholes. Everyone has one but only few people like the ones of
-	//other people.
-	//TODO: implement other cases e.g. bitmap or sth like this
-	switch(m_pFormatEtc[idx].tymed)
-    {
-    	case TYMED_HGLOBAL:
-		{
-			auto cpy = duplicateGlobal(mediums()[id].hGlobal);
-			if(!cpy) return E_UNEXPECTED;
-	        medium->hGlobal = cpy;
-	        break;
-		}
-
-    	default: return DV_E_FORMATETC;
-    }
+	*stgmed = this->medium(id);
 
 	return S_OK;
 }
@@ -264,14 +247,19 @@ STGMEDIUM DataObjectImpl::medium(unsigned int id) const
 	if(id > source_->types().types.size())
 		throw std::out_of_bounds("ny::winapi::com::DataObjectImpl::medium");
 
+	using dt = namespace dataType;
+
 	STGMEDIUM ret;
-	if(type >= dt::image::png && type <= dt::image::bmp) //image
+	ret.tymed = formats(id).tymed;
+	ret.pUnkForRelease = nullptr;
+
+	if(type == dt::image)
 	{
 		//copy the image to a bitmap handle
 		HBITMAP bitmap;
 		ret.hBitmap = bitmap;
 	}
-	else if(type == dt::text::plain)
+	else if(type == dt::text)
 	{
 		auto txt = std::any_cast<std::string>(source_->data(type));
 		//replaceLF(txt);
@@ -314,16 +302,64 @@ HGLOBAL duplicateGlobal(HGLOBAL global)
 	auto ptr = ::GlobalLock(global);
 	if(!ptr) return nullptr;
 
-	auto ret = ::GlobalAlloc(GMEM_FIXED, global);
-	if(!ptr) return nullptr;
+	auto ret = ::GlobalAlloc(GMEM_FIXED, len);
+	if(!ret) return nullptr;
 
-	std::memcpy(dest, ptr, len);
+	std::memcpy(ret, ptr, len);
 	::GlobalUnlock(global);
 	return dest;
 }
 
+HGLOBAL stringToGlobalUnicode(const std::u16string& string)
+{
+	auto len = string.size() + 2; //null terminator
+	auto ret = ::GlobalAlloc(GMEM_FIXED, len);
+	if(!ret) return nullptr;
+
+	std::memcpy(ret, string.c_str(), string.size() + 2);
+	return ret;
 }
 
+HGLOBAL stringToGlobal(const std::string& string)
+{
+	auto len = string.size() + 1; //null terminator
+	auto ret = ::GlobalAlloc(GMEM_FIXED, len);
+	if(!ret) return nullptr;
+
+	std::memcpy(ret, string.c_str(), string.size() + 2);
+	return ret;
 }
 
+std::u16string globalToStringUnicode(HGLOBAL global)
+{
+	auto len = ::GlobalSize(global) - 2; //excluding null terminator
+	auto ptr = ::GlobalLock(global);
+	if(!ptr) return nullptr;
+
+	//usually len should be an even number (since it is encoded using utf16)
+	//but to go safe, we round len / 2 up and then later remove the trailing
+	//nullterminator
+	std::u16string str(std::ceil(len / 2), '\0'); //nullterminator excluded
+	std::memcpy(str.data(), ptr, len);
+	::GlobalUnlock(global);
+	str = str.c_str(); //get rid of extra terminators
+	return str;
 }
+
+std::string globalToString(HGLOBAL global)
+{
+	auto len = ::GlobalSize(global) - 1; //excluding null terminator
+	auto ptr = ::GlobalLock(global);
+	if(!ptr) return nullptr;
+
+	std::string str(len, '\0'); //nullterminator excluded
+	std::memcpy(str.data(), ptr, len);
+	::GlobalUnlock(global);
+	return str;
+}
+
+} //namespace com
+
+} //namespace winapi
+
+} //namespace ny

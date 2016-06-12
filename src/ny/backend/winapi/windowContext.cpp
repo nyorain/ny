@@ -13,45 +13,7 @@
 
 namespace ny
 {
-
-namespace
-{
-
-//DropTarget winapi implementation
-class DropTargetImpl : public IDropTarget
-{
-public:
-	HRESULT __stdcall DragEnter(IDataObject* data, DWORD keyState, POINTL pos, DWORD* effect)
-	{
-		*effect = DROPEFFECT_COPY;
-		return S_OK;
-	}
-
-	HRESULT __stdcall DragOver(DWORD keyState, POINTL pos, DWORD* effect)
-	{
-		*effect = DROPEFFECT_COPY;
-		return S_OK;
-	}
-
-	HRESULT __stdcall DragLeave()
-	{
-		return S_OK;
-	}
-
-	HRESULT __stdcall Drop(IDataObject* data, DWORD keyState, POINTL pos, DWORD*  effect)
-	{
-		//XXX: do something with the data (e.g. send event)
-		*effect = DROPEFFECT_COPY;
-		log("Got Drop");
-		return S_OK;
-	}
-
-private:
-	volatile LONG refCount_ = 0;
-};
-
-}
-
+	
 //static
 const char* WinapiWindowContext::nativeWidgetClassName(NativeWidgetType type)
 {
