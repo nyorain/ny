@@ -10,6 +10,7 @@ if(${WithWinapi})
 		winapi/util.cpp
 		winapi/gdi.cpp
 		winapi/wgl.cpp
+		winapi/com.cpp
 		winapi/windowContext.cpp)
 
 	set(libs-backend ${libs-backend} gdi32 gdiplus)

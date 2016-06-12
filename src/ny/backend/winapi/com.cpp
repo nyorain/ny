@@ -259,7 +259,7 @@ FORMATETC DataObjectImpl::format(unsigned int id) const
 	return {cf, 0, DVASPECT_CONTENT, -1, tymed};
 }
 
-STGMEDIUM DataObjectImpl::medium(unsigned int format) const
+STGMEDIUM DataObjectImpl::medium(unsigned int id) const
 {
 	if(id > source_->types().types.size())
 		throw std::out_of_bounds("ny::winapi::com::DataObjectImpl::medium");

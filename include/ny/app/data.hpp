@@ -73,7 +73,6 @@ public:
 };
 
 //XXX: useful? should exist?
-//http://stackoverflow.com/questions/3261379/getting-html-source-or-rich-text-from-the-x-clipboard
 ///Default DataSource implementation.
 class DefaultDataSource : public DataSource
 {

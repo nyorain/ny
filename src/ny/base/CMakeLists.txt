@@ -5,6 +5,7 @@ set(src-base
 	image.cpp
 	cursor.cpp
 	pugixml.cpp
+	utf.cpp
 	cursor.cpp)
 
 add_library(ny-base SHARED ${src-base})
