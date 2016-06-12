@@ -47,6 +47,7 @@ class Pen;
 class DataTypes;
 class DataOffer;
 class DataSource;
+class DataObject;
 class Cursor;
 class Frame;
 class Dialog;

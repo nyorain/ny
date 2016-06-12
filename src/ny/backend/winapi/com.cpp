@@ -1,10 +1,23 @@
 #include <ny/backend/winapi/com.hpp>
+#include <ny/app/data.hpp>
 
 namespace ny
 {
 
 namespace winapi
 {
+
+///Winapi data offer implementation
+class DataOfferImpl : public DataOffer
+{
+public:
+	virtual DataTypes types() const override { return types_; }
+	virtual std::any data(std::uint8_t format) const override;
+
+protected:
+	DataTypes types_;
+	DataComObject data_;
+};
 
 namespace com
 {
@@ -48,16 +61,15 @@ HRESULT DropSourceImpl::GiveFeedback(DWORD dwEffect)
 }
 
 //DataObjectImpl
-HRESULT DataObjectImpl::GetData(FORMATETC* format, TGMEDIUM* medium)
+HRESULT DataObjectImpl::GetData(FORMATETC* format, STGMEDIUM* medium)
 {
 	if(!format) return DV_E_FORMATETC;
-
-	auto id = lookupFormat(*format);
-	if(!id) return DV_E_FORMATETC;
-
 	if(!medium) return E_UNEXPECTED;
 
-	medium->tymed = formats()[id].tymed;
+	auto id = lookupFormat(*format);
+	if(id == -1) return DV_E_FORMATETC;
+
+	medium->tymed = formats(id).tymed;
 	medium->pUnkForRelease = nullptr;
 
 	//Code styles are like assholes. Everyone has one but only few people like the ones of
@@ -116,18 +128,97 @@ HRESULT DataObjectImpl::EnumDAdvise(IEnumSTATDATA**)
 
 int DataObjectImpl::lookupFormat(const FORMATETC& fmt)
 {
-	int ret = 0;
-	for(auto& fit : formats())
+	for(auto i = 0u; i < source_->types().types.size(); ++i)
 	{
-		if((fit.tymed & fmt.tymed) && fit.cfFormat == fmt.cfFormat && fit.dwAspect == fmt.dwAspect)
-		{
+		auto f = format(i);
+		if(f.cfFormat == 0 && f.tymed == TYMED_NULL) continue; //invalid
+		if((f.tymed & fmt.tymed) && f.cfFormat == fmt.cfFormat && f.dwAspect == fmt.dwAspect)
 			return ret;
-		}
-
-		ret++;
 	}
 
 	return -1;
+}
+
+FORMATETC DataObjectImpl::format(unsigned int id) const
+{
+	if(id > source_->types().types.size())
+		throw std::out_of_bounds("ny::winapi::com::DataObjectImpl::medium");
+
+	using dt = dataType;
+	auto type = source_->types().types[id];
+
+	CLIPBOARDFORMAT cf = 0;
+	DWORD tymed = TYMED_NULL;
+	if(type >= dt::image::png && type <= dt::image::bmp) //image
+	{
+		 cf = CF_BITMAP;
+		 tymed = TYMED_GDI;
+	}
+	else if(type == dt::text::plain)
+	{
+		 cf = CF_TEXT;
+		 tymed = TYMED_HGLOBAL;
+	}
+	else if(type == dt::text::utf8 || type == dt::text::utf16 || type == dt::text::utf32)
+	{
+		cf = CF_UNICODETEXT;
+		tymed = TYMED_HGLOBAL;
+	}
+	else if(type == dt::filePaths)
+	{
+		cf = CF_HDROP;
+		tymed = TYMED_HGLOBAL;
+	}
+
+	return {cf, 0, DVASPECT_CONTENT, -1, tymed};
+}
+
+STGMEDIUM DataObjectImpl::medium(unsigned int format) const
+{
+	if(id > source_->types().types.size())
+		throw std::out_of_bounds("ny::winapi::com::DataObjectImpl::medium");
+
+	STGMEDIUM ret;
+	if(type >= dt::image::png && type <= dt::image::bmp) //image
+	{
+		//copy the image to a bitmap handle
+		HBITMAP bitmap;
+		ret.hBitmap = bitmap;
+	}
+	else if(type == dt::text::plain)
+	{
+		auto txt = std::any_cast<std::string>(source_->data(type));
+		//replaceLF(txt);
+		ret.hGlobal = stringToGlobal(txt);
+	}
+	else if(type == dt::text::utf8)
+	{
+		auto txt = std::any_cast<std::string>(source_->data(type));
+		//replaceLF(txt);
+		ret.hGlobal = stringToGlobal(toUTF16(txt));
+	}
+	else if(type == dt::text::utf16)
+	{
+		auto txt = std::any_cast<std::u16string>(source_->data(type));
+		//replaceLF(txt);
+		ret.hGlobal = stringToGlobal(txt);
+	}
+	else if(type == dt::text::utf32)
+	{
+		auto txt = std::any_cast<std::u32string>(source_->data(type));
+		//replaceLF(txt);
+		ret.hGlobal = stringToGlobal(toUTF16(txt));
+
+	}
+	else if(type == dt::filePath)
+	{
+		DROPFILES files;
+		auto filename = std::any_cast<std::string>(source_->data(type));
+		filename.append('\0'); //double null terminated
+		ret.hGlobal = stringToGlobal(filename);
+	}
+
+	return ret;
 }
 
 //free functions impl

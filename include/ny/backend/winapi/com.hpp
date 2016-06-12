@@ -1,9 +1,12 @@
 #pragma once
 
+#include <ny/include.hpp>
 #include <nytl/tmp.hpp>
 #include <windows.h>
 #include <ole2.h>
+
 #include <atomic>
+#include <memory>
 
 namespace ny
 {
@@ -13,6 +16,25 @@ namespace winapi
 
 namespace com
 {
+
+///Smart pointer wrapper for shared com objects.
+///Automatically adds a reference on construction and removes it on destruction.
+template<typename T>
+class ComObject
+{
+public:
+	ComObject(const T& obj)	: obj_(&obj) { obj_->AddRef(); }
+	~ComObject() { if(obj_) obj_->Release(); }
+
+	T& object() { return *obj_; };
+	const T& object() const { return *obj_; }
+
+protected:
+	T* obj_ = nullptr;
+};
+
+using UnkownComObject = ComObject<IUnkown>;
+using DataComObject = ComObject<IDataObject>;
 
 ///Implementation for the IUnkown com interface.
 ///Classes deriving from this class must pass themself (CRTP) and the GUIDs to implement.
@@ -33,6 +55,7 @@ protected:
 ///IDropTarget implementation class.
 class DropTargetImpl : public UnkownImplmentation<IDropTarget, IID_IDropTarget>
 {
+public:
 	virtual __stdcall HRESULT DragEnter(IDataObject*, DWORD, POINTL pos, DWORD* effect) override;
 	virtual __stdcall HRESULT DragOver(DWORD keys, POINTL pos, DWORD* effect) override;
 	virtual __stdcall HRESULT DragLeave() override;
@@ -49,7 +72,8 @@ class DropSourceImpl : public UnkownImplementation<IDropSource, IID_IDropSource>
 ///IDropData implementation class.
 class DataObjectImpl : public UnkownImplementation<IDataObject, IID_IDataObject>
 {
-    virtual __stdcall HRESULT GetData(FORMATETC*, TGMEDIUM*) override;
+public:
+    virtual __stdcall HRESULT GetData(FORMATETC*, STGMEDIUM*) override;
     virtual __stdcall HRESULT GetDataHere(FORMATETC*, STGMEDIUM*) override;
     virtual __stdcall HRESULT QueryGetData(FORMATETC*) override;
     virtual __stdcall HRESULT GetCanonicalFormatEtc(FORMATETC*, FORMATETC*) override;
@@ -59,7 +83,20 @@ class DataObjectImpl : public UnkownImplementation<IDataObject, IID_IDataObject>
     virtual __stdcall HRESULT DUnadvise(DWORD) override;
     virtual __stdcall HRESULT EnumDAdvise(IEnumSTATDATA**) override;
 
+protected:
+	///Returns the type id of the supported types that matches the given format, or -1.
 	int lookupFormat(const FORMATETC& format) const;
+
+	///Returns a FORMATETC struct for the given supported type id.
+	///\exception std::out_of_bounds When id > supportedTypes.size()
+	FORMATETC format(unsigned int id) const;
+
+	///Returns a STGMEDIUM struct for the given supported type id holding the data.
+	///\exception std::out_of_bounds When id > supportedTypes.size()
+	STGMEDIUM medium(unsigned int id) const;
+
+protected:
+	std::unique_ptr<DataSource> source_;
 };
 
 //utilty functions

@@ -91,23 +91,20 @@ namespace dataType
 ///\sa dataTypes
 class DataTypes
 {
-protected:
-    std::vector<std::uint8_t> types_;
+public:
+    std::vector<std::uint8_t> types;
 
 public:
-    void addType(std::uint8_t type);
-    void removeType(std::uint8_t type);
-
+    void add(std::uint8_t type);
+    void remove(std::uint8_t type);
     bool contains(std::uint8_t type) const;
-
-    std::vector<std::uint8_t> getvector() const { return types_; }
 };
 
-///Struct used to represent raw data.
+///Struct used to represent owned raw data.
 struct DataObject
 {
     std::unique_ptr<std::uint8_t> data;
-    std::size_t size;
+    std::size_t size = 0;
 };
 
 ///The DataSource class is an interface implemented by the application to start drag and drop
@@ -119,8 +116,31 @@ class DataSource
 public:
     virtual ~DataSource() = default;
 
+	///Returns all supported dataTypes format constants as a DataTypes object.
 	virtual DataTypes types() const = 0;
+
+	///Returns a std::any holding the data in the given format.
+	///The std::any must contain a object of the type specified at the dataType constant
+	///declaration.
 	virtual std::any data(unsigned int format) const = 0;
+};
+
+//XXX: useful? should exist?
+//http://stackoverflow.com/questions/3261379/getting-html-source-or-rich-text-from-the-x-clipboard
+///Default DataSource implementation.
+class DefaultDataSource : public DataSource
+{
+public:
+	template<typename T>
+	DefaultDataSource(const T& data, DataTypes types) : types_(types), data_(data)  {}
+	~DefaultDataSource() = default;
+
+	virtual DataTypes types() const override;
+	virtual std::any data(unsigned int format) const override;
+
+protected:
+	DataTypes types_;
+	std::any data_;
 };
 
 ///Class that allows app to retrieve data from other apps
