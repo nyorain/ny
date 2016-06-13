@@ -8,6 +8,7 @@
 #include <atomic>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace ny
 {
@@ -58,7 +59,7 @@ public:
   	virtual __stdcall ULONG Release() override;
 
 protected:
-	volatile std::atomic<unsigned int> refCount_ = 0;
+	volatile std::atomic<unsigned int> refCount_ {0};
 };
 
 ///IDropTarget implementation class.
@@ -99,14 +100,17 @@ protected:
 	int lookupFormat(const FORMATETC& format) const;
 
 	///Returns a FORMATETC struct for the given supported type id.
-	///\exception std::out_of_bounds When id > supportedTypes.size()
+	///\exception std::out_of_range When id > supportedTypes.size()
 	FORMATETC format(unsigned int id) const;
-	void format(unsigned int id, FORMATETC& format) const;
+	bool format(unsigned int id, FORMATETC& format) const;
+
+	///Returns all supported formats in a vector.
+	std::vector<FORMATETC> formats() const;
 
 	///Returns a STGMEDIUM struct for the given supported type id holding the data.
-	///\exception std::out_of_bounds When id > supportedTypes.size()
+	///\exception std::out_of_range When id > supportedTypes.size()
 	STGMEDIUM medium(unsigned int id) const;
-	void medium(unsigned int id, STGMEDIUM& med) const;
+	bool medium(unsigned int id, STGMEDIUM& med) const;
 
 protected:
 	std::unique_ptr<DataSource> source_;
@@ -133,7 +137,7 @@ UnknownImplementation<T, ids...>::QueryInterface(REFIID riid, void** ppv)
 
 	*ppv = nullptr;
 	bool found = (riid == IID_IUnknown);
-	nytl::Expand {((void) found |= (rrid == ids), 0)...};
+	nytl::Expand {(found |= (riid == ids), 0)...};
 
 	if(!found) return E_NOINTERFACE;
 
@@ -149,7 +153,7 @@ UnknownImplementation<T, ids...>::AddRef()
 }
 
 template<typename T, const GUID&... ids> ULONG
-UnknownImplementation<T, ids...>::Relase()
+UnknownImplementation<T, ids...>::Release()
 {
 	if(refCount_-- == 0) delete this;
     return refCount_;

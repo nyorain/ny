@@ -13,7 +13,7 @@ namespace ny
 
 namespace eventType
 {
-    constexpr unsigned int dataReceive = 25;
+    constexpr unsigned int dataOffer = 25;
 }
 
 ///This namespace holds constants for all data formats in which data from a DataSource/DataOffer
@@ -72,23 +72,6 @@ public:
 	virtual std::any data(unsigned int format) const = 0;
 };
 
-//XXX: useful? should exist?
-///Default DataSource implementation.
-class DefaultDataSource : public DataSource
-{
-public:
-	template<typename T>
-	DefaultDataSource(const T& data, DataTypes types) : types_(types), data_(data)  {}
-	~DefaultDataSource() = default;
-
-	virtual DataTypes types() const override;
-	virtual std::any data(unsigned int format) const override;
-
-protected:
-	DataTypes types_;
-	std::any data_;
-};
-
 ///Class that allows app to retrieve data from other apps
 ///The DataOffer interface is usually implemented by the backends and will be passed to the
 ///application either as result from a clipboard request or with a DataOfferEvent, if there
@@ -98,23 +81,42 @@ protected:
 class DataOffer
 {
 public:
+	using DataFunc = CompFunc<void(DataOffer& off, std::uint8_t fmt, std::any data)>;
+	Callback<bool(DataOffer& off, std::uint8_t fmt)> onFormat;
+
+public:
 	virtual ~DataOffer() = default;
 
+	///Returns all currently known supported data representation formats.
+	///Note that on some backends the supported types are queried async, therefore
+	///this list might grow over time, add a function to the onFormat callback to
+	///retrieve new supported types.
 	virtual DataTypes types() const = 0;
-	virtual std::any data(std::uint8_t format) const = 0;
+
+	///Requests conversion of the data into the given format and registers a function
+	///that should be asynchronous called when the data arrives.
+	///On some backends, the given function will called immedietly, returning
+	///a disconnected connection while on other backends a valid one is returned and the
+	///function might be called at some point in the future from the backend thread.
+	///The Connection will be automatically destroyed after the function has been
+	///called once or earlier.
+	///If the requested format cannot be retrieved, the function will be called with an
+	///empty any object.
+	virtual Connection request(std::uint8_t fmt, DataFunc func) const = 0;
 };
 
 ///Event which will be sent when the application recieves data from another application.
 ///If the event is sent as effect from a drag and drop action, the event will be sent
 ///to the window on which the data was dropped, otherwise (e.g. clipboard) it will
 ///be sent to the specified event handler.
-class DataOfferEvent : public EventBase<eventType::dataReceive, DataOfferEvent>
+class DataOfferEvent : public EventBase<eventType::dataOffer, DataOfferEvent>
 {
 public:
-    DataOfferEvent(std::unique_ptr<DataOffer> offer) : data(std::move(offer)) {}
+    DataOfferEvent(EventHandler* handler = {}, std::unique_ptr<DataOffer> xoffer = {})
+		: EvBase(handler), offer(std::move(xoffer)) {}
 	~DataOfferEvent() = default;
 
-    std::unique_ptr<DataOffer> data;
+    std::unique_ptr<DataOffer> offer;
 	//XXX:some source indication? clipboard or dnd?
 };
 

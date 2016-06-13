@@ -16,11 +16,11 @@ public:
 	DataOfferImpl(IDataObject& object);
 
 	virtual DataTypes types() const override { return types_; }
-	virtual std::any data(std::uint8_t format) const override;
+	virtual Connection request(std::uint8_t fmt, DataFunc func) const override;
 
 protected:
 	DataTypes types_;
-	DataComObject data_;
+	com::DataComObject data_;
 	std::unordered_map<unsigned int, FORMATETC> typeFormats_;
 };
 
@@ -45,7 +45,7 @@ DataOfferImpl::DataOfferImpl(IDataObject& object) : data_(object)
 		enumerator->Next(10, formats, &count);
 		for(auto i = 0u; i < count; ++i)
 		{
-			curr = formats[i];
+			curr = &formats[i];
 
 			checkAdd(CF_TEXT, TYMED_HGLOBAL, dataType::text);
 			checkAdd(CF_UNICODETEXT, TYMED_HGLOBAL, dataType::text);
@@ -58,24 +58,28 @@ DataOfferImpl::DataOfferImpl(IDataObject& object) : data_(object)
 	enumerator->Release();
 }
 
-std::any DataOfferImpl::data(std::uint8_t format)
+Connection DataOfferImpl::data(std::uint8_t format, DataFunc func) const
 {
-	if(!types_.contains(format)) return {};
+	if(!types_.contains(format))
+	{
+		func(*this, format, {});
+		return {};
+	}
 
 	if(format == dataType::text)
 	{
 		STGMEDIUM med;
-		if(data_->GetData(&typeFormats_[format], &med) != S_OK) return {};
+		if(data_->GetData(&typeFormats_.at(format), &med) != S_OK) return {};
 		auto txt = globalToStringUnicode(med.hGlobal);
 		replaceCLRF(txt);
 		ReleaseStgMedium(&med);
-		return toUTF8(txt);
+		func(*this, format, toUTF8(txt));
 	}
 	else if(format == dataType::image)
 	{
 		 //convert the HBitmap to a ny image
 		 //support for compression/decompression?
-		 return {};
+		func(*this, format, {});
 	}
 	else if(format == dataType::filePaths)
 	{
@@ -94,7 +98,11 @@ std::any DataOfferImpl::data(std::uint8_t format)
 		}
 
 		ReleaseStgMedium(&med);
-		return paths;
+		func(*this, format, std::move(paths));
+	}
+	else
+	{
+		func(*this, format, {});
 	}
 
 	return {};
@@ -133,7 +141,7 @@ HRESULT DropTargetImpl::Drop(IDataObject* data, DWORD keyState, POINTL pos, DWOR
 
 	auto offer = std::make_unique<DataOfferImpl>(*data);
 	DataOfferEvent ev(windowContext_->eventHandler(), std::move(offer));
-	ac.eventDispatcher()->dispatch(ev);
+	ac.eventDispatcher()->dispatch(std::move(ev));
 
 	return S_OK;
 }
@@ -174,7 +182,7 @@ HRESULT DataObjectImpl::GetDataHere(FORMATETC* format, STGMEDIUM* medium)
 {
 	return DATA_E_FORMATETC;
 }
-HRESULT DataObjectImpl::QueryGetData(FORMATETC*)
+HRESULT DataObjectImpl::QueryGetData(FORMATETC* format)
 {
 	if(!format || lookupFormat(*format) == -1) return DV_E_FORMATETC;
 	return S_OK;
@@ -226,10 +234,10 @@ FORMATETC DataObjectImpl::format(unsigned int id) const
 	return ret;
 }
 
-void DataObjectImpl::format(unsigned int id, FORMATETC& format) const
+bool DataObjectImpl::format(unsigned int id, FORMATETC& format) const
 {
 	if(id > source_->types().types.size())
-		throw std::out_of_bounds("ny::winapi::com::DataObjectImpl::medium");
+		throw std::out_of_range("ny::winapi::com::DataObjectImpl::medium");
 
 	auto type = source_->types().types[id];
 
@@ -266,10 +274,10 @@ STGMEDIUM DataObjectImpl::medium(unsigned int id) const
 	return ret;
 }
 
-void DataObjectImpl::medium(unsigned int id, STGMEDIUM& med) const
+bool DataObjectImpl::medium(unsigned int id, STGMEDIUM& med) const
 {
 	if(id > source_->types().types.size())
-		throw std::out_of_bounds("ny::winapi::com::DataObjectImpl::medium");
+		throw std::out_of_range("ny::winapi::com::DataObjectImpl::medium");
 
 	med.tymed = formats(id).tymed;
 	med.pUnkForRelease = nullptr;
@@ -279,12 +287,14 @@ void DataObjectImpl::medium(unsigned int id, STGMEDIUM& med) const
 		//copy the image to a bitmap handle
 		HBITMAP bitmap;
 		med.hBitmap = bitmap;
+		return true;
 	}
 	else if(type == dataType::text)
 	{
 		auto txt = std::any_cast<std::string>(source_->data(type));
 		replaceLF(txt);
 		med.hGlobal = stringToGlobal(toUTF16(txt)); //text is normally UTF16
+		return true;
 	}
 	else if(type == dataType::filePaths)
 	{
@@ -297,8 +307,22 @@ void DataObjectImpl::medium(unsigned int id, STGMEDIUM& med) const
 
 		filename.append('\0'); //double null terminated
 		ret.hGlobal = stringToGlobal(filename); //encoded as ASCII
+		return true;
 	}
 
+	return false;
+}
+
+std::vector<FORMATETC> DataObjectImpl::formats() const
+{
+	auto size = source_->types().types.size();
+	std::vector<FORMATETC> ret(1);
+	ret.reserve(size);
+
+	for(auto i = 0u; i < size; ++i)
+		if(format(i, ret.back())) ret.emplace_back();
+
+	ret.erase(ret.end() - 1);
 	return ret;
 }
 

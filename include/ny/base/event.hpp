@@ -16,7 +16,7 @@ namespace eventType {};
 ///Has a virtual destructor which makes RTTI possible.
 class EventData
 {
-protected:
+public:
 	virtual ~EventData() = default;
 };
 
@@ -30,7 +30,7 @@ protected:
 ///Custom Events can carry their own information but every event has a EventData pointer
 ///as member, which can be used by backends (or custom senders) to send additional
 ///information eventType-agnostic.
-class Event : public AbstractCloneable<Event>
+class Event : public AbstractCloneMovable<Event>
 {
 public:
     EventHandler* handler {nullptr}; ///The EventHandler this event should be delivered to.
@@ -82,7 +82,7 @@ class EventBase<Type, void, Override>
 {
 public:
 	using EvBase = EventBase;
-	using typename DeriveCloneMovable<Event, T>::CloneMovableBase;
+	using typename DeriveCloneMovable<Event, EventBase>::CloneMovableBase;
 
 public:
 	using CloneMovableBase::CloneMovableBase;

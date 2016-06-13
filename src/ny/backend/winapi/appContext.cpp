@@ -240,8 +240,8 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 	auto threadedDispatcher = dynamic_cast<ThreadedEventDispatcher*>(eventDispatcher_);
 
 	//utilty function used to dispatch event
-	auto dispatch = [&](auto&& ev) {
-			if(threadsafe_) eventDispatcher_->send(std::move(ev));
+	auto dispatch = [&](Event& ev) {
+			if(threadsafe_) eventDispatcher_->send(ev);
 			else eventDispatcher_->dispatch(std::move(ev));
 		};
 
@@ -329,7 +329,7 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 				KeyEvent ev(handler);
 				ev.key = winapiToKey(wparam);
 				ev.pressed = true;
-				eventDispatcher_->dispatch(std::move(ev));
+				dispatch(ev);
 			}
 
 			break;
@@ -342,7 +342,7 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 				KeyEvent ev(handler);
 				ev.key = winapiToKey(wparam);
 				ev.pressed = false;
-				eventDispatcher_->dispatch(std::move(ev));
+				dispatch(ev);
 			}
 
 			break;
