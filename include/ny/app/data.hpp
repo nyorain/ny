@@ -108,7 +108,7 @@ public:
 ///If the event is sent as effect from a drag and drop action, the event will be sent
 ///to the window on which the data was dropped, otherwise (e.g. clipboard) it will
 ///be sent to the specified event handler.
-class DataOfferEvent : public EventBase<eventType::dataReceive, DataReceiveEvent>
+class DataOfferEvent : public EventBase<eventType::dataReceive, DataOfferEvent>
 {
 public:
     DataOfferEvent(std::unique_ptr<DataOffer> offer) : data(std::move(offer)) {}

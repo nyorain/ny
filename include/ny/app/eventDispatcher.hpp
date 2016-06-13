@@ -24,7 +24,7 @@ public:
 	///Map of Callbacks for different event types that will be called everytime an event
 	///with the given type is sent.
 	///All functions registered for eventType 0 will be called for every event.
-	std::map<unsigned int, Callback<void(EventDispatcher&, const Event&)>> onEvent;
+	std::map<unsigned int, Callback<void(EventDispatcher&, Event&)>> onEvent;
 
 public:
 	EventDispatcher() = default;
@@ -34,26 +34,26 @@ public:
 	///Dispatch the given event and returns immediatly.
 	///Depending on the Dispatcher implementation it may or may not be changed/queued/sent later.
 	///The default implementation just directly sends the event from the calling thread.
-	virtual void dispatch(EventPtr&& event){ send(*event); };
-	virtual void dispatch(const Event& event){ send(event); }
+	///These functions may move from the given parameters.
+	virtual void dispatch(std::unique_ptr<Event>&& event){ send(*event); };
 	virtual void dispatch(Event&& event){ send(event); }
 	///\}
 
 	///\{
 	///Dispatch the given event to its handler and waits till it has been processed.
 	///The default implementation just directly sends the event from the calling thread.
-	virtual void dispatchSync(EventPtr&& event) { send(*event); }
-	virtual void dispatchSync(const Event& event) { send(event); }
+	///The functions may move from the given paramters.
+	virtual void dispatchSync(std::unique_ptr<Event>&& event) { send(*event); }
 	virtual void dispatchSync(Event&& event) { send(event); }
 	///\}
 
 	///Just sends the given event to its handler and triggers the callback function.
-	virtual void send(const Event& event);
+	virtual void send(Event& event);
 
 protected:
 	///Action to be performed when there is an event without a handler.
 	///The default implementation just outputs a warning and discards the event.
-	virtual void noEventHandler(const Event& event) const;
+	virtual void noEventHandler(Event& event) const;
 };
 
 ///\brief Async Threadsafe event dispatcher implementation.
@@ -75,8 +75,7 @@ public:
 
 	///\{
 	///Queues the given event for processing.
-	virtual void dispatch(EventPtr&& event) override;
-	virtual void dispatch(const Event& event) override;
+	virtual void dispatch(std::unique_ptr<Event>&& event) override;
 	virtual void dispatch(Event&& event) override;
 	///\}
 
@@ -85,8 +84,7 @@ public:
 	///been dispatched.
 	///\warning This function can easily result in a deadlock if there is no other thread
 	///processing messages.
-	virtual void dispatchSync(EventPtr&& event) override;
-	virtual void dispatchSync(const Event& event) override;
+	virtual void dispatchSync(std::unique_ptr<Event>&& event) override;
 	virtual void dispatchSync(Event&& event) override;
 	///\}
 
@@ -138,7 +136,7 @@ public:
 	std::size_t eventCount() const;
 
 protected:
-    std::deque<EventPtr> events_;
+    std::deque<std::unique_ptr<Event>> events_;
     std::condition_variable eventCV_;
     mutable std::mutex eventMtx_;
 

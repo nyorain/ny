@@ -7,6 +7,7 @@
 
 #include <atomic>
 #include <memory>
+#include <string>
 
 namespace ny
 {
@@ -35,13 +36,13 @@ public:
 	T* operator->() { return get(); }
 	const T* operator->() const { return get(); }
 
-	bool operator bool() const { return (obj_); }
+	operator bool() const { return (obj_); }
 
 protected:
 	T* obj_ = nullptr;
 };
 
-using UnkownComObject = ComObject<IUnkown>;
+using UnknownComObject = ComObject<IUnknown>;
 using DataComObject = ComObject<IDataObject>;
 
 ///Implementation for the IUnkown com interface.
@@ -57,11 +58,11 @@ public:
   	virtual __stdcall ULONG Release() override;
 
 protected:
-	volatile std::atomic<std::uint32_t> refCount_ = 0;
+	volatile std::atomic<unsigned int> refCount_ = 0;
 };
 
 ///IDropTarget implementation class.
-class DropTargetImpl : public UnkownImplmentation<IDropTarget, IID_IDropTarget>
+class DropTargetImpl : public UnknownImplementation<IDropTarget, IID_IDropTarget>
 {
 public:
 	virtual __stdcall HRESULT DragEnter(IDataObject*, DWORD, POINTL pos, DWORD* effect) override;
@@ -71,16 +72,18 @@ public:
 };
 
 ///IDropSource implementation class.
-class DropSourceImpl : public UnkownImplementation<IDropSource, IID_IDropSource>
+class DropSourceImpl : public UnknownImplementation<IDropSource, IID_IDropSource>
 {
 	virtual __stdcall HRESULT GiveFeedback(DWORD effect) override;
 	virtual __stdcall HRESULT QueryContinueDrag(BOOL escape, DWORD keys) override;
 };
 
 ///IDropData implementation class.
-class DataObjectImpl : public UnkownImplementation<IDataObject, IID_IDataObject>
+class DataObjectImpl : public UnknownImplementation<IDataObject, IID_IDataObject>
 {
 public:
+	DataObjectImpl(std::unique_ptr<DataSource> src);
+
     virtual __stdcall HRESULT GetData(FORMATETC*, STGMEDIUM*) override;
     virtual __stdcall HRESULT GetDataHere(FORMATETC*, STGMEDIUM*) override;
     virtual __stdcall HRESULT QueryGetData(FORMATETC*) override;
@@ -98,18 +101,21 @@ protected:
 	///Returns a FORMATETC struct for the given supported type id.
 	///\exception std::out_of_bounds When id > supportedTypes.size()
 	FORMATETC format(unsigned int id) const;
+	void format(unsigned int id, FORMATETC& format) const;
 
 	///Returns a STGMEDIUM struct for the given supported type id holding the data.
 	///\exception std::out_of_bounds When id > supportedTypes.size()
 	STGMEDIUM medium(unsigned int id) const;
+	void medium(unsigned int id, STGMEDIUM& med) const;
 
 protected:
 	std::unique_ptr<DataSource> source_;
 };
 
 //utilty functions
-///Duplicates and copies the given global memory.
-HGLOBAL duplicateGlobal(HGLOBAL mem);
+///Changes line endings
+void replaceLF(std::string& string);
+void replaceCRLF(std::string& string);
 
 ///Creates a global memory object for the given string.
 HGLOBAL stringToGlobal(const std::string& string);
@@ -126,8 +132,8 @@ UnknownImplementation<T, ids...>::QueryInterface(REFIID riid, void** ppv)
 	if(!ppv) return E_INVALIDARG;
 
 	*ppv = nullptr;
-	bool found = (riid == IID_IUnkown);
-	nytl::expander{((void) found |= (rrid == ids), 0)...};
+	bool found = (riid == IID_IUnknown);
+	nytl::Expand {((void) found |= (rrid == ids), 0)...};
 
 	if(!found) return E_NOINTERFACE;
 

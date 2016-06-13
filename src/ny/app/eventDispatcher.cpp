@@ -24,7 +24,7 @@ struct DispatcherControlImpl : public LoopControlImpl
 }
 
 //Default
-void EventDispatcher::send(const Event& event)
+void EventDispatcher::send(Event& event)
 {
 	auto it = onEvent.find(event.type());
 	if(it != onEvent.cend()) it->second(*this, event);
@@ -36,7 +36,7 @@ void EventDispatcher::send(const Event& event)
 	else noEventHandler(event);
 }
 
-void EventDispatcher::noEventHandler(const Event& event) const
+void EventDispatcher::noEventHandler(Event& event) const
 {
 	sendWarning("ny::EventDispatcher: Received Event with no handler of type ", event.type());
 }
@@ -115,7 +115,7 @@ void ThreadedEventDispatcher::processLoop(LoopControl& control)
 	control.impl_.reset();
 }
 
-void ThreadedEventDispatcher::dispatch(EventPtr&& event)
+void ThreadedEventDispatcher::dispatch(std::unique_ptr<Event>&& event)
 {
     if(!event.get())
     {
@@ -149,11 +149,6 @@ void ThreadedEventDispatcher::dispatch(EventPtr&& event)
     }
 
     eventCV_.notify_one();
-}
-
-void ThreadedEventDispatcher::dispatch(const Event& event)
-{
-	dispatch(clone(event));
 }
 
 void ThreadedEventDispatcher::dispatch(Event&& event)

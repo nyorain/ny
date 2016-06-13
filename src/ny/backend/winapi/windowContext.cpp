@@ -1,6 +1,7 @@
 #include <ny/backend/winapi/windowContext.hpp>
 #include <ny/backend/winapi/util.hpp>
 #include <ny/backend/winapi/appContext.hpp>
+#include <ny/backend/winapi/com.hpp>
 
 #include <ny/base/log.hpp>
 #include <ny/base/cursor.hpp>
@@ -13,7 +14,7 @@
 
 namespace ny
 {
-	
+
 //static
 const char* WinapiWindowContext::nativeWidgetClassName(NativeWidgetType type)
 {
@@ -194,7 +195,7 @@ void WinapiWindowContext::addWindowHints(WindowHints hints)
 	}
 	if(hints & WindowHints::acceptDrop)
 	{
-		if(!dropTarget_) dropTarget_ = std::make_unique<DropTargetImpl>();
+		if(!dropTarget_) dropTarget_ = std::make_unique<winapi::com::DropTargetImpl>();
 		::RegisterDragDrop(handle(), dropTarget_.get());
 	}
 	if(hints & WindowHints::alwaysOnTop)
