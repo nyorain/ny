@@ -163,11 +163,6 @@ void ThreadedEventDispatcher::dispatchSync(EventPtr&& event)
 	fut.wait();
 }
 
-void ThreadedEventDispatcher::dispatchSync(const Event& event)
-{
-	dispatchSync(clone(event));
-}
-
 void ThreadedEventDispatcher::dispatchSync(Event&& event)
 {
 	dispatchSync(cloneMove(std::move(event)));

@@ -17,7 +17,7 @@ namespace ny
 {
 
 ///OpenGL(ES) draw context implementation.
-///Will always draw on the current opengl context (GlContext) in the drawing thread. Is not 
+///Will always draw on the current opengl context (GlContext) in the drawing thread. Is not
 ///directly associated or bound with one specific context which makes it possible to use
 ///just one GlDrawContext for multiple GlContexts. Basically just implements drawing using
 ///the openGL(ES) functions which use the currently bound context.
@@ -26,6 +26,24 @@ class GlDrawContext : public DelayedDrawContext
 {
 public:
 	struct ShaderPrograms;
+
+public:
+	GlDrawContext() = default;
+	virtual ~GlDrawContext() = default;
+
+	virtual void clear(const Brush& brush) override;
+	virtual void paint(const Brush& alpha, const Brush& fill) override;
+
+	virtual void fillPreserve(const Brush& brush) override;
+	virtual void strokePreserve(const Pen& pen) override;
+
+	virtual bool maskClippingSupported() const override { return 0; }
+
+	virtual void clipRectangle(const Rect2f& rct) override;
+	virtual Rect2f rectangleClip() const override;
+	virtual void resetRectangleClip() override;
+
+	virtual void apply() override;
 
 public:
 	Vec2f asGlInvert(const Vec2f& point, float ySize = 1);
@@ -46,23 +64,7 @@ public:
 	void fillText(const Text& t, const Brush& b);
 	void strokeText(const Text& t, const Pen& p);
 
-public:
-	virtual void clear(const Brush& brush) override;
-	virtual void paint(const Brush& alpha, const Brush& fill) override;
-
-	virtual void fillPreserve(const Brush& brush) override;
-	virtual void strokePreserve(const Pen& pen) override;
-
-	virtual bool maskClippingSupported() const override { return 0; }
-
-	virtual void clipRectangle(const Rect2f& rct) override;
-	virtual Rect2f rectangleClip() const override;
-	virtual void resetRectangleClip() override;
-
-	virtual void apply() override;
-
-	//gl-specific
-	virtual void viewport(const Rect2f& viewport);
+	void viewport(const Rect2f& viewport);
 	Rect2f viewport() const;
 };
 

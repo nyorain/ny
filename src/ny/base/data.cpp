@@ -1,22 +1,22 @@
-#include <ny/app/data.hpp>
+#include <ny/base/data.hpp>
 
 namespace ny
 {
 
-void DataTypes::addType(unsigned char type)
+void DataTypes::add(unsigned char type)
 {
 	if(contains(type)) return;
 	types.push_back(type);
 }
 
-void DataTypes::removeType(unsigned char type)
+void DataTypes::remove(unsigned char type)
 {
-    auto it = types_.begin();
-    while(it != types_.end())
+    auto it = types.begin();
+    while(it != types.end())
     {
         if(*it == type)
         {
-           types_.erase(it);
+           types.erase(it);
            return;
         }
         ++it;
@@ -25,13 +25,7 @@ void DataTypes::removeType(unsigned char type)
 
 bool DataTypes::contains(unsigned char type) const
 {
-    auto it = types_.begin();
-    while(it != types_.end())
-    {
-        if(*it == type) return true;
-        it++;
-    }
-
+	for(auto t : types) if(t == type) return true;
     return false;
 }
 

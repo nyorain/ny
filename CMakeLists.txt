@@ -27,20 +27,26 @@ set(CMAKE_CXX_STANDARD_REQUIRED on)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 
-#sets a config option to auto if not set by command line
+# sets a config option to auto if not set by command line
+# these config vars are not options but integers, since there default value
+# (if they are not yet determined or specified by command line) is 2 which
+# means auto. Then they are set to ON if possible and to OFF if not possible.
+# E.g. by default WithCairo=2, then cmake will check if cairo can be found.
+# If it can, WithCairo will be set to 1 and ny will be built with cairo.
+# Otherwise it will be set to 0 and ny will be built without it.
 function(configOption name default)
 	if(NOT DEFINED ${name})
 		set(${name} ${default} CACHE STRING "Build config option")
 	endif()
 endfunction()
 
-#check for auto options
-function(checkConfigOption var pkg found)
+# check for auto options
+function(checkConfigOption var pkg found apply)
 	if(${${var}} EQUAL 2)
 		message("--- Build option " ${var} " set to auto, trying to find dependencies.")
 		find_package(${pkg} QUIET)
 
-		if(${${found}})
+		if(${${found}} AND ${apply})
 			message("--- ---> Found " ${pkg})
 			set(${var} 1 CACHE STRING "Build config option" FORCE)
 		else()
@@ -50,6 +56,7 @@ function(checkConfigOption var pkg found)
 	endif()
 endfunction()
 
+# basic options defaulted to 2 (auto)
 configOption(WithFreeType 2)
 configOption(WithGL 2)
 configOption(WithEGL 2)
@@ -66,11 +73,18 @@ elseif(WIN32)
 	configOption(WithWayland 0)
 endif()
 
-checkConfigOption(WithFreeType FreeType FREETYPE_FOUND)
-checkConfigOption(WithGL OpenGL OPENGL_FOUND)
-checkConfigOption(WithEGL EGL EGL_FOUND)
-checkConfigOption(WithCairo Cairo CAIRO_FOUND)
-checkConfigOption(WithVulkan Vulkan VULKAN_FOUND)
+checkConfigOption(WithFreeType FreeType FREETYPE_FOUND 1)
+checkConfigOption(WithGL OpenGL OPENGL_FOUND 1)
+checkConfigOption(WithEGL EGL EGL_FOUND 1)
+checkConfigOption(WithCairo Cairo CAIRO_FOUND 1)
+checkConfigOption(WithVulkan Vulkan VULKAN_FOUND 1)
+
+if(UNIX)
+	# TODO
+	checkConfigOption(WithX11 Xlib XLIB_FOUND 0)
+	checkConfigOption(WithX11 XCB XCB_FOUND 1) #something about modules?
+	checkConfigOption(WithWayland Wayland WAYLAND_FOUND 1)
+endif()
 
 if(BuildDebug)
 	set(CMAKE_BUILD_TYPE Debug)

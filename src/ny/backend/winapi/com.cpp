@@ -1,7 +1,17 @@
 #include <ny/backend/winapi/com.hpp>
-#include <ny/app/data.hpp>
+#include <ny/backend/winapi/windowContext.hpp>
+#include <ny/backend/winapi/appContext.hpp>
+#include <ny/backend/winapi/util.hpp>
+#include <ny/app/eventDispatcher.hpp>
+#include <ny/base/utf.hpp>
+#include <ny/base/data.hpp>
+#include <ny/base/log.hpp>
+
+#include <Shlobj.h>
 
 #include <unordered_map>
+#include <cstring>
+#include <cmath>
 
 namespace ny
 {
@@ -16,7 +26,7 @@ public:
 	DataOfferImpl(IDataObject& object);
 
 	virtual DataTypes types() const override { return types_; }
-	virtual Connection request(std::uint8_t fmt, DataFunc func) const override;
+	virtual Connection data(std::uint8_t fmt, DataFunc func) override;
 
 protected:
 	DataTypes types_;
@@ -38,42 +48,63 @@ DataOfferImpl::DataOfferImpl(IDataObject& object) : data_(object)
 			}
 		};
 
-	FORMATETC* formats;
 	ULONG count;
-	do
-	{
-		enumerator->Next(10, formats, &count);
-		for(auto i = 0u; i < count; ++i)
-		{
-			curr = &formats[i];
+	FORMATETC format;
+	auto ret2 = enumerator->Next(1, &format, &count);
+	debug(errorMessage(ret2, "begin"));
 
-			checkAdd(CF_TEXT, TYMED_HGLOBAL, dataType::text);
-			checkAdd(CF_UNICODETEXT, TYMED_HGLOBAL, dataType::text);
-			checkAdd(CF_BITMAP, TYMED_GDI, dataType::image);
-			checkAdd(CF_HDROP, TYMED_HGLOBAL, dataType::filePaths);
-		}
+	while(enumerator->Next(1, &format, &count) == S_OK)
+	{
+		curr = &format;
+		debug("Format: ", curr->cfFormat);
+		checkAdd(CF_TEXT, TYMED_HGLOBAL, dataType::text);
+		checkAdd(CF_UNICODETEXT, TYMED_HGLOBAL, dataType::text);
+		checkAdd(CF_BITMAP, TYMED_GDI, dataType::image);
+		checkAdd(CF_HDROP, TYMED_HGLOBAL, dataType::filePaths);
+
+		curr = nullptr;
 	}
-	while(count == 10);
+
+	//format = {CF_TEXT, nullptr, DVASPECT_CONTENT, -1, TYMED_HGLOBAL};
+	//auto ret = data_->QueryGetData(&format);
+	//if(ret == S_OK) debug("Ayy s_ok");
+	//else debug(errorMessage(ret, "not so ayy"));
 
 	enumerator->Release();
 }
 
-Connection DataOfferImpl::data(std::uint8_t format, DataFunc func) const
+Connection DataOfferImpl::data(std::uint8_t format, DataFunc func)
 {
-	if(!types_.contains(format))
-	{
-		func(*this, format, {});
-		return {};
-	}
+	HRESULT res = 0;
+	if(!types_.contains(format)) goto failure;
 
 	if(format == dataType::text)
 	{
-		STGMEDIUM med;
-		if(data_->GetData(&typeFormats_.at(format), &med) != S_OK) return {};
-		auto txt = globalToStringUnicode(med.hGlobal);
-		replaceCLRF(txt);
+		debug("TEXT");
+		STGMEDIUM med {};
+		res = data_->GetData(&typeFormats_.at(format), &med);
+		debug(res == DV_E_LINDEX);
+		debug(res == DV_E_FORMATETC);
+		debug(res == DV_E_TYMED);
+		debug(res == DV_E_DVASPECT);
+		debug(res == OLE_E_NOTRUNNING);
+		debug(res == E_UNEXPECTED);
+		debug(res == E_INVALIDARG);
+		debug(res == E_OUTOFMEMORY);
+		debug(med.hGlobal);
+		if(res != S_OK) goto failure;
+		debug("yee");
+		auto txt = utf16to8(globalToStringUnicode(med.hGlobal));
+		debug(txt);
+		replaceCRLF(txt);
+		debug(txt);
 		ReleaseStgMedium(&med);
-		func(*this, format, toUTF8(txt));
+		debug(txt);
+		std::any a(txt);
+		debug("empty: ", a.empty());
+		debug("ptr: ", &a);
+		debug("txt: ", std::any_cast<std::string>(a));
+		func(*this, format, a);
 	}
 	else if(format == dataType::image)
 	{
@@ -85,26 +116,28 @@ Connection DataOfferImpl::data(std::uint8_t format, DataFunc func) const
 	{
 		//something lockglobal bs
 		STGMEDIUM med;
-		if(data_->GetData(&typeFormats_[format], &med) != S_OK) return {};
-		auto hdrop = reinterpret_cast<HDROP>(md.hGlobal);
+		if(data_->GetData(&typeFormats_[format], &med) != S_OK) goto failure;
+		auto hdrop = reinterpret_cast<HDROP>(med.hGlobal);
 		auto count = DragQueryFile(hdrop, 0xFFFFFFFF, nullptr, 0); //query count
 
 		std::vector<std::string> paths;
 		for(auto i = 0u; i < count; ++i)
 		{
 			auto size = DragQueryFile(hdrop, i, nullptr, 0); //query buffer size
-			char buffer[sisze];
+			char buffer[size];
 			if(DragQueryFile(hdrop, i, buffer, size)) paths.push_back(buffer);
 		}
 
 		ReleaseStgMedium(&med);
 		func(*this, format, std::move(paths));
 	}
-	else
-	{
-		func(*this, format, {});
-	}
+	else goto failure;
 
+	return {};
+
+failure:
+	debug(res, errorMessage(res, " winapi::DataOfferImpl: ::GetData"));
+	func(*this, format, {});
 	return {};
 }
 
@@ -137,7 +170,7 @@ HRESULT DropTargetImpl::Drop(IDataObject* data, DWORD keyState, POINTL pos, DWOR
 	*effect = DROPEFFECT_COPY;
 
 	auto& ac = windowContext_->appContext();
-	if(!windowContext_->eventHandler() || !ac.eventDispatcher) return E_UNEXPECTED;
+	if(!windowContext_->eventHandler() || !ac.eventDispatcher()) return E_UNEXPECTED;
 
 	auto offer = std::make_unique<DataOfferImpl>(*data);
 	DataOfferEvent ev(windowContext_->eventHandler(), std::move(offer));
@@ -159,7 +192,7 @@ HRESULT DropSourceImpl::GiveFeedback(DWORD dwEffect)
 }
 
 //DataObjectImpl
-DataObjectImpl::DataObjectImpl(std::unqiue_ptr<DataSource> source) : source_(std::move(source))
+DataObjectImpl::DataObjectImpl(std::unique_ptr<DataSource> source) : source_(std::move(source))
 {
 	//TODO: parse source formats
 	//if source e.g. offsers dataType::text, this DataObject should offer unicode as well
@@ -214,14 +247,14 @@ HRESULT DataObjectImpl::EnumDAdvise(IEnumSTATDATA**)
 	return OLE_E_ADVISENOTSUPPORTED;
 }
 
-int DataObjectImpl::lookupFormat(const FORMATETC& fmt)
+int DataObjectImpl::lookupFormat(const FORMATETC& fmt) const
 {
 	for(auto i = 0u; i < source_->types().types.size(); ++i)
 	{
 		auto f = format(i);
 		if(f.cfFormat == 0 && f.tymed == TYMED_NULL) continue; //invalid
 		if((f.tymed & fmt.tymed) && f.cfFormat == fmt.cfFormat && f.dwAspect == fmt.dwAspect)
-			return ret;
+			return i;
 	}
 
 	return -1;
@@ -242,7 +275,7 @@ bool DataObjectImpl::format(unsigned int id, FORMATETC& format) const
 	auto type = source_->types().types[id];
 
 	format.dwAspect = DVASPECT_CONTENT;
-	format.ptf = nullptr;
+	format.ptd = nullptr;
 	format.lindex = -1;
 
 	if(type == dataType::image)
@@ -279,8 +312,9 @@ bool DataObjectImpl::medium(unsigned int id, STGMEDIUM& med) const
 	if(id > source_->types().types.size())
 		throw std::out_of_range("ny::winapi::com::DataObjectImpl::medium");
 
-	med.tymed = formats(id).tymed;
+	med.tymed = format(id).tymed;
 	med.pUnkForRelease = nullptr;
+	auto type = source_->types().types[id];
 
 	if(type == dataType::image)
 	{
@@ -293,7 +327,7 @@ bool DataObjectImpl::medium(unsigned int id, STGMEDIUM& med) const
 	{
 		auto txt = std::any_cast<std::string>(source_->data(type));
 		replaceLF(txt);
-		med.hGlobal = stringToGlobal(toUTF16(txt)); //text is normally UTF16
+		med.hGlobal = stringToGlobalUnicode(utf8to16(txt)); //text is normally UTF16
 		return true;
 	}
 	else if(type == dataType::filePaths)
@@ -306,7 +340,7 @@ bool DataObjectImpl::medium(unsigned int id, STGMEDIUM& med) const
 			filename.append(name + "\0");
 
 		filename.append('\0'); //double null terminated
-		ret.hGlobal = stringToGlobal(filename); //encoded as ASCII
+		med.hGlobal = stringToGlobal(filename); //encoded as ASCII
 		return true;
 	}
 
@@ -325,6 +359,9 @@ std::vector<FORMATETC> DataObjectImpl::formats() const
 	ret.erase(ret.end() - 1);
 	return ret;
 }
+
+
+} //namespace com
 
 //free functions impl
 /*
@@ -395,7 +432,7 @@ std::u16string globalToStringUnicode(HGLOBAL global)
 	//but to go safe, we round len / 2 up and then later remove the trailing
 	//nullterminator
 	std::u16string str(std::ceil(len / 2), '\0'); //nullterminator excluded
-	std::memcpy(str.data(), ptr, len);
+	std::memcpy(&str[0], ptr, len);
 	::GlobalUnlock(global);
 	str = str.c_str(); //get rid of extra terminators
 	return str;
@@ -408,12 +445,10 @@ std::string globalToString(HGLOBAL global)
 	if(!ptr) return nullptr;
 
 	std::string str(len, '\0'); //nullterminator excluded
-	std::memcpy(str.data(), ptr, len);
+	std::memcpy(&str[0], ptr, len);
 	::GlobalUnlock(global);
 	return str;
 }
-
-} //namespace com
 
 } //namespace winapi
 

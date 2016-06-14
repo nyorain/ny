@@ -17,7 +17,7 @@ namespace ny
 ///\brief Main Application class.
 ///\details The main responsibilities on ny::App are to initialize an ny::Backend with an
 ///ny::AppContext as well as dispatching all received events (ny::EventDispatcher).
-class App : public NonMoveable
+class App : public NonMovable
 {
 public:
 	enum class ErrorAction

@@ -1,6 +1,7 @@
 #include <iostream>
 #include <ny/ny.hpp>
 #include <ny/backend/appContext.hpp>
+#include <ny/base/data.hpp>
 #include <nytl/time.hpp>
 //#include <ny/backend/winapi/appContext.hpp>
 //#include <ny/backend/winapi/windowContext.hpp>
@@ -16,10 +17,41 @@ public:
 	}
 };
 
+class MyWindow : public ny::ToplevelWindow
+{
+public:
+	using ny::ToplevelWindow::ToplevelWindow;
+	virtual bool handleEvent(const ny::Event& event) override
+	{
+		//ny::debug("got event with type ", event.type());
+		if(ny::ToplevelWindow::handleEvent(event)) return true;
+
+		if(event.type() == ny::eventType::dataOffer)
+		{
+			auto& offer = static_cast<const ny::DataOfferEvent&>(event).offer;
+			ny::debug("yooo, event offer: ", offer->types().types.size());
+			for(auto type : offer->types().types)
+				ny::debug("available: ", (int) type);
+
+			offer->data(ny::dataType::text, [](const ny::DataOffer&, int format, const std::any& text) {
+					ny::debug("called");
+					ny::debug(&text);
+					if(!text.empty()) ny::debug(std::any_cast<std::string>(text));
+					else ny::debug("oooh");
+				});
+			return true;
+		}
+
+		return false;
+	}
+};
+
 class MyEvent : public ny::SizeEvent {};
 
 int main()
 {
+	ny::debug(__cplusplus);
+
 	ny::App::Settings s;
 	s.multithreaded = true;
 	ny::App app(s);
@@ -28,7 +60,7 @@ int main()
 	settings.position = {300, 300};
 	settings.draw = ny::DrawType::gl;
 
-	ny::ToplevelWindow window(app, ny::Vec2ui(800, 500), "ny Window Test", settings);
+	MyWindow window(app, ny::Vec2ui(800, 500), "ny Window Test", settings);
 	window.windowContext()->show();
 
 	window.windowContext()->addWindowHints(ny::WindowHints::acceptDrop);
@@ -73,7 +105,7 @@ int main()
 		{
 			ny::debug("SEND");
 
-			std::thread thread([&]{ app.dispatcher().dispatch(myEvent); });
+			std::thread thread([&]{ app.dispatcher().dispatch(std::move(myEvent)); });
 			thread.detach();
 
 			auto glContext = ny::GlContext::current();
@@ -91,6 +123,7 @@ int main()
 
 	auto& ac = dynamic_cast<ny::WinapiAppContext&>(app.appContext());
 	ny::log("clipboard: ", ac.clipboard());
+	ny::log("evDispatcher: ", &app.dispatcher());
 
 	ny::LoopControl control;
 	return app.run(control);

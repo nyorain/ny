@@ -4,6 +4,8 @@
 #include <ny/base/event.hpp>
 
 #include <nytl/any.hpp>
+#include <nytl/compFunc.hpp>
+#include <nytl/callback.hpp>
 
 #include <vector>
 #include <memory>
@@ -81,7 +83,7 @@ public:
 class DataOffer
 {
 public:
-	using DataFunc = CompFunc<void(DataOffer& off, std::uint8_t fmt, std::any data)>;
+	using DataFunc = CompFunc<void(DataOffer& off, std::uint8_t fmt, const std::any& data)>;
 	Callback<bool(DataOffer& off, std::uint8_t fmt)> onFormat;
 
 public:
@@ -102,7 +104,7 @@ public:
 	///called once or earlier.
 	///If the requested format cannot be retrieved, the function will be called with an
 	///empty any object.
-	virtual Connection request(std::uint8_t fmt, DataFunc func) const = 0;
+	virtual Connection data(std::uint8_t fmt, DataFunc func) = 0;
 };
 
 ///Event which will be sent when the application recieves data from another application.
@@ -115,6 +117,9 @@ public:
     DataOfferEvent(EventHandler* handler = {}, std::unique_ptr<DataOffer> xoffer = {})
 		: EvBase(handler), offer(std::move(xoffer)) {}
 	~DataOfferEvent() = default;
+
+	DataOfferEvent(DataOfferEvent&&) noexcept = default;
+	DataOfferEvent& operator=(DataOfferEvent&&) noexcept = default;
 
     std::unique_ptr<DataOffer> offer;
 	//XXX:some source indication? clipboard or dnd?

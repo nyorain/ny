@@ -5,6 +5,7 @@ set(src-base
 	image.cpp
 	cursor.cpp
 	pugixml.cpp
+	data.cpp
 	utf.cpp
 	cursor.cpp)
 

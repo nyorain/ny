@@ -13,8 +13,24 @@
 namespace ny
 {
 
+class WinapiWindowContext;
+class WinapiAppContext;
+
 namespace winapi
 {
+
+//utilty functions
+///Changes line endings
+void replaceLF(std::string& string);
+void replaceCRLF(std::string& string);
+
+///Creates a global memory object for the given string.
+HGLOBAL stringToGlobal(const std::string& string);
+HGLOBAL stringToGlobalUnicode(const std::u16string& string);
+
+///Copies the data from a global memory object to a string.
+std::u16string globalToStringUnicode(HGLOBAL global);
+std::string globalToString(HGLOBAL global);
 
 namespace com
 {
@@ -31,11 +47,11 @@ public:
 	T& get() { return *obj_; };
 	const T& get() const { return *obj_; }
 
-	T& operator*() { return *get(); }
-	const T& operator*() const { return *get(); }
+	T& operator*() { return get(); }
+	const T& operator*() const { return get(); }
 
-	T* operator->() { return get(); }
-	const T* operator->() const { return get(); }
+	T* operator->() { return obj_; }
+	const T* operator->() const { return obj_; }
 
 	operator bool() const { return (obj_); }
 
@@ -66,10 +82,15 @@ protected:
 class DropTargetImpl : public UnknownImplementation<IDropTarget, IID_IDropTarget>
 {
 public:
+	DropTargetImpl(WinapiWindowContext& ctx) : windowContext_(&ctx) {}
+
 	virtual __stdcall HRESULT DragEnter(IDataObject*, DWORD, POINTL pos, DWORD* effect) override;
 	virtual __stdcall HRESULT DragOver(DWORD keys, POINTL pos, DWORD* effect) override;
 	virtual __stdcall HRESULT DragLeave() override;
 	virtual __stdcall HRESULT Drop(IDataObject* data, DWORD, POINTL pos, DWORD*  effect) override;
+
+protected:
+	WinapiWindowContext* windowContext_;
 };
 
 ///IDropSource implementation class.
@@ -116,18 +137,6 @@ protected:
 	std::unique_ptr<DataSource> source_;
 };
 
-//utilty functions
-///Changes line endings
-void replaceLF(std::string& string);
-void replaceCRLF(std::string& string);
-
-///Creates a global memory object for the given string.
-HGLOBAL stringToGlobal(const std::string& string);
-HGLOBAL stringToGlobalUnicode(const std::u16string& string);
-
-///Copies the data from a global memory object to a string.
-std::u16string globalToStringUnicode(HGLOBAL global);
-std::string globalToString(HGLOBAL global);
 
 //unkown implementation
 template<typename T, const GUID&... ids> HRESULT

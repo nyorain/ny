@@ -12,7 +12,7 @@
 namespace ny
 {
 
-class Backend : public NonMoveable
+class Backend : public NonMovable
 {
 public:
 	using AppContextPtr = std::unique_ptr<AppContext>;

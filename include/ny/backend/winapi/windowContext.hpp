@@ -98,7 +98,7 @@ protected:
 	std::string wndClassName_;
 
     HWND handle_ = nullptr;
-	std::unique_ptr<IDropTarget> dropTarget_;
+	IDropTarget* dropTarget_ = nullptr;
 	HCURSOR cursor_ = nullptr;
 
 	bool fullscreen_ = false;

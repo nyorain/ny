@@ -46,7 +46,17 @@ WinapiWindowContext::~WinapiWindowContext()
 	{
 		::DestroyWindow(handle_);
 		appContext().unregisterContext(handle_);
+
+		handle_ = nullptr;
 	}
+
+	if(dropTarget_)
+	{
+		dropTarget_->Release();
+		dropTarget_ = nullptr;
+	}
+
+	///XXX: correct cursor deletion?
 }
 
 void WinapiWindowContext::initWindowClass(const WinapiWindowSettings& settings)
@@ -195,8 +205,12 @@ void WinapiWindowContext::addWindowHints(WindowHints hints)
 	}
 	if(hints & WindowHints::acceptDrop)
 	{
-		if(!dropTarget_) dropTarget_ = std::make_unique<winapi::com::DropTargetImpl>();
-		::RegisterDragDrop(handle(), dropTarget_.get());
+		if(!dropTarget_)
+		{
+			dropTarget_ = new winapi::com::DropTargetImpl(*this);
+			dropTarget_->AddRef();
+			::RegisterDragDrop(handle(), dropTarget_);
+		}
 	}
 	if(hints & WindowHints::alwaysOnTop)
 	{
