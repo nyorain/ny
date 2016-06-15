@@ -36,7 +36,11 @@ public:
 			offer->data(ny::dataType::text, [](const ny::DataOffer&, int format, const std::any& text) {
 					ny::debug("called");
 					ny::debug(&text);
-					if(!text.empty()) ny::debug(std::any_cast<std::string>(text));
+					ny::debug(text.type() == typeid(void));
+					ny::debug(text.type() == typeid(std::string));
+					ny::debug("typename: ", typeid(std::string).name());
+					ny::debug("valid: ", text.__is_valid_cast<std::string>());
+					if(!text.empty()) ny::debug(std::any_cast<const std::string*>(&text));
 					else ny::debug("oooh");
 				});
 			return true;
@@ -51,6 +55,7 @@ class MyEvent : public ny::SizeEvent {};
 int main()
 {
 	ny::debug(__cplusplus);
+	ny::debug("typename: ", typeid(std::string).name());
 
 	ny::App::Settings s;
 	s.multithreaded = true;

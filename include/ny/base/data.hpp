@@ -104,7 +104,7 @@ public:
 	///called once or earlier.
 	///If the requested format cannot be retrieved, the function will be called with an
 	///empty any object.
-	virtual Connection data(std::uint8_t fmt, DataFunc func) = 0;
+	virtual Connection data(std::uint8_t fmt, const DataFunc& func) = 0;
 };
 
 ///Event which will be sent when the application recieves data from another application.

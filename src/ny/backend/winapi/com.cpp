@@ -26,7 +26,7 @@ public:
 	DataOfferImpl(IDataObject& object);
 
 	virtual DataTypes types() const override { return types_; }
-	virtual Connection data(std::uint8_t fmt, DataFunc func) override;
+	virtual Connection data(std::uint8_t fmt, const DataFunc& func) override;
 
 protected:
 	DataTypes types_;
@@ -73,7 +73,7 @@ DataOfferImpl::DataOfferImpl(IDataObject& object) : data_(object)
 	enumerator->Release();
 }
 
-Connection DataOfferImpl::data(std::uint8_t format, DataFunc func)
+Connection DataOfferImpl::data(std::uint8_t format, const DataFunc& func)
 {
 	HRESULT res = 0;
 	if(!types_.contains(format)) goto failure;
@@ -100,10 +100,13 @@ Connection DataOfferImpl::data(std::uint8_t format, DataFunc func)
 		debug(txt);
 		ReleaseStgMedium(&med);
 		debug(txt);
-		std::any a(txt);
+		std::any a(std::string("heio"));
 		debug("empty: ", a.empty());
 		debug("ptr: ", &a);
+		debug("typename: ", typeid(std::string).name());
 		debug("txt: ", std::any_cast<std::string>(a));
+		debug("txt: ", std::any_cast<std::string>(a));
+
 		func(*this, format, a);
 	}
 	else if(format == dataType::image)
