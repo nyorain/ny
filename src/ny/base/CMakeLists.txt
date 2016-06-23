@@ -14,7 +14,7 @@ target_link_libraries(ny-base ${libs-base})
 target_include_directories(ny-base PUBLIC ${include-base})
 
 if(${own_nytl_build})
-	add_dependencies(ny-base nytl)
+	add_dependencies(ny-base nytl_ep)
 endif()
 
 set(targets-base ny-base)

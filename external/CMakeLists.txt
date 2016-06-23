@@ -10,7 +10,7 @@ set(ExternalProjectCMakeArgs
 	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
 
 #external projects
-ExternalProject_Add(nytl
+ExternalProject_Add(nytl_ep
 	SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/nytl"
 	CMAKE_ARGS ${ExternalProjectCMakeArgs})
 

@@ -103,8 +103,8 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/include/ny/config.hpp" DESTINATION in
 
 #configure nytl
 find_package(nytl "0.1" QUIET)
-if(${nytl_FOUND})
-	set(${nytl_build} ${nytl_INCLUDE_DIRS})
+if(${nytl_FOUND} AND 0)
+	set(${nytl_build} "system: " ${nytl_INCLUDE_DIRS})
 	include_directories(${nytl_INCLUDE_DIRS})
 else()
 	set(${nytl_build} "own")
