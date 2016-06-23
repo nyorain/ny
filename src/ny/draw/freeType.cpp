@@ -8,6 +8,27 @@
 namespace ny
 {
 
+//function for getting the error message from an error
+namespace
+{
+
+#undef __FTERRORS_H__
+#define FT_ERRORDEF( e, v, s )  case e: return s;
+#define FT_ERROR_START_LIST     switch (err) {
+#define FT_ERROR_END_LIST       }
+
+const char* ftErrorMsg(FT_Error err)
+{
+    #include FT_ERRORS_H
+    return "<Unknown error>";
+}
+
+#undef FT_ERRORDEF
+#undef FT_ERROR_START_LIST
+#undef FT_ERROR_END_LIST
+
+}
+
 //FreeTypeLibrary
 FreeTypeLibrary& FreeTypeLibrary::instance()
 {
@@ -26,6 +47,7 @@ FreeTypeLibrary::FreeTypeLibrary()
 
 FreeTypeLibrary::~FreeTypeLibrary()
 {
+	Font::defaultFont().loadFromName("");
 	FT_Done_FreeType(lib_);
 }
 
@@ -40,19 +62,22 @@ FreeTypeFontHandle::FreeTypeFontHandle(const std::string& name, bool fromFile)
     std::string str = name;
     if(!fromFile)
     {
-        str = "/usr/share/fonts/TTF/" + name;
-		if(name.find('.') == std::string::npos)
-		{
-			str.append(".ttf");
-		}
+		//unix
+        //str = "/usr/share/fonts/TTF/" + name;
+
+		//windows
+		str = "C:/Windows/Fonts/" + name;
+
+		//append ttf extension if there is none
+		if(name.find('.') == std::string::npos) str.append(".ttf");
     }
 
     int ftErr = FT_New_Face(FreeTypeLibrary::instance().handle(), str.c_str(), 0, &face_);
     if(ftErr)
-    {
-        throw std::runtime_error("FTFont::FTFont: could lot load freetype font");
-        return;
-    }
+	{
+		auto msg = str + ": " + ftErrorMsg(ftErr);
+		throw std::runtime_error("FTFont::FTFont: could lot load " + msg);
+	}
 }
 
 FreeTypeFontHandle::~FreeTypeFontHandle()

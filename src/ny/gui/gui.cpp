@@ -70,17 +70,22 @@ void Gui::mouseMoveEvent(const MouseMoveEvent& event)
 
 	if(mouseOverWidget_)
 	{
-		auto cpy = event;
-		cpy.position = cpy.position - relativePosition(*mouseOverWidget_);
+		MouseMoveEvent cpy;
+		cpy.handler = event.handler;
+		cpy.position = event.position - relativePosition(*mouseOverWidget_);
 		mouseOverWidget_->handleEvent(cpy);
 	}
 }
 
 void Gui::mouseButtonEvent(const MouseButtonEvent& event)
 {
+	MouseButtonEvent cpy;
+	cpy.handler = event.handler;
+	cpy.button = event.button;
+	cpy.pressed = event.pressed;
+
 	if(mouseFocusWidget_)
 	{
-		auto cpy = event;
 		cpy.position = cpy.position - relativePosition(*mouseFocusWidget_);
 		mouseFocusWidget_->handleEvent(cpy);
 
@@ -91,8 +96,7 @@ void Gui::mouseButtonEvent(const MouseButtonEvent& event)
 	}
 	else if(mouseOverWidget_)
 	{
-		auto cpy = event;
-		cpy.position = cpy.position - relativePosition(*mouseOverWidget_);
+		cpy.position = event.position - relativePosition(*mouseOverWidget_);
 		mouseOverWidget_->handleEvent(cpy);
 
 		if(event.pressed)

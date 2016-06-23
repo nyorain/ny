@@ -2,19 +2,17 @@ set(include-draw ${include-ny})
 set(libs-draw ny-base)
 
 set(src-draw
-		drawContext.cpp
-		shape.cpp
-		color.cpp
-		gradient.cpp
-		brush.cpp
-		pen.cpp
-		image.cpp
-		svg.cpp
-		font.cpp
+	drawContext.cpp
+	shape.cpp
+	color.cpp
+	gradient.cpp
+	brush.cpp
+	pen.cpp
+	svg.cpp
+	font.cpp
 	triangulate.cpp)
-		#pugixml/pugixml.cpp)
 
-if(NY_WithGL)
+if(${WithGL})
 	set(include-draw ${include-draw} "${CMAKE_SOURCE_DIR}/include/ny/draw/gl/glad")
 	set(src-draw ${src-draw}
 		gl/glad/glad.c
@@ -24,29 +22,30 @@ if(NY_WithGL)
 		gl/shader.cpp
 		gl/shaderGenerator.cpp
 		gl/resource.cpp)
-endif(NY_WithGL)
+endif()
 
-if(NY_WithEGL)
+if(${WithEGL})
 	set(src-draw ${src-draw} gl/egl.cpp)
 	set(libs-draw ${libs-draw} EGL)
-endif(NY_WithEGL)
+endif()
 
-if(NY_WithCairo)
+if(${WithCairo})
 	set(src-draw ${src-draw} cairo.cpp)
 	set(libs-draw ${libs-draw} cairo)
-endif(NY_WithCairo)
+endif()
 
-if(NY_WithFreeType)
-	find_package(Freetype REQUIRED)
+if(${WithFreeType})
+	#find_package(FreeType)
 	set(src-draw ${src-draw} freeType.cpp)
-	set(libs-draw ${libs-draw} ${FREETYPE_LIBRARIES})
-	set(include-draw ${include-draw} ${FREETYPE_INCLUDE_DIRS})
-endif(NY_WithFreeType)
+	set(libs-draw ${libs-draw} freetype)
+	#set(libs-draw ${libs-draw} ${FREETYPE_LIBRARIES})
+	#set(include-draw ${include-draw} ${FREETYPE_INCLUDE_DIRS})
+endif()
 
-if(NY_WithWinapi)
+if(${WithWinapi})
 	set(src-draw ${src-draw} gdi.cpp)
-	set(libs-draw ${libs-draw} "Gdiplus")
-endif(NY_WithWinapi)
+	#set(libs-draw ${libs-draw} "Gdiplus")
+endif()
 
 add_library(ny-draw SHARED ${src-draw})
 target_link_libraries(ny-draw ${libs-draw})

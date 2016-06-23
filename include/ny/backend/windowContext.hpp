@@ -6,6 +6,7 @@
 
 #include <nytl/nonCopyable.hpp>
 #include <nytl/vec.hpp>
+#include <nytl/any.hpp>
 
 #include <memory>
 #include <bitset>
@@ -36,6 +37,7 @@ public:
 	virtual DrawGuard draw() = 0;
 
 	///Sets the EventHandler that should receive the events associated with this windowContext.
+	///The event handler will receive information about window state changes and input.
 	virtual void eventHandler(EventHandler& handler) { eventHandler_ = &handler; }
 
 	///Returns the associated EventHandler of this windowContext, nullptr if there is none.
@@ -63,7 +65,7 @@ public:
     virtual void size(const Vec2ui& size) = 0;
 
 	///Sets the position of the window.
-    virtual void position(const Vec2i& position) = 0; //...
+    virtual void position(const Vec2i& position) = 0;
 
 	///Sets the mouse cursor of the window.
     virtual void cursor(const Cursor& c) = 0;
@@ -85,6 +87,7 @@ public:
     virtual void fullscreen() = 0;
 
 	///Resets the window in normal toplevel state.
+	///If it is currently maximized, minimized or in fullscreen, these states will be removed.
 	///\warning Shall have only an effect for toplevel windows.
     virtual void normalState() = 0; //or reset()?
 
@@ -109,6 +112,8 @@ public:
 	virtual void icon(const Image*) = 0; //may be only important for client decoration
 
 	///Returns whether the window should be custom decorated.
+	///Custom decoration can either be manually triggered by setting the custom decorated
+	///window hint or the backend may tell the client to decrate itself (i.e. wayland).
 	///\warning Will only return a valid value for toplevel windows.
 	virtual bool customDecorated() const = 0;
 
@@ -119,6 +124,33 @@ public:
 	///Tries to remove the given window hints from the window.
 	///\warning Window  hints are only valid for toplevel windows.
 	virtual void removeWindowHints(WindowHints hints) = 0;
+
+	///If this window is a native dialog, a dialog context pointer is returned, nullptr otherwise.
+	virtual DialogContext* dialogContext() const { return nullptr; }
+};
+
+///Interface for native dialogs.
+class DialogContext
+{
+public:
+	///Returns the result of the dialog, or DialogResult::none if the dialog
+	///is not yet finished.
+	virtual DialogResult result() const = 0;
+
+	///Returns only once the dialog has finished and returns the result.
+	virtual DialogResult modal() = 0;
+
+	///Returns whether the dialog has already finished.
+	virtual bool finished() const = 0;
+
+	///Return the data the dialog was dealing with. This usually be something like
+	///Color, filepath or other variable type.
+	///The stored type is determined by the DialogType value the Window context associated
+	///with this DialogContext was created with.
+	///If the dialog is not yet finished, an empty any object should be returned.
+	///There can also exist dialog contexts that do not have any data (e.g. messsage boxes)
+	///which should return an empty any object as well.
+	virtual std::any data() const = 0;
 };
 
 }

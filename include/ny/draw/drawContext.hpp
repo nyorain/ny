@@ -11,25 +11,6 @@
 namespace ny
 {
 
-///RAII guard for using DrawContexts.
-///Simplex Assures that the DrawContext is initialized before using it and will be applied
-///on guard destruction.
-class DrawGuard
-{
-protected:
-	DrawContext& drawContext_;
-
-public:
-	DrawGuard(DrawContext& ctx);
-	~DrawGuard();
-
-	///Returns the associated DrawContext.
-	///Note that the function signature specifies that this function can be only called on lvalue
-	///instances which should prevent to abuse DrawGuard in expressions mistakenly instead of
-	///storing them.
-	DrawContext& dc() & { return drawContext_; }
-};
-
 ///The DrawContext is the abstract base class interface which defines how to draw on a surface.
 ///The surface can be e.g. a window, an image or a svg document.
 ///To draw with a given DrawContext you can either clear/paint the entire
@@ -234,6 +215,34 @@ public:
 	DrawContext& redirect() const { return *redirect_; }
 };
 
+///RAII guard for using DrawContexts.
+///Simplex Assures that the DrawContext is initialized before using it and will be applied
+///on guard destruction.
+class DrawGuard : public NonCopyable
+{
+protected:
+	DrawContext* drawContext_;
+
+public:
+	DrawGuard(DrawContext& ctx) : drawContext_(&ctx) { ctx.init(); }
+	~DrawGuard() { if(drawContext_) drawContext_->apply(); }
+
+	DrawGuard(DrawGuard&& other) noexcept : drawContext_(other.drawContext_)
+		{ other.drawContext_ = nullptr;	}
+
+	DrawGuard& operator=(DrawGuard&& other) noexcept = delete;
+
+	///Returns the associated DrawContext.
+	///Note that the function signature specifies that this function can be only called on lvalue
+	///instances which should prevent to abuse DrawGuard in expressions mistakenly instead of
+	///storing them.
+	///\exception std::runtime_error if the DrawGuard object is invalid (e.g. was moved from).
+	DrawContext& dc() &
+	{
+		if(!drawContext_) throw std::runtime_error("DrawGuard::dc: invalid");
+		return *drawContext_;
+	}
+};
 
 ///Abstract base class for implementations that use a backend without real masking system (e.g. gl).
 ///All mask calls will be stored in a vector<PathBase> and will only be applied to the
@@ -248,6 +257,9 @@ protected:
 	std::vector<PathBase> mask_;
 
 public:
+	DelayedDrawContext() = default;
+	virtual ~DelayedDrawContext() = default;
+
 	virtual void mask(const Path& obj) override;
 	virtual void mask(const Circle& obj) override;
 	virtual void mask(const Rectangle& obj) override;
@@ -261,7 +273,7 @@ public:
 
 
 ///Dummy DrawContext implementation that does not draw at all and outputs warnings instead.
-///Useful for DrawContext-less windowContexts to not make their draw() functio not fail and to
-///pass drawing-related parameter around.
+///Useful for DrawContext-less windowContexts to not make their draw() functiob not fail and to
+///pass drawing-related parameters around.
 
 }

@@ -4,7 +4,7 @@
 
 #include <ny/app/keyboard.hpp>
 #include <ny/app/mouse.hpp>
-#include <ny/window/cursor.hpp>
+#include <ny/base/cursor.hpp>
 
 #include <xcb/xcb.h>
 

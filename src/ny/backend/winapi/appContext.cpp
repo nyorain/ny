@@ -12,8 +12,10 @@
 #include <ny/draw/font.hpp>
 
 #include <windowsx.h>
+#include <ole2.h>
 
 #include <stdexcept>
+#include <cstring>
 
 namespace ny
 {
@@ -44,19 +46,36 @@ public:
 	};
 };
 
+//winapi callbacks
+LRESULT CALLBACK WinapiAppContext::wndProcCallback(HWND a, UINT b, WPARAM c, LPARAM d)
+{
+    return gAC->eventProc(a,b,c,d);
+}
+
+LRESULT CALLBACK WinapiAppContext::dlgProcCallback(HWND a, UINT b, WPARAM c, LPARAM d)
+{
+    return gAC->eventProc(a,b,c,d);
+}
+
 //WinapiAC
 WinapiAppContext::WinapiAppContext()
 {
     instance_ = GetModuleHandle(nullptr);
 
+	//XXX: is this check needed?
     if(instance_ == nullptr)
     {
         throw std::runtime_error("winapiAppContext: could not get hInstance");
         return;
     }
 
+	//start gdiplus since some GdiDrawContext functions need it
     GetStartupInfo(&startupInfo_);
     GdiplusStartup(&gdiplusToken_, &gdiplusStartupInput_, nullptr);
+
+	//needed for dnd and clipboard
+	auto res = OleInitialize(nullptr);
+	if(res != S_OK) warning("WinapiWC: OleInitialize failed with code ", res);
 
 	gAC = this;
 }
@@ -96,13 +115,7 @@ bool WinapiAppContext::dispatchLoop(EventDispatcher& dispatcher, LoopControl& co
 		auto ret = GetMessage(&msg, nullptr, 0, 0);
 		if(ret == -1)
 		{
-			//error
-			sendWarning("WinapiAC::dispatchLoop: error code ", GetLastError());
-			return false;
-		}
-		else if(ret == 0)
-		{
-			//quit
+			sendWarning(errorMessage("WinapiAC::dispatchLoop"));
 			return false;
 		}
 		else
@@ -115,6 +128,85 @@ bool WinapiAppContext::dispatchLoop(EventDispatcher& dispatcher, LoopControl& co
 	dispatcherLoopControl_ = nullptr;
 	control.impl_.reset();
 	return true;
+}
+
+bool WinapiAppContext::threadedDispatchLoop(ThreadedEventDispatcher& dispatcher,
+	LoopControl& control)
+{
+	auto threadid = std::this_thread::get_id();
+	auto threadHandle = GetCurrentThreadId();
+
+	threadsafe_ = true;
+
+	//register a callback that is called everytime the dispatcher gets an event
+	//if the event comes from this thread, this thread is not waiting, otherwise
+	//wait this thread with a message.
+	auto conn = dispatcher.onDispatch.add([&] {
+			if(std::this_thread::get_id() != threadid)
+				PostThreadMessage(threadHandle, WM_USER, 0, 0);
+		});
+
+
+	//just call the default dispatch loop
+	dispatchLoop(dispatcher, control);
+
+	//unregistert the dispatcher callback
+	conn.destroy();
+	threadsafe_ = false;
+
+	return true;
+}
+
+void WinapiAppContext::clipboard(const std::string& text) const
+{
+	if(!::OpenClipboard(nullptr)) return;
+	if(!::EmptyClipboard()) return;
+
+	auto handle = ::GlobalAlloc(GMEM_MOVEABLE, text.size() + 1);
+	if(!handle)
+	{
+		::CloseClipboard();
+		return;
+	}
+
+	auto ptr = ::GlobalLock(handle);
+	if(!ptr)
+	{
+		::CloseClipboard();
+		return;
+	}
+
+	std::memcpy(ptr, text.c_str(), text.size() + 1);
+	::GlobalUnlock(handle);
+
+	::SetClipboardData(CF_TEXT, handle);
+
+	::CloseClipboard();
+	//::GlobalFree(handle); //XXX: do this here? doc states no. memory leak?
+}
+
+std::string WinapiAppContext::clipboard() const
+{
+	std::string ret;
+	if(!::OpenClipboard(nullptr)) return ret;
+
+	auto handle = ::GetClipboardData(CF_TEXT);
+	if(!handle)
+	{
+		::CloseClipboard();
+		return ret;
+	}
+
+	auto ptr = ::GlobalLock(handle);
+	if(!ptr)
+	{
+		::CloseClipboard();
+		return ret;
+	}
+
+	ret = reinterpret_cast<const char*>(ptr);
+	::CloseClipboard();
+	return ret;
 }
 
 void WinapiAppContext::registerContext(HWND w, WinapiWindowContext& c)
@@ -139,149 +231,218 @@ WinapiWindowContext* WinapiAppContext::windowContext(HWND w)
 LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LPARAM lparam)
 {
     //todo: implement all events correctly, look em up
-	auto context = windowContext(window);
+	auto context = eventDispatcher_ ? windowContext(window) : nullptr;
 	auto handler = context ? context->eventHandler() : nullptr;
 
 	bool handlerEvents = (handler && eventDispatcher_);
 	bool contextEvents = (context && eventDispatcher_);
 
+	auto threadedDispatcher = dynamic_cast<ThreadedEventDispatcher*>(eventDispatcher_);
+
+	//utilty function used to dispatch event
+	auto dispatch = [&](Event& ev) {
+			if(threadsafe_) eventDispatcher_->send(ev);
+			else eventDispatcher_->dispatch(std::move(ev));
+		};
+
+	//to be returned
+	LRESULT result = 0;
+
     switch(message)
     {
         case WM_CREATE:
         {
-            return 0;
+			result = DefWindowProc(window, message, wparam, lparam);
+			break;
         }
 
         case WM_MOUSEMOVE:
         {
-			if(handlerEvents)
+			Vec2i position{GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+
+			if(mouseOver_ != window)
 			{
-				auto ev = std::make_unique<MouseMoveEvent>(handler);
-				ev->position = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
-				eventDispatcher_->dispatch(std::move(ev));
+				mouseOver_ = window;
+				if(handlerEvents)
+				{
+					MouseCrossEvent ev(handler);
+					ev.entered = true;
+					ev.position = position;
+					dispatch(ev);
+				}
 			}
 
-			return 0;
+			if(handlerEvents)
+			{
+				MouseMoveEvent ev(handler);
+				ev.position = position;
+				dispatch(ev);
+			}
+
+			break;
         }
+
+		case WM_MOUSELEAVE:
+		{
+			mouseOver_ = nullptr;
+
+			if(handlerEvents)
+			{
+				MouseCrossEvent ev(handler);
+				ev.entered = false;
+				dispatch(ev);
+			}
+			break;
+		}
 
 		case WM_LBUTTONDOWN:
         {
 			if(handlerEvents)
 			{
-				auto ev = std::make_unique<MouseButtonEvent>(handler);
-				ev->position = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
-				ev->pressed = true;
-				ev->button = Mouse::Button::left;
-				eventDispatcher_->dispatch(std::move(ev));
+				MouseButtonEvent ev(handler);
+				ev.position = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+				ev.pressed = true;
+				ev.button = Mouse::Button::left;
+				dispatch(ev);
 			}
-
-			return 0;
+			break;
         }
 
 		case WM_LBUTTONUP:
         {
 			if(handlerEvents)
 			{
-				auto ev = std::make_unique<MouseButtonEvent>(handler);
-				ev->position = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
-				ev->pressed = false;
-				ev->button = Mouse::Button::left;
-				eventDispatcher_->dispatch(std::move(ev));
+				MouseButtonEvent ev(handler);
+				ev.position = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+				ev.pressed = false;
+				ev.button = Mouse::Button::left;
+				dispatch(ev);
 			}
 
-			return 0;
+			break;
         }
 
 		case WM_KEYDOWN:
 		{
 			if(handlerEvents)
 			{
-				auto ev = std::make_unique<KeyEvent>(handler);
-				ev->key = winapiToKey(wparam);
-				ev->pressed = true;
-				eventDispatcher_->dispatch(std::move(ev));
+				KeyEvent ev(handler);
+				ev.key = winapiToKey(wparam);
+				ev.pressed = true;
+				dispatch(ev);
 			}
 
-			return 0;
+			break;
 		}
 
 		case WM_KEYUP:
 		{
 			if(handlerEvents)
 			{
-				auto ev = std::make_unique<KeyEvent>(handler);
-				ev->key = winapiToKey(wparam);
-				ev->pressed = false;
-				eventDispatcher_->dispatch(std::move(ev));
+				KeyEvent ev(handler);
+				ev.key = winapiToKey(wparam);
+				ev.pressed = false;
+				dispatch(ev);
 			}
 
-			return 0;
+			break;
 		}
 
         case WM_PAINT:
         {
 			if(handlerEvents)
 			{
-				auto ev = std::make_unique<DrawEvent>(handler);
-				eventDispatcher_->dispatch(std::move(ev));
+				DrawEvent ev(handler);
+				dispatch(ev);
 			}
 
-            return DefWindowProc(window, message, wparam, lparam); //to validate the rgn
+            result = DefWindowProc(window, message, wparam, lparam); //to validate the window
+			break;
         }
 
 		case WM_DESTROY:
 		{
 			if(handlerEvents)
 			{
-				auto ev = std::make_unique<CloseEvent>(handler);
-				eventDispatcher_->dispatch(std::move(ev));
+				CloseEvent ev(handler);
+				dispatch(ev);
 			}
 
-			return 0;
+			break;
 		}
 
         case WM_SIZE:
         {
 			if(handlerEvents)
 			{
-				auto ev = std::make_unique<SizeEvent>(handler);
-				eventDispatcher_->dispatch(std::move(ev));
+				SizeEvent ev(handler);
+				dispatch(ev);
 			}
 
-			return 0;
+			break;
         }
 
         case WM_MOVE:
         {
 			if(handlerEvents)
 			{
-				auto ev = std::make_unique<PositionEvent>(handler);
-				eventDispatcher_->dispatch(std::move(ev));
+				PositionEvent ev(handler);
+				dispatch(ev);
 			}
 
-			return 0;
+			break;
         }
+
+		case WM_SYSCOMMAND:
+		{
+			if(handlerEvents)
+			{
+				ShowEvent ev(handler);
+				ev.show = true;
+				if(wparam == SC_MAXIMIZE)
+				{
+					ev.state = ToplevelState::maximized;
+					dispatch(ev);
+				}
+				else if(wparam == SC_MINIMIZE)
+				{
+					ev.state = ToplevelState::minimized;
+					dispatch(ev);
+				}
+				else if(wparam == SC_RESTORE)
+				{
+					ev.state = ToplevelState::normal;
+					dispatch(ev);
+				}
+			}
+
+			result = DefWindowProc(window, message, wparam, lparam);
+			break;
+		}
 
         case WM_ERASEBKGND:
         {
-            return 1;
+			result = 1;
+			break;
         }
 
 		case WM_QUIT:
 		{
 			receivedQuit_ = 1;
 			if(dispatcherLoopControl_) dispatcherLoopControl_->stop();
-			return 0;
+			break;
+		}
+
+		default:
+		{
+			result = DefWindowProc(window, message, wparam, lparam);
+			break;
 		}
     }
 
-	return DefWindowProc (window, message, wparam, lparam);
+	if(threadsafe_ && threadedDispatcher) threadedDispatcher->processEvents();
+	return result;
 }
 
-
-LRESULT CALLBACK WinapiAppContext::wndProcCallback(HWND a, UINT b, WPARAM c, LPARAM d)
-{
-    return gAC->eventProc(a,b,c,d);
-}
 
 }

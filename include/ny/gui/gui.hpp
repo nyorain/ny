@@ -15,9 +15,9 @@ protected:
 	Window* window_ {nullptr};
 	std::vector<RaiiConnection> connections_;
 
-	Widget* focusWidget_ {nullptr};
-	Widget* mouseFocusWidget_ {nullptr};
-	Widget* mouseOverWidget_ {nullptr};
+	Widget* focusWidget_ {nullptr}; //keyboard focus widget
+	Widget* mouseFocusWidget_ {nullptr}; //widget with mouse grab (button click e.g.)
+	Widget* mouseOverWidget_ {nullptr}; //widget under cursor
 
 public:
 	Gui() = default; //independent gui

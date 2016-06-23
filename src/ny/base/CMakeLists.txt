@@ -1,12 +1,21 @@
 set(include-base ${include-ny})
 
-set(src-base log.cpp)
+set(src-base
+	log.cpp
+	image.cpp
+	cursor.cpp
+	pugixml.cpp
+	data.cpp
+	utf.cpp
+	cursor.cpp)
 
 add_library(ny-base SHARED ${src-base})
 target_link_libraries(ny-base ${libs-base})
 target_include_directories(ny-base PUBLIC ${include-base})
 
-add_dependencies(ny-base nytl)
+if(${own_nytl_build})
+	add_dependencies(ny-base nytl_ep)
+endif()
 
 set(targets-base ny-base)
 

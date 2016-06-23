@@ -528,10 +528,10 @@ Path Rectangle::asPath() const
 
     if(1) //all(testVec)
     {
-        Path p({0.f, 0.f});
-        p.line(Vec2f(size_.x, 0));
-        p.line(size_);
-        p.line(Vec2f(0, size_.y));
+        Path p(position());
+        p.line(position() + Vec2f(size_.x, 0));
+        p.line(position() + size_);
+        p.line(position() + Vec2f(0, size_.y));
         p.close();
 
         p.transformMatrix() = transformMatrix();

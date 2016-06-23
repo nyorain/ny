@@ -1,4 +1,4 @@
-#include <ny/draw/image.hpp>
+#include <ny/base/image.hpp>
 #include <ny/base/log.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -174,6 +174,11 @@ Color Image::at(const Vec2ui& pos) const
 		case Format::rgb888: return Color(d1, d2, d3);
 		case Format::a8: return Color(0, 0, 0, d1);
 	}
+}
+
+void Image::size(const Vec2ui& newsize)
+{
+	///TODO
 }
 
 //todo

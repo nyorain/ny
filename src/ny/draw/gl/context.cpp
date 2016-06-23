@@ -3,6 +3,7 @@
 #include <nytl/misc.hpp>
 
 #include <ny/draw/gl/glad/glad.h>
+#include <thread>
 
 namespace ny
 {
@@ -19,38 +20,87 @@ void* loadCallback(const char* name)
 }
 
 //parsing shader version
-unsigned int parseGlslVersion(const std::string& name)
+GlContext::Version parseGlslVersion(const std::string& name)
 {
-	unsigned int version;
+	GlContext::Version version;
+	version.api = GlContext::Api::gl;
+
+	auto pos = name.find(" es");
+	if(pos != std::string::npos)
+	{
+		auto next = pos + 3;
+		if(next >= name.size() || name[next] == ' ') version.api = GlContext::Api::gles;
+	}
+
+	pos = name.find(" ES");
+	if(pos != std::string::npos)
+	{
+		auto next = pos + 3;
+		if(next >= name.size() || name[next] == ' ') version.api = GlContext::Api::gles;
+	}
+
+	pos = 0u;
+	while(!std::isdigit(name[pos], std::locale()) && pos < name.size()) pos++;
+	if(pos == name.size())
+	{
+		sendWarning("GlContext::init: invalid glsl version string: '", name);
+		return version;
+	}
 
 	int major, minor;
-	auto count = std::sscanf(name.c_str(), "%d.%d", &major, &minor);
+	auto count = std::sscanf(name.substr(pos).c_str(), "%d.%d", &major, &minor);
 
 	if(count == 1)
 	{
-		if(major >= 100) return major;
-		else return major * 100;
+		if(major >= 100) //e.g. just 330 for version 3.3
+		{
+			version.major = major / 100;
+			version.minor = (major % 100) / 10;
+		}
+		else  //e.g. 33
+		{
+			version.major = major / 10;
+			version.minor = (major % 10) / 10;
+		}
 	}
 	else if(count == 2)
 	{
-		if(minor >= 10) return major * 10 + minor;
-		else return major * 10 + minor * 10;
+		if(minor >= 10) //e.g. 3.30
+		{
+			version.major = major;
+			version.minor = minor / 10;
+		}
+		else //e.g. 3.3
+		{
+			version.major = major;
+			version.minor = minor;
+		}
 	}
 	else
 	{
-		sendWarning("GlContext::init: invalid glsl version string: ", name);
-		return 0;
+		sendWarning("GlContext::init: invalid glsl version string: '", name, "' ", count);
+		return version;
 	}
+
+	return version;
 }
 
 }
 
+//gl version to stirng
+std::string GlContext::Version::name() const
+{
+	auto ret = std::to_string(major) + "." + std::to_string(minor * 10);
+	if(api == GlContext::Api::gles) ret += " ES";
+	return ret;
+}
+
+
+//GlContext
 GlContext* GlContext::threadLocalCurrent(bool change, GlContext* newOne)
 {
 	static thread_local GlContext* current_ = nullptr;
-	if(change)
-		current_ = newOne;
-
+	if(change) current_ = newOne;
 	return current_;
 }
 
@@ -78,29 +128,34 @@ void GlContext::assureGlesLoaded(const GlContext& ctx)
 	}
 }
 
+//non-static
+GlContext::~GlContext()
+{
+	makeNotCurrent();
+}
+
 void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)
 {
-	api_ = api;
+	version_.api = api;
 	depthBits_ = depth;
 	stencilBits_ = stencil;
 
 	auto* saved = current();
-	if(!makeCurrent())
-	{
-		throw std::runtime_error("GlContext::initContext: failed to make context current");
-		return;
-	}
+
+	//some backends need to make it current before
+	if(saved == this) saved = nullptr;
+	else if(!makeCurrent()) throw std::runtime_error("GlCtx::initCtx: failed to make current");
 
 	//load the api function pointers via glad
-	if(api_ == Api::gl) assureGlLoaded(*this);
-	else if(api_ == Api::gles) assureGlesLoaded(*this);
+	if(api == Api::gl) assureGlLoaded(*this);
+	else if(api == Api::gles) assureGlesLoaded(*this);
 
 	//version from glad
-	majorVersion_ = GLVersion.major;
-	minorVersion_ = GLVersion.minor;
+	version_.major = GLVersion.major;
+	version_.minor = GLVersion.minor;
 
 	//extensions
-	if(version() >= 30)
+	if(versionNumber() >= 30)
 	{
 		auto number = 0;
 		glGetIntegerv(GL_NUM_EXTENSIONS, &number);
@@ -118,7 +173,7 @@ void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)
 	}
 
 	//glsl
-	if(api_ == Api::gl && version() >= 43)
+	if(api == Api::gl && versionNumber() >= 43)
 	{
 		auto number = 0;
 		glGetIntegerv(GL_NUM_SHADING_LANGUAGE_VERSIONS, &number);
@@ -127,47 +182,48 @@ void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)
 		{
 			std::string ver = (const char*) glGetStringi(GL_SHADING_LANGUAGE_VERSION, i);
 			auto version = parseGlslVersion(ver);
-			if(version != 0) glslVersions_.push_back(version);
+			if(version.major != 0) glslVersions_.push_back(version);
 		}
 	}
 	else
 	{
 		std::string ver = (const char*) glGetString(GL_SHADING_LANGUAGE_VERSION);
 		auto version = parseGlslVersion(ver);
-		if(version != 0) glslVersions_.push_back(version);
+		if(version.major != 0) glslVersions_.push_back(version);
 	}
 
-	//TODO: choose highest if multiple are available
-	if(glslVersions_.empty()) preferredGlslVersion_ = 430;
-	else preferredGlslVersion_ = glslVersions_[0];
+	if(glslVersions_.empty()) throw std::runtime_error("ny::GlContext: failed to get glsl version");
 
-	//restore saved one
-	if(saved && !saved->makeCurrent())
-	{
-		sendWarning("GlContext::initContext: failed to make saved context current again.");
-		return;
-	}
+	//choose highest version
+	auto& pgv = preferredGlslVersion_;
+	for(auto& glsl : glslVersions_)	if(glsl.number() > pgv.number()) pgv = glsl;
+
+	//make it not current - needed since it might be made current in another thread
+	makeNotCurrent();
+
+	//restore saved one if there is any
+	if(saved && !saved->makeCurrent()) sendWarning("GlCtx::initCtx: failed to make saved current.");
 }
 
 bool GlContext::makeCurrent()
 {
-	if(isCurrent()) return 1;
+	if(isCurrent()) return true;
 
 	if(makeCurrentImpl())
 	{
-		threadLocalCurrent(1, this);
-		return 1;
+		threadLocalCurrent(true, this);
+		return true;
 	}
 
-	return 0;
+	return false;
 }
 
 bool GlContext::makeNotCurrent()
 {
-	if(!isCurrent()) return 0;
+	if(!isCurrent()) return true;
 
 	//TODO: if branch like in makeCurrent?
-	threadLocalCurrent(1, nullptr);
+	threadLocalCurrent(true, nullptr);
 	return makeNotCurrentImpl();
 }
 
@@ -179,17 +235,17 @@ bool GlContext::isCurrent() const
 bool GlContext::sharedWith(const GlContext& other) const
 {
 	for(auto& ctx : sharedContexts())
-		if(ctx == &other) return 1;
+		if(ctx == &other) return true;
 
-	return 0;
+	return false;
 }
 
 bool GlContext::glExtensionSupported(const std::string& name) const
 {
 	for(auto& s : glExtensions())
-		if(s == name) return 1;
+		if(s == name) return true;
 
-	return 0;
+	return false;
 }
 
 void GlContext::updateViewport(const Rect2f& viewport)
@@ -206,7 +262,7 @@ void GlContext::updateViewport(const Rect2f& viewport)
 bool GlContext::apply()
 {
 	//glFinish();
-	return 1;
+	return true;
 }
 
 }

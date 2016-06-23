@@ -1,28 +1,28 @@
 set(include-backend ${include-ny})
 set(libs-backend ${libs-backend} ny-base ny-draw)
 
-set(src-backend
-		backend.cpp)
+set(src-backend backend.cpp)
 
-if(NY_WithWinapi)
+if(${WithWinapi})
 	set(src-backend ${src-backend}
 		winapi/appContext.cpp
 		winapi/backend.cpp
 		winapi/util.cpp
 		winapi/gdi.cpp
 		winapi/wgl.cpp
+		winapi/com.cpp
 		winapi/windowContext.cpp)
 
 	set(libs-backend ${libs-backend} gdi32 gdiplus)
 
-	if(NY_WithGL)
+	if(${WithGL})
 		set(src-backend ${src-backend} winapi/wgl.cpp winapi/wgl/glad_wgl.c)
-		set(libs-backend ${libs-backend} OpenGL32)
-	endif(NY_WithGL)
+		set(libs-backend ${libs-backend} OpenGL32 gdi32)
+	endif(${WithGL})
 
-endif(NY_WithWinapi)
+endif()
 
-if(NY_WithX11)
+if(${WithX11})
 	set(src-backend ${src-backend}
 		x11/appContext.cpp
 		x11/backend.cpp
@@ -31,19 +31,19 @@ if(NY_WithX11)
 
 	set(libs-backend ${libs-backend} X11 xcb xcb-icccm xcb-ewmh X11-xcb pthread)
 
-	if(NY_WithGL)
+	if(${WithGL})
 		set(src-backend ${src-backend} x11/glx.cpp)
 		set(libs-backend ${libs-backend} GL)
-	endif(NY_WithGL)
+	endif()
 
-	if(NY_WithCairo)
+	if(${WithCairo})
 		set(src-backend ${src-backend} x11/cairo.cpp)
 		set(libs-backend ${libs-backend} cairo)
-	endif(NY_WithCairo)
+	endif()
 
-endif(NY_WithX11)
+endif()
 
-if(NY_WithWayland)
+if(${WithWayland})
 	set(src-backend ${src-backend}
 		wayland/appContext.cpp
 		wayland/backend.cpp
@@ -52,10 +52,10 @@ if(NY_WithWayland)
 		wayland/interfaces.cpp
 		wayland/xdg-shell-client-protocol.c)
 
-	if(NY_WithEGL)
+	if(${WithGL} and ${WithEGL})
 		set(src-backend ${src-backend} wayland/egl.cpp)
-	endif(NY_WithGL)
-endif(NY_WithWayland)
+	endif()
+endif()
 
 add_library(ny-backend SHARED ${src-backend})
 target_link_libraries(ny-backend ${libs-backend})

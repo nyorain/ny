@@ -1,8 +1,12 @@
 #include <ny/backend/winapi/windowContext.hpp>
+#include <ny/backend/winapi/util.hpp>
 #include <ny/backend/winapi/appContext.hpp>
-#include <ny/base/log.hpp>
+#include <ny/backend/winapi/com.hpp>
 
-#include <ny/draw/image.hpp>
+#include <ny/base/log.hpp>
+#include <ny/base/cursor.hpp>
+
+#include <ny/base/image.hpp>
 #include <ny/draw/drawContext.hpp>
 
 #include <tchar.h>
@@ -11,27 +15,28 @@
 namespace ny
 {
 
+//static
+const char* WinapiWindowContext::nativeWidgetClassName(NativeWidgetType type)
+{
+	switch(type)
+	{
+		case NativeWidgetType::button: return "Button";
+		case NativeWidgetType::textfield: return "Edit";
+		case NativeWidgetType::checkbox: return "Combobox";
+		default: return nullptr;
+	}
+}
+
 //windowContext
 WinapiWindowContext::WinapiWindowContext(WinapiAppContext& appContext,
 	const WinapiWindowSettings& settings)
 {
     //init check
 	appContext_ = &appContext;
+    if(!hinstance()) throw std::runtime_error("winapiWC::create: uninitialized appContext");
 
-    if(!appContext_->hinstance())
-	{
-		throw std::runtime_error("winapiWC::create: uninitialized appContext");
-	}
-
-	setStyle(settings);
 	initWindowClass(settings);
-
-	if(!::RegisterClassEx(&wndClass_))
-	{
-		throw std::runtime_error("winapiWC::create: could not register window class");
-		return;
-	}
-
+	setStyle(settings);
 	initWindow(settings);
 }
 
@@ -39,31 +44,66 @@ WinapiWindowContext::~WinapiWindowContext()
 {
     if(handle_)
 	{
-		::CloseWindow(handle_);
+		::DestroyWindow(handle_);
 		appContext().unregisterContext(handle_);
+
+		handle_ = nullptr;
 	}
+
+	if(dropTarget_)
+	{
+		dropTarget_->Release();
+		dropTarget_ = nullptr;
+	}
+
+	///XXX: correct cursor deletion?
 }
 
 void WinapiWindowContext::initWindowClass(const WinapiWindowSettings& settings)
 {
+	if(settings.nativeWidgetType != NativeWidgetType::none)
+	{
+		if(settings.nativeWidgetType == NativeWidgetType::dialog) return;
+
+		auto name = nativeWidgetClassName(settings.nativeWidgetType);
+		if(!name) throw std::logic_error("WinapiWC: invalid native widget type");
+		wndClassName_ = name;
+
+		return;
+	}
+
+	auto wndClass = windowClass(settings);
+	if(!::RegisterClassEx(&wndClass))
+	{
+		throw std::runtime_error("winapiWC::create: could not register window class");
+		return;
+	}
+}
+
+WNDCLASSEX WinapiWindowContext::windowClass(const WinapiWindowSettings& settings)
+{
+	///XXX: threadsafety?
 	static unsigned int highestID = 0;
-
 	highestID++;
-	std::string name = "ny::WinapiWindowClass" + std::to_string(highestID);
 
-	wndClass_.hInstance = appContext().hinstance();
-	wndClass_.lpszClassName = _T(name.c_str());
-	wndClass_.lpfnWndProc = &WinapiAppContext::wndProcCallback;
-	wndClass_.style = CS_DBLCLKS;
-	wndClass_.cbSize = sizeof(WNDCLASSEX);
-	wndClass_.hIcon = ::LoadIcon (nullptr, IDI_APPLICATION);
-	wndClass_.hIconSm = ::LoadIcon (nullptr, IDI_APPLICATION);
-	wndClass_.hCursor = ::LoadCursor (nullptr, IDC_ARROW);
-	wndClass_.lpszMenuName = nullptr;
-	wndClass_.cbClsExtra = 0;
-	wndClass_.cbWndExtra = 0;
-	wndClass_.hbrBackground = (HBRUSH) ::GetStockObject(WHITE_BRUSH);
-	//wndClass_.hbrBackground = nullptr;
+	wndClassName_ = "ny::WinapiWindowClass" + std::to_string(highestID);
+
+	WNDCLASSEX ret;
+	ret.hInstance = appContext().hinstance();
+	ret.lpszClassName = _T(wndClassName_.c_str());
+	ret.lpfnWndProc = &WinapiAppContext::wndProcCallback;
+	ret.style = CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW;
+	ret.cbSize = sizeof(WNDCLASSEX);
+	ret.hIcon = ::LoadIcon (nullptr, IDI_APPLICATION);
+	ret.hIconSm = ::LoadIcon (nullptr, IDI_APPLICATION);
+	ret.hCursor = ::LoadCursor (nullptr, IDC_ARROW);
+	ret.lpszMenuName = nullptr;
+	ret.cbClsExtra = 0;
+	ret.cbWndExtra = 0;
+	//ret.hbrBackground = (HBRUSH) ::GetStockObject(WHITE_BRUSH);
+	ret.hbrBackground = nullptr;
+
+	return ret;
 }
 
 void WinapiWindowContext::setStyle(const WinapiWindowSettings& settings)
@@ -73,6 +113,9 @@ void WinapiWindowContext::setStyle(const WinapiWindowSettings& settings)
 
 void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 {
+	auto parent = static_cast<HWND>(settings.parent.pointer());
+	auto hinstance = appContext().hinstance();
+
 	auto size = settings.size;
 	auto position = settings.position;
 
@@ -82,22 +125,51 @@ void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 	if(size.x == -1) size.x = CW_USEDEFAULT;
 	if(size.y == -1) size.y = CW_USEDEFAULT;
 
-	auto parent = static_cast<HWND>(settings.parent.pointer());
-	auto hinstance = appContext().hinstance();
-
-	handle_ = ::CreateWindowEx(0, wndClass_.lpszClassName, _T(settings.title.c_str()), style_,
-		position.x, position.y, size.x, size.y, parent, nullptr, hinstance, this);
+	if(settings.nativeWidgetType == NativeWidgetType::dialog)
+	{
+		initDialog(settings);
+	}
+	else
+	{
+		handle_ = ::CreateWindowEx(0, _T(wndClassName_.c_str()), _T(settings.title.c_str()), style_,
+			position.x, position.y, size.x, size.y, parent, nullptr, hinstance, this);
+	}
 
 	appContext().registerContext(handle_, *this);
+}
 
-	if(settings.initShown)
+void WinapiWindowContext::initDialog(const WinapiWindowSettings& settings)
+{
+	auto parent = static_cast<HWND>(settings.parent.pointer());
+	auto dialogProc = &WinapiAppContext::dlgProcCallback;
+
+	DLGTEMPLATE dtemp {};
+	handle_ = ::CreateDialogIndirect(hinstance(), &dtemp, parent, dialogProc);
+}
+
+void WinapiWindowContext::showWindow(const WinapiWindowSettings& settings)
+{
+	if(!settings.initShown) return;
+
+	if(settings.initState == ToplevelState::maximized)
 	{
-		if(settings.initState == ToplevelState::maximized) ::ShowWindow(handle_, SW_SHOWMAXIMIZED);
-		else if(settings.initState == ToplevelState::minimized) ::ShowWindow(handle_, SW_SHOWMINIMIZED);
-		else ::ShowWindow(handle_, SW_SHOWDEFAULT);
-
-		::UpdateWindow(handle_);
+		::ShowWindowAsync(handle_, SW_SHOWMAXIMIZED);
 	}
+	else if(settings.initState == ToplevelState::minimized)
+	{
+		::ShowWindowAsync(handle_, SW_SHOWMINIMIZED);
+	}
+	else
+	{
+		::ShowWindowAsync(handle_, SW_SHOWDEFAULT);
+	}
+
+	::UpdateWindow(handle_);
+}
+
+HINSTANCE WinapiWindowContext::hinstance() const
+{
+	return appContext().hinstance();
 }
 
 void WinapiWindowContext::refresh()
@@ -112,18 +184,59 @@ DrawGuard WinapiWindowContext::draw()
 
 void WinapiWindowContext::show()
 {
-	::ShowWindow(handle_, SW_SHOWDEFAULT);
+	::ShowWindowAsync(handle_, SW_SHOWDEFAULT);
 }
 void WinapiWindowContext::hide()
 {
-	::ShowWindow(handle_, SW_HIDE);
+	::ShowWindowAsync(handle_, SW_HIDE);
 }
 
 void WinapiWindowContext::addWindowHints(WindowHints hints)
 {
+	if(hints & WindowHints::customDecorated)
+	{
+		auto style = ::GetWindowLong(handle(), GWL_STYLE);
+		style &= ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU);
+		::SetWindowLong(handle(), GWL_STYLE, style);
+
+		auto exStyle = ::GetWindowLong(handle(), GWL_EXSTYLE);
+		exStyle &= ~(WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
+		::SetWindowLong(handle(), GWL_EXSTYLE, exStyle);
+	}
+	if(hints & WindowHints::acceptDrop)
+	{
+		if(!dropTarget_)
+		{
+			dropTarget_ = new winapi::com::DropTargetImpl(*this);
+			dropTarget_->AddRef();
+			::RegisterDragDrop(handle(), dropTarget_);
+		}
+	}
+	if(hints & WindowHints::alwaysOnTop)
+	{
+		::SetWindowPos(handle(), HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
+	}
 }
 void WinapiWindowContext::removeWindowHints(WindowHints hints)
 {
+	if(hints & WindowHints::customDecorated)
+	{
+		auto style = ::GetWindowLong(handle(), GWL_STYLE);
+		style |= (WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU);
+		::SetWindowLong(handle(), GWL_STYLE, style);
+
+		auto exStyle = ::GetWindowLong(handle(), GWL_EXSTYLE);
+		exStyle |= (WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
+		::SetWindowLong(handle(), GWL_EXSTYLE, exStyle);
+	}
+	if(hints & WindowHints::acceptDrop)
+	{
+		::RevokeDragDrop(handle());
+	}
+	if(hints & WindowHints::alwaysOnTop)
+	{
+		::SetWindowPos(handle(), HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
+	}
 }
 
 bool WinapiWindowContext::handleEvent(const Event& e)
@@ -132,86 +245,160 @@ bool WinapiWindowContext::handleEvent(const Event& e)
 
 void WinapiWindowContext::size(const Vec2ui& size)
 {
-	::SetWindowPos(handle_, HWND_TOP, 0, 0, size.x, size.y, SWP_NOMOVE);
-
+	::SetWindowPos(handle_, HWND_TOP, 0, 0, size.x, size.y, SWP_NOMOVE | SWP_ASYNCWINDOWPOS);
 }
 void WinapiWindowContext::position(const Vec2i& position)
 {
-	::SetWindowPos(handle_, HWND_TOP, position.x, position.y, 0, 0, SWP_NOSIZE);
+	::SetWindowPos(handle_, HWND_TOP, position.x, position.y, 0, 0, SWP_NOSIZE | SWP_ASYNCWINDOWPOS);
 }
 
 void WinapiWindowContext::cursor(const Cursor& c)
 {
+	//TODO: here and icon: system metrics
+	if(c.type() == Cursor::Type::image)
+	{
+		auto cpy = *c.image();
+		cpy.format(Image::Format::bgra8888);
+
+		auto hs = c.imageHotspot();
+		auto size = c.image()->size();
+
+		auto bitmap = ::CreateBitmap(size.x, size.y, 1, 32, cpy.data());
+
+		ICONINFO iconinfo;
+		iconinfo.fIcon = false;
+		iconinfo.xHotspot = hs.x;
+		iconinfo.yHotspot = hs.y;
+		iconinfo.hbmMask = nullptr;
+		iconinfo.hbmColor = bitmap;
+
+		auto icon = ::CreateIconIndirect(&iconinfo);
+		cursor_ = reinterpret_cast<HCURSOR>(icon);
+		::SetCursor(cursor_);
+
+		DeleteObject(bitmap);
+	}
+	else if(c.type() == Cursor::Type::none)
+	{
+		cursor_ = nullptr;
+		::SetCursor(cursor_);
+	}
+	else
+	{
+		auto cursorName = cursorToWinapi(c.type());
+		if(!cursorName)
+		{
+			warning("WinapiWC::cursor: invalid native cursor type");
+			return;
+		}
+
+		cursor_ = ::LoadCursor(hinstance(), cursorName);
+		if(!cursor_)
+		{
+			warning("WinapiWC::cursor: failed to load native cursor ", cursorName);
+			return;
+		}
+
+		::SetCursor(cursor_);
+	}
 }
 
 void WinapiWindowContext::fullscreen()
 {
-	DEVMODE mode;
-	mode.dmSize       = sizeof(mode);
-	mode.dmPelsWidth  = 1920;
-	mode.dmPelsHeight = 1080;
-	mode.dmBitsPerPel = 32;
-	mode.dmFields     = DM_PELSWIDTH | DM_PELSHEIGHT | DM_BITSPERPEL;
+	if(fullscreen_) return;
 
-	/*
-	if (ChangeDisplaySettings(&mode, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
+	//TODO: maybe add possibilty for display modes?
+	//games *might* want to set a different resolution (low prio)
+	//discussion needed
+
+	//store current state
+	savedState_.style = ::GetWindowLong(handle(), GWL_STYLE);
+	savedState_.exstyle = ::GetWindowLong(handle(), GWL_EXSTYLE);
+	savedState_.extents = extents();
+	savedState_.maximized = ::IsZoomed(handle());
+
+ 	MONITORINFO monitorinfo;
+  	monitorinfo.cbSize = sizeof(monitorinfo);
+    ::GetMonitorInfo(::MonitorFromWindow(handle(), MONITOR_DEFAULTTONEAREST), &monitorinfo);
+	auto& rect = monitorinfo.rcMonitor;
+	rect.right -= rect.left;
+	rect.bottom -= rect.top;
+
+	::SetWindowLong(handle(), GWL_STYLE, (savedState_.style | WS_POPUP) & ~(WS_OVERLAPPEDWINDOW));
+	::SetWindowLong(handle(), GWL_EXSTYLE, savedState_.exstyle & ~(WS_EX_DLGMODALFRAME |
+		WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE));
+
+	//the rect.bottom + 1 is needed here since some (buggy?) winapi implementations
+	//go automatically in real fullscreen mode when the window is a popup and the size
+	//the same as the monitor (observed behaviour).
+	//ny does not handle/support real fullscreen mode (consideren bad) since then
+	//the window has to take care about correct alt-tab/minimize handling which becomes
+	//easily buggy
+	::SetWindowPos(handle(), HWND_TOP, rect.left, rect.top, rect.right, rect.bottom + 1,
+		SWP_NOOWNERZORDER |	SWP_ASYNCWINDOWPOS | SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOACTIVATE);
+
+	fullscreen_ = true;
+}
+
+void WinapiWindowContext::unsetFullscreen()
+{
+	if(fullscreen_)
 	{
-		sendWarning("WinapiWindowContext::fullscreen: Failed to change display mode");
-		return;
+		auto& rect = savedState_.extents;
+		SetWindowLong(handle(), GWL_STYLE, savedState_.style);
+		SetWindowLong(handle(), GWL_EXSTYLE, savedState_.exstyle);
+		fullscreen_ = false;
 	}
-	*/
-
-	::SetWindowLongW(handle(), GWL_STYLE, WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
-	::SetWindowLongW(handle(), GWL_EXSTYLE, WS_EX_APPWINDOW  | WS_EX_TOPMOST);
-
-	::SetWindowPos(handle(), HWND_TOP, 0, 0, 1920, 1080, SWP_FRAMECHANGED);
-	::ShowWindow(handle(), SW_SHOW);
 }
 
 void WinapiWindowContext::maximize()
 {
-	ShowWindow(handle_, SW_MAXIMIZE);
+	unsetFullscreen();
+	::ShowWindowAsync(handle_, SW_MAXIMIZE);
 }
 
 void WinapiWindowContext::minimize()
 {
-	ShowWindow(handle_, SW_MINIMIZE);
+	::ShowWindowAsync(handle_, SW_MINIMIZE);
 }
 
 void WinapiWindowContext::normalState()
 {
-	//TODO: restore fullscreen correctly
-	// SetWindowLongW(handle(), GWL_STYLE, WS_OVERLAPPEDWINDOW);
-	// SetWindowLongW(handle(), GWL_EXSTYLE, 0);
-	// SetWindowPos(handle(), HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOSIZE | SWP_NOMOVE);
+	if(fullscreen_)
+	{
+		auto& rect = savedState_.extents;
+		SetWindowLong(handle(), GWL_STYLE, savedState_.style);
+		SetWindowLong(handle(), GWL_EXSTYLE, savedState_.exstyle);
+		SetWindowPos(handle(), nullptr, rect.left(), rect.top(), rect.width(), rect.height(),
+			SWP_ASYNCWINDOWPOS | SWP_FRAMECHANGED);
 
-	ShowWindow(handle_, SW_RESTORE);
+		fullscreen_ = false;
+	}
+
+	ShowWindowAsync(handle_, SW_RESTORE);
 }
 
 void WinapiWindowContext::icon(const Image* img)
 {
+	//if nullptr passed set no icon
 	if(!img)
 	{
-		SendMessageW(handle(), WM_SETICON, ICON_BIG,   (LPARAM)nullptr);
-        SendMessageW(handle(), WM_SETICON, ICON_SMALL, (LPARAM)nullptr);
+		PostMessage(handle(), WM_SETICON, ICON_BIG, (LPARAM) nullptr);
+        PostMessage(handle(), WM_SETICON, ICON_SMALL, (LPARAM) nullptr);
 		return;
 	}
 
+	//windows wants the data in bgra format
 	auto cpy = *img;
 	cpy.format(Image::Format::bgra8888);
 
-	auto icon = CreateIcon(GetModuleHandleW(nullptr), cpy.size().x, cpy.size().y, 1, 32,
-		nullptr, cpy.data());
+	auto module = GetModuleHandle(nullptr);
+	auto icon = CreateIcon(module, cpy.size().x, cpy.size().y, 1, 32, nullptr, cpy.data());
 
-   if(icon)
-   {
-       SendMessageW(handle(), WM_SETICON, ICON_BIG,   (LPARAM)icon);
-       SendMessageW(handle(), WM_SETICON, ICON_SMALL, (LPARAM)icon);
-   }
-   else
-   {
-		sendWarning("WinapiWindowContext::icon: Failed to create winapi icon handle");
-   }
+   if(!icon) warning("WinapiWindowContext::icon: Failed to create winapi icon handle");
+
+   PostMessageW(handle(), WM_SETICON, ICON_BIG, (LPARAM) icon);
+   PostMessageW(handle(), WM_SETICON, ICON_SMALL, (LPARAM) icon);
 }
 
 void WinapiWindowContext::title(const std::string& title)

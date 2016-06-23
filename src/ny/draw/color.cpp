@@ -14,10 +14,10 @@ const Color Color::black{0, 0, 0};
 
 Color::Color(std::uint32_t color) noexcept
 {
-	value_type* ptr = reinterpret_cast<value_type*>(&color);
-	a = *ptr;	
-	b = *++ptr;	
-	g = *++ptr;	
+	auto* ptr = reinterpret_cast<Value*>(&color);
+	a = *ptr;
+	b = *++ptr;
+	g = *++ptr;
 	r = *++ptr;
 }
 
@@ -40,20 +40,20 @@ std::uint32_t& Color::asInt()
 
 void Color::argbInt(std::uint32_t color)
 {
-	value_type* ptr = reinterpret_cast<value_type*>(&color);
-	b = *ptr;	
-	g = *++ptr;	
-	r = *++ptr;	
+	auto* ptr = reinterpret_cast<Value*>(&color);
+	b = *ptr;
+	g = *++ptr;
+	r = *++ptr;
 	a = *++ptr;
 }
 
 void Color::rgbaInt(std::uint32_t color)
 {
-	value_type* ptr = reinterpret_cast<value_type*>(&color);
+	auto* ptr = reinterpret_cast<Value*>(&color);
 	a = *ptr;
-	b = *++ptr;	
-	g = *++ptr;	
-	r = *++ptr;	
+	b = *++ptr;
+	g = *++ptr;
+	r = *++ptr;
 }
 
 void Color::normalized(float& pr, float& pg, float& pb, float& pa) const

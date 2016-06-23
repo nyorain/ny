@@ -46,14 +46,18 @@ protected:
 ///Winapi WindowContext using wgl (OpenGL) to draw.
 class WglWindowContext : public WinapiWindowContext
 {
-protected:
-	std::unique_ptr<WglContext> wglContext_;
-	std::unique_ptr<GlDrawContext> drawContext_;
-
 public:
 	WglWindowContext(WinapiAppContext& ctx, const WinapiWindowSettings& settings = {});
 	~WglWindowContext();
+
 	virtual DrawGuard draw() override;
+
+protected:
+	virtual WNDCLASSEX windowClass(const WinapiWindowSettings& settings) override;
+
+protected:
+	std::unique_ptr<WglContext> wglContext_;
+	std::unique_ptr<GlDrawContext> drawContext_;
 };
 
 }

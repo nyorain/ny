@@ -1,10 +1,13 @@
 #include <ny/backend/winapi/wgl.hpp>
 #include <ny/backend/winapi/windowContext.hpp>
 #include <ny/backend/winapi/appContext.hpp>
+#include <ny/backend/winapi/util.hpp>
 #include <ny/backend/winapi/wgl/glad_wgl.h>
 #include <ny/draw/gl/drawContext.hpp>
 #include <ny/base/log.hpp>
+
 #include <GL/gl.h>
+#include <thread>
 
 namespace ny
 {
@@ -58,25 +61,16 @@ HGLRC WglContext::dummyContext(HDC* hdcOut)
 		ShowWindow(window.handle, SW_HIDE);
 		dc = GetDC(window.handle);
 
-	    PIXELFORMATDESCRIPTOR pfd =
-	    {
-	        sizeof(PIXELFORMATDESCRIPTOR),
-	        1,
-	        PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,    //Flags
-	        PFD_TYPE_RGBA,            //The kind of framebuffer. RGBA or palette.
-	        32,                        //Colordepth of the framebuffer.
-	        0, 0, 0, 0, 0, 0,
-	        0,
-	        0,
-	        0,
-	        0, 0, 0, 0,
-	        24,                        //Number of bits for the depthbuffer
-	        8,                        //Number of bits for the stencilbuffer
-	        0,                        //Number of Aux buffers in the framebuffer.
-	        PFD_MAIN_PLANE,
-	        0,
-	        0, 0, 0
-	    };
+		PIXELFORMATDESCRIPTOR pfd {};
+		pfd.nSize = sizeof(pfd);
+		pfd.nVersion = 1;
+		pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+		pfd.iPixelType = PFD_TYPE_RGBA;
+		pfd.cColorBits = 32;
+		pfd.cDepthBits = 24;
+		pfd.cStencilBits = 8;
+		pfd.cAlphaBits = 8;
+		pfd.iLayerType = PFD_MAIN_PLANE;
 
 		auto pixelformat = ::ChoosePixelFormat(dc, &pfd);
 		::SetPixelFormat(dc, pixelformat, &pfd);
@@ -116,14 +110,15 @@ WglContext::WglContext(WinapiWindowContext& wc) : GlContext(), wc_(&wc)
     ::SetPixelFormat(dc_, pixelFormat_, &pfd);
 
 	createContext();
+
 	makeCurrent();
 	activateVsync();
-
     GlContext::initContext(Api::gl, 24, 8);
 }
 
 WglContext::~WglContext()
 {
+	makeNotCurrent();
 	if(wglContext_) ::wglDeleteContext(wglContext_);
 }
 
@@ -145,7 +140,7 @@ void WglContext::initPixelFormat(unsigned int depth, unsigned int stencil)
 
 		unsigned int c;
 		if(wglChoosePixelFormatARB(dc_, attr, nullptr, 1, &pixelFormat_, &c) && c > 0) return;
-		warning("ny::WglContext: wglChoosePixelFormatARB failed, using normal method");
+		warning(errorMessage("ny::WglContext: wglChoosePixelFormatARB failed"));
 	}
 
 	PIXELFORMATDESCRIPTOR pfd {};
@@ -163,7 +158,7 @@ void WglContext::initPixelFormat(unsigned int depth, unsigned int stencil)
 	if(!pixelFormat_)
 	{
 		//TODO getlasterror
-		throw std::runtime_error("ny::WglContext: ChoosePixelFormat failed");
+		throw std::runtime_error(errorMessage("ny::WglContext: ChoosePixelFormat failed"));
 	}
 }
 
@@ -203,11 +198,12 @@ void WglContext::createContext()
 		}
 
 		if(wglContext_) return;
-		warning("ny::WglContext: createContextAttribsARB failed, using default version");
+		warning(errorMessage("ny::WglContext: createContextAttribsARB failed, using old func"));
 	}
 
 	wglContext_ = ::wglCreateContext(dc_);
-	if(!wglContext_) throw std::runtime_error("ny::WglContext: failed to create context");
+	if(!wglContext_)
+		throw std::runtime_error(errorMessage("ny::WglContext: failed to create context"));
 }
 
 void WglContext::activateVsync()
@@ -230,46 +226,45 @@ void* WglContext::procAddr(const char* name) const
 
 bool WglContext::makeCurrentImpl()
 {
-    if(!isCurrent()) return ::wglMakeCurrent(dc_, wglContext_);
-    return true;
+	auto ret = ::wglMakeCurrent(dc_, wglContext_);
+	if(!ret) warning(errorMessage("WglContext::makeCurrentImpl"));
+	return ret;
 }
 
 bool WglContext::makeNotCurrentImpl()
 {
-    if(isCurrent()) return ::wglMakeCurrent(nullptr, nullptr);
-    return true;
+	auto ret = ::wglMakeCurrent(nullptr, nullptr);
+	if(!ret) warning(errorMessage("WglContext::makeNotCurrentImpl"));
+	return ret;
 }
 
 bool WglContext::apply()
 {
 	GlContext::apply();
-    return ::SwapBuffers(dc_);
+    auto ret = ::SwapBuffers(dc_);
+	if(!ret) warning(errorMessage("Wgl::apply (SwapBuffer)"));
+	return ret;
 }
 
 //WglWindowContext
 WglWindowContext::WglWindowContext(WinapiAppContext& ctx, const WinapiWindowSettings& settings)
 {
 	appContext_ = &ctx;
-
-    if(!appContext_->hinstance())
-	{
-		throw std::runtime_error("winapiWC::create: uninitialized appContext");
-	}
+    if(!hinstance()) throw std::runtime_error("winapiWC::create: uninitialized appContext");
 
 	WinapiWindowContext::initWindowClass(settings);
-	wndClass_.style |= CS_OWNDC;
-
-	if(!::RegisterClassEx(&wndClass_))
-	{
-		throw std::runtime_error("winapiWC::create: could not register window class");
-		return;
-	}
-
 	WinapiWindowContext::setStyle(settings);
 	WinapiWindowContext::initWindow(settings);
 
 	wglContext_.reset(new WglContext(*this));
 	drawContext_.reset(new GlDrawContext());
+}
+
+WNDCLASSEX WglWindowContext::windowClass(const WinapiWindowSettings& settings)
+{
+	auto ret = WinapiWindowContext::windowClass(settings);
+	ret.style |= CS_OWNDC;
+	return ret;
 }
 
 WglWindowContext::~WglWindowContext()
@@ -278,12 +273,14 @@ WglWindowContext::~WglWindowContext()
 
 DrawGuard WglWindowContext::draw()
 {
-	RECT rect;
-	::GetWindowRect(handle(), &rect);
-	glViewport(rect.left, rect.top, rect.right, rect.bottom);
-
 	if(!wglContext_->makeCurrent())
-		throw std::runtime_error("WglWC::draw: Failed to make wgl Context current");
+		throw std::runtime_error(errorMessage("WglWC::draw: Failed to make wgl Context current"));
+
+	RECT rect;
+	::GetClientRect(handle(), &rect);
+	glViewport(0, 0, rect.right - rect.left, rect.bottom - rect.top);
+
+	drawContext_->resetRectangleClip();
 
 	return DrawGuard(*drawContext_);
 }

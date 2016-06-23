@@ -14,7 +14,7 @@ protected:
     bool fromFile_;
 
 public:
-    Font(const std::string& name = "sans", bool fromFile = 0);
+    Font(const std::string& name = "sans", bool fromFile = false);
 
     void loadFromFile(const std::string& filename);
     void loadFromName(const std::string& fontname);

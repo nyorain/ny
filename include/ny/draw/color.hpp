@@ -14,23 +14,25 @@ namespace ny
 class Color
 {
 public:
-	using value_type = std::uint8_t;
+	using Value = std::uint8_t;
 
 public:
-	value_type r;
-	value_type g;
-	value_type b;
-	value_type a;
+	Value r = 0;
+	Value g = 0;
+	Value b = 0;
+	Value a = 0;
 
 public:
-	Color() = default;
-    Color(value_type rx, value_type gx, value_type bx, value_type ax = 255) noexcept 
+	constexpr Color() = default;
+	~Color() = default;
+    constexpr Color(Value rx, Value gx, Value bx, Value ax = 255) noexcept
 		: r(rx), g(gx), b(bx), a(ax) {}
 
-	Color(const Vec3uc& comps) noexcept : r(comps.x), g(comps.y), b(comps.z), a(255) {}
-	Color(const Vec4uc& comps) noexcept : r(comps.x), g(comps.y), b(comps.z), a(comps.w) {}
+	constexpr Color(const Vec3uc& val) noexcept : r(val.x), g(val.y), b(val.z), a(255) {}
+	constexpr Color(const Vec4uc& val) noexcept : r(val.x), g(val.y), b(val.z), a(val.w) {}
 
 	///Create the Color object from a packaged rgba-color int.
+	///Can be used to create it from a hexadecimal number e.g. Color(0xCC55FFFF)
 	Color(std::uint32_t color) noexcept;
 
 	//TODO

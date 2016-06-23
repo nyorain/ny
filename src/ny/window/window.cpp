@@ -1,17 +1,18 @@
 #include <ny/window/window.hpp>
 #include <ny/window/events.hpp>
-#include <ny/window/cursor.hpp>
 
+#include <ny/base/cursor.hpp>
 #include <ny/base/event.hpp>
+#include <ny/base/log.hpp>
+
 #include <ny/app/app.hpp>
+#include <ny/app/mouse.hpp>
+#include <ny/app/keyboard.hpp>
 #include <ny/backend/backend.hpp>
 #include <ny/backend/windowContext.hpp>
 #include <ny/draw/drawContext.hpp>
-#include <ny/app/mouse.hpp>
-#include <ny/app/keyboard.hpp>
 
 #include <nytl/misc.hpp>
-#include <ny/base/log.hpp>
 
 #include <iostream>
 #include <climits>
@@ -195,7 +196,8 @@ void Window::keyEvent(const KeyEvent& e)
 void Window::sizeEvent(const SizeEvent& e)
 {
     size_ = e.size;
-    onResize.call(*this, size_);
+    onResize(*this, size_);
+	refresh();
 }
 void Window::positionEvent(const PositionEvent& e)
 {
@@ -220,6 +222,11 @@ void Window::focusEvent(const FocusEvent& e)
 void Window::cursor(const Cursor& curs)
 {
     windowContext_->cursor(curs);
+}
+
+NativeWindowHandle Window::nativeHandle() const
+{
+	return windowContext_->nativeHandle();
 }
 
 /*

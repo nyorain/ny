@@ -6,6 +6,7 @@ namespace ny
 {
 
 //DrawGuard
+/*
 DrawGuard::DrawGuard(DrawContext& dc) : drawContext_(dc)
 {
 	drawContext_.init();
@@ -15,6 +16,7 @@ DrawGuard::~DrawGuard()
 {
 	drawContext_.apply();
 }
+*/
 
 //DrawContext
 void DrawContext::mask(const PathBase& obj)
@@ -94,7 +96,7 @@ void DrawContext::resetMaskClip()
 }
 
 //redirectDrawContext
-RedirectDrawContext::RedirectDrawContext(DrawContext& redirect, const Vec2f& position, 
+RedirectDrawContext::RedirectDrawContext(DrawContext& redirect, const Vec2f& position,
 		const Vec2f& size)
     : DrawContext(), size_(size), position_(position), redirect_(&redirect)
 {
@@ -191,7 +193,7 @@ void RedirectDrawContext::clipMask()
     redirect_->clipMask();
 }
 
-void RedirectDrawContext::clipMaskPreserve() 
+void RedirectDrawContext::clipMaskPreserve()
 {
     redirect_->clipMaskPreserve();
 }

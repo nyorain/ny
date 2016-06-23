@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <ny/draw/image.hpp>
+#include <ny/base/image.hpp>
 
 #include <nytl/cache.hpp>
 #include <nytl/clone.hpp>

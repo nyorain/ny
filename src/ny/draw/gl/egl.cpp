@@ -2,6 +2,7 @@
 #include <ny/base/log.hpp>
 
 #include <EGL/egl.h>
+#include <stdexcept>
 
 namespace ny
 {
@@ -116,18 +117,19 @@ bool EglContext::apply()
     if(!isCurrent() || !valid())
     {
 		sendWarning("eglContext::apply: invalid or not current");
-        return 0;
+        return false;
     }
 
 	//TODO: single buffered?
     if(!eglSwapBuffers(eglDisplay_, eglSurface_))
     {
-		sendWarning("eglContext::apply: eglSwapBuffers failed\n\t",
-				errorMessage(eglError()));
-        return 0;
+		sendWarning("eglContext::apply: eglSwapBuffers failed\n\t", errorMessage(eglError()));
+		sendLog("eglContext::eglSurface = ", eglSurface_);
+		sendLog("eglContext::eglDisplay = ", eglDisplay_);
+        return false;
     }
 
-    return 1;
+    return true;
 }
 
 bool EglContext::valid() const
@@ -190,7 +192,7 @@ int EglContext::eglErrorWarn()
 
 void* EglContext::procAddr(const char* name) const
 {
-	return eglGetProcAddr(name);
+	return reinterpret_cast<void*>(eglGetProcAddress(name));
 }
 
 }

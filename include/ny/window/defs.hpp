@@ -3,9 +3,11 @@
 #include <ny/include.hpp>
 #include <nytl/vec.hpp>
 #include <nytl/enumOps.hpp>
+#include <nytl/clone.hpp>
 
 #include <cstdint>
 #include <bitset>
+#include <memory>
 
 namespace ny
 {
@@ -24,8 +26,7 @@ enum class WindowHints : unsigned int
 };
 
 ///Typesafe enum that specifies the edges of a window (e.g. for resizing).
-///Note that e.g. (WindowEdge::top | WindowEdge::right) == (WindowEdge::topRight). You have
-///to include <nytl/enumOps.hpp> to make those operations with typesafe enums work.
+///Note that e.g. (WindowEdge::top | WindowEdge::right) == (WindowEdge::topRight).
 enum class WindowEdges : unsigned char
 {
     unknown = 0,
@@ -38,6 +39,51 @@ enum class WindowEdges : unsigned char
     bottomRight = 6,
     topLeft = 9,
     bottomLeft = 12,
+};
+
+///Result from a dialog.
+enum class DialogResult
+{
+	none, ///not finished yet
+	ok, ///Dialog finished as expected
+	cancel ///Dialog was canceled
+};
+
+///Type of a natvie dialog.
+enum class DialogType
+{
+	none, ///Default, no dialog type
+	color, ///Returns a color
+	path, ///Returns a file or directory path
+	custom ///Returns some custom value
+};
+
+///DialogSettingsData
+class DialogSettingsData : public Cloneable<DialogSettingsData> {};
+
+///DialogSettings
+class DialogSettings
+{
+public:
+	DialogType type;
+	std::unique_ptr<DialogSettingsData> data;
+
+public:
+	DialogSettings() = default;
+	~DialogSettings() = default;
+
+	DialogSettings(const DialogSettings& other) : type(other.type)
+	{
+		if(data) data = clone(*other.data);
+	}
+
+	DialogSettings& operator=(const DialogSettings& other)
+	{
+		type = other.type;
+		data.reset();
+		if(other.data) data = clone(*other.data);
+		return *this;
+	}
 };
 
 ///Typesafe enums that can be used for various settings with more control than just a bool.
@@ -79,7 +125,7 @@ enum class DrawType : unsigned char
 {
 	dontCare = 0,
 	none,
-	opengl,
+	gl,
 	software,
 	vulkan
 };
@@ -119,21 +165,26 @@ public:
 };
 
 ///Settings for a Window.
+///Backends usually have their own WindowSettings class derived from this one.
 class WindowSettings
 {
 public:
     virtual ~WindowSettings() = default;
 
     DrawType draw = DrawType::dontCare;
-	std::bitset<64> events = {1};
 	NativeWindowHandle nativeHandle = nullptr;
 	NativeWindowHandle parent = nullptr;
 	ToplevelState initState = ToplevelState::normal;
-	NativeWidgetType nativeWidgetType = NativeWidgetType::none;
+	DialogType dialogType = DialogType::none;
 	Vec2ui size = {800, 500};
 	Vec2i position = {~0, ~0};
 	std::string title = "Some Random Window Title";
 	bool initShown = true;
+
+	NativeWidgetType nativeWidgetType = NativeWidgetType::none;
+	DialogSettings dialogSettings;
+
+	std::bitset<64> events = {1};
 };
 
 }

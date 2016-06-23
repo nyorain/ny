@@ -27,7 +27,7 @@ set(${pkg-name}-search-paths
 	/opt/local
 	/opt/csw)
 
-find_package(PkgConfig)
+find_package(PkgConfig QUIET)
 if(PkgConfig_FOUND)
 	pkg_check_modules(PC_${pkg-name} QUIET ${pkg-config-search})
 	set(${pkg-name}-search-paths

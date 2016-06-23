@@ -7,6 +7,7 @@
 
 #include <string>
 #include <vector>
+#include <memory>
 
 namespace ny
 {
@@ -26,56 +27,36 @@ public:
 		gles,
 	};
 
+	///Represents a gl or glsl version
+	class Version
+	{
+	public:
+		Api api;
+		unsigned int major = 0;
+		unsigned int minor = 0;
+
+	public:
+		std::string name() const;
+		unsigned int number() const { return major * 10 + minor; }
+	};
+
 	///Returns the current context in the calling thread, nullptr if there is none.
-	static GlContext* current()
-		{ return threadLocalCurrent(); }
+	static GlContext* current() { return threadLocalCurrent(); }
 
 	///Returns the current context in the calling thread, nullptr if there is none or the found
 	///one is not in a valid state. This function should be prefered over current.
 	///TODO: add some automatical warning/makeNotCurrent system for invalid contexts?
+	///TODO: abolish the possibilty for invalid contexts? raii?
 	static GlContext* currentValid()
-		{ return current() && current()->valid()? current() : nullptr; }
+		{ return current() && current()->valid() ? current() : nullptr; }
 
-protected:
-	static GlContext* threadLocalCurrent(bool change = 0, GlContext* = nullptr);
-	static void assureGlLoaded(const GlContext& ctx);
-	static void assureGlesLoaded(const GlContext& ctx);
-
-protected:
-	Api api_ {Api::gl};
-
-	unsigned int depthBits_ {0};
-    unsigned int stencilBits_ {0};
-
-    unsigned int majorVersion_ {0};
-    unsigned int minorVersion_ {0};
-
-	std::vector<std::string> extensions_;
-	std::vector<GlContext*> sharedContexts_;
-	std::vector<unsigned int> glslVersions_;
-	unsigned int preferredGlslVersion_;
-
-	std::vector<std::unique_ptr<GlResource>> resources_; //TODO
-
-protected:
-	///This should be called by implementations at some point of context creation/initialisation
-	///to init the context (e.g. function pointer resolution; glew/glbinding).
-	virtual void initContext(Api api, unsigned int depth = 0, unsigned int stencil = 0);
-
-	///This function will be called by makeCurrent() and should be implemented by derived
-	///classes.
-	virtual bool makeCurrentImpl() = 0;
-
-	///This function will be called by makeNotCurrent() and should be implemented by derived
-	///classes.
-	virtual bool makeNotCurrentImpl() = 0;
 
 public:
 	GlContext() = default;
-	virtual ~GlContext() = default;
+	virtual ~GlContext();
 
 	///Returns the api this openGL context has, see the Api enum for more information.
-	Api api() const { return api_; }
+	Api api() const { return version().api; }
 
 	///Return whether the api opengl
 	bool gl() const { return api() == Api::gl; }
@@ -83,26 +64,20 @@ public:
 	///Returns whether the api is opengles
 	bool gles() const { return api() == Api::gles; }
 
+	///Returns the version of this context.
+	Version version() const { return version_; }
+
 	///Returns the major version of the api this context has. If it runs e.g. on openGL 4.5 this
 	///function will return 4.
-	unsigned int majorApiVersion() const { return majorVersion_; }
+	unsigned int majorApiVersion() const { return version().major; }
 
 	///Returns the minor version of the api this context has. If it runs e.g. on openGL 4.5 this
 	///function will return 5.
-	unsigned int minorApiVersion() const { return minorVersion_; }
+	unsigned int minorApiVersion() const { return version().minor; }
 
 	///Reeturns majorVersion * 10 + minorVersion. If the context has e.g. the openGLES version
 	///3.1 this function returns 31.
-	unsigned int version() const { return majorVersion_ * 10 + minorVersion_; }
-
-	/*
-	///Returns an unsigned int that roughly specified the functionality of the used api,
-	///independent from gl or gles.
-	///gles {10, 20: 20, 30: 30, 31: 31, 32: 32}
-	///gl {10, >=30: 20, 33: 30, 44: 31, 45: 32}
-	unsigned int glCompVersion() const;
-	*/
-
+	unsigned int versionNumber() const { return version().number(); }
 
 	///Returns the number of depth bits this context has. For contexts without depth buffer it
 	///returns therefore 0.
@@ -134,10 +109,10 @@ public:
 	bool glExtensionSupported(const std::string& name) const;
 
 	///Returns all supported glsl versions
-	std::vector<unsigned int> glslVersions() const { return glslVersions_; }
+	std::vector<Version> glslVersions() const { return glslVersions_; }
 
 	///Returns the preferred glsl version
-	unsigned int preferredGlslVersion() const { return preferredGlslVersion_; }
+	Version preferredGlslVersion() const { return preferredGlslVersion_; }
 
 	///Returns a vector of all shared opengl contexts.
 	std::vector<GlContext*> sharedContexts() const { return sharedContexts_; }
@@ -167,6 +142,37 @@ public:
 
 	///Returns a proc addr for a given function name of nullptr if it could not be found.
 	virtual void* procAddr(const std::string& name) const { return procAddr(name.c_str()); }
+
+protected:
+	static GlContext* threadLocalCurrent(bool change = 0, GlContext* = nullptr);
+	static void assureGlLoaded(const GlContext& ctx);
+	static void assureGlesLoaded(const GlContext& ctx);
+
+protected:
+	Version version_;
+
+	unsigned int depthBits_ {0};
+    unsigned int stencilBits_ {0};
+
+	std::vector<std::string> extensions_;
+	std::vector<GlContext*> sharedContexts_;
+	std::vector<Version> glslVersions_;
+	Version preferredGlslVersion_;
+
+	std::vector<std::unique_ptr<GlResource>> resources_; //TODO
+
+protected:
+	///This should be called by implementations at some point of context creation/initialisation
+	///to init the context (e.g. function pointer resolution; glew/glbinding).
+	virtual void initContext(Api api, unsigned int depth = 0, unsigned int stencil = 0);
+
+	///This function will be called by makeCurrent() and should be implemented by derived
+	///classes.
+	virtual bool makeCurrentImpl() = 0;
+
+	///This function will be called by makeNotCurrent() and should be implemented by derived
+	///classes.
+	virtual bool makeNotCurrentImpl() = 0;
 };
 
 

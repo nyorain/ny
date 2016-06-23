@@ -68,7 +68,7 @@ X11Backend::createWindowContext(AppContext& ctx, const WindowSettings& s)
 	else if(s.draw == DrawType::opengl)
 	{
 		#ifdef NY_WithGL	
-		 return std::make_unique<X11GlWindowContext>(*xac, settings);
+		 //return std::make_unique<X11GlWindowContext>(*xac, settings);
 		#else
 		 throw std::logic_error("ny::X11Backend::createWC: cannot match draw type");
 		#endif

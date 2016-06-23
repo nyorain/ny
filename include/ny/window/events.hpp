@@ -52,6 +52,7 @@ public:
 	using EvBase::EvBase;
 
     bool show = 0;
+	ToplevelState state;
     //showState here
 };
 
@@ -82,13 +83,14 @@ public:
 	using EvBase::EvBase;
 };
 
+/*
 //ContextEvent
 class ContextEvent : public Event //own ContextEvents could be derived form this
 {
 public:
     ContextEvent(EventHandler* h = nullptr, EventData* d = nullptr) : Event(h, d) {}
 
-    virtual unsigned int type() const override final { return eventType::windowContext; }
+    virtual unsigned int type() const override final { return eventType::; }
     virtual unsigned int contextType() const = 0;
 };
 
@@ -106,11 +108,6 @@ public:
 	virtual unsigned int contextType() const override { return ContextType; }
 };
 
-class ContextCreateEvent : public DeriveCloneable<ContextEvent, ContextCreateEvent>
-{
-public:
-	using CloneableBase::CloneableBase;
-    virtual unsigned int contextType() const override { return eventType::context::create; }
-};
+*/
 
 }

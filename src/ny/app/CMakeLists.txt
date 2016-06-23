@@ -3,7 +3,6 @@ set(libs-app ny-base ny-backend)
 
 set(src-app
 		app.cpp
-		data.cpp
 		keyboard.cpp
 		mouse.cpp
 		eventDispatcher.cpp)

@@ -10,12 +10,17 @@ namespace ny
 class ShaderGenerator
 {
 public:
-	struct Version
-	{
-		GlContext::Api api;
-		unsigned int major;
-		unsigned int minor;
-	};
+	using Version = GlContext::Version;
+public:
+	ShaderGenerator() = default;
+	ShaderGenerator(const std::string& code) : code_(code) {};
+
+	void code(const std::string& text) { code_ = text; }
+	std::string& code() { return code_; }
+	const std::string& code() const { return code_; }
+
+	virtual std::string generate(const Version& version) const = 0;
+	virtual std::string generate() const;
 
 protected:
 	std::string code_;
@@ -23,16 +28,7 @@ protected:
 	std::string versionString(const Version& version) const;
 	std::string parseCode(const Version& version) const;
 
-public:
-	ShaderGenerator() = default;
-	ShaderGenerator(const std::string& code) : code_(code) {};	
-	
-	void code(const std::string& text) { code_ = text; }
-	std::string& code() { return code_; }
-	const std::string& code() const { return code_; }
-
-	virtual std::string generate(const Version& version) const = 0;
-	virtual std::string generate() const;
+	virtual const char* inputAttribName() const = 0;
 };
 
 class FragmentShaderGenerator : public ShaderGenerator
@@ -42,6 +38,9 @@ public:
 
 	using ShaderGenerator::generate;
 	virtual std::string generate(const Version& version) const override;
+
+protected:
+	virtual const char* inputAttribName() const override { return "varying"; }
 };
 
 class VertexShaderGenerator : public ShaderGenerator
@@ -51,6 +50,9 @@ public:
 
 	using ShaderGenerator::generate;
 	virtual std::string generate(const Version& version) const override;
+
+protected:
+	virtual const char* inputAttribName() const override { return "attribute"; }
 };
 
 }
