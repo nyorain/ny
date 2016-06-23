@@ -11,6 +11,10 @@ set(src-gui
 add_library(ny-gui SHARED ${src-gui})
 target_compile_features(ny-gui PRIVATE cxx_range_for)
 
+if(${own_nytl_build})
+	add_dependencies(ny-gui nytl_ep)
+endif()
+
 target_link_libraries(ny-gui ${libs-gui})
 target_include_directories(ny-gui PUBLIC ${include-gui})
 

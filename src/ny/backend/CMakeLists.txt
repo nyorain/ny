@@ -61,6 +61,10 @@ add_library(ny-backend SHARED ${src-backend})
 target_link_libraries(ny-backend ${libs-backend})
 target_include_directories(ny-backend PUBLIC ${include-backend})
 
+if(${own_nytl_build})
+	add_dependencies(ny-backend nytl_ep)
+endif()
+
 set(targets-backend ny-backend)
 
 #install

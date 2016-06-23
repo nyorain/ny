@@ -51,6 +51,10 @@ add_library(ny-draw SHARED ${src-draw})
 target_link_libraries(ny-draw ${libs-draw})
 target_include_directories(ny-draw PUBLIC ${include-draw})
 
+if(${own_nytl_build})
+	add_dependencies(ny-draw nytl_ep)
+endif()
+
 set(targets-draw ny-draw)
 
 #install

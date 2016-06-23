@@ -12,6 +12,9 @@ set(src-window
 add_library(ny-window SHARED ${src-window})
 target_compile_features(ny-window PRIVATE cxx_range_for)
 
+if(${own_nytl_build})
+	add_dependencies(ny-window nytl_ep)
+endif()
 
 target_link_libraries(ny-window ${libs-window})
 target_include_directories(ny-window PUBLIC ${include-window})

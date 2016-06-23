@@ -13,6 +13,10 @@ target_compile_features(ny-app PRIVATE cxx_range_for)
 target_link_libraries(ny-app ${libs-app})
 target_include_directories(ny-app PUBLIC ${include-app})
 
+if(${own_nytl_build})
+	add_dependencies(ny-app nytl_ep)
+endif()
+
 set(targets-app ny-app)
 
 #install
