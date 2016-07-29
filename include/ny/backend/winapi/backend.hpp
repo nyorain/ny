@@ -6,23 +6,20 @@
 namespace ny
 {
 
+///Winapi backend implementation.
 class WinapiBackend : public Backend
 {
-protected:
-    static WinapiBackend instance_;
-	WinapiBackend() = default;
-
 public:
 	static WinapiBackend& instance(){ return instance_; }
 
 public:
-    virtual bool available() const { return true; } //TODO: sth to check here?
+    bool available() const override { return true; } //TODO: sth to check here?
+    AppContextPtr createAppContext() override;
+	const char* name() const override { return "winapi"; }
 
-    virtual AppContextPtr createAppContext() override;
-	virtual WindowContextPtr createWindowContext(AppContext& app,
-			const WindowSettings& s = {}) override;
-
-	virtual std::string name() const override { return "winapi"; }
+protected:
+    static WinapiBackend instance_;
+	WinapiBackend() = default;
 };
 
 }

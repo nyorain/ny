@@ -25,8 +25,6 @@ public:
 
     virtual void refresh() override;
 
-    virtual DrawGuard draw() override;
-
     virtual void show() override;
     virtual void hide() override;
 

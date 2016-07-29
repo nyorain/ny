@@ -177,11 +177,6 @@ void WinapiWindowContext::refresh()
     ::RedrawWindow(handle_, nullptr, nullptr, RDW_INVALIDATE | RDW_NOERASE);
 }
 
-DrawGuard WinapiWindowContext::draw()
-{
-	throw std::logic_error("ny::WinapiWC: called draw() on draw-less windowContext");
-}
-
 void WinapiWindowContext::show()
 {
 	::ShowWindowAsync(handle_, SW_SHOWDEFAULT);

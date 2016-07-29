@@ -12,8 +12,8 @@ namespace ny
 {
 
 //utility Ccnversions.
-Mouse::Button x11ToButton(unsigned int id);
-Keyboard::Key x11ToKey(unsigned int id);
+MouseButton x11ToButton(unsigned int id);
+Key x11ToKey(unsigned int id);
 
 int cursorToX11(Cursor::Type cursor);
 Cursor::Type x11ToCursor(int xcID);
@@ -32,16 +32,12 @@ namespace eventType
 {
 	namespace x11
 	{
-		constexpr unsigned int reparent = 111;
+		constexpr unsigned int reparent = 1101;
 	}
 }
 
 ///Special X11 backend event for reparenting.
 ///Event is needed since on reparenting the window position has to be set again.
-class X11ReparentEvent : public EventBase<eventType::x11::reparent, X11ReparentEvent>
-{
-public:
-	using EvBase::EvBase;
-};
+using X11ReparentEvent = EventBase<eventType::x11::reparent>;
 
 }

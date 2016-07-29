@@ -16,25 +16,12 @@ namespace ny
 
 ///\brief Abstract interface for a window context in the underlaying window system.
 ///The term "window" used in the documentation for this class is used for the underlaying native
-///window, ny::WindowContext is totally independent from ny::Window and can even be used without it.
+///window, ny::WindowContext is totally independent from ny::Window and can be used without it.
 class WindowContext : public EventHandler
 {
-protected:
-	EventHandler* eventHandler_ {nullptr};
-
 public:
 	WindowContext() = default;
     virtual ~WindowContext() = default;
-
-	///Starts to draw on the window.
-	///This function can always be called. The return (wrapped-up) DrawContext will only
-	///be valid as long as the DrawGuard exists.
-	///\warning There shall be always only one DrawGuard (= valid and active DrawContext,
-	///drawing operation) per thread and only one drawing thread per DrawGuard/DrawContext.
-	///\exception std::exception If the windowContext type is DrawContext-less.
-	///\return A DrawGuard wrapper instance that holds the DrawContext that can be used to draw
-	///the windows contents.
-	virtual DrawGuard draw() = 0;
 
 	///Sets the EventHandler that should receive the events associated with this windowContext.
 	///The event handler will receive information about window state changes and input.
@@ -44,6 +31,7 @@ public:
 	virtual EventHandler* eventHandler() const { return eventHandler_; }
 
 	///Asks the platform-specific windowing api for a window refresh.
+	///Note that this refresh might not take place immediatly.
     virtual void refresh() = 0;
 
 	///Makes the window visible.
@@ -56,18 +44,23 @@ public:
     virtual void droppable(const DataTypes&) = 0;
 
 	///Sets the minimal size of the window.
+	///Might have no effect on certain backends.
     virtual void minSize(const Vec2ui&) = 0;
 
 	///Sets the maximal size of the window.
+	///Might have no effect on certain backends.
     virtual void maxSize(const Vec2ui&) = 0;
 
 	///Resizes the window.
     virtual void size(const Vec2ui& size) = 0;
 
 	///Sets the position of the window.
+	///Note that on some backends or if the window is in a fullscreen/maximized state, this
+	///might have no effect.
     virtual void position(const Vec2i& position) = 0;
 
-	///Sets the mouse cursor of the window.
+	///Sets the mouse cursor of the window. The mouse cursor will only be changed to the given
+	///cursor when the pointer is oven this window.
     virtual void cursor(const Cursor& c) = 0;
 
 	///Returns the underlaying native window handle.
@@ -109,7 +102,7 @@ public:
 
 	///Sets the icon of the native window.
 	///\warning Shall have only an effect for toplevel windows.
-	virtual void icon(const Image*) = 0; //may be only important for client decoration
+	// virtual void icon(const Image*) = 0; //may be only important for client decoration
 
 	///Returns whether the window should be custom decorated.
 	///Custom decoration can either be manually triggered by setting the custom decorated
@@ -127,9 +120,14 @@ public:
 
 	///If this window is a native dialog, a dialog context pointer is returned, nullptr otherwise.
 	virtual DialogContext* dialogContext() const { return nullptr; }
+
+protected:
+	EventHandler* eventHandler_ {nullptr};
 };
 
 ///Interface for native dialogs.
+///Dialogs are temorary windows that can be used to collect data from the user.
+///Such data can be e.g. simply a result (like ok or abort) or a filepath, color or font.
 class DialogContext
 {
 public:

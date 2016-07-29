@@ -1,8 +1,4 @@
-#include <ny/wayland/waylandWindowContext.hpp>
-
-#include <ny/wayland/waylandUtil.hpp>
-#include <ny/wayland/waylandAppContext.hpp>
-#include <ny/wayland/waylandInterfaces.hpp>
+#include <ny/backend/wayland/windowContext.hpp>
 
 #include <ny/event.hpp>
 #include <ny/app.hpp>
@@ -11,25 +7,12 @@
 
 #include <ny/wayland/xdg-shell-client-protocol.h>
 
-#ifdef NY_WithEGL
-#include <ny/gl/glDrawContext.hpp>
-#include <ny/wayland/waylandEgl.hpp>
-#endif // NY_WithEGL
-
-#ifdef NY_WithCairo
-#include <ny/cairo.hpp>
-#include <ny/wayland/waylandCairo.hpp>
-#endif // NY_WithCairo
-
 #include <iostream>
 #include <cassert>
 
 namespace ny
 {
 
-using namespace wayland;
-
-//waylandWindowContext/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 waylandWindowContext::waylandWindowContext(window& win, const waylandWindowContextSettings& settings) : windowContext(win, settings)
 {
     waylandAppContext* ac = getWaylandAppContext();
@@ -509,6 +492,26 @@ void waylandWindowContext::beginResize(const mouseButtonEvent* ev, windowEdge ed
 void waylandWindowContext::setTitle(const std::string& str)
 {
 
+}
+
+wl_shell_surface* WaylandWindowContext::wlShellSurface() const 
+{ 
+	return (role_ == SurfaceRole::shell) ? wlShellSurface_ : nullptr; 
+}
+
+wl_subsurface* WaylandWindowContext::wlSurbsurface() const 
+{ 
+	return (role_ == SurfaceRole::sub) ? wlSubsurface_ : nullptr; 
+}
+
+xdg_surface* WaylandWindowContext::xdgSurface() const 
+{ 
+	return (role_ == SurfaceRole::xdg) ? xdgSurface_ : nullptr; 
+}
+
+xdg_popup* WaylandWindowContext::xdgPopup() const 
+{ 
+	return (role_ == SurfaceRole::xdgPopup) ? xdgPopup_ : nullptr; 
 }
 
 }

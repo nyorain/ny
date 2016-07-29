@@ -2,7 +2,27 @@
 
 #include <ny/fwd.hpp>
 #include <ny/config.hpp>
-#include <cstdlib>
 
 namespace nytl {}
-namespace ny { using namespace nytl; }
+namespace ny 
+{ 
+
+using namespace nytl; 
+	
+//backend typedefs
+#ifdef NY_WithX11
+ class X11Backend;
+ class X11WindowContext;
+ class X11AppContext;
+#endif //WithX11
+
+#ifdef NY_WithWayland
+#endif //WithWayland
+
+#ifdef NY_WithWinapi
+ class WinapiBackend;
+ class WinapiWindowContext;
+ class WinapiAppContext;
+#endif //WithWinapi
+
+}

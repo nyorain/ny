@@ -7,7 +7,14 @@
 namespace ny
 {
 
-///All eventType constants should go in this namespace.
+///All eventType constants should go in this namespace as constexpr unsigned int.
+///ny-internal event ranges:
+/// - 1 - 20 abstract
+/// - 20 - 100 app/backend/input (mouse, keyboard, data)
+/// - 100 - 200 window
+/// - 1000 - 1100 backend wayland
+/// - 1100 - 1200 backend x11
+/// - 1200 - 1300 backend winapi
 namespace eventType {};
 
 ///Classes derived from the EventData class are used by backends to put their custom

@@ -1,12 +1,17 @@
+#pragma once
+
+//ny version
 #define NY_VMAJOR @vmajor@
 #define NY_VMINOR @vminor@
 #define NY_VPATCH @vpatch@
+#define NY_VERSION NY_VMAJOR * 100 + NY_VMINOR * 10 * NY_VPATCH
 
-#define NY_WithGL @WithGL@
-#define NY_WithEGL @WithEGL@
-#define NY_WithX11 @WithX11@
-#define NY_WithWinapi @WithWinapi@
-#define NY_WithWayland @WithWayland@
-#define NY_WithCairo @WithCairo@
-#define NY_WithVulkan @WithVulkan@
-#define NY_WithFreeType @WithFreeType@
+//these macros can be used to check which parts are built in to ny.
+//all ny header files include the parsed config.hpp
+#cmakedefine NY_WithGL
+#cmakedefine NY_WithEGL
+#cmakedefine NY_WithVulkan
+
+#cmakedefine NY_WithX11 
+#cmakedefine NY_WithWinapi 
+#cmakedefine NY_WithWayland 

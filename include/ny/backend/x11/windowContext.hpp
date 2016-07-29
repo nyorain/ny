@@ -1,10 +1,8 @@
 #pragma once
 
-#include <ny/backend/x11/include.hpp>
+#include <ny/include.hpp>
 #include <ny/backend/windowContext.hpp>
 
-typedef struct xcb_connection_t xcb_connection_t;
-typedef struct _XDisplay Display;
 
 #include <cstdint>
 #include <vector>
@@ -19,89 +17,50 @@ namespace ny
 struct DummyEwmhConnection;
 
 ///Additional settings for a X11 Window.
-class X11WindowSettings : public WindowSettings 
-{
-	xcb_connection_t* connection;
-	Display* display;
-};
+class X11WindowSettings : public WindowSettings {};
 
 ///The X11 implementation of the WindowContext interface.
 ///Provides some extra functionality for x11.
 ///Tries to use xcb where possible, for some things (e.g. glx context) xlib is needed though.
 class X11WindowContext : public WindowContext
 {
-protected:
-	X11AppContext* appContext_ = nullptr;
-	X11WindowSettings settings_ {};
-	std::uint32_t xWindow_ = 0;
-	std::uint32_t xVisualID_ = 0;
-
-	///Stored EWMH states can be used to check whether it is fullscreen, maximized etc.
-	std::vector<std::uint32_t> states_;
-    unsigned long mwmFuncHints_ = 0;
-    unsigned long mwmDecoHints_ = 0;
-
-protected:
-	///Default Constructor only for derived classes that later call the create function.
-	X11WindowContext() = default;
-
-	///Creates the x11 window.
-	///This extra function may be needed by derived drawType classes.
-	void create(X11AppContext& ctx, const X11WindowSettings& settings);
-
-	///Utility helper returning the xcbConnection of the app context.
-	xcb_connection_t* xConnection() const;
-
-	///Utility helper returning the ewmhConnection of the app context.
-	DummyEwmhConnection* ewmhConnection() const;
-
-	///The different drawType classes derived from this class may override this function to
-	///select a custom visual for the window or query it in a different way connected with
-	///more information. See the cairo or glx function overrides for examples.
-	///Will automatically be called by the create function if the visualID member variable is
-	///not set yet (since it is needed for window creation).
-    virtual void initVisual();
-
 public:
     X11WindowContext(X11AppContext& ctx, const X11WindowSettings& settings = {});
-    virtual ~X11WindowContext();
+    ~X11WindowContext();
 
-    virtual void refresh() override;
+    void refresh() override;
 
-    virtual DrawGuard draw() override;
-
-    virtual void show() override;
-    virtual void hide() override;
-
-    virtual void size(const Vec2ui& size) override;
-    virtual void position(const Vec2i& position) override;
-
-    virtual void cursor(const Cursor& c) override;
-
-    virtual void minSize(const Vec2ui& size) override;
-    virtual void maxSize(const Vec2ui& size) override;
-
-    virtual bool handleEvent(const Event& e) override;
-	virtual NativeWindowHandle nativeHandle() const override;
+    void show() override;
+    void hide() override;
 
 	void droppable(const DataTypes&) override {};
 
+    void minSize(const Vec2ui& size) override;
+    void maxSize(const Vec2ui& size) override;
+
+    void size(const Vec2ui& size) override;
+    void position(const Vec2i& position) override;
+
+    void cursor(const Cursor& c) override;
+
+	NativeWindowHandle nativeHandle() const override;
+    bool handleEvent(const Event& e) override;
+
     //toplevel window
-    virtual void maximize() override;
-    virtual void minimize() override;
-    virtual void fullscreen() override;
-    virtual void normalState() override;
+    void maximize() override;
+    void minimize() override;
+    void fullscreen() override;
+    void normalState() override;
 
-    virtual void beginMove(const MouseButtonEvent* ev) override;
-    virtual void beginResize(const MouseButtonEvent* ev, WindowEdges edges) override;
+    void beginMove(const MouseButtonEvent* ev) override;
+    void beginResize(const MouseButtonEvent* ev, WindowEdges edges) override;
 
-    virtual void title(const std::string& title) override;
-	virtual void icon(const Image* img) override;
-	virtual bool customDecorated() const override;
+    void title(const std::string& title) override;
+	// void icon(const Image* img) override;
+	bool customDecorated() const override;
 
-	virtual void addWindowHints(WindowHints hints) override;
-	virtual void removeWindowHints(WindowHints hints) override;
-
+	void addWindowHints(WindowHints hints) override;
+	void removeWindowHints(WindowHints hints) override;
 
     //x11-specific
 	///Returns the associated X11AppContext.
@@ -185,6 +144,38 @@ public:
 	///Returns all allowed actions for the window.
 	///For more information look in the ewmh specification for _NET_WM_ALLOWED_ACTIONS.
     std::vector<std::uint32_t> allowedActions() const;
+
+protected:
+	///Default Constructor only for derived classes that later call the create function.
+	X11WindowContext() = default;
+
+	///Creates the x11 window.
+	///This extra function may be needed by derived drawType classes.
+	void create(X11AppContext& ctx, const X11WindowSettings& settings);
+
+	///Utility helper returning the xcbConnection of the app context.
+	xcb_connection_t* xConnection() const;
+
+	///Utility helper returning the ewmhConnection of the app context.
+	DummyEwmhConnection* ewmhConnection() const;
+
+	///The different drawType classes derived from this class may override this function to
+	///select a custom visual for the window or query it in a different way connected with
+	///more information. See the cairo or glx function overrides for examples.
+	///Will automatically be called by the create function if the visualID member variable is
+	///not set yet (since it is needed for window creation).
+    virtual void initVisual();
+
+protected:
+	X11AppContext* appContext_ = nullptr;
+	X11WindowSettings settings_ {};
+	std::uint32_t xWindow_ = 0;
+	std::uint32_t xVisualID_ = 0;
+
+	///Stored EWMH states can be used to check whether it is fullscreen, maximized etc.
+	std::vector<std::uint32_t> states_;
+    unsigned long mwmFuncHints_ = 0;
+    unsigned long mwmDecoHints_ = 0;
 };
 
 }

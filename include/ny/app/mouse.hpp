@@ -1,78 +1,42 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <ny/base/event.hpp>
+#include <ny/backend/mouse.hpp>
 
 #include <nytl/vec.hpp>
 #include <nytl/callback.hpp>
-#include <nytl/compFunc.hpp>
-
-#include <bitset>
 
 namespace ny
 {
 
-//mouse
+
+///Represents a physical pointer device.
+///A Mouse object can be retrieved by an AppContext (or by an App).
 class Mouse
 {
 public:
-    enum class Button : int
-    {
-        none = -1,
-        left = 0,
-        right,
-        middle,
-        custom1,
-        custom2,
-        custom3,
-        custom4,
-    };
-};
+	Mouse(App& app, MouseContext& mouseContext);
+	~Mouse() = default;
 
-//events
-namespace eventType
-{
-	constexpr unsigned int mouseMove = 3;
-	constexpr unsigned int mouseButton = 4;
-	constexpr unsigned int mouseWheel = 5;
-	constexpr unsigned int mouseCross = 6;
-}
+	Vec2ui position() const { return mouseContext_.position(); }
+	bool pressed(MouseButton button) const { return mouseContext_.pressed(button); }
+	MouseContext& context() const { return mouseContext_; }
+	Window* over() const;
 
-class MouseButtonEvent : public EventBase<eventType::mouseButton, MouseButtonEvent>
-{
-public:
-	using EvBase::EvBase;
+	///Will be called every time a mouse button is clicked or released.
+	Callback<void(MouseButton button, bool pressed)>& onButton;
 
-    bool pressed;
-    Mouse::Button button;
-    Vec2i position;
-};
+	///Will be called every time the mouse moves.
+	Callback<void(const Vec2ui& pos, const Vec2ui& delta)>& onMove;
 
-//really overrideable? delta!
-class MouseMoveEvent : public EventBase<eventType::mouseMove, MouseMoveEvent, 1>
-{
-public:
-	using EvBase::EvBase;
+	///Will be called every time the pointer focus changes.
+	///Note that both parameters might be a nullptr
+	///It is guaranteed that both parameters will have different values.
+	Callback<void(Window* prev, Window* now)> onFocus;
 
-    Vec2i position; //position in relation to the eventHandler
-    Vec2i screenPosition;
-    Vec2i delta;
-};
-
-class MouseCrossEvent : public EventBase<eventType::mouseCross, MouseCrossEvent>
-{
-public:
-	using EvBase::EvBase;
-
-    bool entered;
-    Vec2i position;
-};
-
-class MouseWheelEvent : public EventBase<eventType::mouseWheel, MouseWheelEvent>
-{
-public:
-	using EvBase::EvBase;
-    float value;
+protected:
+	MouseContext& mouseContext_;
+	App& app_;
 };
 
 }

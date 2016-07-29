@@ -14,9 +14,8 @@
 namespace ny
 {
 
+//TODO
 ///\brief Main Application class.
-///\details The main responsibilities on ny::App are to initialize an ny::Backend with an
-///ny::AppContext as well as dispatching all received events (ny::EventDispatcher).
 class App : public NonMovable
 {
 public:
@@ -24,7 +23,7 @@ public:
 	{
 		throwing,
     	continuing,
-    	askWindow, //with fallback to AskConsole
+    	askWindow, //with fallback to askConsole
     	askConsole
 	};
 
@@ -40,6 +39,32 @@ public:
 		bool multithreaded = true;
 	};
 
+public:
+    App(const Settings& settings = {});
+    virtual ~App();
+
+    virtual int run(LoopControl& control);
+	virtual int run();
+
+	virtual bool dispatch();
+	EventDispatcher& dispatcher() { return *eventDispatcher_; }
+
+    virtual void error(const std::string& msg);
+
+	//getters
+    AppContext& appContext() const { return *appContext_.get(); };
+    Backend& backend() const { return *backend_; }
+
+	std::size_t windowCount() const { return windowCount_; }
+    const Settings& settings() const { return settings_; }
+    const std::string& name() const { return settings_.name; }
+
+	const Mouse& mouse() const { return *mouse_; }
+	const Keyboard& keyboard() const { return *keyboard_; }
+
+	Mouse& mouse() { return *mouse_; }
+	Keyboard& keyboard() { return *keyboard_; }
+
 protected:
     Settings settings_;
     Backend* backend_ {nullptr};
@@ -53,30 +78,14 @@ protected:
 	std::size_t windowCount_ = 0; //to make exiting possible when last window closes
 	std::unique_ptr<EventDispatcher> eventDispatcher_ {nullptr};
 
+	std::unique_ptr<Mouse> mouse_;
+	std::unique_ptr<Keyboard> keyboard_;
+
 protected:
 	friend class Window;
 	void windowCreated();
 	void windowClosed();
 
-public:
-    App(const Settings& settings = {});
-    virtual ~App();
-
-    virtual int run(LoopControl& control);
-	virtual int run();
-
-	virtual bool dispatch();
-	EventDispatcher& dispatcher() { return *eventDispatcher_; }
-
-    virtual void error(const std::string& msg);
-
-    AppContext& appContext() const { return *appContext_.get(); };
-    Backend& backend() const { return *backend_; }
-
-	std::size_t windowCount() const { return windowCount_; }
-
-    const Settings& settings() const { return settings_; }
-    const std::string& name() const { return settings_.name; }
 };
 
 }

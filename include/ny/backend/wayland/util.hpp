@@ -1,13 +1,12 @@
 #pragma once
 
-#include <ny/wayland/waylandInclude.hpp>
+#include <ny/include.hpp>
 
-#include <ny/mouse.hpp>
-#include <ny/keyboard.hpp>
-#include <ny/cursor.hpp>
-#include <ny/backend.hpp>
-#include <ny/window.hpp>
-#include <ny/windowEvents.hpp>
+#include <ny/app/mouse.hpp>
+#include <ny/app/keyboard.hpp>
+#include <ny/window/cursor.hpp>
+
+#include <nytl/vec.hpp>
 
 #include <wayland-client-protocol.h>
 
@@ -18,24 +17,42 @@
 namespace ny
 {
 
+//wayland specific events
+namespace eventType
+{
+	namespace wayland
+	{
+		constexpr auto frameEvent = 1001u;
+		constexpr auto configureEvent = 1002u;
+	}
+}
+
+//wayland
 namespace wayland
 {
 
-//frameEvent////////////////////////////////////
-const unsigned int frameEvent = 11;
-
-class waylandFrameEvent : public contextEvent
+///Used for e.g. move/resize requests where the serial of the trigger must be given
+class EventData : public ny::EventData
 {
 public:
-    using contextEvent::contextEvent;
-
-    virtual unsigned int contextType() const override { return frameEvent; }
-    virtual std::unique_ptr<event> clone() const override { return make_unique<waylandFrameEvent>(); }
+    EventData(unsigned int xserial) : serial(xserial) {};
+    unsigned int serial;
 };
 
+//events
+///This Event will be sent to a WaylandWindowContext if its frame callback was triggered.
+using FrameEvent = EventBase<eventType::wayland::frameEvent>;
 
-//buffer//////////////////////////////////////////////////////////////
-class shmBuffer
+class ConfigureEvent : public EventBase<eventType::wayland::configureEvent>
+{
+public:
+	using EvBase::EvBase;
+	ny::WindowEdge edges;
+	nytl::Vec2ui size;
+};
+
+///Defines a wayland shm buffer that can be resized.
+class ShmBuffer
 {
 protected:
     //static const unsigned int defaultSize_ = 1024 * 1024 * 5; //5MB
@@ -80,14 +97,15 @@ protected:
     void done(wl_Callback*, unsigned int data);
 
     Callback<void(wl_Callback*, unsigned int)> Callback_;
+
 public:
     serverCallback(wl_Callback* Callback);
 
    template<typename F> connection add(F&& func){ return Callback_.add(func); }
 };
 
-//output
-class output
+///Holds information about a wayland output.
+class Output
 {
 
 friend void outputGeometry(void*, wl_output*, int, int, int, int, int, const char*, const char*, int);
@@ -114,8 +132,8 @@ protected:
     int scale_;
 
 public:
-    output(wl_output* outp);
-    ~output();
+    Output(wl_output& outp);
+    ~Output();
 
     Vec2i getPosition() const { return position_; }
     Vec2i getSize() const { return size_; }
@@ -137,13 +155,12 @@ public:
 
 }//wayland
 
-/////////////////////////////////////////////////////////////////////////
-//utils convert function///
-mouse::button waylandToButton(unsigned int id);
-keyboard::key waylandToKey(unsigned int id);
+//convert function
+Mouse::Button waylandToButton(unsigned int id);
+Keyboard::Key waylandToKey(unsigned int id);
 
-std::string cursorToWayland(cursorType c);
-cursorType waylandToCursor(std::string id);
+std::string cursorToWayland(Cursor::Type type);
+Cursor::Type waylandToCursor(std::string id);
 
 int bufferFormatToWayland(bufferFormat format);
 bufferFormat waylandToBufferFormat(unsigned int wlFormat);

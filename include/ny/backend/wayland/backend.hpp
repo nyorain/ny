@@ -1,32 +1,25 @@
 #pragma once
 
-#include <ny/include.hpp>
-#include <ny/backend.hpp>
-
-#include <memory>
+#include <ny/backend/wayland/include.hpp>
+#include <ny/backend/backend.hpp>
 
 namespace ny
 {
 
-class waylandBackend : public backend
+///Wayland backend implementation.
+class WaylandBackend : public Backend
 {
-protected:
-    static const waylandBackend object;
-
-    virtual std::unique_ptr<windowContext> createWindowContextImpl(window& win, const windowContextSettings& s = windowContextSettings()) override;
+public:
+	static WaylandBackend& instance(){ return instance_; }
 
 public:
-    waylandBackend();
+    bool available() const override;
+    AppContextPtr createAppContext() override;
+	const char* name() const override { return "wayland"; } 
 
-    virtual bool isAvailable() const override;
-
-    virtual std::unique_ptr<appContext> createAppContext() override;
-
-    virtual bool hasNativeHandling() const override { return 0; };
-    virtual bool hasNativeDecoration() const override { return 0; };
-
-    virtual bool hasCustomHandling() const override { return 1; };
-    virtual bool hasCustomDecoration() const override { return 1; };
+protected:
+    static WaylandBackend instance_;
+    WaylandBackend();
 };
 
 }

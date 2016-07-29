@@ -4,7 +4,6 @@
 #include <ny/base/event.hpp>
 
 #include <nytl/any.hpp>
-#include <nytl/compFunc.hpp>
 #include <nytl/callback.hpp>
 
 #include <vector>
@@ -13,9 +12,10 @@
 namespace ny
 {
 
+//Adds a new event
 namespace eventType
 {
-    constexpr unsigned int dataOffer = 25;
+    constexpr unsigned int dataOffer = 31;
 }
 
 ///This namespace holds constants for all data formats in which data from a DataSource/DataOffer
@@ -50,8 +50,9 @@ public:
 };
 
 ///Struct used to represent owned raw data.
-struct DataObject
+class DataObject
 {
+public:
     std::unique_ptr<std::uint8_t> data;
     std::size_t size = 0;
 };
@@ -83,7 +84,10 @@ public:
 class DataOffer
 {
 public:
-	using DataFunc = CompFunc<void(DataOffer& off, std::uint8_t fmt, const std::any& data)>;
+	using DataFunction = CompFunc<void(DataOffer& off, std::uint8_t fmt, const std::any& data)>;
+
+public:
+	///Will be called everytime a new format is signaled.
 	Callback<bool(DataOffer& off, std::uint8_t fmt)> onFormat;
 
 public:
@@ -104,7 +108,7 @@ public:
 	///called once or earlier.
 	///If the requested format cannot be retrieved, the function will be called with an
 	///empty any object.
-	virtual Connection data(std::uint8_t fmt, const DataFunc& func) = 0;
+	virtual CbConn data(std::uint8_t fmt, const DataFunction& func) = 0;
 };
 
 ///Event which will be sent when the application recieves data from another application.
@@ -122,7 +126,7 @@ public:
 	DataOfferEvent& operator=(DataOfferEvent&&) noexcept = default;
 
     std::unique_ptr<DataOffer> offer;
-	//XXX:some source indication? clipboard or dnd?
+	//XXX: some source indication? clipboard or dnd?
 };
 
 ///Converts the given string to a dataType constant. If the given string is not recognized,

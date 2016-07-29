@@ -1,15 +1,16 @@
 #include <ny/backend/x11/backend.hpp>
-#include <ny/config.hpp>
-
 #include <ny/backend/x11/windowContext.hpp>
 #include <ny/backend/x11/appContext.hpp>
 
-#ifdef NY_WithCairo
-  #include <ny/backend/x11/cairo.hpp>
-#endif //Cairo
+#if NY_WithGL
+ #include <ny/backend/x11/glx.hpp>
+#endif //WithGL
+
+#if NY_WithVulkan
+ #include <ny/backend/x11/vulkan.hpp>
+#endif //WithVulkan
 
 #include <X11/Xlib.h>
-#include <memory>
 
 namespace ny
 {
@@ -42,46 +43,32 @@ X11Backend::createWindowContext(AppContext& ctx, const WindowSettings& s)
     X11WindowSettings settings;
     const X11WindowSettings* ws = dynamic_cast<const X11WindowSettings*>(&s);
 
-    if(ws)
-    {
-        settings = *ws;
-    }
-    else
-    {
-		settings.WindowSettings::operator=(s);
-    }
+    if(ws) settings = *ws;
+    else settings.WindowSettings::operator=(s);
 
 	//appContext
 	auto xac = dynamic_cast<X11AppContext*>(&ctx);
 	if(!xac)
-	{
-		throw std::logic_error("ny::X11Backend: trying to create window with invalid appContext");
-	}
+		throw std::invalid_argument("ny::X11Backend::createWC: invalid AppContext");
 
 	//type
 	if(s.draw == DrawType::vulkan)
 	{
 		#ifdef NY_WithVulkan
-		 return nullptr;
+		 return std::make_unique<X11VulkanWindowContext>(*xac, settings);
+		#else
+		 throw std::logic_error("ny::X11Backend::createWC: ny built without vulkan support");
 		#endif
 	}
-	else if(s.draw == DrawType::opengl)
+	else if(s.draw == DrawType::gl)
 	{
 		#ifdef NY_WithGL	
-		 //return std::make_unique<X11GlWindowContext>(*xac, settings);
+		 return std::make_unique<GlxWindowContext>(*xac, settings);
 		#else
-		 throw std::logic_error("ny::X11Backend::createWC: cannot match draw type");
+		 throw std::logic_error("ny::X11Backend::createWC: ny built without GL suppport");
 		#endif
 	}
-	else if(s.draw == DrawType::software || s.draw == DrawType::dontCare)
-	{
-		#ifdef NY_WithCairo
-		 return std::make_unique<X11CairoWindowContext>(*xac, settings);
-		#else
-		 throw std::logic_error("ny::X11Backend::createWC: cannot match draw type");
-		#endif
-	}
-
+		
 	return std::make_unique<X11WindowContext>(*xac, settings);
 }
 

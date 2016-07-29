@@ -1,61 +1,71 @@
-#include <ny/wayland/waylandBackend.hpp>
+#include <ny/backend/wayland/backend.hpp>
 
-#include <ny/wayland/waylandWindowContext.hpp>
-#include <ny/wayland/waylandAppContext.hpp>
-#include <ny/wayland/waylandCairo.hpp>
+#include <ny/backend/wayland/windowContext.hpp>
+#include <ny/backend/wayland/appContext.hpp>
 
 #ifdef NY_WithGL
-#include <ny/wayland/waylandEgl.hpp>
+ #include <ny/backend/wayland/egl.hpp>
 #endif //WithGL
 
-#include <wayland-client.h>
+#ifdef NY_WithVulkan
+ #include <ny/backend/wayland/vulkan.hpp>
+#endif //WithVulkan
+
+#include <wayland-client-core.h>
 
 namespace ny
 {
 
-const waylandBackend waylandBackend::object;
+WaylandBackend WaylandBackend::instance_;
 
-waylandBackend::waylandBackend() : backend(Wayland)
+WaylandBackend::WaylandBackend()
 {
-
 }
 
-bool waylandBackend::isAvailable() const
+bool WaylandBackend::available() const
 {
-    wl_display* disp = wl_display_connect(nullptr);
-
-    if(!disp)
-    {
-        return 0;
-    }
-
-    wl_display_disconnect(disp);
-
-    return 1;
+    wl_display* dpy = wl_display_connect(nullptr);
+    if(!dpy) return false;
+    wl_display_disconnect(dpy);
+    return true;
 }
 
-std::unique_ptr<windowContext> waylandBackend::createWindowContextImpl(window& win, const windowContextSettings& s)
+WindowContextPtr WaylandBackend::createWindowContext(AppContext& ctx, const WindowSettings& sttngs)
 {
-    waylandWindowContextSettings settings;
-    const waylandWindowContextSettings* ws = dynamic_cast<const waylandWindowContextSettings*> (&s);
+    WaylandWindowSettings settings;
+    const auto* ws = dynamic_cast<const WaylandWindowSettings*>(&sttngs);
+	auto* wlac = dynamic_cast<WaylandAppContext*>(&ctx);
 
-    if(ws)
-    {
-        settings = *ws;
-    }
-    else
-    {
-        settings.hints &= s.hints;
-        settings.virtualPref = s.virtualPref;
-        settings.glPref = s.glPref;
-    }
+	if(!wlac)
+		throw std::invalid_argument("ny::WaylandBackend::createWC: invalid AppContext");
 
-    return make_unique<waylandWindowContext>(win, settings);
+    if(ws) settings = *ws;
+    else settings.WindowSettings::operator=(sttngs);
+
+	//type
+	if(s.draw == DrawType::vulkan)
+	{
+		#ifdef NY_WithVulkan
+		 return std::make_unique<WaylandVulkanWindowContext>(*xac, settings);
+		#else
+		 throw std::logic_error("ny::X11Backend::createWC: ny built without vulkan support");
+		#endif
+	}
+	else if(s.draw == DrawType::gl)
+	{
+		#ifdef NY_WithGL	
+		 return std::make_unique<WaylandEglWindowContext>(*xac, settings);
+		#else
+		 throw std::logic_error("ny::X11Backend::createWC: ny built without GL suppport");
+		#endif
+	}
+		
+	return std::make_unique<WaylandWindowContext>(*xac, settings);
 }
 
-std::unique_ptr<appContext> waylandBackend::createAppContext()
+AppContextPtr WaylandBackend::createAppContext()
 {
-    return make_unique<waylandAppContext>();
+    return std::make_unique<WaylandAppContext>();
 }
 
 
