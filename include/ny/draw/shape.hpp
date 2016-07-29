@@ -196,7 +196,7 @@ class Subpath
 protected:
     Vec2f start_;
     std::vector<PathSegment> segments_;
-    bool closed_ = 0;
+    bool closed_ = 0; //only important for stroking
 
 public:
 	///Constructs the subpath with a given Startpoint

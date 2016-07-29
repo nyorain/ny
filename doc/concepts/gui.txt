@@ -16,3 +16,102 @@ public:
 	virtual rect2ui extents() const;
 	virtual void draw(DrawContext& dc);
 };
+
+
+
+
+Gui gui;
+//add some things
+Button b(gui);
+Button c(gui);
+
+Scene scene;
+gui.draw(scene);
+
+SceneRenderer renderer(<here some window or other args to draw on>);
+//or
+VulkanSceneRenderer renderer(<here some vulkan specific args, such as device and swapChain/renderer>);
+
+renderer.draw(scene);
+
+class Scene : public MultiCache<unsigned int>
+{
+public:
+	struct Parameter
+	{
+		static constexpr unsigned int undefined = ~(0u);
+		enum class Type
+		{
+			none,
+
+			brush,
+			pen,
+
+			transform,
+			position,
+
+			shapeType,
+			shapeVisible,
+
+			segmentType,
+			segmentPosition,
+
+			subpathStart,
+			subpathClosed,
+
+			rectSize,
+			rectRadius,
+
+			textSize,
+			textFont,
+			textBounds,
+			textString,
+
+			circleRadius
+		};
+
+		Type type;
+		unsigned int shape = 0;
+		unsigned int subpath = 0;
+		unsigned int segment = 0;
+
+		bool changed;
+		T prev;
+	};
+
+	template<typename T>
+	struct ParamRef
+	{
+		T operator(const T& value);
+		T operator();
+	};
+
+	struct ParamSetter
+	{
+		template<Param::Type T>
+		ParamRef<ParamRefTypeT<T>> add(const Param& param);
+
+		template<typename T, T* F, typename F, F& obj>
+	};
+
+public:
+	ParamSetter add(const Shape& shape, const Range<Parameter>& params);
+
+protected:
+	std::vector<Parameter> parameters_;
+	std::vector<Shape> shapes_;
+};
+
+class SceneRenderer
+{
+
+};
+
+Rectangle rect;
+
+Scene scene;
+auto& params = scene.add(rect);
+auto& param = params.add({Scene::Param::Type::rectSize});
+
+param({100, 100});
+auto value = param();
