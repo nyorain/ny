@@ -27,17 +27,18 @@ namespace eventType
 	}
 }
 
+///Used for e.g. move/resize requests where the serial of the trigger must be given
+class WaylandEventData : public ny::EventData
+{
+public:
+    WaylandEventData(unsigned int xserial) : serial(xserial) {};
+    unsigned int serial;
+};
+
+
 //wayland
 namespace wayland
 {
-
-///Used for e.g. move/resize requests where the serial of the trigger must be given
-class EventData : public ny::EventData
-{
-public:
-    EventData(unsigned int xserial) : serial(xserial) {};
-    unsigned int serial;
-};
 
 //events
 ///This Event will be sent to a WaylandWindowContext if its frame callback was triggered.
@@ -54,6 +55,20 @@ public:
 ///Defines a wayland shm buffer that can be resized.
 class ShmBuffer
 {
+public:
+    ShmBuffer(Vec2ui size);
+    ~ShmBuffer();
+
+    Vec2ui getSize() const { return size_; }
+    unsigned int dataSize() const { return size_.x * 4 * size_.y; }
+    wl_buffer* wlBuffer() const { return buffer_; }
+	std::uint8_t* data(){ return data_; }
+
+    void use() { used_.store(1); }
+    bool used() const { return used_.load(); }
+
+    void size(const Vec2ui& size);
+
 protected:
     //static const unsigned int defaultSize_ = 1024 * 1024 * 5; //5MB
     unsigned int shmSize_ = 1024 * 1024 * 5; //5MB
@@ -61,7 +76,7 @@ protected:
     Vec2ui size_;
     wl_buffer* buffer_;
     wl_shm_pool* pool_;
-    void* data_;
+	std::uint8_t* data_;
 
     std::atomic<bool> used_ {0};
 
@@ -72,36 +87,18 @@ protected:
     friend void bufferRelease(void*, wl_buffer*);
     void wasReleased(){ used_.store(0); }
 
-public:
-    shmBuffer(Vec2ui size, bufferFormat form = bufferFormat::argb8888);
-    ~shmBuffer();
-
-    const bufferFormat format;
-
-    Vec2ui getSize() const { return size_; }
-    unsigned int getAbsSize() const { return size_.x * getBufferFormatSize(format) * size_.y; }
-    wl_buffer* getWlBuffer() const { return buffer_; }
-    void* getData(){ return data_; }
-
-    void wasAttached() { used_.store(1); }
-    bool used() const { return used_.load(); }
-
-    void setSize(const Vec2ui& size);
 };
 
-//serverCallback/////////////////
-class serverCallback
+//serverCallback
+class ServerCallback
 {
+public:
+	ServerCallback(wl_callback* callback);
+    Callback<void(wl_callback*, unsigned int)> callback;
+
 protected:
     friend void CallbackDone(void*, struct wl_Callback*, uint32_t);
     void done(wl_Callback*, unsigned int data);
-
-    Callback<void(wl_Callback*, unsigned int)> Callback_;
-
-public:
-    serverCallback(wl_Callback* Callback);
-
-   template<typename F> connection add(F&& func){ return Callback_.add(func); }
 };
 
 ///Holds information about a wayland output.
@@ -156,13 +153,10 @@ public:
 }//wayland
 
 //convert function
-Mouse::Button waylandToButton(unsigned int id);
-Keyboard::Key waylandToKey(unsigned int id);
+MouseButton linuxToButton(unsigned int id);
+Key linuxToKey(unsigned int id);
 
 std::string cursorToWayland(Cursor::Type type);
 Cursor::Type waylandToCursor(std::string id);
-
-int bufferFormatToWayland(bufferFormat format);
-bufferFormat waylandToBufferFormat(unsigned int wlFormat);
 
 }

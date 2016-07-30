@@ -13,20 +13,25 @@
 namespace ny
 {
 
-struct DummyEwmhConnection;
-
+///X11 AppContext implementation.
 class X11AppContext : public AppContext
 {
 public:
     X11AppContext();
-    virtual ~X11AppContext();
+    ~X11AppContext();
 
-	virtual bool dispatchEvents(EventDispatcher& dispatcher) override;
-	virtual bool dispatchLoop(EventDispatcher& dispatcher, LoopControl& control) override;
+	//AppContext
+	KeyboardContext* keyboardContext() override;
+	MouseContext* mouseContext() override;
+	WindowContextPtr createWindowContext(const WindowSettings& settings) override;
 
+	bool dispatchEvents(EventDispatcher& dispatcher) override;
+	bool dispatchLoop(EventDispatcher& dispatcher, LoopControl& control) override;
+
+	//custom
     Display* xDisplay() const { return xDisplay_; }
 	xcb_connection_t* xConnection() const { return xConnection_; }
-	DummyEwmhConnection* ewmhConnection() const { return ewmhConnection_.get(); }
+	x11::EwmhConnection* ewmhConnection() const { return ewmhConnection_.get(); }
     int xDefaultScreenNumber() const { return xDefaultScreenNumber_; }
     xcb_screen_t* xDefaultScreen() const { return xDefaultScreen_; }
 
@@ -37,12 +42,9 @@ public:
 	xcb_atom_t atom(const std::string& name);
 
 protected:
-	class LoopControlImpl;
-
-protected:
     Display* xDisplay_  = nullptr;
 	xcb_connection_t* xConnection_ = nullptr;
-	std::unique_ptr<DummyEwmhConnection> ewmhConnection_;
+	std::unique_ptr<x11::EwmhConnection> ewmhConnection_;
 
 	xcb_window_t xDummyWindow_ = {};
 
@@ -51,6 +53,9 @@ protected:
 
     std::map<xcb_window_t, X11WindowContext*> contexts_;
 	std::map<std::string, xcb_atom_t> atoms_;
+
+	std::unique_ptr<X11MouseContext> mouseContext_;
+	std::unique_ptr<X11KeyboardContext> keyboardContext_;
 
 protected:
     bool processEvent(xcb_generic_event_t& ev, EventDispatcher& dispatcher);

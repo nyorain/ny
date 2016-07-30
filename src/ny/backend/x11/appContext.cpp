@@ -19,8 +19,11 @@
 namespace ny
 {
 
+namespace
+{
+
 //LoopControlImpl
-class X11AppContext::LoopControlImpl : public ny::LoopControlImpl
+class LoopControlImpl : public ny::LoopControlImpl
 {
 public:
 	std::atomic<bool>& run;
@@ -47,6 +50,8 @@ public:
 	}
 };
 
+}
+
 //appContext
 X11AppContext::X11AppContext()
 {
@@ -55,21 +60,17 @@ X11AppContext::X11AppContext()
 	//xDisplay
     xDisplay_ = XOpenDisplay(nullptr);
     if(!xDisplay_)
-    {
         throw std::runtime_error("ny::x11AC: could not connect to X Server");
-    }
 
     xDefaultScreenNumber_ = DefaultScreen(xDisplay_);
 
 	//xcb_connection
  	xConnection_ = XGetXCBConnection(xDisplay_);
     if(!xConnection_)
-    {
 		throw std::runtime_error("ny::x11AC: unable to get xcb connection");
-    }
 
 	//ewmh connection
-	ewmhConnection_.reset(new DummyEwmhConnection());
+	ewmhConnection_ = std::make_unique<EwmhConnection>();
 	auto ewmhCookie = xcb_ewmh_init_atoms(xConnection_, ewmhConnection());
 
 	//query screen
@@ -333,7 +334,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
         if(!eventHandler(configure.window))
             return 1;
 
-        //if(any(windowContext(configure.window)->window().size() != nsize)) //sizeEvent
+        if(any(windowContext(configure.window)->window().size() != nsize)) //sizeEvent
 		{
 			EventHandlerEvent(SizeEvent, configure.window);
 			event->size = nsize;
@@ -348,7 +349,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
 			dispatcher.dispatch(std::move(wevent));
 		}
 
-        //if(any(windowContext(configure.window)->window().position() != npos))
+        if(any(windowContext(configure.window)->window().position() != npos))
 		{
 			EventHandlerEvent(PositionEvent, configure.window);
 			event->position = npos;

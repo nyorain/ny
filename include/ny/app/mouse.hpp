@@ -3,7 +3,6 @@
 #include <ny/include.hpp>
 #include <ny/backend/mouse.hpp>
 
-#include <nytl/vec.hpp>
 #include <nytl/callback.hpp>
 
 namespace ny

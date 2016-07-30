@@ -14,10 +14,12 @@ namespace ny
 {
     class X11WindowContext;
     class X11AppContext;
-    class X11CairoDrawContext;
-    class GlxContext;
+	class X11MouseContext;
+	class X11KeyboardContext;
+    // class GlxContext;
 
 	namespace x11
 	{
+		struct EwmhConnection;
 	}
 }

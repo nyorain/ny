@@ -29,6 +29,8 @@ public:
     virtual ~WaylandWindowContext();
 
     void refresh() override;
+	DrawState drawState() const override;
+	DrawGuard draw() override;
 
     void show() override;
     void hide() override;

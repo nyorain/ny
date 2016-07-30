@@ -2,7 +2,6 @@
 
 #include <ny/backend/wayland/include.hpp>
 #include <ny/backend/appContext.hpp>
-#include <nytl/vec.hpp>
 
 #include <vector>
 #include <string>
@@ -34,12 +33,12 @@ public:
     WaylandAppContext();
     virtual ~WaylandAppContext();
 
-	//implementation
+	//AppContext
 	bool dispatchEvents(EventDispatcher&) override;
 	bool dispatchLoop(EventDispatcher&, LoopControl&) override;
 	bool threadedDispatchLoop(ThreadedEventDispatcher&, LoopControl&) override;
 
-	MouseContext* mouseContext() override;
+	MouseContext* mouseContext() override; 
 	KeyboardContext* keyboardContext() override;
 	WindowContextPtr createWindowContext(const WindowSettings& windowSettings) override;
 
@@ -48,7 +47,12 @@ public:
 	///Note that serial can only be 0 (or invalid) if the cursor was already set by this
 	///application of surface entering.
     void cursor(std::string cursorName, unsigned int serial = 0);
-    // void cursor(const Image* img, cosnt Vec2i& hotspot, unsigned int serial = 0);
+
+	///Changes the cursor to the content of the given image with the given hotspot.
+    void cursor(const Image* img, const Vec2i& hotspot, unsigned int serial = 0);
+
+	///Dispatched the given event.
+	void dispatch(Event&& event);
 
     void registryAdd(unsigned int id, const char* cinterface, unsigned int version);
     void registryRemove(unsigned int id);
@@ -58,29 +62,15 @@ public:
     void addShmFormat(unsigned int format);
     bool shmFormatSupported(unsigned int wlShmFormat);
 
-	void mouseMove(unsigned int time, const Vec2ui& pos);
-	void mouseEnterSurface(unsigned int serial, wl_surface& surface, const Vec2ui& pos);
-	void mouseLeaveSurface(unsigned int serial, wl_surface& surface);
-	void mouseButton(unsigned int serial, unsigned int time, unsigned int button, bool pressed);
-	void mouseAxis(unsigned int time, unsigned int axis, int value);
-
-    void keyboardKeymap(unsigned int format, int fd, unsigned int size);
-    void keyboardEnterSurface(unsigned int serial, wl_surface& surface, wl_array& keys);
-    void keyboardLeaveSurface(unsigned int serial, wl_surface& surface);
-    void keyboardKey(unsigned int serial, unsigned int time, unsigned int key, bool pressed);
-    void keyboardModifiers(unsigned int serial, unsigned int mdepressed, unsigned int mlatched, 
-		unsigned int mlocked, unsigned int group);
-
     wl_display& wlDisplay() const { return *wlDisplay_; };
     wl_compositor& wlCompositor() const { return *wlCompositor_; };
     wl_subcompositor& wlSubcompositor() const{ return *wlSubcompositor_; };
     wl_shm& wlShm() const { return *wlShm_; };
     wl_shell& wlShell() const { return *wlShell_; };
     wl_seat& wlSeat() const { return *wlSeat_; };
-    wl_pointer& wlPointer() const { return *wlPointer_; };
-    wl_keyboard& wlKeyboard() const { return *wlKeyboard_; };
     xdg_shell& xdgShell() const { return *xdgShell_; }
 
+	WindowContext* windowContext(wl_surface& surface) const;
     const std::vector<wayland::Output>& outputs() const { return outputs_; }
 
 	// void startDataOffer(dataSource& source, const image& img, const window& w, const event* ev);
@@ -103,8 +93,6 @@ protected:
 	wayland::NamedGlobal<wl_seat> wlSeat_;
 	wayland::NamedGlobal<xdg_shell> xdgShell_;
 
-    wl_pointer* wlPointer_ = nullptr;
-    wl_keyboard* wlKeyboard_ = nullptr;
     wl_data_device* wlDataDevice_ = nullptr;
 
 	//cursor
@@ -125,8 +113,8 @@ protected:
 	std::vector<unsigned int> shmFormats_;
 	std::vector<wayland::Output> outputs_;
 
-	struct Impl;
-	std::unique_ptr<Impl> pImpl_;
+	std::unique_ptr<WaylandKeyboardContext> keyboardContext_;
+	std::unique_ptr<WaylandMouseContext> mouseContext_;
 };
 
 }

@@ -1,6 +1,7 @@
 #include <ny/backend/wayland/interfaces.hpp>
 #include <ny/backend/wayland/appContext.hpp>
 #include <ny/backend/wayland/windowContext.hpp>
+#include <ny/backend/wayland/input.hpp>
 #include <ny/backend/wayland/util.hpp>
 
 #include <ny/wayland/xdg-shell-client-protocol.h>
@@ -44,9 +45,9 @@ const wl_shell_surface_listener shellSurfaceListener =
 };
 
 //frameCallback
-void surfaceHandleFrame(void* data, wl_Callback *Callback, uint32_t time)
+void surfaceHandleFrame(void* data, wl_Callback* callback, uint32_t time)
 {
-    waylandWC* wc = (waylandWindowContext*)data;
+    auto* wc = static_cast<WaylandWindowContext*>(data);
     nyMainApp()->sendEvent(make_unique<waylandFrameEvent>(&wc->getWindow()));
 }
 const wl_Callback_listener frameListener =
@@ -58,14 +59,14 @@ const wl_Callback_listener frameListener =
 void globalRegistryHandleAdd(void* data, wl_registry* registry, uint32_t id, 
 	const char* interface, uint32_t version)
 {
-    waylandAppContext* a = (waylandAppContext*) data;
-    a->registryHandler(registry, id, interface, version);
+    auto* ac = static_cast<WaylandAppContext*>(data);
+    ac->registryAdd(id, interface, version);
 }
 
 void globalRegistryHandleRemove(void* data,  wl_registry* registry, uint32_t id)
 {
-    waylandAppContext* a = (waylandAppContext*) data;
-    a->registryRemover(registry, id);
+    auto* ac = static_cast<WaylandAppContext*>(data);
+    ac->registryRemove(id);
 }
 
 const wl_registry_listener globalRegistryListener =
@@ -77,10 +78,10 @@ const wl_registry_listener globalRegistryListener =
 //shm
 void shmHandleFormat(void* data, wl_shm* shm, uint32_t format)
 {
-    waylandAppContext* a = (waylandAppContext*) data;
-
-    a->shmFormat(shm, format);
+    auto* ac = static_cast<WaylandAppContext*>(data);
+    ac->shmFormat(shm, format);
 }
+
 const wl_shm_listener shmListener =
 {
     shmHandleFormat
@@ -89,8 +90,8 @@ const wl_shm_listener shmListener =
 //seat
 void seatHandleCapabilities(void* data, wl_seat* seat, unsigned int caps)
 {
-    waylandAppContext* a = (waylandAppContext*) data;
-    a->seatCapabilities(seat, caps);
+    auto* ac = static_cast<WaylandAppContext*>(data);
+    ac->seatCapabilities(caps);
 }
 const wl_seat_listener seatListener =
 {
@@ -101,35 +102,37 @@ const wl_seat_listener seatListener =
 void pointerHandleEnter(void* data, wl_pointer *pointer, uint32_t serial, wl_surface* surface, 
 	wl_fixed_t sx, wl_fixed_t sy)
 {
-    waylandAppContext* app = (waylandAppContext*) data;
-    app->eventMouseEnterSurface(pointer, serial, surface, sx, sy);
+    auto* mc = static_cast<WaylandMouseContext*>(data);
+	Vec2ui pos(wl_fixed_to_int(sx), wl_fixed_to_int(sy));
+    mc->handleEnter(serial, *surface, pos);
 }
 
 void pointerHandleLeave(void* data, wl_pointer* pointer, uint32_t serial, wl_surface* surface)
 {
-    waylandAppContext* app = (waylandAppContext*) data;
-    app->eventMouseLeaveSurface(pointer, serial, surface);
+    auto* mc = static_cast<WaylandMouseContext*>(data);
+	mc->handleLeave(serial, *surface);
 }
 
 void pointerHandleMotion(void* data, wl_pointer* pointer, uint32_t time, wl_fixed_t sx, 
 	wl_fixed_t sy)
 {
-    waylandAppContext* app = (waylandAppContext*) data;
-    app->eventMouseMove(pointer, time, sx, sy);
+    auto* mc = static_cast<WaylandMouseContext*>(data);
+	Vec2ui pos(wl_fixed_to_int(sx), wl_fixed_to_int(sy));
+	mc->handleMotion(time, pos);
 }
 
-void pointerHandleButton(void* data,  wl_pointer* pointer, uint32_t serial, uint32_t time, 
+void pointerHandleButton(void* data, wl_pointer* pointer, uint32_t serial, uint32_t time, 
 	uint32_t button, uint32_t state)
 {
-    waylandAppContext* app = (waylandAppContext*) data;
-    app->eventMouseButton(pointer,serial, time, button, state);
+    auto* mc = static_cast<WaylandMouseContext*>(data);
+	mv->handleButton(serial, time, button, state);
 }
 
 void pointerHandleAxis(void* data, wl_pointer* pointer, uint32_t time, uint32_t axis, 
 	wl_fixed_t value)
 {
-    waylandAppContext* app = (waylandAppContext*) data;
-    app->eventMouseAxis(pointer, time, axis, value);
+    auto* mc = static_cast<WaylandMouseContext*>(data);
+    app->handleAxis(time, axis, value);
 }
 
 const wl_pointer_listener pointerListener =
@@ -145,35 +148,35 @@ const wl_pointer_listener pointerListener =
 //keyboard events
 void keyboardHandleKeymap(void* data, wl_keyboard* kb, uint32_t format, int fd, uint32_t size)
 {
-    waylandAppContext* app = (waylandAppContext*) data;
-    app->eventKeyboardKeymap(kb, format, fd, size);
+	auto* kc = static_cast<WaylandKeyboardContext*>(data);
+    kc->handleKeymap(format, fd, size);
 }
 
 void keyboardHandleEnter(void* data, wl_keyboard* keyboard, uint32_t serial, 
 	wl_surface* surface, wl_array* keys)
 {
-    waylandAppContext* app = (waylandAppContext*) data;
-    app->eventKeyboardEnterSurface(keyboard, serial, surface, keys);
+	auto* kc = static_cast<WaylandKeyboardContext*>(data);
+    kc->handleEnter(serial, *surface, keys);
 }
 
 void keyboardHandleLeave(void* data, wl_keyboard* keyboard, uint32_t serial, wl_surface* surface)
 {
-    waylandAppContext* app = (waylandAppContext*) data;
-    app->eventKeyboardLeaveSurface(keyboard, serial, surface);
+	auto* kc = static_cast<WaylandKeyboardContext*>(data);
+    kc->handleLeave(serial, *surface);
 }
 
 void keyboardHandleKey(void* data, wl_keyboard* keyboard, uint32_t serial, uint32_t time, 
 	uint32_t key, uint32_t state)
 {
-    waylandAppContext* app = (waylandAppContext*) data;
-    app->eventKeyboardKey(keyboard, serial, time, key, state);
+	auto* kc = static_cast<WaylandKeyboardContext*>(data);
+    kc->handleKey(serial, time, key, state);
 }
 
-void keyboardHandleModifiers(void* data, wl_keyboard* keyboard,uint32_t serial, 
-	uint32_t modsDepressed,uint32_t modsLatched, uint32_t modsLocked, uint32_t group)
+void keyboardHandleModifiers(void* data, wl_keyboard* keyboard, uint32_t serial, 
+	uint32_t modsDepressed, uint32_t modsLatched, uint32_t modsLocked, uint32_t group)
 {
-    waylandAppContext* app = (waylandAppContext*) data;
-    app->eventKeyboardModifiers(keyboard, serial, modsDepressed, modsLatched, modsLocked, group);
+	auto* kc = static_cast<WaylandKeyboardContext*>(data);
+    kc->handleModifiers(serial, modsDepressed, modsLatched, modsLocked, group);
 }
 
 const wl_keyboard_listener keyboardListener =

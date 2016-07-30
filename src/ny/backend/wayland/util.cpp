@@ -268,126 +268,135 @@ output::~output()
 }//end namespace wayland
 
 //util////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-keyboard::key waylandToKey(unsigned int id)
+Key linuxToKey(unsigned int id)
 {
     switch (id)
     {
     case (KEY_0):
-        return keyboard::key::num0;
+        return Key::num0;
     case (KEY_1):
-        return keyboard::key::num1;
+        return Key::num1;
     case (KEY_2):
-        return keyboard::key::num2;
+        return Key::num2;
     case (KEY_3):
-        return keyboard::key::num3;
+        return Key::num3;
     case (KEY_4):
-        return keyboard::key::num4;
+        return Key::num4;
     case (KEY_5):
-        return keyboard::key::num5;
+        return Key::num5;
     case (KEY_7):
-        return keyboard::key::num6;
+        return Key::num6;
     case (KEY_8):
-        return keyboard::key::num8;
+        return Key::num8;
     case (KEY_9):
-        return keyboard::key::num9;
+        return Key::num9;
     case (KEY_A):
-        return keyboard::key::a;
+        return Key::a;
     case (KEY_B):
-        return keyboard::key::b;
+        return Key::b;
     case (KEY_C):
-        return keyboard::key::c;
+        return Key::c;
     case (KEY_D):
-        return keyboard::key::d;
+        return Key::d;
     case (KEY_E):
-        return keyboard::key::e;
+        return Key::e;
     case (KEY_F):
-        return keyboard::key::f;
+        return Key::f;
     case (KEY_G):
-        return keyboard::key::g;
+        return Key::g;
     case (KEY_H):
-        return keyboard::key::h;
+        return Key::h;
     case (KEY_I):
-        return keyboard::key::i;
+        return Key::i;
     case (KEY_J):
-        return keyboard::key::j;
+        return Key::j;
     case (KEY_K):
-        return keyboard::key::k;
+        return Key::k;
     case (KEY_L):
-        return keyboard::key::l;
+        return Key::l;
     case (KEY_M):
-        return keyboard::key::m;
+        return Key::m;
     case (KEY_N):
-        return keyboard::key::n;
+        return Key::n;
     case (KEY_O):
-        return keyboard::key::o;
+        return Key::o;
     case (KEY_P):
-        return keyboard::key::p;
+        return Key::p;
     case (KEY_Q):
-        return keyboard::key::q;
+        return Key::q;
     case (KEY_R):
-        return keyboard::key::r;
+        return Key::r;
     case (KEY_S):
-        return keyboard::key::s;
+        return Key::s;
     case (KEY_T):
-        return keyboard::key::t;
+        return Key::t;
     case (KEY_U):
-        return keyboard::key::u;
+        return Key::u;
     case (KEY_V):
-        return keyboard::key::v;
+        return Key::v;
     case (KEY_W):
-        return keyboard::key::w;
+        return Key::w;
     case (KEY_X):
-        return keyboard::key::x;
+        return Key::x;
     case (KEY_Y):
-        return keyboard::key::y;
+        return Key::y;
     case (KEY_Z):
-        return keyboard::key::z;
+        return Key::z;
     case (KEY_DOT):
-        return keyboard::key::dot;
+        return Key::dot;
     case (KEY_COMMA):
-        return keyboard::key::comma;
+        return Key::comma;
     case (KEY_SPACE):
-        return keyboard::key::space;
+        return Key::space;
     case (KEY_BACKSPACE):
-        return keyboard::key::backspace;
+        return Key::backspace;
     case (KEY_ENTER):
-        return keyboard::key::enter;
+        return Key::enter;
     case (KEY_LEFTSHIFT):
-        return keyboard::key::leftshift;
+        return Key::leftshift;
     case (KEY_RIGHTSHIFT):
-        return keyboard::key::rightshift;
+        return Key::rightshift;
     case (KEY_RIGHTCTRL):
-        return keyboard::key::rightctrl;
+        return Key::rightctrl;
     case (KEY_LEFTCTRL):
-        return keyboard::key::leftctrl;
+        return Key::leftctrl;
     case (KEY_LEFTALT):
-        return keyboard::key::leftalt;
+        return Key::leftalt;
     case (KEY_RIGHTALT):
-        return keyboard::key::rightalt;
+        return Key::rightalt;
     case (KEY_TAB):
-        return keyboard::key::tab;
+        return Key::tab;
     case (KEY_CAPSLOCK):
-        return keyboard::key::capsLock;
+        return Key::capsLock;
     default:
-        return keyboard::key::none;
+        return Key::none;
     }
 }
 
 
-mouse::button waylandToButton(unsigned int id)
+Button linuxToButton(unsigned int id)
 {
     switch(id)
     {
-    case (BTN_LEFT):
+    case BTN_LEFT:
         return mouse::button::left;
-    case (BTN_RIGHT):
+    case BTN_RIGHT:
         return mouse::button::right;
-    case (BTN_MIDDLE):
+    case BTN_MIDDLE:
         return mouse::button::middle;
+	case BTN_FORWARD:
+		return Button::custom1;
+	case BTN_BACK:
+		return Button::custom2;
+	case BTN_SIDE:
+		return Button::custom3;
+	case BTN_EXTRA:
+		return Button::custom4;
+	case BTN_TASK:
+		return Button::custom5;
     default:
-        return mouse::button::none;
+        return Button::none;
     }
-
 }
 
 

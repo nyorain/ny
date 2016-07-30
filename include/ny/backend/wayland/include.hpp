@@ -1,7 +1,6 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <cstdint>
 
 #ifndef NY_WithWayland
 	#error ny was built without wayland. Do not include this header file!
@@ -43,8 +42,10 @@ typedef std::int32_t wl_fixed_t;
 namespace ny
 {
 	class WaylandBackend;
-	class WaylandWindowContext;
 	class WaylandAppContext;
+	class WaylandWindowContext;
+	class WaylandKeyboardContext;
+	class WaylandMouseContext;
 	class WaylandWindowSettings;
 
 	namespace wayland

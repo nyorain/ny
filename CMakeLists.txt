@@ -71,6 +71,7 @@ function(checkConfigOption var pkg found apply)
 	endif()
 endfunction()
 
+# TODO: use CmakeDependentOption.
 # basic options defaulted to 2 (auto)
 configOption(WithGL 2)
 configOption(WithEGL 2)

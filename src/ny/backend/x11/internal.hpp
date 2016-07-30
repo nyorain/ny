@@ -7,6 +7,6 @@ namespace ny
 {
 
 //dummy used for unnamed struct typedef declaration
-struct DummyEwmhConnection : public xcb_ewmh_connection_t {};
+struct EwmhConnection : public xcb_ewmh_connection_t {};
 
 }

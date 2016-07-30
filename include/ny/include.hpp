@@ -3,11 +3,11 @@
 #include <ny/fwd.hpp>
 #include <ny/config.hpp>
 
-namespace nytl {}
 namespace ny 
 { 
 
 using namespace nytl; 
+using namespace evg;
 	
 //backend typedefs
 #ifdef NY_WithX11

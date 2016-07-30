@@ -15,8 +15,7 @@ public:
 public:
     bool available() const override;
     AppContextPtr createAppContext() override;
-	WindowContextPtr createWindowContext(AppContext& ctx, const WindowSettings& = {}) override;
-	std::string name() const override { return "x11"; }
+	const char* name() const override { return "x11"; }
 
 protected:
     static X11Backend instance_;

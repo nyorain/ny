@@ -2,6 +2,7 @@
 
 #include <ny/include.hpp>
 #include <ny/base/event.hpp>
+
 #include <nytl/callback.hpp>
 
 namespace ny
@@ -38,7 +39,7 @@ public:
 	///This functions may be async to any received events and callbacks.
 	///If the key cannot be parsed to any text (like e.g. f5, play, left or rightalt), an
 	///empty string should be returned.
-	virtual std::string text(Key key) const = 0;
+	virtual std::string unicode(Key key) const = 0;
 
 	///Returns the WindowContext that has the current keyboard focus or nullptr if there
 	///is none.
@@ -57,17 +58,26 @@ public:
 namespace eventType
 {
 	constexpr auto key = 25u;
+	constexpr auto focus = 26u;
 }
 
-///Event that will be send everytime a key is pressed or released.
+///Event that will be sent everytime a key is pressed or released.
 class KeyEvent : public EventBase<eventType::key, KeyEvent>
 {
 public:
 	using EvBase::EvBase;
 
-    bool pressed;
+    bool pressed; //whether it was pressed or released
     Key key;
 	std::string unicode; ///utf-8 encoded.
+};
+
+///Event that will be sent everytime an EventHandler gains or loses focus.
+class FocusEvent : public EventBase<eventType::focus, FocusEvent>
+{
+public:
+	using EvBase::EvBase;
+	bool focus; //whether it hast gained or lost focus
 };
 
 

@@ -3,6 +3,7 @@
 #include <ny/backend/wayland/util.hpp>
 #include <ny/backend/wayland/interfaces.hpp>
 #include <ny/backend/wayland/windowContext.hpp>
+#include <ny/backend/wayland/input.hpp>
 #include <ny/backend/wayland/xdg-shell-client-protocol.h>
 
 #include <nytl/misc.hpp>
@@ -11,7 +12,7 @@
 #include <wayland-cursor.h>
 #include <wayland-client-protocol.h>
 
-#include <cassert>
+#include <algorithm>
 
 namespace ny
 {
@@ -125,31 +126,32 @@ void WaylandAppContext::registryRemove(unsigned int id)
 		wl_shell_destroy(wlShell_);
 		wlShell_ = {};
 	}
+	else
+	{
+		auto it = std::find_if(outputs_.begin(), outputs_.end(), 
+			[](const Output& output){ return output.nameID() == id; });
+	}
 }
 
 void WaylandAppContext::seatCapabilities(unsigned int caps)
 {
 	//TODO: some kind of notification or warning if no pointer/keyboard
-    if ((caps & WL_SEAT_CAPABILITY_POINTER))
+    if ((caps & WL_SEAT_CAPABILITY_POINTER) && !mouseContext_)
     {
-        wlPointer_ = wl_seat_get_pointer(wlSeat_);
-        wl_pointer_add_listener(wlPointer_, &pointerListener, this);
+		mouseContext_ = std::make_unique<WaylandMouseContext>(*this, wlSeat_);
     }
-    else if (!(caps & WL_SEAT_CAPABILITY_POINTER) && wlPointer_)
+    else if (!(caps & WL_SEAT_CAPABILITY_POINTER) && mouseContext_)
     {
-        wl_pointer_destroy(wlPointer_);
-        wlPointer_ = nullptr;
+		mouseContext_.reset();
     }
 
-    if ((caps & WL_SEAT_CAPABILITY_KEYBOARD))
+    if((caps & WL_SEAT_CAPABILITY_KEYBOARD) && !keyboardContext_)
     {
-        wlKeyboard_ = wl_seat_get_keyboard(wlSeat_);
-        wl_keyboard_add_listener(wlKeyboard_, &keyboardListener, this);
+		keyboardContext_ = std::make_unique<WaylandKeyboardContext>(*this, wlSeat_);
     }
-    else if (!(caps & WL_SEAT_CAPABILITY_KEYBOARD) && wlKeyboard_)
+    else if(!(caps & WL_SEAT_CAPABILITY_KEYBOARD) && keyboardContext_)
     {
-        wl_keyboard_destroy(wlKeyboard_);
-        wlKeyboard_ = nullptr;
+		keyboardContext_.reset();
     }
 }
 
@@ -164,128 +166,43 @@ bool WaylandAppContext::shmFormatSupported(unsigned int wlShmFormat)
     return false;
 }
 
-void WaylandAppContext::mouseMove(unsigned int time, const Vec2ui& pos)
+KeyboardContext* WaylandAppContext::keyboardContext()
 {
-	unused(time);
-
-    auto delta = pos - mouse::getPosition();
-    nyMainApp()->mouseMove(make_unique<mouseMoveEvent>(nullptr, pos, Vec2i(), delta));
+	return keyboardContext_.get();
 }
 
-void WaylandAppContext::mouseEnterSurface(unsigned int serial, wl_surface& surf, const Vec2ui& pos)
+MouseContext* WaylandAppContext::mouseContext()
 {
-    void* data = wl_surface_get_user_data(surface);
-    if(!data) return;
-
-    auto handler = &(static_cast<waylandWC*>(data))->getWindow();
-    auto pos = Vec2i(wl_fixed_to_int(sx), wl_fixed_to_int(sy));
-
-    nyMainApp()->mouseCross(make_unique<mouseCrossEvent>(handler, 1, pos, new waylandEventData(serial)));
+	return mouseContext_.get();
 }
 
-void WaylandAppContext::mouseLeaveSurface(unsigned int serial, wl_surface& surface)
-{
-    void* data = wl_surface_get_user_data(surface);
-    if(!data) return;
-
-    auto handler = &(static_cast<waylandWC*>(data))->getWindow();
-
-    nyMainApp()->mouseCross(make_unique<mouseCrossEvent>(handler, 0, Vec2i(), new waylandEventData(serial)));
-}
-
-void WaylandAppContext::mouseButton(unsigned int serial, unsigned int time, unsigned int button, 
-	bool pressed)
-{
-    auto buttn = waylandToButton(button);
-    nyMainApp()->mouseButton(make_unique<mouseButtonEvent>(nullptr, buttn, static_cast<bool>(state), mouse::getPosition(), new waylandEventData(serial)));
-}
-
-void WaylandAppContext::mouseAxis(unsigned int time, unsigned int axis, int value)
-{
-    nyMainApp()->sendEvent(make_unique<mouseWheelEvent>(nullptr, value));
-}
-
-//keyboard
-void WaylandAppContext::keyboardKeymap(unsigned int format, int fd, unsigned int size)
-{
-    //internal
-}
-
-void WaylandAppContext::eyboardEnterSurface(unsigned int serial, wl_surface& surf, wl_array& keys)
-{
-    void* data = wl_surface_get_user_data(surface);
-    if(!data) return;
-
-    auto handler = &(static_cast<waylandWC*>(data))->getWindow();
-
-    nyMainApp()->windowFocus(make_unique<focusEvent>(handler, 1, new waylandEventData(serial)));
-}
-
-void WaylandAppContext::keyboardLeaveSurface(unsigned int serial, wl_surface& surface)
-{
-    void* data = wl_surface_get_user_data(surface);
-    if(!data) return;
-
-    auto handler = &(static_cast<waylandWC*>(data))->getWindow();
-
-    nyMainApp()->windowFocus(make_unique<focusEvent>(handler, 0, new waylandEventData(serial)));
-}
-
-void WaylandAppContext::keyboardKey(unsigned int serial, unsigned int time, unsigned int key, 
-	bool state)
-{
-    auto ky = waylandToKey(key);
-    nyMainApp()->keyboardKey(make_unique<keyEvent>(nullptr, ky, static_cast<bool>(state), new waylandEventData(serial)));
-}
-
-void WaylandAppContext::keyboardModifiers(unsigned int serial, unsigned int mdepressed, 
-	unsigned int mlatched, unsigned int mlocked, unsigned int group)
-{
-}
-
-void waylandAppContext::eventWindowResized(wl_shell_surface* shellSurface, unsigned int edges, unsigned int width, unsigned int height)
-{
-    if(!wl_shell_surface_get_user_data(shellSurface))
-    {
-        //warning
-        return;
-    }
-
-    auto handler = &static_cast<waylandWindowContext*>(wl_shell_surface_get_user_data(shellSurface))->getWindow();
-    auto size = Vec2ui(width, height);
-
-    nyMainApp()->sendEvent(make_unique<sizeEvent>(handler, size, 1));
-}
-
-void waylandAppContext::cursor(std::string cursorName, unsigned int serial)
+void WaylandAppContext::cursor(std::string cursorName, unsigned int serial)
 {
     //TODO: handle errors/unexpected conditions (at least a warning).
-	if(!wlCursorTheme_) return;
+	if(!wlCursorTheme_ || !wlCursorSurface_ || !mouseContext_) return;
 
-    auto* wlcursor = wl_cursor_theme_get_cursor(wlCursorTheme_, curse.c_str());
-    if(!curs || !wlCursorSurface_ || !wlCursorBuffer_) return;
+    auto* wlcursor = wl_cursor_theme_get_cursor(wlCursorTheme_, cursorName.c_str());
+    if(!wlcursor) return;
 
 	//Delete the old buffer image if there is any
-    if(customCursorImage_) cursorImageBuffer_.~std::unique_ptr<ShmBuffer>();
-
-    customCursorImage_ = false;
-	wlCursorBuffer_ = nullptr; //if we exit early
+    if(cursorImageBuffer_) cursorImageBuffer_ = {};
 
 	//TODO: handle multiple images (animated)
-    auto image = curs->images[0];
+    auto image = wlcursor->images[0];
     if(!image) return;
 
 	//NOTE: the returned buffer is not owned, i.e. it should not be destroyed.
-    wlCursorBuffer_ = wl_cursor_image_get_buffer(image);
-    if(!wlCursorBuffer_) return;
+    auto wlCursorBuffer = wl_cursor_image_get_buffer(image);
+    if(!wlCursorBuffer) return;
 
 	//only activly change the cursor if there was a serial given.
 	//otherwise just update the cursor surface (it must have been set before).
+	auto wlpointer = mouseContext_->wlPointer();
 	auto hx = image->hotspot_x;
 	auto hy = image->hotspot_y;
-    if(serial) wl_pointer_set_cursor(wlPointer_, serial, wlCursorSurface_, hx, hy);
+    if(serial) wl_pointer_set_cursor(wlpointer, serial, wlCursorSurface_, hx, hy);
 
-    wl_surface_attach(wlCursorSurface_, wlCursorBuffer_, 0, 0);
+    wl_surface_attach(wlCursorSurface_, wlCursorBuffer, 0, 0);
     wl_surface_damage(wlCursorSurface_, 0, 0, image->width, image->height);
     wl_surface_commit(wlCursorSurface_);
 }
