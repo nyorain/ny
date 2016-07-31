@@ -2,139 +2,120 @@ cmake_minimum_required (VERSION 3.1.0)
 
 project(ny)
 
-#dump only this version on a new release
+#increase this version on a new release
 set(vmajor 0)
 set(vminor 1)
 set(vpatch 0)
 
+#default options
 option(BuildExamples "Build the ny examples" off)
 option(BuildTests "Build the ny tests" off)
 option(Debug "Include debug symbols" on)
 
-set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-std=c++17")
+#to disable ninja byproduct warning
+cmake_policy(SET CMP0058 NEW)
 
 #include dirs
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
-include_directories("${CMAKE_CURRENT_BINARY_DIR}/include") #config.hpp
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src")
+include_directories("${CMAKE_CURRENT_BINARY_DIR}/include") #config.hpp
 
 #external dirs
-link_directories("${CMAKE_SOURCE_DIR}/external/tdm-gcc64")
-include_directories("${CMAKE_SOURCE_DIR}/external/headers")
+include_directories("${CMAKE_SOURCE_DIR}/external/install/include")
+link_directories("${CMAKE_SOURCE_DIR}/external/install/lib")
 
 #cmake options
-# set(CMAKE_CXX_STANDARD 14)
-# set(CMAKE_CXX_STANDARD_REQUIRED on)
+# set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-std=c++17") # C++ 17
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED on)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
-SET(CMAKE_BUILD_WITH_INSTALL_RPATH true)
+set(CMAKE_BUILD_WITH_INSTALL_RPATH true)
 
+#build type
 if(Debug)
 	set(CMAKE_BUILD_TYPE Debug)
 else()
 	set(CMAKE_BUILD_TYPE Release)
 endif()
 
-#to disable ninja byproduct warning
-cmake_policy(SET CMP0058 NEW)
 
-# TODO: export to extra module
-# sets a config option to auto if not set by command line
-# these config vars are not options but integers, since there default value
-# (if they are not yet determined or specified by command line) is 2 which
-# means auto. Then they are set to ON if possible and to OFF if not possible.
-# E.g. by default WithCairo=2, then cmake will check if cairo can be found.
-# If it can, WithCairo will be set to 1 and ny will be built with cairo.
-# Otherwise it will be set to 0 and ny will be built without it.
-function(configOption name default)
-	if(NOT DEFINED ${name})
-		set(${name} ${default} CACHE STRING "Build config option")
-		message("[config] Build option " ${name} " will be set to automatic")
-	endif()
-endfunction()
-
-# check for auto options
-function(checkConfigOption var pkg found apply)
-	if(${var} EQUAL 2)
-		find_package(${pkg} QUIET)
-
-		if(found)
-			message("[config] Found " ${pkg})
-			if(apply)
-				set(${var} 1 CACHE STRING "Build config option" FORCE)
-			endif()
-		else()
-			message("[config] Failed to find " ${pkg})
-			set(${var} 0 CACHE STRING "Build config option" FORCE)
-		endif()
-	endif()
-endfunction()
-
-# TODO: use CmakeDependentOption.
-# basic options defaulted to 2 (auto)
-configOption(WithGL 2)
-configOption(WithEGL 2)
-configOption(WithVulkan 2)
+#config options
+#check for available packages
+find_package(OpenGL )
+find_package(EGL )
+find_package(Vulkan )
 
 if(UNIX)
-	configOption(WithX11 2)
-	configOption(WithWayland 2)
-	configOption(WithWinapi 0)
-elseif(WIN32)
-	configOption(WithWinapi 1)
-	configOption(WithX11 0)
-	configOption(WithWayland 0)
+	find_package(X11 )
+	find_package(XCB COMPONENTS ewmh xkb image icccm)
+	find_package(Wayland )
+	find_package(XKBCommon )
 endif()
 
-# parsed the config option from
-checkConfigOption(WithGL OpenGL OPENGL_FOUND 1)
-checkConfigOption(WithEGL EGL EGL_FOUND 1)
-checkConfigOption(WithVulkan Vulkan VULKAN_FOUND 1)
+#dependent options
+include(CMakeDependentOption)
 
-if(UNIX)
-	checkConfigOption(WithX11 Xlib XLIB_FOUND 0)
-	checkConfigOption(WithX11 XCB XCB_FOUND 1) #something about modules?
-	checkConfigOption(WithWayland Wayland WAYLAND_FOUND 1)
-endif()
+cmake_dependent_option(WithGL "Build ny with gl support" on 
+	"OPENGL_FOUND" off)
+cmake_dependent_option(WithEGL "Built ny with egl support" on
+	"OPENGL_FOUND;EGL_FOUND" off)
+cmake_dependent_option(WithVulkan "Build ny with vulkan support" on 
+	"VULKAN_FOUND" off)
+cmake_dependent_option(WithX11 "Build ny with a x11 backend" on 
+	"XKBCommon_FOUND;X11_FOUND;XCB_FOUND" off)
+cmake_dependent_option(WithWayland "Build ny with a wayland backend" on 
+	"XKBCommon_FOUND;Wayland_FOUND" off)
+cmake_dependent_option(WithWinapi "Build ny with a winapi backend" on 
+	"WIN32" off)
 
 #check for invalid configurations
-#egl without gl
-if(WithEGL AND NOT WithGL)
-	message("[config] EGL will be disabled because it requires GL")
-	set(WithEGL 0)
-endif()
-
 #no backend
 if(NOT WithWayland AND NOT WithX11 AND NOT WithWinapi)
 	message(FATAL_ERROR "[config] Cannot build ny without backend")
 endif()
 
-#configure nytl
-#on unix system, one may have nytl already installed (or it will be pulled by a pkg manager)
-#then it does not make sense to include its own copy.
-#otherwise the nytl headers will be copied to the other external dependencies headers
-if(NOT nytl_location)
+#external projects
+#configure evg
+if(NOT evg_location AND NOT nytl_location)
+	find_package(evg 0.1.0 QUIET)
 	find_package(nytl 0.2.0 QUIET)
-	if(nytl_FOUND)
-		message("[config] Found nytl at " ${nytl_INCLUDE_DIRS})
-		set(nytl_location "system: " ${nytl_INCLUDE_DIRS} CACHE STRING "Which nytl to use")
-		set(nytl_own off)
-		include_directories(${nytl_INCLUDE_DIRS})
+
+	if(evg_FOUND AND nytl_FOUND)
+		message("[config] Found evg headers at " ${evg_INCLUDE_DIRS})
+		message("[config] Found nytl headers at " ${nytl_INCLUDE_DIRS})
+		set(evg_location ${evg_INCLUDE_DIRS} CACHE STRING "Which evg to use")
+		set(nytl_location ${nytl_INCLUDE_DIRS} CACHE STRING "Which nytl to use")
+		set(evg_build off)
 	else()
-		message("[config] Couldnt find nytl. Will copy included headers")
+		message("[config] Could not find evg and nytl. Will build my own evg version")
+		set(evg_location "own" CACHE STRING "Which evg to use")
 		set(nytl_location "own" CACHE STRING "Which nytl to use")
-		set(nytl_own on)
-		add_subdirectory(external)
-		include_directories("${CMAKE_CURRENT_BINARY_DIR}/external/install/include")
+		set(evg_build on)
 	endif()
 endif()
 
+#configure vpp
+if(WithVulkan AND NOT vpp_location)
+	find_package(vpp 0.1.0 QUIET)
+
+	if(vpp_FOUND)
+		message("[config] Found vpp headers at " ${vpp_INCLUDE_DIRS})
+		set(vpp_location ${vpp_INCLUDE_DIRS} CACHE STRING "Which vpp to use")
+		set(vpp_build off)
+	else()
+		message("[config] Could not find vpp. Will build my own vpp version")
+		set(vpp_location "own" CACHE STRING "Which vpp to use")
+		set(vpp_build on)
+	endif()
+endif()
 
 #config file
 #first set all macros (they have NY_ prefix since they are macros)
 set(NY_WithGL ${WithGL})
 set(NY_WithEGL ${WithEGL})
+set(NY_WithVulkan ${WithVulkan})
 set(NY_WithWinapi ${WithWinapi})
 set(NY_WithX11 ${WithX11})
 set(NY_WithWayland ${WithWayland})
@@ -172,6 +153,7 @@ add_custom_target(uninstall
 
 #output configuration
 message("\t\nFinal Configuration:\n")
+
 message("\tWithWinapi:\t\t" ${WithWinapi})
 message("\tWithWayland:\t\t" ${WithWayland})
 message("\tWithX11:\t\t" ${WithX11})
@@ -179,7 +161,15 @@ message("\tWithGL:\t\t\t" ${WithGL})
 message("\tWithEGL:\t\t" ${WithEGL})
 message("\tWithVulkan:\t\t" ${WithVulkan})
 message("\n")
+
 message("\tnytl build:\t\t" ${nytl_location})
+message("\tevg build:\t\t" ${evg_location})
+
+if(WithVulkan)
+	message("\tvpp build:\t\t" ${vpp_location})
+endif()
+
+message("\n\tny version:\t\t" ${vmajor} "." ${vminor} "." ${vpatch})
 message("\n")
-message("\tny version:\t\t" ${vmajor} "." ${vminor} "." ${vpatch})
-message("\n")
+
+# contributions to the ny cmake files are highly appreciated. lol
