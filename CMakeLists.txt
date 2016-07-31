@@ -43,15 +43,15 @@ endif()
 
 #config options
 #check for available packages
-find_package(OpenGL )
-find_package(EGL )
-find_package(Vulkan )
+find_package(OpenGL)
+find_package(EGL)
+find_package(Vulkan)
 
 if(UNIX)
-	find_package(X11 )
+	find_package(X11)
 	find_package(XCB COMPONENTS ewmh xkb image icccm)
-	find_package(Wayland )
-	find_package(XKBCommon )
+	find_package(Wayland)
+	find_package(XKBCommon)
 endif()
 
 #dependent options
@@ -64,16 +64,16 @@ cmake_dependent_option(WithEGL "Built ny with egl support" on
 cmake_dependent_option(WithVulkan "Build ny with vulkan support" on 
 	"VULKAN_FOUND" off)
 cmake_dependent_option(WithX11 "Build ny with a x11 backend" on 
-	"XKBCommon_FOUND;X11_FOUND;XCB_FOUND" off)
+	"XKBCOMMON_FOUND;X11_FOUND;XCB_FOUND" off)
 cmake_dependent_option(WithWayland "Build ny with a wayland backend" on 
-	"XKBCommon_FOUND;Wayland_FOUND" off)
+	"XKBCOMMON_FOUND;WAYLAND_FOUND" off)
 cmake_dependent_option(WithWinapi "Build ny with a winapi backend" on 
 	"WIN32" off)
 
 #check for invalid configurations
 #no backend
 if(NOT WithWayland AND NOT WithX11 AND NOT WithWinapi)
-	message(FATAL_ERROR "[config] Cannot build ny without backend")
+	message(FATAL_ERROR "Cannot build ny without backend")
 endif()
 
 #external projects
@@ -89,7 +89,7 @@ if(NOT evg_location AND NOT nytl_location)
 		set(nytl_location ${nytl_INCLUDE_DIRS} CACHE STRING "Which nytl to use")
 		set(evg_build off)
 	else()
-		message("[config] Could not find evg and nytl. Will build my own evg version")
+		message("[config] Could not find evg and nytl. Will build own version")
 		set(evg_location "own" CACHE STRING "Which evg to use")
 		set(nytl_location "own" CACHE STRING "Which nytl to use")
 		set(evg_build on)
@@ -105,7 +105,7 @@ if(WithVulkan AND NOT vpp_location)
 		set(vpp_location ${vpp_INCLUDE_DIRS} CACHE STRING "Which vpp to use")
 		set(vpp_build off)
 	else()
-		message("[config] Could not find vpp. Will build my own vpp version")
+		message("[config] Could not find vpp. Will build own version")
 		set(vpp_location "own" CACHE STRING "Which vpp to use")
 		set(vpp_build on)
 	endif()
@@ -152,6 +152,24 @@ add_custom_target(uninstall
 	${CMAKE_CURRENT_SOURCE_DIR}/cmake/uninstall.cmake)
 
 #output configuration
+#function that normalizes bool vars to 0 or 1.
+function(normalize arg)
+	if(${arg})
+		set(${arg} 1 PARENT_SCOPE)
+	else()
+		set(${arg} 0 PARENT_SCOPE)
+	endif()
+endfunction()
+
+#normalize all vars
+normalize(WithGL)
+normalize(WithEGL)
+normalize(WithVulkan)
+normalize(WithWinapi)
+normalize(WithX11)
+normalize(WithWayland)
+
+#output
 message("\t\nFinal Configuration:\n")
 
 message("\tWithWinapi:\t\t" ${WithWinapi})

@@ -14,35 +14,6 @@ Logger& debugLogger();
 
 //functions
 template<typename... Args>
-inline void sendWarning(Args&&... args)
-{
-	warningLogger()(std::forward<Args>(args)...);
-}
-
-template<typename... Args>
-inline void sendLog(Args&&... args)
-{
-	logLogger()(std::forward<Args>(args)...);
-}
-
-template<typename... Args>
-inline void sendError(Args&&... args)
-{
-	errorLogger()(std::forward<Args>(args)...);
-}
-
-template<typename... Args>
-inline void sendDebug(Args&&... args)
-{
-#ifndef NDEBUG
-	debugLogger()(std::forward<Args>(args)...);
-#else
-	unused(args...);
-#endif
-}
-
-//functions
-template<typename... Args>
 inline void warning(Args&&... args)
 {
 	warningLogger()(std::forward<Args>(args)...);

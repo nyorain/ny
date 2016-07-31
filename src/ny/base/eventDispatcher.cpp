@@ -1,7 +1,6 @@
-#include <ny/app/eventDispatcher.hpp>
+#include <ny/base/eventDispatcher.hpp>
 #include <ny/base/eventHandler.hpp>
 #include <ny/base/loopControl.hpp>
-
 #include <ny/base/log.hpp>
 
 namespace ny
@@ -38,7 +37,7 @@ void EventDispatcher::send(Event& event)
 
 void EventDispatcher::noEventHandler(Event& event) const
 {
-	sendWarning("ny::EventDispatcher: Received Event with no handler of type ", event.type());
+	warning("ny::EventDispatcher: Received Event with no handler of type ", event.type());
 }
 
 //Threaded
@@ -119,7 +118,7 @@ void ThreadedEventDispatcher::dispatch(std::unique_ptr<Event>&& event)
 {
     if(!event.get())
     {
-		sendWarning("EventDispatcher::dispatch: invalid event");
+		warning("EventDispatcher::dispatch: invalid event");
         return;
     }
 

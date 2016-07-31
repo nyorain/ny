@@ -1,8 +1,8 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <ny/base/image.hpp>
 #include <nytl/vec.hpp>
+#include <memory>
 
 namespace ny
 {
@@ -78,8 +78,8 @@ public:
 
 protected:
     Type type_ = Type::leftPtr;
-    Image image_{};
-    Vec2i hotspot_{};
+	std::unique_ptr<evg::Image> image_{};
+	nytl::Vec2i hotspot_{};
 };
 
 }

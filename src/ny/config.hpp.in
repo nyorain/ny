@@ -4,7 +4,7 @@
 #define NY_VMAJOR @vmajor@
 #define NY_VMINOR @vminor@
 #define NY_VPATCH @vpatch@
-#define NY_VERSION NY_VMAJOR * 100 + NY_VMINOR * 10 * NY_VPATCH
+#define NY_VERSION NY_VMAJOR * 100 + NY_VMINOR * 10 + NY_VPATCH
 
 //these macros can be used to check which parts are built in to ny.
 //all ny header files include the parsed config.hpp
@@ -13,5 +13,5 @@
 #cmakedefine NY_WithVulkan
 
 #cmakedefine NY_WithX11 
-#cmakedefine NY_WithWinapi 
 #cmakedefine NY_WithWayland 
+#cmakedefine NY_WithWinapi 
