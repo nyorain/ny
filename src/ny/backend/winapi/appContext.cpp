@@ -23,11 +23,11 @@ namespace ny
 //todo - kinda hacky atm
 namespace
 {
-	WinapiAppContext* gAC;
-};
+
+WinapiAppContext* gAC;
 
 //LoopControl
-class WinapiAppContext::LoopControlImpl : public ny::LoopControlImpl
+class LoopControlImpl : public ny::LoopControlImpl
 {
 public:
 	DWORD threadHandle;
@@ -45,6 +45,9 @@ public:
 		PostThreadMessage(threadHandle, WM_USER, 0, 0);
 	};
 };
+ 
+};
+
 
 //winapi callbacks
 LRESULT CALLBACK WinapiAppContext::wndProcCallback(HWND a, UINT b, WPARAM c, LPARAM d)

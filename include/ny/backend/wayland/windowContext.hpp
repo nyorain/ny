@@ -2,6 +2,7 @@
 
 #include <ny/backend/wayland/include.hpp>
 #include <ny/backend/windowContext.hpp>
+#include <ny/backend/windowSettings.hpp>
 
 namespace ny
 {

@@ -23,9 +23,13 @@ public:
     ~WinapiAppContext();
 
 	//interface implementation
-	virtual bool dispatchEvents(EventDispatcher& disp) override;
-	virtual bool dispatchLoop(EventDispatcher& disp, LoopControl& control) override;
-	virtual bool threadedDispatchLoop(ThreadedEventDispatcher& disp, LoopControl& ctrl) override;
+	KeyboardContext* keyboardContext() override;
+	MouseContext* mouseContext() override;
+	WindowContextPtr createWindowContext(const WindowSettings& settings = {}) override;
+
+	bool dispatchEvents(EventDispatcher& disp) override;
+	bool dispatchLoop(EventDispatcher& disp, LoopControl& control) override;
+	bool threadedDispatchLoop(ThreadedEventDispatcher& disp, LoopControl& ctrl) override;
 
 	//further functionality
 	//TODO: extent to all formats, higher level clipboard api
@@ -43,9 +47,6 @@ public:
 
     HINSTANCE hinstance() const { return instance_; };
     const STARTUPINFO& startupInfo() const { return startupInfo_; };
-
-protected:
-	class LoopControlImpl;
 
 protected:
     HINSTANCE instance_ = nullptr;

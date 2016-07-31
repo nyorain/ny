@@ -21,42 +21,42 @@ public:
 
 public:
     WinapiWindowContext(WinapiAppContext& ctx, const WinapiWindowSettings& settings = {});
-    virtual ~WinapiWindowContext();
+    ~WinapiWindowContext();
 
-    virtual void refresh() override;
+    void refresh() override;
 
-    virtual void show() override;
-    virtual void hide() override;
+    void show() override;
+    void hide() override;
 
-	virtual void droppable(const DataTypes&) override {}
+	void droppable(const DataTypes&) override {}
 
-    virtual void addWindowHints(WindowHints hints) override;
-    virtual void removeWindowHints(WindowHints hints) override;
+    void addWindowHints(WindowHints hints) override;
+    void removeWindowHints(WindowHints hints) override;
 
-    virtual void size(const Vec2ui& size) override;
-    virtual void position(const Vec2i& position) override;
+    void size(const Vec2ui& size) override;
+    void position(const Vec2i& position) override;
 
-    virtual void cursor(const Cursor& c) override;
-    virtual bool handleEvent(const Event& e) override;
+    void cursor(const Cursor& c) override;
+    bool handleEvent(const Event& e) override;
 
-	virtual NativeWindowHandle nativeHandle() const override;
+	NativeWindowHandle nativeHandle() const override;
 
     //toplevel
-    virtual void maximize() override;
-    virtual void minimize() override;
-    virtual void fullscreen() override;
-    virtual void normalState() override;
+    void maximize() override;
+    void minimize() override;
+    void fullscreen() override;
+    void normalState() override;
 
-    virtual void minSize(const Vec2ui& size) override {};
-    virtual void maxSize(const Vec2ui& size) override {};
+    void minSize(const Vec2ui& size) override {};
+    void maxSize(const Vec2ui& size) override {};
 
-    virtual void beginMove(const MouseButtonEvent* ev) override {};
-    virtual void beginResize(const MouseButtonEvent* ev, WindowEdges edges) override {};
+    void beginMove(const MouseButtonEvent* ev) override {};
+    void beginResize(const MouseButtonEvent* ev, WindowEdges edges) override {};
 
-	virtual bool customDecorated() const override { return 0; };
+	bool customDecorated() const override { return 0; };
 
-    virtual void icon(const Image* img) override;
-    virtual void title(const std::string& title) override;
+    void icon(const Image* img) override;
+    void title(const std::string& title) override;
 
     //winapi specific
 	WinapiAppContext& appContext() const { return *appContext_; }

@@ -48,6 +48,14 @@ namespace ny
 	class WaylandMouseContext;
 	class WaylandWindowSettings;
 
+#ifdef NY_WithEGL
+	class WaylandEglWindowContext;
+#endif //WithEGL
+
+#ifdef NY_WithVulkan
+	class WaylandVulkanContext;
+#endif //WithVulkan
+
 	namespace wayland
 	{
 		class ShmBuffer;

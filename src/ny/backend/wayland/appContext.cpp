@@ -6,7 +6,13 @@
 #include <ny/backend/wayland/input.hpp>
 #include <ny/backend/wayland/xdg-shell-client-protocol.h>
 
-#include <nytl/misc.hpp>
+#ifdef NY_WithEGL
+ #include <ny/backend/wayland/egl.hpp>
+#endif //WithGL
+
+#ifdef NY_WithVulkan
+ #include <ny/backend/wayland/vulkan.hpp>
+#endif //WithVulkan
 
 #include <wayland-client.h>
 #include <wayland-cursor.h>
@@ -42,6 +48,46 @@ WaylandAppContext::~WaylandAppContext()
 {
 	if(wlRegistry_) wl_registry_destroy(wlRegistry_);
     if(wlDisplay_) wl_display_disconnect(wlDisplay_);
+}
+
+KeyboardContext* WaylandAppContext::keyboardContext()
+{
+	return keyboardContext_.get();
+}
+
+MouseContext* WaylandAppContext::mouseContext()
+{
+	return mouseContext_.get();
+}
+
+WindowContextPtr WaylandAppContext::createWindowContext(const WindowSettings& settings)
+{
+    WaylandWindowSettings waylandSettings;
+    const auto* ws = dynamic_cast<const WaylandWindowSettings*>(&settings);
+
+    if(ws) waylandSettings = *ws;
+    else waylandSettings.WindowSettings::operator=(settings);
+
+	//type
+	if(waylandSettings.draw == DrawType::vulkan)
+	{
+		#ifdef NY_WithVulkan
+		 return std::make_unique<WaylandVulkanWindowContext>(*xac, settings);
+		#else
+		 throw std::logic_error("ny::X11Backend::createWC: ny built without vulkan support");
+		#endif
+	}
+	else if(waylandSettings.draw == DrawType::gl)
+	{
+		#ifdef NY_WithGL	
+		 return std::make_unique<WaylandEglWindowContext>(*this, waylandSettings);
+		#else
+		 throw std::logic_error("ny::X11Backend::createWC: ny built without GL suppport");
+		#endif
+	}
+		
+	return std::make_unique<WaylandWindowContext>(*this, waylandSettings);
+
 }
 
 void WaylandAppContext::registryAdd(unsigned int id, const char* cinterface, unsigned int)
@@ -166,15 +212,6 @@ bool WaylandAppContext::shmFormatSupported(unsigned int wlShmFormat)
     return false;
 }
 
-KeyboardContext* WaylandAppContext::keyboardContext()
-{
-	return keyboardContext_.get();
-}
-
-MouseContext* WaylandAppContext::mouseContext()
-{
-	return mouseContext_.get();
-}
 
 void WaylandAppContext::cursor(std::string cursorName, unsigned int serial)
 {
