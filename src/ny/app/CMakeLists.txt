@@ -1,26 +1,29 @@
-set(include-app ${include-ny})
-set(libs-app ny-base ny-backend)
-
-set(src-app
+set(include_app ${default_include})
+set(libs_app ${default_libs} evg ny-base ny-backend)
+set(src_app
 		app.cpp
 		keyboard.cpp
 		mouse.cpp
-		eventDispatcher.cpp)
+		window.cpp
+		toplevel.cpp
+		child.cpp
+		dialog.cpp
+		popup.cpp)
 
-add_library(ny-app SHARED ${src-app})
-target_compile_features(ny-app PRIVATE cxx_range_for)
+add_library(ny-app SHARED ${src_app})
+target_link_libraries(ny-app ${libs_app})
+target_include_directories(ny-app PUBLIC ${include_app})
 
-target_link_libraries(ny-app ${libs-app})
-target_include_directories(ny-app PUBLIC ${include-app})
-
-if(${own_nytl_build})
+if(nytl_own)
 	add_dependencies(ny-app nytl_ep)
 endif()
 
-set(targets-app ny-app)
+if(evg_own)
+	add_dependencies(ny-app evg_ep)
+endif()
 
 #install
-install (TARGETS ${targets-app}
+install (TARGETS ny-app
 	ARCHIVE DESTINATION lib
 	LIBRARY DESTINATION lib
 	RUNTIME DESTINATION bin)

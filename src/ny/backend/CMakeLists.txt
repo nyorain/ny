@@ -1,10 +1,9 @@
-set(include-backend ${include-ny})
-set(libs-backend ${libs-backend} ny-base)
-
-set(src-backend backend.cpp)
+set(include_backend ${default_include})
+set(libs_backend ${default_libs} evg ny-base)
+set(src_backend backend.cpp)
 
 if(WithWinapi)
-	set(src-backend ${src-backend}
+	list(APPEND src_backend
 		winapi/appContext.cpp
 		winapi/backend.cpp
 		winapi/util.cpp
@@ -13,33 +12,31 @@ if(WithWinapi)
 		winapi/com.cpp
 		winapi/windowContext.cpp)
 
-	set(libs-backend ${libs-backend} gdi32 gdiplus)
+	list(APPEND libs_backend ${libs_backend} gdi32 gdiplus)
 
 	if(WithGL)
-		set(src-backend ${src-backend} winapi/wgl.cpp winapi/wgl/glad_wgl.c)
-		set(libs-backend ${libs-backend} OpenGL32 gdi32)
+		list(APPEND src_backend winapi/wgl.cpp winapi/wgl/glad_wgl.c)
+		list(APPEND libs_backend OpenGL32 gdi32)
 	endif()
-
 endif()
 
 if(WithX11)
-	set(src-backend ${src-backend}
+	list(APPEND src_backend
 		x11/appContext.cpp
 		x11/backend.cpp
 		x11/util.cpp
 		x11/windowContext.cpp)
 
-	set(libs-backend ${libs-backend} X11 xcb xcb-icccm xcb-ewmh X11-xcb pthread)
+	list(APPEND libs_backend X11 xcb xcb-icccm xcb-ewmh X11-xcb pthread)
 
 	if(WithGL)
-		set(src-backend ${src-backend} x11/glx.cpp)
-		set(libs-backend ${libs-backend} GL)
+		list(APPEND src_backend x11/glx.cpp)
+		list(APPEND libs_backend GL)
 	endif()
-
 endif()
 
 if(WithWayland)
-	set(src-backend ${src-backend}
+	list(APPEND src_backend 
 		wayland/appContext.cpp
 		wayland/backend.cpp
 		wayland/util.cpp
@@ -48,22 +45,41 @@ if(WithWayland)
 		wayland/xdg-shell-protocol.c)
 
 	if(WithEGL)
-		set(src-backend ${src-backend} wayland/egl.cpp)
+		list(APPEND src_backend wayland/egl.cpp)
 	endif()
 endif()
 
-add_library(ny-backend SHARED ${src-backend})
-target_link_libraries(ny-backend ${libs-backend})
-target_include_directories(ny-backend PUBLIC ${include-backend})
-
-if(nytlOwn)
-	add_dependencies(ny-backend nytl_ep)
+if(WithXkbcommon)
+	list(APPEND src_backend common/xkb.cpp)
 endif()
 
-set(targets-backend ny-backend)
+if(WithGL)
+	list(APPEND src_backend common/gl.cpp)
+endif()
+
+if(WithEGL)
+	list(APPEND src_backend common/egl.cpp)
+endif()
+
+if(WithVulkan)
+	list(APPEND src_backend common/vulkan.cpp)
+	list(APPEND libs_backend vpp ${vulkan_LIBS})
+endif()
+
+add_library(ny-backend SHARED ${src_backend})
+target_link_libraries(ny-backend ${libs_backend})
+target_include_directories(ny-backend PUBLIC ${include_backend})
+
+if(nytl_own)
+	add_dependencies(ny-app nytl_ep)
+endif()
+
+if(evg_own)
+	add_dependencies(ny-app evg_ep)
+endif()
 
 #install
-install (TARGETS ${targets-backend}
+install (TARGETS ny-backend
 	ARCHIVE DESTINATION lib
 	LIBRARY DESTINATION lib
 	RUNTIME DESTINATION bin)

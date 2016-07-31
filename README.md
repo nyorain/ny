@@ -1,57 +1,135 @@
 # ny
 
-<h2> Introduction </h2>
-ny is a modern c++11 cross-platform gui toolkit. It uses modern c++ features like templates, namespaces, non-trival and type-safe unions, enum classes, lambdas, c++11 concurrency and other new stl features e.g. std::function or std::chrono instead of relying on macros and custom implementations.
+A lightweight and modern C++14 windowing toolkit. Finally.
+Desined to be modular instead of monolithic, lightweight instead of bloated, modern instead
+of supportive.
+Licensed under the __MIT License__.
 
-At the moment, ny is in a pre-alpha version and under heavy developement, <b> it is not ready to use. </b>
-The winapi backend is broken, there is no os x backend (but there will be porbably one in the future) and the linux backends are really unstable and missing lots of features.
+Instead of writing one big pile of shit, we focused on writing modular components that can be
+useful for writing applications with user interfaces. The ny infrastrcuture is therefore
+splitted in 3 modular parts that can be used seperatly:
+- evg: A drawing library for vector graphics with hardware acclerated backends
+- ny: A cross-platform window and context creation/management library
+- <guilib>(name needed): A library that abstracts user interfaces.
 
+As soon as C++17 will be released and supported by the first compilers, ny will require it.
+The code is written against the C++ standard and not against compiler features, therefore 
+compiling ny with any mscv will not work, since it does not have full C++14 support.
 
-<h2> Installation </h2>
-Clone ny from this repository and cd to the toplevel-folder of it (.../ny/).
+At the moment, ny is in a pre-alpha state, but the first alpha is expected to be released soon.
 
-Buidling ny with cmake and make:
-`````````````Bash
-mkdir build && cd build
-cmake ..
-make
-make install
-`````````````
+## Library
 
-Alternativley you can use gnu Makefiles to build it (might not work):
-``````````````Bash
-cmake -DCMAKE_INSTALL_PREFIX=/usr
-make
-make install
-``````````````
+ny is splitted into three libraries:
+- ny-base: really small utility library
+	- contains most of the small abstract base classes like Event or EventHandler
+	- most of the headers located in ny/base are self-contained and do not need the library
 
-<h3> Dependencies </h3>
-The dependencies for ny may differ for each platform and backend. On Linux you don't have to build it with X11, if you just want to build it with the Wayland backend (or even without any backend) it's fine, too. Then you have to set the according option when configuring cmake e.g. -DNY_WithX11=OFF
+- ny-backend: the core of ny. Implements the platform window abstraction. Depends on ny-base.
+	- contains interfaces like WindowContext or AppContext and different implementations for it.
+	- can be used by applications that just want lightweight cross-platform window creation.
 
-Like the backends, most of the other dependecies are optional, too. You can use cairo or OpenGL to draw on windows, FreeType to load and render fonts, but you don't have to.
+- ny-app: higher level wrapper around ny-backend. Depends on ny-backend and ny-base.
+	- contains classes like Window, App, Dialog or Mouse.
+	- can be used by applications that prefer a full-sized windowing toolkit
 
-Here is a list for the optional or needed backends and dependencies on different platforms:
+Note that many features can be used without having to link to any library.
+Examples are interface (or mostly interface) classes like AppContext, WindowContext, Backend, 
+Event or EventHandler. This way, it should be really easy to integrate with ny even if a
+program or library does not want to use most of its features.
 
-<b> Windows: </b> winapi, gdi, openGL, cairo, freetype <br>
-<b> Linux: </b> X11, wayland, cairo, EGL, openGL, openGL ES, freetype <br>
-<b> OS X: </b> No OS X Backend for the moment <br>
+## Usage
 
-
-<h2> Example </h2>
-This basic example demonstrates how to create a toplevelWindow in just a few lines.
-
-`````````````cpp
-#include <ny/ny.hpp>
+Two simple examples to give you an idea on how using ny works. Both examples simply show
+a basic window.
+The first example uses the higher abstraction (ny-app).
+```cpp
+#include <ny/app.hpp>
 
 int main()
 {
-  ny::App app;
-  ny::Frame frame(app, ny::Vec2ui(800, 500), "Hello World");
+	///Just create an app with default settings
+	ny::App app;
 
-  frame.onDraw = [](ny::DrawContext& dc){ dc.clear(ny::Color::red); };
+	///Create a window for that app
+	ny::Window window;
 
-  return app.run();
+	///Run the apps main loop.
+	app.run();
 }
-````````````
+```
 
-The line in which we specify the draw-procedure for the window `frame.onDraw = ...` shows the possibilities of c++11 features like std::function. Where other gui-libraries rely on custom implemented or preprocessed signal-slot methods, ny simply uses callbacks. You could also specify a member function of your own class in `frame.onDraw`.
+This example uses only the lower abstraction (ny-backend) and is therefore a bit more complex.
+For normal gui applications, one usually should use the higher abstraction. Using this lower
+abstraction might make sence for full control and performance optimization or if most of the
+higher abstraction featuers are not needed. This could be the case if one just wants to create
+a window into which can be rendered using vulkan or opengl.
+
+```cpp
+#include <ny/backend.hpp>
+
+int main()
+{
+	///Choose an available backend.
+	auto& backend = ny::Backend::choose();
+
+	///Create an app context. Responsible for dispatching events and managing windows.
+	auto appContext = backend.createAppContext();
+
+	///Create a windowContext. Represents a window on the underlaying backend.
+	///One can manually handle the events that are generated from this WindowContext.
+	auto windowContext = appContext.createWindowContext();
+
+	///The more complex part: creating an EventDispatcher.	
+	///An EventDispatcher is responsible for dispatching generated events to their handlers.
+	///For multithreaded applications, one could use a ThreadedEventDispatcher.
+	ny::EventDispatcher dispatcher;
+
+	///A LoopControl can be used to control a loop from inside it through callbacks
+	///or from other threads.
+	ny::LoopControl loopControl;
+
+	///Just run the appContext on the given dispatcher forever.
+	appContext->dispatchLoop(dispatcher, loopControl);
+}
+```
+
+## Dependencies
+
+There are a few dependencies that are shipped with ny which are header-only or will be 
+automatically built if they are not found on the system.
+
+- evg: Drawing library abstraction. Pulls in its own dependencies.
+- stb_image/stb_image_write/stb_image_resize: lightweight C files for handling images.
+- glad: [optional] gl bindings generator.
+
+At the moment ny contains 3 implemented backends. 
+All of those backends have different dependencies that have to be installed if one wants to built
+ny with support for those backends.
+
+- wayland
+	- xkbcommon
+	- wayland client and wayland client protocol
+	- [optional] gl/gles for gl support.
+	- [optional] egl and wayland-egl for gl support.
+	- [optional] vulkan for vulkan support.
+	- [optional] cairo for cairo support.
+- x11
+	- xkbcommon
+	- xcb (icccm, ewmh and xkb)
+	- xlib
+	- [optional] gl/gles and glx for gl support.
+	- [optional] vulkan for vulkan support.
+	- [optional] cairo for cairo support.
+- winapi
+	- winapi and gdi headers
+	- [optional] gl/gles for gl support.
+	- [optional] vulkan for vulkan support.
+
+Implementers for a mir, android or osx backend are highly appreciated.
+ny has different dependencies on the different backends.
+
+## Building ny
+
+Just use cmake.
+There are various options to configure the building process.

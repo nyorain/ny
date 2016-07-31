@@ -1,10 +1,12 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <ny/base/event.hpp>
+#include <ny/event.hpp>
 
 #include <nytl/vec.hpp>
 #include <nytl/callback.hpp>
+
+///Header can be used without linking to ny-backend.
 
 namespace ny
 {

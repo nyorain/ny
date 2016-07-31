@@ -31,7 +31,7 @@ public:
 	///Returns a list of all current registered backends.
 	///Note that backend implementations usually hold a static object of theiself, so this
 	///function will returned undefined contents if called before or after main().
-	static std::vector<Backend*> backends();
+	static std::vector<Backend*> backends() { return backendsFunc(); }
 
 public:
 	///Returns whether the backend is available.
@@ -47,8 +47,8 @@ public:
 	virtual const char* name() const = 0;
 
 protected:
-	Backend();
-	~Backend();
+	Backend() { backendsFunc(this); }
+	~Backend() { backendsFunc(this, true); }
 
 	//small helper func to add/remove backends from the static variable.
 	static std::vector<Backend*> backendsFunc(Backend* reg = nullptr, bool remove = 0);

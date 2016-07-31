@@ -6,12 +6,6 @@
 namespace ny
 {
 
-//
-std::vector<Backend*> Backend::backends()
-{
-	return backendsFunc();
-}
-
 std::vector<Backend*> Backend::backendsFunc(Backend* reg, bool remove)
 {
 	static std::vector<Backend*> backends_;
@@ -36,17 +30,6 @@ std::vector<Backend*> Backend::backendsFunc(Backend* reg, bool remove)
 	}
 
 	return backends_;
-}
-
-//
-Backend::Backend()
-{
-	backendsFunc(this);
-}
-
-Backend::~Backend()
-{
-	backendsFunc(this, true);
 }
 
 }

@@ -1,26 +1,17 @@
-set(include-base ${include-ny})
+set(include_base ${default_include})
+set(libs_base ${default_libs})
+set(src_base log.cpp cursor.cpp data.cpp)
 
-set(src-base
-	log.cpp
-	image.cpp
-	cursor.cpp
-	pugixml.cpp
-	data.cpp
-	utf.cpp
-	cursor.cpp)
+add_library(ny-base SHARED ${src_base})
+target_link_libraries(ny-base ${libs_base})
+target_include_directories(ny-base PUBLIC ${include_base})
 
-add_library(ny-base SHARED ${src-base})
-target_link_libraries(ny-base ${libs-base})
-target_include_directories(ny-base PUBLIC ${include-base})
-
-if(${own_nytl_build})
+if(nytl_own)
 	add_dependencies(ny-base nytl_ep)
 endif()
 
-set(targets-base ny-base)
-
 #install
-install (TARGETS ${targets-base}
+install (TARGETS ny-base
 	ARCHIVE DESTINATION lib
 	LIBRARY DESTINATION lib
 	RUNTIME DESTINATION bin)

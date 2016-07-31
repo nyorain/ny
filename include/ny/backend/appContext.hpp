@@ -4,6 +4,8 @@
 #include <nytl/nonCopyable.hpp>
 #include <memory>
 
+///Header can be used without linking to ny-backend.
+
 namespace ny
 {
 
