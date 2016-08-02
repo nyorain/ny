@@ -82,7 +82,11 @@ if(NOT evg_location AND NOT nytl_location)
 	find_package(evg 0.1.0 QUIET)
 	find_package(nytl 0.2.0 QUIET)
 
-	if(evg_FOUND AND nytl_FOUND)
+	if(WithVulkan)
+		find_package(vpp 0.2.0 QUIET)
+	endif()
+
+	if(evg_FOUND AND nytl_FOUND AND vpp_FOUND)
 		message("[config] Found evg headers at " ${evg_INCLUDE_DIRS})
 		message("[config] Found nytl headers at " ${nytl_INCLUDE_DIRS})
 		set(evg_location ${evg_INCLUDE_DIRS} CACHE STRING "Which evg to use")
@@ -100,7 +104,7 @@ endif()
 if(WithVulkan AND NOT vpp_location)
 	find_package(vpp 0.1.0 QUIET)
 
-	if(vpp_FOUND)
+	if(VPP_FOUND)
 		message("[config] Found vpp headers at " ${vpp_INCLUDE_DIRS})
 		set(vpp_location ${vpp_INCLUDE_DIRS} CACHE STRING "Which vpp to use")
 		set(vpp_build off)
@@ -149,7 +153,7 @@ configure_file(
 
 add_custom_target(uninstall 
 	COMMAND ${CMAKE_COMMAND} -P 
-	${CMAKE_CURRENT_SOURCE_DIR}/cmake/uninstall.cmake)
+	${CMAKE_CURRENT_BINARY_DIR}/cmake/uninstall.cmake)
 
 #output configuration
 #function that normalizes bool vars to 0 or 1.
