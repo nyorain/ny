@@ -9,6 +9,8 @@
 #include <ny/base/log.hpp>
 #include <ny/base/cursor.hpp>
 
+#include <evg/drawContext.hpp>
+
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
 

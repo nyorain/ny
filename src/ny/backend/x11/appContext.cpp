@@ -1,12 +1,12 @@
 #include <ny/backend/x11/appContext.hpp>
 #include <ny/backend/x11/windowContext.hpp>
 #include <ny/backend/x11/util.hpp>
+#include <ny/backend/x11/input.hpp>
 #include <ny/backend/x11/internal.hpp>
 #include <ny/base/loopControl.hpp>
 #include <ny/base/log.hpp>
-#include <ny/app/app.hpp>
-#include <ny/window/window.hpp>
-#include <ny/window/events.hpp>
+#include <ny/base/eventDispatcher.hpp>
+#include <ny/app/events.hpp>
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -19,7 +19,7 @@
 namespace ny
 {
 
-namespace
+namespace x11
 {
 
 //LoopControlImpl
@@ -70,7 +70,7 @@ X11AppContext::X11AppContext()
 		throw std::runtime_error("ny::x11AC: unable to get xcb connection");
 
 	//ewmh connection
-	ewmhConnection_ = std::make_unique<EwmhConnection>();
+	ewmhConnection_ = std::make_unique<x11::EwmhConnection>();
 	auto ewmhCookie = xcb_ewmh_init_atoms(xConnection_, ewmhConnection());
 
 	//query screen
@@ -123,14 +123,8 @@ X11AppContext::X11AppContext()
 	for(std::size_t i(0); i < names.size(); ++i)
 	{
 		auto reply = xcb_intern_atom_reply(xConnection_, atomCookies[i], 0);
-		if(reply)
-		{
-			atoms_[names[i]] = reply->atom;
-		}
-		else
-		{
-			sendWarning("ny::X11AC: Failed to load atom ", names[i]);
-		}
+		if(reply) atoms_[names[i]] = reply->atom;
+		else warning("ny::X11AC: Failed to load atom ", names[i]);
 	}
 
 	//ewmh
@@ -253,7 +247,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
     {
 		auto& focus = reinterpret_cast<xcb_focus_in_event_t&>(ev);
 		EventHandlerEvent(FocusEvent, focus.event);
-		event->gained = 1;
+		event->focus = 1;
 		dispatcher.dispatch(std::move(event));
 
         return 1;
@@ -263,7 +257,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
     {
 		auto& focus = reinterpret_cast<xcb_focus_in_event_t&>(ev);
 		EventHandlerEvent(FocusEvent, focus.event);
-		event->gained = 0;
+		event->focus = 0;
 		dispatcher.dispatch(std::move(event));
 
         return 1;
@@ -284,7 +278,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
 		EventHandlerEvent(KeyEvent, key.event);
 		event->pressed = 1;
 		event->key = x11ToKey(keysym);
-		event->text = buffer;
+		event->unicode = buffer;
 		dispatcher.dispatch(std::move(event));
 
         return 1;
@@ -305,7 +299,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
 		EventHandlerEvent(KeyEvent, key.event);
 		event->pressed = 0;
 		event->key = x11ToKey(keysym);
-		event->text = buffer;
+		event->unicode = buffer;
 		dispatcher.dispatch(std::move(event));
 
         return 1;
@@ -317,7 +311,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
 		auto handler = windowContext(reparent.window);
 		if(!handler) return true;
 
-		auto event = std::make_unique<X11ReparentEvent>(handler);
+		auto event = std::make_unique<x11::ReparentEvent>(handler);
 		dispatcher.dispatch(std::move(event));
 
 		return true;
@@ -334,6 +328,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
         if(!eventHandler(configure.window))
             return 1;
 
+		/* TODO XXX !important
         if(any(windowContext(configure.window)->window().size() != nsize)) //sizeEvent
 		{
 			EventHandlerEvent(SizeEvent, configure.window);
@@ -356,6 +351,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
 			event->change = 0;
 			dispatcher.dispatch(std::move(event));
 		}
+		*/
 
         return 1;
     }
@@ -419,7 +415,7 @@ bool X11AppContext::dispatchEvents(EventDispatcher& dispatcher)
 bool X11AppContext::dispatchLoop(EventDispatcher& dispatcher, LoopControl& control)
 {
 	std::atomic<bool> run {true};
-	control.impl_ = std::make_unique<LoopControlImpl>(run, xConnection_, xDummyWindow_);
+	control.impl_ = std::make_unique<x11::LoopControlImpl>(run, xConnection_, xDummyWindow_);
 
 	while(run.load())
 	{

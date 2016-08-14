@@ -1,10 +1,11 @@
 #include <ny/backend/wayland/interfaces.hpp>
+#include <ny/backend/wayland/util.hpp>
 #include <ny/backend/wayland/appContext.hpp>
 #include <ny/backend/wayland/windowContext.hpp>
 #include <ny/backend/wayland/input.hpp>
-#include <ny/backend/wayland/util.hpp>
+#include <ny/app/events.hpp>
 
-#include <ny/wayland/xdg-shell-client-protocol.h>
+#include <ny/backend/wayland/xdg-shell-client-protocol.h>
 #include <wayland-client-protocol.h>
 
 #include <iostream>
@@ -28,9 +29,9 @@ void shellSurfaceHandleConfigure(void* data, wl_shell_surface*, uint32_t edges,
     if(!wc) return;
 	
 	ConfigureEvent event(wc);
-	event.edges = waylandToEdges(edges);
+	event.edge = waylandToEdge(edges);
 	event.size = nytl::Vec2ui(width, height);
-	wc->appContext().sendEvent(std::move(event));
+	wc->appContext().dispatch(std::move(event));
 }
 
 void shellSurfaceHandlePopupDone(void* data, wl_shell_surface *shellSurface)
@@ -45,25 +46,27 @@ const wl_shell_surface_listener shellSurfaceListener =
 };
 
 //frameCallback
-void surfaceHandleFrame(void* data, wl_Callback* callback, uint32_t time)
+void surfaceHandleFrame(void* data, wl_callback* callback, uint32_t)
 {
     auto* wc = static_cast<WaylandWindowContext*>(data);
-    nyMainApp()->sendEvent(make_unique<waylandFrameEvent>(&wc->getWindow()));
+	FrameEvent ev(wc);
+	ev.wlCallback = callback;
+    wc->appContext().dispatch(std::move(ev));
 }
-const wl_Callback_listener frameListener =
+const wl_callback_listener frameListener =
 {
     surfaceHandleFrame
 };
 
 //globalRegistry
-void globalRegistryHandleAdd(void* data, wl_registry* registry, uint32_t id, 
+void globalRegistryHandleAdd(void* data, wl_registry*, uint32_t id, 
 	const char* interface, uint32_t version)
 {
     auto* ac = static_cast<WaylandAppContext*>(data);
     ac->registryAdd(id, interface, version);
 }
 
-void globalRegistryHandleRemove(void* data,  wl_registry* registry, uint32_t id)
+void globalRegistryHandleRemove(void* data,  wl_registry*, uint32_t id)
 {
     auto* ac = static_cast<WaylandAppContext*>(data);
     ac->registryRemove(id);
@@ -76,10 +79,10 @@ const wl_registry_listener globalRegistryListener =
 };
 
 //shm
-void shmHandleFormat(void* data, wl_shm* shm, uint32_t format)
+void shmHandleFormat(void* data, wl_shm*, uint32_t format)
 {
     auto* ac = static_cast<WaylandAppContext*>(data);
-    ac->shmFormat(shm, format);
+    ac->addShmFormat(format);
 }
 
 const wl_shm_listener shmListener =
@@ -88,18 +91,24 @@ const wl_shm_listener shmListener =
 };
 
 //seat
-void seatHandleCapabilities(void* data, wl_seat* seat, unsigned int caps)
+void seatHandleCapabilities(void* data, wl_seat*, unsigned int caps)
 {
     auto* ac = static_cast<WaylandAppContext*>(data);
     ac->seatCapabilities(caps);
 }
+void seatName(void *data, struct wl_seat*, const char* name)
+{
+    auto* ac = static_cast<WaylandAppContext*>(data);
+    ac->seatName(name);
+}
 const wl_seat_listener seatListener =
 {
-    seatHandleCapabilities
+    seatHandleCapabilities,
+	seatName
 };
 
 //pointer events
-void pointerHandleEnter(void* data, wl_pointer *pointer, uint32_t serial, wl_surface* surface, 
+void pointerHandleEnter(void* data, wl_pointer*, uint32_t serial, wl_surface* surface, 
 	wl_fixed_t sx, wl_fixed_t sy)
 {
     auto* mc = static_cast<WaylandMouseContext*>(data);
@@ -107,13 +116,13 @@ void pointerHandleEnter(void* data, wl_pointer *pointer, uint32_t serial, wl_sur
     mc->handleEnter(serial, *surface, pos);
 }
 
-void pointerHandleLeave(void* data, wl_pointer* pointer, uint32_t serial, wl_surface* surface)
+void pointerHandleLeave(void* data, wl_pointer*, uint32_t serial, wl_surface* surface)
 {
     auto* mc = static_cast<WaylandMouseContext*>(data);
 	mc->handleLeave(serial, *surface);
 }
 
-void pointerHandleMotion(void* data, wl_pointer* pointer, uint32_t time, wl_fixed_t sx, 
+void pointerHandleMotion(void* data, wl_pointer*, uint32_t time, wl_fixed_t sx, 
 	wl_fixed_t sy)
 {
     auto* mc = static_cast<WaylandMouseContext*>(data);
@@ -121,20 +130,32 @@ void pointerHandleMotion(void* data, wl_pointer* pointer, uint32_t time, wl_fixe
 	mc->handleMotion(time, pos);
 }
 
-void pointerHandleButton(void* data, wl_pointer* pointer, uint32_t serial, uint32_t time, 
+void pointerHandleButton(void* data, wl_pointer*, uint32_t serial, uint32_t time, 
 	uint32_t button, uint32_t state)
 {
     auto* mc = static_cast<WaylandMouseContext*>(data);
-	mv->handleButton(serial, time, button, state);
+	mc->handleButton(serial, time, button, state);
 }
 
-void pointerHandleAxis(void* data, wl_pointer* pointer, uint32_t time, uint32_t axis, 
+void pointerHandleAxis(void* data, wl_pointer*, uint32_t time, uint32_t axis, 
 	wl_fixed_t value)
 {
     auto* mc = static_cast<WaylandMouseContext*>(data);
-    app->handleAxis(time, axis, value);
+    mc->handleAxis(time, axis, value);
 }
 
+void pointerHandleFrame(void *data, struct wl_pointer *wl_pointer)
+{
+}
+void pointerHandleAxisSource(void *data, struct wl_pointer *wl_pointer, uint32_t axis_source)
+{
+}
+void pointerHandleAxisStop(void *data, struct wl_pointer *wl_pointer, uint32_t time, uint32_t axis)
+{
+}
+void pointerHandleAxisDiscrete(void *data, struct wl_pointer*, uint32_t axis, int32_t discrete)
+{
+}
 const wl_pointer_listener pointerListener =
 {
     pointerHandleEnter,
@@ -142,41 +163,49 @@ const wl_pointer_listener pointerListener =
     pointerHandleMotion,
     pointerHandleButton,
     pointerHandleAxis,
+	pointerHandleFrame,
+	pointerHandleAxisSource,
+	pointerHandleAxisStop,
+	pointerHandleAxisDiscrete
 };
 
 
 //keyboard events
-void keyboardHandleKeymap(void* data, wl_keyboard* kb, uint32_t format, int fd, uint32_t size)
+void keyboardHandleKeymap(void* data, wl_keyboard*, uint32_t format, int fd, uint32_t size)
 {
 	auto* kc = static_cast<WaylandKeyboardContext*>(data);
     kc->handleKeymap(format, fd, size);
 }
 
-void keyboardHandleEnter(void* data, wl_keyboard* keyboard, uint32_t serial, 
+void keyboardHandleEnter(void* data, wl_keyboard*, uint32_t serial, 
 	wl_surface* surface, wl_array* keys)
 {
 	auto* kc = static_cast<WaylandKeyboardContext*>(data);
-    kc->handleEnter(serial, *surface, keys);
+    kc->handleEnter(serial, *surface, *keys);
 }
 
-void keyboardHandleLeave(void* data, wl_keyboard* keyboard, uint32_t serial, wl_surface* surface)
+void keyboardHandleLeave(void* data, wl_keyboard*, uint32_t serial, wl_surface* surface)
 {
 	auto* kc = static_cast<WaylandKeyboardContext*>(data);
     kc->handleLeave(serial, *surface);
 }
 
-void keyboardHandleKey(void* data, wl_keyboard* keyboard, uint32_t serial, uint32_t time, 
+void keyboardHandleKey(void* data, wl_keyboard*, uint32_t serial, uint32_t time, 
 	uint32_t key, uint32_t state)
 {
 	auto* kc = static_cast<WaylandKeyboardContext*>(data);
     kc->handleKey(serial, time, key, state);
 }
 
-void keyboardHandleModifiers(void* data, wl_keyboard* keyboard, uint32_t serial, 
+void keyboardHandleModifiers(void* data, wl_keyboard*, uint32_t serial, 
 	uint32_t modsDepressed, uint32_t modsLatched, uint32_t modsLocked, uint32_t group)
 {
 	auto* kc = static_cast<WaylandKeyboardContext*>(data);
     kc->handleModifiers(serial, modsDepressed, modsLatched, modsLocked, group);
+}
+
+void keyboardHandleRepeatInfo(void* data, struct wl_keyboard*, int32_t rate, int32_t delay)
+{
 }
 
 const wl_keyboard_listener keyboardListener =
@@ -185,13 +214,16 @@ const wl_keyboard_listener keyboardListener =
     keyboardHandleEnter,
     keyboardHandleLeave,
     keyboardHandleKey,
-    keyboardHandleModifiers
+    keyboardHandleModifiers,
+	keyboardHandleRepeatInfo
 };
 
 
 //display sync
-void displayHandleSync(void* data, wl_Callback* Callback, uint32_t time)
+void displayHandleSync(void* data, wl_callback* callback, uint32_t time)
 {
+	//TODO
+	// use wayland::serverCallback instead?
 }
 
 const wl_callback_listener displaySyncListener =
@@ -282,15 +314,22 @@ const xdg_shell_listener xdgShellListener =
 void xdgSurfaceConfigure(void *data, struct xdg_surface *xdg_surface, int32_t width, 
 	int32_t height, struct wl_array *states, uint32_t serial)
 {
-    waylandWindowContext* wc = (waylandWindowContext*) data;
-    nyMainApp()->sendEvent(make_unique<sizeEvent>(&wc->getWindow(), 
-		Vec2ui(width, height), 1, new waylandEventData(serial)));
+    auto* wc = static_cast<WaylandWindowContext*>(data);
+	auto* eh = wc->eventHandler();
+    if(!eh) return;
+
+	SizeEvent event(eh, new WaylandEventData(serial));
+	event.size = Vec2ui(width, height);
+  
+	wc->appContext().dispatch(std::move(event));
 }
 
 void xdgSurfaceClose(void *data, struct xdg_surface *xdg_surface)
 {
-    waylandWindowContext* wc = (waylandWindowContext*) data;
-    nyMainApp()->sendEvent(make_unique<destroyEvent>(&wc->getWindow()));
+    auto* wc = static_cast<WaylandWindowContext*>(data);
+	auto* eh = wc->eventHandler();
+    if(!eh) return;
+    wc->appContext().dispatch(CloseEvent(eh));
 }
 const xdg_surface_listener xdgSurfaceListener =
 {

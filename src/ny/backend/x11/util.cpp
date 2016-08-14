@@ -5,7 +5,6 @@
 #include <ny/backend/x11/appContext.hpp>
 #include <ny/backend/x11/windowContext.hpp>
 #include <ny/backend/x11/cairo.hpp>
-#include <ny/window/events.hpp>
 
 #define XK_LATIN1
 #define XK_MISCELLANY

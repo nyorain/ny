@@ -40,15 +40,15 @@ EglContext::~EglContext()
 
 void EglContext::initEglContext(Api api)
 {
-	api_ = api;
+	version_.api = api;
 
-	if(api_ == Api::gles)
+	if(gles())
 	{
 		eglBindAPI(EGL_OPENGL_ES_API);
 		const int attrib[] = {EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
 		eglContext_ = eglCreateContext(eglDisplay_, eglConfig_, nullptr, attrib);
 	}
-	else if(api_ == Api::gl)
+	else if(gl())
 	{
 		eglBindAPI(EGL_OPENGL_API);
 		eglContext_ = eglCreateContext(eglDisplay_, eglConfig_, nullptr, nullptr);
@@ -74,19 +74,19 @@ bool EglContext::makeCurrentImpl()
 {
     if(!valid())
     {
-        sendWarning("eglContext::makeCurrentImpl: invalid");
+        warning("eglContext::makeCurrentImpl: invalid");
         return 0;
     }
 
 	if(!eglSurface_)
 	{
-		sendWarning("EglContext::makeCurrentImpl: no egl surface. Trying to make a "
+		warning("EglContext::makeCurrentImpl: no egl surface. Trying to make a "
 				"context current without surface - may fail");
 	}
 
     if(!eglMakeCurrent(eglDisplay_, eglSurface_, eglSurface_, eglContext_))
     {
-        sendWarning("eglContext::makeCurrentImpl: eglMakeCurrent failed\n\t",
+        warning("eglContext::makeCurrentImpl: eglMakeCurrent failed\n\t",
 				errorMessage(eglError()));
         return 0;
     }
@@ -98,13 +98,13 @@ bool EglContext::makeNotCurrentImpl()
 {
     if(!valid())
     {
-        sendWarning("eglContext::makeNotCurrentImpl: invalid");
+        warning("eglContext::makeNotCurrentImpl: invalid");
         return 0;
     }
 
     if(!eglMakeCurrent(eglDisplay_, nullptr, nullptr, nullptr))
     {
-        sendWarning("eglContext::makeNotCurrentImpl: eglMakeCurrent failed\n\t",
+        warning("eglContext::makeNotCurrentImpl: eglMakeCurrent failed\n\t",
 				errorMessage(eglError()));
         return 0;
     }
@@ -116,16 +116,16 @@ bool EglContext::apply()
 {
     if(!isCurrent() || !valid())
     {
-		sendWarning("eglContext::apply: invalid or not current");
+		warning("eglContext::apply: invalid or not current");
         return false;
     }
 
 	//TODO: single buffered?
     if(!eglSwapBuffers(eglDisplay_, eglSurface_))
     {
-		sendWarning("eglContext::apply: eglSwapBuffers failed\n\t", errorMessage(eglError()));
-		sendLog("eglContext::eglSurface = ", eglSurface_);
-		sendLog("eglContext::eglDisplay = ", eglDisplay_);
+		warning("eglContext::apply: eglSwapBuffers failed\n\t", errorMessage(eglError()));
+		log("eglContext::eglSurface = ", eglSurface_);
+		log("eglContext::eglDisplay = ", eglDisplay_);
         return false;
     }
 
@@ -184,7 +184,7 @@ int EglContext::eglErrorWarn()
 	int error = eglError();
 	if(error != EGL_SUCCESS)
 	{
-		sendWarning("EglContext error: ", errorMessage(error));
+		warning("EglContext error: ", errorMessage(error));
 	}
 
 	return error;

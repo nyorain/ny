@@ -2,7 +2,7 @@
 
 #include <ny/include.hpp>
 #include <ny/base/loopControl.hpp>
-#include <ny/app/eventDispatcher.hpp>
+#include <ny/base/eventDispatcher.hpp>
 #include <nytl/nonCopyable.hpp>
 
 #include <vector>

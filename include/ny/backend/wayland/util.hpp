@@ -4,6 +4,7 @@
 #include <ny/backend/mouseContext.hpp>
 #include <ny/backend/keyboardContext.hpp>
 #include <ny/base/cursor.hpp>
+#include <ny/base/event.hpp>
 
 #include <nytl/vec.hpp>
 
@@ -39,15 +40,20 @@ namespace wayland
 
 //events
 ///This Event will be sent to a WaylandWindowContext if its frame callback was triggered.
-using FrameEvent = EventBase<eventType::wayland::frameEvent>;
-
-///This Event will be sent to a WaylandWindowContext if it holds a surface with shell
-///(wayland or xdg) role that is configured. Holds new size and resized edge.
-class ConfigureEvent : public EventBase<eventType::wayland::configureEvent>
+class FrameEvent : public EventBase<eventType::wayland::frameEvent, FrameEvent>
 {
 public:
 	using EvBase::EvBase;
-	ny::WindowEdge edges;
+	wl_callback* wlCallback;
+};
+
+///This Event will be sent to a WaylandWindowContext if it holds a surface with shell
+///(wayland or xdg) role that is configured. Holds new size and resized edge.
+class ConfigureEvent : public EventBase<eventType::wayland::configureEvent, ConfigureEvent>
+{
+public:
+	using EvBase::EvBase;
+	ny::WindowEdge edge;
 	nytl::Vec2ui size;
 };
 
@@ -107,24 +113,33 @@ public:
 class Output
 {
 public:
-    Output(wl_output& outp);
+	struct Mode
+	{
+		Vec2ui size;
+		unsigned int flags;
+		unsigned int refresh;
+	};
+
+public:
+    Output(WaylandAppContext& ac, wl_output& outp, unsigned int id);
     ~Output();
 
+public:
+	WaylandAppContext* appContext;
     wl_output* wlOutput = nullptr;
+	unsigned int globalID;
 
     Vec2i position;
-    Vec2i size;
-    Vec2i physicalSize;
+    Vec2ui physicalSize;
+	std::vector<Mode> modes;
 
-    int subpixel;
-    int refreshRate;
-
-    unsigned int flags;
+    unsigned int subpixel;
+    unsigned int refreshRate;
 
     std::string make;
     std::string model;
 
-    int transform;
+    unsigned int transform;
     int scale;
 };
 
@@ -136,5 +151,7 @@ Key linuxToKey(unsigned int id);
 
 std::string cursorToWayland(CursorType type);
 CursorType waylandToCursor(std::string id);
+
+WindowEdge waylandToEdge(unsigned int edge);
 
 }

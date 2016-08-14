@@ -28,6 +28,7 @@ public:
     X11WindowContext(X11AppContext& ctx, const X11WindowSettings& settings = {});
     ~X11WindowContext();
 
+	DrawGuard draw() override;
     void refresh() override;
 
     void show() override;

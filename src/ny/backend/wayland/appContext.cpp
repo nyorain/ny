@@ -72,7 +72,7 @@ WindowContextPtr WaylandAppContext::createWindowContext(const WindowSettings& se
 	if(waylandSettings.draw == DrawType::vulkan)
 	{
 		#ifdef NY_WithVulkan
-		 return std::make_unique<WaylandVulkanWindowContext>(*xac, settings);
+		 // return std::make_unique<WaylandVulkanWindowContext>(*xac, settings);
 		#else
 		 throw std::logic_error("ny::X11Backend::createWC: ny built without vulkan support");
 		#endif
@@ -80,7 +80,7 @@ WindowContextPtr WaylandAppContext::createWindowContext(const WindowSettings& se
 	else if(waylandSettings.draw == DrawType::gl)
 	{
 		#ifdef NY_WithGL	
-		 return std::make_unique<WaylandEglWindowContext>(*this, waylandSettings);
+		 // return std::make_unique<WaylandEglWindowContext>(*this, waylandSettings);
 		#else
 		 throw std::logic_error("ny::X11Backend::createWC: ny built without GL suppport");
 		#endif
@@ -120,7 +120,7 @@ void WaylandAppContext::registryAdd(unsigned int id, const char* cinterface, uns
     else if(interface == "wl_output")
     {
 		auto ptr = wl_registry_bind(wlRegistry_, id, &wl_output_interface, 1);
-        outputs_.push_back({*static_cast<wl_output*>(ptr)});
+        outputs_.push_back({*this, *static_cast<wl_output*>(ptr), id});
     }
     else if(interface == "wl_data_device_manager" && !wlDataManager_)
     {
@@ -152,6 +152,10 @@ void WaylandAppContext::registryAdd(unsigned int id, const char* cinterface, uns
     }
 }
 
+void WaylandAppContext::outputDone(const Output& out)
+{
+	std::remove_if(outputs_.begin(), outputs_.end(), [=](const Output& o){ return &o == &out; });
+}
 
 void WaylandAppContext::registryRemove(unsigned int id)
 {
@@ -174,8 +178,8 @@ void WaylandAppContext::registryRemove(unsigned int id)
 	}
 	else
 	{
-		auto it = std::find_if(outputs_.begin(), outputs_.end(), 
-			[](const Output& output){ return output.nameID() == id; });
+		std::remove_if(outputs_.begin(), outputs_.end(), 
+			[=](const Output& output){ return output.globalID == id; });
 	}
 }
 
@@ -184,7 +188,7 @@ void WaylandAppContext::seatCapabilities(unsigned int caps)
 	//TODO: some kind of notification or warning if no pointer/keyboard
     if ((caps & WL_SEAT_CAPABILITY_POINTER) && !mouseContext_)
     {
-		mouseContext_ = std::make_unique<WaylandMouseContext>(*this, wlSeat_);
+		mouseContext_ = std::make_unique<WaylandMouseContext>(*this, *wlSeat_.global);
     }
     else if (!(caps & WL_SEAT_CAPABILITY_POINTER) && mouseContext_)
     {
@@ -193,7 +197,7 @@ void WaylandAppContext::seatCapabilities(unsigned int caps)
 
     if((caps & WL_SEAT_CAPABILITY_KEYBOARD) && !keyboardContext_)
     {
-		keyboardContext_ = std::make_unique<WaylandKeyboardContext>(*this, wlSeat_);
+		keyboardContext_ = std::make_unique<WaylandKeyboardContext>(*this, *wlSeat_.global);
     }
     else if(!(caps & WL_SEAT_CAPABILITY_KEYBOARD) && keyboardContext_)
     {

@@ -2,7 +2,7 @@
 
 #include <ny/backend/wayland/include.hpp>
 #include <ny/backend/wayland/windowContext.hpp>
-#include <ny/backend/gl/egl.hpp>
+#include <ny/backend/common/egl.hpp>
 
 #include <nytl/nonCopyable.hpp>
 #include <nytl/vec.hpp>
@@ -27,6 +27,7 @@ public:
     WaylandEglWindowContext(const WaylandWindowContext& wc, const WaylandWindowSettings& settings);
     virtual ~WaylandEglWindowContext();
 
+	DrawGuard draw() override;
     wl_egl_window& wlEglWindow() const { return *wlEglWindow_; };
 
 protected:

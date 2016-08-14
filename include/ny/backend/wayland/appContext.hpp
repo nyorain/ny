@@ -58,6 +58,7 @@ public:
     void registryRemove(unsigned int id);
 
     void seatCapabilities(unsigned int caps);
+	void seatName(const char* name);
 
     void addShmFormat(unsigned int format);
     bool shmFormatSupported(unsigned int wlShmFormat);
@@ -79,6 +80,8 @@ public:
 	// void endDataOffer();
 	// dataOffer* getClipboard();
 	// void setClipboard(dataSource& source, const event* ev);
+	
+	void outputDone(const wayland::Output& out); //called by wayland callback
 
 protected:
 	wl_display* wlDisplay_;
@@ -95,6 +98,8 @@ protected:
 	wayland::NamedGlobal<xdg_shell> xdgShell_;
 
     wl_data_device* wlDataDevice_ = nullptr;
+
+	std::string seatName_;
 
 	//cursor
     wl_cursor_theme* wlCursorTheme_ = nullptr;

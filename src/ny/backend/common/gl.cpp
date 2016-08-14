@@ -1,7 +1,7 @@
 #include <ny/backend/common/gl.hpp>
 #include <ny/base/log.hpp>
 #include <nytl/misc.hpp>
-#include <evg/gl/api.h>
+#include <evg/gl/api.hpp>
 
 #include <thread>
 

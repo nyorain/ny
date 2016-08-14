@@ -2,7 +2,7 @@
 
 #include <ny/backend/x11/include.hpp>
 #include <ny/backend/common/xkb.hpp>
-#include <ny/backend/mouse.hpp>
+#include <ny/backend/mouseContext.hpp>
 
 namespace ny
 {

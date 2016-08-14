@@ -72,7 +72,7 @@ template<unsigned int Type, typename T = void, bool Override = 0>
 class EventBase : public DeriveCloneMovable<Event, T>
 {
 public:
-	using EvBase = EventBase;
+	using EvBase = EventBase<Type, T,  Override>;
 	using typename DeriveCloneMovable<Event, T>::CloneMovableBase;
 
 public:
@@ -88,13 +88,12 @@ class EventBase<Type, void, Override>
 	: public DeriveCloneMovable<Event, EventBase<Type, void, Override>>
 {
 public:
-	using EvBase = EventBase;
+	using EvBase = EventBase<Type, void, Override>;
 	using typename DeriveCloneMovable<Event, EventBase>::CloneMovableBase;
 
 public:
 	using CloneMovableBase::CloneMovableBase;
 
-    //event
     virtual unsigned int type() const override final { return Type; }
     virtual bool overrideable() const override final { return Override; }
 };

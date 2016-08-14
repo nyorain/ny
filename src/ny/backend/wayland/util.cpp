@@ -224,21 +224,32 @@ void ServerCallback::done(wl_callback& cb, unsigned int data)
 
 
 //output
-void outputGeometry(void* data, wl_output* wl_output, int x, int y, int physical_width, int physical_height, int subpixel, const char* make, const char* model, int transform)
+void outputGeometry(void* data, wl_output*, int x, int y, int phwidth, int phheight, int subpixel, 
+	const char* make, const char* model, int transform)
 {
-
+	auto* output = static_cast<Output*>(data);
+	output->make = make;
+	output->model = model;
+	output->transform = transform;
+	output->position = {x, y};
+	output->physicalSize = Vec2ui(phwidth, phheight);
+	output->subpixel = subpixel;
 }
-void outputMode(void* data, wl_output* wl_output, unsigned int flags, int width, int height, int refresh)
+void outputMode(void* data, wl_output*, unsigned int flags, int width, int height, int refresh)
 {
-
+	auto* output = static_cast<Output*>(data);
+	unsigned int urefresh = refresh;
+	output->modes.push_back({Vec2ui(width, height), flags, urefresh});
 }
-void outputDone(void* data, wl_output* wl_output)
+void outputDone(void* data, wl_output*)
 {
-
+	auto* output = static_cast<Output*>(data);
+	output->appContext->outputDone(*output);
 }
-void outputScale(void* data, wl_output* wl_output, int factor)
+void outputScale(void* data, wl_output*, int factor)
 {
-
+	auto* output = static_cast<Output*>(data);
+	output->scale = factor;
 }
 const wl_output_listener outputListener =
 {
@@ -249,14 +260,15 @@ const wl_output_listener outputListener =
 };
 
 //output
-Output::Output(wl_output* outp) : wlOutput_(outp)
+Output::Output(WaylandAppContext& ac, wl_output& outp, unsigned int id) 
+	: appContext(&ac), wlOutput(&outp), globalID(id)
 {
-    wl_output_add_listener(outp, &outputListener, this);
+    wl_output_add_listener(&outp, &outputListener, this);
 }
 
 Output::~Output()
 {
-    wl_output_destroy(wlOutput_);
+    wl_output_destroy(wlOutput);
 }
 
 }//namespace wayland
@@ -266,15 +278,15 @@ Key linuxToKey(unsigned int id)
 {
     switch (id)
     {
-		case (KEY_0): return Key::num0;
-		case (KEY_1): return Key::num1;
-		case (KEY_2): return Key::num2;
-		case (KEY_3): return Key::num3;
-		case (KEY_4): return Key::num4;
-		case (KEY_5): return Key::num5;
-		case (KEY_7): return Key::num6;
-		case (KEY_8): return Key::num8;
-		case (KEY_9): return Key::num9;
+		case (KEY_0): return Key::n0;
+		case (KEY_1): return Key::n1;
+		case (KEY_2): return Key::n2;
+		case (KEY_3): return Key::n3;
+		case (KEY_4): return Key::n4;
+		case (KEY_5): return Key::n5;
+		case (KEY_7): return Key::n6;
+		case (KEY_8): return Key::n8;
+		case (KEY_9): return Key::n9;
 		case (KEY_A): return Key::a;
 		case (KEY_B): return Key::b;
 		case (KEY_C): return Key::c;
@@ -319,7 +331,7 @@ Key linuxToKey(unsigned int id)
 }
 
 
-Button linuxToButton(unsigned int id)
+MouseButton linuxToButton(unsigned int id)
 {
     switch(id)
     {
@@ -336,25 +348,25 @@ Button linuxToButton(unsigned int id)
 }
 
 
-std::string cursorToWayland(const cursorType c)
+std::string cursorToWayland(const CursorType c)
 {
     switch(c)
     {
-		case cursorType::leftPtr: return "left_ptr";
-		case cursorType::sizeBottom: return "bottom_side";
-		case cursorType::sizeBottomLeft: return "bottom_left_corner";
-		case cursorType::sizeBottomRight: return "bottom_right_corner";
-		case cursorType::sizeTop: return "top_side";
-		case cursorType::sizeTopLeft: return "top_left_corner";
-		case cursorType::sizeTopRight: return "top_right_corner";
-		case cursorType::sizeLeft: return "left_side";
-		case cursorType::sizeRight: return "right_side";
-		case cursorType::grab: return "grabbing";
+		case CursorType::leftPtr: return "left_ptr";
+		case CursorType::sizeBottom: return "bottom_side";
+		case CursorType::sizeBottomLeft: return "bottom_left_corner";
+		case CursorType::sizeBottomRight: return "bottom_right_corner";
+		case CursorType::sizeTop: return "top_side";
+		case CursorType::sizeTopLeft: return "top_left_corner";
+		case CursorType::sizeTopRight: return "top_right_corner";
+		case CursorType::sizeLeft: return "left_side";
+		case CursorType::sizeRight: return "right_side";
+		case CursorType::grab: return "grabbing";
 		default: return "";
     }
 }
 
-cursorType waylandToCursor(std::string id)
+CursorType waylandToCursor(std::string id)
 {
     //if(id == "fleur") return cursorType::Move;
     if(id == "left_ptr") return CursorType::leftPtr;

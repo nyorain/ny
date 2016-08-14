@@ -30,7 +30,6 @@ public:
     virtual ~WaylandWindowContext();
 
     void refresh() override;
-	DrawState drawState() const override;
 	DrawGuard draw() override;
 
     void show() override;
@@ -52,11 +51,20 @@ public:
     void minimize() override;
     void fullscreen() override;
     void normalState() override;
+
     void beginMove(const MouseButtonEvent* ev) override;
     void beginResize(const MouseButtonEvent* event, WindowEdges edges) override;
+
     void title(const std::string& name) override;
 	void icon(const Image*) override {}
+
 	bool customDecorated() const override { return true; }
+	void addWindowHints(WindowHints hints) override;
+	void removeWindowHints(WindowHints hints) override;
+
+	//
+	bool handleEvent(const Event& event) override;
+
 
     //wayland specific functions
     wl_surface& wlSurface() const { return *wlSurface_; };
@@ -64,7 +72,7 @@ public:
 	WaylandSurfaceRole surfaceRole() const { return role_; }
 
     wl_shell_surface* wlShellSurface() const; 
-    wl_subsurface* wlSurbsurface() const; 
+    wl_subsurface* wlSubsurface() const; 
     xdg_surface* xdgSurface() const; 
     xdg_popup* xdgPopup() const; 
 
@@ -76,7 +84,7 @@ protected:
     void createShellSurface();
     void createXDGSurface();
     void createXDGPopup();
-    void createSubsurface();
+    void createSubsurface(wl_surface& parent);
 
 protected:
 	WaylandAppContext* appContext_ = nullptr;

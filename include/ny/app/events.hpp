@@ -27,9 +27,7 @@ class SizeEvent : public EventBase<eventType::windowSize, SizeEvent>
 {
 public:
 	using EvBase::EvBase;
-
     Vec2ui size {0, 0};
-    bool change = 0;
 };
 
 class ShowEvent : public EventBase<eventType::windowShow, ShowEvent>
@@ -51,9 +49,7 @@ class PositionEvent : public EventBase<eventType::windowPosition, PositionEvent,
 {
 public:
 	using EvBase::EvBase;
-
     Vec2i position {0, 0};
-    bool change = 0;
 };
 
 class DrawEvent : public EventBase<eventType::windowDraw, DrawEvent, 1>

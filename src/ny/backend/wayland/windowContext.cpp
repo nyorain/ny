@@ -1,11 +1,15 @@
 #include <ny/backend/wayland/windowContext.hpp>
+#include <ny/backend/wayland/appContext.hpp>
+#include <ny/backend/wayland/interfaces.hpp>
+#include <ny/backend/wayland/util.hpp>
+#include <ny/backend/wayland/xdg-shell-client-protocol.h>
 
-#include <ny/event.hpp>
-#include <ny/app.hpp>
-#include <ny/error.hpp>
-#include <ny/cursor.hpp>
+#include <ny/base/event.hpp>
+#include <ny/base/cursor.hpp>
+#include <ny/base/log.hpp>
+#include <ny/app/events.hpp>
 
-#include <ny/wayland/xdg-shell-client-protocol.h>
+#include <evg/drawContext.hpp>
 
 #include <iostream>
 #include <cassert>
@@ -13,505 +17,346 @@
 namespace ny
 {
 
-waylandWindowContext::waylandWindowContext(window& win, const waylandWindowContextSettings& settings) : windowContext(win, settings)
+WaylandWindowContext::WaylandWindowContext(WaylandAppContext& ac, 
+	const WaylandWindowSettings& settings) : appContext_(&ac)
 {
-    waylandAppContext* ac = getWaylandAppContext();
-    if(!ac)
-    {
-        throw std::runtime_error("wayland App Context not corRectly initialized");
-        return;
-    }
-
-    if(!ac->getWlCompositor())
-    {
-        throw std::runtime_error("wayland App Context has no compositor");
-        return;
-    }
-
-    wlSurface_ = wl_compositor_create_surface(ac->getWlCompositor());
-    if(!wlSurface_)
-    {
-        throw std::runtime_error("could not create wayland Surface");
-        return;
-    }
-
+    wlSurface_ = wl_compositor_create_surface(&ac.wlCompositor());
+    if(!wlSurface_) throw std::runtime_error("WaylandWC: could not create wl_surface");
     wl_surface_set_user_data(wlSurface_, this);
 
     //window role
-    auto* toplvlw = dynamic_cast<toplevelWindow*>(&win);
-    auto* childw = dynamic_cast<childWindow*>(&win);
-    if((!toplvlw && !childw) || (toplvlw && childw))
-    {
-        throw std::runtime_error("window must be either of childWindow or of toplevelWindow type");
-        return;
-    }
-
-    if(toplvlw)
-    {
-        //if(ac->getXDGShell())
-        //    createXDGSurface();
-        //else
-            createShellSurface();
-    }
-    else if(childw)
-    {
-        //if(ac->getXDGShell())
-        //    createSubsurface();
-        //else
-            createSubsurface();
-    }
-
-    //drawContext
-    #if (!defined NY_WithEGL && !defined NY_WithCairo)
-    throw std::runtime_error("waylandWC::waylandWC: no renderer available");
-    return;
-    #endif
-
-    bool gl = 0;
-
-    #if (!defined NY_WithEGL)
-    if(settings.glPref == preference::Must)
-    {
-        throw std::runtime_error("glPref set to must, but no gl renderer available");
-        return;
-    }
-
-    #else
-    gl = 1;
-
-    #endif //NoCairo
-
-    #if (!defined NY_WithCairo)
-    if(settings.glPref == preference::MustNot)
-    {
-        throw std::runtime_error("glPref set to mustNot, but no software renderer available");
-        return;
-    }
-    #else
-    if(settings.glPref != preference::Must && settings.glPref != preference::Should)
-        gl = 0;
-
-    #endif //NoCairo
-
-    if(gl)
-    {
-        drawType_ = waylandDrawType::egl;
-        egl_ = new waylandEGLDrawContext(*this);
-    }
-    else
-    {
-        drawType_ = waylandDrawType::cairo;
-        cairo_ = new waylandCairoDrawContext(*this);
-    }
-
-    nyMainApp()->sendEvent(refreshEvent(&getWindow()));
+	if(settings.parent.pointer())
+	{
+		auto& parent = *reinterpret_cast<wl_surface*>(settings.parent.pointer());
+		createSubsurface(parent);
+	}
+	else
+	{
+		createShellSurface();
+	}
 }
 
-waylandWindowContext::~waylandWindowContext()
+WaylandWindowContext::~WaylandWindowContext()
 {
-    if(wlFrameCallback_ != nullptr)
-        wl_Callback_destroy(wlFrameCallback_); //needed? is it automatically destroy by the wayland server?
+    if(frameCallback_) wl_callback_destroy(frameCallback_);
 
     //role
-    if(getWlShellSurface())
-    {
-        wl_shell_surface_destroy(wlShellSurface_);
-    }
-    else if(getWlSubsurface())
-    {
-        wl_subsurface_destroy(wlSubsurface_);
-    }
+    if(wlShellSurface()) wl_shell_surface_destroy(wlShellSurface_);
+    else if(wlSubsurface()) wl_subsurface_destroy(wlSubsurface_);
+    else if(xdgSurface()) xdg_surface_destroy(xdgSurface_);
+    else if(xdgPopup()) xdg_popup_destroy(xdgPopup_);
 
-    else if(getXDGSurface())
-    {
-        xdg_surface_destroy(xdgSurface_);
-    }
-    else if(getXDGPopup())
-    {
-        xdg_popup_destroy(xdgPopup_);
-    }
-
-    //dc
-    if(drawType_ == waylandDrawType::cairo && cairo_)
-    {
-        delete cairo_;
-    }
-    else if(drawType_ == waylandDrawType::egl && egl_)
-    {
-        delete egl_;
-    }
-
-    wl_surface_destroy(wlSurface_);
+    if(wlSurface_) wl_surface_destroy(wlSurface_);
 }
 
-void waylandWindowContext::createShellSurface()
+void WaylandWindowContext::createShellSurface()
 {
-    waylandAppContext* ac = getWaylandAppContext();
-    toplevelWindow* tw = dynamic_cast<toplevelWindow*>(&window_);
-    if(!tw)
-    {
-        throw std::runtime_error("waylandWC::waylandWC: window has toplevel hint but is not a toplevelWindow");
-        return;
-    }
+    if(!appContext_->wlShell()) throw std::runtime_error("WaylandWC: No wl_shell available");
 
+    wlShellSurface_ = wl_shell_get_shell_surface(appContext_->wlShell(), wlSurface_);
+    if(!wlShellSurface_) throw std::runtime_error("WaylandWC: failed to create wl_shell_surface");
 
-    if(!ac->getWlShell())
-    {
-        throw std::runtime_error("wayland App Context has no shell");
-        return;
-    }
-
-    role_ = waylandSurfaceRole::shell;
-    wlShellSurface_ = wl_shell_get_shell_surface(ac->getWlShell(), wlSurface_);
-
-    if(!wlShellSurface_)
-    {
-        throw std::runtime_error("failed to create wl_shell_surface");
-        return;
-    }
+    role_ = WaylandSurfaceRole::shell;
 
     wl_shell_surface_set_toplevel(wlShellSurface_);
     wl_shell_surface_set_user_data(wlShellSurface_, this);
 
-    wl_shell_surface_set_class(wlShellSurface_, nyMainApp()->getName().c_str());
-    wl_shell_surface_set_title(wlShellSurface_, tw->getTitle().c_str());
+    // wl_shell_surface_set_class(wlShellSurface_, nyMainApp()->getName().c_str());
+    // wl_shell_surface_set_title(wlShellSurface_, tw->getTitle().c_str());
 
-    wl_shell_surface_add_listener(wlShellSurface_, &shellSurfaceListener, this);
+    wl_shell_surface_add_listener(wlShellSurface_, &wayland::shellSurfaceListener, this);
 }
 
-void waylandWindowContext::createXDGSurface()
+void WaylandWindowContext::createXDGSurface()
 {
-    waylandAppContext* ac = getWaylandAppContext();
-    if(!ac->getXDGShell())
-    {
-        throw std::runtime_error("wayland App Context has no xdg_shell");
-        return;
-    }
+    if(!appContext_->xdgShell()) throw std::runtime_error("WaylandWC: no xdg_shell available");
 
-    xdgSurface_ = xdg_shell_get_xdg_surface(ac->getXDGShell(), wlSurface_);
-    if(xdgSurface_)
-    {
-        throw std::runtime_error("failed to create xdg_surface");
-        return;
-    }
+    xdgSurface_ = xdg_shell_get_xdg_surface(appContext_->xdgShell(), wlSurface_);
+    if(xdgSurface_) throw std::runtime_error("WaylandWC: failed to create xdg_surface");
 
-    xdg_surface_set_window_geometry(xdgSurface_, window_.getPositionX(), window_.getPositionY(), window_.getWidth(), window_.getHeight());
+    role_ = WaylandSurfaceRole::xdg;
+
+    // xdg_surface_set_window_geometry(xdgSurface_, window_.getPositionX(), window_.getPositionY(), window_.getWidth(), window_.getHeight());
     xdg_surface_set_user_data(xdgSurface_, this);
-
     xdg_surface_add_listener(xdgSurface_, &wayland::xdgSurfaceListener, this);
 }
 
-void waylandWindowContext::createSubsurface()
+void WaylandWindowContext::createSubsurface(wl_surface& parent)
 {
-    waylandAppContext* ac = getWaylandAppContext();
-    if(!ac->getWlSubcompositor())
-    {
-        throw std::runtime_error("wayland App Context has no shell");
-        return;
-    }
+	auto subcomp = appContext_->wlSubcompositor();
+    if(!subcomp) throw std::runtime_error("WaylandWC: no wl_subcompositor");
 
-    childWindow* cw = dynamic_cast<childWindow*>(&window_);
-    if(!cw)
-    {
-        throw std::runtime_error("waylandWC::waylandWC: window has child hint but is not a childWindow");
-        return;
-    }
+    role_ = WaylandSurfaceRole::sub;
+    wlSubsurface_ = wl_subcompositor_get_subsurface(subcomp, wlSurface_, &parent);
 
-    wl_surface* wlParent = nullptr;
-    if(!asWayland(cw->getParent()->getWC()) || !(wlParent = asWayland(cw->getParent()->getWC())->getWlSurface()))
-    {
-        throw std::runtime_error("waylandWC::waylandWC: could not find wayland parent for child window");
-        return;
-    }
+    if(!wlSubsurface_) throw std::runtime_error("WaylandWC: failed to create wl_subsurface");
 
-    role_ = waylandSurfaceRole::sub;
-    wlSubsurface_ = wl_subcompositor_get_subsurface(ac->getWlSubcompositor(), wlSurface_, wlParent);
-
-    if(!wlSubsurface_)
-    {
-        throw std::runtime_error("failed to create wl_subsurface");
-        return;
-    }
-
-    wl_subsurface_set_position(wlSubsurface_, window_.getPositionX(), window_.getPositionY());
     wl_subsurface_set_user_data(wlSubsurface_, this);
-
     wl_subsurface_set_desync(wlSubsurface_);
 }
 
-void waylandWindowContext::refresh()
+void WaylandWindowContext::refresh()
 {
-    if(wlSurface_ == nullptr)
-        return;
-
-    if(wlFrameCallback_ != nullptr)
+    if(frameCallback_)
     {
-        refreshFlag_ = 1;
+        refreshFlag_ = true;
         return;
     }
 
-    //redraw();
-    getWindow().processEvent(drawEvent(&getWindow()));
+	if(eventHandler()) appContext_->dispatch(DrawEvent(eventHandler()));
 }
 
-drawContext* waylandWindowContext::beginDraw()
+DrawGuard WaylandWindowContext::draw()
 {
-    if(getCairo() && cairo_)
+	throw std::logic_error("WaylandWC::draw: drawless WindowContext");
+    // if(getCairo() && cairo_)
+    // {
+    //     if(cairo_->frontBufferUsed())
+    //         cairo_->swapBuffers();
+// 
+    //     cairo_->updateSize(getWindow().getSize());
+    //     return cairo_;
+    // }
+    // else if(getEGL() && egl_)
+    // {
+    //     egl_->initEGL(*this);
+// 
+    //     if(!egl_->makeCurrent())
+    //         return nullptr;
+// 
+    //     egl_->updateViewport(getWindow().getSize());
+// 
+    //     return egl_;
+    // }
+    // else
+    // {
+    //     return nullptr;
+    // }
+}
+
+// void waylandWindowContext::finishDraw()
+// {
+//     if(getCairo() && cairo_)
+//     {
+//         cairo_->apply();
+// 
+//         wlFrameCallback_ = wl_surface_frame(wlSurface_);
+//         wl_Callback_add_listener(wlFrameCallback_, &frameListener, this);
+// 
+//         cairo_->attach();
+//         wl_surface_damage(wlSurface_, 0, 0, window_.getWidth(), window_.getHeight());
+//         wl_surface_commit(wlSurface_);
+// 
+//         wl_display_flush(getWaylandAC()->getWlDisplay());
+//     }
+//     else if(getEGL() && egl_)
+//     {
+//         egl_->apply();
+// 
+//         wlFrameCallback_ = wl_surface_frame(wlSurface_);
+//         wl_Callback_add_listener(wlFrameCallback_, &frameListener, this);
+// 
+//         if(!egl_->swapBuffers())
+//             nyWarning("waylandWC::finishDraw: failed to swap egl buffers");
+// 
+//         if(!egl_->makeNotCurrent())
+//             nyWarning("waylandWC::finishDraw: failed to make egl context not current");
+//     }
+//     else
+//     {
+//         throw std::runtime_error("waylandWindowContext::finishDraw: uninitialized context");
+//     }
+// }
+
+void WaylandWindowContext::show()
+{
+
+}
+
+void WaylandWindowContext::hide()
+{
+
+}
+
+void WaylandWindowContext::addWindowHints(WindowHints hints)
+{
+
+}
+void WaylandWindowContext::removeWindowHints(WindowHints hints)
+{
+
+}
+
+void WaylandWindowContext::size(const Vec2ui& size)
+{
+}
+
+void WaylandWindowContext::position(const Vec2i& position)
+{
+    if(wlSubsurface())
     {
-        if(cairo_->frontBufferUsed())
-            cairo_->swapBuffers();
-
-        cairo_->updateSize(getWindow().getSize());
-        return cairo_;
+       wl_subsurface_set_position(wlSubsurface_, position.x, position.y);
     }
-    else if(getEGL() && egl_)
-    {
-        egl_->initEGL(*this);
-
-        if(!egl_->makeCurrent())
-            return nullptr;
-
-        egl_->updateViewport(getWindow().getSize());
-
-        return egl_;
-    }
-    else
-    {
-        return nullptr;
-    }
+	else
+	{
+		warning("WaylandWC::position: wayland does not support custom positionts");
+	}
 }
 
-void waylandWindowContext::finishDraw()
+void WaylandWindowContext::cursor(const Cursor& c)
 {
-    if(getCairo() && cairo_)
-    {
-        cairo_->apply();
-
-        wlFrameCallback_ = wl_surface_frame(wlSurface_);
-        wl_Callback_add_listener(wlFrameCallback_, &frameListener, this);
-
-        cairo_->attach();
-        wl_surface_damage(wlSurface_, 0, 0, window_.getWidth(), window_.getHeight());
-        wl_surface_commit(wlSurface_);
-
-        wl_display_flush(getWaylandAC()->getWlDisplay());
-    }
-    else if(getEGL() && egl_)
-    {
-        egl_->apply();
-
-        wlFrameCallback_ = wl_surface_frame(wlSurface_);
-        wl_Callback_add_listener(wlFrameCallback_, &frameListener, this);
-
-        if(!egl_->swapBuffers())
-            nyWarning("waylandWC::finishDraw: failed to swap egl buffers");
-
-        if(!egl_->makeNotCurrent())
-            nyWarning("waylandWC::finishDraw: failed to make egl context not current");
-    }
-    else
-    {
-        throw std::runtime_error("waylandWindowContext::finishDraw: uninitialized context");
-    }
-}
-
-void waylandWindowContext::show()
-{
-
-}
-
-void waylandWindowContext::hide()
-{
-
-}
-
-void waylandWindowContext::addWindowHints(unsigned long hint)
-{
-
-}
-void waylandWindowContext::removeWindowHints(unsigned long hint)
-{
-
-}
-
-void waylandWindowContext::addContextHints(unsigned long hints)
-{
-
-}
-void waylandWindowContext::removeContextHints(unsigned long hints)
-{
-
-}
-
-void waylandWindowContext::setSize(Vec2ui size, bool change)
-{
-    if(getEGL())
-    {
-        egl_->setSize(size);
-    }
-
-    refresh();
-}
-
-void waylandWindowContext::setPosition(Vec2i position, bool change)
-{
-    if(getWlSubsurface())
-    {
-        if(change) wl_subsurface_set_position(wlSubsurface_, position.x, position.y);
-    }
-}
-
-unsigned long waylandWindowContext::getAdditionalWindowHints() const
-{
-    unsigned long ret = 0;
-
-    if(getWlShellSurface()) //toplevel
-    {
-        //ret |= windowHints::CustomDecorated | windowHints::CustomMoved | windowHints::CustomResized;
-    }
-
-    if(getEGL())
-    {
-        //ret |= windowHints::GL;
-    }
-
-    return ret;
-}
-
-void waylandWindowContext::setCursor(const cursor& c)
-{
+	//TODO
     //window class still stores the cursor, just update it
-    updateCursor(nullptr);
+    // updateCursor(nullptr);
 }
 
-void waylandWindowContext::updateCursor(const mouseCrossEvent* ev)
+// void WaylandWindowContext::updateCursor(const mouseCrossEvent* ev)
+// {
+//     unsigned int serial = 0;
+// 
+//     if(ev && ev->data)
+//     {
+//         waylandEventData* e = dynamic_cast<waylandEventData*>(ev->data.get());
+//         if(e) serial = e->serial;
+//     }
+// 
+//     if(window_.getCursor().isNativeType())
+//         getWaylandAC()->setCursor(cursorToWayland(window_.getCursor().getNativeType()), serial);
+// 
+//     else if(window_.getCursor().isImage())
+//         getWaylandAC()->setCursor(window_.getCursor().getImage(), window_.getCursor().getImageHotspot(), serial);
+// }
+
+bool WaylandWindowContext::handleEvent(const Event& event)
 {
-    unsigned int serial = 0;
-
-    if(ev && ev->data)
+    if(event.type() == eventType::wayland::frameEvent)
     {
-        waylandEventData* e = dynamic_cast<waylandEventData*>(ev->data.get());
-        if(e) serial = e->serial;
-    }
-
-    if(window_.getCursor().isNativeType())
-        getWaylandAC()->setCursor(cursorToWayland(window_.getCursor().getNativeType()), serial);
-
-    else if(window_.getCursor().isImage())
-        getWaylandAC()->setCursor(window_.getCursor().getImage(), window_.getCursor().getImageHotspot(), serial);
-}
-
-void waylandWindowContext::processEvent(const contextEvent& e)
-{
-    if(e.contextType() == frameEvent)
-    {
-        if(wlFrameCallback_)
+        if(frameCallback_)
         {
-            wl_Callback_destroy(wlFrameCallback_); //?
-            wlFrameCallback_ = nullptr;
+            wl_callback_destroy(frameCallback_); //?
+            frameCallback_ = nullptr;
         }
 
         if(refreshFlag_)
         {
             refreshFlag_ = 0;
-            redraw();
+			if(eventHandler()) appContext_->dispatch(DrawEvent(eventHandler()));
         }
     }
 }
 
-void waylandWindowContext::setMaximized()
+void WaylandWindowContext::maximize()
 {
-    if(getWlShellSurface()) wl_shell_surface_set_maximized(wlShellSurface_, nullptr);
+    if(wlShellSurface()) wl_shell_surface_set_maximized(wlShellSurface_, nullptr);
 }
 
-void waylandWindowContext::setFullscreen()
+void WaylandWindowContext::fullscreen()
 {
-    if(getWlShellSurface()) wl_shell_surface_set_fullscreen(wlShellSurface_, WL_SHELL_SURFACE_FULLSCREEN_METHOD_DEFAULT, 100, nullptr);
+	// TODO: output param?
+    if(wlShellSurface()) 
+	{
+		wl_shell_surface_set_fullscreen(wlShellSurface_, WL_SHELL_SURFACE_FULLSCREEN_METHOD_DEFAULT, 
+			0, nullptr);
+	}
+	else if(xdgSurface())
+	{
+		xdg_surface_set_fullscreen(xdgSurface_, nullptr);
+	}
 }
 
-void waylandWindowContext::setMinimized()
+void WaylandWindowContext::minimize()
 {
-    //??
+	if(xdgSurface()) xdg_surface_set_minimized(xdgSurface_);
 }
-void waylandWindowContext::setNormal()
+void WaylandWindowContext::normalState()
 {
-    if(getWlShellSurface()) wl_shell_surface_set_toplevel(wlShellSurface_);
+    if(wlShellSurface())
+	{
+		wl_shell_surface_set_toplevel(wlShellSurface_);
+	}
+	else if(xdgSurface())
+	{
+		//TODO
+	}
 }
-void waylandWindowContext::beginMove(const mouseButtonEvent* ev)
+void WaylandWindowContext::beginMove(const MouseButtonEvent* ev)
 {
-    waylandEventData* e = dynamic_cast<waylandEventData*> (ev->data.get());
+    auto* data = dynamic_cast<WaylandEventData*>(ev->data.get());
+    if(!data || !appContext_->wlSeat()) return;
 
-    if(!e || !getWlShellSurface())
-        return;
-
-    wl_shell_surface_move(wlShellSurface_, getWaylandAC()->getWlSeat(), e->serial);
-}
-
-void waylandWindowContext::beginResize(const mouseButtonEvent* ev, windowEdge edge)
-{
-    waylandEventData* e = dynamic_cast<waylandEventData*> (ev->data.get());
-
-    if(!e || !getWlShellSurface())
-        return;
-
-    unsigned int wlEdge = 0;
-
-    switch(edge)
-    {
-    case windowEdge::Top:
-        wlEdge = WL_SHELL_SURFACE_RESIZE_TOP;
-        break;
-    case windowEdge::Left:
-        wlEdge = WL_SHELL_SURFACE_RESIZE_LEFT;
-        break;
-    case windowEdge::Bottom:
-        wlEdge = WL_SHELL_SURFACE_RESIZE_BOTTOM;
-        break;
-    case windowEdge::Right:
-        wlEdge = WL_SHELL_SURFACE_RESIZE_RIGHT;
-        break;
-    case windowEdge::TopLeft:
-        wlEdge = WL_SHELL_SURFACE_RESIZE_TOP_LEFT;
-        break;
-    case windowEdge::TopRight:
-        wlEdge = WL_SHELL_SURFACE_RESIZE_TOP_RIGHT;
-        break;
-    case windowEdge::BottomLeft:
-        wlEdge = WL_SHELL_SURFACE_RESIZE_BOTTOM_LEFT;
-        break;
-    case windowEdge::BottomRight:
-        wlEdge = WL_SHELL_SURFACE_RESIZE_BOTTOM_RIGHT;
-        break;
-    default:
-        return;
-    }
-
-    wl_shell_surface_resize(wlShellSurface_, getWaylandAC()->getWlSeat(), e->serial, wlEdge);
+	if(wlShellSurface())
+	{
+		wl_shell_surface_move(wlShellSurface_, appContext_->wlSeat(), data->serial);
+	}
+	else if(xdgSurface())
+	{
+		xdg_surface_move(xdgSurface_, appContext_->wlSeat(), data->serial);
+	}
 }
 
-void waylandWindowContext::setTitle(const std::string& str)
+void WaylandWindowContext::beginResize(const MouseButtonEvent* ev, WindowEdges edge)
 {
+    auto* data = dynamic_cast<WaylandEventData*>(ev->data.get());
 
+    if(!data || !appContext_->wlSeat()) return;
+
+    // unsigned int wlEdge = static_cast<unsigned int>(edge);
+    unsigned int wlEdge = edge.value();
+    wl_shell_surface_resize(wlShellSurface_, appContext_->wlSeat(), data->serial, wlEdge);
+}
+
+void WaylandWindowContext::title(const std::string& titlestring)
+{
+	if(wlShellSurface_) wl_shell_surface_set_title(wlShellSurface_, titlestring.c_str());
+	else if(xdgSurface_) xdg_surface_set_title(xdgSurface_, titlestring.c_str());
 }
 
 wl_shell_surface* WaylandWindowContext::wlShellSurface() const 
 { 
-	return (role_ == SurfaceRole::shell) ? wlShellSurface_ : nullptr; 
+	return (role_ == WaylandSurfaceRole::shell) ? wlShellSurface_ : nullptr; 
 }
 
-wl_subsurface* WaylandWindowContext::wlSurbsurface() const 
+wl_subsurface* WaylandWindowContext::wlSubsurface() const 
 { 
-	return (role_ == SurfaceRole::sub) ? wlSubsurface_ : nullptr; 
+	return (role_ == WaylandSurfaceRole::sub) ? wlSubsurface_ : nullptr; 
 }
 
 xdg_surface* WaylandWindowContext::xdgSurface() const 
 { 
-	return (role_ == SurfaceRole::xdg) ? xdgSurface_ : nullptr; 
+	return (role_ == WaylandSurfaceRole::xdg) ? xdgSurface_ : nullptr; 
 }
 
 xdg_popup* WaylandWindowContext::xdgPopup() const 
 { 
-	return (role_ == SurfaceRole::xdgPopup) ? xdgPopup_ : nullptr; 
+	return (role_ == WaylandSurfaceRole::xdgPopup) ? xdgPopup_ : nullptr; 
 }
 
 }
+
+
+    // case WindowEdge::top:
+    //     wlEdge = WL_SHELL_SURFACE_RESIZE_TOP;
+    //     break;
+    // case WindowEdge::left:
+    //     wlEdge = WL_SHELL_SURFACE_RESIZE_LEFT;
+    //     break;
+    // case WindowEdge::bottom:
+    //     wlEdge = WL_SHELL_SURFACE_RESIZE_BOTTOM;
+    //     break;
+    // case WindowEdge::right:
+    //     wlEdge = WL_SHELL_SURFACE_RESIZE_RIGHT;
+    //     break;
+    // case WindowEdge::topLeft:
+    //     wlEdge = WL_SHELL_SURFACE_RESIZE_TOP_LEFT;
+    //     break;
+    // case WindowEdge::topRight:
+    //     wlEdge = WL_SHELL_SURFACE_RESIZE_TOP_RIGHT;
+    //     break;
+    // case WindowEdge::bottomLeft:
+    //     wlEdge = WL_SHELL_SURFACE_RESIZE_BOTTOM_LEFT;
+    //     break;
+    // case WindowEdge::bottomRight:
+    //     wlEdge = WL_SHELL_SURFACE_RESIZE_BOTTOM_RIGHT;
+    //     break;
+    // default:
+    //     return;

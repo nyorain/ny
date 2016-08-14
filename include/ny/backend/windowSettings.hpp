@@ -17,13 +17,13 @@ enum class WindowEdge : unsigned int
     unknown = 0,
 
     top = 1,
-    right = 2,
-    bottom = 4,
-    left = 8,
-    topRight = 3,
-    bottomRight = 6,
-    topLeft = 9,
-    bottomLeft = 12,
+    bottom = 2,
+    left = 4,
+    right = 8,
+    topLeft = 5,
+    bottomLeft = 6,
+    topRight = 9,
+    bottomRight = 10,
 };
 
 using WindowEdges = nytl::Flags<WindowEdge>;
