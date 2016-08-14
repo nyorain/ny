@@ -1,13 +1,12 @@
 #pragma once
 
 #include <ny/backend/winapi/include.hpp>
+#include <ny/backend/winapi/input.hpp>
 #include <ny/backend/appContext.hpp>
 
 #include <windows.h>
 #include <gdiplus.h>
 #include <map>
-
-using namespace Gdiplus;
 
 namespace ny
 {
@@ -25,7 +24,7 @@ public:
 	//interface implementation
 	KeyboardContext* keyboardContext() override;
 	MouseContext* mouseContext() override;
-	WindowContextPtr createWindowContext(const WindowSettings& settings = {}) override;
+	WindowContextPtr createWindowContext(const WindowSettings& settings) override;
 
 	bool dispatchEvents(EventDispatcher& disp) override;
 	bool dispatchLoop(EventDispatcher& disp, LoopControl& control) override;
@@ -52,17 +51,23 @@ protected:
     HINSTANCE instance_ = nullptr;
     STARTUPINFO startupInfo_;
 
-    GdiplusStartupInput gdiplusStartupInput_;
+    Gdiplus::GdiplusStartupInput gdiplusStartupInput_;
     ULONG_PTR gdiplusToken_;
 
     std::map<HWND, WinapiWindowContext*> contexts_;
-	HWND mouseOver_ = nullptr; //used to generate mouse enter events
+	// HWND mouseOver_ = nullptr; //used to generate mouse enter events
 
 	LoopControl* dispatcherLoopControl_ = nullptr;
 	EventDispatcher* eventDispatcher_ = nullptr;
 
 	bool receivedQuit_ = false;
 	bool threadsafe_ = false;
+
+	WinapiWindowContext* focus_ = nullptr;
+	WinapiWindowContext* mouseOver_ = nullptr;
+
+	WinapiMouseContext mouseContext_;
+	WinapiKeyboardContext keyboardContext_;
 };
 
 }

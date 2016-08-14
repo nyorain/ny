@@ -21,7 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ny/backend/winapi/wgl/glad_wgl.h>
+#include <ny/backend/winapi/wglApi.hpp>
 
 static HDC GLADWGLhdc = (HDC)INVALID_HANDLE_VALUE;
 

@@ -1,9 +1,9 @@
 #include <ny/backend/x11/cairo.hpp>
 #include <ny/backend/x11/appContext.hpp>
 #include <ny/backend/x11/windowContext.hpp>
-#include <ny/draw/cairo.hpp>
 #include <ny/base/log.hpp>
-#include <ny/window/events.hpp>
+
+#include <evg/cairo.hpp>
 
 #include <xcb/xcb.h>
 #include <cairo/cairo-xcb.h>

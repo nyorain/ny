@@ -2,11 +2,10 @@
 #include <ny/backend/winapi/windowContext.hpp>
 #include <ny/backend/winapi/appContext.hpp>
 #include <ny/backend/winapi/util.hpp>
-#include <ny/backend/winapi/wgl/glad_wgl.h>
-#include <ny/draw/gl/drawContext.hpp>
+#include <ny/backend/winapi/wglApi.hpp>
+#include <ny/backend/common/gl.hpp>
 #include <ny/base/log.hpp>
 
-#include <GL/gl.h>
 #include <thread>
 
 namespace ny

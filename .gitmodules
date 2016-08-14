@@ -1,6 +1,3 @@
 [submodule "external/evg"]
 	path = external/evg
 	url = https://www.github.com/nyorain/evg.git
-[submodule "external/vvp"]
-	path = external/vvp
-	url = https://www.github.com/nyorain/vpp.git

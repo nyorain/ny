@@ -1,19 +1,18 @@
-#include <ny/wayland/waylandUtil.hpp>
+#include <ny/backend/wayland/util.hpp>
 
-#include <ny/wayland/waylandAppContext.hpp>
-#include <ny/wayland/waylandWindowContext.hpp>
-#include <ny/wayland/waylandCairo.hpp>
+#include <ny/backend/wayland/appContext.hpp>
+#include <ny/backend/wayland/windowContext.hpp>
+#include <ny/backend/wayland/cairo.hpp>
 
 #ifdef NY_WithGL
-#include <ny/wayland/waylandEgl.hpp>
+#include <ny/backend/wayland/egl.hpp>
 #endif // NY_WithGL
 
-#include <ny/app.hpp>
-#include <ny/event.hpp>
-#include <ny/cursor.hpp>
-#include <ny/error.hpp>
+#include <ny/base/event.hpp>
+#include <ny/base/cursor.hpp>
 
 #include <wayland-cursor.h>
+#include <wayland-client-protocol.h>
 
 #include <fcntl.h>
 #include <sys/mman.h>
@@ -29,7 +28,7 @@ namespace ny
 namespace wayland
 {
 
-//buffer///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//buffer
 int setCloexecOrClose(int fd)
 {
     long flags;
@@ -109,9 +108,9 @@ int osCreateAnonymousFile(off_t size)
 }
 
 //buffer interface
-void bufferRelease(void* data, wl_buffer* wl_buffer)
+void bufferRelease(void* data, wl_buffer*)
 {
-    shmBuffer* b = (shmBuffer*) data;
+    auto* b = static_cast<ShmBuffer*>(data);
     b->wasReleased();
 }
 const wl_buffer_listener bufferListener =
@@ -120,53 +119,47 @@ const wl_buffer_listener bufferListener =
 };
 
 //shmBuffer
-shmBuffer::shmBuffer(Vec2ui size, bufferFormat form) : size_(size), format(form)
+ShmBuffer::ShmBuffer(WaylandAppContext& ac, Vec2ui size) : appContext_(&ac), size_(size)
 {
+	auto format = WL_SHM_FORMAT_XRGB8888;
+	if(appContext_->shmFormatSupported(WL_SHM_FORMAT_ARGB8888))
+		format = WL_SHM_FORMAT_ARGB8888;
+	else if(appContext_->shmFormatSupported(WL_SHM_FORMAT_BGRA8888))
+		format = WL_SHM_FORMAT_BGRA8888;
+	else if(appContext_->shmFormatSupported(WL_SHM_FORMAT_ABGR8888))
+		format = WL_SHM_FORMAT_ABGR8888;
+	else if(appContext_->shmFormatSupported(WL_SHM_FORMAT_RGBA8888))
+		format = WL_SHM_FORMAT_RGBA8888;
+
     create();
 }
 
-shmBuffer::~shmBuffer()
+ShmBuffer::~ShmBuffer()
 {
     destroy();
 }
 
-void shmBuffer::create()
+void ShmBuffer::create()
 {
-    waylandAppContext* ac;
-    if(!(ac = getWaylandAppContext()))
-    {
-        throw std::runtime_error("need wayland appContext to create wayland shm buffer");
-        return;
-    }
-
-    if(!ac->bufferFormatSupported(format))
-    {
-        throw std::runtime_error("wayland shm buffer: format not supported");
-        return;
-    }
-
-    wl_shm* shm = ac->getWlShm();
+    auto* shm = appContext_->wlShm();
     if(!shm)
     {
         throw std::runtime_error("wayland shm buffer: no wayland shm initialized");
         return;
     }
 
-    unsigned int stride = size_.x * getBufferFormatSize(format);
+    auto stride = size_.x * 4;
+    auto vecSize = stride * size_.y;
+    shmSize_ = std::max(vecSize, shmSize_);
 
-    unsigned int VecSize = stride * size_.y;
-    shmSize_ = std::max(VecSize, shmSize_);
-
-    int fd;
-
-    fd = osCreateAnonymousFile(shmSize_);
+    auto fd = osCreateAnonymousFile(shmSize_);
     if (fd < 0)
     {
         throw std::runtime_error("wayland shm buffer: could not create file");
         return;
     }
 
-    data_ = mmap(nullptr, shmSize_, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    auto ptr = mmap(nullptr, shmSize_, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (data_ == MAP_FAILED)
     {
         close(fd);
@@ -174,23 +167,24 @@ void shmBuffer::create()
         return;
     }
 
+	data_ = reinterpret_cast<std::uint8_t*>(ptr);
     pool_ = wl_shm_create_pool(shm, fd, shmSize_);
-    buffer_ = wl_shm_pool_create_buffer(pool_, 0, size_.x, size_.y, stride, bufferFormatToWayland(format));
+    buffer_ = wl_shm_pool_create_buffer(pool_, 0, size_.x, size_.y, stride, format_);
     wl_buffer_add_listener(buffer_, &bufferListener, this);
 }
 
-void shmBuffer::destroy()
+void ShmBuffer::destroy()
 {
     if(buffer_) wl_buffer_destroy(buffer_);
     if(pool_) wl_shm_pool_destroy(pool_);
     if(data_) munmap(data_, shmSize_);
 }
 
-void shmBuffer::setSize(const Vec2ui& size)
+void ShmBuffer::size(const Vec2ui& size)
 {
     size_ = size;
 
-    unsigned int stride = size_.x * getBufferFormatSize(format);
+    unsigned int stride = size_.x * 4;
     unsigned int VecSize = stride * size_.y;
 
     if(VecSize > shmSize_)
@@ -201,31 +195,31 @@ void shmBuffer::setSize(const Vec2ui& size)
     else
     {
         wl_buffer_destroy(buffer_);
-        buffer_ = wl_shm_pool_create_buffer(pool_, 0, size_.x, size_.y, stride, bufferFormatToWayland(format));
+        buffer_ = wl_shm_pool_create_buffer(pool_, 0, size_.x, size_.y, stride, format_);
     }
 }
 
-//Callback////////////////////////////////////
-void CallbackDone(void *data, struct wl_Callback* Callback, uint32_t CallbackData)
+//Callback
+void callbackDone(void* data, wl_callback* callback, uint32_t callbackData)
 {
-    serverCallback* call = (serverCallback*) data;
-    call->done(Callback, CallbackData);
+    auto* call = static_cast<ServerCallback*>(data);
+    call->done(*callback, callbackData);
 }
 
-const wl_Callback_listener CallbackListener =
+const wl_callback_listener callbackListener =
 {
-    &CallbackDone,
+    &callbackDone,
 };
 
 //
-serverCallback::serverCallback(wl_Callback* Callback)
+ServerCallback::ServerCallback(wl_callback& callback)
 {
-    wl_Callback_add_listener(Callback, &CallbackListener, this);
+    wl_callback_add_listener(&callback, &callbackListener, this);
 }
 
-void serverCallback::done(wl_Callback* cb, unsigned int data)
+void ServerCallback::done(wl_callback& cb, unsigned int data)
 {
-    Callback_(cb, data);
+    onCallback(cb, data);
 }
 
 
@@ -255,121 +249,72 @@ const wl_output_listener outputListener =
 };
 
 //output
-output::output(wl_output* outp) : wlOutput_(outp)
+Output::Output(wl_output* outp) : wlOutput_(outp)
 {
     wl_output_add_listener(outp, &outputListener, this);
 }
 
-output::~output()
+Output::~Output()
 {
     wl_output_destroy(wlOutput_);
 }
 
-}//end namespace wayland
+}//namespace wayland
 
-//util////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//util
 Key linuxToKey(unsigned int id)
 {
     switch (id)
     {
-    case (KEY_0):
-        return Key::num0;
-    case (KEY_1):
-        return Key::num1;
-    case (KEY_2):
-        return Key::num2;
-    case (KEY_3):
-        return Key::num3;
-    case (KEY_4):
-        return Key::num4;
-    case (KEY_5):
-        return Key::num5;
-    case (KEY_7):
-        return Key::num6;
-    case (KEY_8):
-        return Key::num8;
-    case (KEY_9):
-        return Key::num9;
-    case (KEY_A):
-        return Key::a;
-    case (KEY_B):
-        return Key::b;
-    case (KEY_C):
-        return Key::c;
-    case (KEY_D):
-        return Key::d;
-    case (KEY_E):
-        return Key::e;
-    case (KEY_F):
-        return Key::f;
-    case (KEY_G):
-        return Key::g;
-    case (KEY_H):
-        return Key::h;
-    case (KEY_I):
-        return Key::i;
-    case (KEY_J):
-        return Key::j;
-    case (KEY_K):
-        return Key::k;
-    case (KEY_L):
-        return Key::l;
-    case (KEY_M):
-        return Key::m;
-    case (KEY_N):
-        return Key::n;
-    case (KEY_O):
-        return Key::o;
-    case (KEY_P):
-        return Key::p;
-    case (KEY_Q):
-        return Key::q;
-    case (KEY_R):
-        return Key::r;
-    case (KEY_S):
-        return Key::s;
-    case (KEY_T):
-        return Key::t;
-    case (KEY_U):
-        return Key::u;
-    case (KEY_V):
-        return Key::v;
-    case (KEY_W):
-        return Key::w;
-    case (KEY_X):
-        return Key::x;
-    case (KEY_Y):
-        return Key::y;
-    case (KEY_Z):
-        return Key::z;
-    case (KEY_DOT):
-        return Key::dot;
-    case (KEY_COMMA):
-        return Key::comma;
-    case (KEY_SPACE):
-        return Key::space;
-    case (KEY_BACKSPACE):
-        return Key::backspace;
-    case (KEY_ENTER):
-        return Key::enter;
-    case (KEY_LEFTSHIFT):
-        return Key::leftshift;
-    case (KEY_RIGHTSHIFT):
-        return Key::rightshift;
-    case (KEY_RIGHTCTRL):
-        return Key::rightctrl;
-    case (KEY_LEFTCTRL):
-        return Key::leftctrl;
-    case (KEY_LEFTALT):
-        return Key::leftalt;
-    case (KEY_RIGHTALT):
-        return Key::rightalt;
-    case (KEY_TAB):
-        return Key::tab;
-    case (KEY_CAPSLOCK):
-        return Key::capsLock;
-    default:
-        return Key::none;
+		case (KEY_0): return Key::num0;
+		case (KEY_1): return Key::num1;
+		case (KEY_2): return Key::num2;
+		case (KEY_3): return Key::num3;
+		case (KEY_4): return Key::num4;
+		case (KEY_5): return Key::num5;
+		case (KEY_7): return Key::num6;
+		case (KEY_8): return Key::num8;
+		case (KEY_9): return Key::num9;
+		case (KEY_A): return Key::a;
+		case (KEY_B): return Key::b;
+		case (KEY_C): return Key::c;
+		case (KEY_D): return Key::d;
+		case (KEY_E): return Key::e;
+		case (KEY_F): return Key::f;
+		case (KEY_G): return Key::g;
+		case (KEY_H): return Key::h;
+		case (KEY_I): return Key::i;
+		case (KEY_J): return Key::j;
+		case (KEY_K): return Key::k;
+		case (KEY_L): return Key::l;
+		case (KEY_M): return Key::m;
+		case (KEY_N): return Key::n;
+		case (KEY_O): return Key::o;
+		case (KEY_P): return Key::p;
+		case (KEY_Q): return Key::q;
+		case (KEY_R): return Key::r;
+		case (KEY_S): return Key::s;
+		case (KEY_T): return Key::t;
+		case (KEY_U): return Key::u;
+		case (KEY_V): return Key::v;
+		case (KEY_W): return Key::w;
+		case (KEY_X): return Key::x;
+		case (KEY_Y): return Key::y;
+		case (KEY_Z): return Key::z;
+		case (KEY_DOT): return Key::dot;
+		case (KEY_COMMA): return Key::comma;
+		case (KEY_SPACE): return Key::space;
+		case (KEY_BACKSPACE): return Key::backspace;
+		case (KEY_ENTER): return Key::enter;
+		case (KEY_LEFTSHIFT): return Key::leftshift;
+		case (KEY_RIGHTSHIFT): return Key::rightshift;
+		case (KEY_RIGHTCTRL): return Key::rightctrl;
+		case (KEY_LEFTCTRL): return Key::leftctrl;
+		case (KEY_LEFTALT): return Key::leftalt;
+		case (KEY_RIGHTALT): return Key::rightalt;
+		case (KEY_TAB): return Key::tab;
+		case (KEY_CAPSLOCK): return Key::capsLock;
+		default: return Key::none;
     }
 }
 
@@ -378,24 +323,15 @@ Button linuxToButton(unsigned int id)
 {
     switch(id)
     {
-    case BTN_LEFT:
-        return mouse::button::left;
-    case BTN_RIGHT:
-        return mouse::button::right;
-    case BTN_MIDDLE:
-        return mouse::button::middle;
-	case BTN_FORWARD:
-		return Button::custom1;
-	case BTN_BACK:
-		return Button::custom2;
-	case BTN_SIDE:
-		return Button::custom3;
-	case BTN_EXTRA:
-		return Button::custom4;
-	case BTN_TASK:
-		return Button::custom5;
-    default:
-        return Button::none;
+		case BTN_LEFT: return MouseButton::left;
+		case BTN_RIGHT: return MouseButton::right;
+		case BTN_MIDDLE: return MouseButton::middle;
+		case BTN_FORWARD: return MouseButton::custom1;
+		case BTN_BACK: return MouseButton::custom2;
+		case BTN_SIDE: return MouseButton::custom3;
+		case BTN_EXTRA: return MouseButton::custom4;
+		case BTN_TASK: return MouseButton::custom5;
+		default: return MouseButton::none;
     }
 }
 
@@ -404,91 +340,57 @@ std::string cursorToWayland(const cursorType c)
 {
     switch(c)
     {
-    case cursorType::leftPtr:
-        return "left_ptr";
-    case cursorType::sizeBottom:
-        return "bottom_side";
-    case cursorType::sizeBottomLeft:
-        return "bottom_left_corner";
-    case cursorType::sizeBottomRight:
-        return "bottom_right_corner";
-    case cursorType::sizeTop:
-        return "top_side";
-    case cursorType::sizeTopLeft:
-        return "top_left_corner";
-    case cursorType::sizeTopRight:
-        return "top_right_corner";
-    case cursorType::sizeLeft:
-        return "left_side";
-    case cursorType::sizeRight:
-        return "right_side";
-    case cursorType::grab:
-        return "grabbing";
-    default:
-        return "";
+		case cursorType::leftPtr: return "left_ptr";
+		case cursorType::sizeBottom: return "bottom_side";
+		case cursorType::sizeBottomLeft: return "bottom_left_corner";
+		case cursorType::sizeBottomRight: return "bottom_right_corner";
+		case cursorType::sizeTop: return "top_side";
+		case cursorType::sizeTopLeft: return "top_left_corner";
+		case cursorType::sizeTopRight: return "top_right_corner";
+		case cursorType::sizeLeft: return "left_side";
+		case cursorType::sizeRight: return "right_side";
+		case cursorType::grab: return "grabbing";
+		default: return "";
     }
 }
 
 cursorType waylandToCursor(std::string id)
 {
     //if(id == "fleur") return cursorType::Move;
-    if(id == "left_ptr") return cursorType::leftPtr;
-    if(id == "bottom_side") return cursorType::sizeBottom;
-    if(id == "left_side") return cursorType::sizeLeft;
-    if(id == "right_side") return cursorType::sizeRight;
-    if(id == "top_side") return cursorType::sizeTop;
-    if(id == "top_side") return cursorType::sizeTop;
-    if(id == "top_left_corner") return cursorType::sizeTopLeft;
-    if(id == "top_right_corner") return cursorType::sizeTopRight;
-    if(id == "bottom_right_corner") return cursorType::sizeBottomRight;
-    if(id == "bottom_left_corner") return cursorType::sizeBottomLeft;
-    if(id == "grabbing") return cursorType::grab;
-    return cursorType::unknown;
+    if(id == "left_ptr") return CursorType::leftPtr;
+    if(id == "bottom_side") return CursorType::sizeBottom;
+    if(id == "left_side") return CursorType::sizeLeft;
+    if(id == "right_side") return CursorType::sizeRight;
+    if(id == "top_side") return CursorType::sizeTop;
+    if(id == "top_side") return CursorType::sizeTop;
+    if(id == "top_left_corner") return CursorType::sizeTopLeft;
+    if(id == "top_right_corner") return CursorType::sizeTopRight;
+    if(id == "bottom_right_corner") return CursorType::sizeBottomRight;
+    if(id == "bottom_left_corner") return CursorType::sizeBottomLeft;
+    if(id == "grabbing") return CursorType::grab;
+    return CursorType::unknown;
 }
 
-int bufferFormatToWayland(bufferFormat format)
-{
-    switch(format)
-    {
-        case bufferFormat::argb8888: return WL_SHM_FORMAT_ARGB8888;
-        case bufferFormat::xrgb8888: return WL_SHM_FORMAT_XRGB8888;
-        case bufferFormat::rgb888: return WL_SHM_FORMAT_RGB888;
-        default: return -1;
-    }
-}
-
-bufferFormat waylandToBufferFormat(unsigned int wlFormat)
-{
-    switch(wlFormat)
-    {
-        case WL_SHM_FORMAT_ABGR8888: return bufferFormat::argb8888;
-        case WL_SHM_FORMAT_XRGB8888: return bufferFormat::xrgb8888;
-        case WL_SHM_FORMAT_RGB888: return bufferFormat::rgb888;
-        default: return bufferFormat::unknown;
-    }
-}
-
-
-//conversions from waylandInclude
-waylandAppContext* asWayland(appContext* c){ return dynamic_cast<waylandAppContext*>(c); };
-waylandWindowContext* asWayland(windowContext* c){ return dynamic_cast<waylandWindowContext*>(c); };
-
-waylandAppContext* getWaylandAppContext()
-{
-    waylandAppContext* ret = nullptr;
-
-    if(nyMainApp())
-    {
-        ret = dynamic_cast<waylandAppContext*>(nyMainApp()->getAppContext());
-    }
-
-    return ret;
-}
-
-waylandAppContext* getWaylandAC()
-{
-    return getWaylandAppContext();
-}
-
+// int bufferFormatToWayland(bufferFormat format)
+// {
+//     switch(format)
+//     {
+//         case bufferFormat::argb8888: return WL_SHM_FORMAT_ARGB8888;
+//         case bufferFormat::xrgb8888: return WL_SHM_FORMAT_XRGB8888;
+//         case bufferFormat::rgb888: return WL_SHM_FORMAT_RGB888;
+//         default: return -1;
+//     }
+// }
+// 
+// bufferFormat waylandToBufferFormat(unsigned int wlFormat)
+// {
+//     switch(wlFormat)
+//     {
+//         case WL_SHM_FORMAT_ABGR8888: return bufferFormat::argb8888;
+//         case WL_SHM_FORMAT_XRGB8888: return bufferFormat::xrgb8888;
+//         case WL_SHM_FORMAT_RGB888: return bufferFormat::rgb888;
+//         default: return bufferFormat::unknown;
+//     }
+// }
 
 }

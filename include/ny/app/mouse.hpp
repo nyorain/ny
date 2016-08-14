@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <ny/backend/mouse.hpp>
+#include <ny/backend/mouseContext.hpp>
 
 #include <nytl/callback.hpp>
 

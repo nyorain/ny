@@ -2,10 +2,11 @@
 #include <ny/backend/winapi/windowContext.hpp>
 #include <ny/backend/winapi/appContext.hpp>
 #include <ny/backend/winapi/util.hpp>
-#include <ny/app/eventDispatcher.hpp>
-#include <ny/base/utf.hpp>
+#include <ny/base/eventDispatcher.hpp>
 #include <ny/base/data.hpp>
 #include <ny/base/log.hpp>
+
+#include <nytl/utf.hpp>
 
 #include <Shlobj.h>
 
@@ -26,7 +27,7 @@ public:
 	DataOfferImpl(IDataObject& object);
 
 	virtual DataTypes types() const override { return types_; }
-	virtual Connection data(std::uint8_t fmt, const DataFunc& func) override;
+	virtual nytl::CbConn data(std::uint8_t fmt, const DataFunction& func) override;
 
 protected:
 	DataTypes types_;
@@ -73,7 +74,7 @@ DataOfferImpl::DataOfferImpl(IDataObject& object) : data_(object)
 	enumerator->Release();
 }
 
-Connection DataOfferImpl::data(std::uint8_t format, const DataFunc& func)
+CbConn DataOfferImpl::data(std::uint8_t format, const DataFunction& func)
 {
 	HRESULT res = 0;
 	if(!types_.contains(format)) goto failure;
@@ -94,7 +95,7 @@ Connection DataOfferImpl::data(std::uint8_t format, const DataFunc& func)
 		debug(med.hGlobal);
 		if(res != S_OK) goto failure;
 		debug("yee");
-		auto txt = utf16to8(globalToStringUnicode(med.hGlobal));
+		auto txt = toUtf8(globalToStringUnicode(med.hGlobal));
 		debug(txt);
 		replaceCRLF(txt);
 		debug(txt);
@@ -330,7 +331,7 @@ bool DataObjectImpl::medium(unsigned int id, STGMEDIUM& med) const
 	{
 		auto txt = std::any_cast<std::string>(source_->data(type));
 		replaceLF(txt);
-		med.hGlobal = stringToGlobalUnicode(utf8to16(txt)); //text is normally UTF16
+		med.hGlobal = stringToGlobalUnicode(toUtf16(txt)); //text is normally UTF16
 		return true;
 	}
 	else if(type == dataType::filePaths)

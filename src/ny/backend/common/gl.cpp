@@ -1,6 +1,7 @@
 #include <ny/backend/common/gl.hpp>
 #include <ny/base/log.hpp>
 #include <nytl/misc.hpp>
+#include <evg/gl/api.h>
 
 #include <thread>
 
@@ -42,7 +43,7 @@ GlContext::Version parseGlslVersion(const std::string& name)
 	while(!std::isdigit(name[pos], std::locale()) && pos < name.size()) pos++;
 	if(pos == name.size())
 	{
-		sendWarning("GlContext::init: invalid glsl version string: '", name);
+		warning("GlContext::init: invalid glsl version string: '", name);
 		return version;
 	}
 
@@ -77,7 +78,7 @@ GlContext::Version parseGlslVersion(const std::string& name)
 	}
 	else
 	{
-		sendWarning("GlContext::init: invalid glsl version string: '", name, "' ", count);
+		warning("GlContext::init: invalid glsl version string: '", name, "' ", count);
 		return version;
 	}
 
@@ -201,7 +202,7 @@ void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)
 	makeNotCurrent();
 
 	//restore saved one if there is any
-	if(saved && !saved->makeCurrent()) sendWarning("GlCtx::initCtx: failed to make saved current.");
+	if(saved && !saved->makeCurrent()) warning("GlCtx::initCtx: failed to make saved current.");
 }
 
 bool GlContext::makeCurrent()
@@ -251,7 +252,7 @@ void GlContext::updateViewport(const Rect2f& viewport)
 {
 	if(!current())
 	{
-		sendWarning("GlContext::updateViewport called with not-current context");
+		warning("GlContext::updateViewport called with not-current context");
 		return;
 	}
 

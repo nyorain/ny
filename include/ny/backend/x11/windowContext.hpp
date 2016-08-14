@@ -2,6 +2,7 @@
 
 #include <ny/backend/x11/include.hpp>
 #include <ny/backend/windowContext.hpp>
+#include <ny/backend/windowSettings.hpp>
 
 #include <cstdint>
 #include <vector>
@@ -13,7 +14,7 @@ namespace ny
 ///The xcb_ewmh_connection_t type cannot be forward declared since it is a unnamed
 ///struct typedef in the original xcb_ewmh header, which should not be included in a
 ///header file.
-struct DummyEwmhConnection;
+struct EwmhConnection;
 
 ///Additional settings for a X11 Window.
 class X11WindowSettings : public WindowSettings {};
@@ -55,7 +56,7 @@ public:
     void beginResize(const MouseButtonEvent* ev, WindowEdges edges) override;
 
     void title(const std::string& title) override;
-	// void icon(const Image* img) override;
+	void icon(const Image* img) override;
 	bool customDecorated() const override;
 
 	void addWindowHints(WindowHints hints) override;
@@ -156,7 +157,7 @@ protected:
 	xcb_connection_t* xConnection() const;
 
 	///Utility helper returning the ewmhConnection of the app context.
-	DummyEwmhConnection* ewmhConnection() const;
+	x11::EwmhConnection* ewmhConnection() const;
 
 	///The different drawType classes derived from this class may override this function to
 	///select a custom visual for the window or query it in a different way connected with

@@ -7,16 +7,16 @@ if(WithWinapi)
 		winapi/appContext.cpp
 		winapi/backend.cpp
 		winapi/util.cpp
-		winapi/gdi.cpp
-		winapi/wgl.cpp
+		# winapi/gdi.cpp
 		winapi/com.cpp
+		winapi/input.cpp
 		winapi/windowContext.cpp)
 
 	list(APPEND libs_backend ${libs_backend} gdi32 gdiplus)
 
 	if(WithGL)
-		list(APPEND src_backend winapi/wgl.cpp winapi/wgl/glad_wgl.c)
-		list(APPEND libs_backend OpenGL32 gdi32)
+		# list(APPEND src_backend winapi/wgl.cpp winapi/wglApi.cpp)
+		# list(APPEND libs_backend OpenGL32)
 	endif()
 endif()
 
@@ -30,13 +30,13 @@ if(WithX11)
 	list(APPEND libs_backend X11 xcb xcb-icccm xcb-ewmh X11-xcb pthread)
 
 	if(WithGL)
-		list(APPEND src_backend x11/glx.cpp)
-		list(APPEND libs_backend GL)
+		# list(APPEND src_backend x11/glx.cpp x11/glxApi.cpp)
+		# list(APPEND libs_backend GL)
 	endif()
 endif()
 
 if(WithWayland)
-	list(APPEND src_backend 
+	list(APPEND src_backend
 		wayland/appContext.cpp
 		wayland/backend.cpp
 		wayland/util.cpp
@@ -45,7 +45,7 @@ if(WithWayland)
 		wayland/xdg-shell-protocol.c)
 
 	if(WithEGL)
-		list(APPEND src_backend wayland/egl.cpp)
+		# list(APPEND src_backend wayland/egl.cpp)
 	endif()
 endif()
 

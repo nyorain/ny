@@ -27,6 +27,7 @@ public:
 
 	bool dispatchEvents(EventDispatcher& dispatcher) override;
 	bool dispatchLoop(EventDispatcher& dispatcher, LoopControl& control) override;
+	bool threadedDispatchLoop(ThreadedEventDispatcher& dsp, LoopControl& ctrl) override;
 
 	//custom
     Display* xDisplay() const { return xDisplay_; }

@@ -1,8 +1,10 @@
 #pragma once
 
 #include <ny/include.hpp>
+#include <ny/base/data.hpp>
+
 #include <nytl/clone.hpp>
-#include <nytl/enumOps.hpp>
+#include <nytl/flags.hpp>
 #include <nytl/vec.hpp>
 
 namespace ny
@@ -25,7 +27,7 @@ enum class WindowEdge : unsigned int
 };
 
 using WindowEdges = nytl::Flags<WindowEdge>;
-NYTL_ENABLE_ENUM_OPS(WindowEdge)
+NYTL_FLAG_OPS(WindowEdge)
 
 ///Toplevel window stsyle hints.
 enum class WindowHint : unsigned int
@@ -41,7 +43,7 @@ enum class WindowHint : unsigned int
 };
 
 using WindowHints = nytl::Flags<WindowHint>;
-NYTL_ENABLE_ENUM_OPS(WindowHint)
+NYTL_FLAG_OPS(WindowHint)
 
 ///Typesafe enums that can be used for various settings with more control than just a bool.
 ///- must or mustNot: if the preference cannot be fulfilled an exception will be thrown or the
@@ -172,6 +174,37 @@ public:
 		if(other.data) data = clone(*other.data);
 		return *this;
 	}
+};
+
+struct SoftwareDrawSettings
+{
+	bool doubleBuffered;
+	bool antialiased;
+};
+
+struct GlDrawSettings
+{
+	GlContext*& storeContext;
+	bool contextOnly;
+	bool vsync;
+};
+
+struct VulkanDrawSettings
+{
+	VulkanContext*& storeContext;
+	bool contextOnly;
+	bool vsync;
+};
+
+struct DrawSettings
+{
+	DrawType drawType = DrawType::dontCare;
+	union
+	{
+		SoftwareDrawSettings softwareSettings {};
+		GlDrawSettings glSettings;
+		VulkanDrawSettings vulkanSettings;
+	};
 };
 
 ///Settings for a Window.

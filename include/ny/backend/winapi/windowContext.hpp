@@ -1,10 +1,11 @@
 #pragma once
 
 #include <ny/backend/winapi/include.hpp>
+#include <ny/backend/winapi/windows.hpp>
 #include <ny/backend/windowContext.hpp>
+#include <ny/backend/windowSettings.hpp>
 #include <nytl/rect.hpp>
 
-#include <windows.h>
 #include <ole2.h>
 
 namespace ny
@@ -23,8 +24,6 @@ public:
     WinapiWindowContext(WinapiAppContext& ctx, const WinapiWindowSettings& settings = {});
     ~WinapiWindowContext();
 
-    void refresh() override;
-
     void show() override;
     void hide() override;
 
@@ -40,6 +39,9 @@ public:
     bool handleEvent(const Event& e) override;
 
 	NativeWindowHandle nativeHandle() const override;
+
+    void refresh() override;
+	DrawGuard draw() override;
 
     //toplevel
     void maximize() override;
@@ -72,8 +74,7 @@ protected:
 		std::uint64_t style {};
 		std::uint64_t exstyle {};
 		Rect2i extents {};
-		bool maximized {};
-		bool minimized {};
+		unsigned int state {}; //0: normal, 1: maximized, 2: minimized, 3: fullscreen
 	};
 
 protected:
@@ -101,7 +102,7 @@ protected:
 
 	bool fullscreen_ = false;
 	std::uint64_t style_ = 0;
-	State savedState_;
+	State savedState_; //used e.g. for resetState
 };
 
 

@@ -1,15 +1,28 @@
 #include <ny/backend/winapi/appContext.hpp>
 #include <ny/backend/winapi/windowContext.hpp>
 #include <ny/backend/winapi/util.hpp>
+#include <ny/backend/mouseContext.hpp>
+#include <ny/backend/keyboardContext.hpp>
+#include <ny/app/events.hpp>
 
 #include <ny/base/log.hpp>
 #include <ny/base/event.hpp>
 #include <ny/base/loopControl.hpp>
-#include <ny/window/events.hpp>
-#include <ny/app/mouse.hpp>
-#include <ny/app/keyboard.hpp>
-#include <ny/app/eventDispatcher.hpp>
-#include <ny/draw/font.hpp>
+#include <ny/base/eventDispatcher.hpp>
+
+#ifdef NY_WithGL
+#include <ny/backend/winapi/wgl.hpp>
+#endif
+
+#ifdef NY_WithVulkan
+#include <ny/backend/winapi/vulkan.hpp>
+#endif
+
+#ifdef NY_WithCairo
+#include <ny/backend/winapi/cairo.hpp>
+#endif
+
+#include <nytl/utf.hpp>
 
 #include <windowsx.h>
 #include <ole2.h>
@@ -27,14 +40,14 @@ namespace
 WinapiAppContext* gAC;
 
 //LoopControl
-class LoopControlImpl : public ny::LoopControlImpl
+class WinapiLoopControlImpl : public ny::LoopControlImpl
 {
 public:
 	DWORD threadHandle;
 	std::atomic<bool>* run;
 
 public:
-	LoopControlImpl(std::atomic<bool>& prun) : run(&prun)
+	WinapiLoopControlImpl(std::atomic<bool>& prun) : run(&prun)
 	{
 		threadHandle = GetCurrentThreadId();
 	}
@@ -45,9 +58,8 @@ public:
 		PostThreadMessage(threadHandle, WM_USER, 0, 0);
 	};
 };
- 
-};
 
+};
 
 //winapi callbacks
 LRESULT CALLBACK WinapiAppContext::wndProcCallback(HWND a, UINT b, WPARAM c, LPARAM d)
@@ -61,7 +73,7 @@ LRESULT CALLBACK WinapiAppContext::dlgProcCallback(HWND a, UINT b, WPARAM c, LPA
 }
 
 //WinapiAC
-WinapiAppContext::WinapiAppContext()
+WinapiAppContext::WinapiAppContext() : mouseContext_(*this), keyboardContext_(*this)
 {
     instance_ = GetModuleHandle(nullptr);
 
@@ -85,8 +97,71 @@ WinapiAppContext::WinapiAppContext()
 
 WinapiAppContext::~WinapiAppContext()
 {
-	Font::defaultFont().resetCache("ny::GdiFontHandle");
-    if(gdiplusToken_) GdiplusShutdown(gdiplusToken_);
+	// Font::defaultFont().resetCache("ny::GdiFontHandle");
+    if(gdiplusToken_) Gdiplus::GdiplusShutdown(gdiplusToken_);
+}
+
+std::unique_ptr<WindowContext> WinapiAppContext::createWindowContext(const WindowSettings& settings)
+{
+    WinapiWindowSettings s;
+    const WinapiWindowSettings* sTest = dynamic_cast<const WinapiWindowSettings*>(&settings);
+
+    if(sTest)
+    {
+        s = *sTest;
+    }
+    else
+    {
+        auto& wsettings = static_cast<WindowSettings&>(s);
+		wsettings = settings;
+    }
+
+	auto drawType = s.draw;
+	if(drawType == DrawType::none) return std::make_unique<WinapiWindowContext>(*this, s);
+
+	else if(drawType == DrawType::dontCare || drawType == DrawType::software)
+	{
+	// #if defined(NY_WithGDI)
+	// 	return std::make_unique<GdiWinapiWindowContext>(*this, s);
+	#if defined(NY_WithCairo)
+		return std::make_unique<CairoWinapiWindowContext>(*this, s);
+	#else
+		warning("WinapiAC::createWindowContext: no software renderer support, invalid drawType.");
+		return nullptr;
+	#endif //Gdi
+	}
+
+	else if(drawType == DrawType::gl)
+	{
+	#ifdef NY_WithGL
+		// return std::make_unique<WglWindowContext>(*this, s);
+	#else
+		warning("WinapiAC::createWindowContext: no gl support, invalid drawType.");
+		return nullptr;
+	#endif //gl
+	}
+
+	else if(drawType == DrawType::vulkan)
+	{
+	#ifdef NY_WithVulkan
+		// return std::make_unique<VulkanWinapiWindowContext>(*this, s);
+	#else
+		warning("WinapiAC::createWindowContext: no vulkan support, invalid drawType.");
+		return nullptr;
+	#endif //vulkan
+	}
+
+	return {};
+}
+
+MouseContext* WinapiAppContext::mouseContext()
+{
+	return &mouseContext_;
+}
+
+KeyboardContext* WinapiAppContext::keyboardContext()
+{
+	return &keyboardContext_;
 }
 
 bool WinapiAppContext::dispatchEvents(EventDispatcher& dispatcher)
@@ -107,7 +182,7 @@ bool WinapiAppContext::dispatchEvents(EventDispatcher& dispatcher)
 bool WinapiAppContext::dispatchLoop(EventDispatcher& dispatcher, LoopControl& control)
 {
 	std::atomic<bool> run {1};
-	control.impl_ = std::make_unique<LoopControlImpl>(run);
+	control.impl_ = std::make_unique<WinapiLoopControlImpl>(run);
 
 	dispatcherLoopControl_ = &control;
 	eventDispatcher_ = &dispatcher;
@@ -118,7 +193,7 @@ bool WinapiAppContext::dispatchLoop(EventDispatcher& dispatcher, LoopControl& co
 		auto ret = GetMessage(&msg, nullptr, 0, 0);
 		if(ret == -1)
 		{
-			sendWarning(errorMessage("WinapiAC::dispatchLoop"));
+			warning(errorMessage("WinapiAC::dispatchLoop"));
 			return false;
 		}
 		else
@@ -263,9 +338,9 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
         {
 			Vec2i position{GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
 
-			if(mouseOver_ != window)
+			if(mouseOver_->handle() != window)
 			{
-				mouseOver_ = window;
+				mouseOver_ = windowContext(window);
 				if(handlerEvents)
 				{
 					MouseCrossEvent ev(handler);
@@ -305,7 +380,7 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 				MouseButtonEvent ev(handler);
 				ev.position = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
 				ev.pressed = true;
-				ev.button = Mouse::Button::left;
+				ev.button = MouseButton::left;
 				dispatch(ev);
 			}
 			break;
@@ -318,7 +393,7 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 				MouseButtonEvent ev(handler);
 				ev.position = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
 				ev.pressed = false;
-				ev.button = Mouse::Button::left;
+				ev.button = MouseButton::left;
 				dispatch(ev);
 			}
 
@@ -331,6 +406,7 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 			{
 				KeyEvent ev(handler);
 				ev.key = winapiToKey(wparam);
+				ev.unicode = keyboardContext_.unicode(wparam);
 				ev.pressed = true;
 				dispatch(ev);
 			}
@@ -344,6 +420,7 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 			{
 				KeyEvent ev(handler);
 				ev.key = winapiToKey(wparam);
+				ev.unicode = keyboardContext_.unicode(wparam);
 				ev.pressed = false;
 				dispatch(ev);
 			}

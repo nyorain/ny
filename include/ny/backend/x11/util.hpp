@@ -2,8 +2,8 @@
 
 #include <ny/backend/x11/include.hpp>
 
-#include <ny/app/keyboard.hpp>
-#include <ny/app/mouse.hpp>
+#include <ny/backend/keyboardContext.hpp>
+#include <ny/backend/mouseContext.hpp>
 #include <ny/base/cursor.hpp>
 
 #include <xcb/xcb.h>
@@ -15,8 +15,8 @@ namespace ny
 MouseButton x11ToButton(unsigned int id);
 Key x11ToKey(unsigned int id);
 
-int cursorToX11(Cursor::Type cursor);
-Cursor::Type x11ToCursor(int xcID);
+int cursorToX11(CursorType cursor);
+CursorType x11ToCursor(int xcID);
 
 ///X11EventData stores the native xcb event for later use.
 ///To see where this might be neede look at the X11WC::beginResize and X11WC::beginMove functions.

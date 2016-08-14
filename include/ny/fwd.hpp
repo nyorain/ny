@@ -140,5 +140,6 @@ enum class MouseButton : unsigned int;
 enum class DialogResult : unsigned int;
 enum class DialogType : unsigned int;
 enum class DrawState : unsigned int;
+enum class CursorType : unsigned int;
 
 }

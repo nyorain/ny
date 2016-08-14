@@ -1,17 +1,20 @@
 #pragma once
 
-#include <ny/app/keyboard.hpp>
-#include <ny/base/cursor.hpp>
+#include <ny/include.hpp>
+#include <string>
 
 namespace ny
 {
 
-Keyboard::Key winapiToKey(unsigned int code);
-unsigned int keyToWinapi(Keyboard::Key key);
+Key winapiToKey(unsigned int code);
+unsigned int keyToWinapi(Key key);
+
+unsigned int buttonToWinapi(MouseButton button);
+MouseButton winapiToButton(unsigned int code);
 
 std::string errorMessage(unsigned int code, const char* msg = nullptr);
 std::string errorMessage(const char* msg = nullptr);
 
-const char* cursorToWinapi(Cursor::Type type);
+const char* cursorToWinapi(CursorType type);
 
 }

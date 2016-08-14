@@ -5,9 +5,8 @@
 
 #include <ny/base/log.hpp>
 #include <ny/base/cursor.hpp>
-
-#include <ny/base/image.hpp>
-#include <ny/draw/drawContext.hpp>
+#include <evg/image.hpp>
+#include <evg/drawContext.hpp>
 
 #include <tchar.h>
 #include <stdexcept>
@@ -186,52 +185,57 @@ void WinapiWindowContext::hide()
 	::ShowWindowAsync(handle_, SW_HIDE);
 }
 
+DrawGuard WinapiWindowContext::draw()
+{
+	throw std::logic_error("WinapiWC::draw: no support for drawing");
+}
+
 void WinapiWindowContext::addWindowHints(WindowHints hints)
 {
-	if(hints & WindowHints::customDecorated)
-	{
-		auto style = ::GetWindowLong(handle(), GWL_STYLE);
-		style &= ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU);
-		::SetWindowLong(handle(), GWL_STYLE, style);
-
-		auto exStyle = ::GetWindowLong(handle(), GWL_EXSTYLE);
-		exStyle &= ~(WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
-		::SetWindowLong(handle(), GWL_EXSTYLE, exStyle);
-	}
-	if(hints & WindowHints::acceptDrop)
-	{
-		if(!dropTarget_)
-		{
-			dropTarget_ = new winapi::com::DropTargetImpl(*this);
-			dropTarget_->AddRef();
-			::RegisterDragDrop(handle(), dropTarget_);
-		}
-	}
-	if(hints & WindowHints::alwaysOnTop)
-	{
-		::SetWindowPos(handle(), HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
-	}
+	// if(hints & WindowHints::customDecorated)
+	// {
+	// 	auto style = ::GetWindowLong(handle(), GWL_STYLE);
+	// 	style &= ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU);
+	// 	::SetWindowLong(handle(), GWL_STYLE, style);
+	//
+	// 	auto exStyle = ::GetWindowLong(handle(), GWL_EXSTYLE);
+	// 	exStyle &= ~(WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
+	// 	::SetWindowLong(handle(), GWL_EXSTYLE, exStyle);
+	// }
+	// if(hints & WindowHints::acceptDrop)
+	// {
+	// 	if(!dropTarget_)
+	// 	{
+	// 		dropTarget_ = new winapi::com::DropTargetImpl(*this);
+	// 		dropTarget_->AddRef();
+	// 		::RegisterDragDrop(handle(), dropTarget_);
+	// 	}
+	// }
+	// if(hints & WindowHints::alwaysOnTop)
+	// {
+	// 	::SetWindowPos(handle(), HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
+	// }
 }
 void WinapiWindowContext::removeWindowHints(WindowHints hints)
 {
-	if(hints & WindowHints::customDecorated)
-	{
-		auto style = ::GetWindowLong(handle(), GWL_STYLE);
-		style |= (WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU);
-		::SetWindowLong(handle(), GWL_STYLE, style);
-
-		auto exStyle = ::GetWindowLong(handle(), GWL_EXSTYLE);
-		exStyle |= (WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
-		::SetWindowLong(handle(), GWL_EXSTYLE, exStyle);
-	}
-	if(hints & WindowHints::acceptDrop)
-	{
-		::RevokeDragDrop(handle());
-	}
-	if(hints & WindowHints::alwaysOnTop)
-	{
-		::SetWindowPos(handle(), HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
-	}
+	// if(hints & WindowHints::customDecorated)
+	// {
+	// 	auto style = ::GetWindowLong(handle(), GWL_STYLE);
+	// 	style |= (WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU);
+	// 	::SetWindowLong(handle(), GWL_STYLE, style);
+	//
+	// 	auto exStyle = ::GetWindowLong(handle(), GWL_EXSTYLE);
+	// 	exStyle |= (WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
+	// 	::SetWindowLong(handle(), GWL_EXSTYLE, exStyle);
+	// }
+	// if(hints & WindowHints::acceptDrop)
+	// {
+	// 	::RevokeDragDrop(handle());
+	// }
+	// if(hints & WindowHints::alwaysOnTop)
+	// {
+	// 	::SetWindowPos(handle(), HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
+	// }
 }
 
 bool WinapiWindowContext::handleEvent(const Event& e)
@@ -250,7 +254,7 @@ void WinapiWindowContext::position(const Vec2i& position)
 void WinapiWindowContext::cursor(const Cursor& c)
 {
 	//TODO: here and icon: system metrics
-	if(c.type() == Cursor::Type::image)
+	if(c.type() == CursorType::image)
 	{
 		auto cpy = *c.image();
 		cpy.format(Image::Format::bgra8888);
@@ -273,7 +277,7 @@ void WinapiWindowContext::cursor(const Cursor& c)
 
 		DeleteObject(bitmap);
 	}
-	else if(c.type() == Cursor::Type::none)
+	else if(c.type() == CursorType::none)
 	{
 		cursor_ = nullptr;
 		::SetCursor(cursor_);
@@ -310,7 +314,7 @@ void WinapiWindowContext::fullscreen()
 	savedState_.style = ::GetWindowLong(handle(), GWL_STYLE);
 	savedState_.exstyle = ::GetWindowLong(handle(), GWL_EXSTYLE);
 	savedState_.extents = extents();
-	savedState_.maximized = ::IsZoomed(handle());
+	if(::IsZoomed(handle())) savedState_.state = 1;
 
  	MONITORINFO monitorinfo;
   	monitorinfo.cbSize = sizeof(monitorinfo);

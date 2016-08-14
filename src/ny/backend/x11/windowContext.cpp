@@ -8,7 +8,6 @@
 #include <ny/base/event.hpp>
 #include <ny/base/log.hpp>
 #include <ny/base/cursor.hpp>
-#include <ny/draw/drawContext.hpp>
 
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
@@ -98,7 +97,7 @@ xcb_connection_t* X11WindowContext::xConnection() const
 	return appContext().xConnection();
 }
 
-DummyEwmhConnection* X11WindowContext::ewmhConnection() const
+x11::EwmhConnection* X11WindowContext::ewmhConnection() const
 {
 	return appContext().ewmhConnection();
 }
@@ -145,9 +144,9 @@ void X11WindowContext::position(const Vec2i& position)
 
 void X11WindowContext::cursor(const Cursor& curs)
 {
-    if(curs.isNativeType())
+    if(curs.type() != CursorType::image && curs.type() != CursorType::none)
     {
-        int num = cursorToX11(curs.nativeType());
+        int num = cursorToX11(curs.type());
 
         if(num != -1)
         {
@@ -212,16 +211,16 @@ void X11WindowContext::beginResize(const MouseButtonEvent* ev, WindowEdges edge)
     auto& xev = reinterpret_cast<xcb_button_press_event_t&>(xbev->event);
 
 	xcb_ewmh_moveresize_direction_t x11Edge;
-	switch(edge)
+	switch(static_cast<WindowEdge>(edge.value()))
     {
-        case WindowEdges::top: x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_TOP; break;
-        case WindowEdges::left: x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_LEFT; break;
-        case WindowEdges::bottom: x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_BOTTOM; break;
-        case WindowEdges::right: x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_RIGHT; break;
-        case WindowEdges::topLeft: x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_TOPLEFT; break;
-        case WindowEdges::topRight: x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_TOPRIGHT; break;
-        case WindowEdges::bottomLeft: x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_BOTTOMLEFT; break;
-        case WindowEdges::bottomRight: x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_BOTTOMRIGHT; break;
+        case WindowEdge::top: x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_TOP; break;
+        case WindowEdge::left: x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_LEFT; break;
+        case WindowEdge::bottom: x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_BOTTOM; break;
+        case WindowEdge::right: x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_RIGHT; break;
+        case WindowEdge::topLeft: x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_TOPLEFT; break;
+        case WindowEdge::topRight: x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_TOPRIGHT; break;
+        case WindowEdge::bottomLeft: x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_BOTTOMLEFT; break;
+        case WindowEdge::bottomRight: x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_BOTTOMRIGHT; break;
         default: return;
     }
 

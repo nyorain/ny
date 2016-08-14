@@ -2,9 +2,9 @@
 
 #include <ny/backend/winapi/include.hpp>
 #include <ny/backend/winapi/windowContext.hpp>
-#include <ny/draw/gl/context.hpp>
-
-#include <windows.h>
+#include <ny/backend/winapi/windows.hpp>
+#include <ny/backend/common/gl.hpp>
+#include <evg/gl/drawContext.hpp>
 
 namespace ny
 {
@@ -57,7 +57,7 @@ protected:
 
 protected:
 	std::unique_ptr<WglContext> wglContext_;
-	std::unique_ptr<GlDrawContext> drawContext_;
+	std::unique_ptr<evg::GlDrawContext> drawContext_;
 };
 
 }

@@ -64,11 +64,12 @@ public:
 
     wl_display& wlDisplay() const { return *wlDisplay_; };
     wl_compositor& wlCompositor() const { return *wlCompositor_; };
-    wl_subcompositor& wlSubcompositor() const{ return *wlSubcompositor_; };
-    wl_shm& wlShm() const { return *wlShm_; };
-    wl_shell& wlShell() const { return *wlShell_; };
-    wl_seat& wlSeat() const { return *wlSeat_; };
-    xdg_shell& xdgShell() const { return *xdgShell_; }
+
+    wl_subcompositor* wlSubcompositor() const{ return wlSubcompositor_; };
+    wl_shm* wlShm() const { return wlShm_; };
+    wl_seat* wlSeat() const { return wlSeat_; };
+    wl_shell* wlShell() const { return wlShell_; };
+    xdg_shell* xdgShell() const { return xdgShell_; }
 
 	WindowContext* windowContext(wl_surface& surface) const;
     const std::vector<wayland::Output>& outputs() const { return outputs_; }

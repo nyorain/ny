@@ -21,8 +21,8 @@ include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src")
 include_directories("${CMAKE_CURRENT_BINARY_DIR}/include") #config.hpp
 
 #external dirs
-include_directories("${CMAKE_SOURCE_DIR}/external/install/include")
-link_directories("${CMAKE_SOURCE_DIR}/external/install/lib")
+include_directories("${CMAKE_BINARY_DIR}/external/install/include")
+link_directories("${CMAKE_BINARY_DIR}/external/install/lib")
 
 #cmake options
 # set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-std=c++17") # C++ 17
@@ -57,17 +57,19 @@ endif()
 #dependent options
 include(CMakeDependentOption)
 
-cmake_dependent_option(WithGL "Build ny with gl support" on 
+cmake_dependent_option(WithGL "Build ny with gl support" on
 	"OPENGL_FOUND" off)
 cmake_dependent_option(WithEGL "Built ny with egl support" on
 	"OPENGL_FOUND;EGL_FOUND" off)
-cmake_dependent_option(WithVulkan "Build ny with vulkan support" on 
+cmake_dependent_option(WithVulkan "Build ny with vulkan support" on
 	"VULKAN_FOUND" off)
-cmake_dependent_option(WithX11 "Build ny with a x11 backend" on 
+cmake_dependent_option(WithCairo "Build ny with cairo support" on
+	"CAIRO_FOUND" off)
+cmake_dependent_option(WithX11 "Build ny with a x11 backend" on
 	"XKBCOMMON_FOUND;X11_FOUND;XCB_FOUND" off)
-cmake_dependent_option(WithWayland "Build ny with a wayland backend" on 
+cmake_dependent_option(WithWayland "Build ny with a wayland backend" on
 	"XKBCOMMON_FOUND;WAYLAND_FOUND" off)
-cmake_dependent_option(WithWinapi "Build ny with a winapi backend" on 
+cmake_dependent_option(WithWinapi "Build ny with a winapi backend" on
 	"WIN32" off)
 
 #check for invalid configurations
@@ -76,42 +78,58 @@ if(NOT WithWayland AND NOT WithX11 AND NOT WithWinapi)
 	message(FATAL_ERROR "Cannot build ny without backend")
 endif()
 
+#no drawing api
+if(NOT WithCairo AND NOT WithEGL AND NOT WithVulkan AND NOT WithWinapi)
+	message(WARNING "Building ny without drawing backends")
+endif()
+
 #external projects
 #configure evg
-if(NOT evg_location AND NOT nytl_location)
-	find_package(evg 0.1.0 QUIET)
+set(vulkan-condition false)
+if(WithVulkan AND NOT vpp_location)
+	set(vulkan-condition true)
+endif()
+
+if(NOT evg_location AND NOT nytl_location AND vulkan-condition)
+	set(evg-components true)
+	find_package(evg 0.1.0 QUIET OPTIONAL_COMPONENTS cairo gl vulkan gdi)
 	find_package(nytl 0.2.0 QUIET)
 
 	if(WithVulkan)
 		find_package(vpp 0.2.0 QUIET)
+		if(NOT VPP_FOUND)
+			set(evg-components 0)
+		endif()
+		if(WithVulkan AND NOT EVG_VULKAN_FOUND)
+			set(evg-components false)
+		endif()
 	endif()
 
-	if(evg_FOUND AND nytl_FOUND AND vpp_FOUND)
-		message("[config] Found evg headers at " ${evg_INCLUDE_DIRS})
-		message("[config] Found nytl headers at " ${nytl_INCLUDE_DIRS})
-		set(evg_location ${evg_INCLUDE_DIRS} CACHE STRING "Which evg to use")
-		set(nytl_location ${nytl_INCLUDE_DIRS} CACHE STRING "Which nytl to use")
-		set(evg_build off)
+	if(WithGL AND NOT EVG_GL_FOUND)
+		set(evg-components false)
+	endif()
+
+	if(WithCairo AND NOT EVG_CAIRO_FOUND)
+		set(evg-components false)
+	endif()
+
+	if(WithWinapi AND NOT EVG_GDI_FOUND)
+		set(evg-components flase)
+	endif()
+
+	if(EVG_FOUND AND NYTL_FOUND AND evg-components)
+		message("[config] Found evg headers at " ${EVG_INCLUDE_DIRS})
+		message("[config] Found nytl headers at " ${NYTL_INCLUDE_DIRS})
+		set(evg_location ${EVG_INCLUDE_DIRS} CACHE STRING "Which evg to use")
+		set(nytl_location ${NYTL_INCLUDE_DIRS} CACHE STRING "Which nytl to use")
+		set(vpp_location ${VPP_INCLUDE_DIRS} CACHE STRING "Which vpp to use")
+		set(evg_build off CACHE INTERNAL "")
 	else()
-		message("[config] Could not find evg and nytl. Will build own version")
+		message("[config] Could not find valid evg and nytl. Will build own version")
 		set(evg_location "own" CACHE STRING "Which evg to use")
-		set(nytl_location "own" CACHE STRING "Which nytl to use")
-		set(evg_build on)
-	endif()
-endif()
-
-#configure vpp
-if(WithVulkan AND NOT vpp_location)
-	find_package(vpp 0.1.0 QUIET)
-
-	if(VPP_FOUND)
-		message("[config] Found vpp headers at " ${vpp_INCLUDE_DIRS})
-		set(vpp_location ${vpp_INCLUDE_DIRS} CACHE STRING "Which vpp to use")
-		set(vpp_build off)
-	else()
-		message("[config] Could not find vpp. Will build own version")
-		set(vpp_location "own" CACHE STRING "Which vpp to use")
-		set(vpp_build on)
+		set(nytl_location "own (evg)" CACHE STRING "Which nytl to use")
+		set(vpp_location "own (evg)" CACHE STRING "Which vpp to use")
+		set(evg_build on CACHE INTERNAL "")
 	endif()
 endif()
 
@@ -140,6 +158,7 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/ny.pc" DESTINATION lib/pkgconfig)
 #subdirs
 add_subdirectory(src/ny)
 add_subdirectory(include/ny)
+add_subdirectory(external)
 
 if(BuildExamples)
 	add_subdirectory(examples)
@@ -151,8 +170,8 @@ configure_file(
 	"${CMAKE_CURRENT_BINARY_DIR}/cmake/uninstall.cmake"
 	IMMEDIATE @ONLY)
 
-add_custom_target(uninstall 
-	COMMAND ${CMAKE_COMMAND} -P 
+add_custom_target(uninstall
+	COMMAND ${CMAKE_COMMAND} -P
 	${CMAKE_CURRENT_BINARY_DIR}/cmake/uninstall.cmake)
 
 #output configuration
@@ -184,8 +203,8 @@ message("\tWithEGL:\t\t" ${WithEGL})
 message("\tWithVulkan:\t\t" ${WithVulkan})
 message("\n")
 
-message("\tnytl build:\t\t" ${nytl_location})
 message("\tevg build:\t\t" ${evg_location})
+message("\tnytl build:\t\t" ${nytl_location})
 
 if(WithVulkan)
 	message("\tvpp build:\t\t" ${vpp_location})

@@ -26,7 +26,7 @@
 # include <windows.h>
 #endif
 
-#include <ny/draw/gl/glad/glad.h>
+#include <evg/gl/api.h>
 
 #ifndef __glad_wglext_h_
 

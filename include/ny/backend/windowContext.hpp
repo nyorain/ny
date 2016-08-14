@@ -4,7 +4,7 @@
 #include <ny/base/eventHandler.hpp>
 
 #include <nytl/any.hpp> //C++17
-#include <nytl/enumOps.hpp> //C++17
+#include <nytl/flags.hpp>
 
 #include <memory>
 
@@ -16,15 +16,6 @@ namespace ny
 using WindowHints = Flags<WindowHint>;
 using WindowEdges = Flags<WindowEdge>;
 
-///Defines all possible drawing states a WindowContext can have.
-enum class DrawState : unsigned int
-{
-	good, //good moment to draw
-	bad, //bad moment to draw
-	invalid, //impossible to draw on this WindowContext ath the moment
-	unavailable //impossible to draw on this WindowContet in general
-};
-
 ///\brief Abstract interface for a window context in the underlaying window system.
 ///The term "window" used in the documentation for this class is used for the underlaying native
 ///window, ny::WindowContext is totally independent from ny::Window and can be used without it.
@@ -33,8 +24,7 @@ enum class DrawState : unsigned int
 ///
 ///The WindowContext will send the registered Eventhandler (if any) a DrawEvent when it should
 ///redraw the window. Alternatively the client may wish to redraw the window because of some
-///content changes. Then it can call the drawable function which will return information about
-///the windows current state. 
+///content changes. Then it can call the refresh function.
 class WindowContext : public EventHandler
 {
 public:
@@ -83,40 +73,19 @@ public:
 	///way.
 	virtual NativeWindowHandle nativeHandle() const = 0;
 
-	///Returns the DrawState of the window.
-	///If the DrawState is DrawState::good the window is ready to be drawn at the moment.
-	///If the DrawState is DrawState::bad the window could be drawn at the moment but this
-	///could lead to artefacts or worse performance or blocking of the draw function
-	///or at the desctuctor of the returned DrawGuard.
-	///If the DrawState is DrawState::invalid the window cannot be drawn at the moment and
-	///calling draw will throw. Might have this DrawState if there is already a currently
-	///active DrawContext for this WindowContext or if the backend does not allow drawing
-	///on it at the moment.
-	///If the DrawState is DrawState::unavailable the window was not prepared for any kind
-	///of drawing, i.e. it has no DrawContext associated with it and calling draw will
-	///therefore throw. Note that when this DrawState it returned, it will not change and calling
-	///refresh will never generate a DrawEvent. This have this DrawState if the WindowContext
-	///was created with DrawType::none.
-	///\sa draw
-	///\sa refresh
-	virtual DrawState drawState() const = 0;
-
-	///Returns a DrawContext (DrawGuard) that can be used to draw on the window.
-	///Note that this function will throw if the DrawState is unavailable or invalid and 
-	///might ouput a warning if the drawState is bad.
-	///\sa drawState
-	virtual DrawGuard draw() = 0;
-
 	///Asks the platform-specific windowing api for a window refresh.
 	///Will basically send a DrawEvent to the registered EventHandler as soon as the window is
 	///ready to draw. This function might directly dispatch a DrawEvent to the registered
 	///EventHandler which might lead to a redraw before this function returns depending on
-	///the used EventDispatcher.
-	///Note that when the drawState of this WindowContext is unavilable this function will never
-	///send a DrawEvent but output a warning instead.
-	///\sa drawState
+	///the used EventDispatcher (and if events are dispatched at the moments).
+	///Note that if this WindowContext was created without any drawing support, this function will
+	///output a warning and never generate a DrawEvent.
     virtual void refresh() = 0;
 
+	///Returns a DrawContext that can be used to draw the window for the given DrawEvent.
+	///Note that the DrawEvent may be not needed on some backends (the window can always be drawn).
+	///Will throw an exception if the WindowContext has no support for drawing.
+	virtual DrawGuard draw() = 0;
 
     //toplevel-specific
 	///Maximized the window.

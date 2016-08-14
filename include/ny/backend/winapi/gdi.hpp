@@ -2,7 +2,7 @@
 
 #include <ny/backend/winapi/include.hpp>
 #include <ny/backend/winapi/windowContext.hpp>
-#include <ny/draw/gdi.hpp>
+#include <evg/gdi.hpp>
 
 #include <memory>
 
@@ -10,7 +10,7 @@ namespace ny
 {
 
 ///GdiDrawContext to draw on a winapi window
-class GdiWindowDrawContext : public GdiDrawContext
+class GdiWindowDrawContext : public evg::GdiDrawContext
 {
 protected:
 	HWND window_ {nullptr};
@@ -22,8 +22,8 @@ protected:
 public:
 	GdiWindowDrawContext(HWND window);
 
-	virtual void init() override;
-	virtual void apply() override;
+	void init() override;
+	void apply() override;
 };
 
 ///Winapi WindowContext using gdi to draw.
@@ -34,7 +34,7 @@ protected:
 
 public:
 	GdiWinapiWindowContext(WinapiAppContext& ctx, const WinapiWindowSettings& settings = {});
-	virtual DrawGuard draw() override;
+	DrawGuard draw() override;
 };
 
 }

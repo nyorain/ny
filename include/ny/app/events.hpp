@@ -20,21 +20,7 @@ namespace eventType
 	constexpr unsigned int windowFocus = 15;
 	constexpr unsigned int windowRefresh = 16;
 	constexpr unsigned int windowClose = 17;
-	constexpr unsigned int windowContext = 20;
-
-	namespace context
-	{
-		constexpr unsigned int create = 1; //contextEventType
-	}
 }
-
-//
-class FocusEvent : public EventBase<eventType::windowFocus, FocusEvent>
-{
-public:
-	using EvBase::EvBase;
-    bool gained {0};
-};
 
 //
 class SizeEvent : public EventBase<eventType::windowSize, SizeEvent>
@@ -53,7 +39,6 @@ public:
 
     bool show = 0;
 	ToplevelState state;
-    //showState here
 };
 
 class CloseEvent : public EventBase<eventType::windowClose, CloseEvent>
@@ -82,32 +67,5 @@ class RefreshEvent : public EventBase<eventType::windowRefresh, RefreshEvent, 1>
 public:
 	using EvBase::EvBase;
 };
-
-/*
-//ContextEvent
-class ContextEvent : public Event //own ContextEvents could be derived form this
-{
-public:
-    ContextEvent(EventHandler* h = nullptr, EventData* d = nullptr) : Event(h, d) {}
-
-    virtual unsigned int type() const override final { return eventType::; }
-    virtual unsigned int contextType() const = 0;
-};
-
-template<unsigned int ContextType, typename T, bool Override = 0>
-class ContextEventBase : public DeriveCloneable<ContextEvent, T>
-{
-public:
-	using ContextEvBase = ContextEventBase;
-	using typename DeriveCloneable<ContextEvent, T>::CloneableBase;
-
-public:
-	using CloneableBase::CloneableBase;
-
-	virtual bool overrideable() const override { return Override; }
-	virtual unsigned int contextType() const override { return ContextType; }
-};
-
-*/
 
 }
