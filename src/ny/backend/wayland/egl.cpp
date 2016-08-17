@@ -1,21 +1,10 @@
-#include <ny/config.h>
-
-#ifdef NY_WithGL
-
-#include <ny/wayland/waylandEgl.hpp>
-#include <ny/wayland/waylandAppContext.hpp>
-#include <ny/wayland/waylandUtil.hpp>
-#include <ny/wayland/waylandWindowContext.hpp>
-#include <ny/wayland/waylandInterfaces.hpp>
-
-#include <ny/error.hpp>
-#include <ny/window.hpp>
-#include <ny/gl/glDrawContext.hpp>
+#include <ny/backend/wayland/egl.hpp>
+#include <ny/backend/wayland/windowContext.hpp>
+#include <ny/backend/wayland/appContext.hpp>
+#include <ny/backend/wayland/util.hpp>
 
 #include <wayland-egl.h>
 #include <EGL/egl.h>
-
-#include <GL/gl.h>
 
 namespace ny
 {
@@ -131,6 +120,32 @@ void waylandEGLDrawContext::setSize(Vec2ui size)
     //makeCurrent();
     //glViewport(0, 0, size.x, size.y);
     //makeNotCurrent();
+}
+
+//
+WaylandEglWindowContext::WaylandEglWindowContext(WaylandAppContext& ac, 
+	const WaylandWindowSettings& settings) : WaylandWindowContext(ac, settings)
+{
+	auto size = settings.size;
+    wlEGLWindow_ = wl_egl_window_create(wlSurface(), size.x, size.y);
+    if(!wlEGLWindow_) throw std::runtime_error("waylandEglWC: wl_egl_window_create failed");
+
+	auto eglWindow = static_cast<EGLNativeWindowType>(wlEglWindow_);
+    eglSurface_ = eglCreateWindowSurface(egl->getDisplay(), egl->getConfig(), eglWindow, nullptr);
+    if(!eglSurface_) throw std::runtime_error("waylandEglWC: eglCreateWindowSurface failed");
+
+    const EGLint contextAttribs[] = { EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE };
+    eglContext_ = eglCreateContext(egl->getDisplay(), egl->getConfig(), EGL_NO_CONTEXT, contextAttribs);
+}
+
+DrawGuard WaylandEglWindowContext::draw()
+{
+	return {drawContext_};
+}
+
+void WaylandEglWindowContext::size(const Vec2ui& size)
+{
+    wl_egl_window_resize(wlEGLWindow_, size.x, size.y, 0, 0);
 }
 
 }

@@ -116,18 +116,19 @@ std::unique_ptr<WindowContext> WinapiAppContext::createWindowContext(const Windo
 		wsettings = settings;
     }
 
-	auto drawType = s.draw;
-	if(drawType == DrawType::none) return std::make_unique<WinapiWindowContext>(*this, s);
-
-	else if(drawType == DrawType::dontCare || drawType == DrawType::software)
+	auto drawType = s.drawSettings.drawType;
+	if(drawType == DrawType::dontCare || drawType == DrawType::software)
 	{
 	// #if defined(NY_WithGDI)
 	// 	return std::make_unique<GdiWinapiWindowContext>(*this, s);
 	#if defined(NY_WithCairo)
 		return std::make_unique<CairoWinapiWindowContext>(*this, s);
 	#else
-		warning("WinapiAC::createWindowContext: no software renderer support, invalid drawType.");
-		return nullptr;
+		if(drawType != DrawType::dontCare)
+		{
+			warning("WinapiAC::createWindowContext: no software renderer support, invalid drawType.");
+			return nullptr;
+		}
 	#endif //Gdi
 	}
 
@@ -136,8 +137,11 @@ std::unique_ptr<WindowContext> WinapiAppContext::createWindowContext(const Windo
 	#ifdef NY_WithGL
 		// return std::make_unique<WglWindowContext>(*this, s);
 	#else
-		warning("WinapiAC::createWindowContext: no gl support, invalid drawType.");
-		return nullptr;
+		if(drawType != DrawType::dontCare)
+		{
+			warning("WinapiAC::createWindowContext: no gl support, invalid drawType.");
+			return nullptr;
+		}
 	#endif //gl
 	}
 
@@ -146,12 +150,15 @@ std::unique_ptr<WindowContext> WinapiAppContext::createWindowContext(const Windo
 	#ifdef NY_WithVulkan
 		// return std::make_unique<VulkanWinapiWindowContext>(*this, s);
 	#else
-		warning("WinapiAC::createWindowContext: no vulkan support, invalid drawType.");
-		return nullptr;
+		if(drawType != DrawType::dontCare)
+		{
+			warning("WinapiAC::createWindowContext: no vulkan support, invalid drawType.");
+			return nullptr;
+		}
 	#endif //vulkan
 	}
 
-	return {};
+	return std::make_unique<WinapiWindowContext>(*this, s);
 }
 
 MouseContext* WinapiAppContext::mouseContext()
@@ -338,7 +345,7 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
         {
 			Vec2i position{GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
 
-			if(mouseOver_->handle() != window)
+			if(!mouseOver_ || mouseOver_->handle() != window)
 			{
 				mouseOver_ = windowContext(window);
 				if(handlerEvents)

@@ -8,32 +8,35 @@
 #include <nytl/vec.hpp>
 
 struct wl_egl_window;
+namespace evg { class GlDrawContext; }
 
 namespace ny
 {
 
-// class waylandEGLAppContext 
-// {
-// public:
-//     waylandEGLAppContext(waylandAppContext* ac);
-//     ~waylandEGLAppContext();
-// };
+class WaylandEGLAppContext 
+{
+public:
+    WaylandEGLAppContext(WaylandAppContext& ac);
+    ~WaylandEGLAppContext();
+};
 
 
 ///Egl WindowContext implementation for wayland.
 class WaylandEglWindowContext: public WaylandWindowContext
 {
 public:
-    WaylandEglWindowContext(const WaylandWindowContext& wc, const WaylandWindowSettings& settings);
+    WaylandEglWindowContext(WaylandAppContext& wc, const WaylandWindowSettings& settings);
     virtual ~WaylandEglWindowContext();
 
 	DrawGuard draw() override;
+	void size(const Vec2ui& size) override;
+
     wl_egl_window& wlEglWindow() const { return *wlEglWindow_; };
 
 protected:
     wl_egl_window* wlEglWindow_ = nullptr;
-	EglContext eglContext_;
+	std::unique_ptr<EglContext> eglContext_;
+	std::unique_ptr<evg::GlDrawContext> drawContext_;
 };
-
 
 }

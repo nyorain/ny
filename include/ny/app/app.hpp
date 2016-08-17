@@ -85,7 +85,6 @@ protected:
 	friend class Window;
 	void windowCreated();
 	void windowClosed();
-
 };
 
 }

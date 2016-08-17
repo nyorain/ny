@@ -17,7 +17,7 @@ public:
 	~Keyboard() = default;
 
 	bool pressed(Key key) const { return keyboardContext_.pressed(key); }
-	std::string text(Key key) const { return keyboardContext_.text(key); }
+	std::string unicode(Key key) const { return keyboardContext_.unicode(key); }
 	KeyboardContext& context() const { return keyboardContext_; }
 	WindowContext* focus() const;
 

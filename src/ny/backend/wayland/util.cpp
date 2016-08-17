@@ -139,6 +139,52 @@ ShmBuffer::~ShmBuffer()
     destroy();
 }
 
+ShmBuffer::ShmBuffer(ShmBuffer&& other)
+{
+	appContext_ = other.appContext_;
+	shmSize_ = other.shmSize_;
+	size_ = other.size_;
+	buffer_ = other.buffer_;
+	pool_ = other.pool_;
+	data_ = other.data_;
+	format_ = other.format_;
+	used_ = other.used_;
+
+	other.appContext_ = {};
+	other.shmSize_ = {};
+	other.size_ = {};
+	other.buffer_ = {};
+	other.pool_ = {};
+	other.data_ = {};
+	other.format_ = {};
+	other.used_ = {};
+}
+
+ShmBuffer& ShmBuffer::operator=(ShmBuffer&& other)
+{
+	destroy();
+
+	appContext_ = other.appContext_;
+	shmSize_ = other.shmSize_;
+	size_ = other.size_;
+	buffer_ = other.buffer_;
+	pool_ = other.pool_;
+	data_ = other.data_;
+	format_ = other.format_;
+	used_ = other.used_;
+
+	other.appContext_ = {};
+	other.shmSize_ = {};
+	other.size_ = {};
+	other.buffer_ = {};
+	other.pool_ = {};
+	other.data_ = {};
+	other.format_ = {};
+	other.used_ = {};
+
+	return *this;
+}
+
 void ShmBuffer::create()
 {
     auto* shm = appContext_->wlShm();

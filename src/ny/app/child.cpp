@@ -1,4 +1,4 @@
-#include <ny/window/child.hpp>
+#include <ny/app/child.hpp>
 
 namespace ny
 {

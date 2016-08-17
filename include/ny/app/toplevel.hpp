@@ -1,8 +1,7 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <ny/window/window.hpp>
-#include <ny/window/defs.hpp>
+#include <ny/app/window.hpp>
 
 namespace ny
 {
@@ -12,17 +11,18 @@ namespace ny
 class ToplevelWindow : public Window
 {
 public:
+	ToplevelWindow(App& app, const WindowSettings& settings = {});
 	ToplevelWindow(App& app, const Vec2ui& size, const std::string& title = "",
 			const WindowSettings& settings = {});
 
 	virtual ~ToplevelWindow();
 
     //hints
-    bool maximizeHint() const { return hints_ & WindowHints::maximize; }
-    bool minimizeHint() const { return hints_ & WindowHints::minimize; }
-    bool resizeHint() const { return hints_ & WindowHints::resize; }
-    bool closeHint() const { return hints_ & WindowHints::close; }
-    bool customDecorated() const {  return hints_ & WindowHints::customDecorated; }
+    bool maximizeHint() const { return hints_ & WindowHint::maximize; }
+    bool minimizeHint() const { return hints_ & WindowHint::minimize; }
+    bool resizeHint() const { return hints_ & WindowHint::resize; }
+    bool closeHint() const { return hints_ & WindowHint::close; }
+    bool customDecorated() const {  return hints_ & WindowHint::customDecorated; }
 
     void maximizeHint(bool set);
     void minimizeHint(bool set);
@@ -49,7 +49,7 @@ public:
 protected:
     ToplevelState state_ {};
     std::string title_ {};
-	Flags<WindowHints> hints_ {};
+	WindowHints hints_ {};
 
 protected:
 	virtual void mouseMoveEvent(const MouseMoveEvent& event) override;

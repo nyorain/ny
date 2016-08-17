@@ -2,6 +2,7 @@
 
 #include <ny/base/event.hpp>
 #include <ny/base/eventHandler.hpp>
+#include <ny/base/eventDispatcher.hpp>
 #include <ny/base/log.hpp>
 #include <ny/base/cursor.hpp>
 #include <ny/base/loopControl.hpp>

@@ -1,18 +1,18 @@
-#include <ny/window/window.hpp>
-#include <ny/window/events.hpp>
+#include <ny/app/window.hpp>
+#include <ny/app/events.hpp>
+#include <ny/app/app.hpp>
+#include <ny/app/mouse.hpp>
+#include <ny/app/keyboard.hpp>
 
 #include <ny/base/cursor.hpp>
 #include <ny/base/event.hpp>
 #include <ny/base/log.hpp>
 
-#include <ny/app/app.hpp>
-#include <ny/app/mouse.hpp>
-#include <ny/app/keyboard.hpp>
-#include <ny/backend/backend.hpp>
 #include <ny/backend/windowContext.hpp>
-#include <ny/draw/drawContext.hpp>
+#include <ny/backend/appContext.hpp>
 
 #include <nytl/misc.hpp>
+#include <evg/drawContext.hpp>
 
 #include <iostream>
 #include <climits>
@@ -42,7 +42,7 @@ void Window::create(App& papp, const Vec2ui& size, const WindowSettings& setting
 	auto cpy = settings;
 	cpy.size = size;
 
-	windowContext_ = app().backend().createWindowContext(app().appContext(), cpy);
+	windowContext_ = app().appContext().createWindowContext(cpy);
 
 	windowContext_->eventHandler(*this);
 	app().windowCreated();
@@ -215,7 +215,7 @@ void Window::showEvent(const ShowEvent& e)
 }
 void Window::focusEvent(const FocusEvent& e)
 {
-    focus_ = e.gained;
+    focus_ = e.focus;
     onFocus(*this, e);
 }
 

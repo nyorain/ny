@@ -1,14 +1,11 @@
 #pragma once
 
-#include <ny/config.hpp>
-
-#ifndef NY_WithGL
-	#error ny was built without gl. Do not include this header.
-#endif
-
 #include <ny/include.hpp>
+
 #include <nytl/nonCopyable.hpp>
 #include <nytl/rect.hpp>
+
+#include <evg/gl/drawContext.hpp>
 
 #include <string>
 #include <vector>
@@ -17,12 +14,14 @@
 namespace ny
 {
 
+//Backends shall always just use one context per thread and only create them if needed.
+
 ///Abstract base class for an openGL(ES) context. This class is implemented e.g.
 ///with egl, glx or wgl. With the static current() function one can get the current context
 ///for the calling thread. Classes that deal with openGL(ES) like the gl DrawContext
 ///implementation or the shader class need a current context for their openGL(ES) operations.
 ///This class is useful as abstraction for the different backends.
-class GlContext : public NonCopyable
+class GlContext : public nytl::NonMovable
 {
 public:
 	///The possible apis a context may have.
@@ -54,7 +53,6 @@ public:
 	///TODO: abolish the possibilty for invalid contexts? raii?
 	static GlContext* currentValid()
 		{ return current() && current()->valid() ? current() : nullptr; }
-
 
 public:
 	GlContext() = default;
@@ -178,5 +176,25 @@ protected:
 	virtual bool makeNotCurrentImpl() = 0;
 };
 
+///GlDrawContext derivate that is associated with a certain GlContext and assures that
+///it is the current GlContext while drawing.
+class GlContextDrawContext : public evg::GlDrawContext
+{
+public:
+	GlContextDrawContext(GlContext& context);
+	~GlContextDrawContext();
+
+	void init() override;
+	void apply() override;
+
+protected:
+	GlContext* context_;
+};
+
 
 }
+
+#ifndef NY_WithGL
+	#error ny was built without gl. Do not include this header.
+#endif
+

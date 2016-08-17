@@ -17,7 +17,7 @@ using WindowContextPtr = std::unique_ptr<WindowContext>;
 ///Base class for backend implementations.
 ///Can be used to retrieve a list of the built-in backends which can then be checked for
 ///availability and used to create app or window contexts.
-///A Backend represents an abstract possibility to display something on screen and to 
+///A Backend represents an abstract possibility to display something on screen and to
 ///retrieve events from the system. Usually a backend represents a output method (display
 ///manager protocol or direct) in combination with a method to retrieve input.
 ///Example backend implementations are:
@@ -31,7 +31,13 @@ public:
 	///Returns a list of all current registered backends.
 	///Note that backend implementations usually hold a static object of theiself, so this
 	///function will returned undefined contents if called before or after main().
+	///The Backends registered here are the backends that are loaded/ny was built with.
+	///It does not guarantee that they are available, this must be checked with Backend::available.
 	static std::vector<Backend*> backends() { return backendsFunc(); }
+
+	///Chooses one available backend.
+	///\exception std::logic_error if no backend is available.
+	static Backend& choose();
 
 public:
 	///Returns whether the backend is available.

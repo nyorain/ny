@@ -1,11 +1,5 @@
 #pragma once
 
-#include <ny/config.hpp>
-
-#ifndef NY_WithEGL
-	#error ny was built without egl. Do not include this header.
-#endif
-
 #include <ny/include.hpp>
 #include <ny/backend/common/gl.hpp>
 
@@ -63,3 +57,7 @@ protected:
 };
 
 }
+
+#ifndef NY_WithEGL
+	#error ny was built without egl. Do not include this header.
+#endif

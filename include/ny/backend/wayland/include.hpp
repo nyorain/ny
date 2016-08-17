@@ -52,9 +52,16 @@ namespace ny
 	class WaylandEglWindowContext;
 #endif //WithEGL
 
+
 #ifdef NY_WithVulkan
 	class WaylandVulkanContext;
 #endif //WithVulkan
+
+
+#ifdef NY_WithCairo
+	class WaylandCairoDrawContext;
+	class WaylandCairoWindowContext;
+#endif //WithCairo
 
 	namespace wayland
 	{

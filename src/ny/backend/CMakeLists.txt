@@ -39,6 +39,7 @@ if(WithWayland)
 	list(APPEND src_backend
 		wayland/appContext.cpp
 		wayland/backend.cpp
+		wayland/cairo.cpp
 		wayland/util.cpp
 		wayland/windowContext.cpp
 		wayland/interfaces.cpp

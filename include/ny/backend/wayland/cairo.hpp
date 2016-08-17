@@ -1,6 +1,8 @@
 #pragma once
 
 #include <ny/backend/wayland/include.hpp>
+#include <ny/backend/wayland/windowContext.hpp>
+#include <ny/backend/wayland/util.hpp>
 
 #include <nytl/nonCopyable.hpp>
 #include <nytl/vec.hpp>
@@ -9,27 +11,37 @@
 namespace ny
 {
 
-class WaylandCairoDrawContext: public evg::CairoDrawContext
+class WaylandCairoDrawContext : public evg::CairoDrawContext
 {
 public:
-    WaylandCairoDrawContext(const WaylandWindowContext& wc);
-    ~WaylandCairoDrawContext();
+	WaylandCairoDrawContext(WaylandCairoWindowContext& wc, const Vec2ui& size);
 
-    void attach(const Vec2i& pos = Vec2i());
-    void updateSize(const Vec2ui& size);
+	void init() override;
+	void apply() override;
 
-    void swapBuffers();
-    bool frontBufferUsed() const;
+	void resize(const Vec2ui& size);
+	const wayland::ShmBuffer& shmBuffer() const { return buffer_; }
 
 protected:
-    wayland::ShmBuffer* buffer_[2] {nullptr, nullptr};
-    unsigned int frontID_ {0};
+	WaylandCairoWindowContext* windowContext_;
+	wayland::ShmBuffer buffer_;
+};
 
-    cairo_surface_t* cairoBackSurface_ {nullptr};
-    cairo_t* cairoBackCR_ {nullptr};
+class WaylandCairoWindowContext: public WaylandWindowContext
+{
+public:
+    WaylandCairoWindowContext(WaylandAppContext& ac, const WaylandWindowSettings& settings);
 
-    wayland::ShmBuffer* frontBuffer() const { return buffer_[frontID_]; }
-    wayland::ShmBuffer* backBuffer() const { return buffer_[frontID_^1]; }
+	DrawGuard draw() override;
+	void size(const Vec2ui& size) override;
+
+	///Attached the given buffer to the surface, damages the full surface and commits it.
+	///Does also add a frame callback.
+	void commit(wl_buffer& buffer);
+
+protected:
+	std::vector<WaylandCairoDrawContext> buffers_;
+	nytl::Vec2ui size_;
 };
 
 

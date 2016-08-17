@@ -184,14 +184,14 @@ struct SoftwareDrawSettings
 
 struct GlDrawSettings
 {
-	GlContext*& storeContext;
+	GlContext** storeContext;
 	bool contextOnly;
 	bool vsync;
 };
 
 struct VulkanDrawSettings
 {
-	VulkanContext*& storeContext;
+	VulkanContext** storeContext;
 	bool contextOnly;
 	bool vsync;
 };
@@ -214,7 +214,7 @@ class WindowSettings
 public:
     virtual ~WindowSettings() = default;
 
-    DrawType draw = DrawType::dontCare;
+	DrawSettings drawSettings;
 	NativeWindowHandle nativeHandle = nullptr;
 	NativeWindowHandle parent = nullptr;
 	ToplevelState initState = ToplevelState::normal;

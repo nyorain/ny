@@ -3,6 +3,7 @@
 #include <ny/include.hpp>
 #include <ny/backend/backend.hpp>
 #include <ny/backend/windowContext.hpp>
+#include <ny/backend/windowSettings.hpp>
 #include <ny/backend/appContext.hpp>
 #include <ny/backend/mouseContext.hpp>
 #include <ny/backend/keyboardContext.hpp>

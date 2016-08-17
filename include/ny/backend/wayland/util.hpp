@@ -62,16 +62,21 @@ public:
 class ShmBuffer
 {
 public:
+	ShmBuffer() = default;
     ShmBuffer(WaylandAppContext& ac, Vec2ui size);
     ~ShmBuffer();
 
+	ShmBuffer(ShmBuffer&& other);
+	ShmBuffer& operator=(ShmBuffer&& other);
+
     Vec2ui size() const { return size_; }
     unsigned int dataSize() const { return size_.x * 4 * size_.y; }
+	unsigned int format() const { return format_; }
 	std::uint8_t& data(){ return *data_; }
     wl_buffer& wlBuffer() const { return *buffer_; }
 
-    void use() { used_.store(1); }
-    bool used() const { return used_.load(); }
+    void use() { used_ = 1; }
+    bool used() const { return used_; }
 
 	///Will trigger a buffer recreate if the given size exceeds the current size.
 	///At the beginning 5MB will be allocated for a buffer 
@@ -87,15 +92,15 @@ protected:
     wl_shm_pool* pool_;
 	std::uint8_t* data_;
 	unsigned int format_; //argb > bgra > rgba > abgr > xrgb (all 32 bits)
+    bool used_ {0}; //whether the compositor owns the buffer atm
 
-    std::atomic<bool> used_ {0};
-
+protected:
     void create();
     void destroy();
 
     //release cb
     friend void bufferRelease(void*, wl_buffer*);
-    void wasReleased(){ used_.store(0); }
+    void wasReleased(){ used_ = 0; }
 };
 
 //serverCallback

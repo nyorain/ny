@@ -85,6 +85,8 @@ public:
 	///Returns a DrawContext that can be used to draw the window for the given DrawEvent.
 	///Note that the DrawEvent may be not needed on some backends (the window can always be drawn).
 	///Will throw an exception if the WindowContext has no support for drawing.
+	///While the returned DrawGuard is alive (i.e. the DrawContext is active) calling further
+	///functions on the WindowContext might result in undefined behaviour.
 	virtual DrawGuard draw() = 0;
 
     //toplevel-specific

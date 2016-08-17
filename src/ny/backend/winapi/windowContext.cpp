@@ -37,6 +37,7 @@ WinapiWindowContext::WinapiWindowContext(WinapiAppContext& appContext,
 	initWindowClass(settings);
 	setStyle(settings);
 	initWindow(settings);
+	showWindow(settings);
 }
 
 WinapiWindowContext::~WinapiWindowContext()
