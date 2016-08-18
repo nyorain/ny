@@ -13,13 +13,13 @@ namespace ny
 
 namespace eventType
 {
-	constexpr unsigned int windowSize = 11;
-	constexpr unsigned int windowPosition = 12;
-	constexpr unsigned int windowDraw = 13;
-	constexpr unsigned int windowShow = 14;
-	constexpr unsigned int windowFocus = 15;
-	constexpr unsigned int windowRefresh = 16;
-	constexpr unsigned int windowClose = 17;
+	constexpr auto windowSize = 11u;
+	constexpr auto windowPosition = 12u;
+	constexpr auto windowDraw = 13u;
+	constexpr auto windowShow = 14u;
+	constexpr auto windowFocus = 15u;
+	constexpr auto windowRefresh = 16u;
+	constexpr auto windowClose = 17u;
 }
 
 //

@@ -3,11 +3,13 @@
 #include <ny/include.hpp>
 #include <ny/base/event.hpp>
 
-#include <nytl/any.hpp>
 #include <nytl/callback.hpp>
 
 #include <vector>
 #include <memory>
+
+#include <experimental/any>
+namespace std { using namespace experimental; }
 
 namespace ny
 {
@@ -15,21 +17,24 @@ namespace ny
 //Adds a new event
 namespace eventType
 {
-    constexpr unsigned int dataOffer = 31;
+    constexpr auto dataOffer = 31u;
 }
 
 ///This namespace holds constants for all data formats in which data from a DataSource/DataOffer
 ///may be represented.
+///Applications or libraries using ny may specify their own dataTypes. Custom dataTypes
+///are always represented with a std:vector<std::uint8_t> holding the serialized data.
 namespace dataType
 {
-	constexpr std::uint8_t raw = 2; //DataObject, raw unspecified data buffer
-	constexpr std::uint8_t text = 3; //std::string encoded utf8
-    constexpr std::uint8_t filePaths = 4; //std::vector<c++17 ? std::path : std::string>
-	constexpr std::uint8_t image = 5; //ny:Image
-	constexpr std::uint8_t time = 6; //ny(tl)::Timepoint
+	constexpr auto none = 0u; //meta symbolic constant, dont actually use it.
+	constexpr auto custom = 1u; //meta symbolic constant, dont actually use it.
 
-	constexpr std::uint8_t html = 11; //std::string encoded utf8 with html
-	constexpr std::uint8_t xml = 12; //std::string encoded utf8 with xml
+	constexpr auto raw = 2u; //std:vector<std::uint8_t>, raw unspecified data buffer
+	constexpr auto text = 3u; //std::string encoded utf8
+    constexpr auto filePaths = 4u; //std::vector<c++17 ? std::path : std::string>
+	constexpr auto image = 5u; //ny:Image
+	constexpr auto timePoint = 6u; //ny(tl)::TimePoint
+	constexpr auto timeDuration = 7u; //ny(tl)::TimeDuration
 }
 
 ///Represents multiple data type formats in which certain data can be retrieved.
@@ -41,20 +46,12 @@ namespace dataType
 class DataTypes
 {
 public:
-    std::vector<std::uint8_t> types;
+    std::vector<unsigned int> types;
 
 public:
-    void add(std::uint8_t type);
-    void remove(std::uint8_t type);
-    bool contains(std::uint8_t type) const;
-};
-
-///Struct used to represent owned raw data.
-class DataObject
-{
-public:
-    std::unique_ptr<std::uint8_t> data;
-    std::size_t size = 0;
+    void add(unsigned int type);
+    void remove(unsigned int type);
+    bool contains(unsigned int type) const;
 };
 
 ///The DataSource class is an interface implemented by the application to start drag and drop
@@ -84,11 +81,11 @@ public:
 class DataOffer
 {
 public:
-	using DataFunction = CompFunc<void(DataOffer& off, std::uint8_t fmt, const std::any& data)>;
+	using DataFunction = CompFunc<void(DataOffer& off, unsigned int fmt, const std::any& data)>;
 
 public:
 	///Will be called everytime a new format is signaled.
-	Callback<bool(DataOffer& off, std::uint8_t fmt)> onFormat;
+	Callback<bool(DataOffer& off, unsigned int fmt)> onFormat;
 
 public:
 	virtual ~DataOffer() = default;
@@ -108,7 +105,7 @@ public:
 	///called once or earlier.
 	///If the requested format cannot be retrieved, the function will be called with an
 	///empty any object.
-	virtual CbConn data(std::uint8_t fmt, const DataFunction& func) = 0;
+	virtual CbConn data(unsigned int fmt, const DataFunction& func) = 0;
 };
 
 ///Event which will be sent when the application recieves data from another application.
@@ -131,11 +128,11 @@ public:
 
 ///Converts the given string to a dataType constant. If the given string is not recognized,
 ///0 is returned.
-std::uint8_t stringToDataType(const std::string& type);
+unsigned int stringToDataType(const std::string& type);
 
 ///Returns a number of string that describe the given data type.
 ///Will return an empty vector if the type is not known.
-std::vector<std::string> dataTypeToString(std::uint8_t type);
+std::vector<std::string> dataTypeToString(unsigned int type);
 
 ///Gives a number of strings for a given DataTypes object.
 ///Will return an empty vector if the DataType holds no known types.

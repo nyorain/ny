@@ -1,6 +1,7 @@
 #include <ny/backend/winapi/appContext.hpp>
 #include <ny/backend/winapi/windowContext.hpp>
 #include <ny/backend/winapi/util.hpp>
+#include <ny/backend/winapi/com.hpp>
 #include <ny/backend/mouseContext.hpp>
 #include <ny/backend/keyboardContext.hpp>
 #include <ny/app/events.hpp>
@@ -23,6 +24,7 @@
 #endif
 
 #include <nytl/utf.hpp>
+#include <nytl/scope.hpp>
 
 #include <windowsx.h>
 #include <ole2.h>
@@ -99,6 +101,7 @@ WinapiAppContext::~WinapiAppContext()
 {
 	// Font::defaultFont().resetCache("ny::GdiFontHandle");
     if(gdiplusToken_) Gdiplus::GdiplusShutdown(gdiplusToken_);
+	OleUninitialize();
 }
 
 std::unique_ptr<WindowContext> WinapiAppContext::createWindowContext(const WindowSettings& settings)
@@ -265,9 +268,53 @@ void WinapiAppContext::clipboard(const std::string& text) const
 	::GlobalUnlock(handle);
 
 	::SetClipboardData(CF_TEXT, handle);
-
 	::CloseClipboard();
-	//::GlobalFree(handle); //XXX: do this here? doc states no. memory leak?
+}
+
+void WinapiAppContext::clipboard(std::unique_ptr<DataSource>&& source)
+{
+	//OleSetClipboard
+	auto dataObj = new winapi::com::DataObjectImpl(std::move(source));
+	::OleSetClipboard(dataObj);
+
+	//if this is set to false, this function will set all clipboard datas
+	// constexpr auto bool renderOnDemand = true;
+	// dataSource_ = std::move(source);
+	//
+	// if(!::OpenClipboard(nullptr))
+	// {
+	// 	warning(errorMessage("ny::WinapiAC::clipboard(src): OpenClipboard failed"));
+	// 	return;
+	// }
+	//
+	// //always close clipboard
+	// auto exit = nytl::makeScopeGuard([]{ ::CloseClipboard(); });
+	//
+	// if(!::EmptyClipboard())
+	// {
+	// 	warning(errorMessage("ny::WinapiAC::clipboard(src): EmptyClipboard failed"));
+	// 	return;
+	// }
+	//
+	// for(auto dataFormat : dataSource_->types().types)
+	// {
+	// 	auto data = nullptr;
+	// 	auto cfFormat = convertDataSourceFormat(dataFormat);
+	// 	if(!renderOnDemand)	data = renderDataSourceFormat(cfFormat);
+	// 	if(!::SetClipBoardData(cfFormat, data))
+	// 		warning(errorMessage("ny::WinapiAC::clipboard(src): SetClipboardData failed"));
+	// }
+	//
+	// if(!::SetClipboardData(CF_TEXT, nullptr))
+	// {
+	// 	warning(errorMessage("ny::WinapiAC::clipboard(src): SetClipboardData failed"));
+	// 	return;
+	// }
+	// if(!::CloseClipboard())
+	// {
+	// 	warning(errorMessage("ny::WinapiAC::clipboard(src): CloseClipboard failed"));
+	// 	return;
+	// }
 }
 
 std::string WinapiAppContext::clipboard() const

@@ -1,7 +1,8 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <nytl/tmp.hpp>
+#include <ny/base/data.hpp>
+
 #include <windows.h>
 #include <ole2.h>
 
@@ -9,6 +10,10 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <unordered_map>
+
+#include <experimental/any>
+namespace std { using namespace experimental; }
 
 namespace ny
 {
@@ -31,6 +36,22 @@ HGLOBAL stringToGlobalUnicode(const std::u16string& string);
 ///Copies the data from a global memory object to a string.
 std::u16string globalToStringUnicode(HGLOBAL global);
 std::string globalToString(HGLOBAL global);
+
+///Converts between a raw buffer and a global
+HGLOBAL bufferToGlobal(const nytl::Range<std::uint8_t>& buffer);
+std::vector<std::uint8_t> globalToBuffer(HGLOBAL global);
+
+///Converts between dataType format and native winapi clipboard format
+//returns cfFormat
+unsigned int dataTypeToClipboardFormat(unsigned int dataType, unsigned int& medium);
+
+//returns member of dataType
+unsigned int clipboardFormatToDataType(unsigned int cfFormat);
+
+///Converts between std::any holding the dataType data and the native winapi representation.
+std::any comToData(unsigned int cfFormat, void* data, unsigned int& dataFormat);
+void* dataToCom(unsigned int dataFormat, const std::any& data, unsigned int& cfFormat,
+	unsigned int& medium);
 
 namespace com
 {
@@ -70,9 +91,9 @@ template<typename T, const GUID&... ids>
 class UnknownImplementation : public T
 {
 public:
- 	virtual __stdcall HRESULT QueryInterface(REFIID riid, void** ppv) override;
-  	virtual __stdcall ULONG AddRef() override;
-  	virtual __stdcall ULONG Release() override;
+ 	__stdcall HRESULT QueryInterface(REFIID riid, void** ppv) override;
+  	__stdcall ULONG AddRef() override;
+  	__stdcall ULONG Release() override;
 
 protected:
 	volatile std::atomic<unsigned int> refCount_ {0};
@@ -84,10 +105,10 @@ class DropTargetImpl : public UnknownImplementation<IDropTarget, IID_IDropTarget
 public:
 	DropTargetImpl(WinapiWindowContext& ctx) : windowContext_(&ctx) {}
 
-	virtual __stdcall HRESULT DragEnter(IDataObject*, DWORD, POINTL pos, DWORD* effect) override;
-	virtual __stdcall HRESULT DragOver(DWORD keys, POINTL pos, DWORD* effect) override;
-	virtual __stdcall HRESULT DragLeave() override;
-	virtual __stdcall HRESULT Drop(IDataObject* data, DWORD, POINTL pos, DWORD*  effect) override;
+	__stdcall HRESULT DragEnter(IDataObject*, DWORD, POINTL pos, DWORD* effect) override;
+	__stdcall HRESULT DragOver(DWORD keys, POINTL pos, DWORD* effect) override;
+	__stdcall HRESULT DragLeave() override;
+	__stdcall HRESULT Drop(IDataObject* data, DWORD, POINTL pos, DWORD*  effect) override;
 
 protected:
 	WinapiWindowContext* windowContext_;
@@ -96,8 +117,8 @@ protected:
 ///IDropSource implementation class.
 class DropSourceImpl : public UnknownImplementation<IDropSource, IID_IDropSource>
 {
-	virtual __stdcall HRESULT GiveFeedback(DWORD effect) override;
-	virtual __stdcall HRESULT QueryContinueDrag(BOOL escape, DWORD keys) override;
+	__stdcall HRESULT GiveFeedback(DWORD effect) override;
+	__stdcall HRESULT QueryContinueDrag(BOOL escape, DWORD keys) override;
 };
 
 ///IDropData implementation class.
@@ -106,30 +127,29 @@ class DataObjectImpl : public UnknownImplementation<IDataObject, IID_IDataObject
 public:
 	DataObjectImpl(std::unique_ptr<DataSource> src);
 
-    virtual __stdcall HRESULT GetData(FORMATETC*, STGMEDIUM*) override;
-    virtual __stdcall HRESULT GetDataHere(FORMATETC*, STGMEDIUM*) override;
-    virtual __stdcall HRESULT QueryGetData(FORMATETC*) override;
-    virtual __stdcall HRESULT GetCanonicalFormatEtc(FORMATETC*, FORMATETC*) override;
-    virtual __stdcall HRESULT SetData(FORMATETC*, STGMEDIUM*, BOOL) override;
-    virtual __stdcall HRESULT EnumFormatEtc(DWORD, IEnumFORMATETC**) override;
-    virtual __stdcall HRESULT DAdvise(FORMATETC*, DWORD, IAdviseSink*, DWORD*) override;
-    virtual __stdcall HRESULT DUnadvise(DWORD) override;
-    virtual __stdcall HRESULT EnumDAdvise(IEnumSTATDATA**) override;
+    __stdcall HRESULT GetData(FORMATETC*, STGMEDIUM*) override;
+    __stdcall HRESULT GetDataHere(FORMATETC*, STGMEDIUM*) override;
+    __stdcall HRESULT QueryGetData(FORMATETC*) override;
+    __stdcall HRESULT GetCanonicalFormatEtc(FORMATETC*, FORMATETC*) override;
+    __stdcall HRESULT SetData(FORMATETC*, STGMEDIUM*, BOOL) override;
+    __stdcall HRESULT EnumFormatEtc(DWORD, IEnumFORMATETC**) override;
+    __stdcall HRESULT DAdvise(FORMATETC*, DWORD, IAdviseSink*, DWORD*) override;
+    __stdcall HRESULT DUnadvise(DWORD) override;
+    __stdcall HRESULT EnumDAdvise(IEnumSTATDATA**) override;
 
 protected:
-	///Returns the type id of the supported types that matches the given format, or -1.
-	int lookupFormat(const FORMATETC& format) const;
+	///Returns the dataType id of the supported types that matches the given format.
+	///Returns dataType::none if it could not match a known dataType.
+	unsigned int lookupFormat(const FORMATETC& format) const;
 
-	///Returns a FORMATETC struct for the given supported type id.
-	///\exception std::out_of_range When id > supportedTypes.size()
-	FORMATETC format(unsigned int id) const;
-	bool format(unsigned int id, FORMATETC& format) const;
+	///Returns a FORMATETC struct for the given supported dataType id.
+	FORMATETC format(unsigned int dataType) const;
+	bool format(unsigned int dataType, FORMATETC& format) const;
 
 	///Returns all supported formats in a vector.
 	std::vector<FORMATETC> formats() const;
 
-	///Returns a STGMEDIUM struct for the given supported type id holding the data.
-	///\exception std::out_of_range When id > supportedTypes.size()
+	///Returns a STGMEDIUM struct for the given dataType id holding the data.
 	STGMEDIUM medium(unsigned int id) const;
 	bool medium(unsigned int id, STGMEDIUM& med) const;
 
@@ -142,11 +162,12 @@ protected:
 template<typename T, const GUID&... ids> HRESULT
 UnknownImplementation<T, ids...>::QueryInterface(REFIID riid, void** ppv)
 {
+	using Expand = int[];
 	if(!ppv) return E_INVALIDARG;
 
 	*ppv = nullptr;
 	bool found = (riid == IID_IUnknown);
-	nytl::Expand {(found |= (riid == ids), 0)...};
+	Expand {(found |= (riid == ids), 0)...};
 
 	if(!found) return E_NOINTERFACE;
 
@@ -169,6 +190,21 @@ UnknownImplementation<T, ids...>::Release()
 }
 
 } //namespace com
+
+///Winapi data offer implementation
+class DataOfferImpl : public DataOffer
+{
+public:
+	DataOfferImpl(IDataObject& object);
+
+	DataTypes types() const override { return types_; }
+	nytl::CbConn data(unsigned int fmt, const DataFunction& func) override;
+
+protected:
+	DataTypes types_;
+	com::DataComObject data_;
+	std::unordered_map<unsigned int, FORMATETC> typeFormats_;
+};
 
 } //namespace winapi
 

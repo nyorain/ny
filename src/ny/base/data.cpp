@@ -3,13 +3,13 @@
 namespace ny
 {
 
-void DataTypes::add(unsigned char type)
+void DataTypes::add(unsigned int type)
 {
 	if(contains(type)) return;
 	types.push_back(type);
 }
 
-void DataTypes::remove(unsigned char type)
+void DataTypes::remove(unsigned int type)
 {
     auto it = types.begin();
     while(it != types.end())
@@ -23,20 +23,20 @@ void DataTypes::remove(unsigned char type)
     }
 }
 
-bool DataTypes::contains(unsigned char type) const
+bool DataTypes::contains(unsigned int type) const
 {
 	for(auto t : types) if(t == type) return true;
     return false;
 }
 
 //
-unsigned char stringToDataType(const std::string& type)
+unsigned int stringToDataType(const std::string& type)
 {
     using namespace dataType;
     return 0;
 }
 
-std::vector<std::string> dataTypeToString(unsigned char type, bool onlyMime)
+std::vector<std::string> dataTypeToString(unsigned int type, bool onlyMime)
 {
     std::vector<std::string> ret;
     return ret;

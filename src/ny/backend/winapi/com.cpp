@@ -6,7 +6,11 @@
 #include <ny/base/data.hpp>
 #include <ny/base/log.hpp>
 
+#include <evg/image.hpp>
+
 #include <nytl/utf.hpp>
+#include <nytl/time.hpp>
+#include <nytl/scope.hpp>
 
 #include <Shlobj.h>
 
@@ -20,131 +24,80 @@ namespace ny
 namespace winapi
 {
 
-///Winapi data offer implementation
-class DataOfferImpl : public DataOffer
-{
-public:
-	DataOfferImpl(IDataObject& object);
-
-	virtual DataTypes types() const override { return types_; }
-	virtual nytl::CbConn data(std::uint8_t fmt, const DataFunction& func) override;
-
-protected:
-	DataTypes types_;
-	com::DataComObject data_;
-	std::unordered_map<unsigned int, FORMATETC> typeFormats_;
-};
-
 DataOfferImpl::DataOfferImpl(IDataObject& object) : data_(object)
 {
 	IEnumFORMATETC* enumerator;
 	data_->EnumFormatEtc(DATADIR_GET, &enumerator);
 
-	FORMATETC* curr = nullptr;
-	auto checkAdd = [&](CLIPFORMAT checkcf, DWORD checktymed, unsigned int type) {
-			if(curr->cfFormat == checkcf && (curr->tymed && checktymed))
-			{
-				types_.add(type);
-				typeFormats_[type] = *curr;
-			}
-		};
+	//this function checks if the given fmt represents the given cf and tymed, if so, type
+	//is added to types_ and fmt associated with it in typeFormats_
+	auto checkAdd = [&](const FORMATETC& fmt, CLIPFORMAT cf, DWORD tymed, unsigned int type)
+	{
+		if(fmt.cfFormat == cf && (fmt.tymed && tymed))
+		{
+			types_.add(type);
+			typeFormats_[type] = fmt;
+		}
+	};
 
+	//enumerate all formats and check for the ones that can be understood
 	ULONG count;
 	FORMATETC format;
 	auto ret2 = enumerator->Next(1, &format, &count);
-	debug(errorMessage(ret2, "begin"));
 
+	auto customFormat = ::RegisterClipboardFormat("ny::customDataFormat");
 	while(enumerator->Next(1, &format, &count) == S_OK)
 	{
-		curr = &format;
-		debug("Format: ", curr->cfFormat);
-		checkAdd(CF_TEXT, TYMED_HGLOBAL, dataType::text);
-		checkAdd(CF_UNICODETEXT, TYMED_HGLOBAL, dataType::text);
-		checkAdd(CF_BITMAP, TYMED_GDI, dataType::image);
-		checkAdd(CF_HDROP, TYMED_HGLOBAL, dataType::filePaths);
-
-		curr = nullptr;
+		checkAdd(format, CF_TEXT, TYMED_HGLOBAL, dataType::text);
+		checkAdd(format, CF_UNICODETEXT, TYMED_HGLOBAL, dataType::text);
+		checkAdd(format, CF_DIBV5, TYMED_HGLOBAL, dataType::image);
+		checkAdd(format, CF_HDROP, TYMED_HGLOBAL, dataType::filePaths);
+		checkAdd(format, customFormat, TYMED_HGLOBAL, dataType::custom);
 	}
-
-	//format = {CF_TEXT, nullptr, DVASPECT_CONTENT, -1, TYMED_HGLOBAL};
-	//auto ret = data_->QueryGetData(&format);
-	//if(ret == S_OK) debug("Ayy s_ok");
-	//else debug(errorMessage(ret, "not so ayy"));
 
 	enumerator->Release();
 }
 
-CbConn DataOfferImpl::data(std::uint8_t format, const DataFunction& func)
+CbConn DataOfferImpl::data(unsigned int format, const DataFunction& func)
 {
 	HRESULT res = 0;
-	if(!types_.contains(format)) goto failure;
+	STGMEDIUM med {};
 
-	if(format == dataType::text)
+	auto& formatetc = typeFormats_.at(format);
+	if((res = data_->GetData(&formatetc, &med)))
 	{
-		debug("TEXT");
-		STGMEDIUM med {};
-		res = data_->GetData(&typeFormats_.at(format), &med);
-		debug(res == DV_E_LINDEX);
-		debug(res == DV_E_FORMATETC);
-		debug(res == DV_E_TYMED);
-		debug(res == DV_E_DVASPECT);
-		debug(res == OLE_E_NOTRUNNING);
-		debug(res == E_UNEXPECTED);
-		debug(res == E_INVALIDARG);
-		debug(res == E_OUTOFMEMORY);
-		debug(med.hGlobal);
-		if(res != S_OK) goto failure;
-		debug("yee");
-		auto txt = toUtf8(globalToStringUnicode(med.hGlobal));
-		debug(txt);
-		replaceCRLF(txt);
-		debug(txt);
+		warning(errorMessage(res, "ny::winapi::DataOfferImpl::data failed: GetData"));
+		return {};
+	}
+
+	//always release the medium
+	//and call the callback function
+	std::any any;
+	auto scopeGuard = nytl::makeScopeGuard([&]{
 		ReleaseStgMedium(&med);
-		debug(txt);
-		std::any a(std::string("heio"));
-		debug("empty: ", a.empty());
-		debug("ptr: ", &a);
-		debug("typename: ", typeid(std::string).name());
-		debug("txt: ", std::any_cast<std::string>(a));
-		debug("txt: ", std::any_cast<std::string>(a));
+		func(*this, format, any);
+	});
 
-		func(*this, format, a);
-	}
-	else if(format == dataType::image)
+	void* ptr = nullptr;
+	if(med.tymed == TYMED_HGLOBAL) ptr = med.hGlobal;
+	if(med.tymed == TYMED_GDI) ptr = med.hBitmap;
+
+	if(!ptr)
 	{
-		 //convert the HBitmap to a ny image
-		 //support for compression/decompression?
-		func(*this, format, {});
+		warning("ny::winapi::DataOfferImpl::data failed: Cannot parse returned STGMEDIUM");
+		return {};
 	}
-	else if(format == dataType::filePaths)
+
+	unsigned int resFormat;
+	any = comToData(formatetc.cfFormat, ptr, resFormat);
+	if(resFormat != format)
 	{
-		//something lockglobal bs
-		STGMEDIUM med;
-		if(data_->GetData(&typeFormats_[format], &med) != S_OK) goto failure;
-		auto hdrop = reinterpret_cast<HDROP>(med.hGlobal);
-		auto count = DragQueryFile(hdrop, 0xFFFFFFFF, nullptr, 0); //query count
-
-		std::vector<std::string> paths;
-		for(auto i = 0u; i < count; ++i)
-		{
-			auto size = DragQueryFile(hdrop, i, nullptr, 0); //query buffer size
-			char buffer[size];
-			if(DragQueryFile(hdrop, i, buffer, size)) paths.push_back(buffer);
-		}
-
-		ReleaseStgMedium(&med);
-		func(*this, format, std::move(paths));
+		warning("ny::winapi::DataOfferImpl::data failed: formats do not match");
+		return {};
 	}
-	else goto failure;
 
-	return {};
-
-failure:
-	debug(res, errorMessage(res, " winapi::DataOfferImpl: ::GetData"));
-	func(*this, format, {});
 	return {};
 }
-
 
 namespace com
 {
@@ -170,7 +123,6 @@ HRESULT DropTargetImpl::DragLeave()
 
 HRESULT DropTargetImpl::Drop(IDataObject* data, DWORD keyState, POINTL pos, DWORD* effect)
 {
-	//XXX: do something with the data (e.g. send event)
 	*effect = DROPEFFECT_COPY;
 
 	auto& ac = windowContext_->appContext();
@@ -208,11 +160,10 @@ HRESULT DataObjectImpl::GetData(FORMATETC* format, STGMEDIUM* stgmed)
 	if(!format) return DV_E_FORMATETC;
 	if(!stgmed) return E_UNEXPECTED;
 
-	auto id = lookupFormat(*format);
-	if(id == -1) return DV_E_FORMATETC;
+	auto dataType = lookupFormat(*format);
+	if(dataType == dataType::none) return DV_E_FORMATETC;
 
-	this->medium(id, *stgmed);
-
+	this->medium(dataType, *stgmed);
 	return S_OK;
 }
 HRESULT DataObjectImpl::GetDataHere(FORMATETC* format, STGMEDIUM* medium)
@@ -251,104 +202,64 @@ HRESULT DataObjectImpl::EnumDAdvise(IEnumSTATDATA**)
 	return OLE_E_ADVISENOTSUPPORTED;
 }
 
-int DataObjectImpl::lookupFormat(const FORMATETC& fmt) const
+unsigned int DataObjectImpl::lookupFormat(const FORMATETC& fmt) const
 {
-	for(auto i = 0u; i < source_->types().types.size(); ++i)
+	for(auto type : source_->types().types)
 	{
-		auto f = format(i);
+		auto f = format(type);
 		if(f.cfFormat == 0 && f.tymed == TYMED_NULL) continue; //invalid
 		if((f.tymed & fmt.tymed) && f.cfFormat == fmt.cfFormat && f.dwAspect == fmt.dwAspect)
-			return i;
+			return type;
 	}
 
-	return -1;
+	return dataType::none;
 }
 
-FORMATETC DataObjectImpl::format(unsigned int id) const
+FORMATETC DataObjectImpl::format(unsigned int dataType) const
 {
-	FORMATETC ret;
-	format(id, ret);
+	FORMATETC ret {};
+	format(dataType, ret);
 	return ret;
 }
 
-bool DataObjectImpl::format(unsigned int id, FORMATETC& format) const
+bool DataObjectImpl::format(unsigned int dataType, FORMATETC& format) const
 {
-	if(id > source_->types().types.size())
-		throw std::out_of_range("ny::winapi::com::DataObjectImpl::medium");
-
-	auto type = source_->types().types[id];
-
 	format.dwAspect = DVASPECT_CONTENT;
 	format.ptd = nullptr;
 	format.lindex = -1;
 
-	if(type == dataType::image)
-	{
-		 format.cfFormat = CF_BITMAP;
-		 format.tymed = TYMED_GDI;
-	}
-	else if(type == dataType::text)
-	{
-		 format.cfFormat = CF_UNICODETEXT;
-		 format.tymed = TYMED_HGLOBAL;
-	}
-	else if(type == dataType::filePaths)
-	{
-		format.cfFormat = CF_HDROP;
-		format.tymed = TYMED_HGLOBAL;
-	}
-	else
-	{
-		format.cfFormat = 0;
-		format.tymed = 0;
-	}
+	unsigned int medium;
+	format.cfFormat = dataTypeToClipboardFormat(dataType, medium);
+	format.tymed = medium;
+
+	return true;
 }
 
-STGMEDIUM DataObjectImpl::medium(unsigned int id) const
+STGMEDIUM DataObjectImpl::medium(unsigned int dataType) const
 {
-	STGMEDIUM ret;
-	medium(id, ret);
+	STGMEDIUM ret {};
+	medium(dataType, ret);
 	return ret;
 }
 
-bool DataObjectImpl::medium(unsigned int id, STGMEDIUM& med) const
+bool DataObjectImpl::medium(unsigned int dataType, STGMEDIUM& med) const
 {
-	if(id > source_->types().types.size())
-		throw std::out_of_range("ny::winapi::com::DataObjectImpl::medium");
-
-	med.tymed = format(id).tymed;
+	auto fmt = format(dataType);
+	med.tymed = fmt.tymed;
 	med.pUnkForRelease = nullptr;
-	auto type = source_->types().types[id];
 
-	if(type == dataType::image)
-	{
-		//copy the image to a bitmap handle
-		HBITMAP bitmap;
-		med.hBitmap = bitmap;
-		return true;
-	}
-	else if(type == dataType::text)
-	{
-		auto txt = std::any_cast<std::string>(source_->data(type));
-		replaceLF(txt);
-		med.hGlobal = stringToGlobalUnicode(toUtf16(txt)); //text is normally UTF16
-		return true;
-	}
-	else if(type == dataType::filePaths)
-	{
-		DROPFILES files;
+	unsigned int cfFormat;
+	unsigned int medium;
+	auto ptr = dataToCom(dataType, source_->data(dataType), cfFormat, medium);
 
-		auto filenames = std::any_cast<std::vector<std::string>>(source_->data(type));
-		std::string filename;
-		for(auto& name : filenames)
-			filename.append(name + "\0");
-
-		filename.append('\0'); //double null terminated
-		med.hGlobal = stringToGlobal(filename); //encoded as ASCII
-		return true;
+	if(!ptr || medium != fmt.tymed || cfFormat != fmt.cfFormat)
+	{
+		warning();
+		return false;
 	}
 
-	return false;
+	med.hGlobal = ptr; //TODO: correct tymed<->enum setting
+	return true;
 }
 
 std::vector<FORMATETC> DataObjectImpl::formats() const
@@ -368,22 +279,6 @@ std::vector<FORMATETC> DataObjectImpl::formats() const
 } //namespace com
 
 //free functions impl
-/*
-HGLOBAL duplicateGlobal(HGLOBAL global)
-{
-	auto len = ::GlobalSize(global);
-	auto ptr = ::GlobalLock(global);
-	if(!ptr) return nullptr;
-
-	auto ret = ::GlobalAlloc(GMEM_FIXED, len);
-	if(!ret) return nullptr;
-
-	std::memcpy(ret, ptr, len);
-	::GlobalUnlock(global);
-	return dest;
-}
-*/
-
 void replaceLF(std::string& string)
 {
 	auto idx = string.find("\n");
@@ -408,50 +303,301 @@ void replaceCRLF(std::string& string)
 
 HGLOBAL stringToGlobalUnicode(const std::u16string& string)
 {
-	auto len = string.size() + 2; //null terminator
-	auto ret = ::GlobalAlloc(GMEM_FIXED, len);
-	if(!ret) return nullptr;
-
-	std::memcpy(ret, string.c_str(), string.size() + 2);
-	return ret;
+	auto cpy = std::u16string(string.c_str()); //remove nullterminator
+	auto ptr = reinterpret_cast<const std::uint8_t*>(cpy.data());
+	return bufferToGlobal({ptr, (string.size() + 1) * 2});
 }
 
 HGLOBAL stringToGlobal(const std::string& string)
 {
-	auto len = string.size() + 1; //null terminator
-	auto ret = ::GlobalAlloc(GMEM_FIXED, len);
-	if(!ret) return nullptr;
-
-	std::memcpy(ret, string.c_str(), string.size() + 2);
-	return ret;
+	auto cpy = std::string(string.c_str()); //remove nullterminator
+	auto ptr = reinterpret_cast<const std::uint8_t*>(cpy.data());
+	return bufferToGlobal({ptr, string.size() + 1});
 }
 
 std::u16string globalToStringUnicode(HGLOBAL global)
 {
-	auto len = ::GlobalSize(global) - 2; //excluding null terminator
+	auto len = ::GlobalSize(global);
 	auto ptr = ::GlobalLock(global);
-	if(!ptr) return nullptr;
+	if(!ptr) return {};
 
 	//usually len should be an even number (since it is encoded using utf16)
 	//but to go safe, we round len / 2 up and then later remove the trailing
 	//nullterminator
-	std::u16string str(std::ceil(len / 2), '\0'); //nullterminator excluded
+	std::u16string str(std::ceil(len / 2), '\0');
 	std::memcpy(&str[0], ptr, len);
 	::GlobalUnlock(global);
-	str = str.c_str(); //get rid of extra terminators
+	str = str.c_str(); //get rid of terminators
+
 	return str;
 }
 
 std::string globalToString(HGLOBAL global)
 {
-	auto len = ::GlobalSize(global) - 1; //excluding null terminator
+	auto len = ::GlobalSize(global);
 	auto ptr = ::GlobalLock(global);
-	if(!ptr) return nullptr;
+	if(!ptr) return {};
 
-	std::string str(len, '\0'); //nullterminator excluded
+	std::string str(len, '\0');
 	std::memcpy(&str[0], ptr, len);
 	::GlobalUnlock(global);
+	str = str.c_str(); //get rid of terminators
+
 	return str;
+}
+
+HGLOBAL bufferToGlobal(const nytl::Range<std::uint8_t>& buffer)
+{
+	auto ret = ::GlobalAlloc(GMEM_MOVEABLE, buffer.size());
+	if(!ret) return nullptr;
+
+	auto ptr = ::GlobalLock(ret);
+	if(!ptr)
+	{
+		::GlobalFree(ret);
+		return nullptr;
+	}
+
+	std::memcpy(ptr, buffer.data(), buffer.size());
+	::GlobalUnlock(ret);
+	return ret;
+}
+
+std::vector<std::uint8_t> globalToBuffer(HGLOBAL global)
+{
+	auto len = ::GlobalSize(global); //excluding null terminator
+	auto ptr = ::GlobalLock(global);
+	if(!ptr) return {};
+
+	std::vector<std::uint8_t> ret(len);
+	std::memcpy(ret.data(), ptr, len);
+	::GlobalUnlock(global);
+	return ret;
+}
+
+unsigned int dataTypeToClipboardFormat(unsigned int dataType, unsigned int &medium)
+{
+	medium = TYMED_HGLOBAL;
+	switch(dataType)
+	{
+		case dataType::text: return CF_UNICODETEXT;
+		case dataType::filePaths: return CF_HDROP;
+		case dataType::image: medium = TYMED_GDI; return CF_BITMAP;
+		default: return ::RegisterClipboardFormat("ny::customDataType");
+	}
+}
+unsigned int clipboardFormatToDataType(unsigned int cfFormat)
+{
+	switch(cfFormat)
+	{
+		case CF_OEMTEXT:
+		case CF_UNICODETEXT:
+		case CF_TEXT: return dataType::text;
+		case CF_DIB:
+		case CF_DIBV5:
+		case CF_BITMAP: return dataType::image;
+		case CF_HDROP: return dataType::filePaths;
+		default: break;
+	}
+
+	if(cfFormat == ::RegisterClipboardFormat("ny::customDataType")) return dataType::custom;
+	return 0;
+}
+
+std::any comToData(unsigned int cfFormat, void* data, unsigned int& dataType)
+{
+	switch(cfFormat)
+	{
+		case CF_TEXT:
+		{
+			dataType = dataType::text;
+
+			auto str = globalToString(data);
+			replaceCRLF(str);
+			return (str.empty()) ? std::any{} : std::any{str};
+		}
+		case CF_UNICODETEXT:
+		{
+			dataType = dataType::text;
+
+			auto str = toUtf8(globalToStringUnicode(data));
+			replaceCRLF(str);
+			return (str.empty()) ? std::any{} : std::any{str};
+		}
+		case CF_HDROP:
+		{
+			dataType = dataType::filePaths;
+
+			auto ptr = ::GlobalLock(data);
+			if(!ptr) return {};
+
+			auto hdrop = reinterpret_cast<HDROP>(ptr);
+			auto count = DragQueryFile(hdrop, 0xFFFFFFFF, nullptr, 0); //query count
+
+			std::vector<std::string> paths;
+			for(auto i = 0u; i < count; ++i)
+			{
+				auto size = DragQueryFile(hdrop, i, nullptr, 0); //query buffer size
+				char buffer[size];
+				if(DragQueryFile(hdrop, i, buffer, size)) paths.push_back(buffer);
+			}
+
+			::GlobalUnlock(data);
+			return {paths};
+		}
+		case CF_DIBV5:
+		{
+			dataType = dataType::image;
+
+			auto bitmapBytes = static_cast<const std::uint8_t*>(::GlobalLock(data));
+			auto buffLen = ::GlobalSize(data);
+
+			//here follows an ugly hack to load the bitmap data as raw image
+			//stbi has a built-in bmp decoder
+			//we just have to add some header vars to the buffer
+			//and yeah, before you ask this is the easiest way... windows...
+			//but we can still use bitmaps from 1995
+			//so we got this one going for us which is nice
+			//https://en.wikipedia.org/wiki/BMP_file_format
+			//the header is 14 bytes long
+			auto buffer = std::make_unique<std::uint8_t[]>(buffLen + 14);
+
+			//windows format
+			//bytes 3 - 10 are ignored by stbi
+			buffer[0] = 'B';
+			buffer[1] = 'M';
+			reinterpret_cast<std::uint32_t&>(buffer[10]) = sizeof(BITMAPV5HEADER);
+			std::memcpy(buffer.get() + 14, bitmapBytes, buffLen);
+			::GlobalUnlock(data);
+
+			evg::Image img;
+			img.loadFromMemory({buffer.get(), buffLen + 14});
+			return {img};
+		}
+		default:
+		{
+			if(cfFormat == ::RegisterClipboardFormat("ny::customDataFormat"))
+			{
+				auto buffer = globalToBuffer(data);
+				if(buffer.size() < 4) return {};
+
+				dataType = reinterpret_cast<std::uint32_t&>(buffer[0]);
+
+				//XXX: here are custom dataTypes that are specified by ny (such as time)
+				//converted back
+				if(dataType == dataType::timePoint)
+				{
+					auto rep = reinterpret_cast<std::int64_t&>(buffer[4]);
+					return {nytl::TimePoint(nytl::Nanoseconds(rep))};
+				}
+				else if(dataType == dataType::timeDuration)
+				{
+					auto rep = reinterpret_cast<std::int64_t&>(buffer[4]);
+					return {nytl::duration_cast<nytl::TimeDuration>(nytl::Nanoseconds(rep))};
+				}
+
+				buffer.erase(buffer.begin(), buffer.begin() + 4);
+				return {buffer};
+			}
+			else
+			{
+				dataType = dataType::none;
+				return {};
+			}
+		}
+	}
+}
+void* dataToCom(unsigned int format, const std::any& data, unsigned int& cfFormat,
+	unsigned int& medium)
+{
+	switch(format)
+	{
+		case dataType::text:
+		{
+			cfFormat = CF_UNICODETEXT;
+			medium = TYMED_HGLOBAL;
+
+			auto str = std::any_cast<const std::string&>(data);
+			replaceLF(str);
+			auto str16 = toUtf16(str);
+			return stringToGlobalUnicode(str16);
+		}
+		case dataType::image:
+		{
+			cfFormat = CF_BITMAP;
+			medium = TYMED_GDI;
+
+			auto img = std::any_cast<const evg::Image&>(data);
+			img.format(Image::Format::bgra8888);
+			auto size = img.size();
+			auto bitmap = ::CreateBitmap(size.x, size.y, 1, 32, img.data());
+			return bitmap;
+		}
+		case dataType::filePaths:
+		{
+			cfFormat = CF_HDROP;
+			medium = TYMED_HGLOBAL;
+
+			//https://msdn.microsoft.com/en-us/library/windows/desktop/bb776902(v=vs.85).aspx
+			std::u16string filename;
+			auto filenames = std::any_cast<std::vector<std::string>>(data);
+			for(auto& name : filenames) filename.append(toUtf16(name + "\0"));
+			filename.append('\0'); //double null terminated
+
+			DROPFILES dropfiles {};
+			dropfiles.pFiles = sizeof(dropfiles);
+			dropfiles.fWide = true;
+
+			const auto size = sizeof(dropfiles) + filename.size() * 2;
+			auto buffer = std::make_unique<std::uint8_t[]>(size);
+			std::memcpy(buffer.get(), &dropfiles, sizeof(dropfiles));
+			std::memcpy(buffer.get() + sizeof(dropfiles), filename.data(), filename.size() * 2);
+			return bufferToGlobal({buffer.get(), size});
+		}
+		case dataType::timePoint:
+		{
+			cfFormat = ::RegisterClipboardFormat("ny::customDataFormat");
+			medium = TYMED_HGLOBAL;
+
+			const auto& timepoint = std::any_cast<const nytl::TimePoint&>(data);
+			auto ns = nytl::duration_cast<nytl::Nanoseconds>(timepoint.time_since_epoch());
+			std::int64_t count = ns.count();
+			std::uint32_t format32 = format;
+
+			std::uint8_t buffer[sizeof(count) + 4];
+			std::memcpy(buffer, &format32, 4);
+			std::memcpy(buffer + 4, &count, sizeof(count));
+
+			return bufferToGlobal({buffer, sizeof(count) + 4});
+		}
+		case dataType::timeDuration:
+		{
+			cfFormat = ::RegisterClipboardFormat("ny::customDataFormat");
+			medium = TYMED_HGLOBAL;
+
+			const auto& ns = std::any_cast<const nytl::TimeDuration&>(data);
+			std::int64_t count = nytl::duration_cast<nytl::Nanoseconds>(ns).count();
+			std::uint32_t format32 = format;
+
+			std::uint8_t buffer[sizeof(count) + 4];
+			std::memcpy(buffer, &format32, 4);
+			std::memcpy(buffer + 4, &count, sizeof(count));
+
+			return bufferToGlobal({buffer, sizeof(count) + 4});
+		}
+		default:
+		{
+			cfFormat = ::RegisterClipboardFormat("ny::customDataFormat");
+			medium = TYMED_HGLOBAL;
+
+			auto rawData = std::any_cast<std::vector<std::uint8_t>>(data);
+			std::uint32_t format32 = format;
+			auto ptr = reinterpret_cast<std::uint8_t*>(&format32);
+			rawData.insert(rawData.begin(), ptr, ptr + 4);
+
+			return bufferToGlobal({rawData.data(), rawData.size()});
+		}
+	}
 }
 
 } //namespace winapi

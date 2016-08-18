@@ -193,50 +193,50 @@ DrawGuard WinapiWindowContext::draw()
 
 void WinapiWindowContext::addWindowHints(WindowHints hints)
 {
-	// if(hints & WindowHints::customDecorated)
-	// {
-	// 	auto style = ::GetWindowLong(handle(), GWL_STYLE);
-	// 	style &= ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU);
-	// 	::SetWindowLong(handle(), GWL_STYLE, style);
-	//
-	// 	auto exStyle = ::GetWindowLong(handle(), GWL_EXSTYLE);
-	// 	exStyle &= ~(WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
-	// 	::SetWindowLong(handle(), GWL_EXSTYLE, exStyle);
-	// }
-	// if(hints & WindowHints::acceptDrop)
-	// {
-	// 	if(!dropTarget_)
-	// 	{
-	// 		dropTarget_ = new winapi::com::DropTargetImpl(*this);
-	// 		dropTarget_->AddRef();
-	// 		::RegisterDragDrop(handle(), dropTarget_);
-	// 	}
-	// }
-	// if(hints & WindowHints::alwaysOnTop)
-	// {
-	// 	::SetWindowPos(handle(), HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
-	// }
+	if(hints & WindowHint::customDecorated)
+	{
+		auto style = ::GetWindowLong(handle(), GWL_STYLE);
+		style &= ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU);
+		::SetWindowLong(handle(), GWL_STYLE, style);
+
+		auto exStyle = ::GetWindowLong(handle(), GWL_EXSTYLE);
+		exStyle &= ~(WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
+		::SetWindowLong(handle(), GWL_EXSTYLE, exStyle);
+	}
+	if(hints & WindowHint::acceptDrop)
+	{
+		if(!dropTarget_)
+		{
+			dropTarget_ = new winapi::com::DropTargetImpl(*this);
+			// dropTarget_->AddRef();
+			::RegisterDragDrop(handle(), dropTarget_);
+		}
+	}
+	if(hints & WindowHint::alwaysOnTop)
+	{
+		::SetWindowPos(handle(), HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
+	}
 }
 void WinapiWindowContext::removeWindowHints(WindowHints hints)
 {
-	// if(hints & WindowHints::customDecorated)
-	// {
-	// 	auto style = ::GetWindowLong(handle(), GWL_STYLE);
-	// 	style |= (WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU);
-	// 	::SetWindowLong(handle(), GWL_STYLE, style);
-	//
-	// 	auto exStyle = ::GetWindowLong(handle(), GWL_EXSTYLE);
-	// 	exStyle |= (WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
-	// 	::SetWindowLong(handle(), GWL_EXSTYLE, exStyle);
-	// }
-	// if(hints & WindowHints::acceptDrop)
-	// {
-	// 	::RevokeDragDrop(handle());
-	// }
-	// if(hints & WindowHints::alwaysOnTop)
-	// {
-	// 	::SetWindowPos(handle(), HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
-	// }
+	if(hints & WindowHint::customDecorated)
+	{
+		auto style = ::GetWindowLong(handle(), GWL_STYLE);
+		style |= (WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU);
+		::SetWindowLong(handle(), GWL_STYLE, style);
+
+		auto exStyle = ::GetWindowLong(handle(), GWL_EXSTYLE);
+		exStyle |= (WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
+		::SetWindowLong(handle(), GWL_EXSTYLE, exStyle);
+	}
+	if(hints & WindowHint::acceptDrop)
+	{
+		::RevokeDragDrop(handle());
+	}
+	if(hints & WindowHint::alwaysOnTop)
+	{
+		::SetWindowPos(handle(), HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
+	}
 }
 
 bool WinapiWindowContext::handleEvent(const Event& e)

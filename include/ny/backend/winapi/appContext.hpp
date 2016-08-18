@@ -32,8 +32,11 @@ public:
 
 	//further functionality
 	//TODO: extent to all formats, higher level clipboard api
-	void clipboard(const std::string& text) const;
+	// void clipboard(const std::string& text) const;
+	void clipboard(std::unique_ptr<DataSource>&& source);
 	std::string clipboard() const;
+
+	void* renderDataSourceFormat(unsigned int cfFormat);
 
     LONG_PTR eventProc(HWND, UINT, WPARAM, LPARAM);
 	//INT_PTR dlgEventProc(HWND, UINT, WPARAM, LPARAM); //needed?
@@ -68,6 +71,9 @@ protected:
 
 	WinapiMouseContext mouseContext_;
 	WinapiKeyboardContext keyboardContext_;
+
+	//only active if this AppContext owns the system clipboard atm
+	std::unique_ptr<DataSource> dataSource_;
 };
 
 }

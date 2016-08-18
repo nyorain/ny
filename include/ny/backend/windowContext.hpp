@@ -3,10 +3,12 @@
 #include <ny/include.hpp>
 #include <ny/base/eventHandler.hpp>
 
-#include <nytl/any.hpp> //C++17
 #include <nytl/flags.hpp>
 
 #include <memory>
+
+#include <experimental/any>
+namespace std { using namespace experimental; }
 
 ///Header can be used without linking to ny-backend.
 
