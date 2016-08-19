@@ -8,8 +8,10 @@
 #include <vector>
 #include <memory>
 
-#include <experimental/any>
-namespace std { using namespace experimental; }
+// #include <experimental/any>
+// namespace std { using namespace experimental; }
+// #include <any>
+#include <ny/base/any.hpp>
 
 namespace ny
 {
@@ -81,7 +83,8 @@ public:
 class DataOffer
 {
 public:
-	using DataFunction = CompFunc<void(DataOffer& off, unsigned int fmt, const std::any& data)>;
+	// using DataFunction = CompFunc<void(DataOffer& off, unsigned int fmt, const std::any& data)>;
+	using DataFunction = std::function<void(DataOffer& off, unsigned int fmt, const std::any& data)>;
 
 public:
 	///Will be called everytime a new format is signaled.

@@ -45,14 +45,12 @@ WinapiWindowContext::~WinapiWindowContext()
     if(handle_)
 	{
 		::DestroyWindow(handle_);
-		appContext().unregisterContext(handle_);
-
 		handle_ = nullptr;
 	}
 
 	if(dropTarget_)
 	{
-		dropTarget_->Release();
+		// dropTarget_->Release();
 		dropTarget_ = nullptr;
 	}
 
@@ -135,7 +133,8 @@ void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 			position.x, position.y, size.x, size.y, parent, nullptr, hinstance, this);
 	}
 
-	appContext().registerContext(handle_, *this);
+	std::uintptr_t ptr = reinterpret_cast<std::uintptr_t>(this);
+	::SetWindowLongPtr(handle_, GWLP_USERDATA, ptr);
 }
 
 void WinapiWindowContext::initDialog(const WinapiWindowSettings& settings)
@@ -208,7 +207,6 @@ void WinapiWindowContext::addWindowHints(WindowHints hints)
 		if(!dropTarget_)
 		{
 			dropTarget_ = new winapi::com::DropTargetImpl(*this);
-			// dropTarget_->AddRef();
 			::RegisterDragDrop(handle(), dropTarget_);
 		}
 	}

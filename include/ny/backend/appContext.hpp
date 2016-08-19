@@ -81,7 +81,6 @@ public:
 	virtual bool threadedDispatchLoop(ThreadedEventDispatcher&, LoopControl&) = 0;
 
 
-	/* concepts for clipboard
 	///Sets the clipboard to the data provided by the given DataSource implementation.
 	///\param dataSource a DataSource implementation for the data to copy.
 	///The data may be directly copied from the DataSource and the given object be destroyed,
@@ -89,11 +88,13 @@ public:
 	///other applications need them.
 	///Therefore the given DataSource implementation must be able to provide data as long
 	///as it exists.
+	///\return true on success, false on failure.
 	///\sa DataSource
-	virtual void clipboard(std::unique_ptr<DataSource> dataSource) = 0;
+	virtual bool clipboard(std::unique_ptr<DataSource>&& dataSource) = 0;
 
 	///Retrieves the data stored in the systems clipboard, or an nullptr if there is none.
 	///The DataOffer implementation can then be used to get the data in the needed formats.
+	///If the clipboard is empty or cannot be retrieved, returns nullptr.
 	///\sa DataOffer
 	virtual std::unique_ptr<DataOffer> clipboard() = 0;
 
@@ -101,8 +102,7 @@ public:
 	///\param dataSource A DataSource implementation for the data to drag and drop.
 	///The implementation must be able to provide the data as long as it exists.
 	///\return true on success, false on failure (e.g. cursor is not over a window)
-	virtual bool startDragDrop(std::unique_ptr<DataSource> dataSource) = 0;
-	*/
+	// virtual bool startDragDrop(std::unique_ptr<DataSource> dataSource) = 0;
 };
 
 }

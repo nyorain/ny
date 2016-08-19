@@ -12,8 +12,10 @@
 #include <vector>
 #include <unordered_map>
 
-#include <experimental/any>
-namespace std { using namespace experimental; }
+// #include <experimental/any>
+// namespace std { using namespace experimental; }
+// #include <any>
+#include <ny/base/any.hpp>
 
 namespace ny
 {
@@ -25,7 +27,7 @@ namespace winapi
 {
 
 //utilty functions
-///Changes line endings
+///Changes line endingsg
 void replaceLF(std::string& string);
 void replaceCRLF(std::string& string);
 

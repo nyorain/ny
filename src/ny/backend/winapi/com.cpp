@@ -62,8 +62,21 @@ CbConn DataOfferImpl::data(unsigned int format, const DataFunction& func)
 {
 	HRESULT res = 0;
 	STGMEDIUM med {};
+	std::any any;
 
-	auto& formatetc = typeFormats_.at(format);
+	//always call the given function (empty any on failure)
+	auto callGuard = nytl::makeScopeGuard([&]{
+		func(*this, format, any);
+	});
+
+	auto it = typeFormats_.find(format);
+	if(it == typeFormats_.end())
+	{
+		warning("ny::winapi::DataOfferImpl::data failed: format not supported");
+		return {};
+	}
+
+	auto& formatetc = it->second;
 	if((res = data_->GetData(&formatetc, &med)))
 	{
 		warning(errorMessage(res, "ny::winapi::DataOfferImpl::data failed: GetData"));
@@ -71,11 +84,8 @@ CbConn DataOfferImpl::data(unsigned int format, const DataFunction& func)
 	}
 
 	//always release the medium
-	//and call the callback function
-	std::any any;
-	auto scopeGuard = nytl::makeScopeGuard([&]{
-		ReleaseStgMedium(&med);
-		func(*this, format, any);
+	auto releaseGuard = nytl::makeScopeGuard([&]{
+		::ReleaseStgMedium(&med);
 	});
 
 	void* ptr = nullptr;

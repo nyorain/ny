@@ -35,11 +35,8 @@
 namespace ny
 {
 
-//todo - kinda hacky atm
 namespace
 {
-
-WinapiAppContext* gAC;
 
 //LoopControl
 class WinapiLoopControlImpl : public ny::LoopControlImpl
@@ -66,12 +63,16 @@ public:
 //winapi callbacks
 LRESULT CALLBACK WinapiAppContext::wndProcCallback(HWND a, UINT b, WPARAM c, LPARAM d)
 {
-    return gAC->eventProc(a,b,c,d);
+	auto wc = reinterpret_cast<WinapiWindowContext*>(::GetWindowLongPtr(a, GWLP_USERDATA));
+	if(!wc) return ::DefWindowProc(a, b, c, d);
+	return wc->appContext().eventProc(a, b, c, d);
 }
 
 LRESULT CALLBACK WinapiAppContext::dlgProcCallback(HWND a, UINT b, WPARAM c, LPARAM d)
 {
-    return gAC->eventProc(a,b,c,d);
+	auto wc = reinterpret_cast<WinapiWindowContext*>(::GetWindowLongPtr(a, GWLP_USERDATA));
+	if(!wc) return ::DefWindowProc(a, b, c, d);
+	return wc->appContext().eventProc(a, b, c, d);
 }
 
 //WinapiAC
@@ -93,8 +94,6 @@ WinapiAppContext::WinapiAppContext() : mouseContext_(*this), keyboardContext_(*t
 	//needed for dnd and clipboard
 	auto res = OleInitialize(nullptr);
 	if(res != S_OK) warning("WinapiWC: OleInitialize failed with code ", res);
-
-	gAC = this;
 }
 
 WinapiAppContext::~WinapiAppContext()
@@ -129,7 +128,7 @@ std::unique_ptr<WindowContext> WinapiAppContext::createWindowContext(const Windo
 	#else
 		if(drawType != DrawType::dontCare)
 		{
-			warning("WinapiAC::createWindowContext: no software renderer support, invalid drawType.");
+			warning("WinapiAC::createWindowContext: no software renderer, invalid drawType.");
 			return nullptr;
 		}
 	#endif //Gdi
@@ -142,7 +141,7 @@ std::unique_ptr<WindowContext> WinapiAppContext::createWindowContext(const Windo
 	#else
 		if(drawType != DrawType::dontCare)
 		{
-			warning("WinapiAC::createWindowContext: no gl support, invalid drawType.");
+			warning("WinapiAC::createWindowContext: no gl, invalid drawType.");
 			return nullptr;
 		}
 	#endif //gl
@@ -191,11 +190,20 @@ bool WinapiAppContext::dispatchEvents(EventDispatcher& dispatcher)
 
 bool WinapiAppContext::dispatchLoop(EventDispatcher& dispatcher, LoopControl& control)
 {
+	//TODO: we have to be really careful of exceptions inside this high functions
+	//if everything during event handling throws, the end of this function will
+	//not be reached
 	std::atomic<bool> run {1};
 	control.impl_ = std::make_unique<WinapiLoopControlImpl>(run);
 
 	dispatcherLoopControl_ = &control;
 	eventDispatcher_ = &dispatcher;
+
+	auto scopeGuard = nytl::makeScopeGuard([&]{
+		dispatcherLoopControl_ = nullptr;
+		eventDispatcher_ = nullptr;
+		control.impl_.reset();
+	});
 
 	MSG msg;
 	while(run.load())
@@ -213,8 +221,6 @@ bool WinapiAppContext::dispatchLoop(EventDispatcher& dispatcher, LoopControl& co
 		}
 	}
 
-	dispatcherLoopControl_ = nullptr;
-	control.impl_.reset();
 	return true;
 }
 
@@ -230,133 +236,40 @@ bool WinapiAppContext::threadedDispatchLoop(ThreadedEventDispatcher& dispatcher,
 	//if the event comes from this thread, this thread is not waiting, otherwise
 	//wait this thread with a message.
 	auto conn = dispatcher.onDispatch.add([&] {
-			if(std::this_thread::get_id() != threadid)
-				PostThreadMessage(threadHandle, WM_USER, 0, 0);
-		});
+		if(std::this_thread::get_id() != threadid)
+			PostThreadMessage(threadHandle, WM_USER, 0, 0);
+	});
 
+	//exception safety
+	auto scopeGuard = nytl::makeScopeGuard([&]{
+		threadsafe_ = false;
+		conn.destroy();
+	});
 
 	//just call the default dispatch loop
-	dispatchLoop(dispatcher, control);
-
-	//unregistert the dispatcher callback
-	conn.destroy();
-	threadsafe_ = false;
-
-	return true;
+	return dispatchLoop(dispatcher, control);
 }
 
-void WinapiAppContext::clipboard(const std::string& text) const
-{
-	if(!::OpenClipboard(nullptr)) return;
-	if(!::EmptyClipboard()) return;
-
-	auto handle = ::GlobalAlloc(GMEM_MOVEABLE, text.size() + 1);
-	if(!handle)
-	{
-		::CloseClipboard();
-		return;
-	}
-
-	auto ptr = ::GlobalLock(handle);
-	if(!ptr)
-	{
-		::CloseClipboard();
-		return;
-	}
-
-	std::memcpy(ptr, text.c_str(), text.size() + 1);
-	::GlobalUnlock(handle);
-
-	::SetClipboardData(CF_TEXT, handle);
-	::CloseClipboard();
-}
-
-void WinapiAppContext::clipboard(std::unique_ptr<DataSource>&& source)
+//TODO: error handling (warnings)
+bool WinapiAppContext::clipboard(std::unique_ptr<DataSource>&& source)
 {
 	//OleSetClipboard
 	auto dataObj = new winapi::com::DataObjectImpl(std::move(source));
-	::OleSetClipboard(dataObj);
-
-	//if this is set to false, this function will set all clipboard datas
-	// constexpr auto bool renderOnDemand = true;
-	// dataSource_ = std::move(source);
-	//
-	// if(!::OpenClipboard(nullptr))
-	// {
-	// 	warning(errorMessage("ny::WinapiAC::clipboard(src): OpenClipboard failed"));
-	// 	return;
-	// }
-	//
-	// //always close clipboard
-	// auto exit = nytl::makeScopeGuard([]{ ::CloseClipboard(); });
-	//
-	// if(!::EmptyClipboard())
-	// {
-	// 	warning(errorMessage("ny::WinapiAC::clipboard(src): EmptyClipboard failed"));
-	// 	return;
-	// }
-	//
-	// for(auto dataFormat : dataSource_->types().types)
-	// {
-	// 	auto data = nullptr;
-	// 	auto cfFormat = convertDataSourceFormat(dataFormat);
-	// 	if(!renderOnDemand)	data = renderDataSourceFormat(cfFormat);
-	// 	if(!::SetClipBoardData(cfFormat, data))
-	// 		warning(errorMessage("ny::WinapiAC::clipboard(src): SetClipboardData failed"));
-	// }
-	//
-	// if(!::SetClipboardData(CF_TEXT, nullptr))
-	// {
-	// 	warning(errorMessage("ny::WinapiAC::clipboard(src): SetClipboardData failed"));
-	// 	return;
-	// }
-	// if(!::CloseClipboard())
-	// {
-	// 	warning(errorMessage("ny::WinapiAC::clipboard(src): CloseClipboard failed"));
-	// 	return;
-	// }
+	return(::OleSetClipboard(dataObj) == S_OK);
 }
 
-std::string WinapiAppContext::clipboard() const
+std::unique_ptr<DataOffer> WinapiAppContext::clipboard()
 {
-	std::string ret;
-	if(!::OpenClipboard(nullptr)) return ret;
-
-	auto handle = ::GetClipboardData(CF_TEXT);
-	if(!handle)
-	{
-		::CloseClipboard();
-		return ret;
-	}
-
-	auto ptr = ::GlobalLock(handle);
-	if(!ptr)
-	{
-		::CloseClipboard();
-		return ret;
-	}
-
-	ret = reinterpret_cast<const char*>(ptr);
-	::CloseClipboard();
-	return ret;
-}
-
-void WinapiAppContext::registerContext(HWND w, WinapiWindowContext& c)
-{
-    contexts_[w] = &c;
-}
-
-void WinapiAppContext::unregisterContext(HWND w)
-{
-    contexts_.erase(w);
+	IDataObject* obj;
+	::OleGetClipboard(&obj);
+	if(!obj) return nullptr;
+	return std::make_unique<winapi::DataOfferImpl>(*obj);
 }
 
 WinapiWindowContext* WinapiAppContext::windowContext(HWND w)
 {
-    if(contexts_.find(w) != contexts_.end())
-        return contexts_[w];
-
-    return nullptr;
+	auto ptr = ::GetWindowLongPtr(w, GWLP_USERDATA);
+	return ptr ? reinterpret_cast<WinapiWindowContext*>(ptr) : nullptr;
 }
 
 //wndProc

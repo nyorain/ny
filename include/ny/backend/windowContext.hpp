@@ -7,8 +7,10 @@
 
 #include <memory>
 
-#include <experimental/any>
-namespace std { using namespace experimental; }
+// #include <experimental/any>
+// namespace std { using namespace experimental; }
+// #include <any>
+#include <ny/base/any.hpp>
 
 ///Header can be used without linking to ny-backend.
 

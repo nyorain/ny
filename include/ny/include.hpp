@@ -3,12 +3,12 @@
 #include <ny/fwd.hpp>
 #include <ny/config.hpp>
 
-namespace ny 
-{ 
+namespace ny
+{
 
-using namespace nytl; 
+using namespace nytl;
 using namespace evg;
-	
+
 //backend typedefs
 #ifdef NY_WithX11
  class X11Backend;

@@ -8,6 +8,11 @@ add_custom_target(copyRuntimeFiles
 # add_executable(examples-start start/main.cpp start/nanovg.c)
 # target_link_libraries(examples-start ny-draw ny-app ny-backend ny-window ny-gui)
 
+#dev
+add_executable(dev dev/main.cpp)
+target_link_libraries(dev ny-base ny-backend)
+add_dependencies(dev copyRuntimeFiles)
+
 #intro-backend
 add_executable(intro-backend intro-backend/main.cpp)
 target_link_libraries(intro-backend ny-base ny-backend)

@@ -1,7 +1,6 @@
 #include <ny/base.hpp>
 #include <ny/backend.hpp>
 #include <ny/app/events.hpp>
-#include <cstdio>
 
 ///Custom event handler for the low-level backend api.
 ///See intro-app for a higher level example if you think this is too complex.
@@ -13,29 +12,13 @@ public:
 	///Virtual function from ny::EventHandler
 	bool handleEvent(const ny::Event& ev) override
 	{
-		printf("Event id %d\n", ev.type());
+		ny::debug("Received event with type ", ev.type());
 
 		if(ev.type() == ny::eventType::windowClose)
 		{
-			std::printf("Window closed. Exiting.\n");
+			ny::debug("Window closed. Exiting.");
 			loopControl_.stop();
-		}
-
-		if(ev.type() == ny::eventType::dataOffer)
-		{
-			auto& offer = static_cast<const ny::DataOfferEvent&>(ev).offer;
-			offer->data(ny::dataType::text,
-				[](const ny::DataOffer&, int format, const std::any& text) {
-
-				ny::debug("called");
-				// ny::debug(&text);
-				// ny::debug(text.type() == typeid(void));
-				// ny::debug(text.type() == typeid(std::string));
-				// ny::debug("typename: ", typeid(std::string).name());
-
-				if(!text.empty()) ny::debug("dnd text:", std::any_cast<const std::string&>(text));
-				else ny::debug("oooh");
-			});
+			return true;
 		}
 
 		return false;
@@ -71,10 +54,6 @@ int main()
 	///This call registers our EventHandler to receive the WindowContext related events from
 	///the dispatchLoop.
 	wc->eventHandler(handler);
-
-	//XXX TESTAREA. Ignore this.
-	wc->addWindowHints(ny::WindowHint::acceptDrop);
-	//XXX
 
 	ac->dispatchLoop(dispatcher, control);
 }

@@ -30,21 +30,14 @@ public:
 	bool dispatchLoop(EventDispatcher& disp, LoopControl& control) override;
 	bool threadedDispatchLoop(ThreadedEventDispatcher& disp, LoopControl& ctrl) override;
 
-	//further functionality
-	//TODO: extent to all formats, higher level clipboard api
-	// void clipboard(const std::string& text) const;
-	void clipboard(std::unique_ptr<DataSource>&& source);
-	std::string clipboard() const;
+	bool clipboard(std::unique_ptr<DataSource>&& source) override;
+	std::unique_ptr<DataOffer> clipboard() override;
 
-	void* renderDataSourceFormat(unsigned int cfFormat);
-
+	//custom winapi stuff
     LONG_PTR eventProc(HWND, UINT, WPARAM, LPARAM);
 	//INT_PTR dlgEventProc(HWND, UINT, WPARAM, LPARAM); //needed?
 
 	EventDispatcher* eventDispatcher() const { return eventDispatcher_; }
-
-    void registerContext(HWND w, WinapiWindowContext& c);
-    void unregisterContext(HWND w);
     WinapiWindowContext* windowContext(HWND win);
 
     HINSTANCE hinstance() const { return instance_; };
@@ -71,9 +64,6 @@ protected:
 
 	WinapiMouseContext mouseContext_;
 	WinapiKeyboardContext keyboardContext_;
-
-	//only active if this AppContext owns the system clipboard atm
-	std::unique_ptr<DataSource> dataSource_;
 };
 
 }
