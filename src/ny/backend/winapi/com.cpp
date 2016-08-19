@@ -31,11 +31,13 @@ DataOfferImpl::DataOfferImpl(IDataObject& object) : data_(object)
 
 	//this function checks if the given fmt represents the given cf and tymed, if so, type
 	//is added to types_ and fmt associated with it in typeFormats_
+	//if type is already associated with a FORMATETC it will be overriden, therefore
+	//order the checkAdd function calls from less-wanted to more-wanted for the same dataTypes
 	auto checkAdd = [&](const FORMATETC& fmt, CLIPFORMAT cf, DWORD tymed, unsigned int type)
 	{
 		if(fmt.cfFormat == cf && (fmt.tymed && tymed))
 		{
-			types_.add(type);
+			types_.add(type); //the add call checks for duplicates
 			typeFormats_[type] = fmt;
 		}
 	};
@@ -43,7 +45,6 @@ DataOfferImpl::DataOfferImpl(IDataObject& object) : data_(object)
 	//enumerate all formats and check for the ones that can be understood
 	ULONG count;
 	FORMATETC format;
-	auto ret2 = enumerator->Next(1, &format, &count);
 
 	auto customFormat = ::RegisterClipboardFormat("ny::customDataFormat");
 	while(enumerator->Next(1, &format, &count) == S_OK)
@@ -160,9 +161,11 @@ HRESULT DropSourceImpl::GiveFeedback(DWORD dwEffect)
 //DataObjectImpl
 DataObjectImpl::DataObjectImpl(std::unique_ptr<DataSource> source) : source_(std::move(source))
 {
-	//TODO: parse source formats
-	//if source e.g. offsers dataType::text, this DataObject should offer unicode as well
-	//as plain text.
+	formats_.reserve(source_->types().types.size());
+	formats_.emplace_back();
+	for(auto t : source_->types().types) if(format(t, formats_.back())) formats_.emplace_back();
+	formats_.erase(formats_.end() - 1);
+
 }
 
 HRESULT DataObjectImpl::GetData(FORMATETC* format, STGMEDIUM* stgmed)
@@ -197,7 +200,7 @@ HRESULT DataObjectImpl::SetData(FORMATETC*, STGMEDIUM*, BOOL)
 HRESULT DataObjectImpl::EnumFormatEtc(DWORD direction, IEnumFORMATETC** formatOut)
 {
     if(direction != DATADIR_GET) return E_NOTIMPL;
-    else return SHCreateStdEnumFmtEtc(formats().size(), formats().data(), formatOut);
+    else return SHCreateStdEnumFmtEtc(formats_.size(), formats_.data(), formatOut);
 }
 HRESULT DataObjectImpl::DAdvise(FORMATETC*, DWORD, IAdviseSink*, DWORD*)
 {
@@ -255,8 +258,6 @@ STGMEDIUM DataObjectImpl::medium(unsigned int dataType) const
 bool DataObjectImpl::medium(unsigned int dataType, STGMEDIUM& med) const
 {
 	auto fmt = format(dataType);
-	med.tymed = fmt.tymed;
-	med.pUnkForRelease = nullptr;
 
 	unsigned int cfFormat;
 	unsigned int medium;
@@ -264,25 +265,14 @@ bool DataObjectImpl::medium(unsigned int dataType, STGMEDIUM& med) const
 
 	if(!ptr || medium != fmt.tymed || cfFormat != fmt.cfFormat)
 	{
-		warning();
+		warning("ny::winapi::DataObjectImpl::medium: failed to convert data to com object.");
 		return false;
 	}
 
 	med.hGlobal = ptr; //TODO: correct tymed<->enum setting
+	med.tymed = fmt.tymed;
+	med.pUnkForRelease = nullptr;
 	return true;
-}
-
-std::vector<FORMATETC> DataObjectImpl::formats() const
-{
-	auto size = source_->types().types.size();
-	std::vector<FORMATETC> ret(1);
-	ret.reserve(size);
-
-	for(auto i = 0u; i < size; ++i)
-		if(format(i, ret.back())) ret.emplace_back();
-
-	ret.erase(ret.end() - 1);
-	return ret;
 }
 
 

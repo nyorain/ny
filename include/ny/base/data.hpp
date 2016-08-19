@@ -101,13 +101,15 @@ public:
 
 	///Requests conversion of the data into the given format and registers a function
 	///that should be asynchronous called when the data arrives.
-	///On some backends, the given function will called immedietly, returning
+	///On some backends, the given function will be called immedietly, returning
 	///a disconnected connection while on other backends a valid one is returned and the
-	///function might be called at some point in the future from the backend thread.
+	///function might be called at some point in the future from the event (backend) thread.
 	///The Connection will be automatically destroyed after the function has been
 	///called once or earlier.
 	///If the requested format cannot be retrieved, the function will be called with an
 	///empty any object.
+	///Note that on some backends this function might not return (running an internal event loop)
+	///until the data is retrieved.
 	virtual CbConn data(unsigned int fmt, const DataFunction& func) = 0;
 };
 

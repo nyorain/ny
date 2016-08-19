@@ -148,15 +148,13 @@ protected:
 	FORMATETC format(unsigned int dataType) const;
 	bool format(unsigned int dataType, FORMATETC& format) const;
 
-	///Returns all supported formats in a vector.
-	std::vector<FORMATETC> formats() const;
-
 	///Returns a STGMEDIUM struct for the given dataType id holding the data.
 	STGMEDIUM medium(unsigned int id) const;
 	bool medium(unsigned int id, STGMEDIUM& med) const;
 
 protected:
 	std::unique_ptr<DataSource> source_;
+	std::vector<FORMATETC> formats_;
 };
 
 

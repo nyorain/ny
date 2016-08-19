@@ -99,10 +99,12 @@ public:
 	virtual std::unique_ptr<DataOffer> clipboard() = 0;
 
 	///Start a drag and drop action at the current cursor position.
+	///Note that this function might not return (running an internal event loop)
+	///until the drag and drop ends.
 	///\param dataSource A DataSource implementation for the data to drag and drop.
 	///The implementation must be able to provide the data as long as it exists.
 	///\return true on success, false on failure (e.g. cursor is not over a window)
-	// virtual bool startDragDrop(std::unique_ptr<DataSource> dataSource) = 0;
+	virtual bool startDragDrop(std::unique_ptr<DataSource>&& dataSource) = 0;
 };
 
 }

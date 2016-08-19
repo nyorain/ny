@@ -6,18 +6,29 @@
 //TODO:
 // - remove WindowHint::acceptDrop and implement droppable for winapi instead
 // - winapi dnd cursors/previews
-// - winapi: setting the clipboard fails
 // - winapi: gdi, vulkan, cairo, gl integration
 
 // - wayland & x11: clipboard and dnd support
+class CustomDataSource : public ny::DataSource
+{
+public:
+	ny::DataTypes types() const override { return {{ny::dataType::text}}; }
+	std::any data(unsigned int format) const override
+	{
+		if(format != ny::dataType::text) return {};
+		return std::string("ayyy got em");
+	}
+};
 
 class MyEventHandler : public ny::EventHandler
 {
 public:
-	MyEventHandler(ny::LoopControl& mainLoop) : loopControl_(mainLoop) {}
+	MyEventHandler(ny::LoopControl& mainLoop, ny::AppContext& ac)
+		: loopControl_(mainLoop), appContext_(ac) {}
 
 	bool handleEvent(const ny::Event& ev) override
 	{
+		// ny::debug("Event");
 		if(ev.type() == ny::eventType::windowClose)
 		{
 			ny::debug("Window closed. Exiting.");
@@ -33,23 +44,19 @@ public:
 				});
 		}
 
+		if(ev.type() == ny::eventType::mouseButton)
+		{
+			appContext_.startDragDrop(std::make_unique<CustomDataSource>());
+		}
+
 		return false;
 	};
 
 protected:
 	ny::LoopControl& loopControl_;
+	ny::AppContext& appContext_;
 };
 
-class CustomDataSource : public ny::DataSource
-{
-public:
-	ny::DataTypes types() const override { return {{ny::dataType::text}}; }
-	std::any data(unsigned int format) const override
-	{
-		if(format != ny::dataType::text) return {};
-		return "ayyy got em";
-	}
-};
 
 int main()
 {
@@ -57,6 +64,7 @@ int main()
 	auto ac = backend.createAppContext();
 
 	auto dataOffer = ac->clipboard();
+	for(auto& t : dataOffer->types().types) ny::debug("clipboard type ", t);
 	dataOffer->data(ny::dataType::text,
 		[](const ny::DataOffer&, int format, const std::any& text) {
 			if(!text.has_value()) return;
@@ -71,7 +79,7 @@ int main()
 
 	ny::EventDispatcher dispatcher;
 	ny::LoopControl control;
-	MyEventHandler handler(control);
+	MyEventHandler handler(control, *ac);
 
 	wc->addWindowHints(ny::WindowHint::acceptDrop);
 	wc->eventHandler(handler);

@@ -92,7 +92,8 @@ WinapiAppContext::WinapiAppContext() : mouseContext_(*this), keyboardContext_(*t
     GdiplusStartup(&gdiplusToken_, &gdiplusStartupInput_, nullptr);
 
 	//needed for dnd and clipboard
-	auto res = OleInitialize(nullptr);
+	auto res = ::OleInitialize(nullptr);
+	// auto res = ::CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 	if(res != S_OK) warning("WinapiWC: OleInitialize failed with code ", res);
 }
 
@@ -101,6 +102,7 @@ WinapiAppContext::~WinapiAppContext()
 	// Font::defaultFont().resetCache("ny::GdiFontHandle");
     if(gdiplusToken_) Gdiplus::GdiplusShutdown(gdiplusToken_);
 	OleUninitialize();
+	// ::CoUninitialize();
 }
 
 std::unique_ptr<WindowContext> WinapiAppContext::createWindowContext(const WindowSettings& settings)
@@ -264,6 +266,29 @@ std::unique_ptr<DataOffer> WinapiAppContext::clipboard()
 	::OleGetClipboard(&obj);
 	if(!obj) return nullptr;
 	return std::make_unique<winapi::DataOfferImpl>(*obj);
+}
+
+bool WinapiAppContext::startDragDrop(std::unique_ptr<DataSource>&& source)
+{
+	// modalThreads_.emplace_back([source = std::move(source)]() mutable {
+	// 	::OleInitialize(nullptr);
+	// 	// auto res = ::CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+	// 	auto dataObj = new winapi::com::DataObjectImpl(std::move(source));
+	// 	auto dropSource = new winapi::com::DropSourceImpl();
+	//
+	// 	DWORD effect;
+	// 	::DoDragDrop(dataObj, dropSource, DROPEFFECT_COPY, &effect);
+	// 	// ::CoUninitialize();
+	// 	::OleUninitialize();
+	// });
+	// modalThreads_.back().join();
+	//
+
+	auto dataObj = new winapi::com::DataObjectImpl(std::move(source));
+	auto dropSource = new winapi::com::DropSourceImpl();
+
+	DWORD effect;
+	return(::DoDragDrop(dataObj, dropSource, DROPEFFECT_COPY, &effect) == S_OK);
 }
 
 WinapiWindowContext* WinapiAppContext::windowContext(HWND w)

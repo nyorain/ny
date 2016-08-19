@@ -6,7 +6,9 @@
 
 #include <windows.h>
 #include <gdiplus.h>
+
 #include <map>
+#include <thread>
 
 namespace ny
 {
@@ -32,6 +34,7 @@ public:
 
 	bool clipboard(std::unique_ptr<DataSource>&& source) override;
 	std::unique_ptr<DataOffer> clipboard() override;
+	bool startDragDrop(std::unique_ptr<DataSource>&& source) override;
 
 	//custom winapi stuff
     LONG_PTR eventProc(HWND, UINT, WPARAM, LPARAM);
