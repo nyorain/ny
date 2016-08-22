@@ -429,6 +429,11 @@ CursorType waylandToCursor(std::string id)
     return CursorType::unknown;
 }
 
+WindowEdge waylandToEdge(unsigned int wlEdge)
+{
+	return static_cast<WindowEdge>(wlEdge);
+}
+
 // int bufferFormatToWayland(bufferFormat format)
 // {
 //     switch(format)

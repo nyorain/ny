@@ -34,9 +34,9 @@ protected:
 	void updateState(const Vec3ui& mods, const Vec3ui& layouts);
 
 protected:
-	xkb_context* xkbContext_;
-	xkb_keymap* xkbKeymap_;
-	xkb_state* xkbState_;
+	xkb_context* xkbContext_ = nullptr;
+	xkb_keymap* xkbKeymap_ = nullptr;
+	xkb_state* xkbState_ = nullptr;
 };
 
 }

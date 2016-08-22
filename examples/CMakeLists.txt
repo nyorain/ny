@@ -9,16 +9,22 @@ add_custom_target(copyRuntimeFiles
 # target_link_libraries(examples-start ny-draw ny-app ny-backend ny-window ny-gui)
 
 #dev
-add_executable(dev dev/main.cpp)
-target_link_libraries(dev ny-base ny-backend)
-add_dependencies(dev copyRuntimeFiles)
+add_executable(ny-dev dev/main.cpp)
+target_link_libraries(ny-dev ny-base ny-backend)
+add_dependencies(ny-dev copyRuntimeFiles)
 
 #intro-backend
-add_executable(intro-backend intro-backend/main.cpp)
-target_link_libraries(intro-backend ny-base ny-backend)
-add_dependencies(intro-backend copyRuntimeFiles)
+add_executable(ny-intro-backend intro-backend/main.cpp)
+target_link_libraries(ny-intro-backend ny-base ny-backend)
+add_dependencies(ny-intro-backend copyRuntimeFiles)
 
 #intro-app
-add_executable(intro-app intro-app/main.cpp)
-target_link_libraries(intro-app ny-base ny-backend ny-app)
-add_dependencies(intro-app copyRuntimeFiles)
+add_executable(ny-intro-app intro-app/main.cpp)
+target_link_libraries(ny-intro-app ny-base ny-backend ny-app)
+add_dependencies(ny-intro-app copyRuntimeFiles)
+
+#vulkan
+add_executable(ny-vulkan vulkan/main.cpp)
+target_include_directories(ny-vulkan PUBLIC ${VULKAN_INCLUDE_DIR})
+target_link_libraries(ny-vulkan ny-base ny-backend vpp ${VULKAN_LIB})
+add_dependencies(ny-vulkan copyRuntimeFiles)

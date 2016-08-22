@@ -78,6 +78,8 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 				XCB_ATOM_STRING, 8, settings.title.size(), settings.title.c_str());
 	}
 
+	if(settings.initShown) show();
+
     xcb_flush(xConnection());
 }
 

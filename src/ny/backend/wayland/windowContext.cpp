@@ -227,6 +227,23 @@ void WaylandWindowContext::cursor(const Cursor& c)
 //         getWaylandAC()->setCursor(window_.getCursor().getImage(), window_.getCursor().getImageHotspot(), serial);
 // }
 
+
+void WaylandWindowContext::droppable(const DataTypes&)
+{
+}
+
+void WaylandWindowContext::minSize(const Vec2ui&)
+{
+}
+void WaylandWindowContext::maxSize(const Vec2ui&)
+{
+}
+
+NativeWindowHandle WaylandWindowContext::nativeHandle() const
+{
+	return {wlSurface_};
+}
+
 bool WaylandWindowContext::handleEvent(const Event& event)
 {
     if(event.type() == eventType::wayland::frameEvent)
@@ -242,7 +259,11 @@ bool WaylandWindowContext::handleEvent(const Event& event)
             refreshFlag_ = 0;
 			if(eventHandler()) appContext_->dispatch(DrawEvent(eventHandler()));
         }
+
+		return true;
     }
+
+	return false;
 }
 
 void WaylandWindowContext::maximize()

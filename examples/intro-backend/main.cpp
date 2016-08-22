@@ -55,5 +55,6 @@ int main()
 	///the dispatchLoop.
 	wc->eventHandler(handler);
 
+	ny::debug("Entering main loop");
 	ac->dispatchLoop(dispatcher, control);
 }

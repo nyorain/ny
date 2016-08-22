@@ -42,6 +42,11 @@ public:
 	KeyboardContext* keyboardContext() override;
 	WindowContextPtr createWindowContext(const WindowSettings& windowSettings) override;
 
+	//TODO
+	bool clipboard(std::unique_ptr<DataSource>&& dataSource) override;
+	std::unique_ptr<DataOffer> clipboard() override;
+	bool startDragDrop(std::unique_ptr<DataSource>&& dataSource) override;
+
     //wayland specific
 	///Changes the cursor a cursor with the given name.
 	///Note that serial can only be 0 (or invalid) if the cursor was already set by this
@@ -72,7 +77,7 @@ public:
     wl_shell* wlShell() const { return wlShell_; };
     xdg_shell* xdgShell() const { return xdgShell_; }
 
-	WindowContext* windowContext(wl_surface& surface) const;
+	WaylandWindowContext* windowContext(wl_surface& surface) const;
     const std::vector<wayland::Output>& outputs() const { return outputs_; }
 
 	// void startDataOffer(dataSource& source, const image& img, const window& w, const event* ev);
@@ -99,7 +104,6 @@ protected:
 
     wl_data_device* wlDataDevice_ = nullptr;
 
-	std::string seatName_;
 
 	//cursor
     wl_cursor_theme* wlCursorTheme_ = nullptr;
@@ -116,9 +120,12 @@ protected:
 	// const dataSource* dataSource_ = nullptr;
 	// wl_data_source* wlDataSource_ = nullptr;
 
+	EventDispatcher* dispatcher_ = nullptr; //from disptach loop/dispatchEvents
+
 	std::vector<unsigned int> shmFormats_;
 	std::vector<wayland::Output> outputs_;
 
+	std::string seatName_;
 	std::unique_ptr<WaylandKeyboardContext> keyboardContext_;
 	std::unique_ptr<WaylandMouseContext> mouseContext_;
 };

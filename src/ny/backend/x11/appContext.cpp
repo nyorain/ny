@@ -391,6 +391,46 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
 	#undef EventHandlerEvent
 }
 
+WindowContextPtr X11AppContext::createWindowContext(const WindowSettings& settings)
+{
+    X11WindowSettings x11Settings;
+    const auto* ws = dynamic_cast<const X11WindowSettings*>(&settings);
+
+    if(ws) x11Settings = *ws;
+    else x11Settings.WindowSettings::operator=(settings);
+
+	//type
+	auto drawType = settings.drawSettings.drawType;
+	if(drawType == DrawType::vulkan)
+	{
+		#ifdef NY_WithVulkan
+		 // return std::make_unique<X11VulkanWindowContext>(*xac, settings);
+		#else
+		 throw std::logic_error("ny::X11Backend::createWC: ny built without vulkan support");
+		#endif
+	}
+	else if(drawType == DrawType::gl)
+	{
+		#ifdef NY_WithGL	
+		 // return std::make_unique<X11EglWindowContext>(*this, waylandSettings);
+		#else
+		 throw std::logic_error("ny::X11Backend::createWC: ny built without GL suppport");
+		#endif
+	}
+		
+	return std::make_unique<X11WindowContext>(*this, x11Settings);
+}
+
+MouseContext* X11AppContext::mouseContext()
+{
+	return mouseContext_.get();
+}
+
+KeyboardContext* X11AppContext::keyboardContext()
+{
+	return keyboardContext_.get();
+}
+
 bool X11AppContext::dispatchEvents(EventDispatcher& dispatcher)
 {
 	xcb_flush(xConnection());
@@ -429,6 +469,22 @@ bool X11AppContext::dispatchLoop(EventDispatcher& dispatcher, LoopControl& contr
 	}
 		
 	return true;
+}
+
+//TODO
+bool X11AppContext::threadedDispatchLoop(ThreadedEventDispatcher& dispatcher, LoopControl& control)
+{
+	return dispatchLoop(dispatcher, control);
+}
+
+bool X11AppContext::clipboard(std::unique_ptr<DataSource>&& dataSource)
+{
+}
+std::unique_ptr<DataOffer> X11AppContext::clipboard()
+{
+}
+bool X11AppContext::startDragDrop(std::unique_ptr<DataSource>&& dataSource)
+{
 }
 
 void X11AppContext::registerContext(xcb_window_t w, X11WindowContext& c)

@@ -1,24 +1,36 @@
 #include <ny/backend/x11/input.hpp>
+#include <ny/backend/x11/appContext.hpp>
+#include <ny/backend/x11/windowContext.hpp>
+
+#include <xcb/xcb.h>
 
 namespace ny
 {
 
 //Mouse
-X11MouseContext::X11MouseContext()
+nytl::Vec2ui X11MouseContext::position() const
 {
+	if(!over_) return {};
+	auto cookie = xcb_query_pointer(appContext_.xConnection(), over_->xWindow());
+	auto reply = xcb_query_pointer_reply(appContext_.xConnection(), cookie, nullptr);
+
+	return nytl::Vec2ui(reply->win_x, reply->win_y);
 }
 
-X11MouseContext::~X11MouseContext()
+bool X11MouseContext::pressed(MouseButton button) const
 {
+	return buttonStates_[static_cast<unsigned char>(button)];
+}
+
+WindowContext* X11MouseContext::over() const
+{
+	return over_;
 }
 
 //Keyboard
-X11KeyboardContext::X11KeyboardContext()
+bool X11KeyboardContext::pressed(Key key) const
 {
-}
-
-X11KeyboardContext::~X11WindowContext()
-{
+	return keyStates_[static_cast<unsigned char>(key)];
 }
 	
 }

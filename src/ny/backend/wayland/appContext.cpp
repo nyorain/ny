@@ -6,6 +6,9 @@
 #include <ny/backend/wayland/input.hpp>
 #include <ny/backend/wayland/xdg-shell-client-protocol.h>
 
+#include <ny/base/eventDispatcher.hpp>
+#include <ny/base/loopControl.hpp>
+
 #ifdef NY_WithEGL
  #include <ny/backend/wayland/egl.hpp>
 #endif //WithGL
@@ -13,6 +16,8 @@
 #ifdef NY_WithVulkan
  #include <ny/backend/wayland/vulkan.hpp>
 #endif //WithVulkan
+
+#include <nytl/scope.hpp>
 
 #include <wayland-client.h>
 #include <wayland-cursor.h>
@@ -22,6 +27,36 @@
 
 namespace ny
 {
+
+namespace
+{
+
+void callbackDestroy(void*, wl_callback* callback, unsigned int) { wl_callback_destroy(callback); }
+const wl_callback_listener callbackDestroyListener { &callbackDestroy };
+
+//LoopControl
+class WaylandLoopControlImpl : public ny::LoopControlImpl
+{
+public:
+	std::atomic<bool>* run;
+	wl_callback* callback;
+	wl_display* display;
+
+public:
+	WaylandLoopControlImpl(std::atomic<bool>& prun, wl_display& wldisplay) 
+		: run(&prun), display(&wldisplay)
+	{
+	}
+
+	virtual void stop() override
+	{
+		run->store(0);
+		callback = wl_display_sync(display);
+		wl_callback_add_listener(callback, &callbackDestroyListener, this);
+	};
+};
+
+}
 
 using namespace wayland;
 
@@ -50,6 +85,43 @@ WaylandAppContext::~WaylandAppContext()
     if(wlDisplay_) wl_display_disconnect(wlDisplay_);
 }
 
+//TODO: exception safety!
+bool WaylandAppContext::dispatchEvents(EventDispatcher& dispatcher)
+{
+	auto guard = nytl::makeScopeGuard([this]{ dispatcher_ = nullptr; });
+
+	dispatcher_ = &dispatcher;
+	auto ret = wl_display_dispatch_pending(wlDisplay_);
+	return ret != -1;
+}
+
+bool WaylandAppContext::dispatchLoop(EventDispatcher& dispatcher, LoopControl& control)
+{
+	auto guard = nytl::makeScopeGuard([&]{ 
+		dispatcher_ = nullptr; 
+		control.impl_.reset();
+	});
+
+	std::atomic<bool> run {true};
+	control.impl_.reset(new WaylandLoopControlImpl(run, *wlDisplay_));
+
+	dispatcher_ = &dispatcher;
+	auto ret = 0;
+	while(run && ret != -1)
+	{
+		ret = wl_display_dispatch(wlDisplay_);
+	}
+
+	return ret != -1;
+}
+
+bool WaylandAppContext::threadedDispatchLoop(ThreadedEventDispatcher& dispatcher, 
+	LoopControl& control)
+{
+	//TODO
+	return dispatchLoop(dispatcher, control);
+}
+
 KeyboardContext* WaylandAppContext::keyboardContext()
 {
 	return keyboardContext_.get();
@@ -69,25 +141,35 @@ WindowContextPtr WaylandAppContext::createWindowContext(const WindowSettings& se
     else waylandSettings.WindowSettings::operator=(settings);
 
 	//type
-	if(waylandSettings.draw == DrawType::vulkan)
+	auto drawType = settings.drawSettings.drawType;
+	if(drawType == DrawType::vulkan)
 	{
 		#ifdef NY_WithVulkan
 		 // return std::make_unique<WaylandVulkanWindowContext>(*xac, settings);
 		#else
-		 throw std::logic_error("ny::X11Backend::createWC: ny built without vulkan support");
+		 throw std::logic_error("ny::WaylandBackend::createWC: ny built without vulkan support");
 		#endif
 	}
-	else if(waylandSettings.draw == DrawType::gl)
+	else if(drawType == DrawType::gl)
 	{
 		#ifdef NY_WithGL	
 		 // return std::make_unique<WaylandEglWindowContext>(*this, waylandSettings);
 		#else
-		 throw std::logic_error("ny::X11Backend::createWC: ny built without GL suppport");
+		 throw std::logic_error("ny::WaylandBackend::createWC: ny built without GL suppport");
 		#endif
 	}
 		
 	return std::make_unique<WaylandWindowContext>(*this, waylandSettings);
+}
 
+bool WaylandAppContext::clipboard(std::unique_ptr<DataSource>&& dataSource)
+{
+}
+std::unique_ptr<DataOffer> WaylandAppContext::clipboard()
+{
+}
+bool WaylandAppContext::startDragDrop(std::unique_ptr<DataSource>&& dataSource)
+{
 }
 
 void WaylandAppContext::registryAdd(unsigned int id, const char* cinterface, unsigned int)
@@ -205,6 +287,11 @@ void WaylandAppContext::seatCapabilities(unsigned int caps)
     }
 }
 
+void WaylandAppContext::seatName(const char* name)
+{
+	seatName_ = name;
+}
+
 void WaylandAppContext::addShmFormat(unsigned int format)
 {
     shmFormats_.push_back(format);
@@ -246,6 +333,18 @@ void WaylandAppContext::cursor(std::string cursorName, unsigned int serial)
     wl_surface_attach(wlCursorSurface_, wlCursorBuffer, 0, 0);
     wl_surface_damage(wlCursorSurface_, 0, 0, image->width, image->height);
     wl_surface_commit(wlCursorSurface_);
+}
+
+void WaylandAppContext::dispatch(Event&& event)
+{
+	if(dispatcher_) dispatcher_->dispatch(std::move(event));
+	//TODO error handling
+}
+
+WaylandWindowContext* WaylandAppContext::windowContext(wl_surface& surface) const
+{
+	auto data = wl_surface_get_user_data(&surface);
+	return static_cast<WaylandWindowContext*>(data);
 }
 
 /*

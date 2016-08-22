@@ -12,19 +12,20 @@ class X11MouseContext : public MouseContext
 {
 public:
 	X11MouseContext(X11AppContext& ac) : appContext_(ac) {}
+	~X11MouseContext() = default;
 
 	//MouseContext
 	Vec2ui position() const override;
 	bool pressed(MouseButton button) const override;
-	WindowContext* over() const override { return over_; }
+	WindowContext* over() const override;
 
 	//specific
-	void over(WindowContext* ctx);
-	void move(Vec2ui position);
+	// void over(WindowContext* ctx);
 
 protected:
 	X11AppContext& appContext_;
-	WindowContext* over_;
+	X11WindowContext* over_ = nullptr;
+	std::bitset<8> buttonStates_;
 };
 
 
@@ -32,8 +33,8 @@ protected:
 class X11KeyboardContext : public XkbKeyboardContext
 {
 public:
-	X11KeyboardContext(X11AppContext& ac);
-	~X11KeyboardContext();
+	X11KeyboardContext(X11AppContext& ac) : appContext_(ac) {}
+	~X11KeyboardContext() = default;
 
 	//KeyboardContext impl
 	bool pressed(Key key) const override;
@@ -41,7 +42,8 @@ public:
 
 protected:
 	X11AppContext& appContext_;
-	WindowContext* focus_;
+	WindowContext* focus_ = nullptr;
+	std::bitset<255> keyStates_;
 };
 
 }

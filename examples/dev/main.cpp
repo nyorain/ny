@@ -1,7 +1,6 @@
 #include <ny/base.hpp>
 #include <ny/backend.hpp>
 #include <ny/app/events.hpp>
-#include <cstdio>
 
 //TODO:
 // - remove WindowHint::acceptDrop and implement droppable for winapi instead

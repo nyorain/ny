@@ -16,9 +16,9 @@ public:
 	~WaylandMouseContext();
 
 	//MouseContext
-	Vec2ui position() const override;
+	Vec2ui position() const override { return position_; }
 	bool pressed(MouseButton button) const override;
-	WindowContext* over() const override { return over_; }
+	WindowContext* over() const override;
 
 	//specific
 	//those functions are called by the listeners
@@ -32,9 +32,10 @@ public:
 
 protected:
 	WaylandAppContext& appContext_;
-	WindowContext* over_;
+	WaylandWindowContext* over_;
 	Vec2ui position_;
 	wl_pointer* wlPointer_;
+	std::bitset<8> buttonStates_;
 };
 
 

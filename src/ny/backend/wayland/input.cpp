@@ -1,6 +1,7 @@
 #include <ny/backend/wayland/input.hpp>
 #include <ny/backend/wayland/interfaces.hpp>
 #include <ny/backend/wayland/appContext.hpp>
+#include <ny/backend/wayland/windowContext.hpp>
 #include <ny/backend/wayland/util.hpp>
 #include <ny/backend/windowContext.hpp>
 #include <ny/base/log.hpp>
@@ -27,6 +28,16 @@ WaylandMouseContext::WaylandMouseContext(WaylandAppContext& ac, wl_seat& seat)
 WaylandMouseContext::~WaylandMouseContext()
 {
 	wl_pointer_release(wlPointer_);
+}
+
+bool WaylandMouseContext::pressed(MouseButton button) const
+{
+	return buttonStates_[static_cast<unsigned int>(button)];
+}
+
+WindowContext* WaylandMouseContext::over() const
+{
+	return over_;
 }
 
 void WaylandMouseContext::handleMotion(unsigned int time, const Vec2ui& pos)

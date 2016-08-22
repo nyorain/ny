@@ -29,6 +29,11 @@ public:
 	bool dispatchLoop(EventDispatcher& dispatcher, LoopControl& control) override;
 	bool threadedDispatchLoop(ThreadedEventDispatcher& dsp, LoopControl& ctrl) override;
 
+	//TODO
+	bool clipboard(std::unique_ptr<DataSource>&& dataSource) override;
+	std::unique_ptr<DataOffer> clipboard() override;
+	bool startDragDrop(std::unique_ptr<DataSource>&& dataSource) override;
+
 	//custom
     Display* xDisplay() const { return xDisplay_; }
 	xcb_connection_t* xConnection() const { return xConnection_; }
