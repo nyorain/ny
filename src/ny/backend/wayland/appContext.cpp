@@ -17,6 +17,10 @@
  #include <ny/backend/wayland/vulkan.hpp>
 #endif //WithVulkan
 
+#ifdef NY_WithCairo
+ #include <ny/backend/wayland/cairo.hpp>
+#endif //WithCairo
+
 #include <nytl/scope.hpp>
 
 #include <wayland-client.h>
@@ -91,6 +95,10 @@ bool WaylandAppContext::dispatchEvents(EventDispatcher& dispatcher)
 	auto guard = nytl::makeScopeGuard([this]{ dispatcher_ = nullptr; });
 
 	dispatcher_ = &dispatcher;
+
+	for(auto i = 0u; i < pendingEvents_.size(); ++i) dispatch(std::move(*pendingEvents_[i]));
+	pendingEvents_.clear();
+
 	auto ret = wl_display_dispatch_pending(wlDisplay_);
 	return ret != -1;
 }
@@ -106,6 +114,10 @@ bool WaylandAppContext::dispatchLoop(EventDispatcher& dispatcher, LoopControl& c
 	control.impl_.reset(new WaylandLoopControlImpl(run, *wlDisplay_));
 
 	dispatcher_ = &dispatcher;
+
+	for(auto i = 0u; i < pendingEvents_.size(); ++i) dispatch(std::move(*pendingEvents_[i]));
+	pendingEvents_.clear();
+
 	auto ret = 0;
 	while(run && ret != -1)
 	{
@@ -147,7 +159,7 @@ WindowContextPtr WaylandAppContext::createWindowContext(const WindowSettings& se
 		#ifdef NY_WithVulkan
 		 // return std::make_unique<WaylandVulkanWindowContext>(*xac, settings);
 		#else
-		 throw std::logic_error("ny::WaylandBackend::createWC: ny built without vulkan support");
+		 throw std::logic_error("ny::WaylandAC::createWC: ny built without vulkan support");
 		#endif
 	}
 	else if(drawType == DrawType::gl)
@@ -155,7 +167,15 @@ WindowContextPtr WaylandAppContext::createWindowContext(const WindowSettings& se
 		#ifdef NY_WithGL	
 		 // return std::make_unique<WaylandEglWindowContext>(*this, waylandSettings);
 		#else
-		 throw std::logic_error("ny::WaylandBackend::createWC: ny built without GL suppport");
+		 throw std::logic_error("ny::WaylandAC::createWC: ny built without GL suppport");
+		#endif
+	}
+	else if(drawType == DrawType::dontCare || drawType == DrawType::software)
+	{
+		#ifdef NY_WithCairo
+			return std::make_unique<WaylandCairoWindowContext>(*this, waylandSettings);
+		#else
+			throw std::logic_error("ny::WaylandAC:createWC: ny built without cairo support");
 		#endif
 	}
 		
@@ -338,7 +358,7 @@ void WaylandAppContext::cursor(std::string cursorName, unsigned int serial)
 void WaylandAppContext::dispatch(Event&& event)
 {
 	if(dispatcher_) dispatcher_->dispatch(std::move(event));
-	//TODO error handling
+	else pendingEvents_.push_back(nytl::cloneMove(std::move(event)));
 }
 
 WaylandWindowContext* WaylandAppContext::windowContext(wl_surface& surface) const

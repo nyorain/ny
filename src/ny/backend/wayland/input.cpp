@@ -7,10 +7,12 @@
 #include <ny/base/log.hpp>
 
 #include <nytl/range.hpp>
+#include <nytl/scope.hpp>
 
 #include <wayland-client-protocol.h>
 #include <xkbcommon/xkbcommon.h>
 #include <unistd.h>
+#include <sys/mman.h>
 
 namespace ny
 {
@@ -150,17 +152,47 @@ bool WaylandKeyboardContext::keymap()
 }
 void WaylandKeyboardContext::handleKeymap(unsigned int format, int fd, unsigned int size)
 {
-	if(format != WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1) return;
+	//always close the give fd
+	auto fdGuard = nytl::makeScopeGuard([=]{ close(fd); });
 
-	auto buffer = std::make_unique<char[]>(size);
-	read(fd, buffer.get(), size); //TODO: check for error
+	if(format != WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1)
+	{
+		log("WaylandKeyboardContext: invalid keymap format");
+		return;
+	}
+
+	auto buf = mmap(nullptr, size, PROT_READ, MAP_SHARED, fd, 0);
+	if(buf == MAP_FAILED)
+	{
+		log("WaylandKeyboardContext: cannot map keymap");
+		return;
+	}
+
+	//always unmap the buffer
+	auto mapGuard = nytl::makeScopeGuard([=]{ munmap(buf, size); });
+
 	keymap_ = true;
 	
 	if(xkbState_) xkb_state_unref(xkbState_);
 	if(xkbKeymap_) xkb_keymap_unref(xkbKeymap_);
 
-	xkbKeymap_ = xkb_keymap_new_from_string(xkbContext_, buffer.get(),
+	auto data = static_cast<char*>(buf);
+	xkbKeymap_ = xkb_keymap_new_from_buffer(xkbContext_, data, size - 1,
 		XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
+
+	if(!xkbKeymap_)
+	{
+		log("WaylandKeyboardContext: failed to compile the xkb keymap from compositor.");
+		return;
+	}
+
+	xkbState_ = xkb_state_new(xkbKeymap_);
+
+	if(!xkbState_)
+	{
+		log("WaylandKeyboardContext: failed to create the xkbState from mapped keymap buffer");
+		return;
+	}
 }
 void WaylandKeyboardContext::handleEnter(unsigned int serial, wl_surface& surface, wl_array& keys)
 {

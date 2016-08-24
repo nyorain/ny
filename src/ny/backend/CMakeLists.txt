@@ -45,7 +45,7 @@ if(WithWayland)
 		wayland/appContext.cpp
 		wayland/backend.cpp
 		wayland/input.cpp
-		# wayland/cairo.cpp
+		wayland/cairo.cpp
 		wayland/util.cpp
 		wayland/windowContext.cpp
 		wayland/interfaces.cpp

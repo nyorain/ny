@@ -121,15 +121,15 @@ const wl_buffer_listener bufferListener =
 //shmBuffer
 ShmBuffer::ShmBuffer(WaylandAppContext& ac, Vec2ui size) : appContext_(&ac), size_(size)
 {
-	auto format = WL_SHM_FORMAT_XRGB8888;
+	format_ = WL_SHM_FORMAT_XRGB8888;
 	if(appContext_->shmFormatSupported(WL_SHM_FORMAT_ARGB8888))
-		format = WL_SHM_FORMAT_ARGB8888;
+		format_ = WL_SHM_FORMAT_ARGB8888;
 	else if(appContext_->shmFormatSupported(WL_SHM_FORMAT_BGRA8888))
-		format = WL_SHM_FORMAT_BGRA8888;
+		format_ = WL_SHM_FORMAT_BGRA8888;
 	else if(appContext_->shmFormatSupported(WL_SHM_FORMAT_ABGR8888))
-		format = WL_SHM_FORMAT_ABGR8888;
+		format_ = WL_SHM_FORMAT_ABGR8888;
 	else if(appContext_->shmFormatSupported(WL_SHM_FORMAT_RGBA8888))
-		format = WL_SHM_FORMAT_RGBA8888;
+		format_ = WL_SHM_FORMAT_RGBA8888;
 
     create();
 }
@@ -434,26 +434,32 @@ WindowEdge waylandToEdge(unsigned int wlEdge)
 	return static_cast<WindowEdge>(wlEdge);
 }
 
-// int bufferFormatToWayland(bufferFormat format)
-// {
-//     switch(format)
-//     {
-//         case bufferFormat::argb8888: return WL_SHM_FORMAT_ARGB8888;
-//         case bufferFormat::xrgb8888: return WL_SHM_FORMAT_XRGB8888;
-//         case bufferFormat::rgb888: return WL_SHM_FORMAT_RGB888;
-//         default: return -1;
-//     }
-// }
-// 
-// bufferFormat waylandToBufferFormat(unsigned int wlFormat)
-// {
-//     switch(wlFormat)
-//     {
-//         case WL_SHM_FORMAT_ABGR8888: return bufferFormat::argb8888;
-//         case WL_SHM_FORMAT_XRGB8888: return bufferFormat::xrgb8888;
-//         case WL_SHM_FORMAT_RGB888: return bufferFormat::rgb888;
-//         default: return bufferFormat::unknown;
-//     }
-// }
+unsigned int imageFormatToWayland(evg::ImageFormat format)
+{
+    switch(format)
+    {
+		case evg::ImageFormat::argb8888: return WL_SHM_FORMAT_ARGB8888;
+		case evg::ImageFormat::rgb888: return WL_SHM_FORMAT_RGB888;
+		case evg::ImageFormat::rgba8888: return WL_SHM_FORMAT_RGBA8888;
+		case evg::ImageFormat::bgr888: return WL_SHM_FORMAT_BGR888;
+		case evg::ImageFormat::bgra8888: return WL_SHM_FORMAT_BGRA8888;
+		case evg::ImageFormat::a8: return WL_SHM_FORMAT_C8;
+        default: return -1;
+    }
+}
+ 
+evg::ImageFormat waylandToImageFormat(unsigned int wlFormat)
+{
+    switch(wlFormat)
+    {
+		case WL_SHM_FORMAT_ABGR8888: return evg::ImageFormat::argb8888;
+		case WL_SHM_FORMAT_RGB888: return evg::ImageFormat::rgb888;
+		case WL_SHM_FORMAT_BGRA8888: return evg::ImageFormat::bgra8888;
+		case WL_SHM_FORMAT_RGBA8888: return evg::ImageFormat::rgba8888;
+		case WL_SHM_FORMAT_XRGB8888: return evg::ImageFormat::argb8888;
+		case WL_SHM_FORMAT_C8: return evg::ImageFormat::a8;
+		default: return evg::ImageFormat::none;
+    }
+}
 
 }

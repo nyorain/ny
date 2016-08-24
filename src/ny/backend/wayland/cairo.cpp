@@ -5,6 +5,8 @@
 #include <ny/base/log.hpp>
 
 #include <nytl/rect.hpp>
+#include <evg/image.hpp>
+
 #include <cairo/cairo.h>
 #include <wayland-client-protocol.h>
 
@@ -17,12 +19,7 @@ using namespace wayland;
 WaylandCairoDrawContext::WaylandCairoDrawContext(WaylandCairoWindowContext& wc, const Vec2ui& size)
 	: windowContext_(&wc), buffer_(wc.appContext(), size)
 {
-	if(buffer_.format == WL_SHM_FORMAT_ABGR8888 || buffer_.format == WL_SHM_FORMAT_XRGB8888)
-	{
-    auto surf = cairo_image_surface_create_for_data(&buffer_.data(), CAIRO_FORMAT_ARGB32, 
-		size.x, size.y, size.x * 4);
-	}
-	CairoDrawContext::operator=({*surf});
+	resize(size);
 }
 
 void WaylandCairoDrawContext::init()
@@ -32,6 +29,17 @@ void WaylandCairoDrawContext::init()
 
 void WaylandCairoDrawContext::apply()
 {
+	if(buffer_.format() != WL_SHM_FORMAT_ARGB8888 && buffer_.format() != WL_SHM_FORMAT_XRGB8888)
+	{
+		auto fromData = cairo_image_surface_get_data(cairoSurface());
+		auto width = cairo_image_surface_get_width(cairoSurface());
+		auto height = cairo_image_surface_get_height(cairoSurface());
+
+		auto to = waylandToImageFormat(buffer_.format());
+		auto& toData = buffer_.data();
+		evg::convertFormat(evg::ImageFormat::argb8888, to, *fromData, toData, {width, height});
+	}
+
 	CairoDrawContext::apply();
 	windowContext_->commit(buffer_.wlBuffer());
 }
@@ -39,8 +47,17 @@ void WaylandCairoDrawContext::apply()
 void WaylandCairoDrawContext::resize(const Vec2ui& size)
 {
 	buffer_.size(size);
-    auto surf = cairo_image_surface_create_for_data(&buffer_.data(), CAIRO_FORMAT_ARGB32, 
-		size.x, size.y, size.x * 4);
+	cairo_surface_t* surf = nullptr;
+	if(buffer_.format() == WL_SHM_FORMAT_ARGB8888 || buffer_.format() == WL_SHM_FORMAT_XRGB8888)
+	{
+		surf = cairo_image_surface_create_for_data(&buffer_.data(), CAIRO_FORMAT_ARGB32, 
+			size.x, size.y, size.x * 4);
+	}
+	else
+	{
+		surf = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, size.x, size.y);
+	}
+
 	CairoDrawContext::operator=({*surf});
 }
 
@@ -57,8 +74,7 @@ evg::DrawGuard WaylandCairoWindowContext::draw()
 	for(auto& b : buffers_)
 		if(!b.shmBuffer().used()) return b;
 
-	auto size = Vec2ui(100, 100); //todo
-	buffers_.emplace_back(*this, size);
+	buffers_.emplace_back(*this, size_);
 	return buffers_.back();
 }
 

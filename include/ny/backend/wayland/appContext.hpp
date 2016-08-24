@@ -128,6 +128,8 @@ protected:
 	std::string seatName_;
 	std::unique_ptr<WaylandKeyboardContext> keyboardContext_;
 	std::unique_ptr<WaylandMouseContext> mouseContext_;
+
+	std::vector<std::unique_ptr<Event>> pendingEvents_;
 };
 
 }

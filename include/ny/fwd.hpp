@@ -31,6 +31,8 @@ class PlainSubpath;
 class PathSegment;
 class Color;
 
+enum class ImageFormat : unsigned int;
+
 }
 
 //nytl forward delcarations.

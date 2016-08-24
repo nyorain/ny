@@ -32,9 +32,9 @@ public:
 
 protected:
 	WaylandAppContext& appContext_;
-	WaylandWindowContext* over_;
+	WaylandWindowContext* over_ {};
 	Vec2ui position_;
-	wl_pointer* wlPointer_;
+	wl_pointer* wlPointer_ {};
 	std::bitset<8> buttonStates_;
 };
 
@@ -68,10 +68,10 @@ public:
 
 protected:
 	WaylandAppContext& appContext_;
-	WindowContext* focus_;
-	wl_keyboard* wlKeyboard_;
+	WindowContext* focus_ {};
+	wl_keyboard* wlKeyboard_ {};
 	std::bitset<255> keyStates_;
-	bool keymap_;
+	bool keymap_ {};
 };
 
 }
