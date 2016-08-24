@@ -1,0 +1,47 @@
+Model of operation - Threads
+============================
+
+Editors notes:
+ - This text is really unstructured and maybe only makes sense when read entirely.
+ - TODO: restructure it.
+ 
+Events are only allowed to be sent and processed at one thread at a time.
+This thread will be called the ui thread in the following. This is the thread in which the
+application calls App::run, AppContext::dispatchEvents or similiar functions.
+Note that those functions shall always be called from the thread in which the AppContext and
+WindowContexts (or App and Windows) were created.
+
+No backend implementation should ever call EventHandler (not even multiple ones) from multiple
+threads in its interface implementation. Backends may get their events from the underlaying window
+system or devices in this event thread or in a seperate thread.
+Backend implementations also guarantee that EventHandler will only be called from inside one
+of the three AppContext event dispatch functions.
+If events are generated while none of these functions is called (e.g. on WindowContext
+construction) the events will be queued and only sent once the dispatch functions are
+called.
+
+Note that implementing event systems similiar to sfml or different backends (where you can all a
+functions to just retrieve the next queued event and then handle in manually) does not make much 
+sense in ny because backends usually use internal events to implement and comminucate between all 
+interfaces.
+
+The program side (i.e. the programmer that uses ny) does promise that the EventHandler wont call
+blocking functions that do not run its own event loop. Ny itself contains functions that may block,
+but then run its own event loop while waiting for a certain event to occur. Those functions are
+only allowed to be called from the ui thread.
+Examples for such functions are AppContext::startDragDrop or Dialog::runModal.
+
+Ny considers itself a thread-aware library that may be used for efficient single-threaded as well as
+multi-threaded applications. 
+When using the ny-backend abstraction, you can make your application multi-threaded by running 
+the AppContext::dispatchLoop overload that takes an EventDispatcher parameter and then sending
+events from multiple thread to this EventDispatcher.
+The way to communication method between the ui thread running the event dispatch loop and other 
+threads are therefore usually events. This way you are able to e.g. resize, refresh or 
+hide windows from other threads. Doing this directly (by calls to the functions instead of events)
+may result in undefined behaviour such as a data race.
+When using ny-app, you simply have to set the multithreaded bool in the AppSettings objects that you
+pass on App constrcution to true.
+
+If you want to understand all aspects of multithreading in ny on a lower level, you should really
+read the documentation for EventDispatcher, and the 3 event dispatching functions in AppContext.
