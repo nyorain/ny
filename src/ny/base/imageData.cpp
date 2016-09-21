@@ -1,4 +1,5 @@
 #include <ny/base/imageData.hpp>
+#include <ny/base/log.hpp>
 
 namespace ny
 {
@@ -102,15 +103,18 @@ void convertFormat(ImageDataFormat from, ImageDataFormat to, const std::uint8_t&
 	auto newStride = size.x * newfs;
 	if(alignNewStride) newStride = std::ceil(newStride / alignNewStride) * alignNewStride;
 
-	for(auto x = 0u; x < size.x; ++x)
+	for(auto y = 0u; y < size.y; ++y)
 	{
-		for(auto y = 0u; y < size.x; ++y)
+		for(auto x = 0u; x < size.x; ++x)
 		{
 			auto newpos = y * newStride + x * newfs;
 			auto oldpos = y * stride + x * oldfs;
 
 			auto color = formatDataColor((&fromData)[oldpos], from);
 			convert((&toData)[newpos], to, color);
+
+			warning(nytl::Vec4ui(reinterpret_cast<const nytl::Vec4uc&>((&toData)[newpos])));
+			warning(reinterpret_cast<void*&>((&toData)[newpos]));
 		}
 	}
 }

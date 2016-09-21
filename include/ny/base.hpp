@@ -7,3 +7,4 @@
 #include <ny/base/cursor.hpp>
 #include <ny/base/loopControl.hpp>
 #include <ny/base/data.hpp>
+#include <ny/base/imageData.hpp>

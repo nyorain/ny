@@ -10,12 +10,14 @@
 #include <ny/base/cursor.hpp>
 #include <ny/app/events.hpp>
 
-#include <evg/drawContext.hpp>
-
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
+#include <xcb/xcb_image.h>
+#include <X11/Xcursor/Xcursor.h>
 
 #include <cstring> //memcpy
+
+namespace evg { class DrawGuard{ void* pointer; }; }
 
 namespace ny
 {
@@ -80,16 +82,19 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 	}
 
 	if(settings.initShown) show();
-
     xcb_flush(xConnection());
 }
 
 X11WindowContext::~X11WindowContext()
 {
-    appContext().unregisterContext(xWindow_);
+	if(xWindow_)
+	{
+		appContext().unregisterContext(xWindow_);
+		xcb_destroy_window(xConnection(), xWindow_);
+	}
 
-    xcb_destroy_window(xConnection(), xWindow_);
-    xcb_flush(xConnection());
+	if(xCursor_) xcb_free_cursor(xConnection(), xCursor_);
+	xcb_flush(xConnection());
 }
 
 void X11WindowContext::initVisual()
@@ -121,14 +126,17 @@ void X11WindowContext::refresh()
  
 	xcb_send_event(xConnection(), 0, xWindow(), XCB_EVENT_MASK_EXPOSURE, (const char*)&ev);
 	xcb_flush(xConnection());
-	
-	// if(eventHandler()) eventHandler()->handleEvent(DrawEvent(eventHandler()));
 }
 
 void X11WindowContext::show()
 {
     xcb_map_window(xConnection(), xWindow_);
 	refresh();
+}
+
+void X11WindowContext::hide()
+{
+    xcb_unmap_window(xConnection(), xWindow_);
 }
 
 void X11WindowContext::size(const Vec2ui& size)
@@ -151,26 +159,70 @@ void X11WindowContext::position(const Vec2i& position)
 
 void X11WindowContext::cursor(const Cursor& curs)
 {
+	//without xcursor:
+    // if(curs.type() != CursorType::image && curs.type() != CursorType::none)
+    // {
+    //     int num = cursorToX11(curs.type());
+    //     if(num != -1) cursor(num);
+    // }
+
     if(curs.type() != CursorType::image && curs.type() != CursorType::none)
-    {
-        int num = cursorToX11(curs.type());
+	{
+		auto xdpy = appContext().xDisplay();
+		auto name = cursorToX11Char(curs.type());
+		if(!name)
+		{
+			//TODO: warning
+			return;
+		}
 
-        if(num != -1)
-        {
-            cursor(num);
-        }
-    }
+		if(xCursor_) xcb_free_cursor(xConnection(), xCursor_);
 
-    //TODO: image
-	//create pixmap
-	//draw on pixmap
-	//create cursor from pixmap
-	//set cursor for window
-	//
-	//Should be combined with a cairo abstraction
-	//->X11CairoDrawContext which can draw on any xcb_drawable_t (so also on a pixmap)
-	//Then simplex copy the image with cairo
-	//Way easier and less error-prone than using plain xcb
+		xCursor_ = XcursorLibraryLoadCursor(xdpy, name);
+		xcb_change_window_attributes(xConnection(), xWindow(), XCB_CW_CURSOR, &xCursor_);
+	}
+	else if(curs.type() == CursorType::image)
+	{
+		auto xdpy = appContext().xDisplay();
+		auto& imgdata = *curs.image();
+
+		auto xcimage = XcursorImageCreate(imgdata.size.x, imgdata.size.y);
+		xcimage->xhot = curs.imageHotspot().x;
+		xcimage->yhot = curs.imageHotspot().y;
+
+		auto stride = imgdata.size.x * imageDataFormatSize(imgdata.format);
+		constexpr static auto reqFormat = ImageDataFormat::bgra8888; //TODO: endianess?
+		if((imgdata.stride != stride && imgdata.stride != 0) || imgdata.format != reqFormat)
+		{
+			auto pixels = reinterpret_cast<std::uint8_t*>(xcimage->pixels);
+			convertFormat(imgdata.format, reqFormat, *imgdata.data, *pixels, imgdata.size, 
+				imgdata.stride);
+		}
+		else
+		{
+			std::memcpy(xcimage->pixels, imgdata.data, imgdata.stride * imgdata.size.y);
+		}
+
+		if(xCursor_) xcb_free_cursor(xConnection(), xCursor_);
+
+		xCursor_ = XcursorImageLoadCursor(xdpy, xcimage);
+		XcursorImageDestroy(xcimage);
+		xcb_change_window_attributes(xConnection(), xWindow(), XCB_CW_CURSOR, &xCursor_);
+	}
+	else if(curs.type() == CursorType::none)
+	{
+		auto xconn = xConnection();
+		auto cursorPixmap = xcb_generate_id(xconn);
+		xcb_create_pixmap(xconn, 1, cursorPixmap, xWindow_, 1, 1);
+
+		if(xCursor_) xcb_free_cursor(xConnection(), xCursor_);
+		xCursor_ = xcb_generate_id(xconn);
+
+		xcb_create_cursor(xconn, xCursor_, cursorPixmap, cursorPixmap,
+			0, 0, 0, 0, 0, 0, 0, 0);
+		xcb_free_pixmap(xconn, cursorPixmap);
+		xcb_change_window_attributes(xconn, xWindow_, XCB_CW_CURSOR, &xCursor_);
+	}
 }
 
 void X11WindowContext::maximize()
@@ -431,11 +483,6 @@ void X11WindowContext::removeWindowHints(WindowHints hints)
 }
 
 //x11 specific
-void X11WindowContext::hide()
-{
-    xcb_unmap_window(xConnection(), xWindow_);
-}
-
 void X11WindowContext::raise()
 {
 	const uint32_t values[] = {XCB_STACK_MODE_ABOVE};

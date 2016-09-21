@@ -9,6 +9,7 @@
 #define XK_LATIN1
 #define XK_MISCELLANY
 #include <X11/keysymdef.h>
+#include <X11/cursorfont.h>
 #include <X11/X.h>
 
 namespace ny
@@ -81,16 +82,16 @@ int cursorToX11(CursorType c)
 {
     switch(c)
     {
-        case CursorType::leftPtr: return 68;
-        case CursorType::sizeBottom: return 16;
-        case CursorType::sizeBottomLeft: return 12;
-        case CursorType::sizeBottomRight: return 14;
-        case CursorType::sizeTop: return 138;
-        case CursorType::sizeTopLeft: return 134;
-        case CursorType::sizeTopRight: return 136;
-        case CursorType::sizeLeft: return 70;
-        case CursorType::sizeRight: return 96;
-        case CursorType::grab: return 52;
+        case CursorType::leftPtr: return XC_left_ptr;
+        case CursorType::sizeBottom: return XC_bottom_side;
+        case CursorType::sizeBottomLeft: return XC_bottom_left_corner;
+        case CursorType::sizeBottomRight: return XC_bottom_right_corner;
+        case CursorType::sizeTop: return XC_top_side;
+        case CursorType::sizeTopLeft: return XC_top_left_corner;
+        case CursorType::sizeTopRight: return XC_top_right_corner;
+        case CursorType::sizeLeft: return XC_left_side;
+        case CursorType::sizeRight: return XC_right_side;
+        case CursorType::grab: return XC_fleur;
         default: return -1;
     }
 }
@@ -101,6 +102,24 @@ CursorType x11ToCursor(int xcID)
     {
         case 68: return CursorType::leftPtr;
         default: return CursorType::unknown;
+    }
+}
+
+const char* cursorToX11Char(CursorType c)
+{
+    switch(c)
+    {
+        case CursorType::leftPtr: return "left_ptr";
+        case CursorType::sizeBottom: return "bottom_side";
+        case CursorType::sizeBottomLeft: return "bottom_left_corner";
+        case CursorType::sizeBottomRight: return "bottom_right_corner";
+        case CursorType::sizeTop: return "top_side";
+        case CursorType::sizeTopLeft: return "top_left_corner";
+        case CursorType::sizeTopRight: return "top_right_corner";
+        case CursorType::sizeLeft: return "left_side";
+        case CursorType::sizeRight: return "right_side";
+        case CursorType::grab: return "fleur";
+        default: return nullptr;
     }
 }
 

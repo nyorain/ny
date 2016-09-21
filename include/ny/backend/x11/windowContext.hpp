@@ -174,6 +174,7 @@ protected:
 	X11WindowSettings settings_ {};
 	std::uint32_t xWindow_ = 0;
 	std::uint32_t xVisualID_ = 0;
+	std::uint32_t xCursor_ = 0;
 
 	///Stored EWMH states can be used to check whether it is fullscreen, maximized etc.
 	std::vector<std::uint32_t> states_;

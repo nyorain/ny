@@ -9,10 +9,10 @@
 #include <ny/base/log.hpp>
 #include <ny/app/events.hpp>
 
-#include <evg/drawContext.hpp>
-
 #include <iostream>
 #include <cassert>
+
+namespace evg { class DrawGuard{ void* pointer; }; }
 
 namespace ny
 {
@@ -109,29 +109,6 @@ void WaylandWindowContext::refresh()
 DrawGuard WaylandWindowContext::draw()
 {
 	throw std::logic_error("WaylandWC::draw: drawless WindowContext");
-    // if(getCairo() && cairo_)
-    // {
-    //     if(cairo_->frontBufferUsed())
-    //         cairo_->swapBuffers();
-// 
-    //     cairo_->updateSize(getWindow().getSize());
-    //     return cairo_;
-    // }
-    // else if(getEGL() && egl_)
-    // {
-    //     egl_->initEGL(*this);
-// 
-    //     if(!egl_->makeCurrent())
-    //         return nullptr;
-// 
-    //     egl_->updateViewport(getWindow().getSize());
-// 
-    //     return egl_;
-    // }
-    // else
-    // {
-    //     return nullptr;
-    // }
 }
 
 // void waylandWindowContext::finishDraw()

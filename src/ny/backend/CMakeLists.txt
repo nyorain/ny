@@ -29,8 +29,14 @@ if(WithX11)
 		x11/cairo.cpp
 		x11/windowContext.cpp)
 
-	list(APPEND libs_backend ${XCB_LIBRARIES} ${X11_LIBRARIES})
-	list(APPEND include_backend ${XCB_INCLUDE_DIRS} ${X11_XCB_INCLUDE_DIR})
+	list(APPEND libs_backend 
+		${XCB_LIBRARIES} 
+		${X11_LIBRARIES} 
+		${X11_Xcursor_LIB})
+	list(APPEND include_backend 
+		${XCB_INCLUDE_DIRS} 
+		${X11_XCB_INCLUDE_DIR}
+		${X11_Xcursor_INCLUDE_PATH})
 
 	list(APPEND libs_backend X11 xcb xcb-icccm xcb-ewmh X11-xcb pthread)
 

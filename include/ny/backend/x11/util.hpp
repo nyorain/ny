@@ -43,5 +43,6 @@ Key x11ToKey(unsigned int id);
 
 int cursorToX11(CursorType cursor);
 CursorType x11ToCursor(int xcID);
+const char* cursorToX11Char(CursorType cursor);
 
 }

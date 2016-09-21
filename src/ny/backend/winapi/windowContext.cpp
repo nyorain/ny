@@ -5,11 +5,11 @@
 
 #include <ny/base/log.hpp>
 #include <ny/base/cursor.hpp>
-#include <evg/image.hpp>
-#include <evg/drawContext.hpp>
 
 #include <tchar.h>
 #include <stdexcept>
+
+namespace evg { class DrawGuard{ void* pointer; }; }
 
 namespace ny
 {

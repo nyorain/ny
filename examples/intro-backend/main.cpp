@@ -1,7 +1,9 @@
 #include <ny/base.hpp>
 #include <ny/backend.hpp>
 #include <ny/app/events.hpp>
+
 #include <evg/drawContext.hpp>
+#include <evg/image.hpp>
 
 ///Custom event handler for the low-level backend api.
 ///See intro-app for a higher level example if you think this is too complex.
@@ -62,6 +64,10 @@ int main()
 	///the dispatchLoop.
 	wc->eventHandler(handler);
 	wc->refresh();
+
+	evg::Image image("cursor.png");
+	ny::Cursor cursor({*image.data(), image.size(), ny::ImageDataFormat::rgba8888});
+	wc->cursor(cursor);
 
 	ny::debug("Entering main loop");
 	ac->dispatchLoop(control);

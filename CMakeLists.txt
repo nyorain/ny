@@ -49,7 +49,7 @@ find_package(Vulkan)
 find_package(Cairo)
 
 if(UNIX)
-	find_package(X11)
+	find_package(X11 COMPONENTS Xcursor)
 	find_package(XCB COMPONENTS ewmh xkb image icccm)
 	find_package(Wayland)
 	find_package(XKBCommon)
