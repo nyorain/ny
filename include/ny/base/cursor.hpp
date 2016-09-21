@@ -75,8 +75,8 @@ public:
 
 protected:
     CursorType type_ = CursorType::leftPtr;
-	evg::Image image_{};
 	nytl::Vec2i hotspot_{};
+	ImageData data_{};
 };
 
 }

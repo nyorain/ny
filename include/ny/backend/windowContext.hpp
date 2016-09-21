@@ -4,6 +4,7 @@
 #include <ny/base/eventHandler.hpp>
 
 #include <nytl/flags.hpp>
+#include <nytl/vec.hpp>
 
 #include <memory>
 
@@ -19,6 +20,7 @@ namespace ny
 
 using WindowHints = Flags<WindowHint>;
 using WindowEdges = Flags<WindowEdge>;
+using WindowCapabilities = nytl::Flags<WindowCapability>;
 
 ///\brief Abstract interface for a window context in the underlaying window system.
 ///The term "window" used in the documentation for this class is used for the underlaying native
@@ -130,7 +132,7 @@ public:
 	///Sets the icon of the native window.
 	///If the given icon pointer variable is a nullptr, the icon of the window will be reset/unset.
 	///\warning Shall have only an effect for toplevel windows.
-	virtual void icon(const Image*) = 0; //may be only important for client decoration
+	virtual void icon(const evg::Image* newicon) = 0; //may be only important for client decoration
 
 	///Returns whether the window should be custom decorated.
 	///Custom decoration can either be manually triggered by setting the custom decorated
@@ -147,6 +149,9 @@ public:
 	///\warning Window  hints are only valid for toplevel windows.
 	///\sa WindowHints
 	virtual void removeWindowHints(WindowHints hints) = 0;
+
+	///Returns the capabilities this window has.
+	virtual WindowCapabilities capabilities() const = 0;
 
 	///If this window is a native dialog, a dialog context pointer is returned, nullptr otherwise.
 	virtual DialogContext* dialogContext() const { return nullptr; }

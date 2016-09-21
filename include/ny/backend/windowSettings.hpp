@@ -29,7 +29,7 @@ enum class WindowEdge : unsigned int
 using WindowEdges = nytl::Flags<WindowEdge>;
 NYTL_FLAG_OPS(WindowEdge)
 
-///Toplevel window stsyle hints.
+///Toplevel window style hints.
 enum class WindowHint : unsigned int
 {
     close = (1L << 1), //can be closed, i.e. contains a close button/menu context
@@ -37,13 +37,24 @@ enum class WindowHint : unsigned int
     minimize = (1L << 3), //can be minimized
     resize = (1L << 4), //can be resized
     customDecorated = (1L << 5), //is customDecorated
-    acceptDrop = (1L << 6), //accepts drop files
-    alwaysOnTop = (1L << 7), //will always be shown on top
-    showInTaskbar = (1L << 8) //will be shown in taskbar
 };
 
 using WindowHints = nytl::Flags<WindowHint>;
 NYTL_FLAG_OPS(WindowHint)
+
+///Window capabilites.
+///They can be used to determine which actions can be performed on a window.
+enum class WindowCapability : unsigned int
+{
+	size = (1L << 1),
+	fullscreen = (1L << 2),
+	minimize = (1L << 3),
+	maximize = (1L << 4),
+	postition = (1L << 5),
+};
+
+using WindowCapabilities = nytl::Flags<WindowCapability>;
+NYTL_FLAG_OPS(WindowCapability)
 
 ///Typesafe enums that can be used for various settings with more control than just a bool.
 ///- must or mustNot: if the preference cannot be fulfilled an exception will be thrown or the
@@ -178,22 +189,32 @@ public:
 
 struct SoftwareDrawSettings
 {
-	bool doubleBuffered;
-	bool antialiased;
+	bool doubleBuffered = true;
+	bool antialiased = true;
 };
 
 struct GlDrawSettings
 {
 	GlContext** storeContext;
-	bool contextOnly;
-	bool vsync;
+	bool contextOnly = false;
+	bool vsync = true;
 };
 
 struct VulkanDrawSettings
 {
-	VulkanContext** storeContext;
-	bool contextOnly;
-	bool vsync;
+	//The context to use for creating the vulkan surface. If nullptr, the backend will create
+	//a vulkan context (or use an already created one).
+	VulkanContext* useContext {};
+
+	//A pointer to a VulkanSurfaceContext pointer in which the context will then be stored
+	VulkanSurfaceContext** storeContext {};
+
+	//Whether to create only a context and not a DrawContext
+	bool contextOnly = false;
+
+	//TODO: more detailed presentation/swapchain options
+	//Whether to try to enable vsync. Is not relvant if the settings specify contextOnly to be true.
+	bool vsync = true;
 };
 
 struct DrawSettings

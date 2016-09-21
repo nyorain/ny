@@ -1,15 +1,35 @@
-Model of operation - Threads
-============================
-
 Editors notes:
  - This text is really unstructured and maybe only makes sense when read entirely.
  - TODO: restructure it.
- 
+
+The goal
+========
+
+The goal of ny is to offer a modern, independent and lightweight toolkit for all windowing uses.
+It aims for gaming/cad/general-hardware-accelerated applications as well as normal ui applications.
+This is achieved by offering integration with drawing capabilities while keeping the connection
+as small as possible. Ny can be compiled without any drawing toolkits at all.
+
+The goal is not:
+	- fully integrated drawing library
+	- complex ui/widget library
+
+Model of operation - Threads
+============================
+
 Events are only allowed to be sent and processed at one thread at a time.
 This thread will be called the ui thread in the following. This is the thread in which the
 application calls App::run, AppContext::dispatchEvents or similiar functions.
 Note that those functions shall always be called from the thread in which the AppContext and
-WindowContexts (or App and Windows) were created.
+WindowContexts (or App and Windows) were created. WindowContexts should never be created from
+another thread. On most backends (linux) this would be no problem, but it would need some
+non-trivial effort to make it possible on windows. It is simpler to just use
+event-based-communication when using multiple threads and then just create/use all windows
+from the ui thread.
+
+tl;dr:
+	- All windows must be created in the same thread as their appContext (the ui thread)
+	- All AppContext dispatch functions should only be called from within this thread
 
 No backend implementation should ever call EventHandler (not even multiple ones) from multiple
 threads in its interface implementation. Backends may get their events from the underlaying window
@@ -21,8 +41,8 @@ construction) the events will be queued and only sent once the dispatch function
 called.
 
 Note that implementing event systems similiar to sfml or different backends (where you can all a
-functions to just retrieve the next queued event and then handle in manually) does not make much 
-sense in ny because backends usually use internal events to implement and comminucate between all 
+functions to just retrieve the next queued event and then handle in manually) does not make much
+sense in ny because backends usually use internal events to implement and comminucate between all
 interfaces.
 
 The program side (i.e. the programmer that uses ny) does promise that the EventHandler wont call
@@ -32,12 +52,12 @@ only allowed to be called from the ui thread.
 Examples for such functions are AppContext::startDragDrop or Dialog::runModal.
 
 Ny considers itself a thread-aware library that may be used for efficient single-threaded as well as
-multi-threaded applications. 
-When using the ny-backend abstraction, you can make your application multi-threaded by running 
+multi-threaded applications.
+When using the ny-backend abstraction, you can make your application multi-threaded by running
 the AppContext::dispatchLoop overload that takes an EventDispatcher parameter and then sending
 events from multiple thread to this EventDispatcher.
-The way to communication method between the ui thread running the event dispatch loop and other 
-threads are therefore usually events. This way you are able to e.g. resize, refresh or 
+The way to communication method between the ui thread running the event dispatch loop and other
+threads are therefore usually events. This way you are able to e.g. resize, refresh or
 hide windows from other threads. Doing this directly (by calls to the functions instead of events)
 may result in undefined behaviour such as a data race.
 When using ny-app, you simply have to set the multithreaded bool in the AppSettings objects that you
@@ -45,3 +65,33 @@ pass on App constrcution to true.
 
 If you want to understand all aspects of multithreading in ny on a lower level, you should really
 read the documentation for EventDispatcher, and the 3 event dispatching functions in AppContext.
+
+Hints, decoration and functionality
+===================================
+
+In ny's model of operations, the program can either request the window manager to enable/disable
+certain functionality of the window. All of these requests may be ignored or simply not answered
+by the backend. Nevertheless, the application can then query which functionality is enabled and
+which is not. Most of those things are backend dependent.
+This is needed because on some backends, there is no such concept as a floating window (i.e.
+android, wayland or tiling window managers) and therefore the position of the windows cannot be
+changed by the application.
+The program can either request to decorate the window itself and/or specify the functionality the
+window manager should allow for the window. If one wants to create a window that functions only
+as temporary popup it should e.g. not have minimize or maximize functionality.
+Therefore the application sets the WindowSettings::hints member when creating the window (or
+using WindowContext::addHints or WindowContext::removeHints) matching its needs and intentions.
+Then it can use WindowContext::capabilities to check what the backend/window manager offers in
+the end.
+
+Why Runtime polymorphism
+========================
+
+Some toolkits (e.g. sfml) use compile time switches for different backends (don't confuse this
+with the runtime polymorphism e.g. by gtk which is simply hidden). The reason ny uses runtime
+polymorphism (i.e. WindowContext class with a virtual table) is that some platforms have multiple
+possible backends today (e.g. linux might have wayland, x11, mir, drm/kms and fbdev backends)
+and therefore one could not have one executable for all backends.
+The cost of using runtime polymorphism is that high that one could use this as reason for not
+supporting multiple backends in one executable (at least for ny, most other toolkits that use
+compile-time switches have good reason to do so).

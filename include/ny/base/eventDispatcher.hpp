@@ -3,6 +3,7 @@
 #include <ny/include.hpp>
 #include <ny/base/event.hpp>
 #include <nytl/callback.hpp>
+#include <nytl/nonCopyable.hpp>
 
 #include <thread>
 #include <condition_variable>
@@ -15,53 +16,11 @@
 namespace ny
 {
 
-///\brief EventDispatcher base class.
-///Instantly sends the events to their EventHandler and outputs a warning if it receives an event
-///without specified handler. Is able to call additionally callbacks when dispatching events.
-class EventDispatcher
-{
-public:
-	///Map of Callbacks for different event types that will be called everytime an event
-	///with the given type is sent.
-	///All functions registered for eventType 0 will be called for every event.
-	std::map<unsigned int, Callback<void(EventDispatcher&, Event&)>> onEvent;
-
-public:
-	EventDispatcher() = default;
-	virtual ~EventDispatcher() = default;
-
-	///\{
-	///Dispatch the given event and returns immediatly.
-	///Depending on the Dispatcher implementation it may or may not be changed/queued/sent later.
-	///The default implementation just directly sends the event from the calling thread.
-	///These functions may move from the given parameters.
-	virtual void dispatch(std::unique_ptr<Event>&& event){ send(*event); };
-	virtual void dispatch(Event&& event){ send(event); }
-	///\}
-
-	///\{
-	///Dispatch the given event to its handler and waits till it has been processed.
-	///The default implementation just directly sends the event from the calling thread.
-	///The functions may move from the given paramters.
-	virtual void dispatchSync(std::unique_ptr<Event>&& event) { send(*event); }
-	virtual void dispatchSync(Event&& event) { send(event); }
-	///\}
-
-	///Just sends the given event to its handler and triggers the callback function.
-	virtual void send(Event& event);
-
-protected:
-	///Action to be performed when there is an event without a handler.
-	///The default implementation just outputs a warning and discards the event.
-	virtual void noEventHandler(Event& event) const;
-};
-
-///\brief Async Threadsafe event dispatcher implementation.
+///\brief Async Threadsafe EventDispatcher.
 ///It is safe to call dispatch() from multiple threads because this functions just pushes
 ///the event to the thread-safe event queue. Only a call to processEvents() really sends all
 ///events.
-///Therefore this EventDispatcher implementation can be considered asynchronous.
-class ThreadedEventDispatcher : public EventDispatcher
+class ThreadedEventDispatcher : public nytl::NonCopyable
 {
 public:
 	///Callback that will be called everytime before an event is queued for dispatching.
@@ -75,8 +34,8 @@ public:
 
 	///\{
 	///Queues the given event for processing.
-	virtual void dispatch(std::unique_ptr<Event>&& event) override;
-	virtual void dispatch(Event&& event) override;
+	void dispatch(std::unique_ptr<Event>&& event);
+	void dispatch(Event&& event);
 	///\}
 
 	///\{
@@ -84,8 +43,8 @@ public:
 	///been dispatched.
 	///\warning This function can easily result in a deadlock if there is no other thread
 	///processing messages.
-	virtual void dispatchSync(std::unique_ptr<Event>&& event) override;
-	virtual void dispatchSync(Event&& event) override;
+	void dispatchSync(std::unique_ptr<Event>&& event);
+	void dispatchSync(Event&& event);
 	///\}
 
 	///Returns a future that will be signaled when all events queued at the moment this

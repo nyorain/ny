@@ -137,6 +137,7 @@ enum class Preference : unsigned int;
 enum class NativeWidgetType : unsigned int;
 enum class WindowEdge : unsigned int;
 enum class WindowHint : unsigned int;
+enum class WindowCapability : unsigned int;
 enum class Key : unsigned int;
 enum class MouseButton : unsigned int;
 enum class DialogResult : unsigned int;

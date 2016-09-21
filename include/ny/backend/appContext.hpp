@@ -49,12 +49,12 @@ public:
 	///\sa KeyboardContext
 	virtual KeyboardContext* keyboardContext() = 0;
 
-	///Dispatches all retrieved events to the the given EventDispatcher.
+	///Dispatches all retrieved events to their eventHandlers.
 	///Does only dispatch all currently queued events and does not wait/block for new events.
-	///Shall only be called from the ui thread.
+	///Should only be called from the ui thread.
 	///\return false if the display conncetion was destroyed (or an error occurred),
 	///true otherwise (if all queued events were dispatched).
-	virtual bool dispatchEvents(EventDispatcher& control) = 0;
+	virtual bool dispatchEvents() = 0;
 
 	///Blocks and dispatches all incoming display events until the stop function of the loop control
 	///is called or the display conncection is closed by the server (e.g. an error or exit event).
@@ -67,7 +67,7 @@ public:
 	virtual bool dispatchLoop(LoopControl& control) = 0;
 
 	///Blocks and dispatches all incoming events from the display and queued events inside
-	///the EventDispatcher and AppContext until the stop function of the given loop control is 
+	///the EventDispatcher and AppContext until the stop function of the given loop control is
 	///called or the display connection is closed by the server.
 	///This function itself will take care of dispatching all events, so the dispatcher
 	///loop of the given dispatcher should not be run in different threads.
@@ -78,7 +78,7 @@ public:
 	///\return false if loop was exited because the display conncetion was destroyed or an error
 	///occured.
 	///\sa ThreadedEventDispatcher
-	virtual bool threadedDispatchLoop(EventDispatcher&, LoopControl&) = 0;
+	virtual bool threadedDispatchLoop(EventDispatcher& dispatcher, LoopControl& control) = 0;
 
 
 	///Sets the clipboard to the data provided by the given DataSource implementation.
