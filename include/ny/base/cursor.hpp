@@ -1,8 +1,8 @@
 #pragma once
 
 #include <ny/include.hpp>
+#include <ny/base/imageData.hpp>
 #include <nytl/vec.hpp>
-#include <evg/image.hpp>
 #include <memory>
 
 namespace ny
@@ -41,6 +41,9 @@ enum class CursorType : unsigned int
 
 //TODO: cursor themes for all applications. loaded with styles
 ///The Cursor class represents either a native cursor image or a custom loaded image.
+///\warning The cursor does never own any image data so always check that images remain
+///valid until the cursor object is not further used (the cursor object might be destroyed
+///while it is in use from the backend though).
 class Cursor
 {
 public:
@@ -51,24 +54,24 @@ public:
     Cursor(CursorType type);
 
 	///Constructs the Cursor from an image.
-    Cursor(const evg::Image& img, const nytl::Vec2i& hotspot = {0, 0});
-	Cursor(evg::Image&& img, const nytl::Vec2i& hotspot = {0, 0});
+	///Note that the given ImageData must therefore remain valid while the cursor object
+	///is used.
+    Cursor(const ImageData& img, const nytl::Vec2i& hotspot = {0, 0});
 
-	///Sets the cursor to image type and stores a copy of the given image.
-	///Does not change the hotspot of the image which is by default {0, 0};
-    void image(const evg::Image& image, const nytl::Vec2i& hotspot = {0, 0});
-    void image(evg::Image&& image, const nytl::Vec2i& hotspot = {0, 0});
+	///Sets the cursor to image type and stores the given image.
+	///Note that the given ImageData must therefore remain valid while the cursor object
+	///is used.
+    void image(const ImageData& image, const nytl::Vec2i& hotspot = {0, 0});
 
 	///Sets to cursor to the given native type.
     void nativeType(CursorType type);
 
 	///Returns the image of this image cursor, or nullptr if it is a native cursor type.
-    evg::Image* image();
-    const evg::Image* image() const;
+    const ImageData* image() const;
 
 	///Returns the image hotspot.
 	///The result will be undefined when the type of this cursor is not image.
-    Vec2i imageHotspot() const;
+    const Vec2i& imageHotspot() const;
 
 	///Returns the type of this cursor.
     CursorType type() const;
@@ -76,7 +79,7 @@ public:
 protected:
     CursorType type_ = CursorType::leftPtr;
 	nytl::Vec2i hotspot_{};
-	ImageData data_{};
+	ImageData image_{};
 };
 
 }

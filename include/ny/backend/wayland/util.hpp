@@ -160,7 +160,7 @@ CursorType waylandToCursor(std::string id);
 WindowEdge waylandToEdge(unsigned int edge);
 unsigned int edgeToWayland(WindowEdge edge);
 
-evg::Image::Format waylandToImageFormat(unsigned int format);
-unsigned int imageFormatToWayland(evg::ImageFormat format);
+ImageDataFormat waylandToImageFormat(unsigned int format);
+unsigned int imageFormatToWayland(ImageDataFormat format);
 
 }

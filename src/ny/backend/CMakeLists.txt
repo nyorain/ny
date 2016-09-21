@@ -26,7 +26,7 @@ if(WithX11)
 		x11/backend.cpp
 		x11/util.cpp
 		x11/input.cpp
-		# x11/cairo.cpp
+		x11/cairo.cpp
 		x11/windowContext.cpp)
 
 	list(APPEND libs_backend ${XCB_LIBRARIES} ${X11_LIBRARIES})

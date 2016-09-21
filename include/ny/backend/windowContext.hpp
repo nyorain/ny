@@ -132,7 +132,7 @@ public:
 	///Sets the icon of the native window.
 	///If the given icon pointer variable is a nullptr, the icon of the window will be reset/unset.
 	///\warning Shall have only an effect for toplevel windows.
-	virtual void icon(const evg::Image* newicon) = 0; //may be only important for client decoration
+	virtual void icon(const ImageData* newicon) = 0; //may be only important for client decoration
 
 	///Returns whether the window should be custom decorated.
 	///Custom decoration can either be manually triggered by setting the custom decorated

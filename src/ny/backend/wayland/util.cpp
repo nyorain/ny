@@ -10,6 +10,7 @@
 
 #include <ny/base/event.hpp>
 #include <ny/base/cursor.hpp>
+#include <ny/base/imageData.hpp>
 
 #include <wayland-cursor.h>
 #include <wayland-client-protocol.h>
@@ -434,31 +435,31 @@ WindowEdge waylandToEdge(unsigned int wlEdge)
 	return static_cast<WindowEdge>(wlEdge);
 }
 
-unsigned int imageFormatToWayland(evg::ImageFormat format)
+unsigned int imageFormatToWayland(ImageDataFormat format)
 {
     switch(format)
     {
-		case evg::ImageFormat::argb8888: return WL_SHM_FORMAT_ARGB8888;
-		case evg::ImageFormat::rgb888: return WL_SHM_FORMAT_RGB888;
-		case evg::ImageFormat::rgba8888: return WL_SHM_FORMAT_RGBA8888;
-		case evg::ImageFormat::bgr888: return WL_SHM_FORMAT_BGR888;
-		case evg::ImageFormat::bgra8888: return WL_SHM_FORMAT_BGRA8888;
-		case evg::ImageFormat::a8: return WL_SHM_FORMAT_C8;
+		case ImageDataFormat::argb8888: return WL_SHM_FORMAT_ARGB8888;
+		case ImageDataFormat::rgb888: return WL_SHM_FORMAT_RGB888;
+		case ImageDataFormat::rgba8888: return WL_SHM_FORMAT_RGBA8888;
+		case ImageDataFormat::bgr888: return WL_SHM_FORMAT_BGR888;
+		case ImageDataFormat::bgra8888: return WL_SHM_FORMAT_BGRA8888;
+		case ImageDataFormat::a8: return WL_SHM_FORMAT_C8;
         default: return -1;
     }
 }
  
-evg::ImageFormat waylandToImageFormat(unsigned int wlFormat)
+ImageDataFormat waylandToImageFormat(unsigned int wlFormat)
 {
     switch(wlFormat)
     {
-		case WL_SHM_FORMAT_ABGR8888: return evg::ImageFormat::argb8888;
-		case WL_SHM_FORMAT_RGB888: return evg::ImageFormat::rgb888;
-		case WL_SHM_FORMAT_BGRA8888: return evg::ImageFormat::bgra8888;
-		case WL_SHM_FORMAT_RGBA8888: return evg::ImageFormat::rgba8888;
-		case WL_SHM_FORMAT_XRGB8888: return evg::ImageFormat::argb8888;
-		case WL_SHM_FORMAT_C8: return evg::ImageFormat::a8;
-		default: return evg::ImageFormat::none;
+		case WL_SHM_FORMAT_ABGR8888: return ImageDataFormat::argb8888;
+		case WL_SHM_FORMAT_RGB888: return ImageDataFormat::rgb888;
+		case WL_SHM_FORMAT_BGRA8888: return ImageDataFormat::bgra8888;
+		case WL_SHM_FORMAT_RGBA8888: return ImageDataFormat::rgba8888;
+		case WL_SHM_FORMAT_XRGB8888: return ImageDataFormat::argb8888;
+		case WL_SHM_FORMAT_C8: return ImageDataFormat::a8;
+		default: return ImageDataFormat::none;
     }
 }
 

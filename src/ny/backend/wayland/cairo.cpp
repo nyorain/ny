@@ -1,11 +1,11 @@
 #include <ny/backend/wayland/cairo.hpp>
-
 #include <ny/backend/wayland/appContext.hpp>
 #include <ny/backend/wayland/interfaces.hpp>
+
 #include <ny/base/log.hpp>
+#include <ny/base/imageData.hpp>
 
 #include <nytl/rect.hpp>
-#include <evg/image.hpp>
 
 #include <cairo/cairo.h>
 #include <wayland-client-protocol.h>
@@ -37,7 +37,7 @@ void WaylandCairoDrawContext::apply()
 
 		auto to = waylandToImageFormat(buffer_.format());
 		auto& toData = buffer_.data();
-		evg::convertFormat(evg::ImageFormat::argb8888, to, *fromData, toData, {width, height});
+		convertFormat(ImageDataFormat::argb8888, to, *fromData, toData, {width, height});
 	}
 
 	CairoDrawContext::apply();

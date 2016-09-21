@@ -22,8 +22,7 @@ public:
 			loopControl_.stop();
 			return true;
 		}
-
-		if(ev.type() == ny::eventType::windowDraw)
+		else if(ev.type() == ny::eventType::windowDraw)
 		{
 			auto guard = wc_.draw();
 			auto& dc = guard.dc();
@@ -52,9 +51,6 @@ int main()
 	ny::WindowSettings settings;
 	auto wc = ac->createWindowContext(settings);
 
-	///Default EventDispatcher
-	ny::EventDispatcher dispatcher;
-
 	///With this object we can stop the dispatchLoop called below from inside.
 	///We construct the EventHandler with a reference to it and when it receives an event that
 	///the WindowContext was closed, it will stop the dispatchLoop, which will end this
@@ -68,5 +64,5 @@ int main()
 	wc->refresh();
 
 	ny::debug("Entering main loop");
-	ac->dispatchLoop(dispatcher, control);
+	ac->dispatchLoop(control);
 }

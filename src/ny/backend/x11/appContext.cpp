@@ -3,10 +3,13 @@
 #include <ny/backend/x11/util.hpp>
 #include <ny/backend/x11/input.hpp>
 #include <ny/backend/x11/internal.hpp>
+#include <ny/backend/x11/cairo.hpp>
 #include <ny/base/loopControl.hpp>
 #include <ny/base/log.hpp>
 #include <ny/base/eventDispatcher.hpp>
 #include <ny/app/events.hpp>
+
+#include <nytl/scope.hpp>
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -156,12 +159,17 @@ EventHandler* X11AppContext::eventHandler(xcb_window_t w)
     return wc ? wc->eventHandler() : nullptr;
 }
 
-bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispatcher)
+bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispatcher)
 {
 	#define EventHandlerEvent(T, W) \
 		auto handler = eventHandler(W); \
 		if(!handler) return 1; \
-		auto event = std::make_unique<T>(handler);
+		auto event = T(handler);
+
+	auto dispatch = [&](Event& event){
+		if(dispatcher) dispatcher->dispatch(std::move(event));
+		else if(event.handler) event.handler->handleEvent(event);
+	};
 
 	auto responseType = ev.response_type & ~0x80;
     switch(responseType)
@@ -170,10 +178,10 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
     {
 		auto& motion = reinterpret_cast<xcb_motion_notify_event_t&>(ev);
 		EventHandlerEvent(MouseMoveEvent, motion.event);
-        event->position = Vec2i(motion.event_x, motion.event_y);
-        event->screenPosition = Vec2i(motion.root_x, motion.root_y);
+        event.position = Vec2i(motion.event_x, motion.event_y);
+        event.screenPosition = Vec2i(motion.root_x, motion.root_y);
 
-		dispatcher.dispatch(std::move(event));
+		dispatch(event);
         return 1;
     }
 
@@ -183,7 +191,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
         if(expose.count == 0)
 		{
 			EventHandlerEvent(DrawEvent, expose.window);
-			dispatcher.dispatch(std::move(event));
+			dispatch(event);
 		}
         return 1;
     }
@@ -191,7 +199,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
     {
 		auto& map = reinterpret_cast<xcb_map_notify_event_t&>(ev);
 		EventHandlerEvent(DrawEvent, map.window);
-		dispatcher.dispatch(std::move(event));
+		dispatch(event);
         return 1;
     }
 
@@ -199,12 +207,12 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
     {
 		auto& button = reinterpret_cast<xcb_button_press_event_t&>(ev);
 		EventHandlerEvent(MouseButtonEvent, button.event);
-		event->data = std::make_unique<X11EventData>(ev);
-        event->button = x11ToButton(button.detail);
-        event->position = Vec2i(button.event_x, button.event_y);
-		event->pressed = 1;
+		event.data = std::make_unique<X11EventData>(ev);
+        event.button = x11ToButton(button.detail);
+        event.position = Vec2i(button.event_x, button.event_y);
+		event.pressed = 1;
 
-		dispatcher.dispatch(std::move(event));
+		dispatch(event);
         return 1;
     }
 
@@ -212,12 +220,12 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
     {
 		auto& button = reinterpret_cast<xcb_button_release_event_t&>(ev);
 		EventHandlerEvent(MouseButtonEvent, button.event);
-		event->data = std::make_unique<X11EventData>(ev);
-        event->button = x11ToButton(button.detail);
-        event->position = Vec2i(button.event_x, button.event_y);
-		event->pressed = 0;
+		event.data = std::make_unique<X11EventData>(ev);
+        event.button = x11ToButton(button.detail);
+        event.position = Vec2i(button.event_x, button.event_y);
+		event.pressed = 0;
 
-		dispatcher.dispatch(std::move(event));
+		dispatch(event);
         return 1;
     }
 
@@ -225,9 +233,9 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
     {
 		auto& enter = reinterpret_cast<xcb_enter_notify_event_t&>(ev);
 		EventHandlerEvent(MouseCrossEvent, enter.event);
-        event->position = Vec2i(enter.event_x, enter.event_y);
-		event->entered = 1;
-		dispatcher.dispatch(std::move(event));
+        event.position = Vec2i(enter.event_x, enter.event_y);
+		event.entered = 1;
+		dispatch(event);
 
         return 1;
     }
@@ -236,9 +244,9 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
     {
 		auto& leave = reinterpret_cast<xcb_enter_notify_event_t&>(ev);
 		EventHandlerEvent(MouseCrossEvent, leave.event);
-        event->position = Vec2i(leave.event_x, leave.event_y);
-		event->entered = 0;
-		dispatcher.dispatch(std::move(event));
+        event.position = Vec2i(leave.event_x, leave.event_y);
+		event.entered = 0;
+		dispatch(event);
 
         return 1;
     }
@@ -247,8 +255,8 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
     {
 		auto& focus = reinterpret_cast<xcb_focus_in_event_t&>(ev);
 		EventHandlerEvent(FocusEvent, focus.event);
-		event->focus = 1;
-		dispatcher.dispatch(std::move(event));
+		event.focus = 1;
+		dispatch(event);
 
         return 1;
     }
@@ -257,8 +265,8 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
     {
 		auto& focus = reinterpret_cast<xcb_focus_in_event_t&>(ev);
 		EventHandlerEvent(FocusEvent, focus.event);
-		event->focus = 0;
-		dispatcher.dispatch(std::move(event));
+		event.focus = 0;
+		dispatch(event);
 
         return 1;
     }
@@ -276,10 +284,10 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
         XLookupString(&xkey, buffer, 5, &keysym, nullptr);
 
 		EventHandlerEvent(KeyEvent, key.event);
-		event->pressed = 1;
-		event->key = x11ToKey(keysym);
-		event->unicode = buffer;
-		dispatcher.dispatch(std::move(event));
+		event.pressed = 1;
+		event.key = x11ToKey(keysym);
+		event.unicode = buffer;
+		dispatch(event);
 
         return 1;
     }
@@ -297,10 +305,10 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
         XLookupString(&xkey, buffer, 5, &keysym, nullptr);
 
 		EventHandlerEvent(KeyEvent, key.event);
-		event->pressed = 0;
-		event->key = x11ToKey(keysym);
-		event->unicode = buffer;
-		dispatcher.dispatch(std::move(event));
+		event.pressed = 0;
+		event.key = x11ToKey(keysym);
+		event.unicode = buffer;
+		dispatch(event);
 
         return 1;
     }
@@ -311,8 +319,8 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
 		auto handler = windowContext(reparent.window);
 		if(!handler) return true;
 
-		auto event = std::make_unique<x11::ReparentEvent>(handler);
-		dispatcher.dispatch(std::move(event));
+		auto event = x11::ReparentEvent(handler);
+		dispatch(event);
 
 		return true;
 	}
@@ -325,8 +333,12 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
         auto nsize = Vec2ui(configure.width, configure.height);
         auto npos = Vec2i(configure.x, configure.y); //positionEvent
 
+		auto event = SizeEvent(windowContext(configure.window));
+		event.size = nsize;
+		dispatch(event);
+
         if(!eventHandler(configure.window))
-            return 1;
+            return true;
 
 		/* TODO XXX !important
         if(any(windowContext(configure.window)->window().size() != nsize)) //sizeEvent
@@ -362,7 +374,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
         if((unsigned long)client.data.data32[0] == atom("WM_DELETE_WINDOW"))
         {
 			EventHandlerEvent(CloseEvent, client.window);
-			dispatcher.dispatch(std::move(event));
+			dispatch(event);
 
             return 1;
         }
@@ -382,6 +394,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher& dispa
 				//TODO
 			}
 	    }
+
 		XUnlockDisplay(xDisplay_);
 	}
 
@@ -404,7 +417,7 @@ WindowContextPtr X11AppContext::createWindowContext(const WindowSettings& settin
 	if(drawType == DrawType::vulkan)
 	{
 		#ifdef NY_WithVulkan
-		 // return std::make_unique<X11VulkanWindowContext>(*xac, settings);
+		 // return std::make_unique<X11VulkanWindowContext>(*xac, x11Settings);
 		#else
 		 throw std::logic_error("ny::X11Backend::createWC: ny built without vulkan support");
 		#endif
@@ -412,9 +425,17 @@ WindowContextPtr X11AppContext::createWindowContext(const WindowSettings& settin
 	else if(drawType == DrawType::gl)
 	{
 		#ifdef NY_WithGL	
-		 // return std::make_unique<X11EglWindowContext>(*this, waylandSettings);
+		 // return std::make_unique<X11EglWindowContext>(*this, x11Settings);
 		#else
 		 throw std::logic_error("ny::X11Backend::createWC: ny built without GL suppport");
+		#endif
+	}
+	else if(drawType == DrawType::software || drawType == DrawType::dontCare)
+	{
+		#ifdef NY_WithCairo
+		 return std::make_unique<X11CairoWindowContext>(*this, x11Settings);
+		#else
+		 throw std::logic_error("ny::X11Backend::createWC: ny built without cairo suppport");
 		#endif
 	}
 		
@@ -431,39 +452,34 @@ KeyboardContext* X11AppContext::keyboardContext()
 	return keyboardContext_.get();
 }
 
-bool X11AppContext::dispatchEvents(EventDispatcher& dispatcher)
+bool X11AppContext::dispatchEvents()
 {
 	xcb_flush(xConnection());
 
 	xcb_generic_event_t* ev;
 	while((ev = xcb_poll_for_event(xConnection_)))
 	{
-		processEvent(*ev, dispatcher);
+		processEvent(*ev);
 		free(ev);
 		xcb_flush(xConnection());
 	}
 
-	if(xcb_connection_has_error(xConnection_))
-	{
-		return 0;
-	}
-		
-
-	return 1;
+	if(xcb_connection_has_error(xConnection_)) return false;
+	return true;
 }
 
-bool X11AppContext::dispatchLoop(EventDispatcher& dispatcher, LoopControl& control)
+bool X11AppContext::dispatchLoop(LoopControl& control)
 {
 	std::atomic<bool> run {true};
 	control.impl_ = std::make_unique<x11::LoopControlImpl>(run, xConnection_, xDummyWindow_);
+	auto loopguard = nytl::makeScopeGuard([&]{ control.impl_.reset(); });
 
 	while(run.load())
 	{
 		xcb_generic_event_t* event = xcb_wait_for_event(xConnection_);
 		if(!event) return false;
 
-		processEvent(*event, dispatcher);
-
+		processEvent(*event);
 		free(event);
 		xcb_flush(xConnection());
 	}
@@ -472,9 +488,28 @@ bool X11AppContext::dispatchLoop(EventDispatcher& dispatcher, LoopControl& contr
 }
 
 //TODO
-bool X11AppContext::threadedDispatchLoop(ThreadedEventDispatcher& dispatcher, LoopControl& control)
+bool X11AppContext::threadedDispatchLoop(EventDispatcher& dispatcher, LoopControl& control)
 {
-	return dispatchLoop(dispatcher, control);
+	std::atomic<bool> run {true};
+	control.impl_ = std::make_unique<x11::LoopControlImpl>(run, xConnection_, xDummyWindow_);
+	auto loopguard = nytl::makeScopeGuard([&]{ control.impl_.reset(); });
+
+	nytl::CbConnGuard connection = dispatcher.onDispatch.add([]{
+			//some code here to stop the waiting
+		});
+
+	while(run.load())
+	{
+		xcb_generic_event_t* event = xcb_wait_for_event(xConnection_);
+		if(!event) return false;
+
+		processEvent(*event, &dispatcher);
+		free(event);
+		xcb_flush(xConnection());
+		dispatcher.processEvents();
+	}
+		
+	return true;
 }
 
 bool X11AppContext::clipboard(std::unique_ptr<DataSource>&& dataSource)

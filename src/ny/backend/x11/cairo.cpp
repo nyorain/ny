@@ -2,6 +2,7 @@
 #include <ny/backend/x11/appContext.hpp>
 #include <ny/backend/x11/windowContext.hpp>
 #include <ny/base/log.hpp>
+#include <ny/app/events.hpp>
 
 #include <evg/cairo.hpp>
 
@@ -74,6 +75,7 @@ bool X11CairoWindowContext::handleEvent(const Event& e)
 	if(e.type() == eventType::windowSize)
 	{
 		resizeCairo(static_cast<const SizeEvent&>(e).size);
+		refresh();
 		return true;
 	}
 

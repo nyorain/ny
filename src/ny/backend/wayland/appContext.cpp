@@ -90,12 +90,8 @@ WaylandAppContext::~WaylandAppContext()
 }
 
 //TODO: exception safety!
-bool WaylandAppContext::dispatchEvents(EventDispatcher& dispatcher)
+bool WaylandAppContext::dispatchEvents()
 {
-	auto guard = nytl::makeScopeGuard([this]{ dispatcher_ = nullptr; });
-
-	dispatcher_ = &dispatcher;
-
 	for(auto i = 0u; i < pendingEvents_.size(); ++i) dispatch(std::move(*pendingEvents_[i]));
 	pendingEvents_.clear();
 
@@ -103,35 +99,50 @@ bool WaylandAppContext::dispatchEvents(EventDispatcher& dispatcher)
 	return ret != -1;
 }
 
-bool WaylandAppContext::dispatchLoop(EventDispatcher& dispatcher, LoopControl& control)
+bool WaylandAppContext::dispatchLoop(LoopControl& control)
 {
-	auto guard = nytl::makeScopeGuard([&]{ 
-		dispatcher_ = nullptr; 
-		control.impl_.reset();
-	});
+	auto guard = nytl::makeScopeGuard([&]{ control.impl_.reset(); });
 
 	std::atomic<bool> run {true};
 	control.impl_.reset(new WaylandLoopControlImpl(run, *wlDisplay_));
-
-	dispatcher_ = &dispatcher;
 
 	for(auto i = 0u; i < pendingEvents_.size(); ++i) dispatch(std::move(*pendingEvents_[i]));
 	pendingEvents_.clear();
 
 	auto ret = 0;
-	while(run && ret != -1)
-	{
-		ret = wl_display_dispatch(wlDisplay_);
-	}
+	while(run && ret != -1) ret = wl_display_dispatch(wlDisplay_);
 
 	return ret != -1;
 }
 
-bool WaylandAppContext::threadedDispatchLoop(ThreadedEventDispatcher& dispatcher, 
-	LoopControl& control)
+bool WaylandAppContext::threadedDispatchLoop(EventDispatcher& dispatcher, LoopControl& control)
 {
-	//TODO
-	return dispatchLoop(dispatcher, control);
+	std::atomic<bool> run {true};
+	control.impl_.reset(new WaylandLoopControlImpl(run, *wlDisplay_));
+	dispatcher_ = &dispatcher;
+
+	auto guard = nytl::makeScopeGuard([&]{ 
+		dispatcher_ = nullptr;
+		control.impl_.reset(); 
+	});
+
+	//wake the loop up every time an event is dispatched from another thread
+	nytl::CbConnGuard conn = dispatcher.onDispatch.add([&]{
+		wl_display_roundtrip(wlDisplay_);
+	});
+
+
+	for(auto i = 0u; i < pendingEvents_.size(); ++i) dispatch(std::move(*pendingEvents_[i]));
+	pendingEvents_.clear();
+
+	auto ret = 0;
+	while(run && ret != -1) 
+	{
+		ret = wl_display_dispatch(wlDisplay_);
+		dispatcher.processEvents();
+	}
+
+	return ret != -1;
 }
 
 KeyboardContext* WaylandAppContext::keyboardContext()
@@ -358,7 +369,8 @@ void WaylandAppContext::cursor(std::string cursorName, unsigned int serial)
 void WaylandAppContext::dispatch(Event&& event)
 {
 	if(dispatcher_) dispatcher_->dispatch(std::move(event));
-	else pendingEvents_.push_back(nytl::cloneMove(std::move(event)));
+	// else pendingEvents_.push_back(nytl::cloneMove(std::move(event)));
+	else if(event.handler) event.handler->handleEvent(event);
 }
 
 WaylandWindowContext* WaylandAppContext::windowContext(wl_surface& surface) const

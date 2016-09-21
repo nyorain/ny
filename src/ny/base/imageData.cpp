@@ -68,6 +68,18 @@ namespace
 	}
 }
 
+unsigned int imageDataFormatSize(ImageDataFormat f)
+{
+	using Format = ImageDataFormat;
+	switch(f)
+	{
+		case Format::rgba8888: case Format::argb8888: case Format::bgra8888: return 4;
+		case Format::rgb888: case Format::bgr888: return 3;
+		case Format::a8: return 1;
+		default: return 0;
+	}
+}
+
 ImageData::ImageData(const std::uint8_t& data, const nytl::Vec2ui& size, ImageDataFormat format)
 	: data(&data), size(size), format(format), stride(imageDataFormatSize(format) * size.x)
 {

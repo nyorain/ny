@@ -5,6 +5,7 @@
 
 //TODO: remove this. Needs some typedef magic + void* args...
 //problem: xcb uses anonymous typedef structs which cannot be forward declared.
+//but the header is really huge and pulls in tons of global x symbols/macros
 #include <xcb/xcb.h> 
 
 #include <map>
@@ -25,9 +26,9 @@ public:
 	MouseContext* mouseContext() override;
 	WindowContextPtr createWindowContext(const WindowSettings& settings) override;
 
-	bool dispatchEvents(EventDispatcher& dispatcher) override;
-	bool dispatchLoop(EventDispatcher& dispatcher, LoopControl& control) override;
-	bool threadedDispatchLoop(ThreadedEventDispatcher& dsp, LoopControl& ctrl) override;
+	bool dispatchEvents() override;
+	bool dispatchLoop(LoopControl& control) override;
+	bool threadedDispatchLoop(EventDispatcher& dispatcher, LoopControl& control) override;
 
 	//TODO
 	bool clipboard(std::unique_ptr<DataSource>&& dataSource) override;
@@ -64,9 +65,8 @@ protected:
 	std::unique_ptr<X11KeyboardContext> keyboardContext_;
 
 protected:
-    bool processEvent(xcb_generic_event_t& ev, EventDispatcher& dispatcher);
+    bool processEvent(xcb_generic_event_t& ev, EventDispatcher* dispatcher = nullptr);
 	EventHandler* eventHandler(xcb_window_t w);
-
 };
 
 }

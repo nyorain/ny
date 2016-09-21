@@ -54,7 +54,7 @@ std::unique_ptr<std::uint8_t[]> convertFormat(ImageDataFormat from, ImageDataFor
 	const std::uint8_t& data, const nytl::Vec2ui& size, unsigned int stride = 0, 
 	unsigned int newStride = 0);
 
-void convertFormat(ImageFormat from, ImageFormat to, const std::uint8_t& fromData,
+void convertFormat(ImageDataFormat from, ImageDataFormat to, const std::uint8_t& fromData,
 	std::uint8_t& toData, const nytl::Vec2ui& size, unsigned int stride = 0, 
 	unsigned int newStride = 0);
 

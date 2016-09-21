@@ -1,7 +1,10 @@
 #include <ny/base/eventDispatcher.hpp>
+#include <ny/base/event.hpp>
 #include <ny/base/eventHandler.hpp>
 #include <ny/base/loopControl.hpp>
 #include <ny/base/log.hpp>
+
+#include <nytl/scope.hpp>
 
 namespace ny
 {
@@ -22,8 +25,8 @@ struct DispatcherControlImpl : public LoopControlImpl
 
 }
 
-//Default
-void EventDispatcher::send(Event& event)
+//EventDispatcher
+void EventDispatcher::send(Event& event) 
 {
 	auto it = onEvent.find(event.type());
 	if(it != onEvent.cend()) it->second(*this, event);
@@ -32,24 +35,10 @@ void EventDispatcher::send(Event& event)
 	if(it != onEvent.cend()) it->second(*this, event);
 
 	if(event.handler) event.handler->handleEvent(event);
-	else noEventHandler(event);
+	else warning("ny::EventDispatcher: Received Event with no handler of type ", event.type());
 }
 
-void EventDispatcher::noEventHandler(Event& event) const
-{
-	warning("ny::EventDispatcher: Received Event with no handler of type ", event.type());
-}
-
-//Threaded
-ThreadedEventDispatcher::ThreadedEventDispatcher()
-{
-}
-
-ThreadedEventDispatcher::~ThreadedEventDispatcher()
-{
-}
-
-void ThreadedEventDispatcher::processEvents()
+void EventDispatcher::processEvents()
 {
     std::unique_lock<std::mutex> lck(eventMtx_);
 	while(!events_.empty())
@@ -63,10 +52,11 @@ void ThreadedEventDispatcher::processEvents()
 	}
 }
 
-void ThreadedEventDispatcher::processLoop(LoopControl& control)
+void EventDispatcher::processLoop(LoopControl& control)
 {
 	std::atomic<bool> stop {0};
 	control.impl_ = std::make_unique<DispatcherControlImpl>(stop, eventCV_);
+	auto loopguard = nytl::makeScopeGuard([&]{ control.impl_.reset(); });
     std::unique_lock<std::mutex> lck(eventMtx_);
 
     while(1)
@@ -110,11 +100,9 @@ void ThreadedEventDispatcher::processLoop(LoopControl& control)
 			}
 		}
     }
-
-	control.impl_.reset();
 }
 
-void ThreadedEventDispatcher::dispatch(std::unique_ptr<Event>&& event)
+void EventDispatcher::dispatch(std::unique_ptr<Event>&& event)
 {
     if(!event.get())
     {
@@ -124,7 +112,7 @@ void ThreadedEventDispatcher::dispatch(std::unique_ptr<Event>&& event)
 
 	if(!event->handler)
 	{
-		noEventHandler(*event);
+		warning("ny::EventDispatcher: Received Event with no handler of type ", event->type());
 		return;
 	}
 
@@ -150,24 +138,24 @@ void ThreadedEventDispatcher::dispatch(std::unique_ptr<Event>&& event)
     eventCV_.notify_one();
 }
 
-void ThreadedEventDispatcher::dispatch(Event&& event)
+void EventDispatcher::dispatch(Event&& event)
 {
 	dispatch(cloneMove(std::move(event)));
 }
 
-void ThreadedEventDispatcher::dispatchSync(EventPtr&& event)
+void EventDispatcher::dispatchSync(EventPtr&& event)
 {
 	dispatch(std::move(event));
 	auto fut = sync(); //XXX: may acually call sync after some additional events where queued.
 	fut.wait();
 }
 
-void ThreadedEventDispatcher::dispatchSync(Event&& event)
+void EventDispatcher::dispatchSync(Event&& event)
 {
 	dispatchSync(cloneMove(std::move(event)));
 }
 
-std::future<void> ThreadedEventDispatcher::sync()
+std::future<void> EventDispatcher::sync()
 {
 	std::lock_guard<std::mutex> lck(eventMtx_);
 	if(events_.empty())
@@ -182,7 +170,7 @@ std::future<void> ThreadedEventDispatcher::sync()
 	return promises_.back().second.get_future();
 }
 
-std::future<void> ThreadedEventDispatcher::waitIdle()
+std::future<void> EventDispatcher::waitIdle()
 {
 	std::lock_guard<std::mutex> lck(eventMtx_);
 	if(events_.empty())
@@ -197,7 +185,7 @@ std::future<void> ThreadedEventDispatcher::waitIdle()
 	return promises_.back().second.get_future();
 }
 
-std::size_t ThreadedEventDispatcher::eventCount() const
+std::size_t EventDispatcher::eventCount() const
 {
 	std::lock_guard<std::mutex> lck(eventMtx_);
 	return events_.size();

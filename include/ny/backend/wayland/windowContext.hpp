@@ -46,6 +46,8 @@ public:
     void cursor(const Cursor& c) override;
 	NativeWindowHandle nativeHandle() const override;
 
+	WindowCapabilities capabilities() const override { return {}; }
+
     //toplevel
     void maximize() override;
     void minimize() override;
@@ -56,7 +58,7 @@ public:
     void beginResize(const MouseButtonEvent* event, WindowEdges edges) override;
 
     void title(const std::string& name) override;
-	void icon(const Image*) override {}
+	void icon(const ImageData*) override {}
 
 	bool customDecorated() const override { return true; }
 	void addWindowHints(WindowHints hints) override;

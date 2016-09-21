@@ -8,6 +8,7 @@
 #include <ny/base/event.hpp>
 #include <ny/base/log.hpp>
 #include <ny/base/cursor.hpp>
+#include <ny/app/events.hpp>
 
 #include <evg/drawContext.hpp>
 
@@ -114,12 +115,14 @@ DrawGuard X11WindowContext::draw()
 void X11WindowContext::refresh()
 {
     xcb_expose_event_t ev{};
-
+ 
     ev.response_type = XCB_EXPOSE;
     ev.window = xWindow();
-
+ 
 	xcb_send_event(xConnection(), 0, xWindow(), XCB_EVENT_MASK_EXPOSURE, (const char*)&ev);
 	xcb_flush(xConnection());
+	
+	// if(eventHandler()) eventHandler()->handleEvent(DrawEvent(eventHandler()));
 }
 
 void X11WindowContext::show()
@@ -233,21 +236,21 @@ void X11WindowContext::beginResize(const MouseButtonEvent* ev, WindowEdges edge)
 		x11Edge, XCB_BUTTON_INDEX_1, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL); 
 }
 
-void X11WindowContext::icon(const Image* img)
+void X11WindowContext::icon(const ImageData* img)
 {
-    if(img)
-    {
-		auto cpy = *img;
-		cpy.format(Image::Format::rgba8888);
-		auto size = 2 + cpy.size().x * cpy.size().y;
-		auto data = reinterpret_cast<std::uint32_t*>(cpy.data());
-		xcb_ewmh_set_wm_icon(ewmhConnection(), XCB_PROP_MODE_REPLACE, xWindow(), size, data);
-    }
-	else
-	{
-		std::uint32_t buffer[2] = {0};
-		xcb_ewmh_set_wm_icon(ewmhConnection(), XCB_PROP_MODE_REPLACE, xWindow(), 2, buffer);
-	}
+    // if(img)
+    // {
+		// auto cpy = *img;
+		// cpy.format(Image::Format::rgba8888);
+		// auto size = 2 + cpy.size().x * cpy.size().y;
+		// auto data = reinterpret_cast<std::uint32_t*>(cpy.data());
+		// xcb_ewmh_set_wm_icon(ewmhConnection(), XCB_PROP_MODE_REPLACE, xWindow(), size, data);
+    // }
+	// else
+	// {
+		// std::uint32_t buffer[2] = {0};
+		// xcb_ewmh_set_wm_icon(ewmhConnection(), XCB_PROP_MODE_REPLACE, xWindow(), 2, buffer);
+	// }
 }
 
 void X11WindowContext::title(const std::string& str)

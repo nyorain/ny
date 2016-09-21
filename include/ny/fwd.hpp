@@ -81,6 +81,7 @@ class DataTypes;
 class DataOffer;
 class DataSource;
 class DataObject;
+class ImageData;
 
 //app
 class App;
@@ -104,6 +105,7 @@ class KeyboardContext;
 class WindowSettings;
 class GlContext;
 class VulkanContext;
+class VulkanSurfaceContext;
 class NativeWindowHandle;
 
 //gui

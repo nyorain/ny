@@ -3,31 +3,18 @@
 namespace ny
 {
 
-Cursor::Cursor(CursorType type) : type_(type), image_(nullptr)
+Cursor::Cursor(CursorType type) : type_(type), image_{}
 {
 }
 
-Cursor::Cursor(const Image& img, const nytl::Vec2i& hotspot)
-	: type_(CursorType::image), image_(img), hotspot_(hotspot)
+Cursor::Cursor(const ImageData& img, const nytl::Vec2i& hotspot)
+	: type_(CursorType::image), hotspot_(hotspot), image_(img)
 {
 }
 
-Cursor::Cursor(Image&& img, const nytl::Vec2i& hotspot)
-	: type_(CursorType::image), image_(std::move(img)), hotspot_(hotspot)
-{
-}
-
-void Cursor::image(const Image& img, const Vec2i& hotspot)
+void Cursor::image(const ImageData& img, const Vec2i& hotspot)
 {
     image_ = img;
-    hotspot_ = hotspot;
-
-    type_ = CursorType::image;
-}
-
-void Cursor::image(Image&& img, const Vec2i& hotspot)
-{
-    image_ = std::move(img);
     hotspot_ = hotspot;
 
     type_ = CursorType::image;
@@ -38,17 +25,12 @@ void Cursor::nativeType(CursorType type)
     type_= type;
 }
 
-const Image* Cursor::image() const
+const ImageData* Cursor::image() const
 {
     return (type_ == CursorType::image) ? &image_ : nullptr;
 }
 
-Image* Cursor::image()
-{
-    return (type_ == CursorType::image) ? &image_ : nullptr;
-}
-
-Vec2i Cursor::imageHotspot() const
+const Vec2i& Cursor::imageHotspot() const
 {
     return hotspot_;
 }

@@ -195,7 +195,7 @@ struct SoftwareDrawSettings
 
 struct GlDrawSettings
 {
-	GlContext** storeContext;
+	GlContext** storeContext {};
 	bool contextOnly = false;
 	bool vsync = true;
 };
@@ -219,6 +219,8 @@ struct VulkanDrawSettings
 
 struct DrawSettings
 {
+	DrawSettings() : softwareSettings() {}
+
 	DrawType drawType = DrawType::dontCare;
 	union
 	{

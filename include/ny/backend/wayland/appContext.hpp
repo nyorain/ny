@@ -34,9 +34,9 @@ public:
     virtual ~WaylandAppContext();
 
 	//AppContext
-	bool dispatchEvents(EventDispatcher&) override;
-	bool dispatchLoop(EventDispatcher&, LoopControl&) override;
-	bool threadedDispatchLoop(ThreadedEventDispatcher&, LoopControl&) override;
+	bool dispatchEvents() override;
+	bool dispatchLoop(LoopControl& control) override;
+	bool threadedDispatchLoop(EventDispatcher& dispatcher, LoopControl& control) override;
 
 	MouseContext* mouseContext() override; 
 	KeyboardContext* keyboardContext() override;
