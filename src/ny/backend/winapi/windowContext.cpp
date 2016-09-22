@@ -5,6 +5,7 @@
 
 #include <ny/base/log.hpp>
 #include <ny/base/cursor.hpp>
+#include <ny/base/imageData.hpp>
 
 #include <tchar.h>
 #include <stdexcept>
@@ -202,18 +203,18 @@ void WinapiWindowContext::addWindowHints(WindowHints hints)
 		exStyle &= ~(WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
 		::SetWindowLong(handle(), GWL_EXSTYLE, exStyle);
 	}
-	if(hints & WindowHint::acceptDrop)
-	{
-		if(!dropTarget_)
-		{
-			dropTarget_ = new winapi::com::DropTargetImpl(*this);
-			::RegisterDragDrop(handle(), dropTarget_);
-		}
-	}
-	if(hints & WindowHint::alwaysOnTop)
-	{
-		::SetWindowPos(handle(), HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
-	}
+	// if(hints & WindowHint::acceptDrop)
+	// {
+	// 	if(!dropTarget_)
+	// 	{
+	// 		dropTarget_ = new winapi::com::DropTargetImpl(*this);
+	// 		::RegisterDragDrop(handle(), dropTarget_);
+	// 	}
+	// }
+	// if(hints & WindowHint::alwaysOnTop)
+	// {
+	// 	::SetWindowPos(handle(), HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
+	// }
 }
 void WinapiWindowContext::removeWindowHints(WindowHints hints)
 {
@@ -227,14 +228,14 @@ void WinapiWindowContext::removeWindowHints(WindowHints hints)
 		exStyle |= (WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
 		::SetWindowLong(handle(), GWL_EXSTYLE, exStyle);
 	}
-	if(hints & WindowHint::acceptDrop)
-	{
-		::RevokeDragDrop(handle());
-	}
-	if(hints & WindowHint::alwaysOnTop)
-	{
-		::SetWindowPos(handle(), HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
-	}
+	// if(hints & WindowHint::acceptDrop)
+	// {
+	// 	::RevokeDragDrop(handle());
+	// }
+	// if(hints & WindowHint::alwaysOnTop)
+	// {
+	// 	::SetWindowPos(handle(), HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
+	// }
 }
 
 bool WinapiWindowContext::handleEvent(const Event& e)
@@ -255,14 +256,30 @@ void WinapiWindowContext::cursor(const Cursor& c)
 	//TODO: here and icon: system metrics
 	if(c.type() == CursorType::image)
 	{
-		auto cpy = *c.image();
-		cpy.format(Image::Format::bgra8888);
+		constexpr static auto reqFormat = ImageDataFormat::bgra8888; //TODO: endianess?
 
-		auto hs = c.imageHotspot();
-		auto size = c.image()->size();
+		const auto& imgdata = *c.image();
+		std::unique_ptr<std::uint8_t[]> ownedData;
+		auto stride = imgdata.size.x * imageDataFormatSize(imgdata.format); //the required stride
+		auto* pixelsData = imgdata.data;
 
-		auto bitmap = ::CreateBitmap(size.x, size.y, 1, 32, cpy.data());
+		//usually an extra conversion/copy is required
+		if((imgdata.stride != stride && imgdata.stride != 0) || imgdata.format != reqFormat)
+		{
+			ownedData = std::make_unique<std::uint8_t[]>(stride * imgdata.size.y);
+			pixelsData = ownedData.get();
+			convertFormat(imgdata.format, reqFormat, *imgdata.data, *ownedData.get(), imgdata.size,
+				imgdata.stride);
+		}
 
+		auto bitmap = ::CreateBitmap(imgdata.size.x, imgdata.size.y, 1, 32, pixelsData);
+		if(!bitmap)
+		{
+			warning(errorMessage("ny::WinapiWindowContext::cursor: failed to create bitmap"));
+			return;
+		}
+
+		const auto& hs = c.imageHotspot();
 		ICONINFO iconinfo;
 		iconinfo.fIcon = false;
 		iconinfo.xHotspot = hs.x;
@@ -271,15 +288,18 @@ void WinapiWindowContext::cursor(const Cursor& c)
 		iconinfo.hbmColor = bitmap;
 
 		auto icon = ::CreateIconIndirect(&iconinfo);
-		cursor_ = reinterpret_cast<HCURSOR>(icon);
-		::SetCursor(cursor_);
+		if(!icon)
+		{
+			warning(errorMessage("ny::WinapiWindowContext::cursor: failed to create icon"));
+			return;
+		}
 
+		cursor_ = reinterpret_cast<HCURSOR>(icon);
 		DeleteObject(bitmap);
 	}
 	else if(c.type() == CursorType::none)
 	{
 		cursor_ = nullptr;
-		::SetCursor(cursor_);
 	}
 	else
 	{
@@ -290,15 +310,22 @@ void WinapiWindowContext::cursor(const Cursor& c)
 			return;
 		}
 
-		cursor_ = ::LoadCursor(hinstance(), cursorName);
+		cursor_ = ::LoadCursor(nullptr, cursorName);
 		if(!cursor_)
 		{
-			warning("WinapiWC::cursor: failed to load native cursor ", cursorName);
+			warning(errorMessage("WinapiWC::cursor: failed to load native cursor"));
 			return;
 		}
 
-		::SetCursor(cursor_);
 	}
+
+	//Some better method for doing this?
+	//maybe just respond to the WM_SETCURSOR?
+	//http://stackoverflow.com/questions/169155/setcursor-reverts-after-a-mouse-move
+	::SetCursor(cursor_);
+
+	//-12 == GCL_HCURSOR not defined
+	::SetClassLongPtr(handle(), -12, (LONG_PTR)cursor_);
 }
 
 void WinapiWindowContext::fullscreen()
@@ -376,10 +403,10 @@ void WinapiWindowContext::normalState()
 	ShowWindowAsync(handle_, SW_RESTORE);
 }
 
-void WinapiWindowContext::icon(const Image* img)
+void WinapiWindowContext::icon(const ImageData& imgdata)
 {
 	//if nullptr passed set no icon
-	if(!img)
+	if(!imgdata.data)
 	{
 		PostMessage(handle(), WM_SETICON, ICON_BIG, (LPARAM) nullptr);
         PostMessage(handle(), WM_SETICON, ICON_SMALL, (LPARAM) nullptr);
@@ -387,16 +414,32 @@ void WinapiWindowContext::icon(const Image* img)
 	}
 
 	//windows wants the data in bgra format
-	auto cpy = *img;
-	cpy.format(Image::Format::bgra8888);
+	constexpr static auto reqFormat = ImageDataFormat::bgra8888; //TODO: endianess?
+
+	std::unique_ptr<std::uint8_t[]> ownedData;
+	auto stride = imgdata.size.x * imageDataFormatSize(imgdata.format);
+	auto* pixelsData = imgdata.data;
+
+	//usually an extra conversion/copy is required
+	if((imgdata.stride != stride && imgdata.stride != 0) || imgdata.format != reqFormat)
+	{
+		ownedData = std::make_unique<std::uint8_t[]>(stride * imgdata.size.y);
+		pixelsData = ownedData.get();
+		convertFormat(imgdata.format, reqFormat, *imgdata.data, *ownedData.get(), imgdata.size,
+			imgdata.stride);
+	}
 
 	auto module = GetModuleHandle(nullptr);
-	auto icon = CreateIcon(module, cpy.size().x, cpy.size().y, 1, 32, nullptr, cpy.data());
+	auto icon = CreateIcon(module, imgdata.size.x, imgdata.size.y, 1, 32, nullptr, pixelsData);
 
-   if(!icon) warning("WinapiWindowContext::icon: Failed to create winapi icon handle");
+   	if(!icon)
+	{
+		warning("WinapiWindowContext::icon: Failed to create winapi icon handle");
+		return;
+	}
 
-   PostMessageW(handle(), WM_SETICON, ICON_BIG, (LPARAM) icon);
-   PostMessageW(handle(), WM_SETICON, ICON_SMALL, (LPARAM) icon);
+	PostMessageW(handle(), WM_SETICON, ICON_BIG, (LPARAM) icon);
+	PostMessageW(handle(), WM_SETICON, ICON_SMALL, (LPARAM) icon);
 }
 
 void WinapiWindowContext::title(const std::string& title)

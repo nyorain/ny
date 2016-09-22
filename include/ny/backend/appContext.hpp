@@ -2,7 +2,9 @@
 
 #include <ny/include.hpp>
 #include <nytl/nonCopyable.hpp>
+
 #include <memory>
+#include <system_error>
 
 ///Header can be used without linking to ny-backend.
 
@@ -11,6 +13,16 @@ namespace ny
 
 using WindowContextPtr = std::unique_ptr<WindowContext>;
 using AppContextPtr = std::unique_ptr<AppContext>;
+
+//TODO: use some kind of AppContext settings?
+// struct AppContextSettings
+// {
+// 	std::string name;
+// 	bool multithreaded;
+// 	std::vector<const char*> args;
+//	std::vector<std::pair<const char*, const char*>> licenses;
+//	const char* author;
+// };
 
 //TODO: more/better term definitions. Multiple AppContexts allowed?
 //TODO: TouchContext. Other input sources?
@@ -24,7 +36,7 @@ public:
     virtual ~AppContext() = default;
 
 	///Creates a WindowContext implementation for the given settings.
-	///May throw backend specific errors or nullptr if it fails.
+	///May throw backend specific errors on failure.
 	////\sa WindowContext
 	virtual WindowContextPtr createWindowContext(const WindowSettings& windowSettings) = 0;
 

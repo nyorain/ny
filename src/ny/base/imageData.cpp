@@ -112,9 +112,6 @@ void convertFormat(ImageDataFormat from, ImageDataFormat to, const std::uint8_t&
 
 			auto color = formatDataColor((&fromData)[oldpos], from);
 			convert((&toData)[newpos], to, color);
-
-			warning(nytl::Vec4ui(reinterpret_cast<const nytl::Vec4uc&>((&toData)[newpos])));
-			warning(reinterpret_cast<void*&>((&toData)[newpos]));
 		}
 	}
 }

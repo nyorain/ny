@@ -168,6 +168,7 @@ WindowContextPtr WaylandAppContext::createWindowContext(const WindowSettings& se
 	if(drawType == DrawType::vulkan)
 	{
 		#ifdef NY_WithVulkan
+		 // if(!vulkanContext_) vulkanContext_ = std::make_unique<WalandVulkanContext>(*this);
 		 // return std::make_unique<WaylandVulkanWindowContext>(*xac, settings);
 		#else
 		 throw std::logic_error("ny::WaylandAC::createWC: ny built without vulkan support");

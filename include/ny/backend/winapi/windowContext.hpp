@@ -39,6 +39,7 @@ public:
     bool handleEvent(const Event& e) override;
 
 	NativeWindowHandle nativeHandle() const override;
+	WindowCapabilities capabilities() const override { return {}; }
 
     void refresh() override;
 	DrawGuard draw() override;
@@ -57,7 +58,7 @@ public:
 
 	bool customDecorated() const override { return 0; };
 
-    void icon(const Image* img) override;
+    void icon(const ImageData& img) override;
     void title(const std::string& title) override;
 
     //winapi specific

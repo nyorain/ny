@@ -95,3 +95,28 @@ and therefore one could not have one executable for all backends.
 The cost of using runtime polymorphism is that high that one could use this as reason for not
 supporting multiple backends in one executable (at least for ny, most other toolkits that use
 compile-time switches have good reason to do so).
+
+OpenGL contexts
+===============
+
+Backend implementations should try to use as few contexts as possible.
+The only reason to create a new context should be if it is needed because all existent
+contexts would be incompatible with the window to create a context for (or with its settings)
+or if explicitly called so by the application. Usually one opengl context per backend is enough,
+even when multiple opengl windows are used.
+The user could specify to use a seperate conetxt for every window e.g. if the windows are
+rendered to from different threads. Note that ny with evg does not support rendering from
+multiple threads (but since ny was designed to be well-usable without any evg dependency,
+applications that need this error-prone feature should be able to implement it for themselves).
+Since creating a context is considered pretty expensive, backends should generally only
+create them when needed (for a window) and not e.g. on AppContext creation.
+
+Vulkan
+======
+
+Applications can use ny either to just create a VkSurfaceKHR for a WindowContext in a
+platform-independent manner or use evg's vulkan DrawContext implementation for rendering
+vector graphics on ny windows.
+If using ny for a larger vulkan application (e.g. game or cad) one has therefore the possiblity
+to simply use ny to create a window and then a VkSurfaceKHR for it platform-independent without
+any unneeded dependencies and features.

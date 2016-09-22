@@ -203,7 +203,7 @@ struct GlDrawSettings
 struct VulkanDrawSettings
 {
 	//The context to use for creating the vulkan surface. If nullptr, the backend will create
-	//a vulkan context (or use an already created one).
+	//a vulkan context (or use an already created internal one).
 	VulkanContext* useContext {};
 
 	//A pointer to a VulkanSurfaceContext pointer in which the context will then be stored
@@ -213,7 +213,7 @@ struct VulkanDrawSettings
 	bool contextOnly = false;
 
 	//TODO: more detailed presentation/swapchain options
-	//Whether to try to enable vsync. Is not relvant if the settings specify contextOnly to be true.
+	//Whether to try to enable vsync. Only relevnat if contextOnly is false.
 	bool vsync = true;
 };
 
@@ -250,5 +250,18 @@ public:
 	NativeWidgetType nativeWidgetType = NativeWidgetType::none;
 	DialogSettings dialogSettings;
 };
+
+///Custom exception classes for WindowContext creation
+// class WindowSettingsError : std::logic_error
+// {
+// };
+// 
+// class InvalidDrawTypeError : WindowSettingsError
+// {
+// };
+// 
+// class WindowContextCreateError : std::runtime_error
+// {
+// };
 
 }

@@ -35,10 +35,10 @@ public:
 	
 
 public:
-	const std::uint8_t* data;
-	nytl::Vec2ui size;
-	ImageDataFormat format;
-	unsigned int stride;
+	const std::uint8_t* data {};
+	nytl::Vec2ui size {};
+	ImageDataFormat format {};
+	unsigned int stride {};
 };
 
 ///Returns the size of the given format in bytes.

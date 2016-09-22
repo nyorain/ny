@@ -28,9 +28,9 @@ public:
 	MouseContext* mouseContext() override;
 	WindowContextPtr createWindowContext(const WindowSettings& settings) override;
 
-	bool dispatchEvents(EventDispatcher& disp) override;
-	bool dispatchLoop(EventDispatcher& disp, LoopControl& control) override;
-	bool threadedDispatchLoop(ThreadedEventDispatcher& disp, LoopControl& ctrl) override;
+	bool dispatchEvents() override;
+	bool dispatchLoop(LoopControl& control) override;
+	bool threadedDispatchLoop(EventDispatcher& disp, LoopControl& ctrl) override;
 
 	bool clipboard(std::unique_ptr<DataSource>&& source) override;
 	std::unique_ptr<DataOffer> clipboard() override;
@@ -58,9 +58,7 @@ protected:
 
 	LoopControl* dispatcherLoopControl_ = nullptr;
 	EventDispatcher* eventDispatcher_ = nullptr;
-
 	bool receivedQuit_ = false;
-	bool threadsafe_ = false;
 
 	WinapiWindowContext* focus_ = nullptr;
 	WinapiWindowContext* mouseOver_ = nullptr;

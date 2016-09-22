@@ -175,12 +175,11 @@ KeyboardContext* WinapiAppContext::keyboardContext()
 	return &keyboardContext_;
 }
 
-bool WinapiAppContext::dispatchEvents(EventDispatcher& dispatcher)
+bool WinapiAppContext::dispatchEvents()
 {
-	receivedQuit_ = 0;
-	eventDispatcher_ = &dispatcher;
-
+	receivedQuit_ = false;
     MSG msg;
+
     while(PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
 	{
 		TranslateMessage(&msg);
@@ -190,25 +189,23 @@ bool WinapiAppContext::dispatchEvents(EventDispatcher& dispatcher)
 	return !receivedQuit_;
 }
 
-bool WinapiAppContext::dispatchLoop(EventDispatcher& dispatcher, LoopControl& control)
+bool WinapiAppContext::dispatchLoop(LoopControl& control)
 {
 	//TODO: we have to be really careful of exceptions inside this high functions
 	//if everything during event handling throws, the end of this function will
 	//not be reached
+	receivedQuit_ = false;
 	std::atomic<bool> run {1};
 	control.impl_ = std::make_unique<WinapiLoopControlImpl>(run);
-
 	dispatcherLoopControl_ = &control;
-	eventDispatcher_ = &dispatcher;
 
 	auto scopeGuard = nytl::makeScopeGuard([&]{
 		dispatcherLoopControl_ = nullptr;
-		eventDispatcher_ = nullptr;
 		control.impl_.reset();
 	});
 
 	MSG msg;
-	while(run.load())
+	while(!receivedQuit_ && run.load())
 	{
 		auto ret = GetMessage(&msg, nullptr, 0, 0);
 		if(ret == -1)
@@ -223,33 +220,55 @@ bool WinapiAppContext::dispatchLoop(EventDispatcher& dispatcher, LoopControl& co
 		}
 	}
 
-	return true;
+	return !receivedQuit_;
 }
 
-bool WinapiAppContext::threadedDispatchLoop(ThreadedEventDispatcher& dispatcher,
+bool WinapiAppContext::threadedDispatchLoop(EventDispatcher& dispatcher,
 	LoopControl& control)
 {
+	receivedQuit_ = false;
+	std::atomic<bool> run {1};
+	control.impl_ = std::make_unique<WinapiLoopControlImpl>(run);
+	receivedQuit_ = false;
+
 	auto threadid = std::this_thread::get_id();
 	auto threadHandle = GetCurrentThreadId();
-
-	threadsafe_ = true;
+	eventDispatcher_ = &dispatcher;
 
 	//register a callback that is called everytime the dispatcher gets an event
 	//if the event comes from this thread, this thread is not waiting, otherwise
 	//wait this thread with a message.
-	auto conn = dispatcher.onDispatch.add([&] {
+	nytl::CbConnGuard conn = dispatcher.onDispatch.add([&] {
 		if(std::this_thread::get_id() != threadid)
 			PostThreadMessage(threadHandle, WM_USER, 0, 0);
 	});
 
 	//exception safety
 	auto scopeGuard = nytl::makeScopeGuard([&]{
-		threadsafe_ = false;
-		conn.destroy();
+		eventDispatcher_ = nullptr;
+		dispatcherLoopControl_ = nullptr;
+		control.impl_.reset();
 	});
 
-	//just call the default dispatch loop
-	return dispatchLoop(dispatcher, control);
+	MSG msg;
+	while(!receivedQuit_ && run.load())
+	{
+		auto ret = GetMessage(&msg, nullptr, 0, 0);
+		if(ret == -1)
+		{
+			warning(errorMessage("WinapiAC::dispatchLoop"));
+			return false;
+		}
+		else
+		{
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+
+		dispatcher.processEvents();
+	}
+
+	return !receivedQuit_;
 }
 
 //TODO: error handling (warnings)
@@ -301,19 +320,14 @@ WinapiWindowContext* WinapiAppContext::windowContext(HWND w)
 LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LPARAM lparam)
 {
     //todo: implement all events correctly, look em up
-	auto context = eventDispatcher_ ? windowContext(window) : nullptr;
+	auto context = windowContext(window);
 	auto handler = context ? context->eventHandler() : nullptr;
-
-	bool handlerEvents = (handler && eventDispatcher_);
-	bool contextEvents = (context && eventDispatcher_);
-
-	auto threadedDispatcher = dynamic_cast<ThreadedEventDispatcher*>(eventDispatcher_);
 
 	//utilty function used to dispatch event
 	auto dispatch = [&](Event& ev) {
-			if(threadsafe_) eventDispatcher_->send(ev);
-			else eventDispatcher_->dispatch(std::move(ev));
-		};
+		if(eventDispatcher_) eventDispatcher_->dispatch(std::move(ev));
+		else if(ev.handler) ev.handler->handleEvent(ev);
+	};
 
 	//to be returned
 	LRESULT result = 0;
@@ -333,7 +347,7 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 			if(!mouseOver_ || mouseOver_->handle() != window)
 			{
 				mouseOver_ = windowContext(window);
-				if(handlerEvents)
+				if(handler)
 				{
 					MouseCrossEvent ev(handler);
 					ev.entered = true;
@@ -342,7 +356,7 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 				}
 			}
 
-			if(handlerEvents)
+			if(handler)
 			{
 				MouseMoveEvent ev(handler);
 				ev.position = position;
@@ -356,7 +370,7 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 		{
 			mouseOver_ = nullptr;
 
-			if(handlerEvents)
+			if(handler)
 			{
 				MouseCrossEvent ev(handler);
 				ev.entered = false;
@@ -367,7 +381,7 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 
 		case WM_LBUTTONDOWN:
         {
-			if(handlerEvents)
+			if(handler)
 			{
 				MouseButtonEvent ev(handler);
 				ev.position = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
@@ -380,7 +394,7 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 
 		case WM_LBUTTONUP:
         {
-			if(handlerEvents)
+			if(handler)
 			{
 				MouseButtonEvent ev(handler);
 				ev.position = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
@@ -394,7 +408,7 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 
 		case WM_KEYDOWN:
 		{
-			if(handlerEvents)
+			if(handler)
 			{
 				KeyEvent ev(handler);
 				ev.key = winapiToKey(wparam);
@@ -408,7 +422,7 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 
 		case WM_KEYUP:
 		{
-			if(handlerEvents)
+			if(handler)
 			{
 				KeyEvent ev(handler);
 				ev.key = winapiToKey(wparam);
@@ -422,7 +436,7 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 
         case WM_PAINT:
         {
-			if(handlerEvents)
+			if(handler)
 			{
 				DrawEvent ev(handler);
 				dispatch(ev);
@@ -434,7 +448,7 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 
 		case WM_DESTROY:
 		{
-			if(handlerEvents)
+			if(handler)
 			{
 				CloseEvent ev(handler);
 				dispatch(ev);
@@ -445,7 +459,7 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 
         case WM_SIZE:
         {
-			if(handlerEvents)
+			if(handler)
 			{
 				SizeEvent ev(handler);
 				dispatch(ev);
@@ -456,7 +470,7 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 
         case WM_MOVE:
         {
-			if(handlerEvents)
+			if(handler)
 			{
 				PositionEvent ev(handler);
 				dispatch(ev);
@@ -467,7 +481,7 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 
 		case WM_SYSCOMMAND:
 		{
-			if(handlerEvents)
+			if(handler)
 			{
 				ShowEvent ev(handler);
 				ev.show = true;
@@ -512,7 +526,6 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 		}
     }
 
-	if(threadsafe_ && threadedDispatcher) threadedDispatcher->processEvents();
 	return result;
 }
 

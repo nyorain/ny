@@ -58,7 +58,7 @@ public:
     void beginResize(const MouseButtonEvent* event, WindowEdges edges) override;
 
     void title(const std::string& name) override;
-	void icon(const ImageData*) override {}
+	void icon(const ImageData&) override {}
 
 	bool customDecorated() const override { return true; }
 	void addWindowHints(WindowHints hints) override;

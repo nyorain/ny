@@ -23,12 +23,12 @@ namespace ny
 {
 
 //windowContext
-X11WindowContext::X11WindowContext(X11AppContext& ctx, const X11WindowSettings& settings) 
+X11WindowContext::X11WindowContext(X11AppContext& ctx, const X11WindowSettings& settings)
 {
 	create(ctx, settings);
 }
 
-void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& settings) 
+void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& settings)
 {
 	appContext_ = &ctx;
 	settings_ = settings;
@@ -57,7 +57,7 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 	xcb_colormap_t colormap = xcb_generate_id(xconn);
 	xcb_create_colormap(xconn, XCB_COLORMAP_ALLOC_NONE, colormap, xscreen->root, xVisualID_);
 
-	std::uint32_t eventmask = 
+	std::uint32_t eventmask =
 		XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_STRUCTURE_NOTIFY | XCB_EVENT_MASK_KEY_PRESS |
 		XCB_EVENT_MASK_KEY_RELEASE | XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE |
 		XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_LEAVE_WINDOW | XCB_EVENT_MASK_POINTER_MOTION;
@@ -70,14 +70,14 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 		size.x, size.y, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT, xVisualID_, valuemask, valuelist);
 
     appContext_->registerContext(xWindow_, *this);
-    if(toplvl) 
+    if(toplvl)
 	{
 		auto protocols = ewmhConnection()->WM_PROTOCOLS;
 		auto list = appContext_->atom("WM_DELETE_WINDOW");
 
-		xcb_change_property(xconn, XCB_PROP_MODE_REPLACE, xWindow_, protocols, 
+		xcb_change_property(xconn, XCB_PROP_MODE_REPLACE, xWindow_, protocols,
 				XCB_ATOM_ATOM, 32, 1, &list);
-		xcb_change_property(xconn, XCB_PROP_MODE_REPLACE, xWindow_, XCB_ATOM_WM_NAME, 
+		xcb_change_property(xconn, XCB_PROP_MODE_REPLACE, xWindow_, XCB_ATOM_WM_NAME,
 				XCB_ATOM_STRING, 8, settings.title.size(), settings.title.c_str());
 	}
 
@@ -120,10 +120,10 @@ DrawGuard X11WindowContext::draw()
 void X11WindowContext::refresh()
 {
     xcb_expose_event_t ev{};
- 
+
     ev.response_type = XCB_EXPOSE;
     ev.window = xWindow();
- 
+
 	xcb_send_event(xConnection(), 0, xWindow(), XCB_EVENT_MASK_EXPOSURE, (const char*)&ev);
 	xcb_flush(xConnection());
 }
@@ -141,7 +141,7 @@ void X11WindowContext::hide()
 
 void X11WindowContext::size(const Vec2ui& size)
 {
-	xcb_configure_window(xConnection(), xWindow_, 
+	xcb_configure_window(xConnection(), xWindow_,
 		XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT, size.data());
     refresh();
 }
@@ -151,8 +151,8 @@ void X11WindowContext::position(const Vec2i& position)
 	std::uint32_t data[2];
 	data[0] = position.x;
 	data[1] = position.y;
-	
-	xcb_configure_window(xConnection(), xWindow(), 
+
+	xcb_configure_window(xConnection(), xWindow(),
 		XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, data);
 	xcb_flush(xConnection());
 }
@@ -183,6 +183,8 @@ void X11WindowContext::cursor(const Cursor& curs)
 	}
 	else if(curs.type() == CursorType::image)
 	{
+		constexpr static auto reqFormat = ImageDataFormat::bgra8888; //TODO: endianess?
+
 		auto xdpy = appContext().xDisplay();
 		auto& imgdata = *curs.image();
 
@@ -191,11 +193,10 @@ void X11WindowContext::cursor(const Cursor& curs)
 		xcimage->yhot = curs.imageHotspot().y;
 
 		auto stride = imgdata.size.x * imageDataFormatSize(imgdata.format);
-		constexpr static auto reqFormat = ImageDataFormat::bgra8888; //TODO: endianess?
 		if((imgdata.stride != stride && imgdata.stride != 0) || imgdata.format != reqFormat)
 		{
 			auto pixels = reinterpret_cast<std::uint8_t*>(xcimage->pixels);
-			convertFormat(imgdata.format, reqFormat, *imgdata.data, *pixels, imgdata.size, 
+			convertFormat(imgdata.format, reqFormat, *imgdata.data, *pixels, imgdata.size,
 				imgdata.stride);
 		}
 		else
@@ -258,9 +259,9 @@ void X11WindowContext::beginMove(const MouseButtonEvent* ev)
     if(!xbev) return;
     auto& xev = reinterpret_cast<xcb_button_press_event_t&>(xbev->event);
 
-	//XXX: correct mouse button (index)!
-	xcb_ewmh_request_wm_moveresize(ewmhConnection(), 0, xWindow(), xev.root_x, xev.root_y, 
-		XCB_EWMH_WM_MOVERESIZE_MOVE, XCB_BUTTON_INDEX_1, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL); 
+	//XXX TODO: correct mouse button (index)!
+	xcb_ewmh_request_wm_moveresize(ewmhConnection(), 0, xWindow(), xev.root_x, xev.root_y,
+		XCB_EWMH_WM_MOVERESIZE_MOVE, XCB_BUTTON_INDEX_1, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
 }
 
 void X11WindowContext::beginResize(const MouseButtonEvent* ev, WindowEdges edge)
@@ -284,25 +285,36 @@ void X11WindowContext::beginResize(const MouseButtonEvent* ev, WindowEdges edge)
     }
 
 	//XXX: correct mouse button!
-	xcb_ewmh_request_wm_moveresize(ewmhConnection(), 0, xWindow(), xev.root_x, xev.root_y, 
-		x11Edge, XCB_BUTTON_INDEX_1, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL); 
+	xcb_ewmh_request_wm_moveresize(ewmhConnection(), 0, xWindow(), xev.root_x, xev.root_y,
+		x11Edge, XCB_BUTTON_INDEX_1, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
 }
 
-void X11WindowContext::icon(const ImageData* img)
+void X11WindowContext::icon(const ImageData& img)
 {
-    // if(img)
-    // {
-		// auto cpy = *img;
-		// cpy.format(Image::Format::rgba8888);
-		// auto size = 2 + cpy.size().x * cpy.size().y;
-		// auto data = reinterpret_cast<std::uint32_t*>(cpy.data());
-		// xcb_ewmh_set_wm_icon(ewmhConnection(), XCB_PROP_MODE_REPLACE, xWindow(), size, data);
-    // }
-	// else
-	// {
-		// std::uint32_t buffer[2] = {0};
-		// xcb_ewmh_set_wm_icon(ewmhConnection(), XCB_PROP_MODE_REPLACE, xWindow(), 2, buffer);
-	// }
+    if(img.data)
+    {
+		auto reqFormat = ImageDataFormat::rgba8888;
+		auto neededSize = img.size.x * img.size.y;
+		auto ownedData = std::make_unique<std::uint32_t[]>(2 + neededSize);
+
+		//the first two ints are width and height
+		ownedData[0] = img.size.x;
+		ownedData[1] = img.size.y;
+
+		auto size = 2 + neededSize;
+		auto imgData = reinterpret_cast<std::uint8_t*>(ownedData.get() + 2);
+		convertFormat(img.format, reqFormat, *img.data, *imgData, img.size, img.stride);
+
+		auto data = ownedData.get();
+		xcb_ewmh_set_wm_icon(ewmhConnection(), XCB_PROP_MODE_REPLACE, xWindow(), size, data);
+		xcb_flush(xConnection());
+    }
+	else
+	{
+		std::uint32_t buffer[2] = {0};
+		xcb_ewmh_set_wm_icon(ewmhConnection(), XCB_PROP_MODE_REPLACE, xWindow(), 2, buffer);
+		xcb_flush(xConnection());
+	}
 }
 
 void X11WindowContext::title(const std::string& str)
@@ -335,7 +347,7 @@ void X11WindowContext::maxSize(const Vec2ui& size)
 
 bool X11WindowContext::handleEvent(const Event& e)
 {
-    if(e.type() == eventType::x11::reparent) 
+    if(e.type() == eventType::x11::reparent)
 	{
 		position(settings_.position);
 		return true;
@@ -497,45 +509,45 @@ void X11WindowContext::lower()
 
 void X11WindowContext::requestFocus()
 {
-	xcb_ewmh_request_change_active_window(ewmhConnection(), 0, xWindow(), 
+	xcb_ewmh_request_change_active_window(ewmhConnection(), 0, xWindow(),
 			XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL, XCB_TIME_CURRENT_TIME, XCB_NONE);
 }
 void X11WindowContext::addStates(xcb_atom_t state1, xcb_atom_t state2)
 {
-	xcb_ewmh_request_change_wm_state(ewmhConnection(), 0, xWindow(), XCB_EWMH_WM_STATE_ADD, 
+	xcb_ewmh_request_change_wm_state(ewmhConnection(), 0, xWindow(), XCB_EWMH_WM_STATE_ADD,
 			state1, state2, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
 }
 
 void X11WindowContext::removeStates(xcb_atom_t state1, xcb_atom_t state2)
 {
-	xcb_ewmh_request_change_wm_state(ewmhConnection(), 0, xWindow(), XCB_EWMH_WM_STATE_REMOVE, 
+	xcb_ewmh_request_change_wm_state(ewmhConnection(), 0, xWindow(), XCB_EWMH_WM_STATE_REMOVE,
 			state1, state2, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
 }
 
 void X11WindowContext::toggleStates(xcb_atom_t state1, xcb_atom_t state2)
 {
-	xcb_ewmh_request_change_wm_state(ewmhConnection(), 0, xWindow(), XCB_EWMH_WM_STATE_TOGGLE, 
+	xcb_ewmh_request_change_wm_state(ewmhConnection(), 0, xWindow(), XCB_EWMH_WM_STATE_TOGGLE,
 			state1, state2, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
 }
 
 void X11WindowContext::mwmHints(unsigned long deco, unsigned long func, bool d, bool f)
 {
     struct x11::MwmHints mhints;
-    if(d) 
+    if(d)
 	{
 		mwmDecoHints_ = deco;
 		mhints.flags |= x11::mwmHintsDeco;
 		mhints.decorations = deco;
 	}
-    if(f) 
+    if(f)
 	{
 		mwmFuncHints_ = func;
 		mhints.flags |= x11::mwmHintsFunc;
 		mhints.functions = func;
 	}
 
-	///XXX: use XCB_ATOM_ATOM? 
-    xcb_change_property(xConnection(), XCB_PROP_MODE_REPLACE, xWindow(), 
+	///XXX: use XCB_ATOM_ATOM?
+    xcb_change_property(xConnection(), XCB_PROP_MODE_REPLACE, xWindow(),
 			appContext().atom("_MOTIF_WM_HINTS"), XCB_ATOM_CARDINAL, 32, sizeof(x11::MwmHints) / 32,
 			reinterpret_cast<std::uint32_t*>(&mhints));
 }
@@ -581,7 +593,7 @@ void X11WindowContext::addAllowedAction(xcb_atom_t action)
 	*/
 
 	std::uint32_t data[] = {1, action, 0};
-	xcb_ewmh_send_client_message(xConnection(), xWindow(), appContext().xDefaultScreen()->root, 
+	xcb_ewmh_send_client_message(xConnection(), xWindow(), appContext().xDefaultScreen()->root,
 		ewmhConnection()->_NET_WM_ALLOWED_ACTIONS, 3, data);
 }
 
@@ -603,14 +615,14 @@ void X11WindowContext::removeAllowedAction(xcb_atom_t action)
 	*/
 
 	std::uint32_t data[] = {0, action, 0};
-	xcb_ewmh_send_client_message(xConnection(), xWindow(), appContext().xDefaultScreen()->root, 
+	xcb_ewmh_send_client_message(xConnection(), xWindow(), appContext().xDefaultScreen()->root,
 		ewmhConnection()->_NET_WM_ALLOWED_ACTIONS, 3, data);
 }
 
 std::vector<xcb_atom_t> X11WindowContext::allowedActions() const
 {
 	auto cookie = xcb_ewmh_get_wm_allowed_actions(ewmhConnection(), xWindow());
-	
+
 	xcb_ewmh_get_atoms_reply_t reply;
 	xcb_ewmh_get_wm_allowed_actions_reply(ewmhConnection(), cookie, &reply, nullptr);
 
@@ -662,7 +674,7 @@ void X11WindowContext::cursor(unsigned int xCursorID)
 	//testCookie (fontCookie, connection, "can't open font");
 
     xcb_cursor_t cursor = xcb_generate_id(xConnection());
-    xcb_create_glyph_cursor(xConnection(), cursor, font, font, xCursorID, xCursorID + 1, 
+    xcb_create_glyph_cursor(xConnection(), cursor, font, font, xCursorID, xCursorID + 1,
 			0, 0, 0, 0, 0, 0 );
 
     xcb_change_window_attributes(xConnection(), xWindow(), XCB_CW_CURSOR, &cursor);

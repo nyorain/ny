@@ -10,7 +10,7 @@
 class MyEventHandler : public ny::EventHandler
 {
 public:
-	MyEventHandler(ny::LoopControl& mainLoop, ny::WindowContext& wc) 
+	MyEventHandler(ny::LoopControl& mainLoop, ny::WindowContext& wc)
 		: loopControl_(mainLoop), wc_(wc) {}
 
 	///Virtual function from ny::EventHandler
@@ -26,10 +26,22 @@ public:
 		}
 		else if(ev.type() == ny::eventType::windowDraw)
 		{
-			auto guard = wc_.draw();
-			auto& dc = guard.dc();
-			dc.clear(evg::Color::white);
-			return true;
+			try
+			{
+				auto guard = wc_.draw();
+				auto& dc = guard.dc();
+				dc.clear(evg::Color::white);
+				return true;
+			}
+			catch(const std::exception& e)
+			{
+				return false;
+			}
+		}
+		else if(ev.type() == ny::eventType::mouseButton)
+		{
+			wc_.icon({});
+			wc_.cursor(ny::CursorType::leftPtr);
 		}
 
 		return false;
@@ -65,9 +77,13 @@ int main()
 	wc->eventHandler(handler);
 	wc->refresh();
 
-	evg::Image image("cursor.png");
-	ny::Cursor cursor({*image.data(), image.size(), ny::ImageDataFormat::rgba8888});
+	///Set the cursor to a native grab cursor
+	ny::Cursor cursor(ny::CursorType::grab);
 	wc->cursor(cursor);
+
+	///Set the icon to a loaded icon
+	evg::Image iconImage("icon.png");
+	wc->icon({*iconImage.data(), iconImage.size(), ny::ImageDataFormat::rgba8888});
 
 	ny::debug("Entering main loop");
 	ac->dispatchLoop(control);
