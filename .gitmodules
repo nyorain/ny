@@ -1,3 +1,6 @@
 [submodule "external/evg"]
 	path = external/evg
 	url = https://www.github.com/nyorain/evg.git
+[submodule "nytl"]
+	path = external/nytl
+	url = https://github.com/nyorain/nytl.git

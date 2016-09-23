@@ -9,7 +9,6 @@ set(vpatch 0)
 
 #default options
 option(BuildExamples "Build the ny examples" off)
-option(BuildTests "Build the ny tests" off)
 option(Debug "Include debug symbols" on)
 
 #to disable ninja byproduct warning
@@ -26,7 +25,7 @@ link_directories("${CMAKE_BINARY_DIR}/external/install/lib")
 
 #cmake options
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-std=c++17") # C++ 17
-# set(CMAKE_CXX_STANDARD 14)
+# set(CMAKE_CXX_STANDARD 17)
 # set(CMAKE_CXX_STANDARD_REQUIRED on)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -39,7 +38,6 @@ if(Debug)
 else()
 	set(CMAKE_BUILD_TYPE Release)
 endif()
-
 
 #config options
 #check for available packages
@@ -76,62 +74,17 @@ cmake_dependent_option(WithWinapi "Build ny with a winapi backend" on
 #check for invalid configurations
 #no backend
 if(NOT WithWayland AND NOT WithX11 AND NOT WithWinapi)
-	message(FATAL_ERROR "Cannot build ny without backend")
+	message(FATAL_ERROR "Could not find any backend")
 endif()
 
-#no drawing api
-if(NOT WithCairo AND NOT WithEGL AND NOT WithVulkan AND NOT WithWinapi)
-	message(WARNING "Building ny without drawing backends")
-endif()
-
-#external projects
-#configure evg
-set(vulkan-condition false)
-if(WithVulkan AND NOT vpp_location)
-	set(vulkan-condition true)
-endif()
-
-if(NOT evg_location AND NOT nytl_location AND vulkan-condition)
-	set(evg-components true)
-	find_package(evg 0.1.0 QUIET OPTIONAL_COMPONENTS cairo gl vulkan gdi)
-	find_package(nytl 0.2.0 QUIET)
-
-	if(WithVulkan)
-		find_package(vpp 0.2.0 QUIET)
-		if(NOT VPP_FOUND)
-			set(evg-components 0)
-		endif()
-		if(WithVulkan AND NOT EVG_VULKAN_FOUND)
-			set(evg-components false)
-		endif()
-	endif()
-
-	if(WithGL AND NOT EVG_GL_FOUND)
-		set(evg-components false)
-	endif()
-
-	if(WithCairo AND NOT EVG_CAIRO_FOUND)
-		set(evg-components false)
-	endif()
-
-	if(WithWinapi AND NOT EVG_GDI_FOUND)
-		set(evg-components flase)
-	endif()
-
-	if(EVG_FOUND AND NYTL_FOUND AND evg-components)
-		message("[config] Found evg headers at " ${EVG_INCLUDE_DIRS})
-		message("[config] Found nytl headers at " ${NYTL_INCLUDE_DIRS})
-		set(evg_location ${EVG_INCLUDE_DIRS} CACHE STRING "Which evg to use")
-		set(nytl_location ${NYTL_INCLUDE_DIRS} CACHE STRING "Which nytl to use")
-		set(vpp_location ${VPP_INCLUDE_DIRS} CACHE STRING "Which vpp to use")
-		set(evg_build off CACHE INTERNAL "")
-	else()
-		message("[config] Could not find valid evg and nytl. Will build own version")
-		set(evg_location "own" CACHE STRING "Which evg to use")
-		set(nytl_location "own (evg)" CACHE STRING "Which nytl to use")
-		set(vpp_location "own (evg)" CACHE STRING "Which vpp to use")
-		set(evg_build on CACHE INTERNAL "")
-	endif()
+#test for nytl
+find_package(nytl 0.2.0)
+if(nytl_FOUND)
+	set(nytl_location ${nytl_INCLUDE_DIRS})
+	set(nytl_own false)
+else()
+	set(nytl_location "own")
+	set(nytl_own true)
 endif()
 
 #config file
@@ -205,12 +158,7 @@ message("\tWithEGL:\t\t" ${WithEGL})
 message("\tWithVulkan:\t\t" ${WithVulkan})
 message("\n")
 
-message("\tevg build:\t\t" ${evg_location})
 message("\tnytl build:\t\t" ${nytl_location})
-
-if(WithVulkan)
-	message("\tvpp build:\t\t" ${vpp_location})
-endif()
 
 message("\n\tny version:\t\t" ${vmajor} "." ${vminor} "." ${vpatch})
 message("\n")

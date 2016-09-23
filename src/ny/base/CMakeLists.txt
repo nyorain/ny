@@ -6,8 +6,8 @@ add_library(ny-base SHARED ${src_base})
 target_link_libraries(ny-base ${libs_base})
 target_include_directories(ny-base PUBLIC ${include_base})
 
-if(evg_build)
-	add_dependencies(ny-base evg_ep)
+if(nytl_own)
+	add_dependencies(ny-base nytl_ep)
 endif()
 
 #install

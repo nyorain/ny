@@ -108,10 +108,6 @@ if(nytl_own)
 	add_dependencies(ny-app nytl_ep)
 endif()
 
-if(evg_own)
-	add_dependencies(ny-app evg_ep)
-endif()
-
 #install
 install (TARGETS ny-backend
 	ARCHIVE DESTINATION lib

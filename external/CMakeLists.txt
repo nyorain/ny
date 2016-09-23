@@ -24,7 +24,8 @@ function(external_project name condition)
 endfunction()
 
 # external projects
-external_project(evg build_evg)
+# external_project(evg build_evg)
+external_project(nytl nytl_own)
 
 #install them
 install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/install/." DESTINATION .)
