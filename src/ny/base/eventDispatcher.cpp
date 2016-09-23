@@ -140,7 +140,7 @@ void EventDispatcher::dispatch(std::unique_ptr<Event>&& event)
 
 void EventDispatcher::dispatch(Event&& event)
 {
-	dispatch(cloneMove(std::move(event)));
+	dispatch(cloneMove(event));
 }
 
 void EventDispatcher::dispatchSync(EventPtr&& event)
@@ -152,7 +152,7 @@ void EventDispatcher::dispatchSync(EventPtr&& event)
 
 void EventDispatcher::dispatchSync(Event&& event)
 {
-	dispatchSync(cloneMove(std::move(event)));
+	dispatchSync(cloneMove(event));
 }
 
 std::future<void> EventDispatcher::sync()

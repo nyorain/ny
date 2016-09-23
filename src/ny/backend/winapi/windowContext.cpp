@@ -7,10 +7,10 @@
 #include <ny/base/cursor.hpp>
 #include <ny/base/imageData.hpp>
 
+#include <nytl/scope.hpp>
+
 #include <tchar.h>
 #include <stdexcept>
-
-namespace evg { class DrawGuard{ void* pointer; }; }
 
 namespace ny
 {
@@ -43,19 +43,32 @@ WinapiWindowContext::WinapiWindowContext(WinapiAppContext& appContext,
 
 WinapiWindowContext::~WinapiWindowContext()
 {
+	if(dropTarget_)
+	{
+		// dropTarget_->Release(); //needed?
+		dropTarget_ = nullptr;
+	}
+
+	if(ownedCursor_ && cursor_)
+	{
+		::SetCursor(nullptr);
+		::DestroyCursor(cursor_);
+		cursor_ = nullptr;
+	}
+
+	if(icon_)
+	{
+		PostMessage(handle(), WM_SETICON, ICON_BIG, (LPARAM) nullptr);
+        PostMessage(handle(), WM_SETICON, ICON_SMALL, (LPARAM) nullptr);
+		::DestroyIcon(icon_);
+		icon_ = nullptr;
+	}
+
     if(handle_)
 	{
 		::DestroyWindow(handle_);
 		handle_ = nullptr;
 	}
-
-	if(dropTarget_)
-	{
-		// dropTarget_->Release();
-		dropTarget_ = nullptr;
-	}
-
-	///XXX: correct cursor deletion?
 }
 
 void WinapiWindowContext::initWindowClass(const WinapiWindowSettings& settings)
@@ -186,11 +199,6 @@ void WinapiWindowContext::hide()
 	::ShowWindowAsync(handle_, SW_HIDE);
 }
 
-DrawGuard WinapiWindowContext::draw()
-{
-	throw std::logic_error("WinapiWC::draw: no support for drawing");
-}
-
 void WinapiWindowContext::addWindowHints(WindowHints hints)
 {
 	if(hints & WindowHint::customDecorated)
@@ -273,7 +281,14 @@ void WinapiWindowContext::cursor(const Cursor& c)
 		}
 
 		auto bitmap = ::CreateBitmap(imgdata.size.x, imgdata.size.y, 1, 32, pixelsData);
-		if(!bitmap)
+		auto dummyBitmap = ::CreateBitmap(imgdata.size.x, imgdata.size.y, 1, 1, NULL);
+
+		auto bitmapGuard = nytl::makeScopeGuard([&]{
+			if(bitmap) ::DeleteObject(bitmap);
+			if(dummyBitmap) ::DeleteObject(dummyBitmap);
+		});
+
+		if(!bitmap || !dummyBitmap)
 		{
 			warning(errorMessage("ny::WinapiWindowContext::cursor: failed to create bitmap"));
 			return;
@@ -284,22 +299,22 @@ void WinapiWindowContext::cursor(const Cursor& c)
 		iconinfo.fIcon = false;
 		iconinfo.xHotspot = hs.x;
 		iconinfo.yHotspot = hs.y;
-		iconinfo.hbmMask = nullptr;
+		iconinfo.hbmMask = dummyBitmap;
 		iconinfo.hbmColor = bitmap;
 
-		auto icon = ::CreateIconIndirect(&iconinfo);
-		if(!icon)
+		cursor_ = reinterpret_cast<HCURSOR>(::CreateIconIndirect(&iconinfo));
+		if(!cursor_)
 		{
 			warning(errorMessage("ny::WinapiWindowContext::cursor: failed to create icon"));
 			return;
 		}
 
-		cursor_ = reinterpret_cast<HCURSOR>(icon);
-		DeleteObject(bitmap);
+		ownedCursor_ = true;
 	}
 	else if(c.type() == CursorType::none)
 	{
 		cursor_ = nullptr;
+		ownedCursor_ = false;
 	}
 	else
 	{
@@ -310,13 +325,14 @@ void WinapiWindowContext::cursor(const Cursor& c)
 			return;
 		}
 
+		ownedCursor_ = false;
 		cursor_ = ::LoadCursor(nullptr, cursorName);
+
 		if(!cursor_)
 		{
 			warning(errorMessage("WinapiWC::cursor: failed to load native cursor"));
 			return;
 		}
-
 	}
 
 	//Some better method for doing this?
@@ -324,7 +340,8 @@ void WinapiWindowContext::cursor(const Cursor& c)
 	//http://stackoverflow.com/questions/169155/setcursor-reverts-after-a-mouse-move
 	::SetCursor(cursor_);
 
-	//-12 == GCL_HCURSOR not defined
+	//-12 == GCL_HCURSOR
+	//number used since it is not defined in windows.h sometimes (tested with MinGW headers)
 	::SetClassLongPtr(handle(), -12, (LONG_PTR)cursor_);
 }
 
@@ -430,16 +447,16 @@ void WinapiWindowContext::icon(const ImageData& imgdata)
 	}
 
 	auto module = GetModuleHandle(nullptr);
-	auto icon = CreateIcon(module, imgdata.size.x, imgdata.size.y, 1, 32, nullptr, pixelsData);
+	icon_ = CreateIcon(module, imgdata.size.x, imgdata.size.y, 1, 32, nullptr, pixelsData);
 
-   	if(!icon)
+   	if(!icon_)
 	{
 		warning("WinapiWindowContext::icon: Failed to create winapi icon handle");
 		return;
 	}
 
-	PostMessageW(handle(), WM_SETICON, ICON_BIG, (LPARAM) icon);
-	PostMessageW(handle(), WM_SETICON, ICON_SMALL, (LPARAM) icon);
+	PostMessage(handle(), WM_SETICON, ICON_BIG, (LPARAM) icon_);
+	PostMessage(handle(), WM_SETICON, ICON_SMALL, (LPARAM) icon_);
 }
 
 void WinapiWindowContext::title(const std::string& title)

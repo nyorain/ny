@@ -52,9 +52,6 @@ protected:
 
 public:
 	GlxWindowContext(X11AppContext& ctx, const X11WindowSettings& settings = {});
-
-	///Returns a DrawGuard for the internal GlDrawContext.
-	DrawGuard draw() override;
 };
 
 }

@@ -28,7 +28,6 @@ public:
     WaylandEglWindowContext(WaylandAppContext& wc, const WaylandWindowSettings& settings);
     virtual ~WaylandEglWindowContext();
 
-	DrawGuard draw() override;
 	void size(const Vec2ui& size) override;
 
     wl_egl_window& wlEglWindow() const { return *wlEglWindow_; };

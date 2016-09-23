@@ -6,154 +6,94 @@
 #include <ny/base/imageData.hpp>
 
 #include <nytl/rect.hpp>
+#include <nytl/vecOps.hpp>
 
 #include <cairo/cairo.h>
 #include <wayland-client-protocol.h>
+
+#include <stdexcept>
 
 
 namespace ny
 {
 
-using namespace wayland;
+//backend/integration/cairo.cpp - private function
+using CairoIntegrateFunc = std::function<std::unique_ptr<CairoIntegration>(WindowContext& context)>;
+unsigned int registerCairoIntegrateFunc(const CairoIntegrateFunc& func);
 
-WaylandCairoDrawContext::WaylandCairoDrawContext(WaylandCairoWindowContext& wc, const Vec2ui& size)
-	: windowContext_(&wc), buffer_(wc.appContext(), size)
-{
-	resize(size);
-}
-
-void WaylandCairoDrawContext::init()
-{
-	CairoDrawContext::init();
-}
-
-void WaylandCairoDrawContext::apply()
-{
-	if(buffer_.format() != WL_SHM_FORMAT_ARGB8888 && buffer_.format() != WL_SHM_FORMAT_XRGB8888)
+namespace 
+{ 
+	std::unique_ptr<CairoIntegration> waylandCairoIntegrateFunc(WindowContext& windowContext)
 	{
-		auto fromData = cairo_image_surface_get_data(cairoSurface());
-		auto width = cairo_image_surface_get_width(cairoSurface());
-		auto height = cairo_image_surface_get_height(cairoSurface());
-
-		auto to = waylandToImageFormat(buffer_.format());
-		auto& toData = buffer_.data();
-		convertFormat(ImageDataFormat::argb8888, to, *fromData, toData, {width, height});
+		auto* xwc = dynamic_cast<WaylandWindowContext*>(&windowContext);
+		if(!xwc) return nullptr;
+		return std::make_unique<WaylandCairoIntegration>(*xwc);
 	}
 
-	CairoDrawContext::apply();
-	windowContext_->commit(buffer_.wlBuffer());
+	static int registered = registerCairoIntegrateFunc(waylandCairoIntegrateFunc); 
 }
 
-void WaylandCairoDrawContext::resize(const Vec2ui& size)
+WaylandCairoIntegration::WaylandCairoIntegration(WaylandWindowContext& wc)
+	: WaylandDrawIntegration(wc)
 {
-	buffer_.size(size);
-	cairo_surface_t* surf = nullptr;
-	if(buffer_.format() == WL_SHM_FORMAT_ARGB8888 || buffer_.format() == WL_SHM_FORMAT_XRGB8888)
-	{
-		surf = cairo_image_surface_create_for_data(&buffer_.data(), CAIRO_FORMAT_ARGB32, 
-			size.x, size.y, size.x * 4);
-	}
-	else
-	{
-		surf = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, size.x, size.y);
-	}
-
-	CairoDrawContext::operator=({*surf});
+	//create 2 buffers to begin with?
 }
 
-//WaylandCairoDrawContext
-WaylandCairoWindowContext::WaylandCairoWindowContext(WaylandAppContext& ac, 
-	const WaylandWindowSettings& settings) : WaylandWindowContext(ac, settings)
+WaylandCairoIntegration::~WaylandCairoIntegration()
 {
-	size_ = settings.size;
+	for(auto& b : buffers_) cairo_surface_destroy(b.surface);
+	buffers_.clear();
 }
 
-evg::DrawGuard WaylandCairoWindowContext::draw()
+cairo_surface_t& WaylandCairoIntegration::init()
 {
-	if(frameCallback_) warning("WaylandCairoWC::draw still waiting for frame event");
+	if(active_)
+		throw std::logic_error("WlCairoIntegration: there is already an active SurfaceGuard");
+
 	for(auto& b : buffers_)
-		if(!b.shmBuffer().used()) return b;
+	{
+		if(b.buffer.used()) continue;
 
-	buffers_.emplace_back(*this, size_);
-	return buffers_.back();
+		if(nytl::any(b.buffer.size() != context_.size()))
+		{
+			b.buffer.size(context_.size());
+			buffers_.back().surface = cairo_image_surface_create_for_data(&b.buffer.data(),
+				CAIRO_FORMAT_ARGB32, context_.size().x, context_.size().y, context_.size().x * 4);
+		}
+
+		active_ = &b;
+		b.buffer.use();
+		return *b.surface;
+	}
+
+	//create new buffer if none is unused
+	buffers_.emplace_back();
+	buffers_.back().buffer = {context_.appContext(), context_.size()};
+	buffers_.back().surface = cairo_image_surface_create_for_data(&buffers_.back().buffer.data(),
+		CAIRO_FORMAT_ARGB32, context_.size().x, context_.size().y, context_.size().x * 4);
+
+	buffers_.back().buffer.use();
+	active_ = &buffers_.back();
+	return *buffers_.back().surface;
 }
 
-void WaylandCairoWindowContext::size(const nytl::Vec2ui& size)
+void WaylandCairoIntegration::apply(cairo_surface_t&)
 {
-	size_ = size;
-	for(auto& b : buffers_) b.resize(size);
+	context_.attachCommit(active_->buffer.wlBuffer());
+	active_ = nullptr;
 }
 
-void WaylandCairoWindowContext::commit(wl_buffer& buffer)
+void WaylandCairoIntegration::resize(const nytl::Vec2ui& newSize)
 {
-	frameCallback_ = wl_surface_frame(wlSurface_);
-	wl_callback_add_listener(frameCallback_, &frameListener, this);
-
-	wl_surface_damage(wlSurface_, 0, 0, size_.x, size_.y);
-	wl_surface_attach(wlSurface_, &buffer, 0, 0);
-	wl_surface_commit(wlSurface_);
+	for(auto& b : buffers_)
+	{
+		if(!b.buffer.used() && nytl::any(b.buffer.size() != newSize))
+		{
+			b.buffer.size(context_.size());
+			buffers_.back().surface = cairo_image_surface_create_for_data(&b.buffer.data(),
+				CAIRO_FORMAT_ARGB32, newSize.x, newSize.y, newSize.x * 4);
+		}
+	}
 }
 
 }
-
-// //cairo/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// waylandCairoDrawContext::waylandCairoDrawContext(const waylandWindowContext& wc) : cairoDrawContext(wc.getWindow()), wc_(wc)
-// {
-//     Vec2ui size = wc.getWindow().getSize();
-//     buffer_[0] = new wayland::shmBuffer(size, bufferFormat::argb8888); //front buffer
-//     buffer_[1] = new wayland::shmBuffer(size, bufferFormat::argb8888);
-// 
-//     //todo: corRect dynamic format
-//     cairoSurface_ = cairo_image_surface_create_for_data((unsigned char*) frontBuffer()->getData(), CAIRO_FORMAT_ARGB32, size.x, size.y, size.x * 4);
-//     cairoBackSurface_ = cairo_image_surface_create_for_data((unsigned char*) backBuffer()->getData(), CAIRO_FORMAT_ARGB32, size.x, size.y, size.x * 4);
-// 
-//     cairoCR_ = cairo_create(cairoSurface_);
-//     cairoBackCR_ = cairo_create(cairoBackSurface_);
-// }
-// 
-// waylandCairoDrawContext::~waylandCairoDrawContext()
-// {
-//     if(cairoCR_) cairo_destroy(cairoCR_);
-//     if(cairoSurface_) cairo_surface_destroy(cairoSurface_);
-// 
-//     if(cairoBackCR_) cairo_destroy(cairoBackCR_);
-//     if(cairoBackSurface_) cairo_surface_destroy(cairoBackSurface_);
-// 
-//     if(frontBuffer()) delete frontBuffer();
-//     if(backBuffer()) delete backBuffer();
-// }
-// 
-// void waylandCairoDrawContext::updateSize(const Vec2ui& size)
-// {
-//     if(size != frontBuffer()->getSize())
-//     {
-//         if(cairoCR_) cairo_destroy(cairoCR_);
-//         if(cairoSurface_) cairo_surface_destroy(cairoSurface_);
-// 
-//         frontBuffer()->setSize(size);
-// 
-//         cairoSurface_ = cairo_image_surface_create_for_data((unsigned char*) frontBuffer()->getData(), CAIRO_FORMAT_ARGB32, size.x, size.y, size.x * 4);
-//         cairoCR_ = cairo_create(cairoSurface_);
-//     }
-// }
-// 
-// void waylandCairoDrawContext::swapBuffers()
-// {
-//     frontID_ ^= 1;
-// 
-//     std::swap(cairoSurface_, cairoBackSurface_);
-//     std::swap(cairoCR_, cairoBackCR_);
-// }
-// 
-// void waylandCairoDrawContext::attach(const Vec2i& pos)
-// {
-//     wl_surface_attach(wc_.getWlSurface(), frontBuffer()->getWlBuffer(), pos.x, pos.y);
-//     frontBuffer()->wasAttached();
-// }
-// 
-// bool waylandCairoDrawContext::frontBufferUsed() const
-// {
-//     return frontBuffer()->used();
-// }
-
-

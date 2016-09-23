@@ -17,8 +17,6 @@
 
 #include <cstring> //memcpy
 
-namespace evg { class DrawGuard{ void* pointer; }; }
-
 namespace ny
 {
 
@@ -112,11 +110,6 @@ x11::EwmhConnection* X11WindowContext::ewmhConnection() const
 	return appContext().ewmhConnection();
 }
 
-DrawGuard X11WindowContext::draw()
-{
-	throw std::logic_error("ny::X11WC: called draw() on draw-less windowContext");
-}
-
 void X11WindowContext::refresh()
 {
     xcb_expose_event_t ev{};
@@ -159,6 +152,9 @@ void X11WindowContext::position(const Vec2i& position)
 
 void X11WindowContext::cursor(const Cursor& curs)
 {
+	//TODO: xcursor optinal
+	//use xcb_render instead to create a cursor (no need to use Xlib)
+	
 	//without xcursor:
     // if(curs.type() != CursorType::image && curs.type() != CursorType::none)
     // {
@@ -350,6 +346,12 @@ bool X11WindowContext::handleEvent(const Event& e)
     if(e.type() == eventType::x11::reparent)
 	{
 		position(settings_.position);
+		return true;
+	}
+	else if(e.type() == eventType::windowSize)
+	{
+		auto& ev = static_cast<const SizeEvent&>(e);
+		if(drawIntegration_) drawIntegration_->resize(ev.size);
 		return true;
 	}
 
@@ -682,6 +684,20 @@ void X11WindowContext::cursor(unsigned int xCursorID)
 
     fontCookie = xcb_close_font_checked(xConnection(), font);
     //testCookie (fontCookie, connection, "can't close font");
+}
+
+///Draw integration
+X11DrawIntegration::X11DrawIntegration(X11WindowContext& wc) : context_(wc)
+{
+	if(wc.drawIntegration_)
+		throw std::logic_error("X11DrawIntegration: windowContext already has an integration");
+
+	wc.drawIntegration_ = this;
+}
+
+X11DrawIntegration::~X11DrawIntegration()
+{
+	context_.drawIntegration_ = nullptr;
 }
 
 }

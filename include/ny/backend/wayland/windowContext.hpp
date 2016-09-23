@@ -3,6 +3,7 @@
 #include <ny/backend/wayland/include.hpp>
 #include <ny/backend/windowContext.hpp>
 #include <ny/backend/windowSettings.hpp>
+#include <nytl/vec.hpp>
 
 namespace ny
 {
@@ -20,6 +21,18 @@ enum class WaylandSurfaceRole
 ///WindowSettings class for wayland WindowContexts.
 class WaylandWindowSettings : public WindowSettings {};
 
+///WaylandDrawIntegration
+class WaylandDrawIntegration
+{
+public:
+	WaylandDrawIntegration(WaylandWindowContext& wc);
+	virtual ~WaylandDrawIntegration();
+	virtual void resize(const nytl::Vec2ui&) {}
+
+protected:
+	WaylandWindowContext& context_;
+};
+
 
 ///Wayland WindowContext implementation.
 ///Basically holds a wayland surface with a description on how it is used.
@@ -30,18 +43,16 @@ public:
     virtual ~WaylandWindowContext();
 
     void refresh() override;
-	DrawGuard draw() override;
-
     void show() override;
     void hide() override;
 
     void droppable(const DataTypes&) override;
 
-    void minSize(const Vec2ui&) override;
-    void maxSize(const Vec2ui&) override;
+    void minSize(const nytl::Vec2ui&) override;
+    void maxSize(const nytl::Vec2ui&) override;
 
-    void size(const Vec2ui& size) override;
-    void position(const Vec2i& position) override;
+    void size(const nytl::Vec2ui& size) override;
+    void position(const nytl::Vec2i& position) override;
 
     void cursor(const Cursor& c) override;
 	NativeWindowHandle nativeHandle() const override;
@@ -67,16 +78,20 @@ public:
 	//
 	bool handleEvent(const Event& event) override;
 
-
     //wayland specific functions
     wl_surface& wlSurface() const { return *wlSurface_; };
 	wl_callback* frameCallback() const { return frameCallback_; }
 	WaylandSurfaceRole surfaceRole() const { return role_; }
+	nytl::Vec2ui size() const { return size_; }
 
     wl_shell_surface* wlShellSurface() const; 
     wl_subsurface* wlSubsurface() const; 
     xdg_surface* xdgSurface() const; 
     xdg_popup* xdgPopup() const; 
+
+	///Attaches the given buffer, damages the surface and commits it.
+	///Does also add a frameCallback to the surface.
+	void attachCommit(wl_buffer& buffer);
 
 	WaylandAppContext& appContext() const { return *appContext_; }
 	wl_display& wlDisplay() const;
@@ -91,6 +106,7 @@ protected:
 protected:
 	WaylandAppContext* appContext_ = nullptr;
     wl_surface* wlSurface_ = nullptr;
+	nytl::Vec2ui size_ {};
 	
 	//if this is == nullptr, the window is ready to be redrawn.
 	//otherwise waiting for the callback to be called
@@ -98,13 +114,15 @@ protected:
 
 	//stores if the window has a pending refresh request, i.e. if it should refresh
 	//as soon as possible
-    bool refreshFlag_ = 0;
+	//flag will be set by refresh() and trigger a DrawEvent when the frameCallback is called
+    bool refreshFlag_ = false;
 
     //stores which kinds of surface this context holds
 	WaylandSurfaceRole role_ = WaylandSurfaceRole::none;
 
 	//the different surface roles this surface can have.
 	//the union will be activated depending on role_
+	//xdg roles are preferred over the plain wl ones if available
     union
     {
         wl_shell_surface* wlShellSurface_ = nullptr;
@@ -112,6 +130,10 @@ protected:
         xdg_popup* xdgPopup_;
         wl_subsurface* wlSubsurface_;
     };
+
+	//may hold an associated draw integration
+	WaylandDrawIntegration* drawIntegration_ = nullptr;
+	friend WaylandDrawIntegration;
 };
 
 

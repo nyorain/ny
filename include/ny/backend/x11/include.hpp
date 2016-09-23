@@ -20,6 +20,10 @@ namespace ny
 
 	namespace x11
 	{
+		///Dummy delcaration to not include xcb_ewmh.h
+		///The xcb_ewmh_connection_t type cannot be forward declared since it is a unnamed
+		///struct typedef in the original xcb_ewmh header, which should not be included in a
+		///header file.
 		struct EwmhConnection;
 	}
 }

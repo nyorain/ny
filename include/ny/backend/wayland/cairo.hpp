@@ -3,46 +3,44 @@
 #include <ny/backend/wayland/include.hpp>
 #include <ny/backend/wayland/windowContext.hpp>
 #include <ny/backend/wayland/util.hpp>
+#include <ny/backend/integration/cairo.hpp>
 
 #include <nytl/nonCopyable.hpp>
 #include <nytl/vec.hpp>
-#include <evg/cairo.hpp>
 
 namespace ny
 {
 
-class WaylandCairoDrawContext : public evg::CairoDrawContext
+///Wayland implementation for CairoIntegration
+class WaylandCairoIntegration : public WaylandDrawIntegration, public CairoIntegration
 {
 public:
-	WaylandCairoDrawContext(WaylandCairoWindowContext& wc, const Vec2ui& size);
-
-	void init() override;
-	void apply() override;
-
-	void resize(const Vec2ui& size);
-	const wayland::ShmBuffer& shmBuffer() const { return buffer_; }
+	WaylandCairoIntegration(WaylandWindowContext&);
+	virtual ~WaylandCairoIntegration();
 
 protected:
-	WaylandCairoWindowContext* windowContext_;
-	wayland::ShmBuffer buffer_;
-};
+	//CairoIntegration
+	///Will select/create an unused buffer and return a surface to draw into it.
+	///Does assure that the buffer/surface has the right size.
+	cairo_surface_t& init() override;
 
-class WaylandCairoWindowContext: public WaylandWindowContext
-{
-public:
-    WaylandCairoWindowContext(WaylandAppContext& ac, const WaylandWindowSettings& settings);
+	///Will apply the contents of the surface to the underlaying buffer, attach the buffer
+	///to the associated surface and commit it.
+	void apply(cairo_surface_t&) override;
 
-	DrawGuard draw() override;
-	void size(const Vec2ui& size) override;
-
-	///Attached the given buffer to the surface, damages the full surface and commits it.
-	///Does also add a frame callback.
-	void commit(wl_buffer& buffer);
+	//X11DrawIntegration
+	///Will resize all unused buffers.
+	void resize(const nytl::Vec2ui&) override;
 
 protected:
-	std::vector<WaylandCairoDrawContext> buffers_;
-	nytl::Vec2ui size_;
-};
+	struct Buffer 
+	{
+		wayland::ShmBuffer buffer;
+		cairo_surface_t* surface;
+	};
 
+	std::vector<Buffer> buffers_;
+	Buffer* active_ = nullptr;
+};
 
 }

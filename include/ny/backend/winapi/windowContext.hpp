@@ -24,6 +24,7 @@ public:
     WinapiWindowContext(WinapiAppContext& ctx, const WinapiWindowSettings& settings = {});
     ~WinapiWindowContext();
 
+    void refresh() override;
     void show() override;
     void hide() override;
 
@@ -40,9 +41,6 @@ public:
 
 	NativeWindowHandle nativeHandle() const override;
 	WindowCapabilities capabilities() const override { return {}; }
-
-    void refresh() override;
-	DrawGuard draw() override;
 
     //toplevel
     void maximize() override;
@@ -99,7 +97,10 @@ protected:
 
     HWND handle_ = nullptr;
 	IDropTarget* dropTarget_ = nullptr;
+
+	bool ownedCursor_ = false;
 	HCURSOR cursor_ = nullptr;
+	HICON icon_ = nullptr;
 
 	bool fullscreen_ = false;
 	std::uint64_t style_ = 0;

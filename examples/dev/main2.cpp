@@ -1,9 +1,10 @@
 #include <ny/base.hpp>
 #include <ny/backend.hpp>
 #include <ny/app/events.hpp>
+#include <ny/backend/integration/cairo.hpp>
 
-#include <evg/drawContext.hpp>
 #include <evg/image.hpp>
+#include <cairo/cairo.h>
 
 ///Custom event handler for the low-level backend api.
 ///See intro-app for a higher level example if you think this is too complex.
@@ -20,37 +21,46 @@ public:
 
 		if(ev.type() == ny::eventType::windowClose)
 		{
-			ny::debug("Window closed. Exiting.");
+			ny::debug("Window closed from server side. Exiting.");
 			loopControl_.stop();
 			return true;
 		}
 		else if(ev.type() == ny::eventType::windowDraw)
 		{
-			try
-			{
-				auto guard = wc_.draw();
-				auto& dc = guard.dc();
-				dc.clear(evg::Color::white);
-				return true;
-			}
-			catch(const std::exception& e)
-			{
-				return false;
-			}
+			auto surfGuard = cairo->get();
+			auto& surf = surfGuard.surface();
+ 
+			auto cr = cairo_create(&surf);
+			cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+			cairo_paint(cr);
+			cairo_destroy(cr);
+
+			return true;
 		}
 		else if(ev.type() == ny::eventType::mouseButton)
 		{
 			wc_.icon({});
 			wc_.cursor(ny::CursorType::leftPtr);
+
+			return true;
+		}
+		else if(ev.type() == ny::eventType::key)
+		{
+			ny::debug("Key pressed or released. Exiting.");
+			loopControl_.stop();
+			return true;
 		}
 
 		return false;
 	};
 
+	ny::CairoIntegration* cairo;
+
 protected:
 	ny::LoopControl& loopControl_;
 	ny::WindowContext& wc_;
 };
+
 
 ///Main function that just chooses a backend, creates Window- and AppContext from it, registers
 ///a custom EventHandler and then runs the mainLoop.
@@ -86,6 +96,16 @@ int main()
 	///Set the icon to a loaded icon
 	evg::Image iconImage("icon.png");
 	wc->icon({*iconImage.data(), iconImage.size(), ny::ImageDataFormat::rgba8888});
+
+	//integrate with cairo
+	auto cairo = ny::cairoIntegration(*wc);
+	if(!cairo)
+	{
+		ny::warning("Failed to create cairo integration");
+		return EXIT_FAILURE;
+	}
+
+	handler.cairo = cairo.get();
 
 	ny::debug("Entering main loop");
 	ac->dispatchLoop(control);

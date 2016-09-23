@@ -311,3 +311,88 @@ protected:
 };
 
 }
+
+
+
+
+
+
+
+class CairoSurface
+{
+public:
+	virtual SurfaceGuard get() = 0;
+};
+
+CairoSurface cairoSurface(const WindowContext& context)
+{
+	auto fncs = funcs();
+	for(auto f : fncs)
+	{
+		auto ret = f(context);
+		if(ret) return ret;
+	}
+
+	return nullptr;
+}
+
+using CairoSurfaceCreateFunction =
+	std::function<std::unique_ptr<CairoSurface>(const WindowContext& context)>;
+
+std::vector<CairoSurfaceCreateFunction>& funcs()
+{
+	static std::vector<CairoSurfaceCreateFunction> funcs;
+	return funcs;
+}
+
+class WinapiCairoSurface
+{
+public:
+	SurfaceGuard get() override;
+};
+
+std::unique_ptr<CairoSurface> winapiCairoSurface(const WindowContext& context)
+{
+	auto* wc = dynamic_cast<WinapiWindowContext*>(context);
+	if(!wc) return nullptr;
+
+	...
+}
+
+
+#include <ny/backend.hpp>
+#include <ny/integration/cairo.hpp>
+
+int main()
+{
+	auto windowContext = ...;
+
+
+
+	//connect cairo to the windowContext
+	auto cairoIntegration = ny::cairoIntegration(*windowContext);
+
+	//when drawing
+	auto guard = cairoIntegration.get();
+	auto& surf = guard.surface();
+	auto cr = cairo_create(&surf);
+	... use cr ...
+
+
+
+	//or connect evg to the windowContext
+	auto evgIntegration = ny::evgIntegration(*windowContext);
+
+	//when drawing
+	auto guard = evgIntegration->get();
+	auto& dc = guard.dc();
+	... use dc ...
+
+
+
+	//or connect skia to the windowContext
+	auto skiaIntegration = ny::skiaIntegration(*windowContext);
+
+	//when drawing
+	auto guard = skiaIntegration.get();
+}

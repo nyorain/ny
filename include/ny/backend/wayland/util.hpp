@@ -75,13 +75,14 @@ public:
 	std::uint8_t& data(){ return *data_; }
     wl_buffer& wlBuffer() const { return *buffer_; }
 
-    void use() { used_ = 1; }
+    void use() { used_ = true; }
     bool used() const { return used_; }
 
 	///Will trigger a buffer recreate if the given size exceeds the current size.
 	///At the beginning 5MB will be allocated for a buffer 
 	///(e.g. more than 1000x1000px with 32bit color).
-    void size(const Vec2ui& size);
+	///\return true if the data pointer changed, false if it stayed the same
+    bool size(const Vec2ui& size);
 
 protected:
 	WaylandAppContext* appContext_ = nullptr;
@@ -100,7 +101,7 @@ protected:
 
     //release cb
     friend void bufferRelease(void*, wl_buffer*);
-    void wasReleased(){ used_ = 0; }
+    void wasReleased(){ used_ = false; }
 };
 
 //serverCallback

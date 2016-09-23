@@ -12,74 +12,75 @@
 namespace ny
 {
 
-X11CairoWindowContext::X11CairoWindowContext(X11AppContext& ctx, const X11WindowSettings& settings)
-{
-	X11WindowContext::create(ctx, settings);
-	auto surface = cairo_xcb_surface_create(xConnection(), xWindow(), visualType_, 
-			settings.size.x, settings.size.y);
+//backend/integration/cairo.cpp - private function
+using CairoIntegrateFunc = std::function<std::unique_ptr<CairoIntegration>(WindowContext& context)>;
+unsigned int registerCairoIntegrateFunc(const CairoIntegrateFunc& func);
 
-	drawContext_.reset(new CairoDrawContext(*surface));
-	cairo_surface_destroy(surface);
+namespace 
+{ 
+	std::unique_ptr<CairoIntegration> x11CairoIntegrateFunc(WindowContext& windowContext)
+	{
+		auto* xwc = dynamic_cast<X11WindowContext*>(&windowContext);
+		if(!xwc) return nullptr;
+		return std::make_unique<X11CairoIntegration>(*xwc);
+	}
+
+	static int registered = registerCairoIntegrateFunc(x11CairoIntegrateFunc); 
 }
 
-X11CairoWindowContext::~X11CairoWindowContext() = default;
-
-void X11CairoWindowContext::initVisual()
+X11CairoIntegration::X11CairoIntegration(X11WindowContext& wc) 
+	: X11DrawIntegration(wc)
 {
+	//find the visual type for the windowContexts visual
 	xcb_depth_iterator_t depth_iter;
-
-	depth_iter = xcb_screen_allowed_depths_iterator(appContext().xDefaultScreen());
+	xcb_visualtype_t* visualtype;
+ 
+	depth_iter = xcb_screen_allowed_depths_iterator(wc.appContext().xDefaultScreen());
 	while(depth_iter.rem)
 	{
 		xcb_visualtype_iterator_t visual_iter;
-
+ 
 		visual_iter = xcb_depth_visuals_iterator (depth_iter.data);
 		while(visual_iter.rem) 
 		{
-			if(appContext().xDefaultScreen()->root_visual == visual_iter.data->visual_id) 
+			if(wc.xVisualID() == visual_iter.data->visual_id) 
 			{
-				visualType_ = visual_iter.data;
+				visualtype = visual_iter.data;
 				break;
 			}
-
+ 
 			xcb_visualtype_next(&visual_iter);
 		} 
-		
+ 		
 		xcb_depth_next (&depth_iter);
 	}
 
-	xVisualID_ = visualType_->visual_id;
+	//query the size of the window
+	auto cookie = xcb_get_geometry(wc.xConnection(), wc.xWindow());
+	auto geometry = xcb_get_geometry_reply(wc.xConnection(), cookie, nullptr);
+
+	surface_ = cairo_xcb_surface_create(wc.xConnection(), wc.xWindow(), visualtype, 
+			geometry->width, geometry->height);
+	free(geometry);
 }
 
-DrawGuard X11CairoWindowContext::draw()
+X11CairoIntegration::~X11CairoIntegration()
 {
-	cairo_reset_clip(drawContext_->cairoContext());
-	return *drawContext_;
+	if(surface_) cairo_surface_destroy(surface_);
 }
 
-void X11CairoWindowContext::resizeCairo(const Vec2ui& size)
+cairo_surface_t& X11CairoIntegration::init()
 {
-	cairo_xcb_surface_set_size(drawContext_->cairoSurface(), size.x, size.y);
+	return *surface_;
+}
+void X11CairoIntegration::apply(cairo_surface_t&)
+{
+	cairo_surface_flush(surface_);
 }
 
-void X11CairoWindowContext::size(const Vec2ui& size)
+void X11CairoIntegration::resize(const nytl::Vec2ui& newSize)
 {
-	X11WindowContext::size(size);
-	resizeCairo(size);
-}
-
-bool X11CairoWindowContext::handleEvent(const Event& e)
-{
-	if(X11WindowContext::handleEvent(e)) return true;
-
-	if(e.type() == eventType::windowSize)
-	{
-		resizeCairo(static_cast<const SizeEvent&>(e).size);
-		refresh();
-		return true;
-	}
-
-	return false;
+	cairo_xcb_surface_set_size(surface_, newSize.x, newSize.y);
 }
 
 }

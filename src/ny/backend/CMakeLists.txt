@@ -1,6 +1,6 @@
 set(include_backend ${default_include})
 set(libs_backend ${default_libs} evg ny-base)
-set(src_backend backend.cpp)
+set(src_backend backend.cpp integration/cairo.cpp)
 
 if(WithWinapi)
 	list(APPEND src_backend

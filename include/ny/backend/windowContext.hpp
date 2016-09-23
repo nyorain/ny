@@ -31,6 +31,8 @@ using WindowCapabilities = nytl::Flags<WindowCapability>;
 ///The WindowContext will send the registered Eventhandler (if any) a DrawEvent when it should
 ///redraw the window. Alternatively the client may wish to redraw the window because of some
 ///content changes. Then it can call the refresh function.
+///Redrawing the window at a random time without receiving a DrawEvent might lead to artefacts
+///such as flickering.
 class WindowContext : public EventHandler
 {
 public:
@@ -55,20 +57,20 @@ public:
 
 	///Sets the minimal size of the window.
 	///Might have no effect on certain backends.
-    virtual void minSize(const Vec2ui&) = 0;
+    virtual void minSize(const nytl::Vec2ui&) = 0;
 
 	///Sets the maximal size of the window.
 	///Might have no effect on certain backends.
-    virtual void maxSize(const Vec2ui&) = 0;
+    virtual void maxSize(const nytl::Vec2ui&) = 0;
 
 	///Resizes the window.
-	///Will usually trigger a DrawEvent if this WindowContext is drawable.
-    virtual void size(const Vec2ui& size) = 0;
+	///Will usually trigger a DrawEvent.
+    virtual void size(const nytl::Vec2ui& size) = 0;
 
 	///Sets the position of the window.
 	///Note that on some backends or if the window is in a fullscreen/maximized state, this
 	///might have no effect.
-    virtual void position(const Vec2i& position) = 0;
+    virtual void position(const nytl::Vec2i& position) = 0;
 
 	///Sets the mouse cursor of the window. The mouse cursor will only be changed to the given
 	///cursor when the pointer is oven this window.
@@ -83,17 +85,8 @@ public:
 	///Will basically send a DrawEvent to the registered EventHandler as soon as the window is
 	///ready to draw. This function might directly dispatch a DrawEvent to the registered
 	///EventHandler which might lead to a redraw before this function returns depending on
-	///the used EventDispatcher (and if events are dispatched at the moments).
-	///Note that if this WindowContext was created without any drawing support, this function will
-	///output a warning and never generate a DrawEvent.
+	///the used event dispatching system.
     virtual void refresh() = 0;
-
-	///Returns a DrawContext that can be used to draw the window for the given DrawEvent.
-	///Note that the DrawEvent may be not needed on some backends (the window can always be drawn).
-	///Will throw an exception if the WindowContext has no support for drawing.
-	///While the returned DrawGuard is alive (i.e. the DrawContext is active) calling further
-	///functions on the WindowContext might result in undefined behaviour.
-	virtual DrawGuard draw() = 0;
 
     //toplevel-specific
 	///Maximized the window.

@@ -10,14 +10,20 @@
 namespace ny
 {
 
-///Dummy delcaration to not include xcb_ewmh.h
-///The xcb_ewmh_connection_t type cannot be forward declared since it is a unnamed
-///struct typedef in the original xcb_ewmh header, which should not be included in a
-///header file.
-struct EwmhConnection;
-
 ///Additional settings for a X11 Window.
 class X11WindowSettings : public WindowSettings {};
+
+///The base class for drawing integrations.
+class X11DrawIntegration
+{
+public:
+	X11DrawIntegration(X11WindowContext&);
+	virtual ~X11DrawIntegration();
+	virtual void resize(const nytl::Vec2ui&) {}
+
+protected:
+	X11WindowContext& context_;
+};
 
 ///The X11 implementation of the WindowContext interface.
 ///Provides some extra functionality for x11.
@@ -28,19 +34,17 @@ public:
     X11WindowContext(X11AppContext& ctx, const X11WindowSettings& settings = {});
     ~X11WindowContext();
 
-	DrawGuard draw() override;
     void refresh() override;
-
     void show() override;
     void hide() override;
 
 	void droppable(const DataTypes&) override {};
 
-    void minSize(const Vec2ui& size) override;
-    void maxSize(const Vec2ui& size) override;
+    void minSize(const nytl::Vec2ui& size) override;
+    void maxSize(const nytl::Vec2ui& size) override;
 
-    void size(const Vec2ui& size) override;
-    void position(const Vec2i& position) override;
+    void size(const nytl::Vec2ui& size) override;
+    void position(const nytl::Vec2i& position) override;
 
     void cursor(const Cursor& c) override;
 
@@ -71,6 +75,15 @@ public:
 
 	///Returns the underlaying x11 window handle.
 	std::uint32_t xWindow() const { return xWindow_; }
+
+	///Returns the underlaying visual id.
+	std::uint32_t xVisualID() const { return xVisualID_; }
+
+	///Utility helper returning the xcbConnection of the app context.
+	xcb_connection_t* xConnection() const;
+
+	///Utility helper returning the ewmhConnection of the app context.
+	x11::EwmhConnection* ewmhConnection() const;
 
 	///Queries the window size with a server request since it is not stored.
 	Vec2ui querySize() const; 
@@ -156,17 +169,12 @@ protected:
 	///This extra function may be needed by derived drawType classes.
 	void create(X11AppContext& ctx, const X11WindowSettings& settings);
 
-	///Utility helper returning the xcbConnection of the app context.
-	xcb_connection_t* xConnection() const;
-
-	///Utility helper returning the ewmhConnection of the app context.
-	x11::EwmhConnection* ewmhConnection() const;
-
-	///The different drawType classes derived from this class may override this function to
+	///The different context classes derived from this class may override this function to
 	///select a custom visual for the window or query it in a different way connected with
-	///more information. See the cairo or glx function overrides for examples.
+	///more information. 
 	///Will automatically be called by the create function if the visualID member variable is
 	///not set yet (since it is needed for window creation).
+	///By default, this just selects the root visual.
     virtual void initVisual();
 
 protected:
@@ -176,10 +184,14 @@ protected:
 	std::uint32_t xVisualID_ = 0;
 	std::uint32_t xCursor_ = 0;
 
-	///Stored EWMH states can be used to check whether it is fullscreen, maximized etc.
+	//Stored EWMH states can be used to check whether it is fullscreen, maximized etc.
 	std::vector<std::uint32_t> states_;
     unsigned long mwmFuncHints_ = 0;
     unsigned long mwmDecoHints_ = 0;
+
+	//The draw integration for this WindowContext.
+	X11DrawIntegration* drawIntegration_ = nullptr;
+	friend X11DrawIntegration;
 };
 
 }

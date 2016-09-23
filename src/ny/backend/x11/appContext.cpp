@@ -3,7 +3,7 @@
 #include <ny/backend/x11/util.hpp>
 #include <ny/backend/x11/input.hpp>
 #include <ny/backend/x11/internal.hpp>
-#include <ny/backend/x11/cairo.hpp>
+// #include <ny/backend/x11/cairo.hpp>
 #include <ny/base/loopControl.hpp>
 #include <ny/base/log.hpp>
 #include <ny/base/eventDispatcher.hpp>
@@ -126,8 +126,14 @@ X11AppContext::X11AppContext()
 	for(std::size_t i(0); i < names.size(); ++i)
 	{
 		auto reply = xcb_intern_atom_reply(xConnection_, atomCookies[i], 0);
-		if(reply) atoms_[names[i]] = reply->atom;
-		else warning("ny::X11AC: Failed to load atom ", names[i]);
+		if(reply)
+		{
+			atoms_[names[i]] = reply->atom;
+			free(reply);
+			continue;
+		}
+
+		warning("ny::X11AC: Failed to load atom ", names[i]);
 	}
 
 	//ewmh
@@ -433,7 +439,7 @@ WindowContextPtr X11AppContext::createWindowContext(const WindowSettings& settin
 	else if(drawType == DrawType::software || drawType == DrawType::dontCare)
 	{
 		#ifdef NY_WithCairo
-		 return std::make_unique<X11CairoWindowContext>(*this, x11Settings);
+		 // return std::make_unique<X11CairoWindowContext>(*this, x11Settings);
 		#else
 		 throw std::logic_error("ny::X11Backend::createWC: ny built without cairo suppport");
 		#endif
@@ -547,6 +553,7 @@ xcb_atom_t X11AppContext::atom(const std::string& name)
 		auto cookie = xcb_intern_atom(xConnection_, 0, name.size(), name.c_str());
 		auto reply = xcb_intern_atom_reply(xConnection_, cookie, nullptr);
 		atoms_[name] = reply->atom;
+		free(reply);
 	}
 	
 	return atoms_[name];

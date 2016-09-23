@@ -227,7 +227,7 @@ void ShmBuffer::destroy()
     if(data_) munmap(data_, shmSize_);
 }
 
-void ShmBuffer::size(const Vec2ui& size)
+bool ShmBuffer::size(const Vec2ui& size)
 {
     size_ = size;
 
@@ -238,11 +238,13 @@ void ShmBuffer::size(const Vec2ui& size)
     {
         destroy();
         create();
+		return true;
     }
     else
     {
         wl_buffer_destroy(buffer_);
         buffer_ = wl_shm_pool_create_buffer(pool_, 0, size_.x, size_.y, stride, format_);
+		return false;
     }
 }
 

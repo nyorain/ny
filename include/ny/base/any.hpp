@@ -39,9 +39,9 @@
 // Taken from https://github.com/thelink2012/any
 // This file was modified for ny and does not fully match the original content.
 
-// ny will use this until all supported compilers support C++17 and offser a valid
+// ny will use this until all supported compilers support C++17 and offer a valid
 // std::any implementation.
-// The gcc implementation does not work with MinGW due to linkin (address of inline function)
+// The gcc implementation does not work with MinGW due to linking (address of inline function)
 // issues.
 
 #ifndef LINB_ANY_HPP

@@ -9,8 +9,9 @@ add_custom_target(copyRuntimeFiles
 # target_link_libraries(examples-start ny-draw ny-app ny-backend ny-window ny-gui)
 
 #dev
-add_executable(ny-dev dev/main.cpp)
-target_link_libraries(ny-dev ny-base ny-backend)
+# add_executable(ny-dev dev/main.cpp)
+add_executable(ny-dev dev/main2.cpp)
+target_link_libraries(ny-dev ny-base ny-backend cairo)
 add_dependencies(ny-dev copyRuntimeFiles)
 
 #intro-backend

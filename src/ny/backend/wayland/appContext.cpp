@@ -85,6 +85,9 @@ WaylandAppContext::WaylandAppContext()
 
 WaylandAppContext::~WaylandAppContext()
 {
+	if(keyboardContext_) keyboardContext_.reset();
+	if(mouseContext_) mouseContext_.reset();
+
 	if(wlRegistry_) wl_registry_destroy(wlRegistry_);
     if(wlDisplay_) wl_display_disconnect(wlDisplay_);
 }
@@ -92,7 +95,7 @@ WaylandAppContext::~WaylandAppContext()
 //TODO: exception safety!
 bool WaylandAppContext::dispatchEvents()
 {
-	for(auto i = 0u; i < pendingEvents_.size(); ++i) dispatch(std::move(*pendingEvents_[i]));
+	for(auto& e : pendingEvents_) if(e->handler) e->handler->handleEvent(*e);
 	pendingEvents_.clear();
 
 	auto ret = wl_display_dispatch_pending(wlDisplay_);
@@ -106,11 +109,13 @@ bool WaylandAppContext::dispatchLoop(LoopControl& control)
 	std::atomic<bool> run {true};
 	control.impl_.reset(new WaylandLoopControlImpl(run, *wlDisplay_));
 
-	for(auto i = 0u; i < pendingEvents_.size(); ++i) dispatch(std::move(*pendingEvents_[i]));
-	pendingEvents_.clear();
-
 	auto ret = 0;
-	while(run && ret != -1) ret = wl_display_dispatch(wlDisplay_);
+	while(run && ret != -1)
+	{
+		for(auto& e : pendingEvents_) if(e->handler) e->handler->handleEvent(*e);
+		pendingEvents_.clear();
+		ret = wl_display_dispatch(wlDisplay_);
+	}
 
 	return ret != -1;
 }
@@ -132,12 +137,12 @@ bool WaylandAppContext::threadedDispatchLoop(EventDispatcher& dispatcher, LoopCo
 	});
 
 
-	for(auto i = 0u; i < pendingEvents_.size(); ++i) dispatch(std::move(*pendingEvents_[i]));
-	pendingEvents_.clear();
-
 	auto ret = 0;
 	while(run && ret != -1) 
 	{
+		for(auto& e : pendingEvents_) if(e->handler) e->handler->handleEvent(*e);
+		pendingEvents_.clear();
+
 		ret = wl_display_dispatch(wlDisplay_);
 		dispatcher.processEvents();
 	}
@@ -185,7 +190,7 @@ WindowContextPtr WaylandAppContext::createWindowContext(const WindowSettings& se
 	else if(drawType == DrawType::dontCare || drawType == DrawType::software)
 	{
 		#ifdef NY_WithCairo
-			return std::make_unique<WaylandCairoWindowContext>(*this, waylandSettings);
+			// return std::make_unique<WaylandCairoWindowContext>(*this, waylandSettings);
 		#else
 			throw std::logic_error("ny::WaylandAC:createWC: ny built without cairo support");
 		#endif
@@ -369,9 +374,10 @@ void WaylandAppContext::cursor(std::string cursorName, unsigned int serial)
 
 void WaylandAppContext::dispatch(Event&& event)
 {
-	if(dispatcher_) dispatcher_->dispatch(std::move(event));
-	// else pendingEvents_.push_back(nytl::cloneMove(std::move(event)));
-	else if(event.handler) event.handler->handleEvent(event);
+	// if(dispatcher_) dispatcher_->dispatch(std::move(event));
+	// else if(event.handler) pendingEvents_.push_back(nytl::cloneMove(event));
+	
+	pendingEvents_.push_back(nytl::cloneMove(event));
 }
 
 WaylandWindowContext* WaylandAppContext::windowContext(wl_surface& surface) const

@@ -12,8 +12,6 @@
 #include <iostream>
 #include <cassert>
 
-namespace evg { class DrawGuard{ void* pointer; }; }
-
 namespace ny
 {
 
@@ -34,6 +32,8 @@ WaylandWindowContext::WaylandWindowContext(WaylandAppContext& ac,
 	{
 		createShellSurface();
 	}
+
+	size_ = settings.size;
 }
 
 WaylandWindowContext::~WaylandWindowContext()
@@ -106,45 +106,6 @@ void WaylandWindowContext::refresh()
 	if(eventHandler()) appContext_->dispatch(DrawEvent(eventHandler()));
 }
 
-DrawGuard WaylandWindowContext::draw()
-{
-	throw std::logic_error("WaylandWC::draw: drawless WindowContext");
-}
-
-// void waylandWindowContext::finishDraw()
-// {
-//     if(getCairo() && cairo_)
-//     {
-//         cairo_->apply();
-// 
-//         wlFrameCallback_ = wl_surface_frame(wlSurface_);
-//         wl_Callback_add_listener(wlFrameCallback_, &frameListener, this);
-// 
-//         cairo_->attach();
-//         wl_surface_damage(wlSurface_, 0, 0, window_.getWidth(), window_.getHeight());
-//         wl_surface_commit(wlSurface_);
-// 
-//         wl_display_flush(getWaylandAC()->getWlDisplay());
-//     }
-//     else if(getEGL() && egl_)
-//     {
-//         egl_->apply();
-// 
-//         wlFrameCallback_ = wl_surface_frame(wlSurface_);
-//         wl_Callback_add_listener(wlFrameCallback_, &frameListener, this);
-// 
-//         if(!egl_->swapBuffers())
-//             nyWarning("waylandWC::finishDraw: failed to swap egl buffers");
-// 
-//         if(!egl_->makeNotCurrent())
-//             nyWarning("waylandWC::finishDraw: failed to make egl context not current");
-//     }
-//     else
-//     {
-//         throw std::runtime_error("waylandWindowContext::finishDraw: uninitialized context");
-//     }
-// }
-
 void WaylandWindowContext::show()
 {
 
@@ -187,24 +148,6 @@ void WaylandWindowContext::cursor(const Cursor& c)
     // updateCursor(nullptr);
 }
 
-// void WaylandWindowContext::updateCursor(const mouseCrossEvent* ev)
-// {
-//     unsigned int serial = 0;
-// 
-//     if(ev && ev->data)
-//     {
-//         waylandEventData* e = dynamic_cast<waylandEventData*>(ev->data.get());
-//         if(e) serial = e->serial;
-//     }
-// 
-//     if(window_.getCursor().isNativeType())
-//         getWaylandAC()->setCursor(cursorToWayland(window_.getCursor().getNativeType()), serial);
-// 
-//     else if(window_.getCursor().isImage())
-//         getWaylandAC()->setCursor(window_.getCursor().getImage(), window_.getCursor().getImageHotspot(), serial);
-// }
-
-
 void WaylandWindowContext::droppable(const DataTypes&)
 {
 }
@@ -227,7 +170,7 @@ bool WaylandWindowContext::handleEvent(const Event& event)
     {
         if(frameCallback_)
         {
-            wl_callback_destroy(frameCallback_); //?
+            wl_callback_destroy(frameCallback_); //TODO: needed?
             frameCallback_ = nullptr;
         }
 
@@ -239,6 +182,14 @@ bool WaylandWindowContext::handleEvent(const Event& event)
 
 		return true;
     }
+	else if(event.type() == eventType::windowSize)
+	{
+		auto& ev = static_cast<const SizeEvent&>(event);
+		size_ = ev.size;
+
+		if(drawIntegration_) drawIntegration_->resize(ev.size);
+		return true;
+	}
 
 	return false;
 }
@@ -329,32 +280,55 @@ xdg_popup* WaylandWindowContext::xdgPopup() const
 	return (role_ == WaylandSurfaceRole::xdgPopup) ? xdgPopup_ : nullptr; 
 }
 
+void WaylandWindowContext::attachCommit(wl_buffer& buffer)
+{
+	frameCallback_ = wl_surface_frame(wlSurface_);
+	wl_callback_add_listener(frameCallback_, &wayland::frameListener, this);
+ 
+	wl_surface_damage(wlSurface_, 0, 0, size_.x, size_.y);
+	wl_surface_attach(wlSurface_, &buffer, 0, 0);
+	wl_surface_commit(wlSurface_);
 }
 
+///Draw integration
+WaylandDrawIntegration::WaylandDrawIntegration(WaylandWindowContext& wc) : context_(wc)
+{
+	if(wc.drawIntegration_)
+		throw std::logic_error("WlDrawIntegration: windowContext already has an integration");
 
-    // case WindowEdge::top:
-    //     wlEdge = WL_SHELL_SURFACE_RESIZE_TOP;
-    //     break;
-    // case WindowEdge::left:
-    //     wlEdge = WL_SHELL_SURFACE_RESIZE_LEFT;
-    //     break;
-    // case WindowEdge::bottom:
-    //     wlEdge = WL_SHELL_SURFACE_RESIZE_BOTTOM;
-    //     break;
-    // case WindowEdge::right:
-    //     wlEdge = WL_SHELL_SURFACE_RESIZE_RIGHT;
-    //     break;
-    // case WindowEdge::topLeft:
-    //     wlEdge = WL_SHELL_SURFACE_RESIZE_TOP_LEFT;
-    //     break;
-    // case WindowEdge::topRight:
-    //     wlEdge = WL_SHELL_SURFACE_RESIZE_TOP_RIGHT;
-    //     break;
-    // case WindowEdge::bottomLeft:
-    //     wlEdge = WL_SHELL_SURFACE_RESIZE_BOTTOM_LEFT;
-    //     break;
-    // case WindowEdge::bottomRight:
-    //     wlEdge = WL_SHELL_SURFACE_RESIZE_BOTTOM_RIGHT;
-    //     break;
-    // default:
-    //     return;
+	wc.drawIntegration_ = this;
+}
+
+WaylandDrawIntegration::~WaylandDrawIntegration()
+{
+	context_.drawIntegration_ = nullptr;
+}
+
+}
+
+// case WindowEdge::top:
+//     wlEdge = WL_SHELL_SURFACE_RESIZE_TOP;
+//     break;
+// case WindowEdge::left:
+//     wlEdge = WL_SHELL_SURFACE_RESIZE_LEFT;
+//     break;
+// case WindowEdge::bottom:
+//     wlEdge = WL_SHELL_SURFACE_RESIZE_BOTTOM;
+//     break;
+// case WindowEdge::right:
+//     wlEdge = WL_SHELL_SURFACE_RESIZE_RIGHT;
+//     break;
+// case WindowEdge::topLeft:
+//     wlEdge = WL_SHELL_SURFACE_RESIZE_TOP_LEFT;
+//     break;
+// case WindowEdge::topRight:
+//     wlEdge = WL_SHELL_SURFACE_RESIZE_TOP_RIGHT;
+//     break;
+// case WindowEdge::bottomLeft:
+//     wlEdge = WL_SHELL_SURFACE_RESIZE_BOTTOM_LEFT;
+//     break;
+// case WindowEdge::bottomRight:
+//     wlEdge = WL_SHELL_SURFACE_RESIZE_BOTTOM_RIGHT;
+//     break;
+// default:
+//     return;

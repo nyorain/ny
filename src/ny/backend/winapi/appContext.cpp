@@ -107,26 +107,26 @@ WinapiAppContext::~WinapiAppContext()
 
 std::unique_ptr<WindowContext> WinapiAppContext::createWindowContext(const WindowSettings& settings)
 {
-    WinapiWindowSettings s;
+    WinapiWindowSettings winapiSettings;
     const WinapiWindowSettings* sTest = dynamic_cast<const WinapiWindowSettings*>(&settings);
 
     if(sTest)
     {
-        s = *sTest;
+        winapiSettings = *sTest;
     }
     else
     {
-        auto& wsettings = static_cast<WindowSettings&>(s);
+        auto& wsettings = static_cast<WindowSettings&>(winapiSettings);
 		wsettings = settings;
     }
 
-	auto drawType = s.drawSettings.drawType;
+	auto drawType = winapiSettings.drawSettings.drawType;
 	if(drawType == DrawType::dontCare || drawType == DrawType::software)
 	{
 	// #if defined(NY_WithGDI)
 	// 	return std::make_unique<GdiWinapiWindowContext>(*this, s);
 	#if defined(NY_WithCairo)
-		return std::make_unique<CairoWinapiWindowContext>(*this, s);
+		return std::make_unique<CairoWinapiWindowContext>(*this, winapiSettings);
 	#else
 		if(drawType != DrawType::dontCare)
 		{
@@ -152,6 +152,10 @@ std::unique_ptr<WindowContext> WinapiAppContext::createWindowContext(const Windo
 	else if(drawType == DrawType::vulkan)
 	{
 	#ifdef NY_WithVulkan
+		if(settings.drawSettings.vulkan.contextOnly)
+		{
+
+		}
 		// return std::make_unique<VulkanWinapiWindowContext>(*this, s);
 	#else
 		if(drawType != DrawType::dontCare)
@@ -162,7 +166,7 @@ std::unique_ptr<WindowContext> WinapiAppContext::createWindowContext(const Windo
 	#endif //vulkan
 	}
 
-	return std::make_unique<WinapiWindowContext>(*this, s);
+	return std::make_unique<WinapiWindowContext>(*this, winapiSettings);
 }
 
 MouseContext* WinapiAppContext::mouseContext()

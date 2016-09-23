@@ -195,8 +195,16 @@ struct SoftwareDrawSettings
 
 struct GlDrawSettings
 {
+	//A pointer to store a pointer to the used GlContext.
+	//Note that the underlaying GlContext is only guaranteed to be existent as long as
+	//the WindowContext associated with the settings exists.
 	GlContext** storeContext {};
+
+	//Whether to just create/store a GlContext. If this is false, ny have to be compiled
+	//with evg support and a evg::DrawContext will be created for the WindowContext.
 	bool contextOnly = false;
+
+	//Whether to enable vsync for the GlContext and window.
 	bool vsync = true;
 };
 
@@ -206,27 +214,27 @@ struct VulkanDrawSettings
 	//a vulkan context (or use an already created internal one).
 	VulkanContext* useContext {};
 
-	//A pointer to a VulkanSurfaceContext pointer in which the context will then be stored
-	VulkanSurfaceContext** storeContext {};
+	//A pointer to a VulkanSurfaceContext in which the context will then be stored
+	VulkanSurfaceContext* storeContext {};
 
 	//Whether to create only a context and not a DrawContext
 	bool contextOnly = false;
 
-	//TODO: more detailed presentation/swapchain options
+	//TODO: more detailed presentation/swapchain options?
 	//Whether to try to enable vsync. Only relevnat if contextOnly is false.
 	bool vsync = true;
 };
 
 struct DrawSettings
 {
-	DrawSettings() : softwareSettings() {}
+	DrawSettings() : software() {}
 
 	DrawType drawType = DrawType::dontCare;
 	union
 	{
-		SoftwareDrawSettings softwareSettings {};
-		GlDrawSettings glSettings;
-		VulkanDrawSettings vulkanSettings;
+		SoftwareDrawSettings software {};
+		GlDrawSettings gl;
+		VulkanDrawSettings vulkan;
 	};
 };
 
@@ -255,11 +263,11 @@ public:
 // class WindowSettingsError : std::logic_error
 // {
 // };
-// 
+//
 // class InvalidDrawTypeError : WindowSettingsError
 // {
 // };
-// 
+//
 // class WindowContextCreateError : std::runtime_error
 // {
 // };

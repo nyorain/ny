@@ -37,6 +37,8 @@ public:
 
 	///Creates a WindowContext implementation for the given settings.
 	///May throw backend specific errors on failure.
+	///Note that this AppContext object must not be destroyed as long as the WindowContext
+	///exists.
 	////\sa WindowContext
 	virtual WindowContextPtr createWindowContext(const WindowSettings& windowSettings) = 0;
 
