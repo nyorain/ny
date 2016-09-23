@@ -29,9 +29,9 @@ public:
 		{
 			auto surfGuard = cairo->get();
 			auto& surf = surfGuard.surface();
- 
+
 			auto cr = cairo_create(&surf);
-			cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+			cairo_set_source_rgb(cr, 0.543, 1.0, 1.0);
 			cairo_paint(cr);
 			cairo_destroy(cr);
 

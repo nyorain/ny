@@ -13,11 +13,9 @@ public:
 	VulkanWinapiWindowContext(WinapiAppContext& ac, WindowSettings& ws);
 	~VulkanWinapiWindowContext();
 
-	evg::DrawGuard
-
 protected:
-	std::unique_ptr<evg::VulkanDrawContext> drawContext_;
-	std::unique_ptr<VulkanSurfaceContext> surfaceContext_;
+	// std::unique_ptr<evg::VulkanDrawContext> drawContext_;
+	// std::unique_ptr<VulkanSurfaceContext> surfaceContext_;
 };
 
 }

@@ -18,6 +18,12 @@ if(WithWinapi)
 		# list(APPEND src_backend winapi/wgl.cpp winapi/wglApi.cpp)
 		# list(APPEND libs_backend OpenGL32)
 	endif()
+
+	if(WithCairo)
+		list(APPEND src_backend winapi/cairo.cpp)
+		list(APPEND libs_backend ${CAIRO_LIBRARIES})
+		list(APPEND include_backend ${CAIRO_INCLUDE_DIRS})
+	endif()
 endif()
 
 if(WithX11)
@@ -26,15 +32,14 @@ if(WithX11)
 		x11/backend.cpp
 		x11/util.cpp
 		x11/input.cpp
-		x11/cairo.cpp
 		x11/windowContext.cpp)
 
-	list(APPEND libs_backend 
-		${XCB_LIBRARIES} 
-		${X11_LIBRARIES} 
+	list(APPEND libs_backend
+		${XCB_LIBRARIES}
+		${X11_LIBRARIES}
 		${X11_Xcursor_LIB})
-	list(APPEND include_backend 
-		${XCB_INCLUDE_DIRS} 
+	list(APPEND include_backend
+		${XCB_INCLUDE_DIRS}
 		${X11_XCB_INCLUDE_DIR}
 		${X11_Xcursor_INCLUDE_PATH})
 
@@ -44,6 +49,12 @@ if(WithX11)
 		# list(APPEND src_backend x11/glx.cpp x11/glxApi.cpp)
 		# list(APPEND libs_backend GL)
 	endif()
+
+	if(WithCairo)
+		list(APPEND src_backend x11/cairo.cpp)
+		list(APPEND libs_backend ${CAIRO_LIBRARIES})
+		list(APPEND include_backend ${CAIRO_INCLUDE_DIRS})
+	endif()
 endif()
 
 if(WithWayland)
@@ -51,7 +62,6 @@ if(WithWayland)
 		wayland/appContext.cpp
 		wayland/backend.cpp
 		wayland/input.cpp
-		wayland/cairo.cpp
 		wayland/util.cpp
 		wayland/windowContext.cpp
 		wayland/interfaces.cpp
@@ -62,6 +72,12 @@ if(WithWayland)
 
 	if(WithEGL)
 		# list(APPEND src_backend wayland/egl.cpp)
+	endif()
+
+	if(WithCairo)
+		list(APPEND src_backend wayland/cairo.cpp)
+		list(APPEND libs_backend ${CAIRO_LIBRARIES})
+		list(APPEND include_backend ${CAIRO_INCLUDE_DIRS})
 	endif()
 endif()
 

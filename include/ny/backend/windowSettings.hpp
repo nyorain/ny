@@ -90,13 +90,11 @@ enum class NativeWidgetType : unsigned int
 	dropdown
 };
 
-///Typesafe enums that represent the available drawing backends.
-enum class DrawType : unsigned int
+///Enum that represents the context types that can be created for a window.
+enum class ContextType : unsigned int
 {
-	dontCare = 0,
-	none,
+	none = 0,
 	gl,
-	software,
 	vulkan
 };
 
@@ -114,24 +112,25 @@ enum class ToplevelState : unsigned int
 ///Holds either a pointer to backend-specific type or an 64 bit unsigned int.
 class NativeWindowHandle
 {
-protected:
-	union
-	{
-		void* pointer_ = nullptr;
-		std::uint64_t uint_;
-	};
+public:
+	using Value = std::uintptr_t;
 
 public:
-	NativeWindowHandle(void* pointer = nullptr) : pointer_(pointer) {}
-	NativeWindowHandle(std::uint64_t uint) : uint_(uint) {}
+	NativeWindowHandle(void* ptr = nullptr) : value_(reinterpret_cast<Value>(ptr)) {}
+	NativeWindowHandle(std::uint64_t uint) : value_(reinterpret_cast<Value>(uint)) {}
 
-	void* pointer() const { return pointer_; }
-	std::uint64_t uint() const { return uint_; }
+	void* pointer() const { return reinterpret_cast<void*>(value_); }
+	std::uint64_t uint() const { return reinterpret_cast<std::uint64_t>(value_); }
+	std::uintptr_t uintptr() const { return reinterpret_cast<std::uintptr_t>(value_); }
 
-	operator void*() const { return pointer_; }
-	operator std::uint64_t() const { return uint_; }
-	operator int() const { return uint_; }
-	operator unsigned int() const { return uint_; }
+	operator void*() const { return pointer(); }
+	operator std::uint64_t() const { return uint(); }
+	operator std::uintptr_t() const { return uintptr(); }
+
+	template<typename T> T* asPtr() const { return reinterpret_cast<T*>(value_); }
+
+protected:
+	Value value_;
 };
 
 ///Result from a dialog.
@@ -187,22 +186,12 @@ public:
 	}
 };
 
-struct SoftwareDrawSettings
-{
-	bool doubleBuffered = true;
-	bool antialiased = true;
-};
-
 struct GlDrawSettings
 {
 	//A pointer to store a pointer to the used GlContext.
 	//Note that the underlaying GlContext is only guaranteed to be existent as long as
 	//the WindowContext associated with the settings exists.
 	GlContext** storeContext {};
-
-	//Whether to just create/store a GlContext. If this is false, ny have to be compiled
-	//with evg support and a evg::DrawContext will be created for the WindowContext.
-	bool contextOnly = false;
 
 	//Whether to enable vsync for the GlContext and window.
 	bool vsync = true;
@@ -215,27 +204,7 @@ struct VulkanDrawSettings
 	VulkanContext* useContext {};
 
 	//A pointer to a VulkanSurfaceContext in which the context will then be stored
-	VulkanSurfaceContext* storeContext {};
-
-	//Whether to create only a context and not a DrawContext
-	bool contextOnly = false;
-
-	//TODO: more detailed presentation/swapchain options?
-	//Whether to try to enable vsync. Only relevnat if contextOnly is false.
-	bool vsync = true;
-};
-
-struct DrawSettings
-{
-	DrawSettings() : software() {}
-
-	DrawType drawType = DrawType::dontCare;
-	union
-	{
-		SoftwareDrawSettings software {};
-		GlDrawSettings gl;
-		VulkanDrawSettings vulkan;
-	};
+	VulkanSurfaceContext** storeContext {};
 };
 
 ///Settings for a Window.
@@ -243,9 +212,9 @@ struct DrawSettings
 class WindowSettings
 {
 public:
+	WindowSettings() : gl() {}
     virtual ~WindowSettings() = default;
 
-	DrawSettings drawSettings;
 	NativeWindowHandle nativeHandle = nullptr;
 	NativeWindowHandle parent = nullptr;
 	ToplevelState initState = ToplevelState::normal;
@@ -257,19 +226,13 @@ public:
 
 	NativeWidgetType nativeWidgetType = NativeWidgetType::none;
 	DialogSettings dialogSettings;
-};
 
-///Custom exception classes for WindowContext creation
-// class WindowSettingsError : std::logic_error
-// {
-// };
-//
-// class InvalidDrawTypeError : WindowSettingsError
-// {
-// };
-//
-// class WindowContextCreateError : std::runtime_error
-// {
-// };
+	ContextType context;
+	union
+	{
+		GlDrawSettings gl;
+		VulkanDrawSettings vulkan;
+	};
+};
 
 }

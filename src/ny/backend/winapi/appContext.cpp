@@ -19,10 +19,6 @@
 #include <ny/backend/winapi/vulkan.hpp>
 #endif
 
-#ifdef NY_WithCairo
-#include <ny/backend/winapi/cairo.hpp>
-#endif
-
 #include <nytl/utf.hpp>
 #include <nytl/scope.hpp>
 
@@ -108,61 +104,27 @@ WinapiAppContext::~WinapiAppContext()
 std::unique_ptr<WindowContext> WinapiAppContext::createWindowContext(const WindowSettings& settings)
 {
     WinapiWindowSettings winapiSettings;
-    const WinapiWindowSettings* sTest = dynamic_cast<const WinapiWindowSettings*>(&settings);
+    const WinapiWindowSettings* ws = dynamic_cast<const WinapiWindowSettings*>(&settings);
 
-    if(sTest)
-    {
-        winapiSettings = *sTest;
-    }
-    else
-    {
-        auto& wsettings = static_cast<WindowSettings&>(winapiSettings);
-		wsettings = settings;
-    }
+    if(ws) winapiSettings = *ws;
+    else winapiSettings.WindowSettings::operator=(settings);
 
-	auto drawType = winapiSettings.drawSettings.drawType;
-	if(drawType == DrawType::dontCare || drawType == DrawType::software)
-	{
-	// #if defined(NY_WithGDI)
-	// 	return std::make_unique<GdiWinapiWindowContext>(*this, s);
-	#if defined(NY_WithCairo)
-		return std::make_unique<CairoWinapiWindowContext>(*this, winapiSettings);
-	#else
-		if(drawType != DrawType::dontCare)
-		{
-			warning("WinapiAC::createWindowContext: no software renderer, invalid drawType.");
-			return nullptr;
-		}
-	#endif //Gdi
-	}
-
-	else if(drawType == DrawType::gl)
+	auto contextType = settings.context;
+	if(contextType == ContextType::gl)
 	{
 	#ifdef NY_WithGL
 		// return std::make_unique<WglWindowContext>(*this, s);
 	#else
-		if(drawType != DrawType::dontCare)
-		{
-			warning("WinapiAC::createWindowContext: no gl, invalid drawType.");
-			return nullptr;
-		}
+		throw std::logic_error("ny::WinapiAC::createWC: ny was built without gl support");
 	#endif //gl
 	}
 
-	else if(drawType == DrawType::vulkan)
+	else if(contextType == ContextType::vulkan)
 	{
 	#ifdef NY_WithVulkan
-		if(settings.drawSettings.vulkan.contextOnly)
-		{
-
-		}
 		// return std::make_unique<VulkanWinapiWindowContext>(*this, s);
 	#else
-		if(drawType != DrawType::dontCare)
-		{
-			warning("WinapiAC::createWindowContext: no vulkan support, invalid drawType.");
-			return nullptr;
-		}
+		throw std::logic_error("ny::WinapiAC::createWC: ny was built without vulkan support");
 	#endif //vulkan
 	}
 

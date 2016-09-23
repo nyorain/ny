@@ -18,7 +18,6 @@
 #include <xcb/xcb_ewmh.h>
 #include <cstring>
 
-
 namespace ny
 {
 
@@ -95,7 +94,7 @@ X11AppContext::X11AppContext()
 		0, 0, 50, 50, 10, XCB_WINDOW_CLASS_INPUT_ONLY, xDefaultScreen_->root_visual, 0, nullptr);
 
 	//atoms
-    std::vector<std::string> names = 
+    std::vector<std::string> names =
 	{
         "XdndEnter",
         "XdndPosition",
@@ -419,8 +418,8 @@ WindowContextPtr X11AppContext::createWindowContext(const WindowSettings& settin
     else x11Settings.WindowSettings::operator=(settings);
 
 	//type
-	auto drawType = settings.drawSettings.drawType;
-	if(drawType == DrawType::vulkan)
+	auto contextType = settings.context;
+	if(contextType == ContextType::vulkan)
 	{
 		#ifdef NY_WithVulkan
 		 // return std::make_unique<X11VulkanWindowContext>(*xac, x11Settings);
@@ -428,23 +427,15 @@ WindowContextPtr X11AppContext::createWindowContext(const WindowSettings& settin
 		 throw std::logic_error("ny::X11Backend::createWC: ny built without vulkan support");
 		#endif
 	}
-	else if(drawType == DrawType::gl)
+	else if(contextType == ContextType::gl)
 	{
-		#ifdef NY_WithGL	
+		#ifdef NY_WithGL
 		 // return std::make_unique<X11EglWindowContext>(*this, x11Settings);
 		#else
 		 throw std::logic_error("ny::X11Backend::createWC: ny built without GL suppport");
 		#endif
 	}
-	else if(drawType == DrawType::software || drawType == DrawType::dontCare)
-	{
-		#ifdef NY_WithCairo
-		 // return std::make_unique<X11CairoWindowContext>(*this, x11Settings);
-		#else
-		 throw std::logic_error("ny::X11Backend::createWC: ny built without cairo suppport");
-		#endif
-	}
-		
+
 	return std::make_unique<X11WindowContext>(*this, x11Settings);
 }
 
@@ -489,7 +480,7 @@ bool X11AppContext::dispatchLoop(LoopControl& control)
 		free(event);
 		xcb_flush(xConnection());
 	}
-		
+
 	return true;
 }
 
@@ -514,7 +505,7 @@ bool X11AppContext::threadedDispatchLoop(EventDispatcher& dispatcher, LoopContro
 		xcb_flush(xConnection());
 		dispatcher.processEvents();
 	}
-		
+
 	return true;
 }
 
@@ -555,7 +546,7 @@ xcb_atom_t X11AppContext::atom(const std::string& name)
 		atoms_[name] = reply->atom;
 		free(reply);
 	}
-	
+
 	return atoms_[name];
 }
 

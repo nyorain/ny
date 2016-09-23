@@ -17,10 +17,6 @@
  #include <ny/backend/wayland/vulkan.hpp>
 #endif //WithVulkan
 
-#ifdef NY_WithCairo
- #include <ny/backend/wayland/cairo.hpp>
-#endif //WithCairo
-
 #include <nytl/scope.hpp>
 
 #include <wayland-client.h>
@@ -47,7 +43,7 @@ public:
 	wl_display* display;
 
 public:
-	WaylandLoopControlImpl(std::atomic<bool>& prun, wl_display& wldisplay) 
+	WaylandLoopControlImpl(std::atomic<bool>& prun, wl_display& wldisplay)
 		: run(&prun), display(&wldisplay)
 	{
 	}
@@ -126,9 +122,9 @@ bool WaylandAppContext::threadedDispatchLoop(EventDispatcher& dispatcher, LoopCo
 	control.impl_.reset(new WaylandLoopControlImpl(run, *wlDisplay_));
 	dispatcher_ = &dispatcher;
 
-	auto guard = nytl::makeScopeGuard([&]{ 
+	auto guard = nytl::makeScopeGuard([&]{
 		dispatcher_ = nullptr;
-		control.impl_.reset(); 
+		control.impl_.reset();
 	});
 
 	//wake the loop up every time an event is dispatched from another thread
@@ -138,7 +134,7 @@ bool WaylandAppContext::threadedDispatchLoop(EventDispatcher& dispatcher, LoopCo
 
 
 	auto ret = 0;
-	while(run && ret != -1) 
+	while(run && ret != -1)
 	{
 		for(auto& e : pendingEvents_) if(e->handler) e->handler->handleEvent(*e);
 		pendingEvents_.clear();
@@ -168,9 +164,8 @@ WindowContextPtr WaylandAppContext::createWindowContext(const WindowSettings& se
     if(ws) waylandSettings = *ws;
     else waylandSettings.WindowSettings::operator=(settings);
 
-	//type
-	auto drawType = settings.drawSettings.drawType;
-	if(drawType == DrawType::vulkan)
+	auto contextType = settings.context;
+	if(contextType == ContextType::vulkan)
 	{
 		#ifdef NY_WithVulkan
 		 // if(!vulkanContext_) vulkanContext_ = std::make_unique<WalandVulkanContext>(*this);
@@ -179,23 +174,15 @@ WindowContextPtr WaylandAppContext::createWindowContext(const WindowSettings& se
 		 throw std::logic_error("ny::WaylandAC::createWC: ny built without vulkan support");
 		#endif
 	}
-	else if(drawType == DrawType::gl)
+	else if(contextType == ContextType::gl)
 	{
-		#ifdef NY_WithGL	
+		#ifdef NY_WithGL
 		 // return std::make_unique<WaylandEglWindowContext>(*this, waylandSettings);
 		#else
 		 throw std::logic_error("ny::WaylandAC::createWC: ny built without GL suppport");
 		#endif
 	}
-	else if(drawType == DrawType::dontCare || drawType == DrawType::software)
-	{
-		#ifdef NY_WithCairo
-			// return std::make_unique<WaylandCairoWindowContext>(*this, waylandSettings);
-		#else
-			throw std::logic_error("ny::WaylandAC:createWC: ny built without cairo support");
-		#endif
-	}
-		
+
 	return std::make_unique<WaylandWindowContext>(*this, waylandSettings);
 }
 
@@ -297,7 +284,7 @@ void WaylandAppContext::registryRemove(unsigned int id)
 	}
 	else
 	{
-		std::remove_if(outputs_.begin(), outputs_.end(), 
+		std::remove_if(outputs_.begin(), outputs_.end(),
 			[=](const Output& output){ return output.globalID == id; });
 	}
 }
@@ -376,7 +363,7 @@ void WaylandAppContext::dispatch(Event&& event)
 {
 	// if(dispatcher_) dispatcher_->dispatch(std::move(event));
 	// else if(event.handler) pendingEvents_.push_back(nytl::cloneMove(event));
-	
+
 	pendingEvents_.push_back(nytl::cloneMove(event));
 }
 

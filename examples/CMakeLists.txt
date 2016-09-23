@@ -9,9 +9,8 @@ add_custom_target(copyRuntimeFiles
 # target_link_libraries(examples-start ny-draw ny-app ny-backend ny-window ny-gui)
 
 #dev
-# add_executable(ny-dev dev/main.cpp)
-add_executable(ny-dev dev/main2.cpp)
-target_link_libraries(ny-dev ny-base ny-backend cairo)
+add_executable(ny-dev dev/main.cpp)
+target_link_libraries(ny-dev ny-base ny-backend)
 add_dependencies(ny-dev copyRuntimeFiles)
 
 #intro-backend
@@ -25,7 +24,17 @@ target_link_libraries(ny-intro-app ny-base ny-backend ny-app)
 add_dependencies(ny-intro-app copyRuntimeFiles)
 
 #vulkan
-add_executable(ny-vulkan vulkan/main.cpp)
-target_include_directories(ny-vulkan PUBLIC ${VULKAN_INCLUDE_DIR})
-target_link_libraries(ny-vulkan ny-base ny-backend vpp ${VULKAN_LIB})
-add_dependencies(ny-vulkan copyRuntimeFiles)
+if(WithVulkan)
+	add_executable(ny-vulkan vulkan/main.cpp)
+	target_include_directories(ny-vulkan PUBLIC ${VULKAN_INCLUDE_DIR})
+	target_link_libraries(ny-vulkan ny-base ny-backend vpp ${VULKAN_LIB})
+	add_dependencies(ny-vulkan copyRuntimeFiles)
+endif()
+
+#cairo
+if(WithCairo)
+	add_executable(ny-cairo cairo/main.cpp)
+	target_link_libraries(ny-cairo ny-base ny-backend ${CAIRO_LIBRARIES})
+	target_include_directories(ny-cairo PUBLIC ${CAIRO_INCLUDE_DIRS})
+	add_dependencies(ny-cairo copyRuntimeFiles)
+endif()

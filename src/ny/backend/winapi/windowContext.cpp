@@ -2,6 +2,7 @@
 #include <ny/backend/winapi/util.hpp>
 #include <ny/backend/winapi/appContext.hpp>
 #include <ny/backend/winapi/com.hpp>
+#include <ny/app/events.hpp>
 
 #include <ny/base/log.hpp>
 #include <ny/base/cursor.hpp>
@@ -248,6 +249,14 @@ void WinapiWindowContext::removeWindowHints(WindowHints hints)
 
 bool WinapiWindowContext::handleEvent(const Event& e)
 {
+	if(e.type() == ny::eventType::windowSize)
+	{
+		auto& ev = static_cast<const ny::SizeEvent&>(e);
+		if(drawIntegration_) drawIntegration_->resize(ev.size);
+		return true;
+	}
+
+	return false;
 }
 
 void WinapiWindowContext::size(const Vec2ui& size)
@@ -475,6 +484,20 @@ Rect2i WinapiWindowContext::extents() const
 	RECT ext;
 	GetWindowRect(handle_, &ext);
 	return {ext.left, ext.top, ext.right - ext.left, ext.bottom - ext.top};
+}
+
+///Draw integration
+WinapiDrawIntegration::WinapiDrawIntegration(WinapiWindowContext& wc) : context_(wc)
+{
+	if(wc.drawIntegration_)
+		throw std::logic_error("WinapiDrawIntegration: windowContext already has an integration");
+
+	wc.drawIntegration_ = this;
+}
+
+WinapiDrawIntegration::~WinapiDrawIntegration()
+{
+	context_.drawIntegration_ = nullptr;
 }
 
 }

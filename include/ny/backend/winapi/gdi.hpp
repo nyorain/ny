@@ -34,7 +34,6 @@ protected:
 
 public:
 	GdiWinapiWindowContext(WinapiAppContext& ctx, const WinapiWindowSettings& settings = {});
-	DrawGuard draw() override;
 };
 
 }

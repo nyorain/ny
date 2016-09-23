@@ -24,20 +24,6 @@ public:
 			loopControl_.stop();
 			return true;
 		}
-		else if(ev.type() == ny::eventType::windowDraw)
-		{
-			try
-			{
-				auto guard = wc_.draw();
-				auto& dc = guard.dc();
-				dc.clear(evg::Color::white);
-				return true;
-			}
-			catch(const std::exception& e)
-			{
-				return false;
-			}
-		}
 		else if(ev.type() == ny::eventType::mouseButton)
 		{
 			wc_.icon({});

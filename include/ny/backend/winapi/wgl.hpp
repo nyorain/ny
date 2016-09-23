@@ -50,8 +50,6 @@ public:
 	WglWindowContext(WinapiAppContext& ctx, const WinapiWindowSettings& settings = {});
 	~WglWindowContext();
 
-	virtual DrawGuard draw() override;
-
 protected:
 	virtual WNDCLASSEX windowClass(const WinapiWindowSettings& settings) override;
 

@@ -14,6 +14,18 @@ namespace ny
 ///Extents the WindowSettings class with extra winapi-specific settings.
 class WinapiWindowSettings : public WindowSettings {};
 
+///The base class for drawing integrations.
+class WinapiDrawIntegration
+{
+public:
+	WinapiDrawIntegration(WinapiWindowContext&);
+	virtual ~WinapiDrawIntegration();
+	virtual void resize(const nytl::Vec2ui&) {}
+
+protected:
+	WinapiWindowContext& context_;
+};
+
 ///WindowContext for winapi windows using the winapi backend on a windows OS.
 class WinapiWindowContext : public WindowContext
 {
@@ -105,6 +117,9 @@ protected:
 	bool fullscreen_ = false;
 	std::uint64_t style_ = 0;
 	State savedState_; //used e.g. for resetState
+
+	WinapiDrawIntegration* drawIntegration_ = nullptr;
+	friend class WinapiDrawIntegration;
 };
 
 
