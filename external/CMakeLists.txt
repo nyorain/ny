@@ -13,19 +13,18 @@ set(ExternalProjectCMakeArgs
 	-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
 	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
 
-function(external_project name condition)
+function(external_project name condition always)
 	if(condition)
 		update_submodule(${name})
 		ExternalProject_Add(${name}_ep
 			SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/${name}"
 			CMAKE_ARGS ${ExternalProjectCMakeArgs}
-			BUILD_ALWAYS 1)
+			BUILD_ALWAYS ${always})
 	endif()
 endfunction()
 
 # external projects
-# external_project(evg build_evg)
-external_project(nytl nytl_own)
+external_project(nytl nytl_own false)
 
 #install them
 install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/install/." DESTINATION .)

@@ -1,6 +1,6 @@
 set(include_backend ${default_include})
-set(libs_backend ${default_libs} evg ny-base)
-set(src_backend backend.cpp integration/cairo.cpp)
+set(libs_backend ${default_libs} ny-base)
+set(src_backend backend.cpp)
 
 if(WithWinapi)
 	list(APPEND src_backend
@@ -16,13 +16,10 @@ if(WithWinapi)
 
 	if(WithGL)
 		# list(APPEND src_backend winapi/wgl.cpp winapi/wglApi.cpp)
-		# list(APPEND libs_backend OpenGL32)
 	endif()
 
 	if(WithCairo)
 		list(APPEND src_backend winapi/cairo.cpp)
-		list(APPEND libs_backend ${CAIRO_LIBRARIES})
-		list(APPEND include_backend ${CAIRO_INCLUDE_DIRS})
 	endif()
 endif()
 
@@ -47,13 +44,10 @@ if(WithX11)
 
 	if(WithGL)
 		# list(APPEND src_backend x11/glx.cpp x11/glxApi.cpp)
-		# list(APPEND libs_backend GL)
 	endif()
 
 	if(WithCairo)
 		list(APPEND src_backend x11/cairo.cpp)
-		list(APPEND libs_backend ${CAIRO_LIBRARIES})
-		list(APPEND include_backend ${CAIRO_INCLUDE_DIRS})
 	endif()
 endif()
 
@@ -76,8 +70,6 @@ if(WithWayland)
 
 	if(WithCairo)
 		list(APPEND src_backend wayland/cairo.cpp)
-		list(APPEND libs_backend ${CAIRO_LIBRARIES})
-		list(APPEND include_backend ${CAIRO_INCLUDE_DIRS})
 	endif()
 endif()
 
@@ -89,15 +81,26 @@ endif()
 
 if(WithGL)
 	list(APPEND src_backend common/gl.cpp)
+	list(APPEND libs_backend ${OPENGL_INCLUDE_DIR})
+	list(APPEND include_backend ${OPENGL_LIBRARIES})
 endif()
 
 if(WithEGL)
 	list(APPEND src_backend common/egl.cpp)
+	list(APPEND libs_backend vpp ${EGL_LIBRARIES})
+	list(APPEND include_backend vpp ${EGL_INCLUDE_DIRS})
 endif()
 
 if(WithVulkan)
 	list(APPEND src_backend common/vulkan.cpp)
-	list(APPEND libs_backend vpp ${vulkan_LIBS})
+	list(APPEND libs_backend vpp ${VULKAN_LIBRARY})
+	list(APPEND include_backend vpp ${VULKAN_INCLUDE_DIR})
+endif()
+
+if(WithCairo)
+	list(APPEND src_backend integration/cairo.cpp)
+	list(APPEND libs_backend ${CAIRO_LIBRARIES})
+	list(APPEND include_backend ${CAIRO_INCLUDE_DIRS})
 endif()
 
 add_library(ny-backend SHARED ${src_backend})
