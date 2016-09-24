@@ -396,3 +396,52 @@ int main()
 	//when drawing
 	auto guard = skiaIntegration.get();
 }
+
+
+
+
+class Surface
+{
+public:
+	enum Type
+	{
+		none,
+		buffer,
+		gl,
+		vulkan
+	};
+
+public:
+	Type type;
+	union
+	{
+		GlContext* gl;
+		VulkanSurfaceContext* vulkan;
+		std::unique_ptr<SurfaceBuffer> buffer;
+	};
+};
+
+class BufferGuard
+{
+public:
+	BufferGuard(SurfaceBuffer&);
+	~BufferGuard();
+
+	const ImageData& get() { return data_; }
+
+protected:
+	ImageData data_;
+};
+
+class SurfaceBuffer
+{
+public:
+	SurfaceBuffer() = default;
+	virtual ~SurfaceBuffer() = default;
+
+	BufferGuard get() { return BufferGuard(*this); }
+
+protected:
+	virtual ImageData init() = 0;
+	virtual void apply(ImageData&) = 0;
+};

@@ -4,7 +4,6 @@
 #include <ny/backend/winapi/windowContext.hpp>
 #include <ny/backend/winapi/windows.hpp>
 #include <ny/backend/common/gl.hpp>
-#include <evg/gl/drawContext.hpp>
 
 namespace ny
 {
@@ -43,19 +42,19 @@ protected:
     HGLRC wglContext_ = nullptr;
 };
 
-///Winapi WindowContext using wgl (OpenGL) to draw.
-class WglWindowContext : public WinapiWindowContext
-{
-public:
-	WglWindowContext(WinapiAppContext& ctx, const WinapiWindowSettings& settings = {});
-	~WglWindowContext();
-
-protected:
-	virtual WNDCLASSEX windowClass(const WinapiWindowSettings& settings) override;
-
-protected:
-	std::unique_ptr<WglContext> wglContext_;
-	std::unique_ptr<evg::GlDrawContext> drawContext_;
-};
+// ///Winapi WindowContext using wgl (OpenGL) to draw.
+// class WglWindowContext : public WinapiWindowContext
+// {
+// public:
+// 	WglWindowContext(WinapiAppContext& ctx, const WinapiWindowSettings& settings = {});
+// 	~WglWindowContext();
+//
+// protected:
+// 	virtual WNDCLASSEX windowClass(const WinapiWindowSettings& settings) override;
+//
+// protected:
+// 	std::unique_ptr<WglContext> wglContext_;
+// 	std::unique_ptr<evg::GlDrawContext> drawContext_;
+// };
 
 }

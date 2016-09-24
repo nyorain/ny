@@ -1,9 +1,6 @@
 #include <ny/base.hpp>
 #include <ny/backend.hpp>
-#include <ny/app/events.hpp>
 #include <ny/backend/integration/cairo.hpp>
-
-#include <evg/image.hpp>
 #include <cairo/cairo.h>
 
 ///Custom event handler for the low-level backend api.
@@ -19,13 +16,13 @@ public:
 	{
 		ny::debug("Received event with type ", ev.type());
 
-		if(ev.type() == ny::eventType::windowClose)
+		if(ev.type() == ny::eventType::close)
 		{
 			ny::debug("Window closed from server side. Exiting.");
 			loopControl_.stop();
 			return true;
 		}
-		else if(ev.type() == ny::eventType::windowDraw)
+		else if(ev.type() == ny::eventType::draw)
 		{
 			auto surfGuard = cairo->get();
 			auto& surf = surfGuard.surface();
@@ -37,16 +34,11 @@ public:
 
 			return true;
 		}
-		else if(ev.type() == ny::eventType::mouseButton)
-		{
-			wc_.icon({});
-			wc_.cursor(ny::CursorType::leftPtr);
-
-			return true;
-		}
 		else if(ev.type() == ny::eventType::key)
 		{
-			ny::debug("Key pressed or released. Exiting.");
+			if(!static_cast<const ny::KeyEvent&>(ev).pressed) return false;
+
+			ny::debug("Key pressed. Exiting.");
 			loopControl_.stop();
 			return true;
 		}
@@ -86,16 +78,6 @@ int main()
 	///the dispatchLoop.
 	wc->eventHandler(handler);
 	wc->refresh();
-
-	///Set the cursor to a native grab cursor
-	evg::Image cursorImage("cursor.png");
-	// ny::Cursor cursor(ny::CursorType::grab);
-	ny::Cursor cursor({*cursorImage.data(), cursorImage.size(), ny::ImageDataFormat::rgba8888});
-	wc->cursor(cursor);
-
-	///Set the icon to a loaded icon
-	evg::Image iconImage("icon.png");
-	wc->icon({*iconImage.data(), iconImage.size(), ny::ImageDataFormat::rgba8888});
 
 	//integrate with cairo
 	auto cairo = ny::cairoIntegration(*wc);

@@ -2,11 +2,11 @@
 #include <ny/backend/winapi/util.hpp>
 #include <ny/backend/winapi/appContext.hpp>
 #include <ny/backend/winapi/com.hpp>
-#include <ny/app/events.hpp>
 
 #include <ny/base/log.hpp>
 #include <ny/base/cursor.hpp>
 #include <ny/base/imageData.hpp>
+#include <ny/backend/events.hpp>
 
 #include <nytl/scope.hpp>
 
@@ -67,6 +67,7 @@ WinapiWindowContext::~WinapiWindowContext()
 
     if(handle_)
 	{
+		::SetWindowLongPtr(handle_, GWLP_USERDATA, (LONG_PTR)nullptr);
 		::DestroyWindow(handle_);
 		handle_ = nullptr;
 	}
@@ -249,7 +250,7 @@ void WinapiWindowContext::removeWindowHints(WindowHints hints)
 
 bool WinapiWindowContext::handleEvent(const Event& e)
 {
-	if(e.type() == ny::eventType::windowSize)
+	if(e.type() == ny::eventType::size)
 	{
 		auto& ev = static_cast<const ny::SizeEvent&>(e);
 		if(drawIntegration_) drawIntegration_->resize(ev.size);

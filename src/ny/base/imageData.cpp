@@ -6,7 +6,7 @@ namespace ny
 
 namespace
 {
-	void convert(std::uint8_t& writeData, ImageDataFormat newformat, const nytl::Vec4uc& color)
+	void convert(std::uint8_t& writeData, ImageDataFormat newformat, const nytl::Vec4u8& color)
 	{
 		using Format = ImageDataFormat;
 		auto* newdata =  &writeData;
@@ -45,7 +45,7 @@ namespace
 		}
 	}
 
-	nytl::Vec4uc formatDataColor(const std::uint8_t& pixel, ImageDataFormat format)
+	nytl::Vec4u8 formatDataColor(const std::uint8_t& pixel, ImageDataFormat format)
 	{
 		using Format = ImageDataFormat;
 		auto pixelSize = imageDataFormatSize(format);
@@ -92,7 +92,7 @@ ImageData::ImageData(const std::uint8_t& data, const nytl::Vec2ui& size, ImageDa
 }
 
 void convertFormat(ImageDataFormat from, ImageDataFormat to, const std::uint8_t& fromData,
-	std::uint8_t& toData, const nytl::Vec2ui& size, unsigned int stride, 
+	std::uint8_t& toData, const nytl::Vec2ui& size, unsigned int stride,
 	unsigned int alignNewStride)
 {
 	auto newfs = imageDataFormatSize(to);
@@ -117,7 +117,7 @@ void convertFormat(ImageDataFormat from, ImageDataFormat to, const std::uint8_t&
 }
 
 std::unique_ptr<std::uint8_t[]> convertFormat(ImageDataFormat from, ImageDataFormat to,
-	const std::uint8_t& data, const nytl::Vec2ui& size, unsigned int stride, 
+	const std::uint8_t& data, const nytl::Vec2ui& size, unsigned int stride,
 	unsigned int alignNewStride)
 {
 	auto newStride = size.x * imageDataFormatSize(to);

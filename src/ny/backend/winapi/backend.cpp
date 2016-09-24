@@ -1,8 +1,6 @@
 #include <ny/backend/winapi/backend.hpp>
 #include <ny/backend/winapi/appContext.hpp>
 #include <ny/backend/winapi/windowContext.hpp>
-#include <ny/backend/winapi/gdi.hpp>
-#include <ny/backend/winapi/wgl.hpp>
 
 namespace ny
 {

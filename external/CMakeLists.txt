@@ -1,10 +1,3 @@
-# function to update submodule
-function(update_submodule submodule)
-	execute_process(
-		COMMAND git submodule update --remote --merge --init ${submodule}
-		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-endfunction()
-
 # function for external projects
 include(ExternalProject)
 set(ExternalProjectCMakeArgs
@@ -15,11 +8,12 @@ set(ExternalProjectCMakeArgs
 
 function(external_project name condition always)
 	if(condition)
-		update_submodule(${name})
 		ExternalProject_Add(${name}_ep
-			SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/${name}"
+			PREFIX ${CMAKE_CURRENT_BINARY_DIR}/nytl
+  	  		GIT_REPOSITORY https://github.com/nyorain/nytl.git
+  			INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/install/nytl
 			CMAKE_ARGS ${ExternalProjectCMakeArgs}
-			BUILD_ALWAYS ${always})
+			BUILD_ALWAYS 0)
 	endif()
 endfunction()
 

@@ -32,7 +32,7 @@ FIND_PACKAGE(PkgConfig)
 PKG_CHECK_MODULES(PC_CAIRO cairo) # FIXME: After we require CMake 2.8.2 we can pass QUIET to this call.
 
 FIND_PATH(CAIRO_INCLUDE_DIRS
-    NAMES cairo.h
+    NAMES cairo/cairo.h
     HINTS ${PC_CAIRO_INCLUDEDIR}
           ${PC_CAIRO_INCLUDE_DIRS}
     PATH_SUFFIXES cairo

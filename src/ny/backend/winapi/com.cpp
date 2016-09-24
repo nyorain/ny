@@ -6,11 +6,10 @@
 #include <ny/base/data.hpp>
 #include <ny/base/log.hpp>
 
-#include <evg/image.hpp>
-
 #include <nytl/utf.hpp>
 #include <nytl/time.hpp>
 #include <nytl/scope.hpp>
+#include <nytl/range.hpp>
 
 #include <Shlobj.h>
 
@@ -447,6 +446,7 @@ std::any comToData(unsigned int cfFormat, void* data, unsigned int& dataType)
 		}
 		case CF_DIBV5:
 		{
+			/*
 			dataType = dataType::image;
 
 			auto bitmapBytes = static_cast<const std::uint8_t*>(::GlobalLock(data));
@@ -473,6 +473,8 @@ std::any comToData(unsigned int cfFormat, void* data, unsigned int& dataType)
 			evg::Image img;
 			img.loadFromMemory({buffer.get(), buffLen + 14});
 			return {img};
+			*/
+			return {};
 		}
 		default:
 		{
@@ -524,14 +526,15 @@ void* dataToCom(unsigned int format, const std::any& data, unsigned int& cfForma
 		}
 		case dataType::image:
 		{
-			cfFormat = CF_BITMAP;
-			medium = TYMED_GDI;
-
-			auto img = std::any_cast<const evg::Image&>(data);
-			img.format(Image::Format::bgra8888);
-			auto size = img.size();
-			auto bitmap = ::CreateBitmap(size.x, size.y, 1, 32, img.data());
-			return bitmap;
+			// cfFormat = CF_BITMAP;
+			// medium = TYMED_GDI;
+			//
+			// auto img = std::any_cast<const evg::Image&>(data);
+			// img.format(Image::Format::bgra8888);
+			// auto size = img.size();
+			// auto bitmap = ::CreateBitmap(size.x, size.y, 1, 32, img.data());
+			// return bitmap;
+			return nullptr;
 		}
 		case dataType::filePaths:
 		{

@@ -7,6 +7,7 @@
 #include <ny/backend/appContext.hpp>
 #include <ny/backend/mouseContext.hpp>
 #include <ny/backend/keyboardContext.hpp>
+#include <ny/backend/events.hpp>
 
 /*
 #ifdef NY_WithWinapi

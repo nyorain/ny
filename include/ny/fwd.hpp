@@ -6,35 +6,6 @@
 //Can be useful if one does not want to pull in any ny headers but needs many of its
 //classes (used e.g. as pointers or references).
 
-//evg forward declarations
-//github.com/nyorain/evg
-namespace evg
-{
-
-class DrawContext;
-class DrawGuard;
-class UniqueDrawGuard;
-class Image;
-class SvgImage;
-class AnimatedImage;
-class Shape;
-class Brush;
-class Pen;
-class Font;
-class Texture;
-class Path;
-class PathBase;
-class Rectangle;
-class Circle;
-class Subpath;
-class PlainSubpath;
-class PathSegment;
-class Color;
-
-enum class ImageFormat : unsigned int;
-
-}
-
 //nytl forward delcarations.
 //github.com/nyroain/nytl
 namespace nytl
@@ -129,9 +100,9 @@ class SizeEvent;
 class PositionEvent;
 class KeyEvent;
 class RefreshEvent;
-class DrawEvent;
+// class DrawEvent;
 class ShowEvent;
-class CloseEvent;
+// class CloseEvent;
 
 //enums
 enum class ToplevelState : unsigned int;

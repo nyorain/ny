@@ -201,6 +201,9 @@ struct VulkanDrawSettings
 {
 	//The context to use for creating the vulkan surface. If nullptr, the backend will create
 	//a vulkan context (or use an already created internal one).
+	//For real vulkan applications, it is highly recommended and usual inalienable to use this, 
+	//since contexts
+	//created by the backends
 	VulkanContext* useContext {};
 
 	//A pointer to a VulkanSurfaceContext in which the context will then be stored

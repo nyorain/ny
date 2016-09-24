@@ -5,7 +5,7 @@
 #include <nytl/nonCopyable.hpp>
 #include <nytl/rect.hpp>
 
-#include <evg/gl/drawContext.hpp>
+// #include <evg/gl/drawContext.hpp>
 
 #include <string>
 #include <vector>
@@ -86,7 +86,7 @@ public:
 	///returns therefore 0.
 	unsigned int depthBits() const { return depthBits_; }
 
-	///Returns the number of stencil bits this context has. For contexts without stencil 
+	///Returns the number of stencil bits this context has. For contexts without stencil
 	///buffer it returns therefore 0.
 	unsigned int stencilBits() const { return stencilBits_; }
 
@@ -97,7 +97,7 @@ public:
 
 	///Makes this context not current in the current thread. If it is not current, no changes
 	///will be made and the function returns 0. If this context is the current one, it will be
-	///made not current so that after this function call the calling thread has no 
+	///made not current so that after this function call the calling thread has no
 	///current context. Returns 0 on failure or if the context is not current.
 	bool makeNotCurrent();
 
@@ -176,25 +176,8 @@ protected:
 	virtual bool makeNotCurrentImpl() = 0;
 };
 
-///GlDrawContext derivate that is associated with a certain GlContext and assures that
-///it is the current GlContext while drawing.
-class GlContextDrawContext : public evg::GlDrawContext
-{
-public:
-	GlContextDrawContext(GlContext& context);
-	~GlContextDrawContext();
-
-	void init() override;
-	void apply() override;
-
-protected:
-	GlContext* context_;
-};
-
-
 }
 
 #ifndef NY_WithGL
 	#error ny was built without gl. Do not include this header.
 #endif
-

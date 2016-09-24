@@ -2,14 +2,10 @@
 
 #include <ny/include.hpp>
 #include <ny/base/eventHandler.hpp>
-
 #include <nytl/flags.hpp>
-#include <nytl/vec.hpp>
 
 #include <memory>
 
-// #include <experimental/any>
-// namespace std { using namespace experimental; }
 // #include <any>
 #include <ny/base/any.hpp>
 

@@ -6,8 +6,9 @@
 namespace ny
 {
 
+//to be removed in future.
+//try to use the nytl namespace prefix everywhere.
 using namespace nytl;
-using namespace evg;
 
 //backend typedefs
 #ifdef NY_WithX11
@@ -17,6 +18,9 @@ using namespace evg;
 #endif //WithX11
 
 #ifdef NY_WithWayland
+ class WaylandBackend;
+ class WaylandWindowContext;
+ class WaylandAppContext;
 #endif //WithWayland
 
 #ifdef NY_WithWinapi
