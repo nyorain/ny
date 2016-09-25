@@ -1,6 +1,8 @@
 set(include_backend ${default_include})
 set(libs_backend ${default_libs} ny-base)
-set(src_backend backend.cpp)
+set(src_backend
+	backend.cpp
+	integration/surface.cpp)
 
 if(WithWinapi)
 	list(APPEND src_backend
@@ -10,6 +12,7 @@ if(WithWinapi)
 		# winapi/gdi.cpp
 		winapi/com.cpp
 		winapi/input.cpp
+		winapi/surface.cpp
 		winapi/windowContext.cpp)
 
 	list(APPEND libs_backend ${libs_backend} gdi32 gdiplus)

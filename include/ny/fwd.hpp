@@ -2,39 +2,11 @@
 
 #include <cstdint>
 #include <cstdlib>
+#include <nytl/fwd.hpp>
 
 //This file contains forward delcarations for all ny classes and enumerations.
 //Can be useful if one does not want to pull in any ny headers but needs many of its
 //classes (used e.g. as pointers or references).
-
-//nytl forward delcarations.
-//github.com/nyroain/nytl
-namespace nytl
-{
-
-class Logger;
-class StringParam;
-
-template<std::size_t I, typename T> class Vec;
-template<std::size_t R, std::size_t C, typename P> class Mat;
-template<typename Signature> class Callback;
-template<typename T> class Range;
-
-template<typename T> using Vec2 = Vec<2, T>;
-template<typename T> using Vec3 = Vec<3, T>;
-template<typename T> using Vec4 = Vec<4, T>;
-
-using Vec2ui = Vec2<unsigned int>;
-using Vec2i = Vec2<int>;
-using Vec2f = Vec2<float>;
-using Vec2d = Vec2<double>;
-
-using Vec3ui = Vec3<unsigned int>;
-using Vec3i = Vec3<int>;
-using Vec3f = Vec3<float>;
-using Vec3d = Vec3<double>;
-
-}
 
 //own forward declarations
 namespace ny
@@ -53,7 +25,10 @@ class DataTypes;
 class DataOffer;
 class DataSource;
 class DataObject;
-class ImageData;
+
+template<typename P> class BasicImageData;
+using ImageData = BasicImageData<const std::uint8_t*>;
+using MutableImageData = BasicImageData<std::uint8_t*>;
 
 //app
 class App;

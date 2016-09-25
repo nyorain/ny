@@ -5,9 +5,7 @@
 #include <nytl/flags.hpp>
 
 #include <memory>
-
-// #include <any>
-#include <ny/base/any.hpp>
+#include <any>
 
 ///Header can be used without linking to ny-backend.
 

@@ -23,7 +23,7 @@ public:
 	virtual void resize(const nytl::Vec2ui&) {}
 
 protected:
-	WinapiWindowContext& context_;
+	WinapiWindowContext& context_; //TODO: rename windowContext_ for all backend DrawIntegrations
 };
 
 ///WindowContext for winapi windows using the winapi backend on a windows OS.
@@ -78,6 +78,7 @@ public:
     HWND handle() const { return handle_; }
 
 	Rect2i extents() const;
+	Rect2i clientExtents() const;
 
 protected:
 	struct State

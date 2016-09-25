@@ -483,6 +483,13 @@ Rect2i WinapiWindowContext::extents() const
 	return {ext.left, ext.top, ext.right - ext.left, ext.bottom - ext.top};
 }
 
+Rect2i WinapiWindowContext::clientExtents() const
+{
+	RECT ext;
+	GetClientRect(handle_, &ext);
+	return {ext.left, ext.top, ext.right - ext.left, ext.bottom - ext.top};
+}
+
 ///Draw integration
 WinapiDrawIntegration::WinapiDrawIntegration(WinapiWindowContext& wc) : context_(wc)
 {

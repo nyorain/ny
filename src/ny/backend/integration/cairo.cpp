@@ -5,7 +5,7 @@ namespace ny
 {
 
 //backend/integration/cairo.cpp - private functions interface
-using CairoIntegrateFunc = std::function<std::unique_ptr<CairoIntegration>(WindowContext& context)>;
+using CairoIntegrateFunc = std::function<std::unique_ptr<CairoIntegration>(WindowContext&)>;
 unsigned int registerCairoIntegrateFunc(const CairoIntegrateFunc& func);
 
 //CairoSurfaceGuard

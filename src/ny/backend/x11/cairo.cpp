@@ -10,7 +10,7 @@ namespace ny
 {
 
 //backend/integration/cairo.cpp - private function
-using CairoIntegrateFunc = std::function<std::unique_ptr<CairoIntegration>(WindowContext& context)>;
+using CairoIntegrateFunc = std::function<std::unique_ptr<CairoIntegration>(WindowContext&)>;
 unsigned int registerCairoIntegrateFunc(const CairoIntegrateFunc& func);
 
 namespace

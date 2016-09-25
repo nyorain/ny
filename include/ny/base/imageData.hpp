@@ -35,16 +35,15 @@ enum class ImageDataFormat : unsigned int
 ///Note that this class does explicitly not implement any functions for creating/loading/changing
 ///the image itself, it is only used to hold all information needed to correctly interpret
 ///a raw image data buffer.
+///\tparam T The pointer type to used. Should be a type that can be used as std::uint8_t*.
+///Might be const or a smart pointer.
 ///\sa ImageDataFormat
 ///\sa imageDataFormatSize
-struct ImageData
+template<typename P>
+struct BasicImageData
 {
-public:
-	using Format = ImageDataFormat;
-
-public:
-	///The raw data of the image. Must be a pointer to at least stride * size.y bytes.
-	const std::uint8_t* data {};
+	///The raw data of the image. Must be a pointer-like object to at least stride * size.y bytes.
+	P data {};
 
 	///The size of the represented image.
 	nytl::Vec2ui size {};
@@ -59,28 +58,19 @@ public:
 	unsigned int stride {};
 };
 
+using ImageData = BasicImageData<const std::uint8_t*>;
+using MutableImageData = BasicImageData<std::uint8_t*>;
+using OwnedImageData = BasicImageData<std::unique_ptr<std::uint8_t[]>>;
+
 ///Represents an animated image, i.e. a collection of imageDatas with a stored delay between each
 ///other. Usually all stored images in the collection should have the same format, size and stride.
-///Note that since it only holds ImageData objects, it does not own any of the image data buffers
-///it holds.
-///This class is intended as way to pass animated images (i.e. for cursors or icons) around that
+///A vector holding the collection of imageDatas as well as the delay in milliseconds
+///until the next image should be displayed.
+///This typedef is intended as way to pass animated images (i.e. for cursors or icons) around that
 ///were loaded/created/manipulated using another toolkit.
 ///\sa ImageData
-class AnimatedImageData
-{
-public:
-	AnimatedImageData() = default;
-	AnimatedImageData(const ImageData& image, unsigned int delay = 0) : images{{image, delay}} {}
-
-	~AnimatedImageData() = default;
-	AnimatedImageData(const AnimatedImageData& other) noexcept = default;
-	AnimatedImageData& operator=(const AnimatedImageData& other) noexcept = default;
-
-public:
-	///A vector holding the collection of imageDatas as well as the delay in milliseconds
-	///until the next image should be displayed.
-	std::vector<std::pair<ImageData, unsigned int>> images;
-};
+template<typename P>
+using BasicAnimatedImageData = std::vector<std::pair<BasicImageData<P>, unsigned int>>;
 
 ///Returns the size of the given format in bytes.
 ///E.g. Format::rgba8888 would return 4, since one pixel of this format needs 4 bytes to

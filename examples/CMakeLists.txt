@@ -1,5 +1,5 @@
 #dev
-add_executable(ny-dev dev/main.cpp)
+add_executable(ny-dev dev/main2.cpp)
 target_link_libraries(ny-dev ny-base ny-backend)
 
 #intro-backend
