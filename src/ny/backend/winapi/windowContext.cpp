@@ -278,16 +278,14 @@ void WinapiWindowContext::cursor(const Cursor& c)
 
 		const auto& imgdata = *c.image();
 		std::unique_ptr<std::uint8_t[]> ownedData;
-		auto stride = imgdata.size.x * imageDataFormatSize(imgdata.format); //the required stride
+		auto packedStride = imgdata.size.x * imageDataFormatSize(imgdata.format);
 		auto* pixelsData = imgdata.data;
 
 		//usually an extra conversion/copy is required
-		if((imgdata.stride != stride && imgdata.stride != 0) || imgdata.format != reqFormat)
+		if((imgdata.stride != packedStride && imgdata.stride != 0) || imgdata.format != reqFormat)
 		{
-			ownedData = std::make_unique<std::uint8_t[]>(stride * imgdata.size.y);
+			ownedData = convertFormat(imgdata, reqFormat);
 			pixelsData = ownedData.get();
-			convertFormat(imgdata.format, reqFormat, *imgdata.data, *ownedData.get(), imgdata.size,
-				imgdata.stride);
 		}
 
 		auto bitmap = ::CreateBitmap(imgdata.size.x, imgdata.size.y, 1, 32, pixelsData);
@@ -444,16 +442,14 @@ void WinapiWindowContext::icon(const ImageData& imgdata)
 	constexpr static auto reqFormat = ImageDataFormat::bgra8888; //TODO: endianess?
 
 	std::unique_ptr<std::uint8_t[]> ownedData;
-	auto stride = imgdata.size.x * imageDataFormatSize(imgdata.format);
+	auto packedStride = imgdata.size.x * imageDataFormatSize(imgdata.format);
 	auto* pixelsData = imgdata.data;
 
 	//usually an extra conversion/copy is required
-	if((imgdata.stride != stride && imgdata.stride != 0) || imgdata.format != reqFormat)
+	if((imgdata.stride != packedStride && imgdata.stride != 0) || imgdata.format != reqFormat)
 	{
-		ownedData = std::make_unique<std::uint8_t[]>(stride * imgdata.size.y);
+		ownedData = convertFormat(imgdata, reqFormat);
 		pixelsData = ownedData.get();
-		convertFormat(imgdata.format, reqFormat, *imgdata.data, *ownedData.get(), imgdata.size,
-			imgdata.stride);
 	}
 
 	auto module = GetModuleHandle(nullptr);

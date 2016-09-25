@@ -51,7 +51,12 @@ unsigned int dataTypeToClipboardFormat(unsigned int dataType, unsigned int& medi
 unsigned int clipboardFormatToDataType(unsigned int cfFormat);
 
 ///Converts between std::any holding the dataType data and the native winapi representation.
-std::any comToData(unsigned int cfFormat, void* data, unsigned int& dataFormat);
+///\param buffer May hold created owned data that is referenced by the returned object.
+std::any comToData(unsigned int cfFormat, void* data, unsigned int& dataFormat,
+	std::unique_ptr<std::uint8_t>& buffer);
+
+///Converts between std::any holding the dataType data and the native winapi representation.
+///\param
 void* dataToCom(unsigned int dataFormat, const std::any& data, unsigned int& cfFormat,
 	unsigned int& medium);
 
@@ -204,6 +209,7 @@ protected:
 	DataTypes types_;
 	com::DataComObject data_;
 	std::unordered_map<unsigned int, FORMATETC> typeFormats_;
+	std::vector<std::unique_ptr<std::uint8_t>> buffers_;
 };
 
 } //namespace winapi

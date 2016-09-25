@@ -5,8 +5,6 @@
 #include <nytl/nonCopyable.hpp>
 #include <nytl/rect.hpp>
 
-// #include <evg/gl/drawContext.hpp>
-
 #include <string>
 #include <vector>
 #include <memory>
@@ -14,7 +12,26 @@
 namespace ny
 {
 
-//Backends shall always just use one context per thread and only create them if needed.
+///The possible api types a context may have.
+enum class GlApi : unsigned int
+{
+	gl,
+	gles,
+};
+
+///Represents a general gl or glsl version
+struct GlVersion
+{
+	GlApi api;
+	unsigned int major = 0;
+	unsigned int minor = 0;
+};
+
+///Returns a parsed string of a gl version.
+std::string name(const GlVersion& version);
+
+///Returns a unique number for a gl version.
+inline constexpr unsigned int number(const GlVersion& v) { return v.major * 10 + v.minor; }
 
 ///Abstract base class for an openGL(ES) context. This class is implemented e.g.
 ///with egl, glx or wgl. With the static current() function one can get the current context
@@ -24,35 +41,11 @@ namespace ny
 class GlContext : public nytl::NonMovable
 {
 public:
-	///The possible apis a context may have.
-	enum class Api
-	{
-		gl,
-		gles,
-	};
-
-	///Represents a gl or glsl version
-	class Version
-	{
-	public:
-		Api api;
-		unsigned int major = 0;
-		unsigned int minor = 0;
-
-	public:
-		std::string name() const;
-		unsigned int number() const { return major * 10 + minor; }
-	};
+	using Api = GlApi;
+	using Version = GlVersion;
 
 	///Returns the current context in the calling thread, nullptr if there is none.
 	static GlContext* current() { return threadLocalCurrent(); }
-
-	///Returns the current context in the calling thread, nullptr if there is none or the found
-	///one is not in a valid state. This function should be prefered over current.
-	///TODO: add some automatical warning/makeNotCurrent system for invalid contexts?
-	///TODO: abolish the possibilty for invalid contexts? raii?
-	static GlContext* currentValid()
-		{ return current() && current()->valid() ? current() : nullptr; }
 
 public:
 	GlContext() = default;
@@ -80,7 +73,7 @@ public:
 
 	///Reeturns majorVersion * 10 + minorVersion. If the context has e.g. the openGLES version
 	///3.1 this function returns 31.
-	unsigned int versionNumber() const { return version().number(); }
+	unsigned int versionNumber() const { return number(version()); }
 
 	///Returns the number of depth bits this context has. For contexts without depth buffer it
 	///returns therefore 0.
@@ -140,7 +133,7 @@ public:
 	///to guarantee it, so it should usually be checked before using the context.
 	virtual bool valid() const { return 1; }
 
-	///Returns a proc addr for a given function name of nullptr if it could not be found.
+	///Returns a proc addr for a given function name or nullptr if it could not be found.
 	virtual void* procAddr(const char*) const { return nullptr; }
 
 	///Returns a proc addr for a given function name of nullptr if it could not be found.
@@ -174,6 +167,18 @@ protected:
 	///This function will be called by makeNotCurrent() and should be implemented by derived
 	///classes.
 	virtual bool makeNotCurrentImpl() = 0;
+};
+
+///A guard to make a context current on construction and make it not current on destruction.
+///Note that GlContext does allow to manually make current/make not current since it may
+///not be desirable in every case to make the context not current on scope exit.
+class GlCurrentGuard
+{
+public:
+	GlCurrentGuard(GlContext& ctx) : context(ctx) { context.makeCurrent(); }
+	~GlCurrentGuard() { try { context.makeNotCurrent(); } catch(...){ } }
+
+	GlContext& context;
 };
 
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstdlib>
 
 //This file contains forward delcarations for all ny classes and enumerations.
 //Can be useful if one does not want to pull in any ny headers but needs many of its

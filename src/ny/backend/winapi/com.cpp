@@ -5,6 +5,7 @@
 #include <ny/base/eventDispatcher.hpp>
 #include <ny/base/data.hpp>
 #include <ny/base/log.hpp>
+#include <ny/base/imageData.hpp>
 
 #include <nytl/utf.hpp>
 #include <nytl/time.hpp>
@@ -99,13 +100,11 @@ CbConn DataOfferImpl::data(unsigned int format, const DataFunction& func)
 	}
 
 	unsigned int resFormat;
-	any = comToData(formatetc.cfFormat, ptr, resFormat);
-	if(resFormat != format)
-	{
-		warning("ny::winapi::DataOfferImpl::data failed: formats do not match");
-		return {};
-	}
+	std::unique_ptr<std::uint8_t> buffer;
+	any = comToData(formatetc.cfFormat, ptr, resFormat, buffer);
+	if(buffer) buffers_.push_back(std::move(buffer));
 
+	if(resFormat != format) warning("ny::winapi::DataOfferImpl::data failed: formats do not match");
 	return {};
 }
 
@@ -403,7 +402,8 @@ unsigned int clipboardFormatToDataType(unsigned int cfFormat)
 	return 0;
 }
 
-std::any comToData(unsigned int cfFormat, void* data, unsigned int& dataType)
+std::any comToData(unsigned int cfFormat, void* data, unsigned int& dataType,
+	std::unique_ptr<std::uint8_t>& buffer)
 {
 	switch(cfFormat)
 	{
@@ -446,35 +446,41 @@ std::any comToData(unsigned int cfFormat, void* data, unsigned int& dataType)
 		}
 		case CF_DIBV5:
 		{
-			/*
+
+			return {};
+		}
+		case CF_BITMAP:
+		{
 			dataType = dataType::image;
 
-			auto bitmapBytes = static_cast<const std::uint8_t*>(::GlobalLock(data));
-			auto buffLen = ::GlobalSize(data);
+			auto hbitmap = reinterpret_cast<HBITMAP>(data);
+			auto hdc = ::GetDC(nullptr);
 
-			//here follows an ugly hack to load the bitmap data as raw image
-			//stbi has a built-in bmp decoder
-			//we just have to add some header vars to the buffer
-			//and yeah, before you ask this is the easiest way... windows...
-			//but we can still use bitmaps from 1995
-			//so we got this one going for us which is nice
-			//https://en.wikipedia.org/wiki/BMP_file_format
-			//the header is 14 bytes long
-			auto buffer = std::make_unique<std::uint8_t[]>(buffLen + 14);
+			::BITMAPINFO bminfo = {0};
+			bminfo.bmiHeader.biSize = sizeof(bminfo.bmiHeader);
 
-			//windows format
-			//bytes 3 - 10 are ignored by stbi
-			buffer[0] = 'B';
-			buffer[1] = 'M';
-			reinterpret_cast<std::uint32_t&>(buffer[10]) = sizeof(BITMAPV5HEADER);
-			std::memcpy(buffer.get() + 14, bitmapBytes, buffLen);
-			::GlobalUnlock(data);
+			if(::GetDIBits(hdc, hbitmap, 0, 0, nullptr, &bminfo, DIB_RGB_COLORS) == 0)
+			{
+				//TODO: error handling
+			}
 
-			evg::Image img;
-			img.loadFromMemory({buffer.get(), buffLen + 14});
-			return {img};
-			*/
-			return {};
+			unsigned int width = bminfo.bmiHeader.biWidth;
+			unsigned int height = std::abs(bminfo.bmiHeader.biHeight);
+			unsigned int stride = width * 4;
+
+			buffer = std::make_unique<std::uint8_t>(height * width * 4);
+
+			bminfo.bmiHeader.biBitCount = 32;
+			bminfo.bmiHeader.biCompression = BI_RGB;
+			bminfo.bmiHeader.biHeight = height;
+
+			if(::GetDIBits(hdc, hbitmap, 0, height, buffer.get(), &bminfo, DIB_RGB_COLORS) == 0)
+			{
+				//TODO: error handling
+			}
+
+			auto ret = ImageData{buffer.get(), {width, height}, ImageDataFormat::rgba8888, stride};
+			return {ret};
 		}
 		default:
 		{
@@ -526,15 +532,15 @@ void* dataToCom(unsigned int format, const std::any& data, unsigned int& cfForma
 		}
 		case dataType::image:
 		{
-			// cfFormat = CF_BITMAP;
-			// medium = TYMED_GDI;
-			//
-			// auto img = std::any_cast<const evg::Image&>(data);
-			// img.format(Image::Format::bgra8888);
-			// auto size = img.size();
-			// auto bitmap = ::CreateBitmap(size.x, size.y, 1, 32, img.data());
-			// return bitmap;
-			return nullptr;
+			cfFormat = CF_BITMAP;
+			medium = TYMED_GDI;
+
+			static constexpr auto reqFormat = ImageDataFormat::bgra8888;
+
+			const auto& img = std::any_cast<const ImageData&>(data);
+			auto data = convertFormat(img, reqFormat);
+			const auto& size = img.size;
+			return ::CreateBitmap(size.x, size.y, 1, 32, data.get());
 		}
 		case dataType::filePaths:
 		{
@@ -606,3 +612,36 @@ void* dataToCom(unsigned int format, const std::any& data, unsigned int& cfForma
 } //namespace winapi
 
 } //namespace ny
+
+
+/*
+//This snippet can be later used to provide raw bmp files instead of decoded
+//images
+
+dataType = dataType::bmp;
+
+auto bitmapBytes = static_cast<const std::uint8_t*>(::GlobalLock(data));
+auto buffLen = ::GlobalSize(data);
+
+//here follows an ugly hack to load the bitmap data as raw image
+//stbi has a built-in bmp decoder
+//we just have to add some header vars to the buffer
+//and yeah, before you ask this is the easiest way... windows...
+//but we can still use bitmaps from 1995
+//so we got this one going for us which is nice
+//https://en.wikipedia.org/wiki/BMP_file_format
+//the header is 14 bytes long
+auto buffer = std::make_unique<std::uint8_t[]>(buffLen + 14);
+
+//windows format
+//bytes 3 - 10 are ignored by stbi
+buffer[0] = 'B';
+buffer[1] = 'M';
+reinterpret_cast<std::uint32_t&>(buffer[10]) = sizeof(BITMAPV5HEADER);
+std::memcpy(buffer.get() + 14, bitmapBytes, buffLen);
+::GlobalUnlock(data);
+
+evg::Image img;
+img.loadFromMemory({buffer.get(), buffLen + 14});
+return {img};
+*/

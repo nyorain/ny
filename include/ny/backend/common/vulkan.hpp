@@ -23,11 +23,11 @@ struct VulkanContext
 	std::vector<VulkanQueueInfo> queues_;
 };
 
-// class VulkanSurfaceContext
-// {
-// protected:
-// 	VulkanContext* vulkanContext_;
-// 	VkSurfaceKHR surface_;
-// };
+class VulkanSurfaceContext
+{
+protected:
+	VulkanContext* vulkanContext_;
+	VkSurfaceKHR surface_;
+};
 
 }

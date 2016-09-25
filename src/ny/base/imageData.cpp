@@ -81,50 +81,39 @@ unsigned int imageDataFormatSize(ImageDataFormat f)
 	}
 }
 
-ImageData::ImageData(const std::uint8_t& data, const nytl::Vec2ui& size, ImageDataFormat format)
-	: data(&data), size(size), format(format), stride(imageDataFormatSize(format) * size.x)
-{
-}
-
-ImageData::ImageData(const std::uint8_t& data, const nytl::Vec2ui& size, ImageDataFormat format,
-	unsigned int stride) : data(&data), size(size), format(format), stride(stride)
-{
-}
-
-void convertFormat(ImageDataFormat from, ImageDataFormat to, const std::uint8_t& fromData,
-	std::uint8_t& toData, const nytl::Vec2ui& size, unsigned int stride,
+void convertFormat(const ImageData& img, ImageDataFormat to, std::uint8_t& toData,
 	unsigned int alignNewStride)
 {
 	auto newfs = imageDataFormatSize(to);
-	auto oldfs = imageDataFormatSize(from);
+	auto oldfs = imageDataFormatSize(img.format);
 
-	if(!stride) stride = oldfs * size.x;
+	auto stride = img.stride;
+	if(!stride) stride = oldfs * img.size.x;
 
-	auto newStride = size.x * newfs;
+	auto newStride = img.size.x * newfs;
 	if(alignNewStride) newStride = std::ceil(newStride / alignNewStride) * alignNewStride;
 
-	for(auto y = 0u; y < size.y; ++y)
+	for(auto y = 0u; y < img.size.y; ++y)
 	{
-		for(auto x = 0u; x < size.x; ++x)
+		for(auto x = 0u; x < img.size.x; ++x)
 		{
 			auto newpos = y * newStride + x * newfs;
 			auto oldpos = y * stride + x * oldfs;
 
-			auto color = formatDataColor((&fromData)[oldpos], from);
+			auto color = formatDataColor((img.data)[oldpos], img.format);
 			convert((&toData)[newpos], to, color);
 		}
 	}
 }
 
-std::unique_ptr<std::uint8_t[]> convertFormat(ImageDataFormat from, ImageDataFormat to,
-	const std::uint8_t& data, const nytl::Vec2ui& size, unsigned int stride,
+std::unique_ptr<std::uint8_t[]> convertFormat(const ImageData& img, ImageDataFormat to,
 	unsigned int alignNewStride)
 {
-	auto newStride = size.x * imageDataFormatSize(to);
+	auto newStride = img.size.x * imageDataFormatSize(to);
 	if(alignNewStride) newStride = std::ceil(newStride / alignNewStride) * alignNewStride;
 
-	auto ret = std::make_unique<std::uint8_t[]>(newStride * size.y);
-	convertFormat(from, to, data, *ret.get(), size, stride, alignNewStride);
+	auto ret = std::make_unique<std::uint8_t[]>(newStride * img.size.y);
+	convertFormat(img, to, *ret.get(), alignNewStride);
 	return ret;
 }
 

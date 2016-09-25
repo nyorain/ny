@@ -154,7 +154,7 @@ void X11WindowContext::cursor(const Cursor& curs)
 {
 	//TODO: xcursor optinal
 	//use xcb_render instead to create a cursor (no need to use Xlib)
-	
+
 	//without xcursor:
     // if(curs.type() != CursorType::image && curs.type() != CursorType::none)
     // {
@@ -188,12 +188,11 @@ void X11WindowContext::cursor(const Cursor& curs)
 		xcimage->xhot = curs.imageHotspot().x;
 		xcimage->yhot = curs.imageHotspot().y;
 
-		auto stride = imgdata.size.x * imageDataFormatSize(imgdata.format);
-		if((imgdata.stride != stride && imgdata.stride != 0) || imgdata.format != reqFormat)
+		auto packedStride = imgdata.size.x * imageDataFormatSize(imgdata.format);
+		if((imgdata.stride != packedStride && imgdata.stride != 0) || imgdata.format != reqFormat)
 		{
 			auto pixels = reinterpret_cast<std::uint8_t*>(xcimage->pixels);
-			convertFormat(imgdata.format, reqFormat, *imgdata.data, *pixels, imgdata.size,
-				imgdata.stride);
+			convertFormat(imgdata, reqFormat, *pixels);
 		}
 		else
 		{
@@ -299,7 +298,7 @@ void X11WindowContext::icon(const ImageData& img)
 
 		auto size = 2 + neededSize;
 		auto imgData = reinterpret_cast<std::uint8_t*>(ownedData.get() + 2);
-		convertFormat(img.format, reqFormat, *img.data, *imgData, img.size, img.stride);
+		convertFormat(img, reqFormat, *imgData);
 
 		auto data = ownedData.get();
 		xcb_ewmh_set_wm_icon(ewmhConnection(), XCB_PROP_MODE_REPLACE, xWindow(), size, data);

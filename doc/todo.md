@@ -1,3 +1,5 @@
+general:
+
 - close/destroy events (esp. important on winapi backend)
 - implement backends
 	- x11 backend
@@ -11,7 +13,7 @@
 	- winapi backend
 		- implement all WC interface functions
 		- extra windows functionality (e.g. frame drawing)
-	- osx (low priority at the moment, osx dev needed :( ) 
+	- osx (low priority at the moment, osx dev needed :( )
 	- mir (low priority)
 - window layouts
 	- anchors
@@ -23,3 +25,13 @@
 - vulkan drawing & context support (using vpp as utility backend in acceptable)
 	- adding scene classes infrastructure for better gl/vulkan drawing
 - some different style modules/engines (low priority)
+
+
+
+
+
+
+current:
+
+- fix gl api and glContext
+- surface integration

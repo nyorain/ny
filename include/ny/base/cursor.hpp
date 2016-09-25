@@ -47,6 +47,9 @@ enum class CursorType : unsigned int
 class Cursor
 {
 public:
+	using Type = CursorType;
+	
+public:
 	///Default-constructs the Cursor with the leftPtr native type.
     Cursor() = default;
 

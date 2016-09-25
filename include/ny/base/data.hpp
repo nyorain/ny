@@ -34,9 +34,23 @@ namespace dataType
 	constexpr auto raw = 2u; //std:vector<std::uint8_t>, raw unspecified data buffer
 	constexpr auto text = 3u; //std::string encoded utf8
     constexpr auto filePaths = 4u; //std::vector<c++17 ? std::path : std::string>
-	constexpr auto image = 5u; //ny:Image
-	constexpr auto timePoint = 6u; //ny(tl)::TimePoint
-	constexpr auto timeDuration = 7u; //ny(tl)::TimeDuration
+	constexpr auto image = 5u; //ny::ImageData (must be valid as long as the offer/source object)
+
+	constexpr auto timePoint = 6u; //std::chrono::high_resolution_clock::time_point
+	constexpr auto timeDuration = 7u; //std::chrono::high_resolution_clock::duration
+
+	//raw, specified file buffers, std::vector<std::uint8_t>, may be encoded
+	//note that it is not in the scope of ny to decode images or movies.
+	//some backends might have built-in functionality, they will try to decode it and if
+	//they can they will send dataType::image with the decoded data.
+	constexpr auto bmp = 11u;
+	constexpr auto png = 12u;
+	constexpr auto jpeg = 13u;
+	constexpr auto gif = 14u;
+
+	constexpr auto mp3 = 21u;
+	constexpr auto mp4 = 22u;
+	constexpr auto webm = 23u;
 }
 
 ///Represents multiple data type formats in which certain data can be retrieved.
@@ -87,6 +101,7 @@ public:
 	using DataFunction = std::function<void(DataOffer& off, unsigned int fmt, const std::any& data)>;
 
 public:
+	//TODO: make this a function that registers a function (to make sense on e.g. winapi)
 	///Will be called everytime a new format is signaled.
 	Callback<bool(DataOffer& off, unsigned int fmt)> onFormat;
 
@@ -115,8 +130,7 @@ public:
 
 ///Event which will be sent when the application recieves data from another application.
 ///If the event is sent as effect from a drag and drop action, the event will be sent
-///to the window on which the data was dropped, otherwise (e.g. clipboard) it will
-///be sent to the specified event handler.
+///to the window on which the data was dropped.
 class DataOfferEvent : public EventBase<eventType::dataOffer, DataOfferEvent>
 {
 public:
@@ -127,8 +141,11 @@ public:
 	DataOfferEvent(DataOfferEvent&&) noexcept = default;
 	DataOfferEvent& operator=(DataOfferEvent&&) noexcept = default;
 
-    std::unique_ptr<DataOffer> offer;
-	//XXX: some source indication? clipboard or dnd?
+	//XXX: should this be mutable?
+	//events are usually passed around as const (EventHandler::handleEvent) but the
+	//handler receiving this might wanna take ownership of the DataOffer implementation
+	//which is not (really??) possible with a const event.
+    mutable std::unique_ptr<DataOffer> offer;
 };
 
 ///Converts the given string to a dataType constant. If the given string is not recognized,

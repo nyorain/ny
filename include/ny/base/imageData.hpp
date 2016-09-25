@@ -5,7 +5,9 @@
 
 #include <ny/include.hpp>
 #include <nytl/vec.hpp>
+
 #include <memory>
+#include <vector>
 
 namespace ny
 {
@@ -18,7 +20,7 @@ namespace ny
 /// - data[3] is the a value
 ///\sa imageDataFormatSize
 ///\sa ImageData
-enum class ImageDataFormat
+enum class ImageDataFormat : unsigned int
 {
 	none,
 	rgba8888,
@@ -35,18 +37,10 @@ enum class ImageDataFormat
 ///a raw image data buffer.
 ///\sa ImageDataFormat
 ///\sa imageDataFormatSize
-class ImageData
+struct ImageData
 {
 public:
-	ImageData() = default;
-	ImageData(const std::uint8_t& data, const nytl::Vec2ui& size, ImageDataFormat format);
-	ImageData(const std::uint8_t& data, const nytl::Vec2ui& size, ImageDataFormat format,
-		unsigned int stride);
-
-	~ImageData() = default;
-	ImageData(const ImageData& other) noexcept = default;
-	ImageData& operator=(const ImageData& other) noexcept = default;
-
+	using Format = ImageDataFormat;
 
 public:
 	///The raw data of the image. Must be a pointer to at least stride * size.y bytes.
@@ -65,6 +59,29 @@ public:
 	unsigned int stride {};
 };
 
+///Represents an animated image, i.e. a collection of imageDatas with a stored delay between each
+///other. Usually all stored images in the collection should have the same format, size and stride.
+///Note that since it only holds ImageData objects, it does not own any of the image data buffers
+///it holds.
+///This class is intended as way to pass animated images (i.e. for cursors or icons) around that
+///were loaded/created/manipulated using another toolkit.
+///\sa ImageData
+class AnimatedImageData
+{
+public:
+	AnimatedImageData() = default;
+	AnimatedImageData(const ImageData& image, unsigned int delay = 0) : images{{image, delay}} {}
+
+	~AnimatedImageData() = default;
+	AnimatedImageData(const AnimatedImageData& other) noexcept = default;
+	AnimatedImageData& operator=(const AnimatedImageData& other) noexcept = default;
+
+public:
+	///A vector holding the collection of imageDatas as well as the delay in milliseconds
+	///until the next image should be displayed.
+	std::vector<std::pair<ImageData, unsigned int>> images;
+};
+
 ///Returns the size of the given format in bytes.
 ///E.g. Format::rgba8888 would return 4, since one pixel of this format needs 4 bytes to
 ///be stored.
@@ -78,13 +95,11 @@ unsigned int imageDataFormatSize(ImageDataFormat f);
 ///The returned data will be tightly packed (no row paddings).
 ///\sa ImageData
 ///\sa ImageDataFormat
-std::unique_ptr<std::uint8_t[]> convertFormat(ImageDataFormat from, ImageDataFormat to,
-	const std::uint8_t& data, const nytl::Vec2ui& size, unsigned int stride = 0,
-	unsigned int newStride = 0);
+std::unique_ptr<std::uint8_t[]> convertFormat(const ImageData& img, ImageDataFormat to,
+	unsigned int alignNewStride = 0);
 
-void convertFormat(ImageDataFormat from, ImageDataFormat to, const std::uint8_t& fromData,
-	std::uint8_t& toData, const nytl::Vec2ui& size, unsigned int stride = 0,
-	unsigned int newStride = 0);
+void convertFormat(const ImageData& img, ImageDataFormat to, std::uint8_t& toData,
+	unsigned int alignNewStride = 0);
 ///\}
 
 }
