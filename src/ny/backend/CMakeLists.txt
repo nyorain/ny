@@ -18,7 +18,7 @@ if(WithWinapi)
 	list(APPEND libs_backend ${libs_backend} gdi32 gdiplus)
 
 	if(WithGL)
-		# list(APPEND src_backend winapi/wgl.cpp winapi/wglApi.cpp)
+		list(APPEND src_backend winapi/wgl.cpp winapi/wglApi.c)
 	endif()
 
 	if(WithCairo)
@@ -83,9 +83,9 @@ if(WithX11 OR WithWayland)
 endif()
 
 if(WithGL)
-	# list(APPEND src_backend common/gl.cpp)
-	list(APPEND libs_backend ${OPENGL_INCLUDE_DIR})
-	list(APPEND include_backend ${OPENGL_LIBRARIES})
+	list(APPEND src_backend common/gl.cpp)
+	list(APPEND libs_backend ${OPENGL_LIBRARY})
+	list(APPEND include_backend ${OPENGL_INCLUDE_DIR})
 endif()
 
 if(WithEGL)

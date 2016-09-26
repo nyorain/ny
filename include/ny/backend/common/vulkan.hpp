@@ -2,32 +2,28 @@
 
 #include <ny/include.hpp>
 #include <vulkan/vulkan.h>
-#include <vector>
 
 namespace ny
 {
 
-///Information about a vulkan queue associated with a device.
-struct VulkanQueueInfo
-{
-	VkQueue queue;
-	unsigned int family;
-};
-
 ///Holds all unowned vulkan handles that are needed to create a vulkan surface.
 struct VulkanContext
 {
-	VkInstance instance_;
-	VkPhysicalDevice physicalDevice_;
-	VkDevice device_;
-	std::vector<VulkanQueueInfo> queues_;
+	VkInstance instance;
+	VkPhysicalDevice physicalDevice;
+	VkDevice device;
 };
 
-class VulkanSurfaceContext
+///Holds a vulkan surface and a pointer to the context (i.e. instance, physicalDevice and device)
+///that were used to create that surface.
+struct VulkanSurfaceContext
 {
-protected:
-	VulkanContext* vulkanContext_;
-	VkSurfaceKHR surface_;
+	VulkanContext* vulkanContext;
+	VkSurfaceKHR surface;
 };
 
 }
+
+#ifndef NY_WithVulkan
+	#error ny was built without vulkan. Do not include this header.
+#endif

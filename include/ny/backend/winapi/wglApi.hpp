@@ -26,8 +26,6 @@
 # include <windows.h>
 #endif
 
-#include <evg/gl/api.h>
-
 #ifndef __glad_wglext_h_
 
 #ifdef __wglext_h_

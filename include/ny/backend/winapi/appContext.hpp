@@ -54,7 +54,7 @@ protected:
     ULONG_PTR gdiplusToken_;
 
     std::map<HWND, WinapiWindowContext*> contexts_;
-	// HWND mouseOver_ = nullptr; //used to generate mouse enter events
+	std::unique_ptr<VulkanContext> vulkanContext_;
 
 	LoopControl* dispatcherLoopControl_ = nullptr;
 	EventDispatcher* eventDispatcher_ = nullptr;

@@ -33,5 +33,7 @@ general:
 
 current:
 
-- fix gl api and glContext
-- surface integration
+- fix gl for x11/wayland
+- vulkan for all backends
+- surface integration (for x/wayland, fix gl/vulkan for winapi)
+	- draw integration rework, see WinapiWindowContext

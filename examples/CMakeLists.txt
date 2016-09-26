@@ -24,3 +24,9 @@ if(WithCairo)
 	target_link_libraries(ny-cairo ny-base ny-backend ${CAIRO_LIBRARIES})
 	target_include_directories(ny-cairo PUBLIC ${CAIRO_INCLUDE_DIRS})
 endif()
+
+#gl
+if(WithGL)
+	add_executable(ny-gl gl/main.cpp)
+	target_link_libraries(ny-gl ny-base ny-backend)
+endif()

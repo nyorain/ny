@@ -32,7 +32,6 @@ WinapiBufferSurface::~WinapiBufferSurface()
 {
 }
 
-//TODO: convert data to correct (bgra) format or advertise bgra format
 MutableImageData WinapiBufferSurface::init()
 {
 	auto currSize = context_.clientExtents().size;
@@ -44,7 +43,7 @@ MutableImageData WinapiBufferSurface::init()
 		data_ = std::make_unique<std::uint8_t[]>(currTotal * 4);
 	}
 
-	return {data_.get(), size_, ImageDataFormat::rgba8888};
+	return {data_.get(), size_, ImageDataFormat::bgra8888};
 }
 void WinapiBufferSurface::apply(MutableImageData&)
 {

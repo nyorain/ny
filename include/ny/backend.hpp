@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ny/include.hpp>
+
 #include <ny/backend/backend.hpp>
 #include <ny/backend/windowContext.hpp>
 #include <ny/backend/windowSettings.hpp>
@@ -8,6 +9,10 @@
 #include <ny/backend/mouseContext.hpp>
 #include <ny/backend/keyboardContext.hpp>
 #include <ny/backend/events.hpp>
+
+#ifdef NY_WithGL
+ #include <ny/backend/common/gl.hpp>
+#endif //GL
 
 /*
 #ifdef NY_WithWinapi
@@ -25,9 +30,6 @@
  #include <ny/backend/wayland/appContext.hpp>
 #endif //Wayland
 
-#ifdef NY_WithGL
- #include <ny/backend.common/gl.hpp>
-#endif //GL
 
 #ifdef NY_WithEGL
  #include <ny/backend/common/egl.hpp>

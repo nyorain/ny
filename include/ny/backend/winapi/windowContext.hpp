@@ -77,8 +77,23 @@ public:
 	HINSTANCE hinstance() const;
     HWND handle() const { return handle_; }
 
+	///Returns the current (async) extents of the whole window, i.e. with server side
+	///decorations.
 	Rect2i extents() const;
+
+	///Returns the extents of just the client area of the window.
 	Rect2i clientExtents() const;
+
+	//TODO:
+	//Sets the integration to the given one.
+	///Will return false if there is already such an integration or this implementation
+	///does not support them (e.g. vulkan/opengl WindowContext).
+	// virtual bool integration(WinapiDrawIntegration& integration);
+
+	///Creates and returns a surface integration for this WindowContext, or an empty
+	///surface (with type = none) if it could not be constructed.
+	///This could be the case if the WindowContext already has another integration.
+	// virtual Surface surface();
 
 protected:
 	struct State

@@ -3,7 +3,6 @@
 #include <ny/backend/winapi/appContext.hpp>
 #include <ny/backend/winapi/util.hpp>
 #include <ny/backend/winapi/wglApi.hpp>
-#include <ny/backend/common/gl.hpp>
 #include <ny/base/log.hpp>
 
 #include <thread>
@@ -35,16 +34,10 @@ public:
 
 }
 
-
 HMODULE WglContext::glLibHandle()
 {
-	static HMODULE lib = LoadLibrary("opengl32.dll");
-	return lib;
-}
-
-HMODULE WglContext::glesLibHandle()
-{
-	static HMODULE lib = LoadLibrary("opengles32.dll");
+	static auto lib = LoadLibrary("opengl32.dll");
+	if(!lib) lib = LoadLibrary("opengl32sf.dll");
 	return lib;
 }
 
@@ -99,26 +92,37 @@ void* WglContext::wglProcAddr(const char* name)
 }
 
 //WglContext
-WglContext::WglContext(WinapiWindowContext& wc) : GlContext(), wc_(&wc)
+WglContext::WglContext(HWND hwnd, const GlContextSettings& settings) : hwnd_(hwnd)
 {
-	assureWglLoaded(); //will load functions and assure there is a dummy context bound
-	dc_ = ::GetDC(wc.handle());
+	dc_ = ::GetDC(hwnd_);
+	init(settings);
+}
 
-	initPixelFormat(24, 8);
-	auto pfd = pixelFormatDescriptor();
-    ::SetPixelFormat(dc_, pixelFormat_, &pfd);
-
-	createContext();
-
-	makeCurrent();
-	activateVsync();
-    GlContext::initContext(Api::gl, 24, 8);
+WglContext::WglContext(HDC hdc, const GlContextSettings& settings) : dc_(hdc)
+{
+	init(settings);
 }
 
 WglContext::~WglContext()
 {
 	makeNotCurrent();
 	if(wglContext_) ::wglDeleteContext(wglContext_);
+	if(hwnd_ && dc_) ::ReleaseDC(hwnd_, dc_);
+}
+
+void WglContext::init(const GlContextSettings& settings)
+{
+	assureWglLoaded(); //will load functions and assure there is a dummy context bound
+	initPixelFormat(24, 8);
+	auto pfd = pixelFormatDescriptor();
+    ::SetPixelFormat(dc_, pixelFormat_, &pfd);
+
+	createContext();
+	makeCurrent();
+
+    GlContext::initContext(Api::gl, 24, 8);
+	if(settings.vsync) activateVsync();
+	if(settings.storeContext) *settings.storeContext = this;
 }
 
 void WglContext::initPixelFormat(unsigned int depth, unsigned int stencil)
@@ -127,12 +131,12 @@ void WglContext::initPixelFormat(unsigned int depth, unsigned int stencil)
 	{
 	    int attr[] =
         {
-            WGL_DRAW_TO_WINDOW_ARB, GL_TRUE,
-            WGL_SUPPORT_OPENGL_ARB, GL_TRUE,
-            WGL_DOUBLE_BUFFER_ARB,  GL_TRUE,
+            WGL_DRAW_TO_WINDOW_ARB, true,
+            WGL_SUPPORT_OPENGL_ARB, true,
+            WGL_DOUBLE_BUFFER_ARB,  true,
 			WGL_DEPTH_BITS_ARB, 	static_cast<int>(depth),
 			WGL_STENCIL_BITS_ARB, 	static_cast<int>(stencil),
-			WGL_DOUBLE_BUFFER_ARB,	GL_TRUE,
+			WGL_DOUBLE_BUFFER_ARB,	true,
             WGL_PIXEL_TYPE_ARB,     WGL_TYPE_RGBA_ARB,
             0,                      0
         };
@@ -208,12 +212,7 @@ void WglContext::createContext()
 void WglContext::activateVsync()
 {
 	if(GLAD_WGL_EXT_swap_control)
-	{
-		if(!wglSwapIntervalEXT(1))
-		{
-			warning("ny::WglContext: failed to enable vertical sync");
-		}
-	}
+		if(!wglSwapIntervalEXT(1)) warning("ny::WglContext: failed to enable vertical sync");
 }
 
 void* WglContext::procAddr(const char* name) const
@@ -254,9 +253,13 @@ WglWindowContext::WglWindowContext(WinapiAppContext& ctx, const WinapiWindowSett
 	WinapiWindowContext::initWindowClass(settings);
 	WinapiWindowContext::setStyle(settings);
 	WinapiWindowContext::initWindow(settings);
+	WinapiWindowContext::showWindow(settings);
 
-	wglContext_.reset(new WglContext(*this));
-	drawContext_.reset(new GlDrawContext());
+	wglContext_.reset(new WglContext(handle(), settings.gl));
+}
+
+WglWindowContext::~WglWindowContext()
+{
 }
 
 WNDCLASSEX WglWindowContext::windowClass(const WinapiWindowSettings& settings)
@@ -264,24 +267,6 @@ WNDCLASSEX WglWindowContext::windowClass(const WinapiWindowSettings& settings)
 	auto ret = WinapiWindowContext::windowClass(settings);
 	ret.style |= CS_OWNDC;
 	return ret;
-}
-
-WglWindowContext::~WglWindowContext()
-{
-}
-
-DrawGuard WglWindowContext::draw()
-{
-	if(!wglContext_->makeCurrent())
-		throw std::runtime_error(errorMessage("WglWC::draw: Failed to make wgl Context current"));
-
-	RECT rect;
-	::GetClientRect(handle(), &rect);
-	glViewport(0, 0, rect.right - rect.left, rect.bottom - rect.top);
-
-	drawContext_->resetRectangleClip();
-
-	return DrawGuard(*drawContext_);
 }
 
 }

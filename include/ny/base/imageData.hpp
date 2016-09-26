@@ -61,6 +61,7 @@ struct BasicImageData
 using ImageData = BasicImageData<const std::uint8_t*>;
 using MutableImageData = BasicImageData<std::uint8_t*>;
 using OwnedImageData = BasicImageData<std::unique_ptr<std::uint8_t[]>>;
+using SharedImageData = BasicImageData<std::shared_ptr<std::uint8_t[]>>;
 
 ///Represents an animated image, i.e. a collection of imageDatas with a stored delay between each
 ///other. Usually all stored images in the collection should have the same format, size and stride.

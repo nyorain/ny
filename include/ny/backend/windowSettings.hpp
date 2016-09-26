@@ -56,22 +56,6 @@ enum class WindowCapability : unsigned int
 using WindowCapabilities = nytl::Flags<WindowCapability>;
 NYTL_FLAG_OPS(WindowCapability)
 
-///Typesafe enums that can be used for various settings with more control than just a bool.
-///- must or mustNot: if the preference cannot be fulfilled an exception will be thrown or the
-///  function will simply fail
-///- should or shouldNot: if the preference cannot be fulfilled a warning will be raised but the
-///  function will normally continue. Useful if there is method to check afterwards if preference
-///  could be fulfilled.
-///- dontCare: the function will decide what to do in this case. Usually the best choice.
-enum class Preference : unsigned int
-{
-    must,
-    should,
-    dontCare = 0,
-    shouldNot,
-    mustNot
-};
-
 ///Defines all possible native widgets that may be implemented on the specific backends.
 ///Note that none of them are guaranteed to exist, some backends to not have native widgets
 ///at all (linux backends).
@@ -186,7 +170,7 @@ public:
 	}
 };
 
-struct GlDrawSettings
+struct GlContextSettings
 {
 	//A pointer to store a pointer to the used GlContext.
 	//Note that the underlaying GlContext is only guaranteed to be existent as long as
@@ -197,17 +181,17 @@ struct GlDrawSettings
 	bool vsync = true;
 };
 
-struct VulkanDrawSettings
+struct VulkanContextSettings
 {
-	//The context to use for creating the vulkan surface. If nullptr, the backend will create
-	//a vulkan context (or use an already created internal one).
-	//For real vulkan applications, it is highly recommended and usual inalienable to use this, 
-	//since contexts
-	//created by the backends
+	///The context to use for creating the vulkan surface. If nullptr, the backend will create
+	///a vulkan context (or use an already created internal one).
+	///For real vulkan applications, it is highly recommended and usual inalienable to use this,
+	///since contexts created by the backends do usually not match all requirements.
 	VulkanContext* useContext {};
 
-	//A pointer to a VulkanSurfaceContext in which the context will then be stored
-	VulkanSurfaceContext** storeContext {};
+	///A pointer to a VulkanSurfaceContext in which a pointer to the used context and the
+	///created surface will be stored.
+	VulkanSurfaceContext* storeContext {};
 };
 
 ///Settings for a Window.
@@ -233,8 +217,8 @@ public:
 	ContextType context;
 	union
 	{
-		GlDrawSettings gl;
-		VulkanDrawSettings vulkan;
+		GlContextSettings gl;
+		VulkanContextSettings vulkan;
 	};
 };
 

@@ -116,10 +116,6 @@ public:
 	///Returns whether the context shares it resources with the other context.
 	bool sharedWith(const GlContext& other) const;
 
-	//XXX: should be deprecated?
-	///Updates the openGL viewport
-	void updateViewport(const Rect2f& viewport);
-
 	///Applies the contents of this context to its surface. Usually this means, the context will
 	///swap the back and the front buffer. No guarantess are given that the contents of the
 	///context will not be visible BEFORE a call to this function (since some backends may
@@ -127,11 +123,6 @@ public:
 	///all contents should be applied.
 	///Alternative name(may not be matching for all backends though) would be swapBuffers().
 	virtual bool apply();
-
-	///Checks if this context is in a valid state. Usually all contexts that exist should
-	///be in a valid state (RAII) but there may be cases where the used backend is not able
-	///to guarantee it, so it should usually be checked before using the context.
-	virtual bool valid() const { return 1; }
 
 	///Returns a proc addr for a given function name or nullptr if it could not be found.
 	virtual void* procAddr(const char*) const { return nullptr; }

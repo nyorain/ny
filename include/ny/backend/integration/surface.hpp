@@ -10,9 +10,6 @@ namespace ny
 
 class BufferSurface;
 
-//TODO: at the moment a const image data buffer is returned. Not that useful...
-//XXX: make ImageData a template and the type of the data pointer template param
-
 ///Manages a drawable buffer in form of an ImageData object.
 ///When this Guard object is destructed, it will apply the buffer it holds.
 class BufferGuard
@@ -21,6 +18,13 @@ public:
 	BufferGuard(BufferSurface&);
 	~BufferGuard();
 
+	///Returns a mutable image data buffer to draw into. When this guard get destructed, the
+	///buffer it holds will be applied to the associated surface.
+	///Note that the format of this image data buffer may vary on different backends and must
+	///be taken into account to achieve correct color values.
+	///\sa BasicImageData
+	///\sa convertFormat
+	///\sa BufferSurface
 	const MutableImageData& get() { return data_; }
 
 protected:

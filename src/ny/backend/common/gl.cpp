@@ -1,23 +1,29 @@
 #include <ny/backend/common/gl.hpp>
 #include <ny/base/log.hpp>
 #include <nytl/misc.hpp>
-#include <evg/gl/api.hpp>
 
 #include <thread>
+#include <cstring>
 
 namespace ny
 {
 
+
 namespace
 {
 
-//utiltity for loading gl and gles
-const GlContext* gCtx = nullptr;
-void* loadCallback(const char* name)
-{
-	if(!gCtx) return nullptr;
-	return gCtx->procAddr(name);
-}
+//the needed parts of the opengl spec
+using PfnGetString = const char*(*)(unsigned int);
+using PfnGetStringi = const char*(*)(unsigned int, unsigned int);
+using PfnGetIntegerv = void*(*)(unsigned int, int*);
+
+constexpr unsigned int GL_EXTENSIONS = 0x1F03;
+constexpr unsigned int GL_NUM_EXTENSIONS = 0x821D;
+constexpr unsigned int GL_NUM_SHADING_LANGUAGE_VERSIONS = 0x82E9;
+constexpr unsigned int GL_SHADING_LANGUAGE_VERSION = 0x8B8C;
+constexpr unsigned int GL_MAJOR_VERSION = 0x821B;
+constexpr unsigned int GL_MINOR_VERSION = 0x821C;
+constexpr unsigned int GL_VERSION = 0x1F02;
 
 //parsing shader version
 GlContext::Version parseGlslVersion(const std::string& name)
@@ -88,10 +94,10 @@ GlContext::Version parseGlslVersion(const std::string& name)
 }
 
 //gl version to stirng
-std::string GlContext::Version::name() const
+std::string name(const GlVersion& v)
 {
-	auto ret = std::to_string(major) + "." + std::to_string(minor * 10);
-	if(api == GlContext::Api::gles) ret += " ES";
+	auto ret = std::to_string(v.major) + "." + std::to_string(v.minor * 10);
+	if(v.api == GlContext::Api::gles) ret += " ES";
 	return ret;
 }
 
@@ -102,30 +108,6 @@ GlContext* GlContext::threadLocalCurrent(bool change, GlContext* newOne)
 	static thread_local GlContext* current_ = nullptr;
 	if(change) current_ = newOne;
 	return current_;
-}
-
-void GlContext::assureGlLoaded(const GlContext& ctx)
-{
-	static bool loaded = false;
-	if(!loaded)
-	{
-		gCtx = &ctx;
-		gladLoadGLLoader(loadCallback);
-		gCtx = nullptr;
-		loaded = true;
-	}
-}
-
-void GlContext::assureGlesLoaded(const GlContext& ctx)
-{
-	static bool loaded = false;
-	if(!loaded)
-	{
-		gCtx = &ctx;
-		gladLoadGLES2Loader(loadCallback);
-		gCtx = nullptr;
-		loaded = true;
-	}
 }
 
 //non-static
@@ -144,31 +126,66 @@ void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)
 
 	//some backends need to make it current before
 	if(saved == this) saved = nullptr;
-	else if(!makeCurrent()) throw std::runtime_error("GlCtx::initCtx: failed to make current");
+	else if(!makeCurrent())
+		throw std::runtime_error("ny::GlContext::initContext: failed to make current");
 
-	//load the api function pointers via glad
-	if(api == Api::gl) assureGlLoaded(*this);
-	else if(api == Api::gles) assureGlesLoaded(*this);
+	//load needed functions
+	auto getString = reinterpret_cast<PfnGetString>(procAddr("glGetString"));
+	auto getStringi = reinterpret_cast<PfnGetStringi>(procAddr("glGetStringi"));
+	auto getIntegerv = reinterpret_cast<PfnGetIntegerv>(procAddr("glGetIntegerv"));
 
-	//version from glad
-	version_.major = GLVersion.major;
-	version_.minor = GLVersion.minor;
+	if(!getString || !getStringi || !getIntegerv)
+		throw std::runtime_error("ny::GlContext::initContext: failed to load gl functions.");
+
+	//get opengl version
+	//first try >3.0 api
+	int major = 0, minor = 0;
+	getIntegerv(GL_MAJOR_VERSION, &major);
+	getIntegerv(GL_MINOR_VERSION, &minor);
+
+	if(!major)
+	{
+		auto version = getString(GL_VERSION);
+		if(!version)
+			throw std::runtime_error("ny::GlContext::initContext: Unable to retrieve gl version");
+
+		//version prefixes used by some implementers
+		constexpr const char* prefixes[] = {
+	        "OpenGL ES-CM ",
+	        "OpenGL ES-CL ",
+	        "OpenGL ES "
+    	};
+
+    	for (auto i = 0u; i < sizeof(prefixes) / sizeof(prefixes[0]); ++i)
+		{
+        	const auto length = std::strlen(prefixes[i]);
+        	if(strncmp(version, prefixes[i], length) == 0)
+			{
+            	version += length;
+            	break;
+        	}
+		}
+
+		std::sscanf(version, "%d.%d", &major, &minor);
+ 	}
+
+	version_ = {api, static_cast<unsigned int>(major), static_cast<unsigned int>(minor)};
 
 	//extensions
 	if(versionNumber() >= 30)
 	{
 		auto number = 0;
-		glGetIntegerv(GL_NUM_EXTENSIONS, &number);
+		getIntegerv(GL_NUM_EXTENSIONS, &number);
 
 		for(auto i = 0; i < number; ++i)
 		{
-			std::string ext = (const char*) glGetStringi(GL_EXTENSIONS, i);
+			std::string ext = getStringi(GL_EXTENSIONS, i);
 			extensions_.push_back(ext);
 		}
 	}
 	else
 	{
-		std::string ext = (const char*) glGetString(GL_EXTENSIONS);
+		std::string ext = getString(GL_EXTENSIONS);
 		extensions_ = nytl::split(ext, ' ');
 	}
 
@@ -176,18 +193,18 @@ void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)
 	if(api == Api::gl && versionNumber() >= 43)
 	{
 		auto number = 0;
-		glGetIntegerv(GL_NUM_SHADING_LANGUAGE_VERSIONS, &number);
+		getIntegerv(GL_NUM_SHADING_LANGUAGE_VERSIONS, &number);
 
 		for(auto i = 0; i < number; ++i)
 		{
-			std::string ver = (const char*) glGetStringi(GL_SHADING_LANGUAGE_VERSION, i);
+			std::string ver = getStringi(GL_SHADING_LANGUAGE_VERSION, i);
 			auto version = parseGlslVersion(ver);
 			if(version.major != 0) glslVersions_.push_back(version);
 		}
 	}
 	else
 	{
-		std::string ver = (const char*) glGetString(GL_SHADING_LANGUAGE_VERSION);
+		std::string ver = getString(GL_SHADING_LANGUAGE_VERSION);
 		auto version = parseGlslVersion(ver);
 		if(version.major != 0) glslVersions_.push_back(version);
 	}
@@ -196,7 +213,7 @@ void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)
 
 	//choose highest version
 	auto& pgv = preferredGlslVersion_;
-	for(auto& glsl : glslVersions_)	if(glsl.number() > pgv.number()) pgv = glsl;
+	for(auto& glsl : glslVersions_)	if(number(glsl) > number(pgv)) pgv = glsl;
 
 	//make it not current - needed since it might be made current in another thread
 	makeNotCurrent();
@@ -248,20 +265,8 @@ bool GlContext::glExtensionSupported(const std::string& name) const
 	return false;
 }
 
-void GlContext::updateViewport(const Rect2f& viewport)
-{
-	if(!current())
-	{
-		warning("GlContext::updateViewport called with not-current context");
-		return;
-	}
-
-	glViewport(viewport.position.x, viewport.position.y, viewport.size.x, viewport.size.y);
-}
-
 bool GlContext::apply()
 {
-	//glFinish();
 	return true;
 }
 

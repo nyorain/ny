@@ -12,7 +12,8 @@ namespace ny
 class WglContext : public GlContext
 {
 public:
-    WglContext(WinapiWindowContext& wc);
+    WglContext(HWND hwnd, const GlContextSettings& settings);
+    WglContext(HDC hdc, const GlContextSettings& settings);
     virtual ~WglContext();
 
     virtual bool apply() override;
@@ -20,8 +21,6 @@ public:
 
 protected:
 	static HMODULE glLibHandle();
-	static HMODULE glesLibHandle();
-
 	static HGLRC dummyContext(HDC* hdcOut = nullptr);
 	static void assureWglLoaded();
 	static void* wglProcAddr(const char* name);
@@ -30,6 +29,7 @@ protected:
     virtual bool makeCurrentImpl() override;
     virtual bool makeNotCurrentImpl() override;
 
+	void init(const GlContextSettings& settings);
 	void initPixelFormat(unsigned int depth, unsigned int stencil);
 	PIXELFORMATDESCRIPTOR pixelFormatDescriptor() const;
 	void createContext();
@@ -37,24 +37,23 @@ protected:
 
 protected:
 	int pixelFormat_ = 0;
-    WinapiWindowContext* wc_ = nullptr;
     HDC dc_ = nullptr;
+	HWND hwnd_ = nullptr;
     HGLRC wglContext_ = nullptr;
 };
 
-// ///Winapi WindowContext using wgl (OpenGL) to draw.
-// class WglWindowContext : public WinapiWindowContext
-// {
-// public:
-// 	WglWindowContext(WinapiAppContext& ctx, const WinapiWindowSettings& settings = {});
-// 	~WglWindowContext();
-//
-// protected:
-// 	virtual WNDCLASSEX windowClass(const WinapiWindowSettings& settings) override;
-//
-// protected:
-// 	std::unique_ptr<WglContext> wglContext_;
-// 	std::unique_ptr<evg::GlDrawContext> drawContext_;
-// };
+///Winapi WindowContext using wgl (OpenGL) to draw.
+class WglWindowContext : public WinapiWindowContext
+{
+public:
+	WglWindowContext(WinapiAppContext& ctx, const WinapiWindowSettings& settings = {});
+	~WglWindowContext();
+
+protected:
+	virtual WNDCLASSEX windowClass(const WinapiWindowSettings& settings) override;
+
+protected:
+	std::unique_ptr<WglContext> wglContext_;
+};
 
 }

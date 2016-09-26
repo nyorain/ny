@@ -12,11 +12,15 @@
 namespace ny
 {
 
-//Adds a new event
 namespace eventType
 {
     constexpr auto dataOffer = 31u;
 }
+
+//For image it should be like this, but since the object is wrapped in an any, it cant
+//be OwnedImageData since it is not copyable.
+//When used by an DataOffer, must be a ny::OwnedImageData object.
+//When used by an DataSource, must be a ny::ImageData object.
 
 ///This namespace holds constants for all data formats in which data from a DataSource/DataOffer
 ///may be represented.
@@ -24,18 +28,18 @@ namespace eventType
 ///are always represented with a std:vector<std::uint8_t> holding the serialized data.
 namespace dataType
 {
-	constexpr auto none = 0u; //meta symbolic constant, dont actually use it.
-	constexpr auto custom = 1u; //meta symbolic constant, dont actually use it.
+	constexpr auto none = 0u; //meta symbolic constant, should not be manually used
+	constexpr auto custom = 1u; //meta symbolic constant, should not be manually used
 
 	constexpr auto raw = 2u; //std:vector<std::uint8_t>, raw unspecified data buffer
 	constexpr auto text = 3u; //std::string encoded utf8
     constexpr auto filePaths = 4u; //std::vector<c++17 ? std::path : std::string>
-	constexpr auto image = 5u; //ny::ImageData (must be valid as long as the offer/source object)
+	constexpr auto image = 5u; //ny::ImageData
 
 	constexpr auto timePoint = 6u; //std::chrono::high_resolution_clock::time_point
 	constexpr auto timeDuration = 7u; //std::chrono::high_resolution_clock::duration
 
-	//raw, specified file buffers, std::vector<std::uint8_t>, may be encoded
+	//raw, specified file buffers, represented as std::vector<std::uint8_t>, may be encoded
 	//note that it is not in the scope of ny to decode images or movies.
 	//some backends might have built-in functionality, they will try to decode it and if
 	//they can they will send dataType::image with the decoded data.
@@ -94,7 +98,7 @@ class DataOffer
 {
 public:
 	// using DataFunction = CompFunc<void(DataOffer& off, unsigned int fmt, const std::any& data)>;
-	using DataFunction = std::function<void(DataOffer& off, unsigned int fmt, const std::any& data)>;
+	using DataFunction = std::function<void(DataOffer&, unsigned int, const std::any&)>;
 
 public:
 	//TODO: make this a function that registers a function (to make sense on e.g. winapi)

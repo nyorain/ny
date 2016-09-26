@@ -11,6 +11,7 @@ namespace ny
 using namespace nytl;
 
 //backend typedefs
+//XXX: move these and the config.hpp include to fwd.hpp?
 #ifdef NY_WithX11
  class X11Backend;
  class X11WindowContext;
@@ -28,5 +29,14 @@ using namespace nytl;
  class WinapiWindowContext;
  class WinapiAppContext;
 #endif //WithWinapi
+
+#ifdef NY_WithGL
+ class GlContext;
+#endif //GL
+
+#ifdef NY_WithVulkan
+ class VulkanContext;
+ class VulkanSurfaceContext;
+#endif //Vulkan
 
 }

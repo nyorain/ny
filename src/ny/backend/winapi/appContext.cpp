@@ -114,7 +114,7 @@ std::unique_ptr<WindowContext> WinapiAppContext::createWindowContext(const Windo
 	if(contextType == ContextType::gl)
 	{
 	#ifdef NY_WithGL
-		// return std::make_unique<WglWindowContext>(*this, s);
+		return std::make_unique<WglWindowContext>(*this, winapiSettings);
 	#else
 		throw std::logic_error("ny::WinapiAC::createWC: ny was built without gl support");
 	#endif //gl
@@ -123,7 +123,13 @@ std::unique_ptr<WindowContext> WinapiAppContext::createWindowContext(const Windo
 	else if(contextType == ContextType::vulkan)
 	{
 	#ifdef NY_WithVulkan
-		// return std::make_unique<VulkanWinapiWindowContext>(*this, s);
+		if(!vulkanContext_)
+		{
+			vulkanContext_.reset(new VulkanContext());
+			init(*vulkanContext_);
+		}
+		
+		return std::make_unique<VulkanWinapiWindowContext>(*this, s);
 	#else
 		throw std::logic_error("ny::WinapiAC::createWC: ny was built without vulkan support");
 	#endif //vulkan
@@ -429,6 +435,8 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 			if(handler)
 			{
 				SizeEvent ev(handler);
+				ev.size.x = LOWORD(lparam);
+				ev.size.y = HIWORD(lparam);
 				dispatch(ev);
 			}
 
