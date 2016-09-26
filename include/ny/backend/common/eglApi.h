@@ -16,6 +16,27 @@
         http://glad.dav1d.de/#language=c&specification=egl&api=egl%3D1.5&extensions=EGL_EXT_buffer_age&extensions=EGL_EXT_device_enumeration&extensions=EGL_EXT_platform_base&extensions=EGL_KHR_image&extensions=EGL_KHR_image_base&extensions=EGL_KHR_platform_android&extensions=EGL_KHR_platform_gbm&extensions=EGL_KHR_platform_wayland&extensions=EGL_KHR_platform_x11&extensions=EGL_KHR_surfaceless_context&extensions=EGL_KHR_swap_buffers_with_damage&extensions=EGL_MESA_drm_image
 */
 
+// The MIT License (MIT)
+//
+// Copyright (c) 2013 David Herberth
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy of
+// this software and associated documentation files (the "Software"), to deal in
+// the Software without restriction, including without limitation the rights to
+// use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+// the Software, and to permit persons to whom the Software is furnished to do so,
+// subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+// IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 
 #ifndef __glad_egl_h_
 

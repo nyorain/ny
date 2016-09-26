@@ -1,9 +1,5 @@
 #include <ny/base.hpp>
 #include <ny/backend.hpp>
-#include <ny/app/events.hpp>
-
-#include <evg/drawContext.hpp>
-#include <evg/image.hpp>
 
 ///Custom event handler for the low-level backend api.
 ///See intro-app for a higher level example if you think this is too complex.
@@ -18,16 +14,19 @@ public:
 	{
 		ny::debug("Received event with type ", ev.type());
 
-		if(ev.type() == ny::eventType::windowClose)
+		if(ev.type() == ny::eventType::close)
 		{
 			ny::debug("Window closed. Exiting.");
 			loopControl_.stop();
 			return true;
 		}
-		else if(ev.type() == ny::eventType::mouseButton)
+		else if(ev.type() == ny::eventType::key)
 		{
-			wc_.icon({});
-			wc_.cursor(ny::CursorType::leftPtr);
+			if(!static_cast<const ny::KeyEvent&>(ev).pressed) return false;
+
+			ny::debug("Key pressed. Exiting.");
+			loopControl_.stop();
+			return true;
 		}
 
 		return false;
@@ -62,16 +61,6 @@ int main()
 	///the dispatchLoop.
 	wc->eventHandler(handler);
 	wc->refresh();
-
-	///Set the cursor to a native grab cursor
-	evg::Image cursorImage("cursor.png");
-	// ny::Cursor cursor(ny::CursorType::grab);
-	ny::Cursor cursor({*cursorImage.data(), cursorImage.size(), ny::ImageDataFormat::rgba8888});
-	wc->cursor(cursor);
-
-	///Set the icon to a loaded icon
-	evg::Image iconImage("icon.png");
-	wc->icon({*iconImage.data(), iconImage.size(), ny::ImageDataFormat::rgba8888});
 
 	ny::debug("Entering main loop");
 	ac->dispatchLoop(control);

@@ -13,12 +13,14 @@
 #include <ny/base/eventDispatcher.hpp>
 
 #ifdef NY_WithGL
-#include <ny/backend/winapi/wgl.hpp>
-#endif
+ #include <ny/backend/winapi/wgl.hpp>
+#endif //Gl
 
 #ifdef NY_WithVulkan
-#include <ny/backend/winapi/vulkan.hpp>
-#endif
+ #define VK_USE_PLATFORM_WIN32_KHR
+ #include <ny/backend/winapi/vulkan.hpp>
+ #include <vulkan/vulkan.h>
+#endif //Vulkan
 
 #include <nytl/utf.hpp>
 #include <nytl/scope.hpp>
@@ -113,26 +115,20 @@ std::unique_ptr<WindowContext> WinapiAppContext::createWindowContext(const Windo
 	auto contextType = settings.context;
 	if(contextType == ContextType::gl)
 	{
-	#ifdef NY_WithGL
-		return std::make_unique<WglWindowContext>(*this, winapiSettings);
-	#else
-		throw std::logic_error("ny::WinapiAC::createWC: ny was built without gl support");
-	#endif //gl
+		#ifdef NY_WithGL
+		 return std::make_unique<WglWindowContext>(*this, winapiSettings);
+		#else
+		 throw std::logic_error("ny::WinapiAC::createWC: ny was built without gl support");
+		#endif //gl
 	}
 
 	else if(contextType == ContextType::vulkan)
 	{
-	#ifdef NY_WithVulkan
-		if(!vulkanContext_)
-		{
-			vulkanContext_.reset(new VulkanContext());
-			init(*vulkanContext_);
-		}
-		
-		return std::make_unique<VulkanWinapiWindowContext>(*this, s);
-	#else
-		throw std::logic_error("ny::WinapiAC::createWC: ny was built without vulkan support");
-	#endif //vulkan
+		#ifdef NY_WithVulkan
+		 return std::make_unique<VulkanWinapiWindowContext>(*this, winapiSettings);
+		#else
+		 throw std::logic_error("ny::WinapiAC::createWC: ny was built without vulkan support");
+		#endif //vulkan
 	}
 
 	return std::make_unique<WinapiWindowContext>(*this, winapiSettings);
@@ -504,5 +500,9 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 	return result;
 }
 
+std::vector<const char*> WinapiAppContext::vulkanExtensions() const
+{
+	return {VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME};
+}
 
 }

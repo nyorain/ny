@@ -84,16 +84,17 @@ public:
 	///Returns the extents of just the client area of the window.
 	Rect2i clientExtents() const;
 
-	//TODO:
-	//Sets the integration to the given one.
+	///Sets the integration to the given one.
 	///Will return false if there is already such an integration or this implementation
 	///does not support them (e.g. vulkan/opengl WindowContext).
-	// virtual bool integration(WinapiDrawIntegration& integration);
+	///Calling this function with a nullptr resets the integration.
+	virtual bool drawIntegration(WinapiDrawIntegration* integration);
 
-	///Creates and returns a surface integration for this WindowContext, or an empty
-	///surface (with type = none) if it could not be constructed.
+	///Creates a surface and stores it in the given parameter.
+	///Returns false and does not change the given parameter if a surface coult not be
+	///created.
 	///This could be the case if the WindowContext already has another integration.
-	// virtual Surface surface();
+	virtual bool surface(Surface& surface);
 
 protected:
 	struct State
@@ -135,7 +136,6 @@ protected:
 	State savedState_; //used e.g. for resetState
 
 	WinapiDrawIntegration* drawIntegration_ = nullptr;
-	friend class WinapiDrawIntegration;
 };
 
 

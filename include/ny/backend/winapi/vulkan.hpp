@@ -2,7 +2,6 @@
 
 #include <ny/backend/winapi/include.hpp>
 #include <ny/backend/winapi/windowContext.hpp>
-#include <vulkan/vulkan.h>
 
 namespace ny
 {
@@ -11,14 +10,18 @@ namespace ny
 class VulkanWinapiWindowContext : public WinapiWindowContext
 {
 public:
-	VulkanWinapiWindowContext(WinapiAppContext& ac, WindowSettings& ws);
+	VulkanWinapiWindowContext(WinapiAppContext&, const WinapiWindowSettings&);
 	~VulkanWinapiWindowContext();
 
+	bool surface(Surface&) override;
+	bool drawIntegration(WinapiDrawIntegration*) override { return false; }
+
 	VkSurfaceKHR vkSurface() const { return vkSurface_; }
+	VkInstance vkInstance() const { return vkInstance_; }
 
 protected:
-	VkSurfaceKHR vkSurface_;
-	VulkanContext* context_;
+	VkSurfaceKHR vkSurface_ {};
+	VkInstance vkInstance_ {};
 };
 
 }

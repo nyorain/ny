@@ -54,6 +54,11 @@ class KeyEvent;
 class RefreshEvent;
 class ShowEvent;
 
+//integration
+class Surface;
+class BufferSurface;
+class BufferGuard;
+
 //enums
 enum class ToplevelState : unsigned int;
 enum class WindowEdge : unsigned int;

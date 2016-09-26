@@ -45,3 +45,7 @@ std::unique_ptr<CairoIntegration> cairoIntegration(WindowContext& context);
 
 
 }
+
+#ifndef NY_WithCairo
+	#error ny was built without cairo. Do not include this header.
+#endif

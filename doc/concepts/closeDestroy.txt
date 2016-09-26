@@ -1,6 +1,0 @@
-In ny there is no difference between closing and destroying a window - therefore the Window class
-doeas only offer the Window::close() method.
-Closing a window means unmapping it and destroying its windowContext. Once a window is closed,
-it can not be reopended. Window::close() can also be called when the Window object receives a 
-CloseEvent which will also be emitted by the backend (e.g. when the close button in the 
-backend-server-side window decoration is clicked).

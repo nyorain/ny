@@ -17,8 +17,7 @@ namespace
 		if(!xwc) return {};
 
 		Surface surface;
-		surface.type = SurfaceType::buffer;
-		surface.buffer = std::make_unique<WinapiBufferSurface>(*xwc);
+		xwc->surface(surface);
 		return surface;
 	}
 

@@ -91,7 +91,7 @@ public:
 	union
 	{
 		GlContext* gl {};
-		VulkanSurfaceContext* vulkan;
+		VkSurfaceKHR vulkan;
 		std::unique_ptr<BufferSurface> buffer;
 	};
 

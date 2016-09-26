@@ -49,8 +49,11 @@ public:
 	WglWindowContext(WinapiAppContext& ctx, const WinapiWindowSettings& settings = {});
 	~WglWindowContext();
 
+	bool surface(Surface&) override;
+	bool drawIntegration(WinapiDrawIntegration*) override { return false; }
+
 protected:
-	virtual WNDCLASSEX windowClass(const WinapiWindowSettings& settings) override;
+	WNDCLASSEX windowClass(const WinapiWindowSettings& settings) override;
 
 protected:
 	std::unique_ptr<WglContext> wglContext_;

@@ -2,6 +2,7 @@
 #include <ny/backend/winapi/util.hpp>
 #include <ny/backend/winapi/appContext.hpp>
 #include <ny/backend/winapi/com.hpp>
+#include <ny/backend/winapi/surface.hpp>
 
 #include <ny/base/log.hpp>
 #include <ny/base/cursor.hpp>
@@ -476,6 +477,21 @@ NativeWindowHandle WinapiWindowContext::nativeHandle() const
 }
 
 //specific
+bool WinapiWindowContext::drawIntegration(WinapiDrawIntegration* integration)
+{
+	if(drawIntegration_) return false;
+	drawIntegration_ = integration;
+	return true;
+}
+
+bool WinapiWindowContext::surface(Surface& surface)
+{
+	if(drawIntegration_) return false;
+	surface.type = SurfaceType::buffer;
+	surface.buffer = std::make_unique<WinapiBufferSurface>(*this);
+	return true;
+}
+
 Rect2i WinapiWindowContext::extents() const
 {
 	RECT ext;
@@ -493,15 +509,13 @@ Rect2i WinapiWindowContext::clientExtents() const
 ///Draw integration
 WinapiDrawIntegration::WinapiDrawIntegration(WinapiWindowContext& wc) : context_(wc)
 {
-	if(wc.drawIntegration_)
-		throw std::logic_error("WinapiDrawIntegration: windowContext already has an integration");
-
-	wc.drawIntegration_ = this;
+	if(!wc.drawIntegration(this))
+		throw std::runtime_error("WinapiDrawIntegration: failed to set for windowContext.");
 }
 
 WinapiDrawIntegration::~WinapiDrawIntegration()
 {
-	context_.drawIntegration_ = nullptr;
+	context_.drawIntegration(nullptr);
 }
 
 }

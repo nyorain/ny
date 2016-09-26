@@ -3,6 +3,7 @@
 #include <ny/backend/winapi/appContext.hpp>
 #include <ny/backend/winapi/util.hpp>
 #include <ny/backend/winapi/wglApi.hpp>
+#include <ny/backend/integration/surface.hpp>
 #include <ny/base/log.hpp>
 
 #include <thread>
@@ -267,6 +268,13 @@ WNDCLASSEX WglWindowContext::windowClass(const WinapiWindowSettings& settings)
 	auto ret = WinapiWindowContext::windowClass(settings);
 	ret.style |= CS_OWNDC;
 	return ret;
+}
+
+bool WglWindowContext::surface(Surface& surface)
+{
+	surface.type = SurfaceType::gl;
+	surface.gl = wglContext_.get();
+	return true;
 }
 
 }

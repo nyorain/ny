@@ -24,12 +24,12 @@ include_directories("${CMAKE_BINARY_DIR}/external/install/include")
 link_directories("${CMAKE_BINARY_DIR}/external/install/lib")
 
 #cmake options
-set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-std=c++17") # C++ 17
+list(APPEND CMAKE_CXX_FLAGS "-std=c++17") # C++ 17
 # set(CMAKE_CXX_STANDARD 17)
 # set(CMAKE_CXX_STANDARD_REQUIRED on)
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/src/cmake")
 # set(CMAKE_BUILD_WITH_INSTALL_RPATH true)
 
 #build type
@@ -85,6 +85,20 @@ if(nytl_FOUND)
 else()
 	set(nytl_location "own")
 	set(nytl_own true)
+
+	include(ExternalProject)
+	set(ExternalProjectCMakeArgs
+		-DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}/external/install
+		-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+		-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+		-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
+
+	ExternalProject_Add(nytl_ep
+		PREFIX ${CMAKE_CURRENT_BINARY_DIR}/nytl
+	  	GIT_REPOSITORY https://github.com/nyorain/nytl.git
+		INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/external/install
+		CMAKE_ARGS ${ExternalProjectCMakeArgs})
+	install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/external/install/." DESTINATION .)
 endif()
 
 #config file
@@ -113,21 +127,20 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/ny.pc" DESTINATION lib/pkgconfig)
 #subdirs
 add_subdirectory(src/ny)
 add_subdirectory(include)
-add_subdirectory(external)
 
 if(BuildExamples)
-	add_subdirectory(examples)
+	add_subdirectory(src/examples)
 endif()
 
 # uninstall target
 configure_file(
-	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/uninstall.cmake.in"
-	"${CMAKE_CURRENT_BINARY_DIR}/cmake/uninstall.cmake"
+	"${CMAKE_CURRENT_SOURCE_DIR}/src/cmake/uninstall.cmake.in"
+	"${CMAKE_CURRENT_BINARY_DIR}/src/cmake/uninstall.cmake"
 	IMMEDIATE @ONLY)
 
 add_custom_target(uninstall
 	COMMAND ${CMAKE_COMMAND} -P
-	${CMAKE_CURRENT_BINARY_DIR}/cmake/uninstall.cmake)
+	${CMAKE_CURRENT_BINARY_DIR}/src/cmake/uninstall.cmake)
 
 #output configuration
 #function that normalizes bool vars to 0 or 1.
@@ -156,6 +169,7 @@ message("\tWithX11:\t\t" ${WithX11})
 message("\tWithGL:\t\t\t" ${WithGL})
 message("\tWithEGL:\t\t" ${WithEGL})
 message("\tWithVulkan:\t\t" ${WithVulkan})
+message("\tWithCairo:\t\t" ${WithCairo})
 message("\n")
 
 message("\tnytl build:\t\t" ${nytl_location})

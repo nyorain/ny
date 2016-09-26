@@ -4,9 +4,9 @@
 #include <nytl/nonCopyable.hpp>
 
 #include <memory>
-#include <system_error>
+#include <vector>
 
-///Header can be used without linking to ny-backend.
+///This header and its functionality can be used without linking to ny-backend.
 
 namespace ny
 {
@@ -119,6 +119,12 @@ public:
 	///The implementation must be able to provide the data as long as it exists.
 	///\return true on success, false on failure (e.g. cursor is not over a window)
 	virtual bool startDragDrop(std::unique_ptr<DataSource>&& dataSource) = 0;
+
+	///If ny was built with vulkan and the backend of the AppContext implementation has
+	///vulkan integration, this returns all instance extensions that must be enabled for
+	///an instance to make it suited for vulkan surface creation.
+	///Otherwise this returns an empty vector.
+	virtual std::vector<const char*> vulkanExtensions() const = 0;
 };
 
 }

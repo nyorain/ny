@@ -181,17 +181,14 @@ struct GlContextSettings
 	bool vsync = true;
 };
 
-struct VulkanContextSettings
+struct VulkanSurfaceSettings
 {
-	///The context to use for creating the vulkan surface. If nullptr, the backend will create
-	///a vulkan context (or use an already created internal one).
-	///For real vulkan applications, it is highly recommended and usual inalienable to use this,
-	///since contexts created by the backends do usually not match all requirements.
-	VulkanContext* useContext {};
+	///The vulkan instance which should be used to create the surface.
+	VkInstance instance {};
 
 	///A pointer to a VulkanSurfaceContext in which a pointer to the used context and the
 	///created surface will be stored.
-	VulkanSurfaceContext* storeContext {};
+	VkSurfaceKHR* storeSurface {};
 };
 
 ///Settings for a Window.
@@ -218,7 +215,7 @@ public:
 	union
 	{
 		GlContextSettings gl;
-		VulkanContextSettings vulkan;
+		VulkanSurfaceSettings vulkan;
 	};
 };
 

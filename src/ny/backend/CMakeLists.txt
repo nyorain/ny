@@ -9,7 +9,6 @@ if(WithWinapi)
 		winapi/appContext.cpp
 		winapi/backend.cpp
 		winapi/util.cpp
-		# winapi/gdi.cpp
 		winapi/com.cpp
 		winapi/input.cpp
 		winapi/surface.cpp
@@ -19,6 +18,10 @@ if(WithWinapi)
 
 	if(WithGL)
 		list(APPEND src_backend winapi/wgl.cpp winapi/wglApi.c)
+	endif()
+
+	if(WithVulkan)
+		list(APPEND src_backend winapi/vulkan.cpp)
 	endif()
 
 	if(WithCairo)
@@ -95,9 +98,8 @@ if(WithEGL)
 endif()
 
 if(WithVulkan)
-	# list(APPEND src_backend common/vulkan.cpp)
-	list(APPEND libs_backend ${VULKAN_LIBRARY})
-	list(APPEND include_backend ${VULKAN_INCLUDE_DIR})
+	list(APPEND libs_backend ${Vulkan_LIBRARY})
+	list(APPEND include_backend ${Vulkan_INCLUDE_DIR})
 endif()
 
 if(WithCairo)

@@ -36,6 +36,8 @@ public:
 	std::unique_ptr<DataOffer> clipboard() override;
 	bool startDragDrop(std::unique_ptr<DataSource>&& source) override;
 
+	std::vector<const char*> vulkanExtensions() const override;
+
 	//custom winapi stuff
     LONG_PTR eventProc(HWND, UINT, WPARAM, LPARAM);
 	//INT_PTR dlgEventProc(HWND, UINT, WPARAM, LPARAM); //needed?
@@ -54,7 +56,6 @@ protected:
     ULONG_PTR gdiplusToken_;
 
     std::map<HWND, WinapiWindowContext*> contexts_;
-	std::unique_ptr<VulkanContext> vulkanContext_;
 
 	LoopControl* dispatcherLoopControl_ = nullptr;
 	EventDispatcher* eventDispatcher_ = nullptr;
