@@ -146,6 +146,9 @@ KeyboardContext* WinapiAppContext::keyboardContext()
 
 bool WinapiAppContext::dispatchEvents()
 {
+	for(auto& e : pendingEvents_) if(e->handler) e->handler->handleEvent(*e);
+	pendingEvents_.clear();
+
 	receivedQuit_ = false;
     MSG msg;
 
@@ -176,6 +179,9 @@ bool WinapiAppContext::dispatchLoop(LoopControl& control)
 	MSG msg;
 	while(!receivedQuit_ && run.load())
 	{
+		for(auto& e : pendingEvents_) if(e->handler) e->handler->handleEvent(*e);
+		pendingEvents_.clear();
+
 		auto ret = GetMessage(&msg, nullptr, 0, 0);
 		if(ret == -1)
 		{
@@ -222,6 +228,9 @@ bool WinapiAppContext::threadedDispatchLoop(EventDispatcher& dispatcher,
 	MSG msg;
 	while(!receivedQuit_ && run.load())
 	{
+		for(auto& e : pendingEvents_) if(e->handler) e->handler->handleEvent(*e);
+		pendingEvents_.clear();
+		
 		auto ret = GetMessage(&msg, nullptr, 0, 0);
 		if(ret == -1)
 		{
@@ -283,6 +292,11 @@ WinapiWindowContext* WinapiAppContext::windowContext(HWND w)
 {
 	auto ptr = ::GetWindowLongPtr(w, GWLP_USERDATA);
 	return ptr ? reinterpret_cast<WinapiWindowContext*>(ptr) : nullptr;
+}
+
+void WinapiAppContext::dispatch(Event&& event)
+{
+	pendingEvents_.push_back(nytl::cloneMove(event));
 }
 
 //wndProc

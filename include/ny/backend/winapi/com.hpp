@@ -106,15 +106,22 @@ protected:
 class DropTargetImpl : public UnknownImplementation<IDropTarget, IID_IDropTarget>
 {
 public:
-	DropTargetImpl(WinapiWindowContext& ctx) : windowContext_(&ctx) {}
+	DropTargetImpl(WinapiWindowContext& ctx, const DataTypes& types)
+		: windowContext_(&ctx), dataTypes(types) {}
 
 	__stdcall HRESULT DragEnter(IDataObject*, DWORD, POINTL pos, DWORD* effect) override;
 	__stdcall HRESULT DragOver(DWORD keys, POINTL pos, DWORD* effect) override;
 	__stdcall HRESULT DragLeave() override;
 	__stdcall HRESULT Drop(IDataObject* data, DWORD, POINTL pos, DWORD*  effect) override;
 
+	///Returns whether one of the formats the DataObject advertises is supported by dataTypes.
+	bool supported(IDataObject& data);
+
+	DataTypes dataTypes;
+
 protected:
 	WinapiWindowContext* windowContext_;
+	unsigned int currentEffect_ = 0;
 };
 
 ///IDropSource implementation class.

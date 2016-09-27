@@ -42,18 +42,32 @@ DataOfferImpl::DataOfferImpl(IDataObject& object) : data_(object)
 		}
 	};
 
-	//enumerate all formats and check for the ones that can be understood
-	ULONG count;
-	FORMATETC format;
-
 	auto customFormat = ::RegisterClipboardFormat("ny::customDataFormat");
-	while(enumerator->Next(1, &format, &count) == S_OK)
+
+	//enumerate all formats and check for the ones that can be understood
+	//msdn states that the enumerator allocates the memory for formats but since we only pass
+	//a pointer this does not make any sense. We obviously pass with formats an array of at
+	//least celt (first param) objects.
+	//msdn is pretty bad...
+	constexpr auto formatsSize = 100;
+	FORMATETC formats[formatsSize];
+	ULONG count;
+
+	while(true)
 	{
-		checkAdd(format, CF_TEXT, TYMED_HGLOBAL, dataType::text);
-		checkAdd(format, CF_UNICODETEXT, TYMED_HGLOBAL, dataType::text);
-		checkAdd(format, CF_DIBV5, TYMED_HGLOBAL, dataType::image);
-		checkAdd(format, CF_HDROP, TYMED_HGLOBAL, dataType::filePaths);
-		checkAdd(format, customFormat, TYMED_HGLOBAL, dataType::custom);
+		auto ret = enumerator->Next(formatsSize, formats, &count);
+		for(auto i = 0u; i < count; ++i)
+		{
+			auto& format = formats[i];
+			checkAdd(format, CF_TEXT, TYMED_HGLOBAL, dataType::text);
+			checkAdd(format, CF_UNICODETEXT, TYMED_HGLOBAL, dataType::text);
+			checkAdd(format, CF_DIBV5, TYMED_HGLOBAL, dataType::image);
+			checkAdd(format, CF_HDROP, TYMED_HGLOBAL, dataType::filePaths);
+			checkAdd(format, customFormat, TYMED_HGLOBAL, dataType::custom);
+		}
+
+		if(ret == S_FALSE || count < formatsSize) break;
+		count = 0;
 	}
 
 	enumerator->Release();
@@ -114,14 +128,18 @@ namespace com
 //DropTargetImpl
 HRESULT DropTargetImpl::DragEnter(IDataObject* data, DWORD keyState, POINTL pos, DWORD* effect)
 {
-	*effect = DROPEFFECT_COPY;
+	if(!supported(*data)) currentEffect_ = DROPEFFECT_NONE;
+	else currentEffect_ = DROPEFFECT_COPY;
+
+	*effect = currentEffect_;
 	return S_OK;
 }
 
 HRESULT DropTargetImpl::DragOver(DWORD keyState, POINTL pos, DWORD* effect)
 {
-	///TODO: possibilty for different window areas to accept/not accept/move drops -> differ effect
-	*effect = DROPEFFECT_COPY;
+	//TODO: possibilty for different window areas to accept/not accept/move drops -> differ effect
+
+	*effect = currentEffect_;
 	return S_OK;
 }
 
@@ -132,16 +150,44 @@ HRESULT DropTargetImpl::DragLeave()
 
 HRESULT DropTargetImpl::Drop(IDataObject* data, DWORD keyState, POINTL pos, DWORD* effect)
 {
+	//TODO
 	*effect = DROPEFFECT_COPY;
 
 	auto& ac = windowContext_->appContext();
-	if(!windowContext_->eventHandler() || !ac.eventDispatcher()) return E_UNEXPECTED;
+	if(!windowContext_->eventHandler()) return E_UNEXPECTED;
 
 	auto offer = std::make_unique<DataOfferImpl>(*data);
 	DataOfferEvent ev(windowContext_->eventHandler(), std::move(offer));
-	ac.eventDispatcher()->dispatch(std::move(ev));
+	ac.dispatch(std::move(ev));
 
 	return S_OK;
+}
+
+bool DropTargetImpl::supported(IDataObject& data)
+{
+	IEnumFORMATETC* enumerator;
+	data.EnumFormatEtc(DATADIR_GET, &enumerator);
+	auto guard = nytl::makeScopeGuard([&]{ enumerator->Release(); });
+
+	constexpr auto formatsSize = 100;
+	FORMATETC formats[formatsSize];
+	ULONG count;
+
+	while(true)
+	{
+		auto ret = enumerator->Next(formatsSize, formats, &count);
+		for(auto i = 0u; i < count; ++i)
+		{
+			auto& format = formats[i];
+			if(dataTypes.contains(clipboardFormatToDataType(format.cfFormat)))
+				return true;
+		}
+
+		if(ret == S_FALSE || count < formatsSize) break;
+		count = 0;
+	}
+
+	return false;
 }
 
 //DropSourceImpl

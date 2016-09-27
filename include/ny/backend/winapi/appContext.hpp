@@ -42,7 +42,7 @@ public:
     LONG_PTR eventProc(HWND, UINT, WPARAM, LPARAM);
 	//INT_PTR dlgEventProc(HWND, UINT, WPARAM, LPARAM); //needed?
 
-	EventDispatcher* eventDispatcher() const { return eventDispatcher_; }
+	void dispatch(Event&& event);
     WinapiWindowContext* windowContext(HWND win);
 
     HINSTANCE hinstance() const { return instance_; };
@@ -56,6 +56,7 @@ protected:
     ULONG_PTR gdiplusToken_;
 
     std::map<HWND, WinapiWindowContext*> contexts_;
+	std::vector<std::unique_ptr<Event>> pendingEvents_;
 
 	LoopControl* dispatcherLoopControl_ = nullptr;
 	EventDispatcher* eventDispatcher_ = nullptr;

@@ -46,8 +46,18 @@ public:
 	///Hides the window.
     virtual void hide() = 0;
 
+	//TODO: allow to specify regions (or a binary predicate) in which different types may
+	//be dropped.
+
 	///Signals that the window accepts drag-and-drops of the given DataTypes.
+	///If this function is called with an emtpy DataTypes object drag-and-drop support
+	///should be removed from the window.
+	///When the WindowContext receives a drop request for a matching type, it will send
+	///a DataOfferEvent to the registered EventHandler.
     virtual void droppable(const DataTypes&) = 0;
+
+	//TODO? XXX: make these functions bool to signal if they had any effect?
+	//Should they output a warning if not? it can be queried using capabilites
 
 	///Sets the minimal size of the window.
 	///Might have no effect on certain backends.

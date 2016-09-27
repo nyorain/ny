@@ -30,6 +30,7 @@ using WindowEdges = nytl::Flags<WindowEdge>;
 NYTL_FLAG_OPS(WindowEdge)
 
 ///Toplevel window style hints.
+///They can be used to make the backend change how the window is presented.
 enum class WindowHint : unsigned int
 {
     close = (1L << 1), //can be closed, i.e. contains a close button/menu context
@@ -42,19 +43,33 @@ enum class WindowHint : unsigned int
 using WindowHints = nytl::Flags<WindowHint>;
 NYTL_FLAG_OPS(WindowHint)
 
-///Window capabilites.
 ///They can be used to determine which actions can be performed on a window.
 enum class WindowCapability : unsigned int
 {
+	none = 0,
 	size = (1L << 1),
 	fullscreen = (1L << 2),
 	minimize = (1L << 3),
 	maximize = (1L << 4),
-	postition = (1L << 5),
+	position = (1L << 5),
+	sizeLimits = (1L << 6)
 };
 
 using WindowCapabilities = nytl::Flags<WindowCapability>;
 NYTL_FLAG_OPS(WindowCapability)
+
+//TODO: this could be really useful for all backends
+///Specifies the type of the window, i.e. the intention of its display.
+///This might change how the window is presented to the user by the backend.
+///Otherwise just achieve it using the DialogSettings since there are mainly only 2 WindowType
+///members across all platforms?
+// enum class WindowType : unsigned int
+// {
+// 	none =  0,
+// 	toplevel,
+// 	dialog,
+//	//...
+// };
 
 ///Defines all possible native widgets that may be implemented on the specific backends.
 ///Note that none of them are guaranteed to exist, some backends to not have native widgets
@@ -74,14 +89,6 @@ enum class NativeWidgetType : unsigned int
 	dropdown
 };
 
-///Enum that represents the context types that can be created for a window.
-enum class ContextType : unsigned int
-{
-	none = 0,
-	gl,
-	vulkan
-};
-
 ///Typesafe enum for the current state of a toplevel window.
 enum class ToplevelState : unsigned int
 {
@@ -91,6 +98,7 @@ enum class ToplevelState : unsigned int
     fullscreen,
     normal
 };
+
 
 ///Class to reprsent the window handle of the underlaying window system api.
 ///Holds either a pointer to backend-specific type or an 64 bit unsigned int.
@@ -117,6 +125,7 @@ protected:
 	Value value_;
 };
 
+
 ///Result from a dialog.
 enum class DialogResult : unsigned int
 {
@@ -125,49 +134,31 @@ enum class DialogResult : unsigned int
 	cancel ///Dialog was canceled
 };
 
+//NOTE: at the moment, there is no documentation or support for custom in any way.
 ///Type of a natvie dialog.
 enum class DialogType : unsigned int
 {
-	none, ///Default, no dialog type
-	color, ///Returns a color
-	path, ///Returns a file or directory path
-	custom ///Returns some custom value
+	none = 0, ///Default, no dialog type
+	color, ///return: [nytl::Vec4u8], settings: [ColorDialogSettings]
+	path, ///return: [c++17 ? std::path : std::string], settings[PathDialogSettings]
+	custom ///custom, backend-specific (should only be used if you know what you are doing)
 };
 
-///DialogSettingsData
-///Backends that support native dialogs can derive from this struct and offer their own
-///settings.
-struct DialogSettingsData : public Cloneable<DialogSettingsData> {};
-
-struct PathDialogSettingsData : public DeriveCloneable<DialogSettingsData, PathDialogSettingsData>
+struct PathDialogSettings
 {
 	bool allowAll;
 	DataTypes allowedTypes;
 };
 
-///DialogSettings
-class DialogSettings
+struct ColorDialogSettings {};
+
+
+///Enum that represents the context types that can be created for a window.
+enum class ContextType : unsigned int
 {
-public:
-	DialogType type;
-	std::unique_ptr<DialogSettingsData> data;
-
-public:
-	DialogSettings() = default;
-	~DialogSettings() = default;
-
-	DialogSettings(const DialogSettings& other) : type(other.type)
-	{
-		if(data) data = clone(*other.data);
-	}
-
-	DialogSettings& operator=(const DialogSettings& other)
-	{
-		type = other.type;
-		data.reset();
-		if(other.data) data = clone(*other.data);
-		return *this;
-	}
+	none = 0,
+	gl,
+	vulkan
 };
 
 struct GlContextSettings
@@ -175,7 +166,7 @@ struct GlContextSettings
 	//A pointer to store a pointer to the used GlContext.
 	//Note that the underlaying GlContext is only guaranteed to be existent as long as
 	//the WindowContext associated with the settings exists.
-	GlContext** storeContext {};
+	GlContext** storeContext;
 
 	//Whether to enable vsync for the GlContext and window.
 	bool vsync = true;
@@ -191,32 +182,41 @@ struct VulkanSurfaceSettings
 	VkSurfaceKHR* storeSurface {};
 };
 
+
 ///Settings for a Window.
 ///Backends usually have their own WindowSettings class derived from this one.
-class WindowSettings
+struct WindowSettings
 {
-public:
-	WindowSettings() : gl() {}
-    virtual ~WindowSettings() = default;
-
-	NativeWindowHandle nativeHandle = nullptr;
-	NativeWindowHandle parent = nullptr;
-	ToplevelState initState = ToplevelState::normal;
-	DialogType dialogType = DialogType::none;
-	Vec2ui size = {800, 500};
-	Vec2i position = {~0, ~0};
-	std::string title = "Some Random Window Title";
-	bool initShown = true;
-
+	NativeWindowHandle nativeHandle = nullptr; ///< May specify an already existent native handle
+	NativeWindowHandle parent = nullptr; ///< May specify the windows native parent
+	ToplevelState initState = ToplevelState::normal; ///< Window state after initialization
+	Vec2ui size = {800, 500}; ///< Beginning window size
+	Vec2i position = {~0, ~0}; ///< Beginngin window position
+	std::string title = "Some Random Window Title"; ///< The title of the window
+	bool initShown = true; ///< Show the window direclty after initialization?
 	NativeWidgetType nativeWidgetType = NativeWidgetType::none;
-	DialogSettings dialogSettings;
 
+	DialogType dialogType = DialogType::none; ///< Should the window be a native dialog?
+
+	///May hold an object to specify the settings of the native dialog.
+	///The object any holds must match the settings type specified in the DialogType enum.
+	std::any dialogSettings;
+
+	///Can be used to specify if and which context should be created for the window.
+	///Specifies which union member is active.
 	ContextType context;
 	union
 	{
-		GlContextSettings gl;
+		GlContextSettings gl {};
 		VulkanSurfaceSettings vulkan;
 	};
+
+public:
+	//Needed because of the union...
+	//Destructor is virtual to allow backends to dynamic_cast the Settings to detect
+	//their own derivates
+	WindowSettings() : gl() {}
+	virtual ~WindowSettings() = default;
 };
 
 }

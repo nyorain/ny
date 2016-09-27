@@ -37,11 +37,9 @@ MutableImageData WinapiBufferSurface::init()
 	auto currTotal = nytl::multiply(currSize);
 
 	if(currTotal > nytl::multiply(size_))
-	{
-		size_ = currSize;
 		data_ = std::make_unique<std::uint8_t[]>(currTotal * 4);
-	}
 
+	size_ = currSize;
 	return {data_.get(), size_, ImageDataFormat::bgra8888};
 }
 void WinapiBufferSurface::apply(MutableImageData&)

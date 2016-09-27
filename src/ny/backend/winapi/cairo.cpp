@@ -18,8 +18,11 @@ namespace
 	{
 		auto* xwc = dynamic_cast<WinapiWindowContext*>(&windowContext);
 		if(!xwc) return nullptr;
+
 		try { auto ret = std::make_unique<WinapiCairoIntegration>(*xwc); return ret; }
-		catch(const std::exception&) { return nullptr; }
+		catch(const std::exception&) {}
+		
+		return nullptr;
 	}
 
 	static int registered = registerCairoIntegrateFunc(winapiCairoIntegrateFunc);

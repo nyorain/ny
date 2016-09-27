@@ -30,7 +30,9 @@ protected:
 class WinapiWindowContext : public WindowContext
 {
 public:
-	static const char* nativeWidgetClassName(NativeWidgetType type);
+	///Returns the class name of the native widget, that can be used to create a window of
+	///e.g. type button or checkbox.
+	static const char* nativeWidgetClassName(NativeWidgetType);
 
 public:
     WinapiWindowContext(WinapiAppContext& ctx, const WinapiWindowSettings& settings = {});
@@ -40,7 +42,7 @@ public:
     void show() override;
     void hide() override;
 
-	void droppable(const DataTypes&) override {}
+	void droppable(const DataTypes&) override;
 
     void addWindowHints(WindowHints hints) override;
     void removeWindowHints(WindowHints hints) override;
@@ -52,7 +54,7 @@ public:
     bool handleEvent(const Event& e) override;
 
 	NativeWindowHandle nativeHandle() const override;
-	WindowCapabilities capabilities() const override { return {}; }
+	WindowCapabilities capabilities() const override;
 
     //toplevel
     void maximize() override;
@@ -72,9 +74,14 @@ public:
     void title(const std::string& title) override;
 
     //winapi specific
+	///Returns the AppContext this WindowContext was created from.
 	WinapiAppContext& appContext() const { return *appContext_; }
 
+	///Returns the module handle associated with the AppContext this WindowContext was created
+	///from.
 	HINSTANCE hinstance() const;
+
+	///Returns the manages win32 window handle.
     HWND handle() const { return handle_; }
 
 	///Returns the current (async) extents of the whole window, i.e. with server side
@@ -121,12 +128,13 @@ protected:
 
 protected:
 	WinapiAppContext* appContext_ = nullptr;
-
 	std::string wndClassName_;
 
     HWND handle_ = nullptr;
-	IDropTarget* dropTarget_ = nullptr;
+	winapi::com::DropTargetImpl* dropTarget_ = nullptr; //referenced-counted (shared owned here)
 
+	//If ownedCursor_ is true, cursor_ was created, otherwise it was loaded (and must not
+	//be destroyed). icon_ is always owned.
 	bool ownedCursor_ = false;
 	HCURSOR cursor_ = nullptr;
 	HICON icon_ = nullptr;
