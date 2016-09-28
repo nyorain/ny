@@ -54,7 +54,7 @@ public:
     void cursor(std::string cursorName, unsigned int serial = 0);
 
 	///Changes the cursor to the content of the given image with the given hotspot.
-    void cursor(const Image* img, const Vec2i& hotspot, unsigned int serial = 0);
+    void cursor(const ImageData& img, const Vec2i& hotspot, unsigned int serial = 0);
 
 	///Dispatched the given event.
 	void dispatch(Event&& event);

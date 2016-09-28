@@ -7,6 +7,8 @@
 #include <cstdint>
 #include <vector>
 
+typedef struct xcb_visualtype_t xcb_visualtype_t;
+
 namespace ny
 {
 
@@ -22,7 +24,7 @@ public:
 	virtual void resize(const nytl::Vec2ui&) {}
 
 protected:
-	X11WindowContext& context_;
+	X11WindowContext& windowContext_;
 };
 
 ///The X11 implementation of the WindowContext interface.
@@ -51,7 +53,7 @@ public:
 	NativeWindowHandle nativeHandle() const override;
     bool handleEvent(const Event& e) override;
 
-	WindowCapabilities capabilities() const override { return {}; }
+	WindowCapabilities capabilities() const override;
 
     //toplevel window
     void maximize() override;
@@ -86,7 +88,7 @@ public:
 	x11::EwmhConnection* ewmhConnection() const;
 
 	///Queries the window size with a server request since it is not stored.
-	Vec2ui querySize() const; 
+	nytl::Vec2ui size() const; 
 
 	///Sets/unsets the override_redirect flag for the underlaying x11 window.
 	///See some x11 manual for more information.
@@ -161,6 +163,22 @@ public:
 	///For more information look in the ewmh specification for _NET_WM_ALLOWED_ACTIONS.
     std::vector<std::uint32_t> allowedActions() const;
 
+	///Finds and returns the xcb_visualtype_t for this window.
+	xcb_visualtype_t* xVisualType() const;
+
+	///Sets the integration to the given one.
+	///Will return false if there is already such an integration or this implementation
+	///does not support them (e.g. vulkan/opengl WindowContext).
+	///Calling this function with a nullptr resets the integration.
+	virtual bool drawIntegration(X11DrawIntegration* integration);
+
+	///Creates a surface and stores it in the given parameter.
+	///Returns false and does not change the given parameter if a surface coult not be
+	///created.
+	///This could be the case if the WindowContext already has another integration.
+	virtual bool surface(Surface& surface);
+
+
 protected:
 	///Default Constructor only for derived classes that later call the create function.
 	X11WindowContext() = default;
@@ -191,7 +209,6 @@ protected:
 
 	//The draw integration for this WindowContext.
 	X11DrawIntegration* drawIntegration_ = nullptr;
-	friend X11DrawIntegration;
 };
 
 }

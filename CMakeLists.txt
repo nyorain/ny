@@ -159,6 +159,7 @@ normalize(WithVulkan)
 normalize(WithWinapi)
 normalize(WithX11)
 normalize(WithWayland)
+normalize(WithCairo)
 
 #output
 message("\t\nFinal Configuration:\n")

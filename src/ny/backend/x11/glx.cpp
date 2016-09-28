@@ -127,17 +127,9 @@ bool GlxContext::makeNotCurrentImpl()
 
 bool GlxContext::apply()
 {
-	drawContext_.apply();
-
 	GlContext::apply();
     glXSwapBuffers(xDisplay(), glxWindow_);
     return 1;
-}
-
-void GlxContext::size(const Vec2ui& size)
-{
-	makeCurrent();
-	updateViewport(Rect2f({0.f, 0.f}, size));
 }
 
 /*

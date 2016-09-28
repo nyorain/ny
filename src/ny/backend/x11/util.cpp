@@ -1,10 +1,4 @@
-#include <ny/config.hpp>
-#include <ny/backend/x11/include.hpp>
-
 #include <ny/backend/x11/util.hpp>
-#include <ny/backend/x11/appContext.hpp>
-#include <ny/backend/x11/windowContext.hpp>
-#include <ny/backend/x11/cairo.hpp>
 
 #define XK_LATIN1
 #define XK_MISCELLANY
@@ -121,6 +115,34 @@ const char* cursorToX11Char(CursorType c)
         case CursorType::grab: return "fleur";
         default: return nullptr;
     }
+}
+
+ImageDataFormat visualToFormat(const xcb_visualtype_t& v)
+{
+	struct 
+	{
+		unsigned int r, g, b, a;
+		ImageDataFormat format;
+	} formats[] = 
+	{
+		{ 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF, ImageDataFormat::rgba8888 },
+		{ 0x0000FF00, 0x00FF0000, 0xFF000000, 0x000000FF, ImageDataFormat::bgra8888 },
+		{ 0xFF000000, 0x0000FF00, 0x000000FF, 0xFF000000, ImageDataFormat::argb8888 },
+		{ 0xFF000000, 0x00FF0000, 0x0000FF00, 0, ImageDataFormat::rgb888 },
+		{ 0x0000FF00, 0x00FF0000, 0xFF000000, 0, ImageDataFormat::bgr888 },
+		{ 0xFF000000, 0, 0, 0, ImageDataFormat::a8 } //XXX: does this format exist?
+	};
+
+	for(auto& f : formats)
+	{
+		auto a = 0u;
+		if(v.bits_per_rgb_value == 32) 
+			a = 0xffffffff & ~(v.red_mask | v.green_mask | v.blue_mask);
+		if(v.red_mask == f.r && v.green_mask == f.g && v.blue_mask == f.b && a == f.a)
+			return f.format;
+	}
+
+	return ImageDataFormat::none;
 }
 
 }

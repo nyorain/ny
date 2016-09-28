@@ -8,7 +8,7 @@
 namespace ny
 {
 
-VulkanWinapiWindowContext::VulkanWinapiWindowContext(WinapiAppContext& ac,
+WinapiVulkanWindowContext::WinapiVulkanWindowContext(WinapiAppContext& ac,
 	const WinapiWindowSettings& ws) : WinapiWindowContext(ac, ws)
 {
 	vkInstance_ = ws.vulkan.instance;
@@ -27,13 +27,13 @@ VulkanWinapiWindowContext::VulkanWinapiWindowContext(WinapiAppContext& ac,
 	if(ws.vulkan.storeSurface) *ws.vulkan.storeSurface = vkSurface_;
 }
 
-VulkanWinapiWindowContext::~VulkanWinapiWindowContext()
+WinapiVulkanWindowContext::~WinapiVulkanWindowContext()
 {
 	if(vkInstance_ && vkSurface_)
 		vkDestroySurfaceKHR(vkInstance_, vkSurface_, nullptr);
 }
 
-bool VulkanWinapiWindowContext::surface(Surface& surface)
+bool WinapiVulkanWindowContext::surface(Surface& surface)
 {
 	surface.type = SurfaceType::vulkan;
 	surface.vulkan = vkSurface_;

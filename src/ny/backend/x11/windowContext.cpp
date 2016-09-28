@@ -4,11 +4,12 @@
 #include <ny/backend/x11/defs.hpp>
 #include <ny/backend/x11/appContext.hpp>
 #include <ny/backend/x11/internal.hpp>
+#include <ny/backend/x11/surface.hpp>
+#include <ny/backend/events.hpp>
 
 #include <ny/base/event.hpp>
 #include <ny/base/log.hpp>
 #include <ny/base/cursor.hpp>
-#include <ny/app/events.hpp>
 
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
@@ -45,7 +46,7 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 	auto pos = settings.position;
 	auto size = settings.size;
 
-    xcb_window_t xparent = settings.parent;
+    xcb_window_t xparent = settings.parent.uint();
 	if(!xparent)
 	{
 		xparent = xscreen->root;
@@ -347,19 +348,29 @@ bool X11WindowContext::handleEvent(const Event& e)
 		position(settings_.position);
 		return true;
 	}
-	else if(e.type() == eventType::windowSize)
+	else if(e.type() == eventType::size)
 	{
 		auto& ev = static_cast<const SizeEvent&>(e);
 		if(drawIntegration_) drawIntegration_->resize(ev.size);
 		return true;
 	}
 
-	return 0;
+	return false;
 }
 
 bool X11WindowContext::customDecorated() const
 {
-	return 0;
+	return false;
+}
+
+WindowCapabilities X11WindowContext::capabilities() const
+{
+	return WindowCapability::size |
+		WindowCapability::fullscreen |
+		WindowCapability::minimize |
+		WindowCapability::maximize |
+		WindowCapability::position |
+		WindowCapability::sizeLimits;
 }
 
 void X11WindowContext::addWindowHints(WindowHints hints)
@@ -549,8 +560,8 @@ void X11WindowContext::mwmHints(unsigned long deco, unsigned long func, bool d, 
 
 	///XXX: use XCB_ATOM_ATOM?
     xcb_change_property(xConnection(), XCB_PROP_MODE_REPLACE, xWindow(),
-			appContext().atom("_MOTIF_WM_HINTS"), XCB_ATOM_CARDINAL, 32, sizeof(x11::MwmHints) / 32,
-			reinterpret_cast<std::uint32_t*>(&mhints));
+		appContext().atom("_MOTIF_WM_HINTS"), XCB_ATOM_CARDINAL, 32, sizeof(x11::MwmHints) / 32,
+		reinterpret_cast<std::uint32_t*>(&mhints));
 }
 
 unsigned long X11WindowContext::mwmFunctionHints() const
@@ -685,18 +696,73 @@ void X11WindowContext::cursor(unsigned int xCursorID)
     //testCookie (fontCookie, connection, "can't close font");
 }
 
-///Draw integration
-X11DrawIntegration::X11DrawIntegration(X11WindowContext& wc) : context_(wc)
+nytl::Vec2ui X11WindowContext::size() const
 {
-	if(wc.drawIntegration_)
-		throw std::logic_error("X11DrawIntegration: windowContext already has an integration");
+	auto cookie = xcb_get_geometry(xConnection(), xWindow());
+	auto geometry = xcb_get_geometry_reply(xConnection(), cookie, nullptr);
+	auto ret = nytl::Vec2ui(geometry->width, geometry->height);
+	std::free(geometry);
+	return ret;
+}
 
-	wc.drawIntegration_ = this;
+xcb_visualtype_t* X11WindowContext::xVisualType() const
+{
+	xcb_depth_iterator_t depth_iter;
+	xcb_visualtype_t* visualtype;
+
+	depth_iter = xcb_screen_allowed_depths_iterator(appContext().xDefaultScreen());
+	while(depth_iter.rem)
+	{
+		xcb_visualtype_iterator_t visual_iter;
+
+		visual_iter = xcb_depth_visuals_iterator (depth_iter.data);
+		while(visual_iter.rem)
+		{
+			if(xVisualID() == visual_iter.data->visual_id)
+			{
+				visualtype = visual_iter.data;
+				break;
+			}
+
+			xcb_visualtype_next(&visual_iter);
+		}
+
+		xcb_depth_next (&depth_iter);
+	}
+
+	return visualtype;
+}
+
+bool X11WindowContext::drawIntegration(X11DrawIntegration* integration)
+{
+	if(!(bool(drawIntegration_) ^ bool(integration))) return false;
+	drawIntegration_ = integration;
+	return true;
+}
+
+bool X11WindowContext::surface(Surface& surface)
+{
+	if(drawIntegration_) return false;
+
+	try {
+		surface.buffer = std::make_unique<X11BufferSurface>(*this);
+		surface.type = SurfaceType::buffer;
+		return true;
+	} catch(const std::exception& ex) {
+		return false;
+	}
+}
+
+///Draw integration
+X11DrawIntegration::X11DrawIntegration(X11WindowContext& wc) : windowContext_(wc)
+{
+	if(!wc.drawIntegration(this))
+		throw std::logic_error("X11DrawIntegration: windowContext already has an integration");
 }
 
 X11DrawIntegration::~X11DrawIntegration()
 {
-	context_.drawIntegration_ = nullptr;
+	windowContext_.drawIntegration(nullptr);
 }
 
 }

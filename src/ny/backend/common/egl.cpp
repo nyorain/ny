@@ -72,12 +72,6 @@ void EglContext::eglSurface(EGLSurface surface)
 
 bool EglContext::makeCurrentImpl()
 {
-    if(!valid())
-    {
-        warning("eglContext::makeCurrentImpl: invalid");
-        return 0;
-    }
-
 	if(!eglSurface_)
 	{
 		warning("EglContext::makeCurrentImpl: no egl surface. Trying to make a "
@@ -96,12 +90,6 @@ bool EglContext::makeCurrentImpl()
 
 bool EglContext::makeNotCurrentImpl()
 {
-    if(!valid())
-    {
-        warning("eglContext::makeNotCurrentImpl: invalid");
-        return 0;
-    }
-
     if(!eglMakeCurrent(eglDisplay_, nullptr, nullptr, nullptr))
     {
         warning("eglContext::makeNotCurrentImpl: eglMakeCurrent failed\n\t",
@@ -114,7 +102,7 @@ bool EglContext::makeNotCurrentImpl()
 
 bool EglContext::apply()
 {
-    if(!isCurrent() || !valid())
+    if(!isCurrent())
     {
 		warning("eglContext::apply: invalid or not current");
         return false;
@@ -130,11 +118,6 @@ bool EglContext::apply()
     }
 
     return true;
-}
-
-bool EglContext::valid() const
-{
-	return (eglDisplay_ && eglContext_);
 }
 
 std::vector<std::string> EglContext::eglExtensions() const

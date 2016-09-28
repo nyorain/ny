@@ -38,7 +38,6 @@ public:
 	bool eglExtensionSupported(const std::string& name) const;
 
 	virtual bool apply() override;
-	virtual bool valid() const override;
 
 	virtual void* procAddr(const char* name) const override;
 

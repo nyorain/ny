@@ -28,37 +28,9 @@ namespace
 X11CairoIntegration::X11CairoIntegration(X11WindowContext& wc)
 	: X11DrawIntegration(wc)
 {
-	//find the visual type for the windowContexts visual
-	xcb_depth_iterator_t depth_iter;
-	xcb_visualtype_t* visualtype;
-
-	depth_iter = xcb_screen_allowed_depths_iterator(wc.appContext().xDefaultScreen());
-	while(depth_iter.rem)
-	{
-		xcb_visualtype_iterator_t visual_iter;
-
-		visual_iter = xcb_depth_visuals_iterator (depth_iter.data);
-		while(visual_iter.rem)
-		{
-			if(wc.xVisualID() == visual_iter.data->visual_id)
-			{
-				visualtype = visual_iter.data;
-				break;
-			}
-
-			xcb_visualtype_next(&visual_iter);
-		}
-
-		xcb_depth_next (&depth_iter);
-	}
-
-	//query the size of the window
-	auto cookie = xcb_get_geometry(wc.xConnection(), wc.xWindow());
-	auto geometry = xcb_get_geometry_reply(wc.xConnection(), cookie, nullptr);
-
-	surface_ = cairo_xcb_surface_create(wc.xConnection(), wc.xWindow(), visualtype,
-			geometry->width, geometry->height);
-	free(geometry);
+	auto size = wc.size();
+	auto conn = wc.xConnection();
+	surface_ = cairo_xcb_surface_create(conn, wc.xWindow(), wc.xVisualType(), size.x, size.y);
 }
 
 X11CairoIntegration::~X11CairoIntegration()

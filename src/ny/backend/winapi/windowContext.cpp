@@ -473,13 +473,12 @@ WindowCapabilities WinapiWindowContext::capabilities() const
 		WindowCapability::maximize |
 		WindowCapability::position |
 		WindowCapability::sizeLimits;
-
 }
 
 //specific
 bool WinapiWindowContext::drawIntegration(WinapiDrawIntegration* integration)
 {
-	if(drawIntegration_) return false;
+	if(!(bool(drawIntegration_) ^ bool(integration))) return false;
 	drawIntegration_ = integration;
 	return true;
 }
@@ -510,7 +509,6 @@ Rect2i WinapiWindowContext::clientExtents() const
 	GetClientRect(handle_, &ext);
 	return {ext.left, ext.top, ext.right - ext.left, ext.bottom - ext.top};
 }
-
 ///Draw integration
 WinapiDrawIntegration::WinapiDrawIntegration(WinapiWindowContext& wc) : context_(wc)
 {
@@ -524,3 +522,15 @@ WinapiDrawIntegration::~WinapiDrawIntegration()
 }
 
 }
+
+// COLORREF custcolors[16];
+// 
+// ::CHOOSECOLOR cc {};
+// cc.hwndOwner = static_cast<ny::WinapiWindowContext&>(*wc).handle();
+// cc.lStructSize = sizeof(cc);
+// cc.lpCustColors = custcolors;
+// cc.Flags = CC_ANYCOLOR | CC_FULLOPEN;
+// // cc.Flags = CC_ANYCOLOR | CC_FULLOPEN | CC_ENABLEHOOK;
+// // cc.lpfnHook = reinterpret_cast<LPCCHOOKPROC>(&::DefWindowProc);
+// ::ChooseColor(&cc);
+

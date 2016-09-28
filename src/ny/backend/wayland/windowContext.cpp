@@ -7,7 +7,7 @@
 #include <ny/base/event.hpp>
 #include <ny/base/cursor.hpp>
 #include <ny/base/log.hpp>
-#include <ny/app/events.hpp>
+#include <ny/backend/events.hpp>
 
 #include <iostream>
 #include <cassert>
@@ -166,7 +166,7 @@ NativeWindowHandle WaylandWindowContext::nativeHandle() const
 
 bool WaylandWindowContext::handleEvent(const Event& event)
 {
-    if(event.type() == eventType::wayland::frameEvent)
+    if(event.type() == eventType::wayland::frame)
     {
         if(frameCallback_)
         {
@@ -182,7 +182,7 @@ bool WaylandWindowContext::handleEvent(const Event& event)
 
 		return true;
     }
-	else if(event.type() == eventType::windowSize)
+	else if(event.type() == eventType::size)
 	{
 		auto& ev = static_cast<const SizeEvent&>(event);
 		size_ = ev.size;

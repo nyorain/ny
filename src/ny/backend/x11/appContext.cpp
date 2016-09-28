@@ -3,11 +3,16 @@
 #include <ny/backend/x11/util.hpp>
 #include <ny/backend/x11/input.hpp>
 #include <ny/backend/x11/internal.hpp>
-// #include <ny/backend/x11/cairo.hpp>
 #include <ny/base/loopControl.hpp>
 #include <ny/base/log.hpp>
 #include <ny/base/eventDispatcher.hpp>
-#include <ny/app/events.hpp>
+#include <ny/backend/events.hpp>
+
+#ifdef NY_WithVulkan
+ #define VK_USE_PLATFORM_XCB_KHR
+ #include <ny/backend/x11/vulkan.hpp>
+ #include <vulkan/vulkan.h>
+#endif //Vulkan
 
 #include <nytl/scope.hpp>
 
@@ -422,7 +427,7 @@ WindowContextPtr X11AppContext::createWindowContext(const WindowSettings& settin
 	if(contextType == ContextType::vulkan)
 	{
 		#ifdef NY_WithVulkan
-		 // return std::make_unique<X11VulkanWindowContext>(*xac, x11Settings);
+		 return std::make_unique<X11VulkanWindowContext>(*this, x11Settings);
 		#else
 		 throw std::logic_error("ny::X11Backend::createWC: ny built without vulkan support");
 		#endif
@@ -517,6 +522,15 @@ std::unique_ptr<DataOffer> X11AppContext::clipboard()
 }
 bool X11AppContext::startDragDrop(std::unique_ptr<DataSource>&& dataSource)
 {
+}
+
+std::vector<const char*> X11AppContext::vulkanExtensions() const
+{
+	#ifdef NY_WithVulkan
+	 return {VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_XCB_SURFACE_EXTENSION_NAME};
+	#else
+	 return {};
+	#endif
 }
 
 void X11AppContext::registerContext(xcb_window_t w, X11WindowContext& c)

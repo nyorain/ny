@@ -20,8 +20,8 @@ namespace eventType
 {
 	namespace wayland
 	{
-		constexpr auto frameEvent = 1001u;
-		constexpr auto configureEvent = 1002u;
+		constexpr auto frame = 1001u;
+		constexpr auto configure = 1002u;
 	}
 }
 
@@ -40,7 +40,7 @@ namespace wayland
 
 //events
 ///This Event will be sent to a WaylandWindowContext if its frame callback was triggered.
-class FrameEvent : public EventBase<eventType::wayland::frameEvent, FrameEvent>
+class FrameEvent : public EventBase<eventType::wayland::frame, FrameEvent>
 {
 public:
 	using EvBase::EvBase;
@@ -49,7 +49,7 @@ public:
 
 ///This Event will be sent to a WaylandWindowContext if it holds a surface with shell
 ///(wayland or xdg) role that is configured. Holds new size and resized edge.
-class ConfigureEvent : public EventBase<eventType::wayland::configureEvent, ConfigureEvent>
+class ConfigureEvent : public EventBase<eventType::wayland::configure, ConfigureEvent>
 {
 public:
 	using EvBase::EvBase;

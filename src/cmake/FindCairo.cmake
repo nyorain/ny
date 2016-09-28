@@ -28,8 +28,10 @@
 # OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+# This file was edited for ny and does not fully match the original content.
+
 FIND_PACKAGE(PkgConfig)
-PKG_CHECK_MODULES(PC_CAIRO cairo) # FIXME: After we require CMake 2.8.2 we can pass QUIET to this call.
+PKG_CHECK_MODULES(PC_CAIRO cairo QUIET)
 
 FIND_PATH(CAIRO_INCLUDE_DIRS
     NAMES cairo/cairo.h
@@ -39,10 +41,17 @@ FIND_PATH(CAIRO_INCLUDE_DIRS
 )
 
 FIND_LIBRARY(CAIRO_LIBRARIES
-    NAMES cairo-2
+    NAMES cairo
     HINTS ${PC_CAIRO_LIBDIR}
-          ${PC_CAIRO_LIBRARY_DIRS}
-)
+          ${PC_CAIRO_LIBRARY_DIRS})
+
+# mainly for some windows cairo distributions
+if(NOT CAIRO_LIBRARIES)
+	FIND_LIBRARY(CAIRO_LIBRARIES
+		NAMES cairo
+		HINTS ${PC_CAIRO_LIBDIR}
+			  ${PC_CAIRO_LIBRARY_DIRS})
+endif()
 
 IF (CAIRO_INCLUDE_DIRS)
     IF (EXISTS "${CAIRO_INCLUDE_DIRS}/cairo-version.h")

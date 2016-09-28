@@ -7,11 +7,11 @@ namespace ny
 {
 
 ///WinapiWindowContext that also creates/owns a VkSurfaceKHR.
-class VulkanWinapiWindowContext : public WinapiWindowContext
+class WinapiVulkanWindowContext : public WinapiWindowContext
 {
 public:
-	VulkanWinapiWindowContext(WinapiAppContext&, const WinapiWindowSettings&);
-	~VulkanWinapiWindowContext();
+	WinapiVulkanWindowContext(WinapiAppContext&, const WinapiWindowSettings&);
+	~WinapiVulkanWindowContext();
 
 	bool surface(Surface&) override;
 	bool drawIntegration(WinapiDrawIntegration*) override { return false; }

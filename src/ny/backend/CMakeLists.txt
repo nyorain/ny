@@ -34,6 +34,7 @@ if(WithX11)
 		x11/appContext.cpp
 		x11/backend.cpp
 		x11/util.cpp
+		x11/surface.cpp
 		x11/input.cpp
 		x11/windowContext.cpp)
 
@@ -54,6 +55,10 @@ if(WithX11)
 
 	if(WithCairo)
 		list(APPEND src_backend x11/cairo.cpp)
+	endif()
+
+	if(WithVulkan)
+		list(APPEND src_backend x11/vulkan.cpp)
 	endif()
 endif()
 
@@ -113,7 +118,7 @@ target_link_libraries(ny-backend ${libs_backend})
 target_include_directories(ny-backend PUBLIC ${include_backend})
 
 if(nytl_own)
-	add_dependencies(ny-app nytl_ep)
+	add_dependencies(ny-backend nytl_ep)
 endif()
 
 #install

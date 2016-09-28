@@ -125,7 +125,7 @@ std::unique_ptr<WindowContext> WinapiAppContext::createWindowContext(const Windo
 	else if(contextType == ContextType::vulkan)
 	{
 		#ifdef NY_WithVulkan
-		 return std::make_unique<VulkanWinapiWindowContext>(*this, winapiSettings);
+		 return std::make_unique<WinapiVulkanWindowContext>(*this, winapiSettings);
 		#else
 		 throw std::logic_error("ny::WinapiAC::createWC: ny was built without vulkan support");
 		#endif //vulkan
@@ -516,7 +516,11 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 
 std::vector<const char*> WinapiAppContext::vulkanExtensions() const
 {
-	return {VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME};
+	#ifdef NY_WithVulkan
+	 return {VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME};
+	#else
+	 return {};
+	#endif
 }
 
 }

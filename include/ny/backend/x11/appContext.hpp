@@ -35,6 +35,8 @@ public:
 	std::unique_ptr<DataOffer> clipboard() override;
 	bool startDragDrop(std::unique_ptr<DataSource>&& dataSource) override;
 
+	std::vector<const char*> vulkanExtensions() const override;
+
 	//custom
     Display* xDisplay() const { return xDisplay_; }
 	xcb_connection_t* xConnection() const { return xConnection_; }

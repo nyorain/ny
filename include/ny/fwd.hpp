@@ -26,7 +26,7 @@ class DataOffer;
 class DataSource;
 class DataObject;
 
-template<typename P> class BasicImageData;
+template<typename P> struct BasicImageData;
 using ImageData = BasicImageData<const std::uint8_t*>;
 using MutableImageData = BasicImageData<std::uint8_t*>;
 

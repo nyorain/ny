@@ -3,7 +3,7 @@
 #include <ny/backend/wayland/appContext.hpp>
 #include <ny/backend/wayland/windowContext.hpp>
 #include <ny/backend/wayland/input.hpp>
-#include <ny/app/events.hpp>
+#include <ny/backend/events.hpp>
 
 #include <ny/backend/wayland/xdg-shell-client-protocol.h>
 #include <wayland-client-protocol.h>

@@ -3,8 +3,6 @@
 #include <ny/backend/integration/surface.hpp>
 #include <ny/backend/winapi/windowContext.hpp>
 
-#include <windows.h>
-
 class MyEventHandler : public ny::EventHandler
 {
 public:
@@ -101,21 +99,6 @@ int main()
 
 	handler.buffer_ = surface.buffer.get();
 
-	std::thread t ([&]{
-		COLORREF custcolors[16];
-
-		::CHOOSECOLOR cc {};
-		cc.hwndOwner = static_cast<ny::WinapiWindowContext&>(*wc).handle();
-		cc.lStructSize = sizeof(cc);
-		cc.lpCustColors = custcolors;
-		cc.Flags = CC_ANYCOLOR | CC_FULLOPEN;
-		// cc.Flags = CC_ANYCOLOR | CC_FULLOPEN | CC_ENABLEHOOK;
-		// cc.lpfnHook = reinterpret_cast<LPCCHOOKPROC>(&::DefWindowProc);
-		::ChooseColor(&cc);
-	});
-
 	ny::debug("Entering main loop");
 	ac->dispatchLoop(control);
-
-	t.join();
 }

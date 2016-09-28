@@ -8,6 +8,8 @@
 
 #include <xcb/xcb.h>
 
+// typedef struct xcb_visualtype_t xcb_visualtype_t;
+
 namespace ny
 {
 
@@ -38,6 +40,8 @@ using ReparentEvent = EventBase<eventType::x11::reparent>;
 }
 
 //utility conversions.
+ImageDataFormat visualToFormat(const xcb_visualtype_t& visual);
+
 MouseButton x11ToButton(unsigned int id);
 Key x11ToKey(unsigned int id);
 

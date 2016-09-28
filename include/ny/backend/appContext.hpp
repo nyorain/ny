@@ -124,7 +124,7 @@ public:
 	///vulkan integration, this returns all instance extensions that must be enabled for
 	///an instance to make it suited for vulkan surface creation.
 	///Otherwise this returns an empty vector.
-	virtual std::vector<const char*> vulkanExtensions() const = 0;
+	virtual std::vector<const char*> vulkanExtensions() const { return {}; }
 };
 
 }
