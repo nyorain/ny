@@ -1,7 +1,6 @@
 #include <ny/base.hpp>
 #include <ny/backend.hpp>
 #include <ny/backend/integration/surface.hpp>
-#include <ny/backend/winapi/windowContext.hpp>
 
 class MyEventHandler : public ny::EventHandler
 {

@@ -33,7 +33,7 @@ WinapiBufferSurface::~WinapiBufferSurface()
 
 MutableImageData WinapiBufferSurface::init()
 {
-	auto currSize = context_.clientExtents().size;
+	auto currSize = windowContext_.clientExtents().size;
 	auto currTotal = nytl::multiply(currSize);
 
 	if(currTotal > nytl::multiply(size_))
@@ -45,7 +45,7 @@ MutableImageData WinapiBufferSurface::init()
 void WinapiBufferSurface::apply(MutableImageData&)
 {
 	auto bitmap = ::CreateBitmap(size_.x, size_.y, 1, 32, data_.get());
-	auto whdc = ::GetDC(context_.handle());
+	auto whdc = ::GetDC(windowContext_.handle());
 	auto bhdc = ::CreateCompatibleDC(whdc);
 
 	auto prev = ::SelectObject(bhdc, bitmap);
@@ -53,7 +53,7 @@ void WinapiBufferSurface::apply(MutableImageData&)
 	::SelectObject(bhdc, prev);
 
 	::DeleteDC(bhdc);
-	::ReleaseDC(context_.handle(), whdc);
+	::ReleaseDC(windowContext_.handle(), whdc);
 	::DeleteObject(bitmap);
 }
 

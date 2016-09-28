@@ -14,7 +14,9 @@
 #endif //WithGL
 
 #ifdef NY_WithVulkan
+ #define VK_USE_PLATFORM_WAYLAND_KHR
  #include <ny/backend/wayland/vulkan.hpp>
+ #include <vulkan/vulkan.h>
 #endif //WithVulkan
 
 #include <nytl/scope.hpp>
@@ -168,8 +170,7 @@ WindowContextPtr WaylandAppContext::createWindowContext(const WindowSettings& se
 	if(contextType == ContextType::vulkan)
 	{
 		#ifdef NY_WithVulkan
-		 // if(!vulkanContext_) vulkanContext_ = std::make_unique<WalandVulkanContext>(*this);
-		 // return std::make_unique<WaylandVulkanWindowContext>(*xac, settings);
+		 return std::make_unique<WaylandVulkanWindowContext>(*this, waylandSettings);
 		#else
 		 throw std::logic_error("ny::WaylandAC::createWC: ny built without vulkan support");
 		#endif
@@ -194,6 +195,15 @@ std::unique_ptr<DataOffer> WaylandAppContext::clipboard()
 }
 bool WaylandAppContext::startDragDrop(std::unique_ptr<DataSource>&& dataSource)
 {
+}
+
+std::vector<const char*> WaylandAppContext::vulkanExtensions() const
+{
+	#ifdef NY_WithVulkan
+	 return {VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME};
+	#else
+	 return {};
+	#endif
 }
 
 void WaylandAppContext::registryAdd(unsigned int id, const char* cinterface, unsigned int)

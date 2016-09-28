@@ -4,8 +4,6 @@
 #include <ny/backend/wayland/windowContext.hpp>
 #include <ny/backend/wayland/util.hpp>
 #include <ny/backend/integration/cairo.hpp>
-
-#include <nytl/nonCopyable.hpp>
 #include <nytl/vec.hpp>
 
 namespace ny
@@ -28,7 +26,7 @@ protected:
 	///to the associated surface and commit it.
 	void apply(cairo_surface_t&) override;
 
-	//X11DrawIntegration
+	//WaylandDrawIntegration
 	///Will resize all unused buffers.
 	void resize(const nytl::Vec2ui&) override;
 
@@ -36,11 +34,11 @@ protected:
 	struct Buffer 
 	{
 		wayland::ShmBuffer buffer;
-		cairo_surface_t* surface;
+		cairo_surface_t* surface {};
 	};
 
 	std::vector<Buffer> buffers_;
-	Buffer* active_ = nullptr;
+	Buffer* active_ {};
 };
 
 }

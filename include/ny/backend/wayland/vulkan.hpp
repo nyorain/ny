@@ -2,21 +2,30 @@
 
 #include <ny/backend/wayland/include.hpp>
 #include <ny/backend/wayland/windowContext.hpp>
-#include <vulkan/vulkan.h>
 
 namespace ny
 {
 
-// class WaylandVulkanWindowContext : public WaylandWindowContext
-// {
-// public:
-// 	WaylandVulkanWindowContext(WaylandAppContext& ac, const WaylandWindowSettings& settings = {});
-// 	~WaylandVulkanWindowContext();
-// 
-// protected:
-// 	VkSurfaceKHR vkSurface_;
-// 
-// 	std::unique_ptr<evg::VulkanDrawContext> drawContext_;
-// };
+///WinapiWindowContext that also creates/owns a VkSurfaceKHR.
+class WaylandVulkanWindowContext : public WaylandWindowContext
+{
+public:
+	WaylandVulkanWindowContext(WaylandAppContext&, const WaylandWindowSettings&);
+	~WaylandVulkanWindowContext();
+
+	bool surface(Surface&) override;
+	bool drawIntegration(WaylandDrawIntegration*) override { return false; }
+
+	VkSurfaceKHR vkSurface() const { return vkSurface_; }
+	VkInstance vkInstance() const { return vkInstance_; }
+
+protected:
+	VkSurfaceKHR vkSurface_ {};
+	VkInstance vkInstance_ {};
+};
 
 }
+
+#ifndef NY_WithVulkan
+	#error ny was built without vulkan. Do not include this header.
+#endif

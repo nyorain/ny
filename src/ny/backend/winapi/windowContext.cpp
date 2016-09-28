@@ -510,7 +510,7 @@ Rect2i WinapiWindowContext::clientExtents() const
 	return {ext.left, ext.top, ext.right - ext.left, ext.bottom - ext.top};
 }
 ///Draw integration
-WinapiDrawIntegration::WinapiDrawIntegration(WinapiWindowContext& wc) : context_(wc)
+WinapiDrawIntegration::WinapiDrawIntegration(WinapiWindowContext& wc) : windowContext_(wc)
 {
 	if(!wc.drawIntegration(this))
 		throw std::runtime_error("WinapiDrawIntegration: failed to set for windowContext.");
@@ -518,7 +518,7 @@ WinapiDrawIntegration::WinapiDrawIntegration(WinapiWindowContext& wc) : context_
 
 WinapiDrawIntegration::~WinapiDrawIntegration()
 {
-	context_.drawIntegration(nullptr);
+	windowContext_.drawIntegration(nullptr);
 }
 
 }

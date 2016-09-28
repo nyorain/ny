@@ -41,7 +41,7 @@ WaylandCairoIntegration::WaylandCairoIntegration(WaylandWindowContext& wc)
 
 WaylandCairoIntegration::~WaylandCairoIntegration()
 {
-	for(auto& b : buffers_) cairo_surface_destroy(b.surface);
+	for(auto& b : buffers_) if(b.surface) cairo_surface_destroy(b.surface);
 	buffers_.clear();
 }
 
@@ -50,15 +50,16 @@ cairo_surface_t& WaylandCairoIntegration::init()
 	if(active_)
 		throw std::logic_error("WlCairoIntegration: there is already an active SurfaceGuard");
 
+	auto size = windowContext_.size();
 	for(auto& b : buffers_)
 	{
 		if(b.buffer.used()) continue;
 
-		if(nytl::any(b.buffer.size() != context_.size()))
+		if(nytl::any(b.buffer.size() != windowContext_.size()))
 		{
-			b.buffer.size(context_.size());
+			b.buffer.size(size);
 			buffers_.back().surface = cairo_image_surface_create_for_data(&b.buffer.data(),
-				CAIRO_FORMAT_ARGB32, context_.size().x, context_.size().y, context_.size().x * 4);
+				CAIRO_FORMAT_ARGB32, size.x, size.y, size.x * 4);
 		}
 
 		active_ = &b;
@@ -68,9 +69,9 @@ cairo_surface_t& WaylandCairoIntegration::init()
 
 	//create new buffer if none is unused
 	buffers_.emplace_back();
-	buffers_.back().buffer = {context_.appContext(), context_.size()};
+	buffers_.back().buffer = {windowContext_.appContext(), windowContext_.size()};
 	buffers_.back().surface = cairo_image_surface_create_for_data(&buffers_.back().buffer.data(),
-		CAIRO_FORMAT_ARGB32, context_.size().x, context_.size().y, context_.size().x * 4);
+		CAIRO_FORMAT_ARGB32, size.x, size.y, size.x * 4);
 
 	buffers_.back().buffer.use();
 	active_ = &buffers_.back();
@@ -79,7 +80,7 @@ cairo_surface_t& WaylandCairoIntegration::init()
 
 void WaylandCairoIntegration::apply(cairo_surface_t&)
 {
-	context_.attachCommit(active_->buffer.wlBuffer());
+	windowContext_.attachCommit(active_->buffer.wlBuffer());
 	active_ = nullptr;
 }
 
@@ -89,7 +90,7 @@ void WaylandCairoIntegration::resize(const nytl::Vec2ui& newSize)
 	{
 		if(!b.buffer.used() && nytl::any(b.buffer.size() != newSize))
 		{
-			b.buffer.size(context_.size());
+			b.buffer.size(windowContext_.size());
 			buffers_.back().surface = cairo_image_surface_create_for_data(&b.buffer.data(),
 				CAIRO_FORMAT_ARGB32, newSize.x, newSize.y, newSize.x * 4);
 		}

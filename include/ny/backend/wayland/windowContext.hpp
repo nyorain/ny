@@ -30,7 +30,7 @@ public:
 	virtual void resize(const nytl::Vec2ui&) {}
 
 protected:
-	WaylandWindowContext& context_;
+	WaylandWindowContext& windowContext_;
 };
 
 
@@ -93,6 +93,18 @@ public:
 	///Does also add a frameCallback to the surface.
 	void attachCommit(wl_buffer& buffer);
 
+	///Sets the integration to the given one.
+	///Will return false if there is already such an integration or this implementation
+	///does not support them (e.g. vulkan/opengl WindowContext).
+	///Calling this function with a nullptr resets the integration.
+	virtual bool drawIntegration(WaylandDrawIntegration* integration);
+
+	///Creates a surface and stores it in the given parameter.
+	///Returns false and does not change the given parameter if a surface coult not be
+	///created.
+	///This could be the case if the WindowContext already has another integration.
+	virtual bool surface(Surface& surface);
+
 	WaylandAppContext& appContext() const { return *appContext_; }
 	wl_display& wlDisplay() const;
 
@@ -133,7 +145,6 @@ protected:
 
 	//may hold an associated draw integration
 	WaylandDrawIntegration* drawIntegration_ = nullptr;
-	friend WaylandDrawIntegration;
 };
 
 

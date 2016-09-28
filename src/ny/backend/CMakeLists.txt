@@ -68,6 +68,7 @@ if(WithWayland)
 		wayland/backend.cpp
 		wayland/input.cpp
 		wayland/util.cpp
+		wayland/surface.cpp
 		wayland/windowContext.cpp
 		wayland/interfaces.cpp
 		wayland/xdg-shell-protocol.c)
@@ -81,6 +82,10 @@ if(WithWayland)
 
 	if(WithCairo)
 		list(APPEND src_backend wayland/cairo.cpp)
+	endif()
+
+	if(WithVulkan)
+		list(APPEND src_backend wayland/vulkan.cpp)
 	endif()
 endif()
 
@@ -97,7 +102,7 @@ if(WithGL)
 endif()
 
 if(WithEGL)
-	# list(APPEND src_backend common/egl.cpp)
+	list(APPEND src_backend common/egl.cpp)
 	list(APPEND libs_backend ${EGL_LIBRARIES})
 	list(APPEND include_backend ${EGL_INCLUDE_DIRS})
 endif()

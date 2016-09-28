@@ -39,7 +39,7 @@ WinapiCairoIntegration::~WinapiCairoIntegration()
 
 cairo_surface_t& WinapiCairoIntegration::init()
 {
-	auto hdc = ::GetDC(context_.handle());
+	auto hdc = ::GetDC(windowContext_.handle());
 	auto surface = cairo_win32_surface_create(hdc);
 }
 void WinapiCairoIntegration::apply(cairo_surface_t& surface)
@@ -47,7 +47,7 @@ void WinapiCairoIntegration::apply(cairo_surface_t& surface)
 	auto hdc = cairo_win32_surface_get_dc(&surface);
 	cairo_surface_flush(&surface);
 	cairo_surface_destroy(&surface);
-	::ReleaseDC(context_.handle(), hdc);
+	::ReleaseDC(windowContext_.handle(), hdc);
 }
 
 }

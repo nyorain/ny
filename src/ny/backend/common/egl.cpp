@@ -24,7 +24,7 @@ EglContext::EglContext(EGLDisplay disp, EGLSurface surf, GlContext::Api api)
 	if(number != 0)
 	{
 		throw std::runtime_error("EglContext::EglContext: failed to choose EGLConfig\n\t" +
-				errorMessage(eglError()));
+			errorMessage(eglError()));
 	}
 
 	initEglContext(api);
@@ -32,10 +32,7 @@ EglContext::EglContext(EGLDisplay disp, EGLSurface surf, GlContext::Api api)
 
 EglContext::~EglContext()
 {
-	if(eglDisplay_ && eglContext_)
-	{
-		eglDestroyContext(eglDisplay_, eglContext_);
-	}
+	if(eglDisplay_ && eglContext_) eglDestroyContext(eglDisplay_, eglContext_);
 }
 
 void EglContext::initEglContext(Api api)
@@ -58,34 +55,29 @@ void EglContext::initEglContext(Api api)
 	{
 		//TODO: throw here? make the function bool?
 		throw std::runtime_error("EglContext::EglContext: failed to create EGLContext\n\t" +
-				errorMessage(eglError()));
+			errorMessage(eglError()));
 	}
 
-	initContext(api);
+	GlContext::initContext(api);
 }
 
 void EglContext::eglSurface(EGLSurface surface)
 {
-	//TODO: problematic when current?
 	eglSurface_ = surface;
 }
 
 bool EglContext::makeCurrentImpl()
 {
-	if(!eglSurface_)
-	{
-		warning("EglContext::makeCurrentImpl: no egl surface. Trying to make a "
-				"context current without surface - may fail");
-	}
-
     if(!eglMakeCurrent(eglDisplay_, eglSurface_, eglSurface_, eglContext_))
     {
         warning("eglContext::makeCurrentImpl: eglMakeCurrent failed\n\t",
-				errorMessage(eglError()));
-        return 0;
+			errorMessage(eglError()));
+		log("eglContext::eglSurface = ", eglSurface_);
+		log("eglContext::eglDisplay = ", eglDisplay_);
+        return false;
     }
 
-    return 1;
+    return true;
 }
 
 bool EglContext::makeNotCurrentImpl()
@@ -93,11 +85,13 @@ bool EglContext::makeNotCurrentImpl()
     if(!eglMakeCurrent(eglDisplay_, nullptr, nullptr, nullptr))
     {
         warning("eglContext::makeNotCurrentImpl: eglMakeCurrent failed\n\t",
-				errorMessage(eglError()));
-        return 0;
+			errorMessage(eglError()));
+		log("eglContext::eglSurface = ", eglSurface_);
+		log("eglContext::eglDisplay = ", eglDisplay_);
+        return false;
     }
 
-    return 1;
+    return true;
 }
 
 bool EglContext::apply()
@@ -128,9 +122,9 @@ std::vector<std::string> EglContext::eglExtensions() const
 bool EglContext::eglExtensionSupported(const std::string& name) const
 {
 	for(auto& s : eglExtensions())
-		if(s == name) return 1;
+		if(s == name) return true;
 
-	return 0;
+	return false;
 }
 
 //static
@@ -165,10 +159,7 @@ std::string EglContext::errorMessage(int error)
 int EglContext::eglErrorWarn()
 {
 	int error = eglError();
-	if(error != EGL_SUCCESS)
-	{
-		warning("EglContext error: ", errorMessage(error));
-	}
+	if(error != EGL_SUCCESS) warning("ny::EglContext error: ", errorMessage(error));
 
 	return error;
 }

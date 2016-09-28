@@ -47,6 +47,8 @@ public:
 	std::unique_ptr<DataOffer> clipboard() override;
 	bool startDragDrop(std::unique_ptr<DataSource>&& dataSource) override;
 
+	std::vector<const char*> vulkanExtensions() const override;
+
     //wayland specific
 	///Changes the cursor a cursor with the given name.
 	///Note that serial can only be 0 (or invalid) if the cursor was already set by this

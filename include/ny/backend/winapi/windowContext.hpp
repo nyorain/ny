@@ -23,7 +23,7 @@ public:
 	virtual void resize(const nytl::Vec2ui&) {}
 
 protected:
-	WinapiWindowContext& context_; //TODO: rename windowContext_ for all backend DrawIntegrations
+	WinapiWindowContext& windowContext_;
 };
 
 ///WindowContext for winapi windows using the winapi backend on a windows OS.

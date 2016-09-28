@@ -2,6 +2,7 @@
 #include <ny/backend/wayland/appContext.hpp>
 #include <ny/backend/wayland/interfaces.hpp>
 #include <ny/backend/wayland/util.hpp>
+#include <ny/backend/wayland/surface.hpp>
 #include <ny/backend/wayland/xdg-shell-client-protocol.h>
 
 #include <ny/base/event.hpp>
@@ -280,6 +281,11 @@ xdg_popup* WaylandWindowContext::xdgPopup() const
 	return (role_ == WaylandSurfaceRole::xdgPopup) ? xdgPopup_ : nullptr; 
 }
 
+wl_display& WaylandWindowContext::wlDisplay() const
+{
+	return appContext().wlDisplay();
+}
+
 void WaylandWindowContext::attachCommit(wl_buffer& buffer)
 {
 	frameCallback_ = wl_surface_frame(wlSurface_);
@@ -290,18 +296,36 @@ void WaylandWindowContext::attachCommit(wl_buffer& buffer)
 	wl_surface_commit(wlSurface_);
 }
 
-///Draw integration
-WaylandDrawIntegration::WaylandDrawIntegration(WaylandWindowContext& wc) : context_(wc)
+bool WaylandWindowContext::drawIntegration(WaylandDrawIntegration* integration)
 {
-	if(wc.drawIntegration_)
-		throw std::logic_error("WlDrawIntegration: windowContext already has an integration");
+	if(!(bool(drawIntegration_) ^ bool(integration))) return false;
+	drawIntegration_ = integration;
+	return true;
+}
 
-	wc.drawIntegration_ = this;
+bool WaylandWindowContext::surface(Surface& surface)
+{
+	if(drawIntegration_) return false;
+
+	try {
+		surface.buffer = std::make_unique<WaylandBufferSurface>(*this);
+		surface.type = SurfaceType::buffer;
+		return true;
+	} catch(const std::exception& ex) {
+		return false;
+	}
+}
+
+///Draw integration
+WaylandDrawIntegration::WaylandDrawIntegration(WaylandWindowContext& wc) : windowContext_(wc)
+{
+	if(!wc.drawIntegration(this))
+		throw std::logic_error("WaylandDrawIntegration: windowContext already has an integration");
 }
 
 WaylandDrawIntegration::~WaylandDrawIntegration()
 {
-	context_.drawIntegration_ = nullptr;
+	windowContext_.drawIntegration(nullptr);
 }
 
 }
