@@ -78,9 +78,6 @@ public:
 	///Returns the underlaying x11 window handle.
 	std::uint32_t xWindow() const { return xWindow_; }
 
-	///Returns the underlaying visual id.
-	std::uint32_t xVisualID() const { return xVisualID_; }
-
 	///Utility helper returning the xcbConnection of the app context.
 	xcb_connection_t* xConnection() const;
 
@@ -164,7 +161,10 @@ public:
     std::vector<std::uint32_t> allowedActions() const;
 
 	///Finds and returns the xcb_visualtype_t for this window.
-	xcb_visualtype_t* xVisualType() const;
+	xcb_visualtype_t* xVisualType() const { return xVisualtype_; }
+
+	///Returns the depth of the visual
+	unsigned int visualDepth() const { return depth_; }
 
 	///Sets the integration to the given one.
 	///Will return false if there is already such an integration or this implementation
@@ -190,22 +190,24 @@ protected:
 	///The different context classes derived from this class may override this function to
 	///select a custom visual for the window or query it in a different way connected with
 	///more information. 
-	///Will automatically be called by the create function if the visualID member variable is
+	///Will automatically be called by the create function if the xVisualtype_ member variable is
 	///not set yet (since it is needed for window creation).
-	///By default, this just selects the root visual.
+	///By default, this just selects the 32 or 24 bit visual with the best format.
     virtual void initVisual();
 
 protected:
 	X11AppContext* appContext_ = nullptr;
 	X11WindowSettings settings_ {};
-	std::uint32_t xWindow_ = 0;
-	std::uint32_t xVisualID_ = 0;
-	std::uint32_t xCursor_ = 0;
+	std::uint32_t xWindow_ = 0u;
+	std::uint32_t xCursor_ = 0u;
+
+	xcb_visualtype_t* xVisualtype_ = nullptr;
+	unsigned int depth_ = 0u;
 
 	//Stored EWMH states can be used to check whether it is fullscreen, maximized etc.
 	std::vector<std::uint32_t> states_;
-    unsigned long mwmFuncHints_ = 0;
-    unsigned long mwmDecoHints_ = 0;
+    unsigned long mwmFuncHints_ = 0u;
+    unsigned long mwmDecoHints_ = 0u;
 
 	//The draw integration for this WindowContext.
 	X11DrawIntegration* drawIntegration_ = nullptr;

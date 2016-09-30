@@ -57,7 +57,7 @@ public:
     void cursor(const Cursor& c) override;
 	NativeWindowHandle nativeHandle() const override;
 
-	WindowCapabilities capabilities() const override { return {}; }
+	WindowCapabilities capabilities() const override;
 
     //toplevel
     void maximize() override;

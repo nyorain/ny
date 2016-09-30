@@ -4,6 +4,7 @@
 #include <ny/backend/x11/windowContext.hpp>
 #include <ny/backend/integration/surface.hpp>
 #include <nytl/vec.hpp>
+#include <memory>
 
 typedef struct xcb_image_t xcb_image_t;
 
@@ -11,6 +12,8 @@ namespace ny
 {
 
 ///X11 BufferSurface implementation.
+///The owned pixmap (and mapped/allocated data) will have the depth/format of the
+///X11WindowContext it is associated with.
 class X11BufferSurface : public X11DrawIntegration, public BufferSurface
 {
 public:
@@ -23,9 +26,21 @@ protected:
 	void resize(const nytl::Vec2ui&) override;
 
 protected:
-	xcb_image_t* image_ {};
 	ImageDataFormat format_ {};
-	unsigned int byteSize_ {};
+	nytl::Vec2ui size_;
+	unsigned int byteSize_ {}; //the size in bytes of (shm_) ? shmaddr_ : data_
+
+	std::uint32_t pixmap_ {};
+	std::uint32_t gc_ {};
+	bool shm_ {};
+
+	//when using shm
+	unsigned int shmid_ {};
+	std::uint32_t shmseg_ {};
+	std::uint8_t* shmaddr_ {};
+
+	//otherwise hold owned data
+	std::unique_ptr<std::uint8_t[]> data_;
 };
 
 }

@@ -23,7 +23,10 @@ public:
 			auto guard = buffer_->get();
 			auto data = guard.get();
 
-			for(unsigned int i = 2; i < data.size.x * data.size.y * 4; i += 4)
+			ny::debug("Buffer size: ", data.size);
+
+			auto size = ny::imageDataFormatSize(data.format);
+			for(unsigned int i = 0; i < data.size.x * data.size.y * size; i += 1)
 				data.data[i] = 0xFF;
 		}
 		else if(ev.type() == ny::eventType::key)

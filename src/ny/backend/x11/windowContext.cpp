@@ -32,7 +32,9 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 	appContext_ = &ctx;
 	settings_ = settings;
 
-	if(!xVisualID_) initVisual();
+	if(!xVisualtype_) initVisual();
+	auto depth = xVisualtype_->bits_per_rgb_value;
+	auto vid = xVisualtype_->visual_id;
 
     auto xconn = appContext_->xConnection();
 	auto xscreen = appContext_->xDefaultScreen();
@@ -42,7 +44,7 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
         return;
     }
 
-	bool toplvl = 0;
+	bool toplvl = false;
 	auto pos = settings.position;
 	auto size = settings.size;
 
@@ -50,23 +52,26 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 	if(!xparent)
 	{
 		xparent = xscreen->root;
-		toplvl = 1;
+		toplvl = true;
 	}
 
 	xcb_colormap_t colormap = xcb_generate_id(xconn);
-	xcb_create_colormap(xconn, XCB_COLORMAP_ALLOC_NONE, colormap, xscreen->root, xVisualID_);
+	xcb_create_colormap(xconn, XCB_COLORMAP_ALLOC_NONE, colormap, xscreen->root, vid);
 
 	std::uint32_t eventmask =
 		XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_STRUCTURE_NOTIFY | XCB_EVENT_MASK_KEY_PRESS |
 		XCB_EVENT_MASK_KEY_RELEASE | XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE |
 		XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_LEAVE_WINDOW | XCB_EVENT_MASK_POINTER_MOTION;
 
-	std::uint32_t valuelist[] = {eventmask, colormap, 0};
-	std::uint32_t valuemask = XCB_CW_EVENT_MASK | XCB_CW_COLORMAP;
+	std::uint32_t valuelist[] = {0, 0, eventmask, colormap, 0};
+	std::uint32_t valuemask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK | 
+		XCB_CW_COLORMAP;
 
 	xWindow_ = xcb_generate_id(xconn);
-	xcb_create_window(xconn, XCB_COPY_FROM_PARENT, xWindow_, xparent, pos.x, pos.y,
-		size.x, size.y, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT, xVisualID_, valuemask, valuelist);
+	auto cookie = xcb_create_window_checked(xconn, depth_, xWindow_, xparent, pos.x, pos.y,
+		size.x, size.y, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT, vid, valuemask, valuelist);
+	if(!x11::testCookie(*xConnection(), cookie))
+		throw std::runtime_error("ny::X11WC: Failed to create the x window.");
 
     appContext_->registerContext(xWindow_, *this);
     if(toplvl)
@@ -98,7 +103,54 @@ X11WindowContext::~X11WindowContext()
 
 void X11WindowContext::initVisual()
 {
-	xVisualID_ = appContext().xDefaultScreen()->root_visual;
+    auto screen = appContext().xDefaultScreen();
+	auto avDepth = 0u;
+
+	auto depth_iter = xcb_screen_allowed_depths_iterator(screen);
+	for(; depth_iter.rem; xcb_depth_next(&depth_iter)) 
+	{
+		if(depth_iter.data->depth == 32) avDepth = 32;
+		if(!avDepth && depth_iter.data->depth == 24) avDepth = 24;
+	}
+
+	if(avDepth == 0u) throw std::runtime_error("X11WC: no 24 or 32 bit visuals.");
+	else if(avDepth == 24) warning("ny::X11WC: no 32-bit visuals.");
+
+
+	depth_iter = xcb_screen_allowed_depths_iterator(screen);
+	for(; depth_iter.rem; xcb_depth_next(&depth_iter)) 
+	{
+		if(depth_iter.data->depth == avDepth)
+		{
+			//32 > 24 (should not be decided by this though)
+			//argb > rgba > bgra for 32
+			//rgb > bgr for 24
+			auto highestScore = 0u;
+			auto score = [](ImageDataFormat& f) {
+				if(f == ImageDataFormat::argb8888) return 5u;
+				else if(f == ImageDataFormat::rgba8888) return 4u;
+				else if(f == ImageDataFormat::bgra8888) return 3u;
+				else if(f == ImageDataFormat::rgb888) return 2u;
+				else if(f == ImageDataFormat::bgr888) return 1u;
+				return 0u;
+			};
+
+			auto visual_iter = xcb_depth_visuals_iterator(depth_iter.data);
+			for(; visual_iter.rem; xcb_visualtype_next(&visual_iter)) 
+			{
+				//TODO: make requested format dynamic with X11WindowSettings
+				xVisualtype_ = visual_iter.data;
+				auto format = visualToFormat(*visual_iter.data, avDepth);
+				if(score(format) > highestScore)
+					xVisualtype_ = visual_iter.data;
+			}
+
+			break;
+		}
+	}
+
+	if(!xVisualtype_) throw std::runtime_error("X11WC: failed to find a matching visual.");
+	depth_ = avDepth;
 }
 
 xcb_connection_t* X11WindowContext::xConnection() const
@@ -703,34 +755,6 @@ nytl::Vec2ui X11WindowContext::size() const
 	auto ret = nytl::Vec2ui(geometry->width, geometry->height);
 	std::free(geometry);
 	return ret;
-}
-
-xcb_visualtype_t* X11WindowContext::xVisualType() const
-{
-	xcb_depth_iterator_t depth_iter;
-	xcb_visualtype_t* visualtype;
-
-	depth_iter = xcb_screen_allowed_depths_iterator(appContext().xDefaultScreen());
-	while(depth_iter.rem)
-	{
-		xcb_visualtype_iterator_t visual_iter;
-
-		visual_iter = xcb_depth_visuals_iterator (depth_iter.data);
-		while(visual_iter.rem)
-		{
-			if(xVisualID() == visual_iter.data->visual_id)
-			{
-				visualtype = visual_iter.data;
-				break;
-			}
-
-			xcb_visualtype_next(&visual_iter);
-		}
-
-		xcb_depth_next (&depth_iter);
-	}
-
-	return visualtype;
 }
 
 bool X11WindowContext::drawIntegration(X11DrawIntegration* integration)

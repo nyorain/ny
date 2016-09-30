@@ -134,7 +134,7 @@ void WaylandWindowContext::position(const Vec2i& position)
 {
     if(wlSubsurface())
     {
-       wl_subsurface_set_position(wlSubsurface_, position.x, position.y);
+		wl_subsurface_set_position(wlSubsurface_, position.x, position.y);
     }
 	else
 	{
@@ -145,8 +145,6 @@ void WaylandWindowContext::position(const Vec2i& position)
 void WaylandWindowContext::cursor(const Cursor& c)
 {
 	//TODO
-    //window class still stores the cursor, just update it
-    // updateCursor(nullptr);
 }
 
 void WaylandWindowContext::droppable(const DataTypes&)
@@ -155,14 +153,26 @@ void WaylandWindowContext::droppable(const DataTypes&)
 
 void WaylandWindowContext::minSize(const Vec2ui&)
 {
+	warning("WaylandWC::maxSize: wayland has no capability for size limits");
 }
 void WaylandWindowContext::maxSize(const Vec2ui&)
 {
+	warning("WaylandWC::maxSize: wayland has no capability for size limits");
 }
 
 NativeWindowHandle WaylandWindowContext::nativeHandle() const
 {
 	return {wlSurface_};
+}
+
+WindowCapabilities WaylandWindowContext::capabilities() const
+{
+	//change this when using new xdg shell version
+	//make it dependent on the actual shell used
+	return WindowCapability::size |
+		WindowCapability::fullscreen |
+		WindowCapability::minimize |
+		WindowCapability::maximize;
 }
 
 bool WaylandWindowContext::handleEvent(const Event& event)

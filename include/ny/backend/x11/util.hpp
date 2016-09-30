@@ -37,10 +37,12 @@ namespace x11
 ///Special X11 backend event for reparenting.
 ///Event is needed since on reparenting the window position has to be set again.
 using ReparentEvent = EventBase<eventType::x11::reparent>;
+bool testCookie(xcb_connection_t& conn, const xcb_void_cookie_t& cookie, const char* msg = nullptr);
+
 }
 
 //utility conversions.
-ImageDataFormat visualToFormat(const xcb_visualtype_t& visual);
+ImageDataFormat visualToFormat(const xcb_visualtype_t& visual, unsigned int depth);
 
 MouseButton x11ToButton(unsigned int id);
 Key x11ToKey(unsigned int id);

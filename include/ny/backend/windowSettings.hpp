@@ -55,6 +55,15 @@ enum class WindowCapability : unsigned int
 	sizeLimits = (1L << 6)
 };
 
+//additional capabitlity suggestions:
+// - merge customDecorated with Capability
+// - change cursor
+// - change icon
+// - make droppable
+// - beginMove
+// - beginResize
+// - title
+
 using WindowCapabilities = nytl::Flags<WindowCapability>;
 NYTL_FLAG_OPS(WindowCapability)
 
@@ -117,7 +126,6 @@ public:
 
 	operator void*() const { return pointer(); }
 	operator std::uint64_t() const { return uint(); }
-	operator std::uintptr_t() const { return uintptr(); }
 
 	template<typename T> T* asPtr() const { return reinterpret_cast<T*>(value_); }
 
@@ -185,8 +193,9 @@ struct VulkanSurfaceSettings
 
 ///Settings for a Window.
 ///Backends usually have their own WindowSettings class derived from this one.
-struct WindowSettings
+class WindowSettings
 {
+public:
 	NativeWindowHandle nativeHandle = nullptr; ///< May specify an already existent native handle
 	NativeWindowHandle parent = nullptr; ///< May specify the windows native parent
 	ToplevelState initState = ToplevelState::normal; ///< Window state after initialization

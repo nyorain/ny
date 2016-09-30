@@ -1,4 +1,5 @@
 #include <ny/backend/x11/util.hpp>
+#include <ny/base/log.hpp>
 
 #define XK_LATIN1
 #define XK_MISCELLANY
@@ -117,7 +118,7 @@ const char* cursorToX11Char(CursorType c)
     }
 }
 
-ImageDataFormat visualToFormat(const xcb_visualtype_t& v)
+ImageDataFormat visualToFormat(const xcb_visualtype_t& v, unsigned int depth)
 {
 	struct 
 	{
@@ -133,16 +134,35 @@ ImageDataFormat visualToFormat(const xcb_visualtype_t& v)
 		{ 0xFF000000, 0, 0, 0, ImageDataFormat::a8 } //XXX: does this format exist?
 	};
 
+	if(depth != 24 && depth != 32) return ImageDataFormat::none;
+
 	for(auto& f : formats)
 	{
 		auto a = 0u;
-		if(v.bits_per_rgb_value == 32) 
-			a = 0xffffffff & ~(v.red_mask | v.green_mask | v.blue_mask);
+		if(depth == 32) a = 0xffffffff & ~(v.red_mask | v.green_mask | v.blue_mask);
 		if(v.red_mask == f.r && v.green_mask == f.g && v.blue_mask == f.b && a == f.a)
 			return f.format;
 	}
 
 	return ImageDataFormat::none;
+}
+
+namespace x11
+{
+
+bool testCookie(xcb_connection_t& xconn, const xcb_void_cookie_t& cookie, const char* msg)
+{
+	auto e = xcb_request_check(&xconn, cookie);
+	if(e)
+	{
+		if(!msg) msg = "<unknown>";
+		warning(msg, ": received xcb protocol error ", (int) e->error_code);
+		return false;
+	}
+
+	return true;
+}
+
 }
 
 }
