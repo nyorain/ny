@@ -47,7 +47,7 @@ int main()
 	auto cairo = ny::cairoIntegration(*wc); //decltype(cairo): unique_ptr<ny::CairoIntegration>
 	if(!cairo)
 	{
-		ny::warning("Failed to create cairo integration");
+		ny::error("Failed to create cairo integration");
 		return EXIT_FAILURE;
 	}
 

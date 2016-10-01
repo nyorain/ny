@@ -24,7 +24,6 @@ protected:
 	ny::WindowContext& wc_;
 };
 
-
 int main()
 {
 	auto& backend = ny::Backend::choose();
@@ -40,10 +39,11 @@ int main()
 	wc->refresh();
 
 	//nothing special here, just create a surface integration
+	//see examples/surface.cpp or ny/backend/integration/surface.hpp for more details on it
 	auto surface = ny::surface(*wc);
 	if(surface.type == ny::SurfaceType::none)
 	{
-		ny::warning("Failed to create surface integration");
+		ny::error("Failed to create surface integration");
 		return EXIT_FAILURE;
 	}
 

@@ -36,7 +36,7 @@ int main()
 	//This context is guaranteed to be valid at least until the WindowContext it was created
 	//for gets destructed.
 	//We also disable vsync.
-	ny::GlContext* ctx;
+	ny::GlContext* ctx {};
 
 	ny::WindowSettings settings;
 	settings.context = ny::ContextType::gl;
@@ -47,7 +47,7 @@ int main()
 	//check that the glcontext could be created
 	if(!ctx)
 	{
-		ny::warning("Could not create/retrieve the ny gl context.");
+		ny::error("Could not create/retrieve the ny gl context.");
 		return EXIT_FAILURE;
 	}
 

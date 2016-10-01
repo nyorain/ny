@@ -28,7 +28,7 @@ int main()
 	VkInstance vkInstance = createInstance(*ac);
 	if(!vkInstance)
 	{
-		ny::warning("Failed to create the vulkan instance");
+		ny::error("Failed to create the vulkan instance");
 		return EXIT_FAILURE;
 	}
 
@@ -74,7 +74,7 @@ VkInstance createInstance(ny::AppContext& ac)
 	info.ppEnabledExtensionNames = ext.data();
 	info.pApplicationInfo = &appInfo;
 
-	VkInstance ret;
+	VkInstance ret {};
 	vkCreateInstance(&info, nullptr, &ret);
 	return ret;
 }
