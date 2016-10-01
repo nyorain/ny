@@ -49,6 +49,9 @@ public:
 	///information about the pointer or there is no pointer connected.
 	///Note that the fact that this function returns a valid pointer does not guarantee that
 	///there is a mouse connected.
+	///The lifetime of the object the returned pointer points to is allowed to end IN a dispatch
+	///call. So the returned pointer is guaranteed to be valid as long as no dispatch function is
+	///called.
 	///\sa MouseContext
 	virtual MouseContext* mouseContext() = 0;
 
@@ -60,6 +63,9 @@ public:
 	///the needed information about the keyboard or there is no keyboard connected.
 	///Note that the fact that this function returns a valid pointer does not guarantee that
 	///there is a keyboard connected.
+	///The lifetime of the object the returned pointer points to is allowed to end IN a dispatch
+	///call. So the returned pointer is guaranteed to be valid as long as no dispatch function is
+	///called.
 	///\sa KeyboardContext
 	virtual KeyboardContext* keyboardContext() = 0;
 

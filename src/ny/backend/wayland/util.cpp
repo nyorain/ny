@@ -317,7 +317,7 @@ Output::Output(WaylandAppContext& ac, wl_output& outp, unsigned int id)
 
 Output::~Output()
 {
-    wl_output_destroy(wlOutput);
+    if(wlOutput) wl_output_destroy(wlOutput);
 }
 
 }//namespace wayland

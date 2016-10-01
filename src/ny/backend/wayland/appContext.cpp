@@ -86,6 +86,8 @@ WaylandAppContext::~WaylandAppContext()
 	if(keyboardContext_) keyboardContext_.reset();
 	if(mouseContext_) mouseContext_.reset();
 
+	outputs_.clear();
+
 	if(wlRegistry_) wl_registry_destroy(wlRegistry_);
     if(wlDisplay_) wl_display_disconnect(wlDisplay_);
 }
@@ -236,7 +238,7 @@ void WaylandAppContext::registryAdd(unsigned int id, const char* cinterface, uns
     else if(interface == "wl_output")
     {
 		auto ptr = wl_registry_bind(wlRegistry_, id, &wl_output_interface, 1);
-        outputs_.push_back({*this, *static_cast<wl_output*>(ptr), id});
+        outputs_.emplace_back(*this, *static_cast<wl_output*>(ptr), id);
     }
     else if(interface == "wl_data_device_manager" && !wlDataManager_)
     {
@@ -275,7 +277,7 @@ void WaylandAppContext::outputDone(const Output& out)
 
 void WaylandAppContext::registryRemove(unsigned int id)
 {
-	//TODO: usually stop the application/main loop here.
+	//TODO: stop the application/main loop here.
 	//TODO: check other globals here
 	if(id == wlCompositor_.name)
 	{
