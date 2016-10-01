@@ -50,6 +50,8 @@ X11BufferSurface::X11BufferSurface(X11WindowContext& wc) : X11DrawIntegration(wc
     auto reply = xcb_shm_query_version_reply(wc.xConnection(), cookie, nullptr);
 
 	shm_ = (reply && reply->shared_pixmaps);
+	if(reply) free(reply);
+
 	// shm_ = false; //uncomment this if you want to FORCE no shm (when testing)
 	if(!shm_) 
 		warning("X11BufferSurface: xserver has no shm support, might result in bad performance");

@@ -8,6 +8,7 @@
 
 #include <ny/base/eventDispatcher.hpp>
 #include <ny/base/loopControl.hpp>
+#include <ny/base/log.hpp>
 
 #ifdef NY_WithEGL
  #include <ny/backend/wayland/egl.hpp>
@@ -25,6 +26,10 @@
 #include <wayland-cursor.h>
 #include <wayland-client-protocol.h>
 
+#include <poll.h>
+#include <unistd.h>
+#include <sys/eventfd.h>
+
 #include <algorithm>
 
 namespace ny
@@ -33,7 +38,12 @@ namespace ny
 namespace
 {
 
-void callbackDestroy(void*, wl_callback* callback, unsigned int) { wl_callback_destroy(callback); }
+void callbackDestroy(void*, wl_callback* callback, unsigned int) 
+{ 
+	debug("callback done");
+	wl_callback_destroy(callback); 
+}
+
 const wl_callback_listener callbackDestroyListener { &callbackDestroy };
 
 //LoopControl
@@ -41,20 +51,19 @@ class WaylandLoopControlImpl : public ny::LoopControlImpl
 {
 public:
 	std::atomic<bool>* run;
-	wl_callback* callback;
-	wl_display* display;
+	unsigned int evfd;
 
 public:
-	WaylandLoopControlImpl(std::atomic<bool>& prun, wl_display& wldisplay)
-		: run(&prun), display(&wldisplay)
+	WaylandLoopControlImpl(std::atomic<bool>& prun, unsigned int evfd)
+		: run(&prun), evfd(evfd)
 	{
 	}
 
 	virtual void stop() override
 	{
 		run->store(0);
-		callback = wl_display_sync(display);
-		wl_callback_add_listener(callback, &callbackDestroyListener, this);
+		std::int64_t v = 1;
+		write(evfd, &v, 8);
 	};
 };
 
@@ -75,16 +84,29 @@ WaylandAppContext::WaylandAppContext()
     wl_display_roundtrip(wlDisplay_);
 
     //compositor added by registry Callback listener
+	//note that if it is not there now it simply does not exist on the server since
+	//we rountripped above
     if(!wlCompositor_) throw std::runtime_error("ny::WaylandAC: could not get compositor");
-
-    wl_callback* syncer = wl_display_sync(wlDisplay_);
-    wl_callback_add_listener(syncer, &displaySyncListener, this);
+	eventfd_ = eventfd(0, EFD_NONBLOCK);
 }
 
 WaylandAppContext::~WaylandAppContext()
 {
+	if(eventfd_) close(eventfd_);
+
+	if(wlCursorTheme_) wl_cursor_theme_destroy(wlCursorTheme_);
+	if(wlDataDevice_) wl_data_device_destroy(wlDataDevice_);
+
 	if(keyboardContext_) keyboardContext_.reset();
 	if(mouseContext_) mouseContext_.reset();
+
+	if(xdgShell_) xdg_shell_destroy(xdgShell_);
+	if(wlShell_) wl_shell_destroy(wlShell_);
+	if(wlSeat_) wl_seat_destroy(wlSeat_);
+	if(wlDataManager_) wl_data_device_manager_destroy(wlDataManager_);
+	if(wlShm_) wl_shm_destroy(wlShm_);
+	if(wlSubcompositor_) wl_subcompositor_destroy(wlSubcompositor_);
+	if(wlCompositor_) wl_compositor_destroy(wlCompositor_);
 
 	outputs_.clear();
 
@@ -107,14 +129,21 @@ bool WaylandAppContext::dispatchLoop(LoopControl& control)
 	auto guard = nytl::makeScopeGuard([&]{ control.impl_.reset(); });
 
 	std::atomic<bool> run {true};
-	control.impl_.reset(new WaylandLoopControlImpl(run, *wlDisplay_));
+	control.impl_.reset(new WaylandLoopControlImpl(run, eventfd_));
 
 	auto ret = 0;
 	while(run && ret != -1)
 	{
 		for(auto& e : pendingEvents_) if(e->handler) e->handler->handleEvent(*e);
 		pendingEvents_.clear();
-		ret = wl_display_dispatch(wlDisplay_);
+		ret = dispatchDisplay();
+		if(ret == 0)
+		{
+			std::int64_t v;
+			read(eventfd_, &v, 8);
+		}
+
+		// ret = wl_display_dispatch(wlDisplay_);
 	}
 
 	return ret != -1;
@@ -123,7 +152,7 @@ bool WaylandAppContext::dispatchLoop(LoopControl& control)
 bool WaylandAppContext::threadedDispatchLoop(EventDispatcher& dispatcher, LoopControl& control)
 {
 	std::atomic<bool> run {true};
-	control.impl_.reset(new WaylandLoopControlImpl(run, *wlDisplay_));
+	control.impl_.reset(new WaylandLoopControlImpl(run, eventfd_));
 	dispatcher_ = &dispatcher;
 
 	auto guard = nytl::makeScopeGuard([&]{
@@ -133,7 +162,8 @@ bool WaylandAppContext::threadedDispatchLoop(EventDispatcher& dispatcher, LoopCo
 
 	//wake the loop up every time an event is dispatched from another thread
 	nytl::CbConnGuard conn = dispatcher.onDispatch.add([&]{
-		wl_display_roundtrip(wlDisplay_);
+		std::int64_t v = 1;
+		write(eventfd_, &v, 8);
 	});
 
 
@@ -143,7 +173,13 @@ bool WaylandAppContext::threadedDispatchLoop(EventDispatcher& dispatcher, LoopCo
 		for(auto& e : pendingEvents_) if(e->handler) e->handler->handleEvent(*e);
 		pendingEvents_.clear();
 
-		ret = wl_display_dispatch(wlDisplay_);
+		ret = dispatchDisplay();
+		if(ret == 0)
+		{
+			std::int64_t v;
+			read(eventfd_, &v, 8);
+		}
+
 		dispatcher.processEvents();
 	}
 
@@ -206,6 +242,99 @@ std::vector<const char*> WaylandAppContext::vulkanExtensions() const
 	#else
 	 return {};
 	#endif
+}
+
+int WaylandAppContext::dispatchDisplay()
+{
+	//In parts taken from wayland-client.c and modified to poll for the wayland fd as well as an 
+	//eventfd.  The wayland license:
+	//
+	// Copyright © 2008-2012 Kristian Høgsberg
+	// Copyright © 2010-2012 Intel Corporation
+	// 
+	// Permission is hereby granted, free of charge, to any person obtaining
+	// a copy of this software and associated documentation files (the
+	// "Software"), to deal in the Software without restriction, including
+	// without limitation the rights to use, copy, modify, merge, publish,
+	// distribute, sublicense, and/or sell copies of the Software, and to
+	// permit persons to whom the Software is furnished to do so, subject to
+	// the following conditions:
+	// 
+	// The above copyright notice and this permission notice (including the
+	// next paragraph) shall be included in all copies or substantial
+	// portions of the Software.
+	// 
+	// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+	// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+	// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+	// NONINFRINGEMENT.  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+	// BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+	// ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+	// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	// SOFTWARE.
+	
+	bool event = false;
+	auto dpypoll = [&](int events){
+		int ret;
+
+		pollfd pfds[2] {};
+		pfds[0].fd = wl_display_get_fd(wlDisplay_);
+		pfds[0].events = events;
+
+		pfds[1].fd = eventfd_;
+		pfds[1].events = POLLIN;
+
+		do ret = poll(pfds, 2, -1);
+		while(ret == -1 && errno == EINTR);
+
+		if(pfds[1].revents > POLLIN) event = true;
+		return ret;
+	};
+
+	int ret;
+	if(wl_display_prepare_read(wlDisplay_) == -1)
+		return wl_display_dispatch_pending(wlDisplay_);
+
+	while(true) 
+	{
+		ret = wl_display_flush(wlDisplay_);
+
+		if(ret != -1 || errno != EAGAIN)
+			break;
+
+		if(dpypoll(POLLOUT) == -1)
+		{
+			wl_display_cancel_read(wlDisplay_);
+			return -1;
+		}
+
+		if(event)
+		{
+			wl_display_cancel_read(wlDisplay_);
+			return 0;
+		}
+	}
+
+	if (ret < 0 && errno != EPIPE) 
+	{
+		wl_display_cancel_read(wlDisplay_);
+		return -1;
+	}
+
+	if(dpypoll(POLLIN) == -1) 
+	{
+		wl_display_cancel_read(wlDisplay_);
+		return -1;
+	}
+
+	if(event) 
+	{
+		wl_display_cancel_read(wlDisplay_);
+		return 0;
+	}
+
+	if(wl_display_read_events(wlDisplay_) == -1) return -1;
+	return wl_display_dispatch_pending(wlDisplay_);
 }
 
 void WaylandAppContext::registryAdd(unsigned int id, const char* cinterface, unsigned int)

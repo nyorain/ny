@@ -1,42 +1,19 @@
-//This example only creates a window with vulkan surface
-//Feel free, dear reader, to write an example (using no extra external dependency like
-//nyorain/vpp!) that also demonstrates real vulkan rendering into this window.
-//Is like really much work.
-
 #include <ny/base.hpp>
 #include <ny/backend.hpp>
 #include <vulkan/vulkan.h>
 
+//This example only creates a window with vulkan surface
+//It does not draw on the window with vulkan since it requires really much code to write that
+//it totally not needed here.
+
 class MyEventHandler : public ny::EventHandler
 {
 public:
-	MyEventHandler(ny::LoopControl& mainLoop, ny::WindowContext& wc)
-		: loopControl_(mainLoop), wc_(wc) {}
-
-	bool handleEvent(const ny::Event& ev) override
-	{
-		ny::debug("Received event with type ", ev.type());
-
-		if(ev.type() == ny::eventType::close)
-		{
-			ny::debug("Window closed. Exiting.");
-			loopControl_.stop();
-			return true;
-		}
-		else if(ev.type() == ny::eventType::key)
-		{
-			if(!static_cast<const ny::KeyEvent&>(ev).pressed) return false;
-
-			ny::debug("Key pressed. Exiting.");
-			loopControl_.stop();
-			return true;
-		}
-
-		return false;
-	};
+	MyEventHandler(ny::LoopControl& mainLoop, ny::WindowContext& wc) : lc_(mainLoop), wc_(wc) {}
+	bool handleEvent(const ny::Event& ev) override;
 
 protected:
-	ny::LoopControl& loopControl_;
+	ny::LoopControl& lc_;
 	ny::WindowContext& wc_;
 };
 
@@ -66,9 +43,9 @@ int main()
 	auto wc = ac->createWindowContext(settings);
 
 	//here, vkSurface could now be used to create a swapchain and render into it.
-	//But since this requires MUCH code^H^H^H^H^H^HThis was left out here intentionally as an
+	//This is really much to write so^W^W^W^W^W^W^WThis was left out here intentionally as an
 	//exercise for the reader.
-	ny::debug("The create vulkan surface: ", vkSurface);
+	ny::debug("The created vulkan surface: ", vkSurface);
 
 	ny::LoopControl control;
 	MyEventHandler handler(control, *wc);
@@ -82,6 +59,8 @@ int main()
 
 VkInstance createInstance(ny::AppContext& ac)
 {
+	//XXX: Note that when creating the vulkan instance, you have to enable the extensions
+	//that are needed by the AppContext to create the vulkan surface.
 	auto ext = ac.vulkanExtensions();
 
 	VkApplicationInfo appInfo {};
@@ -98,4 +77,26 @@ VkInstance createInstance(ny::AppContext& ac)
 	VkInstance ret;
 	vkCreateInstance(&info, nullptr, &ret);
 	return ret;
+}
+
+bool MyEventHandler::handleEvent(const ny::Event& ev)
+{
+	ny::debug("Received event with type ", ev.type());
+
+	if(ev.type() == ny::eventType::close)
+	{
+		ny::debug("Window closed. Exiting.");
+		lc_.stop();
+		return true;
+	}
+	else if(ev.type() == ny::eventType::key)
+	{
+		if(!static_cast<const ny::KeyEvent&>(ev).pressed) return false;
+
+		ny::debug("Key pressed. Exiting.");
+		lc_.stop();
+		return true;
+	}
+
+	return false;
 }

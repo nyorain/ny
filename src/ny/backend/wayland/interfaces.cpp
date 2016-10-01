@@ -219,18 +219,6 @@ const wl_keyboard_listener keyboardListener =
 };
 
 
-//display sync
-void displayHandleSync(void* data, wl_callback* callback, uint32_t time)
-{
-	//TODO
-	// use wayland::serverCallback instead?
-}
-
-const wl_callback_listener displaySyncListener =
-{
-    displayHandleSync
-};
-
 //dataSourceListener
 void dataSourceTarget(void* data, wl_data_source* wl_data_source, const char* mime_type)
 {

@@ -122,16 +122,7 @@ const wl_buffer_listener bufferListener =
 //shmBuffer
 ShmBuffer::ShmBuffer(WaylandAppContext& ac, Vec2ui size) : appContext_(&ac), size_(size)
 {
-	format_ = WL_SHM_FORMAT_XRGB8888;
-	if(appContext_->shmFormatSupported(WL_SHM_FORMAT_ARGB8888))
-		format_ = WL_SHM_FORMAT_ARGB8888;
-	else if(appContext_->shmFormatSupported(WL_SHM_FORMAT_BGRA8888))
-		format_ = WL_SHM_FORMAT_BGRA8888;
-	else if(appContext_->shmFormatSupported(WL_SHM_FORMAT_ABGR8888))
-		format_ = WL_SHM_FORMAT_ABGR8888;
-	else if(appContext_->shmFormatSupported(WL_SHM_FORMAT_RGBA8888))
-		format_ = WL_SHM_FORMAT_RGBA8888;
-
+	format_ = WL_SHM_FORMAT_ARGB8888;
     create();
 }
 
@@ -207,7 +198,7 @@ void ShmBuffer::create()
     }
 
     auto ptr = mmap(nullptr, shmSize_, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    if (data_ == MAP_FAILED)
+    if(ptr == MAP_FAILED)
     {
         close(fd);
         throw std::runtime_error("wayland shm buffer: could not mmap file");
@@ -455,11 +446,11 @@ ImageDataFormat waylandToImageFormat(unsigned int wlFormat)
 {
     switch(wlFormat)
     {
-		case WL_SHM_FORMAT_ABGR8888: return ImageDataFormat::argb8888;
+		case WL_SHM_FORMAT_ARGB8888: return ImageDataFormat::argb8888;
 		case WL_SHM_FORMAT_RGB888: return ImageDataFormat::rgb888;
 		case WL_SHM_FORMAT_BGRA8888: return ImageDataFormat::bgra8888;
 		case WL_SHM_FORMAT_RGBA8888: return ImageDataFormat::rgba8888;
-		case WL_SHM_FORMAT_XRGB8888: return ImageDataFormat::argb8888;
+		case WL_SHM_FORMAT_XRGB8888: return ImageDataFormat::argb8888; //XXX: extra image format?
 		case WL_SHM_FORMAT_C8: return ImageDataFormat::a8;
 		default: return ImageDataFormat::none;
     }

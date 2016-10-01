@@ -496,9 +496,16 @@ bool X11AppContext::threadedDispatchLoop(EventDispatcher& dispatcher, LoopContro
 	control.impl_ = std::make_unique<x11::LoopControlImpl>(run, xConnection_, xDummyWindow_);
 	auto loopguard = nytl::makeScopeGuard([&]{ control.impl_.reset(); });
 
-	nytl::CbConnGuard connection = dispatcher.onDispatch.add([]{
-			//some code here to stop the waiting
-		});
+	nytl::CbConnGuard connection = dispatcher.onDispatch.add([&]{
+		auto win = xDummyWindow_;
+		xcb_client_message_event_t dummyEvent {};
+		dummyEvent.window = win;
+		dummyEvent.type = XCB_CLIENT_MESSAGE;
+		dummyEvent.format = 32;
+
+		xcb_send_event(xConnection(), 0, win, 0, reinterpret_cast<const char*>(&dummyEvent));
+		xcb_flush(xConnection());
+	});
 
 	while(run.load())
 	{

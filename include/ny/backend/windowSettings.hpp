@@ -213,7 +213,7 @@ public:
 
 	///Can be used to specify if and which context should be created for the window.
 	///Specifies which union member is active.
-	ContextType context;
+	ContextType context = ContextType::none;
 	union
 	{
 		GlContextSettings gl {};

@@ -91,6 +91,11 @@ public:
 	void outputDone(const wayland::Output& out); //called by wayland callback
 
 protected:
+	///Modified version of wl_dispatch_display that performs the same operations but
+	///does stop blocking (no matter at which stage) if eventfd_ is signaled (i.e. set to 1).
+	int dispatchDisplay();
+
+protected:
 	wl_display* wlDisplay_;
 	wl_registry* wlRegistry_;
 
@@ -105,7 +110,6 @@ protected:
 	wayland::NamedGlobal<xdg_shell> xdgShell_;
 
     wl_data_device* wlDataDevice_ = nullptr;
-
 
 	//cursor
     wl_cursor_theme* wlCursorTheme_ = nullptr;
@@ -123,6 +127,7 @@ protected:
 	// wl_data_source* wlDataSource_ = nullptr;
 
 	EventDispatcher* dispatcher_ = nullptr; //from disptach loop/dispatchEvents
+	unsigned int eventfd_ = 0u;
 
 	std::vector<unsigned int> shmFormats_;
 	std::vector<wayland::Output> outputs_;

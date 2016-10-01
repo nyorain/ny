@@ -1,6 +1,8 @@
 #include <ny/backend/wayland/surface.hpp>
 #include <ny/backend/wayland/util.hpp>
+#include <ny/base/log.hpp>
 #include <nytl/vecOps.hpp>
+
 #include <stdexcept>
 
 namespace ny
@@ -56,6 +58,9 @@ MutableImageData WaylandBufferSurface::init()
 	buffers_.back().use();
 	active_ = &buffers_.back();
 	auto format = waylandToImageFormat(buffers_.back().format());
+	if(format == ImageDataFormat::none)
+		warning("WaylandBufferSurface: failed to parse format");
+
 	return {&buffers_.back().data(), size, format, size.x * 4};
 }
 

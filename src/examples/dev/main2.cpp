@@ -26,8 +26,9 @@ public:
 			ny::debug("Buffer size: ", data.size);
 
 			auto size = ny::imageDataFormatSize(data.format);
+			// auto size = 4;
 			for(unsigned int i = 0; i < data.size.x * data.size.y * size; i += 1)
-				data.data[i] = 0xCC;
+				data.data[i] = 0xFF;
 		}
 		else if(ev.type() == ny::eventType::key)
 		{
