@@ -7,8 +7,8 @@
 //XXX: This example shows how to use cairo manually integrated using the surface/BufferSurface
 //integration possibility. The performance should usually not be much worse, but one should
 //nontheless prefer the normal cairo integration.
-//Try to compare the performance of this example (ny-cairo2) with the native cairo integration
-//(ny-cairo) and on some backends you may notive a real difference (mainly for x11).
+//Try to compare the performance of this example (ny-surface-cairo) with the native cairo 
+//integration (ny-cairo) and on some backends you may notive a real difference (mainly for x11).
 
 class MyEventHandler : public ny::EventHandler
 {
