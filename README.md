@@ -3,7 +3,8 @@
 A lightweight and modern C++14 windowing toolkit. Finally.
 Desined to be modular instead of monolithic, lightweight instead of bloated, modern instead
 of supportive.
-Licensed under the __MIT License__.
+Licensed under the __Boost License__ (similar to MIT and BSD license but does not require 
+attribution when only used in binaries).
 
 Instead of writing one big pile of shit, we focused on writing modular components that can be
 useful for writing applications with user interfaces. The ny infrastrcuture is therefore
@@ -15,6 +16,7 @@ splitted in 3 modular parts that can be used seperatly:
 As soon as C++17 will be released and supported by the first compilers, ny will require it.
 The code is written against the C++ standard and not against compiler features, therefore 
 compiling ny with any mscv will not work, since it does not have full C++14 support.
+(To be honest it does already depend on C++17, it uses std::any).
 
 At the moment, ny is in a pre-alpha state, but the first alpha is expected to be released soon.
 
