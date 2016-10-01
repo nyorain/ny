@@ -12,8 +12,6 @@ namespace ny
 {
 
 ///X11 BufferSurface implementation.
-///The owned pixmap (and mapped/allocated data) will have the depth/format of the
-///X11WindowContext it is associated with.
 class X11BufferSurface : public X11DrawIntegration, public BufferSurface
 {
 public:
@@ -29,8 +27,6 @@ protected:
 	ImageDataFormat format_ {};
 	nytl::Vec2ui size_;
 	unsigned int byteSize_ {}; //the size in bytes of (shm_) ? shmaddr_ : data_
-
-	std::uint32_t pixmap_ {};
 	std::uint32_t gc_ {};
 	bool shm_ {};
 

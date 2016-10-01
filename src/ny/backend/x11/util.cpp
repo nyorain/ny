@@ -120,29 +120,31 @@ const char* cursorToX11Char(CursorType c)
 
 ImageDataFormat visualToFormat(const xcb_visualtype_t& v, unsigned int depth)
 {
-	struct 
-	{
-		unsigned int r, g, b, a;
-		ImageDataFormat format;
-	} formats[] = 
-	{
-		{ 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF, ImageDataFormat::rgba8888 },
-		{ 0x0000FF00, 0x00FF0000, 0xFF000000, 0x000000FF, ImageDataFormat::bgra8888 },
-		{ 0xFF000000, 0x0000FF00, 0x000000FF, 0xFF000000, ImageDataFormat::argb8888 },
-		{ 0xFF000000, 0x00FF0000, 0x0000FF00, 0, ImageDataFormat::rgb888 },
-		{ 0x0000FF00, 0x00FF0000, 0xFF000000, 0, ImageDataFormat::bgr888 },
-		{ 0xFF000000, 0, 0, 0, ImageDataFormat::a8 } //XXX: does this format exist?
-	};
-
 	if(depth != 24 && depth != 32) return ImageDataFormat::none;
 
-	for(auto& f : formats)
+	//A simple format map that maps the rgb[a] mask values of the visualtype to a format
+	//Note that only the rgb[a] masks of some visuals will result in a valid format,
+	//usually ImageDataFormat::none is returned
+	struct  
 	{
-		auto a = 0u;
-		if(depth == 32) a = 0xffffffff & ~(v.red_mask | v.green_mask | v.blue_mask);
+		std::uint32_t r, g, b, a;
+		ImageDataFormat format;
+	} static formats[] = 
+	{
+		{ 0xFF000000u, 0x00FF0000u, 0x0000FF00u, 0x000000FFu, ImageDataFormat::rgba8888 },
+		{ 0x0000FF00u, 0x00FF0000u, 0xFF000000u, 0x000000FFu, ImageDataFormat::bgra8888 },
+		{ 0x00FF0000u, 0x0000FF00u, 0x000000FFu, 0xFF000000u, ImageDataFormat::argb8888 },
+		{ 0xFF000000u, 0x00FF0000u, 0x0000FF00u, 0u, ImageDataFormat::rgb888 },
+		{ 0x0000FF00u, 0x00FF0000u, 0xFF000000u, 0u, ImageDataFormat::bgr888 },
+		// { 0xFF000000u, 0u, 0u, 0u, ImageDataFormat::a8 } //XXX: does this format exist?
+	};
+
+	auto a = 0u;
+	if(depth == 32) a = 0xFFFFFFFFu & ~(v.red_mask | v.green_mask | v.blue_mask);
+
+	for(auto& f : formats)
 		if(v.red_mask == f.r && v.green_mask == f.g && v.blue_mask == f.b && a == f.a)
 			return f.format;
-	}
 
 	return ImageDataFormat::none;
 }

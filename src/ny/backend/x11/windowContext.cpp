@@ -773,6 +773,7 @@ bool X11WindowContext::surface(Surface& surface)
 		surface.type = SurfaceType::buffer;
 		return true;
 	} catch(const std::exception& ex) {
+		warning("Failed to create x11 surface (BufferSurface) integration: ", ex.what());
 		return false;
 	}
 }

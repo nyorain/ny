@@ -36,27 +36,35 @@ namespace
 X11BufferSurface::X11BufferSurface(X11WindowContext& wc) : X11DrawIntegration(wc)
 {
 	format_ = visualToFormat(*wc.xVisualType(), wc.visualDepth());
+	if(format_ == ImageDataFormat::none)
+		throw std::runtime_error("X11BufferSurface: Invalid visual format");
 
-	//create the gc
 	gc_ = xcb_generate_id(wc.xConnection());
-	std::uint32_t value[] = {windowContext_.appContext().xDefaultScreen()->black_pixel};
-	// std::uint32_t value[] = {0, 0};
+	std::uint32_t value[] = {0, 0};
 	auto c = xcb_create_gc_checked(wc.xConnection(), gc_, wc.xWindow(), XCB_GC_FOREGROUND, value);
 	x11::testCookie(*wc.xConnection(), c, "X11BufferSurface create_gc");
 
 	//check if the server has shm suport
+	//it is also implemented without shm but the performance might be worse
     auto cookie = xcb_shm_query_version(wc.xConnection());
     auto reply = xcb_shm_query_version_reply(wc.xConnection(), cookie, nullptr);
 
 	shm_ = (reply && reply->shared_pixmaps);
-	// shm_ = false;
-	if(!shm_) warning("X11BufferSurface: xserver has no shm support.");
+	// shm_ = false; //uncomment this if you want to FORCE no shm (when testing)
+	if(!shm_) 
+		warning("X11BufferSurface: xserver has no shm support, might result in bad performance");
 
+	//this call will setup everything with the current size for the first draw call
 	resize(wc.size());
 }
 
 X11BufferSurface::~X11BufferSurface()
 {
+	if(gc_)
+	{
+		xcb_free_gc(windowContext_.xConnection(), gc_);
+	}
+
 	if(shmseg_) 
 	{
 		xcb_shm_detach(windowContext_.xConnection(), shmseg_);
@@ -74,52 +82,21 @@ MutableImageData X11BufferSurface::init()
 
 void X11BufferSurface::apply(MutableImageData&)
 {
-	// auto conn = windowContext_.xConnection();
-	// auto gc = xcb_generate_id(conn);
-	// std::uint32_t value[] = {windowContext_.appContext().xDefaultScreen()->black_pixel};
-	// xcb_create_gc(conn, gc, windowContext_.xWindow(), XCB_GC_FOREGROUND, value);
-	// // xcb_image_put(conn, windowContext_.xWindow(), gc, image_, 0, 0, 0);
- 
-	// // auto cookie = xcb_put_image(conn, XCB_IMAGE_FORMAT_Z_PIXMAP, windowContext_.xWindow(), gc, 
-	// // 	image_->width, image_->height, 0, 0, 0, 32, image_->width * image_->height * 4, image_->data);
-	// // auto error = xcb_request_check(conn, cookie);
-	// // debug("error: ", error);
-	// // free(error);
-	// // xcb_free_gc(conn, gc);
- 
-	// //TODO: can be done more efficiently with shm
-	// //requires some work though and checking for shm extension and xcb_shm
-	// // xcb_image_shm_put(windowContext_.xConnection(), windowContext_.xWindow(), 0, image_, )
- 	
-	// xcb_shm_segment_info_t info;
-	// info.shmid   = shmget(IPC_PRIVATE, image_->width * image_->height * 4, IPC_CREAT | 0777);
-    // info.shmaddr = static_cast<std::uint8_t*>(shmat(info.shmid, 0, 0));
-	// info.shmseg = xcb_generate_id(conn);
-    // xcb_shm_attach(conn, info.shmseg, info.shmid, 0);
-    // shmctl(info.shmid, IPC_RMID, 0);
-	// std::memset(info.shmaddr, 128, image_->width * image_->height * 4);
-	// xcb_shm_put_image_checked(conn, windowContext_.xWindow(), gc, image_->width, image_->height, 0, 0,
-	// 	image_->width, image_->height, 0, 0, 32, XCB_IMAGE_FORMAT_Z_PIXMAP, 0, info.shmseg, 0);
-	// xcb_free_gc(conn, gc);
-	// xcb_shm_detach(conn, info.shmseg);
-	// shmdt(info.shmaddr);
-	// shmctl(info.shmid, IPC_RMID, 0);
-
-	//we are using a pixmap implementation instead of directly drawing on the window drawable
-	//since this seems not to work under some circumstances
 	auto& wc = windowContext_;
+	auto depth = wc.visualDepth();
 	if(!shm_)
 	{
-		//if we are not using shm, we first need to copy the local data to the servers pixmap
-		auto depth = wc.visualDepth();
-		auto c = xcb_put_image_checked(wc.xConnection(), XCB_IMAGE_FORMAT_Z_PIXMAP, pixmap_, gc_, 
+		auto c = xcb_put_image_checked(wc.xConnection(), XCB_IMAGE_FORMAT_Z_PIXMAP, wc.xWindow(), gc_, 
 			size_.x, size_.y, 0, 0, 0, depth, size_.x * size_.y * (depth / 8), data_.get());
 		x11::testCookie(*wc.xConnection(), c, "X11BufferSurface::apply put_image");
 	}
+	else
+	{
+		auto c = xcb_shm_put_image_checked(wc.xConnection(), wc.xWindow(), gc_, size_.x, size_.y, 
+			0, 0, size_.x, size_.y, 0, 0, depth, XCB_IMAGE_FORMAT_Z_PIXMAP, 0, shmseg_, 0);
+		x11::testCookie(*wc.xConnection(), c, "X11BufferSurface::apply shm_put_image");
+	}
 
-	auto c = xcb_copy_area_checked(wc.xConnection(), pixmap_, wc.xWindow(), gc_, 0, 0, 0, 0, 
-		size_.x, size_.y);
-	x11::testCookie(*wc.xConnection(), c, "X11BufferSurface::apply copy_area");
 	xcb_flush(wc.xConnection());
 }
 
@@ -131,46 +108,30 @@ void X11BufferSurface::resize(const nytl::Vec2ui& size)
 	auto newBytes = size.x * size.y * (depth / 8);
 	size_ = size;
 
-	if(pixmap_) xcb_free_pixmap(wc.xConnection(), pixmap_);
-	else pixmap_ = xcb_generate_id(wc.xConnection());
-
-	if(shm_)
+	if(shm_ && newBytes > byteSize_)
 	{
-		if(newBytes > byteSize_)
+		if(shmseg_) 
 		{
-			if(shmseg_) 
-			{
-				xcb_shm_detach(xconn, shmseg_);
-				shmdt(shmaddr_);
-				shmctl(shmid_, IPC_RMID, 0);
-			}
-			else
-			{
-				shmseg_ = xcb_generate_id(xconn);
-			}
-
-			byteSize_ = newBytes * 2;
-
-			shmid_ = shmget(IPC_PRIVATE, byteSize_, IPC_CREAT | 0777);
-			shmaddr_ = static_cast<std::uint8_t*>(shmat(shmid_, 0, 0));
+			xcb_shm_detach(xconn, shmseg_);
+			shmdt(shmaddr_);
+			shmctl(shmid_, IPC_RMID, 0);
+		}
+		else
+		{
 			shmseg_ = xcb_generate_id(xconn);
-			xcb_shm_attach(xconn, shmseg_, shmid_, 0);
 		}
 
-		auto c = xcb_shm_create_pixmap_checked(xconn, pixmap_, wc.xWindow(), size_.x, size_.y, 
-			depth, shmseg_, 0);
-		x11::testCookie(*xconn, c, "X11BufferSurface::resize shm_create_pixmap");
+		byteSize_ = newBytes * 2;
+
+		shmid_ = shmget(IPC_PRIVATE, byteSize_, IPC_CREAT | 0777);
+		shmaddr_ = static_cast<std::uint8_t*>(shmat(shmid_, 0, 0));
+		shmseg_ = xcb_generate_id(xconn);
+		xcb_shm_attach(xconn, shmseg_, shmid_, 0);
 	}
-	else
+	else if(newBytes > byteSize_)
 	{
-		if(newBytes > byteSize_)
-		{
-			byteSize_ = newBytes * 2;
-			data_ = std::make_unique<std::uint8_t[]>(byteSize_);
-		}
-
-		auto c = xcb_create_pixmap_checked(xconn, depth, pixmap_, wc.xWindow(), size_.x, size_.y);
-		x11::testCookie(*xconn, c, "X11BufferSurface::resize create_pixmap");
+		byteSize_ = newBytes * 2;
+		data_ = std::make_unique<std::uint8_t[]>(byteSize_);
 	}
 }
 

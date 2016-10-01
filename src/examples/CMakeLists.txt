@@ -15,7 +15,7 @@ endif()
 
 #cairo
 if(WithCairo)
-	add_executable(ny-cairo cairo/main.cpp)
+	add_executable(ny-cairo cairo/main2.cpp)
 	target_link_libraries(ny-cairo ny-base ny-backend ${CAIRO_LIBRARIES})
 	target_include_directories(ny-cairo PUBLIC ${CAIRO_INCLUDE_DIRS})
 endif()

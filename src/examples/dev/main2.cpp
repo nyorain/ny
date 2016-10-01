@@ -27,7 +27,7 @@ public:
 
 			auto size = ny::imageDataFormatSize(data.format);
 			for(unsigned int i = 0; i < data.size.x * data.size.y * size; i += 1)
-				data.data[i] = 0xFF;
+				data.data[i] = 0xCC;
 		}
 		else if(ev.type() == ny::eventType::key)
 		{
@@ -104,3 +104,4 @@ int main()
 	ny::debug("Entering main loop");
 	ac->dispatchLoop(control);
 }
+
