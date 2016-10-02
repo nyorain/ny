@@ -6,10 +6,10 @@
 #include <string>
 #include <vector>
 
-using EGLConfig = void*;
-using EGLContext = void*;
-using EGLDisplay = void*;
-using EGLSurface = void*;
+using EGLDisplay = void*; //Singleton per backend. Connection
+using EGLConfig = void*; //Represents a context setup. May have more than one
+using EGLContext = void*; //The actual context. May have more than one
+using EGLSurface = void*; //One surface needed per WindowContext
 
 namespace ny
 {

@@ -8,16 +8,18 @@
 #include <nytl/vec.hpp>
 
 struct wl_egl_window;
-namespace evg { class GlDrawContext; }
 
 namespace ny
 {
 
-class WaylandEGLAppContext 
+class WaylandEglDisplay
 {
 public:
-    WaylandEGLAppContext(WaylandAppContext& ac);
-    ~WaylandEGLAppContext();
+    WaylandEglDisplay(WaylandAppContext& ac);
+    ~WaylandEglDisplay();
+
+protected:
+	EGLDisplay eglDisplay_;
 };
 
 
@@ -34,8 +36,7 @@ public:
 
 protected:
     wl_egl_window* wlEglWindow_ = nullptr;
-	std::unique_ptr<EglContext> eglContext_;
-	std::unique_ptr<evg::GlDrawContext> drawContext_;
+	EglContext* eglContext_; //owned by the associated WaylandAppContext
 };
 
 }

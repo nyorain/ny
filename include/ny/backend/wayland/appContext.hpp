@@ -13,7 +13,7 @@ namespace ny
 namespace wayland
 {
 
-///Utility template that allows to associate a numerical name with wayland globals.
+///Utility template that allows to associate a numerical value (name) with wayland globals.
 template<typename T>
 struct NamedGlobal
 {
@@ -137,6 +137,10 @@ protected:
 	std::unique_ptr<WaylandMouseContext> mouseContext_;
 
 	std::vector<std::unique_ptr<Event>> pendingEvents_;
+
+	//only used when built with gl and a gl window is created
+	// std::unique_ptr<WaylandEglDisplay> eglDisplay_;
+	// std::vector<std::unique_ptr<EglContext>> eglContexts_;
 };
 
 }

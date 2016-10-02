@@ -48,22 +48,25 @@ find_package(Cairo)
 
 if(UNIX)
 	find_package(X11 COMPONENTS Xcursor)
-	find_package(XCB COMPONENTS ewmh xkb image icccm)
+	find_package(XCB COMPONENTS ewmh xkb image icccm shm)
 	find_package(Wayland)
 	find_package(XKBCommon)
 endif()
 
-#dependent options
+# dependent options
 include(CMakeDependentOption)
 
+# integration/context support
 cmake_dependent_option(WithGL "Build ny with gl support" on
 	"OPENGL_FOUND" off)
 cmake_dependent_option(WithEGL "Built ny with egl support" on
 	"OPENGL_FOUND;EGL_FOUND" off)
 cmake_dependent_option(WithVulkan "Build ny with vulkan support" on
 	"VULKAN_FOUND" off)
-cmake_dependent_option(WithCairo "Build ny with cairo support" on
+cmake_dependent_option(WithCairo "Build with cairo integration" on
 	"CAIRO_FOUND" off)
+
+# backends
 cmake_dependent_option(WithX11 "Build ny with a x11 backend" on
 	"XKBCOMMON_FOUND;X11_FOUND;XCB_FOUND" off)
 cmake_dependent_option(WithWayland "Build ny with a wayland backend" on
@@ -71,15 +74,15 @@ cmake_dependent_option(WithWayland "Build ny with a wayland backend" on
 cmake_dependent_option(WithWinapi "Build ny with a winapi backend" on
 	"WIN32" off)
 
-#check for invalid configurations
-#no backend
+# check for invalid configurations
+# no backend
 if(NOT WithWayland AND NOT WithX11 AND NOT WithWinapi)
 	message(FATAL_ERROR "Could not find any backend")
 endif()
 
 #test for nytl
 find_package(nytl 0.2.0)
-if(nytl_FOUND)
+if(nytl_FOUND AND nytl_INCLUDE_DIRS EQUAL CMAKE_INSTALL_PREFIX)
 	set(nytl_location ${nytl_INCLUDE_DIRS})
 	set(nytl_own false)
 else()
@@ -107,6 +110,7 @@ set(NY_WithGL ${WithGL})
 set(NY_WithEGL ${WithEGL})
 set(NY_WithVulkan ${WithVulkan})
 set(NY_WithCairo ${WithCairo})
+
 set(NY_WithWinapi ${WithWinapi})
 set(NY_WithX11 ${WithX11})
 set(NY_WithWayland ${WithWayland})

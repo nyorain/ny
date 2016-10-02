@@ -37,3 +37,15 @@ if(WithGL)
 	add_executable(ny-gl gl.cpp)
 	target_link_libraries(ny-gl ny-base ny-backend)
 endif()
+
+#skia
+find_package(Skia)
+if(Skia_FOUND)
+	add_executable(ny-skia skia.cpp)
+	message("Skia libs::: " ${Skia_LIBRARIES})
+	target_link_libraries(ny-skia ny-base ny-backend ${Skia_LIBRARIES} 
+		fontconfig freetype png jpeg)
+	set_property(TARGET ny-skia PROPERTY LINK_INTERFACE_MULTIPLICITY 23)
+	target_include_directories(ny-skia PUBLIC ${Skia_INCLUDE_DIRS})
+endif()
+
