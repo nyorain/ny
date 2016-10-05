@@ -113,7 +113,12 @@ GlContext* GlContext::threadLocalCurrent(bool change, GlContext* newOne)
 //non-static
 GlContext::~GlContext()
 {
-	makeNotCurrent();
+	//if current we ignore it and simply unregister it anyways
+	if(isCurrent()) 
+	{
+		warning("ny::~GlContext: current on destruction");
+		threadLocalCurrent(true, nullptr);
+	}
 }
 
 void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)

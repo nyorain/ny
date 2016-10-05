@@ -49,6 +49,7 @@ namespace ny
 	class WaylandWindowSettings;
 
 #ifdef NY_WithEGL
+	class WaylandEglDisplay;
 	class WaylandEglWindowContext;
 #endif //WithEGL
 

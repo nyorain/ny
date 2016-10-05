@@ -12,14 +12,19 @@ struct wl_egl_window;
 namespace ny
 {
 
+///RAII wrapper around EGLDisplay and EglContextGuard.
 class WaylandEglDisplay
 {
 public:
-    WaylandEglDisplay(WaylandAppContext& ac);
+    WaylandEglDisplay(WaylandAppContext&);
     ~WaylandEglDisplay();
+
+	EGLDisplay eglDisplay() const { return eglDisplay_; }
+	const EglContextGuard& context() const { return context_; }
 
 protected:
 	EGLDisplay eglDisplay_;
+	EglContextGuard context_;
 };
 
 
@@ -27,16 +32,22 @@ protected:
 class WaylandEglWindowContext: public WaylandWindowContext
 {
 public:
-    WaylandEglWindowContext(WaylandAppContext& wc, const WaylandWindowSettings& settings);
+    WaylandEglWindowContext(WaylandAppContext&, const WaylandWindowSettings&);
     virtual ~WaylandEglWindowContext();
 
-	void size(const Vec2ui& size) override;
+	void size(const Vec2ui& newSize) override;
+	bool surface(Surface& surface) override;
+	bool drawIntegration(WaylandDrawIntegration*) override { return false; }
 
     wl_egl_window& wlEglWindow() const { return *wlEglWindow_; };
+	EGLSurface eglSurface() const { return eglSurface_; }
+
+	EglContext& context() const { return *context_; }
 
 protected:
-    wl_egl_window* wlEglWindow_ = nullptr;
-	EglContext* eglContext_; //owned by the associated WaylandAppContext
+    wl_egl_window* wlEglWindow_ {};
+	EGLSurface eglSurface_ {};
+	std::unique_ptr<EglContext> context_;
 };
 
 }

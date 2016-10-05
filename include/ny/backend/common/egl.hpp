@@ -14,45 +14,70 @@ using EGLSurface = void*; //One surface needed per WindowContext
 namespace ny
 {
 
-///EGL implementation for a gl(es) context.
-class EglContext : public GlContext
+///RAII wrapper around an EGLContext.
+class EglContextGuard
 {
 public:
-	static int eglError();
-	static std::string errorMessage(int error);
-	static int eglErrorWarn();
+	EglContextGuard() = default;
+	EglContextGuard(EGLDisplay, EGLConfig config, GlApi api = GlApi::gl);
+	~EglContextGuard();
 
-public:
-	EglContext(EGLDisplay disp, EGLSurface surf, Api api = Api::gl);
-	EglContext(EGLDisplay disp, EGLConfig config, EGLSurface surf, Api api = Api::gl);
-	virtual ~EglContext();
+	EglContextGuard(EglContextGuard&& other) noexcept;
+	EglContextGuard& operator=(EglContextGuard&& other) noexcept;
 
 	EGLDisplay eglDisplay() const { return eglDisplay_; }
     EGLContext eglContext() const { return eglContext_; }
-    EGLSurface eglSurface() const { return eglSurface_; }
     EGLConfig eglConfig() const { return eglConfig_; }
+	GlApi glApi() const { return api_; }
 
+protected:
+	EGLDisplay eglDisplay_;
+	EGLContext eglContext_;
+	EGLConfig eglConfig_;
+	GlApi api_;
+};
+
+///EglContext for a specific surface
+///Holds a reference to a EglContextGuard and an EGLSurface
+class EglContext : public GlContext
+{
+public:
+	///Returns the message associated with a given egl error code.
+	static std::string errorMessage(int error);
+
+	///Outputs a warning with the last egl error if there was any.
+	static int eglErrorWarn();
+
+public:
+	EglContext(const EglContextGuard&, EGLSurface = nullptr);
+	virtual ~EglContext();
+
+	///Changes the surface associated with this context, i.e. the surface for which the context
+	///will be made current on a call to makeCurrent (makeCurrentImpl).
+	///Note that for this call to have an effect the context must be made current (if it
+	///already is current it must first be made not current).
+	///Calling this between making the context current for a different surface and calling
+	///apply() results in undefined behaviour.
 	void eglSurface(EGLSurface surface);
 
 	std::vector<std::string> eglExtensions() const;
 	bool eglExtensionSupported(const std::string& name) const;
 
-	virtual bool apply() override;
+	EGLDisplay eglDisplay() const { return context_->eglDisplay(); }
+    EGLContext eglContext() const { return context_->eglContext(); }
+    EGLConfig eglConfig() const { return context_->eglConfig(); }
+    EGLSurface eglSurface() const { return eglSurface_; }
 
+	virtual bool apply() override;
 	virtual void* procAddr(const char* name) const override;
 
 protected:
-	EGLDisplay eglDisplay_ = nullptr;
-    EGLContext eglContext_ = nullptr;
-    EGLSurface eglSurface_ = nullptr;
-	EGLConfig eglConfig_ = nullptr;
-
     virtual bool makeCurrentImpl() override;
     virtual bool makeNotCurrentImpl() override;
 
-	EglContext() = default;
-	void initEglContext(Api api = Api::gl);
-
+protected:
+	const EglContextGuard* context_ {};
+    EGLSurface eglSurface_ {};
 };
 
 }

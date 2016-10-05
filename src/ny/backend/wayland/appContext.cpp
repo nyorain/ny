@@ -11,6 +11,7 @@
 #include <ny/base/log.hpp>
 
 #ifdef NY_WithEGL
+ #include <ny/backend/common/egl.hpp>
  #include <ny/backend/wayland/egl.hpp>
 #endif //WithGL
 
@@ -92,6 +93,10 @@ WaylandAppContext::WaylandAppContext()
 
 WaylandAppContext::~WaylandAppContext()
 {
+	//we explicitly have to destroy/disconnect everything since wayland is plain c
+	//note that additional (even RAII) members might have to be reset here too if there
+	//destructor require the wayland display (or anything else) to be valid
+	//therefor, we e.g. explicitly reset the egl unique ptrs
 	if(eventfd_) close(eventfd_);
 
 	if(wlCursorTheme_) wl_cursor_theme_destroy(wlCursorTheme_);
@@ -109,6 +114,7 @@ WaylandAppContext::~WaylandAppContext()
 	if(wlCompositor_) wl_compositor_destroy(wlCompositor_);
 
 	outputs_.clear();
+	waylandEglDisplay_.reset();
 
 	if(wlRegistry_) wl_registry_destroy(wlRegistry_);
     if(wlDisplay_) wl_display_disconnect(wlDisplay_);
@@ -142,8 +148,6 @@ bool WaylandAppContext::dispatchLoop(LoopControl& control)
 			std::int64_t v;
 			read(eventfd_, &v, 8);
 		}
-
-		// ret = wl_display_dispatch(wlDisplay_);
 	}
 
 	return ret != -1;
@@ -153,10 +157,8 @@ bool WaylandAppContext::threadedDispatchLoop(EventDispatcher& dispatcher, LoopCo
 {
 	std::atomic<bool> run {true};
 	control.impl_.reset(new WaylandLoopControlImpl(run, eventfd_));
-	dispatcher_ = &dispatcher;
 
 	auto guard = nytl::makeScopeGuard([&]{
-		dispatcher_ = nullptr;
 		control.impl_.reset();
 	});
 
@@ -208,17 +210,17 @@ WindowContextPtr WaylandAppContext::createWindowContext(const WindowSettings& se
 	if(contextType == ContextType::vulkan)
 	{
 		#ifdef NY_WithVulkan
-		 return std::make_unique<WaylandVulkanWindowContext>(*this, waylandSettings);
+			return std::make_unique<WaylandVulkanWindowContext>(*this, waylandSettings);
 		#else
-		 throw std::logic_error("ny::WaylandAC::createWC: ny built without vulkan support");
+			throw std::logic_error("ny::WaylandAC::createWC: ny built without vulkan support");
 		#endif
 	}
 	else if(contextType == ContextType::gl)
 	{
 		#ifdef NY_WithGL
-		 // return std::make_unique<WaylandEglWindowContext>(*this, waylandSettings);
+			return std::make_unique<WaylandEglWindowContext>(*this, waylandSettings);
 		#else
-		 throw std::logic_error("ny::WaylandAC::createWC: ny built without GL suppport");
+			throw std::logic_error("ny::WaylandAC::createWC: ny built without GL suppport");
 		#endif
 	}
 
@@ -238,16 +240,37 @@ bool WaylandAppContext::startDragDrop(std::unique_ptr<DataSource>&& dataSource)
 std::vector<const char*> WaylandAppContext::vulkanExtensions() const
 {
 	#ifdef NY_WithVulkan
-	 return {VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME};
+		return {VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME};
 	#else
-	 return {};
+		return {};
 	#endif
+}
+
+WaylandEglDisplay* WaylandAppContext::waylandEglDisplay()
+{
+	#ifdef NY_WithEGL
+		if(!eglFailed_ && !waylandEglDisplay_)
+		{
+			try 
+			{ 
+				waylandEglDisplay_ = std::make_unique<WaylandEglDisplay>(*this); 
+			}
+			catch(const std::exception& err)
+			{ 
+				const static std::string msg = "ny::WaylandAC: failed to init waylandEglDisplay: ";
+				warning(msg + err.what());
+				eglFailed_ = true; 
+			}
+		}
+	#endif //EGL
+
+	return waylandEglDisplay_.get();
 }
 
 int WaylandAppContext::dispatchDisplay()
 {
 	//In parts taken from wayland-client.c and modified to poll for the wayland fd as well as an 
-	//eventfd.  The wayland license:
+	//eventfd. The wayland license:
 	//
 	// Copyright © 2008-2012 Kristian Høgsberg
 	// Copyright © 2010-2012 Intel Corporation
@@ -502,9 +525,6 @@ void WaylandAppContext::cursor(std::string cursorName, unsigned int serial)
 
 void WaylandAppContext::dispatch(Event&& event)
 {
-	// if(dispatcher_) dispatcher_->dispatch(std::move(event));
-	// else if(event.handler) pendingEvents_.push_back(nytl::cloneMove(event));
-
 	pendingEvents_.push_back(nytl::cloneMove(event));
 }
 

@@ -27,6 +27,8 @@ int main()
 	auto& backend = ny::Backend::choose();
 	auto ac = backend.createAppContext();
 
+	std::printf("Jan stinkt\b\b\b\b\b\bist geil\n");
+
 	ny::WindowSettings settings;
 	auto wc = ac->createWindowContext(settings);
 

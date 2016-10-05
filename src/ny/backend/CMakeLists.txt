@@ -77,7 +77,7 @@ if(WithWayland)
 	list(APPEND include_backend ${WAYLAND_INCLUDE_DIRS})
 
 	if(WithEGL)
-		# list(APPEND src_backend wayland/egl.cpp)
+		list(APPEND src_backend wayland/egl.cpp)
 	endif()
 
 	if(WithCairo)

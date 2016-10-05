@@ -10,6 +10,9 @@
 namespace ny
 {
 
+class WaylandEglDisplay;
+class EglContext;
+
 namespace wayland
 {
 
@@ -42,7 +45,7 @@ public:
 	KeyboardContext* keyboardContext() override;
 	WindowContextPtr createWindowContext(const WindowSettings& windowSettings) override;
 
-	//TODO
+	//TODO. Not implemented at the moment
 	bool clipboard(std::unique_ptr<DataSource>&& dataSource) override;
 	std::unique_ptr<DataOffer> clipboard() override;
 	bool startDragDrop(std::unique_ptr<DataSource>&& dataSource) override;
@@ -58,17 +61,8 @@ public:
 	///Changes the cursor to the content of the given image with the given hotspot.
     void cursor(const ImageData& img, const Vec2i& hotspot, unsigned int serial = 0);
 
-	///Dispatched the given event.
+	///Dispatched the given event as soon as possible. Needed by wayland callbacks.
 	void dispatch(Event&& event);
-
-    void registryAdd(unsigned int id, const char* cinterface, unsigned int version);
-    void registryRemove(unsigned int id);
-
-    void seatCapabilities(unsigned int caps);
-	void seatName(const char* name);
-
-    void addShmFormat(unsigned int format);
-    bool shmFormatSupported(unsigned int wlShmFormat);
 
     wl_display& wlDisplay() const { return *wlDisplay_; };
     wl_compositor& wlCompositor() const { return *wlCompositor_; };
@@ -81,14 +75,19 @@ public:
 
 	WaylandWindowContext* windowContext(wl_surface& surface) const;
     const std::vector<wayland::Output>& outputs() const { return outputs_; }
+    bool shmFormatSupported(unsigned int wlShmFormat);
 
-	// void startDataOffer(dataSource& source, const image& img, const window& w, const event* ev);
-	// bool isOffering() const;
-	// void endDataOffer();
-	// dataOffer* getClipboard();
-	// void setClipboard(dataSource& source, const event* ev);
+	///Returns an eglContext or nullptr if it could not be initialized or ny was built
+	///without egl support.
+	WaylandEglDisplay* waylandEglDisplay();
 	
+	//functions called by wayland callbacks
 	void outputDone(const wayland::Output& out); //called by wayland callback
+    void registryAdd(unsigned int id, const char* cinterface, unsigned int version);
+    void registryRemove(unsigned int id);
+    void seatCapabilities(unsigned int caps);
+	void seatName(const char* name);
+    void addShmFormat(unsigned int format);
 
 protected:
 	///Modified version of wl_dispatch_display that performs the same operations but
@@ -110,23 +109,12 @@ protected:
 	wayland::NamedGlobal<xdg_shell> xdgShell_;
 
     wl_data_device* wlDataDevice_ = nullptr;
-
-	//cursor
     wl_cursor_theme* wlCursorTheme_ = nullptr;
     wl_surface* wlCursorSurface_ = nullptr;
 
 	//if the current cursor was set from a custom image this will hold an owned pointer
 	//to the buffer.
 	std::unique_ptr<wayland::ShmBuffer> cursorImageBuffer_;
-
-	//data transfer
-    // wl_surface* dataSourceSurface_ = nullptr;
-    // wl_surface* dataIconSurface_ = nullptr;
-    // wayland::ShmBuffer* dataIconBuffer_ = nullptr;
-	// const dataSource* dataSource_ = nullptr;
-	// wl_data_source* wlDataSource_ = nullptr;
-
-	EventDispatcher* dispatcher_ = nullptr; //from disptach loop/dispatchEvents
 	unsigned int eventfd_ = 0u;
 
 	std::vector<unsigned int> shmFormats_;
@@ -136,11 +124,22 @@ protected:
 	std::unique_ptr<WaylandKeyboardContext> keyboardContext_;
 	std::unique_ptr<WaylandMouseContext> mouseContext_;
 
+	//stores all pending events (from the dispatch member function) that will should be send
+	//in the next dispatch loop iteration/dispatchEvents call.
 	std::vector<std::unique_ptr<Event>> pendingEvents_;
 
 	//only used when built with gl and a gl window is created
-	// std::unique_ptr<WaylandEglDisplay> eglDisplay_;
-	// std::vector<std::unique_ptr<EglContext>> eglContexts_;
+	//note that their existence is not conditional to not change the abi here only depending
+	//on the build config
+	bool eglFailed_ = false; //if init failed once this will set to true (and not tried again)
+	std::unique_ptr<WaylandEglDisplay> waylandEglDisplay_;
+
+	//data transfer
+    // wl_surface* dataSourceSurface_ = nullptr;
+    // wl_surface* dataIconSurface_ = nullptr;
+    // wayland::ShmBuffer* dataIconBuffer_ = nullptr;
+	// const dataSource* dataSource_ = nullptr;
+	// wl_data_source* wlDataSource_ = nullptr;
 };
 
 }

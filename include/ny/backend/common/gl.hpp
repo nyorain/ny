@@ -35,9 +35,9 @@ inline constexpr unsigned int number(const GlVersion& v) { return v.major * 10 +
 
 ///Abstract base class for an openGL(ES) context. This class is implemented e.g.
 ///with egl, glx or wgl. With the static current() function one can get the current context
-///for the calling thread. Classes that deal with openGL(ES) like the gl DrawContext
-///implementation or the shader class need a current context for their openGL(ES) operations.
+///for the calling thread. 
 ///This class is useful as abstraction for the different backends.
+///Implementations should remember to make the context not current in the destructor.
 class GlContext : public nytl::NonMovable
 {
 public:
