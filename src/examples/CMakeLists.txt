@@ -42,10 +42,10 @@ endif()
 find_package(Skia)
 if(Skia_FOUND)
 	add_executable(ny-skia skia.cpp)
-	# target_link_libraries(ny-skia ny-base ny-backend ${Skia_LIBRARIES} 
-	# 	fontconfig freetype png jpeg)
-	target_link_libraries(ny-skia ny-base ny-backend "/home/nyorain/.local/build/skia/out/gn-Debug/libskia.a"
-		fontconfig freetype png jpeg)
+	target_link_libraries(ny-skia ny-base ny-backend ${Skia_LIBRARIES} fontconfig freetype)
 	target_include_directories(ny-skia PUBLIC ${Skia_INCLUDE_DIRS})
+
+	# target_link_libraries(ny-skia ny-base ny-backend "/home/nyorain/.local/build/skia/out/gn-Debug/libskia.a"
+	# 	fontconfig freetype png jpeg)
 endif()
 

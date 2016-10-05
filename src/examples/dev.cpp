@@ -35,6 +35,12 @@ int main()
 
 	//retrieving the clipboard DataOffer and listing all formats
 	auto dataOffer = ac->clipboard();
+	if(!dataOffer)
+	{
+		ny::error("Backend does not support clipboard operations...");
+		return EXIT_FAILURE;
+	}
+
 	for(auto& t : dataOffer->types().types) ny::debug("clipboard type ", t);
 
 	//trying to retrieve the data in text form and outputting it if successful
