@@ -51,10 +51,10 @@ EglContextGuard& EglContextGuard::operator=(EglContextGuard&& other) noexcept
 }
 
 //EglContext
-EglContext::EglContext(const EglContextGuard& context, EGLSurface surf)
-	: context_(&context), eglSurface_(surf)
+EglContext::EglContext(EGLDisplay dpy, EGLContext ctx, EGLConfig conf, GlApi api, EGLSurface surf)
+	: eglDisplay_(dpy), eglContext_(ctx), eglConfig_(conf), eglSurface_(surf)
 {
-	GlContext::initContext(context.glApi());
+	GlContext::initContext(api);
 }
 
 EglContext::~EglContext()
@@ -69,7 +69,7 @@ void EglContext::eglSurface(EGLSurface surface)
 
 bool EglContext::makeCurrentImpl()
 {
-    if(!eglMakeCurrent(eglDisplay(), eglSurface_, eglSurface_, eglContext()))
+    if(!eglMakeCurrent(eglDisplay(), eglSurface(), eglSurface(), eglContext()))
     {
         warning("EglContext::current: eglMakeCurrent failed: ", errorMessage(eglGetError()));
         return false;
@@ -97,8 +97,7 @@ bool EglContext::apply()
         return false;
     }
 
-	//TODO: single buffered?
-    if(!eglSwapBuffers(eglDisplay(), eglSurface_))
+    if(!eglSwapBuffers(eglDisplay(), eglSurface()))
     {
 		warning("eglContext::apply: eglSwapBuffers failed\n\t", errorMessage(eglGetError()));
         return false;

@@ -1,0 +1,1 @@
+- eglInitialize (called 1 time) may leak memory (even when eglTerminate is correctly called)

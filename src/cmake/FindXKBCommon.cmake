@@ -22,6 +22,8 @@
 # implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 # See the License for more information.
 #=============================================================================
+#
+# Edited by nyorain to also find xkbcommon-x11.
 
 include(FeatureSummary)
 set_package_properties(XKBCommon PROPERTIES
@@ -31,10 +33,16 @@ set_package_properties(XKBCommon PROPERTIES
 find_package(PkgConfig)
 pkg_check_modules(PC_XKBCOMMON QUIET xkbcommon)
 find_path(XKBCOMMON_INCLUDE_DIRS NAMES xkbcommon/xkbcommon.h HINTS ${PC_XKBCOMMON_INCLUDE_DIRS})
-find_library(XKBCOMMON_LIBRARIES NAMES xkbcommon HINTS ${PC_XKBCOMMON_LIBRARY_DIRS})
+
+find_library(XKBCOMMON_LIBRARY NAMES xkbcommon HINTS ${PC_XKBCOMMON_LIBRARY_DIRS})
+find_library(XKBCOMMON_LIBRARY_x11 NAMES xkbcommon-x11 HINTS ${PC_XKBCOMMON_LIBRARY_DIRS})
+set(XKBCOMMON_LIBRARIES ${XKBCOMMON_LIBRARY} ${XKBCOMMON_LIBRARY_x11})
 
 set(XKBCOMMON_DEFINITIONS ${PC_XKBCOMMON_CFLAGS_OTHER})
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(XKBCOMMON DEFAULT_MSG XKBCOMMON_LIBRARIES XKBCOMMON_INCLUDE_DIRS)
-mark_as_advanced(XKBCOMMON_LIBRARIES XKBCOMMON_INCLUDE_DIRS XKBCOMMON_DEFINITIONS)
+find_package_handle_standard_args(XKBCOMMON DEFAULT_MSG 
+	XKBCOMMON_LIBRARY 
+	XKBCOMMON_LIBRARY_x11
+	XKBCOMMON_INCLUDE_DIRS)
+mark_as_advanced(XKBCOMMON_LIBRARY XKBCOMMON_LIBRARY_x11 XKBCOMMON_INCLUDE_DIRS XKBCOMMON_DEFINITIONS)

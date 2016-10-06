@@ -159,6 +159,7 @@ bool testCookie(xcb_connection_t& xconn, const xcb_void_cookie_t& cookie, const 
 	{
 		if(!msg) msg = "<unknown>";
 		warning(msg, ": received xcb protocol error ", (int) e->error_code);
+		free(e);
 		return false;
 	}
 

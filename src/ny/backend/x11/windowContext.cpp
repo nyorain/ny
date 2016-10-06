@@ -15,6 +15,7 @@
 #include <xcb/xcb_icccm.h>
 #include <xcb/xcb_image.h>
 #include <X11/Xcursor/Xcursor.h>
+#include <X11/Xlib.h>
 
 #include <cstring> //memcpy
 
@@ -282,10 +283,21 @@ void X11WindowContext::maximize()
 
 void X11WindowContext::minimize()
 {
-	xcb_icccm_wm_hints_t hints;
-    hints.flags = XCB_ICCCM_WM_HINT_STATE;
-    hints.initial_state = XCB_ICCCM_WM_STATE_ICONIC;
-    xcb_icccm_set_wm_hints(xConnection(), xWindow_, &hints);
+	// icccm not working on gnome
+	// xcb_icccm_wm_hints_t hints;
+    // hints.flags = XCB_ICCCM_WM_HINT_STATE;
+    // hints.initial_state = XCB_ICCCM_WM_STATE_ICONIC;
+    // xcb_icccm_set_wm_hints(xConnection(), xWindow_, &hints);
+	
+	// not working on gnome
+	// addStates(ewmhConnection()->_NET_WM_STATE_HIDDEN);
+	
+	// xcb_icccm_wm_hints_t hints;
+	// xcb_icccm_wm_hints_set_withdrawn(&hints);
+    // xcb_icccm_set_wm_hints(xConnection(), xWindow_, &hints);
+	
+	XIconifyWindow(appContext().xDisplay(), xWindow_, appContext().xDefaultScreenNumber());
+	XSync(appContext().xDisplay(), 1);
 }
 
 void X11WindowContext::fullscreen()

@@ -21,6 +21,7 @@
 #include <X11/Xlibint.h>
 #include <X11/Xlib-xcb.h>
 #include <xcb/xcb_ewmh.h>
+
 #include <cstring>
 
 namespace ny
@@ -142,6 +143,10 @@ X11AppContext::X11AppContext()
 
 	//ewmh
 	xcb_ewmh_init_atoms_replies(ewmhConnection(), ewmhCookie, nullptr);
+
+	//input
+	keyboardContext_ = std::make_unique<X11KeyboardContext>(*this);
+	mouseContext_ = std::make_unique<X11MouseContext>(*this);
 }
 
 X11AppContext::~X11AppContext()
@@ -173,7 +178,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispa
 {
 	#define EventHandlerEvent(T, W) \
 		auto handler = eventHandler(W); \
-		if(!handler) return 1; \
+		if(!handler) return true; \
 		auto event = T(handler);
 
 	auto dispatch = [&](Event& event){
@@ -192,7 +197,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispa
         event.screenPosition = Vec2i(motion.root_x, motion.root_y);
 
 		dispatch(event);
-        return 1;
+		return true;
     }
 
     case XCB_EXPOSE:
@@ -203,14 +208,14 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispa
 			EventHandlerEvent(DrawEvent, expose.window);
 			dispatch(event);
 		}
-        return 1;
+		return true;
     }
     case XCB_MAP_NOTIFY:
     {
 		auto& map = reinterpret_cast<xcb_map_notify_event_t&>(ev);
 		EventHandlerEvent(DrawEvent, map.window);
 		dispatch(event);
-        return 1;
+		return true;
     }
 
     case XCB_BUTTON_PRESS:
@@ -220,10 +225,10 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispa
 		event.data = std::make_unique<X11EventData>(ev);
         event.button = x11ToButton(button.detail);
         event.position = Vec2i(button.event_x, button.event_y);
-		event.pressed = 1;
+		event.pressed = true;
 
 		dispatch(event);
-        return 1;
+		return true;
     }
 
     case XCB_BUTTON_RELEASE:
@@ -233,10 +238,10 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispa
 		event.data = std::make_unique<X11EventData>(ev);
         event.button = x11ToButton(button.detail);
         event.position = Vec2i(button.event_x, button.event_y);
-		event.pressed = 0;
+		event.pressed = false;
 
 		dispatch(event);
-        return 1;
+		return true;
     }
 
     case XCB_ENTER_NOTIFY:
@@ -244,10 +249,10 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispa
 		auto& enter = reinterpret_cast<xcb_enter_notify_event_t&>(ev);
 		EventHandlerEvent(MouseCrossEvent, enter.event);
         event.position = Vec2i(enter.event_x, enter.event_y);
-		event.entered = 1;
+		event.entered = true;
 		dispatch(event);
 
-        return 1;
+		return true;
     }
 
     case XCB_LEAVE_NOTIFY:
@@ -255,72 +260,56 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispa
 		auto& leave = reinterpret_cast<xcb_enter_notify_event_t&>(ev);
 		EventHandlerEvent(MouseCrossEvent, leave.event);
         event.position = Vec2i(leave.event_x, leave.event_y);
-		event.entered = 0;
+		event.entered = false;
 		dispatch(event);
 
-        return 1;
+		return true;
     }
 
     case XCB_FOCUS_IN:
     {
 		auto& focus = reinterpret_cast<xcb_focus_in_event_t&>(ev);
 		EventHandlerEvent(FocusEvent, focus.event);
-		event.focus = 1;
+		event.focus = true;
 		dispatch(event);
 
-        return 1;
+		return true;
     }
 
     case XCB_FOCUS_OUT:
     {
 		auto& focus = reinterpret_cast<xcb_focus_in_event_t&>(ev);
 		EventHandlerEvent(FocusEvent, focus.event);
-		event.focus = 0;
+		event.focus = false;
 		dispatch(event);
 
-        return 1;
+		return true;
     }
 
     case XCB_KEY_PRESS:
     {
 		auto& key = reinterpret_cast<xcb_key_press_event_t&>(ev);
-		XKeyEvent xkey {};
-		xkey.keycode = key.detail;
-		xkey.state = key.state;
-		xkey.display = xDisplay_;
-
-        KeySym keysym;
-        char buffer[5];
-        XLookupString(&xkey, buffer, 5, &keysym, nullptr);
 
 		EventHandlerEvent(KeyEvent, key.event);
-		event.pressed = 1;
-		event.key = x11ToKey(keysym);
-		event.unicode = buffer;
+		event.pressed = true;
+		event.key = keyboardContext_->xkbKey(key.detail);
+		event.unicode = keyboardContext_->xkbUnicode(key.detail);
 		dispatch(event);
 
-        return 1;
+		return true;
     }
 
     case XCB_KEY_RELEASE:
     {
 		auto& key = reinterpret_cast<xcb_key_press_event_t&>(ev);
-		XKeyEvent xkey {};
-		xkey.keycode = key.detail;
-		xkey.state = key.state;
-		xkey.display = xDisplay_;
-
-        KeySym keysym;
-        char buffer[5];
-        XLookupString(&xkey, buffer, 5, &keysym, nullptr);
 
 		EventHandlerEvent(KeyEvent, key.event);
-		event.pressed = 0;
-		event.key = x11ToKey(keysym);
-		event.unicode = buffer;
+		event.pressed = false;
+		event.key = keyboardContext_->xkbKey(key.detail);
+		event.unicode = keyboardContext_->xkbUnicode(key.detail);
 		dispatch(event);
 
-        return 1;
+		return true;
     }
 
 	case XCB_REPARENT_NOTIFY:
@@ -341,7 +330,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispa
 
         //todo: something about window state
         auto nsize = Vec2ui(configure.width, configure.height);
-        auto npos = Vec2i(configure.x, configure.y); //positionEvent
+        // auto npos = Vec2i(configure.x, configure.y); //positionEvent
 
 		auto event = SizeEvent(windowContext(configure.window));
 		event.size = nsize;
@@ -375,7 +364,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispa
 		}
 		*/
 
-        return 1;
+		return true;
     }
 
     case XCB_CLIENT_MESSAGE:
@@ -386,12 +375,19 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispa
 			EventHandlerEvent(CloseEvent, client.window);
 			dispatch(event);
 
-            return 1;
+		return true;
         }
 	}
 
 	default:
 	{
+		//check for xkb event
+		if(ev.response_type == keyboardContext_->xkbEventType())
+		{
+			keyboardContext_->processXkbEvent(ev);
+		}
+
+		//required for egl to function correctly somehow...
 		XLockDisplay(xDisplay_);
 	    auto proc = XESetWireToEvent(xDisplay_, ev.response_type & ~0x80, nullptr);
 	    if(proc)

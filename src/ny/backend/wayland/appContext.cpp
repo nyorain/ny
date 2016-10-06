@@ -163,6 +163,7 @@ bool WaylandAppContext::threadedDispatchLoop(EventDispatcher& dispatcher, LoopCo
 	});
 
 	//wake the loop up every time an event is dispatched from another thread
+	//using the eventfd. See also dispatchDisplay() that polls for it (and the wl_display fd)
 	nytl::CbConnGuard conn = dispatcher.onDispatch.add([&]{
 		std::int64_t v = 1;
 		write(eventfd_, &v, 8);

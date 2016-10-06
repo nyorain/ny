@@ -47,6 +47,7 @@ public:
     void registerContext(xcb_window_t w, X11WindowContext& c);
     void unregisterContext(xcb_window_t w);
     X11WindowContext* windowContext(xcb_window_t win);
+	EventHandler* eventHandler(xcb_window_t w);
 
 	xcb_atom_t atom(const std::string& name);
 
@@ -68,7 +69,6 @@ protected:
 
 protected:
     bool processEvent(xcb_generic_event_t& ev, EventDispatcher* dispatcher = nullptr);
-	EventHandler* eventHandler(xcb_window_t w);
 };
 
 }

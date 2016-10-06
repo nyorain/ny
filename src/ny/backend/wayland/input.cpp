@@ -197,9 +197,9 @@ void WaylandKeyboardContext::handleKeymap(unsigned int format, int fd, unsigned 
 void WaylandKeyboardContext::handleEnter(unsigned int serial, wl_surface& surface, wl_array& keys)
 {
 	keyStates_.reset();
-	for(auto i = 0u; i < keys.size; ++i)
+	for(auto i = 0u; i < keys.size / sizeof(std::uint32_t); ++i)
 	{
-		auto keyid = static_cast<std::uint32_t*>(keys.data)[i];
+		auto keyid = (static_cast<std::uint32_t*>(keys.data))[i];
 		auto key = linuxToKey(keyid);
 		keyStates_[static_cast<unsigned int>(key)] = true;
 	}

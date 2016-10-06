@@ -12,6 +12,7 @@ struct wl_egl_window;
 namespace ny
 {
 
+//TODO: support for multiple configs, impl config querying
 ///RAII wrapper around EGLDisplay and EglContextGuard.
 class WaylandEglDisplay
 {
@@ -20,11 +21,13 @@ public:
     ~WaylandEglDisplay();
 
 	EGLDisplay eglDisplay() const { return eglDisplay_; }
-	const EglContextGuard& context() const { return context_; }
+	EGLContext eglContext() const { return eglContext_; }
+	EGLConfig eglConfig() const { return eglConfig_; }
 
 protected:
 	EGLDisplay eglDisplay_;
-	EglContextGuard context_;
+	EGLContext eglContext_;
+	EGLConfig eglConfig_;
 };
 
 

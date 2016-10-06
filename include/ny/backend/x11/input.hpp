@@ -4,6 +4,9 @@
 #include <ny/backend/common/xkb.hpp>
 #include <ny/backend/mouseContext.hpp>
 
+//argh...
+#include <xcb/xcb.h>
+
 namespace ny
 {
 
@@ -33,17 +36,25 @@ protected:
 class X11KeyboardContext : public XkbKeyboardContext
 {
 public:
-	X11KeyboardContext(X11AppContext& ac) : appContext_(ac) {}
+	X11KeyboardContext(X11AppContext& ac);
 	~X11KeyboardContext() = default;
 
 	//KeyboardContext impl
 	bool pressed(Key key) const override;
 	WindowContext* focus() const override { return focus_; }
 
+	//custom
+	std::uint8_t xkbEventType() const { return eventType_; }	
+	void processXkbEvent(xcb_generic_event_t& ev);
+	std::string xkbUnicode(std::uint8_t keycode);
+	Key xkbKey(std::uint8_t keycode);
+	bool updateKeymap();
+
 protected:
 	X11AppContext& appContext_;
 	WindowContext* focus_ = nullptr;
 	std::bitset<255> keyStates_;
+	std::uint8_t eventType_;
 };
 
 }

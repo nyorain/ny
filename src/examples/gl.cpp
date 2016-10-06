@@ -86,6 +86,9 @@ int main()
 
 	ny::debug("Entering main loop");
 	ac->dispatchLoop(control);
+
+	wc.reset();
+	ac.reset();
 }
 
 bool MyEventHandler::handleEvent(const ny::Event& ev)

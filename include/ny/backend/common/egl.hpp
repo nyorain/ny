@@ -38,7 +38,8 @@ protected:
 };
 
 ///EglContext for a specific surface
-///Holds a reference to a EglContextGuard and an EGLSurface
+///Holds basically just an EGLContext, its EGLConfig and an EGLSurface.
+///Note that this class does not own the EGLContext it holds.
 class EglContext : public GlContext
 {
 public:
@@ -49,7 +50,7 @@ public:
 	static int eglErrorWarn();
 
 public:
-	EglContext(const EglContextGuard&, EGLSurface = nullptr);
+	EglContext(EGLDisplay, EGLContext, EGLConfig, GlApi = GlApi::gl, EGLSurface = nullptr);
 	virtual ~EglContext();
 
 	///Changes the surface associated with this context, i.e. the surface for which the context
@@ -63,9 +64,9 @@ public:
 	std::vector<std::string> eglExtensions() const;
 	bool eglExtensionSupported(const std::string& name) const;
 
-	EGLDisplay eglDisplay() const { return context_->eglDisplay(); }
-    EGLContext eglContext() const { return context_->eglContext(); }
-    EGLConfig eglConfig() const { return context_->eglConfig(); }
+	EGLDisplay eglDisplay() const { return eglDisplay_; }
+    EGLContext eglContext() const { return eglContext_; }
+    EGLConfig eglConfig() const { return eglConfig_; }
     EGLSurface eglSurface() const { return eglSurface_; }
 
 	virtual bool apply() override;
@@ -76,7 +77,9 @@ protected:
     virtual bool makeNotCurrentImpl() override;
 
 protected:
-	const EglContextGuard* context_ {};
+	EGLDisplay eglDisplay_ {};
+	EGLContext eglContext_ {};
+	EGLConfig eglConfig_ {};
     EGLSurface eglSurface_ {};
 };
 

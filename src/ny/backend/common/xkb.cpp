@@ -3,32 +3,96 @@
 #include <nytl/vec.hpp>
 
 #include <xkbcommon/xkbcommon.h>
-#include <linux/input.h>
+#include <xkbcommon/xkbcommon-keysyms.h>
 #include <stdexcept>
 
 namespace ny
 {
 
 //utility
-Key xkbToKey(unsigned int code)
+Key xkbToKey(xkb_keysym_t keysym)
 {
-	//TODO
-	//respect keymaps?
-	return Key::none;
+
+	//0 - 9 keypad
+	if(keysym >= XKB_KEY_KP_0 && keysym <= XKB_KEY_KP_9) 
+		return static_cast<Key>(keysym - XKB_KEY_KP_0 + static_cast<unsigned int>(Key::n0));
+
+	//f1 - f24
+	if(keysym >= XKB_KEY_F1 && keysym <= XKB_KEY_F24) 
+		return static_cast<Key>(keysym - XKB_KEY_F1 + static_cast<unsigned int>(Key::f1));
+
+	//0 - 9
+	if(keysym >= XKB_KEY_0 && keysym <= XKB_KEY_9) 
+		return static_cast<Key>(keysym - XKB_KEY_0 + static_cast<unsigned int>(Key::n0));
+
+	//A - Z
+	if(keysym >= XKB_KEY_A && keysym <= XKB_KEY_Z) 
+		return static_cast<Key>(keysym - XKB_KEY_A + static_cast<unsigned int>(Key::a));
+
+	//a - z
+	if(keysym >= XKB_KEY_a && keysym <= XKB_KEY_z) 
+		return static_cast<Key>(keysym - XKB_KEY_a + static_cast<unsigned int>(Key::a));
+
+	switch(keysym)
+	{
+		case XKB_KEY_BackSpace: return Key::backspace;
+		case XKB_KEY_Tab: return Key::tab;
+		case XKB_KEY_Return: return Key::enter;
+		case XKB_KEY_Pause: return Key::pause;
+		case XKB_KEY_Escape: return Key::escape;
+		case XKB_KEY_Delete: return Key::del;
+
+		case XKB_KEY_Home: return Key::home;
+		case XKB_KEY_Left: return Key::left;
+		case XKB_KEY_Right: return Key::right;
+		case XKB_KEY_Down: return Key::down;
+		case XKB_KEY_Page_Up: return Key::pageUp;
+		case XKB_KEY_Page_Down: return Key::pageDown;
+
+		case XKB_KEY_KP_Space: return Key::space;
+		case XKB_KEY_KP_Tab: return Key::tab;
+		case XKB_KEY_KP_Enter: return Key::enter;
+		case XKB_KEY_KP_F1: return Key::f1;
+		case XKB_KEY_KP_F2: return Key::f2;
+		case XKB_KEY_KP_F3: return Key::f3;
+		case XKB_KEY_KP_F4: return Key::f4;
+		case XKB_KEY_KP_Home: return Key::home;
+		case XKB_KEY_KP_Left: return Key::left;
+		case XKB_KEY_KP_Right: return Key::right;
+		case XKB_KEY_KP_Down: return Key::down;
+		case XKB_KEY_KP_Page_Up: return Key::pageUp;
+		case XKB_KEY_KP_Page_Down: return Key::pageDown;
+		case XKB_KEY_KP_Delete: return Key::del;
+
+		case XKB_KEY_Shift_L: return Key::leftshift;
+		case XKB_KEY_Shift_R: return Key::rightshift;
+		case XKB_KEY_Control_L: return Key::leftctrl;
+		case XKB_KEY_Control_R: return Key::rightctrl;
+		case XKB_KEY_Caps_Lock: return Key::capsLock;
+		case XKB_KEY_Alt_L: return Key::leftalt;
+		case XKB_KEY_Alt_R: return Key::rightalt;
+		case XKB_KEY_Super_L: return Key::leftsuper;
+		case XKB_KEY_Super_R: return Key::rightsuper;
+
+		case XKB_KEY_space: return Key::space;
+
+		default: return Key::none;
+	}
 }
 
-unsigned int keyToXkb(Key key)
+xkb_keysym_t keyToXkb(Key key)
 {
-	return 0;
+	//TODO
+	switch(key)
+	{
+		default: return 0;
+	}
 }
 
 
 //Keyboardcontext
 XkbKeyboardContext::XkbKeyboardContext()
 {
-	xkbContext_ = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-	if(!xkbContext_)
-		throw std::runtime_error("ny::XKBKeyboardContext: failed to create xkb_context");
 }
 
 XkbKeyboardContext::~XkbKeyboardContext()
@@ -40,6 +104,10 @@ XkbKeyboardContext::~XkbKeyboardContext()
 
 void XkbKeyboardContext::createDefault()
 {
+	xkbContext_ = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+	if(!xkbContext_)
+		throw std::runtime_error("ny::XKBKeyboardContext: failed to create xkb_context");
+
 	struct xkb_rule_names rules {};
 
 	rules.rules = getenv("XKB_DEFAULT_RULES");

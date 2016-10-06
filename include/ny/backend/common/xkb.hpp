@@ -7,12 +7,13 @@
 struct xkb_context;
 struct xkb_keymap;
 struct xkb_state;
+using xkb_keysym_t = std::uint32_t;
 
 namespace ny
 {
 
-Key xkbToKey(unsigned int code);
-unsigned int keyToXkb(Key key);
+Key xkbToKey(xkb_keysym_t code);
+xkb_keysym_t keyToXkb(Key key);
 
 ///Partial KeyboardContext implementation for backends that can be used with xkb.
 class XkbKeyboardContext : public KeyboardContext
