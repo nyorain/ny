@@ -9,20 +9,28 @@ namespace ny
 {
 
 //TODO: something about modifiers for manual parsing?
-///Contains a list of the common.
-///Note that those keys represent scancodes and not the actual key meaning.
+///Contains a list of all common keyboard symbols.
 enum class Key : unsigned int
 {
     none = 0,
+
     a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z,
+	A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z,
+
     n0, n1, n2, n3, n4, n5, n6, n7, n8, n9,
 	numpad0, numpad1, numpad2, numpad3, numpad4, numpad5, numpad6, numpad7, numpad8, numpad9,
+
     f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14, f15, f16, f17, f18, f19,
 	f20, f21, f22, f23, f24,
-    play, stop, pause, next, previous, escape, comma, dot, sharp, plus, minus, tab,
-	leftctrl, rightctrl, leftsuper, rightsuper, leftshift, rightshift,
-    space, enter, backspace, del, end, insert, pageUp, pageDown,  home,  back, left, up,
-	down, right, volumeup, volumedown, leftalt, rightalt, capsLock
+
+    play, stop, pause, next, previous, 
+	escape, comma, semicolon, dot, sharp, plus, minus, tab,
+	leftctrl, rightctrl, leftsuper, rightsuper, leftshift, rightshift, leftalt, rightalt, capsLock,
+    space, enter, backspace, del, end, insert, pageUp, pageDown, home, back, 
+	left, up, down, right, volumeup, volumedown,
+
+	backslash, brecketleft, bracketright, braceleft, braceright,
+	cent, dollars, yen, euro
 };
 
 

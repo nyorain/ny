@@ -156,6 +156,7 @@ Key X11KeyboardContext::xkbKey(std::uint8_t keycode)
 	debug("keycode: ", (void*) (keycode));
 	auto keysym = xkb_state_key_get_one_sym(xkbState_, keycode);
 	debug("keysym: ", (void*) (keysym));
+	debug("keyname: ", xkb_keymap_key_get_name(xkbKeymap_, keycode));
 	return xkbToKey(keysym);
 }
 	

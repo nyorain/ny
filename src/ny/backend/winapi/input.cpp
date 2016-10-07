@@ -38,7 +38,7 @@ std::string WinapiKeyboardContext::unicode(Key key) const
 std::string WinapiKeyboardContext::unicode(unsigned int vkcode) const
 {
 	std::uint8_t kb[256];
-	GetKeyboardState(kb);
+	::GetKeyboardState(kb);
 	wchar_t unicode[6];
 	::ToUnicode(vkcode, MapVirtualKey(vkcode, MAPVK_VK_TO_VSC), kb, unicode, 6, 0);
 	return nytl::toUtf8(unicode);
