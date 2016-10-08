@@ -52,6 +52,7 @@ public:
 	///The lifetime of the object the returned pointer points to is allowed to end IN a dispatch
 	///call. So the returned pointer is guaranteed to be valid as long as no dispatch function is
 	///called.
+	///At the moment ny has no support for multiple mouse devices.
 	///\sa MouseContext
 	virtual MouseContext* mouseContext() = 0;
 
@@ -66,6 +67,7 @@ public:
 	///The lifetime of the object the returned pointer points to is allowed to end IN a dispatch
 	///call. So the returned pointer is guaranteed to be valid as long as no dispatch function is
 	///called.
+	///At the moment ny has no support for multiple keyboard devices.
 	///\sa KeyboardContext
 	virtual KeyboardContext* keyboardContext() = 0;
 

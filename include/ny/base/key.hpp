@@ -6,26 +6,24 @@
 namespace ny
 {
 
-//1. Keyboard press (keyboard generates scancode/keycode for hardware key and sends it)
-//2. Backend server receives event and only forwards it as well as the layout to the client
-//3. The client has keymap information and the keycode, is now able to handle it
+///Enumeration that holds all special key constants that cannot (or not easily) be represented
+///using unicode.
+enum class Key : std::uint32_t
+{
+    none = 0,
+	unicode = 1,
+	unkown = 3,
 
-///The keycode class represents a backends keycode.
-// class Keycode
-// {
-// public:
-// 	Keycode() = default;
-// 	virtual ~Keycode() = default;
-// 
-// 	///Returns the keycode 
-// 	virtual std::uint32_t utf32() const = 0;
-// 	virtual std::array<char, 6> utf8() const = 0;
-// 	virtual std::uint64_t value() const = 0;
-// 
-// 	virtual bool same(const Keycode& other) const = 0;
-// };
+	numpad0, numpad1, numpad2, numpad3, numpad4, numpad5, numpad6, numpad7, numpad8, numpad9,
 
-//better this?
+    f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14, f15, f16, f17, f18, f19,
+	f20, f21, f22, f23, f24,
+
+    play, stop, pause, next, previous, 
+	escape, leftctrl, rightctrl, leftsuper, rightsuper, leftshift, rightshift, leftalt, rightalt, 
+	capsLock, space, enter, backspace, del, end, insert, pageUp, pageDown, home, back, 
+	left, up, down, right, volumeup, volumedown,
+};
 
 ///The Keycode struct is only a typesafe wrapper around a 64-bit unsigned integer value.
 ///This integer value should represent some hardware keyboard key by the backend.
@@ -35,7 +33,7 @@ namespace ny
 ///Note that one should never try give the keycode any meaning since e.g. the keycode
 ///generated from pressing the same hardware key may differ on different backends and
 ///the meaning associated with a keycode is dependent on the used keymap.
-///This is useful where a utf representation (i.e. the meaning for the current state) 
+///This is only useful where a utf representation (i.e. the meaning for the current state) 
 ///of a key contains unneeded information and the application intends to deal with the
 ///raw hardware keys (which could be e.g. the case for dynamic game controls).
 class Keycode 
@@ -62,65 +60,71 @@ constexpr bool operator<(const Keycode& a, const Keycode& b) { return a.value < 
 constexpr bool operator>=(const Keycode& a, const Keycode& b) { return a.value >= b.value; }
 constexpr bool operator>(const Keycode& a, const Keycode& b) { return a.value > b.value; }
 
-//appContext. Better KeyboardContext:
-
-///Returns a Keycode that could generate the given utf32 encoded unicode char.
-///If there is no such Keycode, Keycode::none is returned.
-virtual Keycode keycodeFromUtf32(char32_t utf32) = 0;
-
-///Returns a Keycode that could generate the given utf8 encoded unicode char.
-///If there is no such Keycode, Keycode::none is returned.
-virtual Keycode keycodeFromUtf8(const std::array<char, 4>& utf8) = 0;
-
-///Returns the utf32 encoded char that is associated with the given Keycode. Usually this
-///represents the char that would be generated if the key would pressed without any other
-///active modifier.
-///Useful for serializing keycodes i.e. storing them in a keymap and backend independent manner.
-///If the keycode is invalid or cannot be converted to a unicode meaning, 0 is returned.
-virtual char32_t keycodeToUtf32(Keycode) = 0;
-
-///Returns the utf8 encoded char that is associated with the given Keycode.Usually this
-///represents the char that would be generated if the key would pressed without any other
-///active modifier.
-///Useful for serializing keycodes i.e. storing them in a keymap and backend independent manner.
-///If the keycode is invalid or cannot be converted to a unicode meaning, 0 is returned.
-virtual std::array<char, 4> keycodeToUtf8(Keycode) = 0;
-
-///Returns a name that can be associated with the given keycode.
-///This name should be used for serializing/storing/comparing the hardware key rather
-///than the raw Keycode. The returned name should be the same for all backends and
-///also keymap-aware.
-///If the Keycode is invalid or has no name, an empty string is returned.
-virtual std::string keycodeName(Keycode) = 0;
-
-///Constrcuts the backends Keycode for the given Keycode name.
-///If the name is not recognized or invalid, Keycode::none is returned.
-virtual Keycode keycodeFromName(const std::string& name) = 0;
-
-//forget this...
-enum class Key
+///Basically just a utf32 encoded char or a special value of the Key enumeration.
+///Note that the first idea was to just represent every keysym as their raw utf32 equivalent
+///but the problem is that keyboards usually have keys that have no real unicode equivalent 
+///(at least not for their meaning, maybe there exists one for their symbol).
+///Example keys would be media keys (play, pause, volume), directional arrow keys or
+///shift/alt/super modifiers.
+///Furthermore it can be inconvinient to always use the raw unicode values in code e.g. when
+///explicitly checking for certain chars like escape.
+class Keysym
 {
-    none = 0,
+public:
+	Keysym(Key xkey = Key::none, char32_t xutf32 = 0) : key_(xkey), utf32_(xutf32) {};
+	Keysym(std::uint64_t serialized);
 
-    a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z,
-	A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z,
+	///If the keysym has a representation in the Key enum it will be returned.
+	///If the keysym has no such representation, but it displayable as a unicode code,
+	///Key::unicode will be returned.
+	///For an empty Keysym (e.g. default constructed), Key::none will be returned.
+	///If the Keysym represents a valid keysym that can neither represented using unicode, nor
+	///has a entry in the Key enumeration, Key::unkown will be returned.
+	///Note that some keys (like e.g. escape) can be displayed as a unicode char but have
+	///a Key enum representation for convinience.
+	Key type() const { return key_; }
 
-    n0, n1, n2, n3, n4, n5, n6, n7, n8, n9,
-	numpad0, numpad1, numpad2, numpad3, numpad4, numpad5, numpad6, numpad7, numpad8, numpad9,
+	///If the keysym can be represented using unicode, this function returns its utf32-encoded
+	///unicode char.
+	///If the keysym holds no keysym or it cannot be represented as a unicode value, 0 is returned.
+	///Note that this might overlap with the NUL character ('\0') so to actually test if
+	///it can be represented as unicode, the return value of the key() function should be checked.
+	char32_t utf32() const { return utf32_; }
 
-    f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14, f15, f16, f17, f18, f19,
-	f20, f21, f22, f23, f24,
+	///\{
+	///Changes the value of this keysym to the given utf8 encoded unicode value.
+	void utf8(const std::string& value, Key = Key::unicode);
+	void utf8(const char* value, Key = Key::unicode);
+	void utf8(const std::array<char, 4>& value, Key = Key::unicode);
+	///\}
 
-    play, stop, pause, next, previous, 
-	escape, sharp, tab,
-	leftctrl, rightctrl, leftsuper, rightsuper, leftshift, rightshift, leftalt, rightalt, capsLock,
-    space, enter, backspace, del, end, insert, pageUp, pageDown, home, back, 
-	left, up, down, right, volumeup, volumedown,
+	///Changes the value of this Keysym to the given utf32 encoded unicode value.
+	void utf32(char32_t value, Key = Key::unicode);
 
-	question, exclamation, numbersign, percent, ampersand, apostrophe, parenleft, pranright,
-	aterisk, plus, comma, minus, period, slash, colon, semicolon, less, equal, greater, at,
-	backslash, brecketleft, bracketright, braceleft, braceright,  
-	cent, dollars, yen, euro
+	///Sets the value of this Keysym to the given keytype.
+	///Note that this will reset the utf32 representation.
+	///If the special Key type could also represented using unicode, prefer to call one of
+	///the utf functions to set the new Key and unicode value.
+	///\exception std::logic_error if the given Key is Key::unicode.
+	void type(Key);
+
+	///If the keysym can be represented using unicode, this function returns its utf8-encoded
+	///unicode char.
+	///If the keysym holds no keysym or it cannot be represented as a unicode value, an array
+	///filled with zeroes is returned.
+	///Note that this might overlap with the NUL character ('\0') so to actually test if
+	///it can be represented as unicode, the return value of the key() function should be checked.
+	std::array<char, 4> utf8() const;
+
+	///Serializes the keysym to a single 64-bit unsigned integer that can be e.g. used to store
+	///the keysym in a file. If read, simply use the Keysym constructor that just takes
+	///a 64-bit unsigned integer as parameter.
+	std::uint64_t serialize() const;
+
+protected:
+	Key key_;
+	char32_t utf32_;
 };
+
 
 }

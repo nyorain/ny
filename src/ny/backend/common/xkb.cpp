@@ -1,8 +1,10 @@
 #include <ny/backend/common/xkb.hpp>
 
 #include <nytl/vec.hpp>
+#include <nytl/utf.hpp>
 
 #include <xkbcommon/xkbcommon.h>
+#include <xkbcommon/xkbcommon-compose.h>
 #include <xkbcommon/xkbcommon-keysyms.h>
 #include <stdexcept>
 
@@ -125,6 +127,13 @@ void XkbKeyboardContext::createDefault()
 		throw std::runtime_error("ny::XKBKeyboardContext: failed to create xkb_state");
 }
 
+void XkbKeyboardContext::setupCompose()
+{
+	auto locale = setlocale(LC_CTYPE, nullptr);
+	xkbComposeTable_ = xkb_compose_table_new_from_locale(xkbContext_, locale, XKB_COMPOSE_COMPILE_NO_FLAGS);
+	xkbComposeState_ = xkb_compose_state_new(xkbComposeTable_, XKB_COMPOSE_STATE_NO_FLAGS);
+}
+
 void XkbKeyboardContext::updateKey(unsigned int code, bool pressed)
 {
 	xkb_state_update_key(xkbState_, code, pressed ? XKB_KEY_DOWN : XKB_KEY_UP);
@@ -142,7 +151,40 @@ std::string XkbKeyboardContext::unicode(Key key) const
 	auto code = keyToXkb(key);
 	char utf8[7];
 	xkb_state_key_get_utf8(xkbState_, code, utf8, 7);
+	
 	return utf8;
 }
+
+
+// Keycode keycodeFromUtf32(char32_t utf32) const
+// {
+// }
+// 
+// Keycode keycodeFromUtf8(const std::array<char, 4>& utf8) const
+// {
+// }
+// 
+// char32_t keycodeToUtf32(Keycode, bool currentState = false) const
+// {
+// 	auto state = xkb_state_ref(xkbState_);
+// 	if(!currentState) state = xkb_state_new(xkbKeymap_);
+// 
+// 	auto ret = xkb_state_key_get_utf8(state, code);
+// 	state = xkb_state_unref(xkbKeymap_);
+// 
+// 	return ret;
+// }
+// 
+// std::array<char, 4> keycodeToUtf8(Keycode keycode, bool currentState = false) const
+// {
+// 	auto state = xkb_state_ref(xkbState_);
+// 	if(!currentState) state = xkb_state_new(xkbKeymap_);
+// 
+// 	char utf8[5];
+// 	xkb_state_key_get_utf8(state, code, utf8, 5);
+// 	state = xkb_state_unref(xkbKeymap_);
+// 
+// 	return utf8;
+// }
 
 }

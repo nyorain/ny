@@ -127,3 +127,23 @@ Images
 Since ny also abstracts things like clipboards or drag-and-drop some backends need image
 encode/decode functionality and therefore ny has an image class with load/save functions altough
 it would usually not fit into its scope.
+
+Keyboard input
+==============
+
+One of the main goals of ny is to abstract input across multiple platforms.
+A huge part of this is to provide a modern and unicode-aware keyboard input abstraction that
+can be used for all use cases.
+The problem is that the keyboard can be used in many situtations, in some of them the application
+cares about modifiers and the resulting unicode value and in other it does explicitly not need them
+(like e.g. in games where modifiers will usually not change the key controls).
+Therefore ny abstracts keyboard input on a pretty low level.
+
+linux backends:
+	- uses xkbcommon
+	- ny::Keycode represents the xkb_keycode_t that comes from the backend
+	- ny::Keysym represents the xkb_keysym_t that is parsed using the keymap and keystate
+
+windows backend:
+	- ny::Keycode represents the virtual key code resulted from MapVirtualKey
+	- ny::Keysym represents 

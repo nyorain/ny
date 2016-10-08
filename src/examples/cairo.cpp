@@ -90,8 +90,8 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 	{
 		if(!static_cast<const ny::KeyEvent&>(ev).pressed) return false;
 
-		ny::debug("Key pressed. Exiting.");
-		lc_.stop();
+		// ny::debug("Key pressed. Exiting.");
+		// lc_.stop();
 		return true;
 	}
 

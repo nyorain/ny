@@ -305,7 +305,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispa
 
 		EventHandlerEvent(KeyEvent, key.event);
 		event.pressed = false;
-		event.key = keyboardContext_->xkbKey(key.detail);
+		event.key = keyboardContext_->xkbKey(key.detail, false);
 		event.unicode = keyboardContext_->xkbUnicode(key.detail);
 		dispatch(event);
 

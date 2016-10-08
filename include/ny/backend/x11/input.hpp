@@ -47,7 +47,7 @@ public:
 	std::uint8_t xkbEventType() const { return eventType_; }	
 	void processXkbEvent(xcb_generic_event_t& ev);
 	std::string xkbUnicode(std::uint8_t keycode);
-	Key xkbKey(std::uint8_t keycode);
+	Key xkbKey(std::uint8_t keycode, bool pressed = true);
 	bool updateKeymap();
 
 protected:

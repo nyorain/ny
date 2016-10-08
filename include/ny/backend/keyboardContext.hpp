@@ -2,58 +2,56 @@
 
 #include <ny/include.hpp>
 #include <ny/base/event.hpp>
+#include <ny/base/key.hpp>
 
 #include <nytl/callback.hpp>
 
 namespace ny
 {
 
-//TODO: something about modifiers for manual parsing?
-///Contains a list of all common keyboard symbols.
-enum class Key : unsigned int
-{
-    none = 0,
-
-    a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z,
-	A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z,
-
-    n0, n1, n2, n3, n4, n5, n6, n7, n8, n9,
-	numpad0, numpad1, numpad2, numpad3, numpad4, numpad5, numpad6, numpad7, numpad8, numpad9,
-
-    f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14, f15, f16, f17, f18, f19,
-	f20, f21, f22, f23, f24,
-
-    play, stop, pause, next, previous, 
-	escape, comma, semicolon, dot, sharp, plus, minus, tab,
-	leftctrl, rightctrl, leftsuper, rightsuper, leftshift, rightshift, leftalt, rightalt, capsLock,
-    space, enter, backspace, del, end, insert, pageUp, pageDown, home, back, 
-	left, up, down, right, volumeup, volumedown,
-
-	backslash, brecketleft, bracketright, braceleft, braceright,
-	cent, dollars, yen, euro
-};
-
-
 ///Keyboard interface.
+///Implemented by the different backends. Can be used to handle keycodes and their unicode
+///representations correctly as well as receiving general information about the keyboard.
 class KeyboardContext
 {
 public:
 	///Returns whether the given key code is pressed.
-	///This functions may be async to any received events and callbacks.
+	///This functions may be async to any received events and callbacks, e.g. if checked
+	///here a key might appear press although the application has not yet received (and maybe will
+	///never receive) a matching KeyEvent.
+	///\exception std::logic_error for invalid keycodes.
+	// virtual bool pressed(Keycode keycode) const = 0;
 	virtual bool pressed(Key key) const = 0;
 
-	///Parses the given key to a utf8-encoded unicode string depending on the
-	///keyboards current state.
-	///This functions may be async to any received events and callbacks.
-	///If the key cannot be parsed to any text (like e.g. f5, play, left or rightalt), an
-	///empty string should be returned.
+	///Returns the utf32 encoded char that is associated with the given Keycode.
+	///Useful for serializing keycodes i.e. storing them in a keymap and backend independent manner.
+	///If the keycode is invalid or cannot be converted to a unicode meaning, 0 is returned.
+	///\param currentState Determines whether the keycode should be converted taking the current
+	///keyboard state in account (i.e. modifiers) or if the default unicode char should be
+	///returned for that keycode, i.e. the char what would be generated when not taking
+	///into account any other modifiers.
+	// virtual char32_t keycodeToUtf32(Keycode, bool currentState = false) const = 0;
+
+	///Returns the utf8 encoded char that is associated with the given Keycode.
+	///Useful for serializing keycodes i.e. storing them in a keymap and backend independent manner.
+	///If the keycode is invalid or cannot be converted to a unicode meaning, 0 is returned.
+	///\param currentState Determines whether the keycode should be converted taking the current
+	///keyboard state in account (i.e. modifiers) or if the default unicode char should be
+	///returned for that keycode, i.e. the char what would be generated when not taking
+	///into account any other modifiers.
+	// virtual std::array<char, 4> keycodeToUtf8(Keycode, bool currentState = false) const = 0;
+	
+	// virtual Keysym keycodeToKeysym(Keycode, bool currentState = false) const = 0;
+	
 	virtual std::string unicode(Key key) const = 0;
 
 	///Returns the WindowContext that has the current keyboard focus or nullptr if there
 	///is none.
 	virtual WindowContext* focus() const = 0;
 
+public:
 	///Will be called every time a key status changes.
+	// Callback<void(Keycode keycode, std::uint32_t utf32, bool pressed)> onKey;
 	Callback<void(Key key, bool pressed)> onKey;
 
 	///Will be called every time the keyboard focus changes.
@@ -62,7 +60,6 @@ public:
 	Callback<void(WindowContext* prev, WindowContext* now)> onFocus;
 };
 
-//Events
 namespace eventType
 {
 	constexpr auto key = 25u;
@@ -76,11 +73,12 @@ public:
 	using EvBase::EvBase;
 
     bool pressed; //whether it was pressed or released
-    Key key;
-	std::string unicode; ///utf-8 encoded.
+    // Keycode keycode; //the raw keycode of the pressed key
+	Key key;
+	std::string unicode; //utf-8 encoded, keyboard state dependent
 };
 
-///Event that will be sent everytime an EventHandler gains or loses focus.
+///Event that will be sent everytime a WindowContext gains or loses focus.
 class FocusEvent : public EventBase<eventType::focus, FocusEvent>
 {
 public:

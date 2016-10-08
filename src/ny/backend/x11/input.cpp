@@ -3,12 +3,15 @@
 #include <ny/backend/x11/windowContext.hpp>
 #include <ny/base/log.hpp>
 
+#include <nytl/utf.hpp>
+
 #include <xcb/xcb.h>
 
 //the xkb header is not very c++ friendly...
 #define explicit explicit_
 #include <xcb/xkb.h>
 #include <xkbcommon/xkbcommon-x11.h>
+#include <xkbcommon/xkbcommon-compose.h>
 #undef explicit
 
 namespace ny
@@ -94,6 +97,8 @@ X11KeyboardContext::X11KeyboardContext(X11AppContext& ac) : appContext_(ac)
 		auto msg = "X11KC: failed to select xkb events: " + std::to_string((int) error->error_code);
 		throw std::runtime_error(msg);
     }
+
+	XkbKeyboardContext::setupCompose();
 }
 
 bool X11KeyboardContext::pressed(Key key) const
@@ -150,13 +155,46 @@ std::string X11KeyboardContext::xkbUnicode(std::uint8_t keycode)
 	return buffer;
 }
 
-Key X11KeyboardContext::xkbKey(std::uint8_t keycode)
+Key X11KeyboardContext::xkbKey(std::uint8_t keycode, bool pressed)
 {
 	// keycode += 0x1B;
 	debug("keycode: ", (void*) (keycode));
 	auto keysym = xkb_state_key_get_one_sym(xkbState_, keycode);
 	debug("keysym: ", (void*) (keysym));
 	debug("keyname: ", xkb_keymap_key_get_name(xkbKeymap_, keycode));
+
+	auto utf32 = xkb_state_key_get_utf32(xkbState_, keycode);
+	char utf8[7];
+	xkb_state_key_get_utf8(xkbState_, keycode, utf8, 7);
+	debug("default unicode: ", (void*) utf32, " --> ", utf8);
+
+	if(pressed)
+	{
+		xkb_compose_state_feed(xkbComposeState_, keysym);
+		auto status = xkb_compose_state_get_status(xkbComposeState_);
+
+		if(status == XKB_COMPOSE_COMPOSED)
+		{
+			auto sym = xkb_compose_state_get_one_sym(xkbComposeState_);
+			auto utf32 = xkb_keysym_to_utf32(sym);
+			char utf8[7];
+			xkb_keysym_to_utf8(sym, utf8, 7);
+			debug("composed a unicode: ", (void*) utf32, " --> ", utf8);
+
+			char utf8v2[7];
+			xkb_compose_state_get_utf8(xkbComposeState_, utf8v2, 7);
+			debug("composed b unicode: ", (void*) utf32, " --> ", utf8v2);
+		}
+	}
+
+	auto status = xkb_compose_state_get_status(xkbComposeState_);
+	if(status == XKB_COMPOSE_CANCELLED || status == XKB_COMPOSE_COMPOSED)
+	{
+		// xkb_compose_state_reset(xkbComposeState_);
+	}
+	
+
+
 	return xkbToKey(keysym);
 }
 	
