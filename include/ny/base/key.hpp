@@ -6,38 +6,6 @@
 namespace ny
 {
 
-///Enumeration that holds all special key constants that cannot (or not easily) be represented
-///using unicode.
-enum class Key : std::uint32_t
-{
-    none = 0,
-	unicode = 1,
-	unkown = 3,
-
-	kp0, 
-	kp1, 
-	kp2, 
-	kp3, kp4, kp5, kp6, kp7, kp8, kp9,
-	kpminus, kpplus, kpdot, 
-	numlock, scrolllock, 
-
-    f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14, f15, f16, f17, f18, f19,
-	f20, f21, f22, f23, f24,
-
-	escape, 
-	lctrl, rctrl, lmeta, rmeta, lshift, rshift, lalt, ralt, 
-
-	backspace, tab, linefeed, clear, kreturn, pause, del,
-	home, pageUp, pageDown, end, begin,
-	select, print, execute, insert, undo, redo, menu, find, cancel, help, kbreak, 
-	modeSwitch, scriptSwitch,
-	left, up, down, right, volumeup, volumedown,
-
-    // play, stop, pause, next, previous, 
-	// playpause, print
-	// capsLock, space, enter, backspace, del, end, insert, pageUp, pageDown, home, back, 
-};
-
 ///The Keycode struct is only a typesafe wrapper around a 64-bit unsigned integer value.
 ///This integer value should represent some hardware keyboard key by the backend.
 ///The value is completely independent from some current keyboard state, i.e. the keyboard

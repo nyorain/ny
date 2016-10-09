@@ -53,9 +53,9 @@ Examples for such functions are AppContext::startDragDrop or Dialog::runModal.
 
 Ny considers itself a thread-aware library that may be used for efficient single-threaded as well as
 multi-threaded applications.
-When using the ny-backend abstraction, you can make your application multi-threaded by running
-the AppContext::dispatchLoop overload that takes an EventDispatcher parameter and then sending
-events from multiple thread to this EventDispatcher.
+You can make your application multi-threaded by running the AppContext::dispatchLoop overload 
+that takes an EventDispatcher parameter and then sending events from multiple thread 
+to this EventDispatcher.
 The way to communication method between the ui thread running the event dispatch loop and other
 threads are therefore usually events. This way you are able to e.g. resize, refresh or
 hide windows from other threads. Doing this directly (by calls to the functions instead of events)
@@ -114,12 +114,16 @@ create them when needed (for a window) and not e.g. on AppContext creation.
 Vulkan
 ======
 
-Applications can use ny either to just create a VkSurfaceKHR for a WindowContext in a
-platform-independent manner or use evg's vulkan DrawContext implementation for rendering
-vector graphics on ny windows.
+Applications can use ny to just create a VkSurfaceKHR for a WindowContext in a
+platform-independent manner. In future further integrations for vulkan contexts are planned, like
+e.g. skia or other vector graphics libraries that can use a vulkan backend.
 If using ny for a larger vulkan application (e.g. game or cad) one has therefore the possiblity
 to simply use ny to create a window and then a VkSurfaceKHR for it platform-independent without
 any unneeded dependencies and features.
+
+When creating the vulkan instance that ny should create the VkSurfaceKHR for, one must activate
+all needed vulkan extensions by the specific backend. These can be checked with the
+ny::AppContext::vulkanExtensions function of the associated AppContex implementation.
 
 Images
 ======
@@ -131,25 +135,27 @@ it would usually not fit into its scope.
 Keyboard input
 ==============
 
+There are two entry points for keyboard input: events and the KeyboardContext interface.
+Events are sent to the registered EventHandler while the KeyboardContext implementation
+can be retrieved on demand from an AppContext implementation and then be used to 
+check e.g. if certain keys are pressed, which WindowContext is currently focused or to get
+unicode representations of keycodes.
+Since a KeyboardContext does obviously represent a single keyboard and there is no possibility
+to get multiple objects, there is no may to deal with multiple keyboards or differentiate 
+between them at the moment. Such capability might be added later but for most backends
+it would be useless since the backend apis do not support multiple keyboard differentiation
+as well.
+
 One of the main goals of ny is to abstract input across multiple platforms.
 A huge part of this is to provide a modern and unicode-aware keyboard input abstraction that
 can be used for all use cases.
 The problem is that the keyboard can be used in many situtations, in some of them the application
 cares about modifiers and the resulting unicode value and in other it does explicitly not need them
 (like e.g. in games where modifiers will usually not change the key controls).
-Therefore ny abstracts keyboard input on a pretty low level.
-
-linux backends:
-	- uses xkbcommon
-	- ny::Keycode represents the xkb_keycode_t that comes from the backend
-	- ny::Keysym will be parsed using the retrieved xkb_keysym_t
-
-windows backend:
-	- ny::Keycode represents the virtual key code resulted from MapVirtualKey
-	- ny::Keysym will be parsed from the virtual key code using various winapi unicode/mapping 
-		functions
+Therefore ny abstracts keyboard input on a pretty low, but cross-platform level.
 
 Example code:
+------------
 
 ````cpp
 void handlePress(const ny::KeyEvent& event, const ny::KeyboardContext& kbdctx)
@@ -163,13 +169,11 @@ void handlePress(const ny::KeyEvent& event, const ny::KeyboardContext& kbdctx)
 	{
 		//We could also retrieve a default keysym that is associated with the given
 		//keycode from the KeyboardContext. In this case we do so independent from the
-		//current state.
-		//If the keysym is a special key we can also retrieve a string describing it.
-		auto keysym = kbdctx.keysym(event.keycode, false);
-		if(keysym.type() == ny::Key::unicode)
-			ny::log("Control unicode ", keysym.utf8(), " pressed");
-		else
-			ny::log("Control special ", ny::keyName(keysym.type()), " pressed");
+		//current keyboard state (i.e. modifiers or dead pending keys).
+		//If the keysym is a special key we can also retrieve a name describing it.
+		auto unicode = kbdctx.utf8(event.keycode, false);
+		if(unicode.empty()) ny::log("Control key ", ny::keycodeName(event.keycode));
+		else ny::log("Control unicode ", unicode, " pressed");
 
 		//perform the action
 		performAction(action);
@@ -177,24 +181,21 @@ void handlePress(const ny::KeyEvent& event, const ny::KeyboardContext& kbdctx)
 	}
 
 	//Or just wait for unicode input e.g. for a textfield:
-	//We first check whether the keysym is natively expressed as unicode values
-	//There are chars that could be expressed as unicode values (and calling utf32() or utf8() on
-	//them will return that unicode value) but doing so does not make much sense since they mainly
-	//are special keys (like e.g. escape which has a usual unicode value).
-	if(event.keysym.type() == ny::Key::unicode)
+	//We first check whether the key does actually generate any unicode input for the current
+	//keyboard state.
+	//Note that for special keys (like escape) there will no unicode value be generated although
+	//they have a unique unicode value since this should be only used for real char-like input.
+	if(!event.unicode.empty())
 	{
 		//Simply further process the given unicode
-		handleUnicodeInput(event.keysym.utf8());
-		return;
-	}
-
-	//Or just handle every keysym:
-	//We first have to check whether the keysym is a valid keysym
-	if(event.keysym.type() != ny::Key::unknown && event.keysym.type() != ny::Key::none)
-	{
-		//This function could deal with the unicode values or special keys.
-		handleKeysym(event.keysym());
+		handleUnicodeInput(event.unicode);
 		return;
 	}
 }
 ````
+
+When e.g. storing keyboard controls for a game in a file one should usually store the keycode
+as 32 bit integer. Note that this approach has the effect that if the used keymap is changed
+in between two application startups, the unicode value of the key associated with the
+control will change (i.e. from 'Y' to 'Z' when switching between german/us layout). 
+The control mappings to the raw hardware keys, however, will stay the same.

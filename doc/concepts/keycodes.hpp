@@ -61,7 +61,7 @@ enum class Keycode : std::uint32_t
 	o,
 	p,
 	leftbrace,
-	righbrace,
+	rightbrace,
 	enter,
 	leftctrl,
 
@@ -513,7 +513,6 @@ constexpr struct Mapping
 	const char* name;
 } mappings[] = 
 {
-	{Keycode::none, ""},
 	{Keycode::a, "a"},
 	{Keycode::b, "b"},
 	{Keycode::c, "c"},
@@ -552,6 +551,61 @@ constexpr struct Mapping
 	{Keycode::k9, "9"},
 	{Keycode::k0, "0"},
 
+	{Keycode::enter, "enter"},
+	{Keycode::esc, "escape"},
+	{Keycode::backspace, "backspace"},
+	{Keycode::tab, "tab"},
+	{Keycode::space, "space"},
+	{Keycode::minus, "minus"},
+	{Keycode::equal, "equal"},
+	{Keycode::leftbrace, "leftbrace"},
+	{Keycode::rightbrace, "rightbrace"},
+	{Keycode::backslash, "backslash"},
+	{Keycode::nonushash, "nonushash"},
+	{Keycode::semicolon, "semicolon"},
+	{Keycode::aporstrophe, "aporstrophe"},
+	{Keycode::grave, "grave"},
+	{Keycode::comma, "comma"},
+	{Keycode::period, "period"},
+	{Keycode::slash, "slash"},
+
+	{Keycode::capslock, "capslock"},
+
+	{Keycode::f1, "f1"},
+	{Keycode::f2, "f2"},
+	{Keycode::f3, "f3"},
+	{Keycode::f4, "f4"},
+	{Keycode::f5, "f5"},
+	{Keycode::f6, "f6"},
+	{Keycode::f7, "f7"},
+	{Keycode::f8, "f8"},
+	{Keycode::f9, "f9"},
+	{Keycode::f10, "f10"},
+	{Keycode::f11, "f11"},
+	{Keycode::f12, "f12"},
+
+	{Keycode::print, "print"},
+	{Keycode::scrollock, "scrolllock"},
+	{Keycode::pause, "pause"},
+	{Keycode::insert, "insert"},
+
+	{Keycode::home, "home"},
+	{Keycode::pageup, "pageup"},
+	{Keycode::del, "delete"},
+	{Keycode::end, "end"},
+	{Keycode::pagedown, "pagedown"},
+	{Keycode::right, "right"},
+	{Keycode::left, "left"},
+	{Keycode::up, "up"},
+	{Keycode::down, "down"},
+
+	{Keycode::down, "numlock"},
+
+	{Keycode::kpdivide, "kpdivide"},
+	{Keycode::kpmultiply, "kpmultiply"},
+	{Keycode::kpminus, "kpminus"},
+	{Keycode::kpplus, "kpplus"},
+	{Keycode::kpenter, "kpenter"},
 	{Keycode::kp1, "kp1"},
 	{Keycode::kp2, "kp2"},
 	{Keycode::kp3, "kp3"},
@@ -562,6 +616,24 @@ constexpr struct Mapping
 	{Keycode::kp8, "kp8"},
 	{Keycode::kp9, "kp9"},
 	{Keycode::kp0, "kp0"},
+
+	{Keycode::nonusbackslash, "nonusbackslash"},
+	{Keycode::application, "application"},
+	{Keycode::power, "power"},
+
+	{Keycode::equals, "equals"},
+	{Keycode::f13, "f13"},
+	{Keycode::f14, "f14"},
+	{Keycode::f15, "f15"},
+	{Keycode::f16, "f16"},
+	{Keycode::f17, "f17"},
+	{Keycode::f18, "f18"},
+	{Keycode::f19, "f19"},
+	{Keycode::f20, "f20"},
+	{Keycode::f21, "f21"},
+	{Keycode::f22, "f22"},
+	{Keycode::f23, "f23"},
+	{Keycode::f24, "f24"},
 };
 
 const char* keycodeName(Keycode keycode)
@@ -571,73 +643,10 @@ const char* keycodeName(Keycode keycode)
 	return "";
 }
 
-
-
-
-
-
-
-enum class Key : std::uint32_t
+Keycode keycodeFromName(const char* name)
 {
-    none = 0,
-	unicode = 1,
-	unkown = 3,
-
-	kp0, 
-	kp1, 
-	kp2, 
-	kp3, 
-	kp4, 
-	kp5, 
-	kp6, 
-	kp7, 
-	kp8, 
-	kp9,
-
-	kpminus, 
-	kpplus, 
-	kpdot, 
-
-	numlock, 
-	scrolllock, 
-
-    f1, 
-	f2, 
-	f3, 
-	f4, 
-	f5, 
-	f6, 
-	f7, 
-	f8, 
-	f9, 
-	f10, 
-	f11, 
-	f12, 
-	f13, 
-	f14, 
-	f15, 
-	f16, 
-	f17, 
-	f18, 
-	f19,
-	f20, 
-	f21, 
-	f22, 
-	f23, 
-	f24,
-
-	escape, 
-	lctrl, rctrl, lmeta, rmeta, lshift, rshift, lalt, ralt, 
-
-	backspace, tab, linefeed, clear, kreturn, pause, del,
-	home, pageUp, pageDown, end, begin,
-	select, print, execute, insert, undo, redo, menu, find, cancel, help, kbreak, 
-	modeSwitch, scriptSwitch,
-	left, up, down, right, volumeup, volumedown,
-
-    // play, stop, pause, next, previous, 
-	// playpause, print
-	// capsLock, space, enter, backspace, del, end, insert, pageUp, pageDown, home, back, 
-};
+	for(auto& m : mappings) if(!std::strcmp(m.name, name)) return m.name;
+	return Keycode::none;
+}
 
 }

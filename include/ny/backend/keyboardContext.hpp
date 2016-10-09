@@ -43,7 +43,7 @@ public:
 	
 	// virtual Keysym keycodeToKeysym(Keycode, bool currentState = false) const = 0;
 	
-	virtual std::string unicode(Key key) const = 0;
+	virtual std::string utf8(Keycode, bool currentState = false) const = 0;
 
 	///Returns the WindowContext that has the current keyboard focus or nullptr if there
 	///is none.
@@ -73,8 +73,7 @@ public:
 	using EvBase::EvBase;
 
     bool pressed; //whether it was pressed or released
-    // Keycode keycode; //the raw keycode of the pressed key
-	Key key;
+    Keycode keycode; //the raw keycode of the pressed key
 	std::string unicode; //utf-8 encoded, keyboard state dependent
 };
 
