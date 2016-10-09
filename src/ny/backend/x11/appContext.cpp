@@ -176,6 +176,7 @@ EventHandler* X11AppContext::eventHandler(xcb_window_t w)
 
 bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispatcher)
 {
+	//macro for easier event creation for registered EventHandler
 	#define EventHandlerEvent(T, W) \
 		auto handler = eventHandler(W); \
 		if(!handler) return true; \
@@ -189,11 +190,15 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispa
 	auto responseType = ev.response_type & ~0x80;
     switch(responseType)
     {
+
     case XCB_MOTION_NOTIFY:
     {
 		auto& motion = reinterpret_cast<xcb_motion_notify_event_t&>(ev);
+		auto pos = nytl::Vec2i(motion.event_x, motion.event_y);
+		mouseContext_->move(pos);
+
 		EventHandlerEvent(MouseMoveEvent, motion.event);
-        event.position = Vec2i(motion.event_x, motion.event_y);
+        event.position = pos;
         event.screenPosition = Vec2i(motion.root_x, motion.root_y);
 
 		dispatch(event);
@@ -208,6 +213,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispa
 			EventHandlerEvent(DrawEvent, expose.window);
 			dispatch(event);
 		}
+
 		return true;
     }
     case XCB_MAP_NOTIFY:
@@ -221,10 +227,13 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispa
     case XCB_BUTTON_PRESS:
     {
 		auto& button = reinterpret_cast<xcb_button_press_event_t&>(ev);
+		auto b = x11ToButton(button.detail);
+		mouseContext_->mouseButton(b, true);
+
 		EventHandlerEvent(MouseButtonEvent, button.event);
 		event.data = std::make_unique<X11EventData>(ev);
-        event.button = x11ToButton(button.detail);
-        event.position = Vec2i(button.event_x, button.event_y);
+        event.button = b;
+        event.position = nytl::Vec2i(button.event_x, button.event_y);
 		event.pressed = true;
 
 		dispatch(event);
@@ -234,10 +243,13 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispa
     case XCB_BUTTON_RELEASE:
     {
 		auto& button = reinterpret_cast<xcb_button_release_event_t&>(ev);
+		auto b = x11ToButton(button.detail);
+		mouseContext_->mouseButton(b, false);
+
 		EventHandlerEvent(MouseButtonEvent, button.event);
 		event.data = std::make_unique<X11EventData>(ev);
-        event.button = x11ToButton(button.detail);
-        event.position = Vec2i(button.event_x, button.event_y);
+        event.button = b;
+        event.position = nytl::Vec2i(button.event_x, button.event_y);
 		event.pressed = false;
 
 		dispatch(event);
@@ -247,8 +259,11 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispa
     case XCB_ENTER_NOTIFY:
     {
 		auto& enter = reinterpret_cast<xcb_enter_notify_event_t&>(ev);
+		auto wc = windowContext(focus.event);
+		mouseContext_->over(wc);
+
 		EventHandlerEvent(MouseCrossEvent, enter.event);
-        event.position = Vec2i(enter.event_x, enter.event_y);
+        event.position = nytl::Vec2i(enter.event_x, enter.event_y);
 		event.entered = true;
 		dispatch(event);
 
@@ -258,8 +273,11 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispa
     case XCB_LEAVE_NOTIFY:
     {
 		auto& leave = reinterpret_cast<xcb_enter_notify_event_t&>(ev);
+		auto wc = windowContext(focus.event);
+		if(mouseContext_->over() == wc) mouseContext_->over(nullptr);
+
 		EventHandlerEvent(MouseCrossEvent, leave.event);
-        event.position = Vec2i(leave.event_x, leave.event_y);
+        event.position = nytl::Vec2i(leave.event_x, leave.event_y);
 		event.entered = false;
 		dispatch(event);
 
@@ -269,6 +287,9 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispa
     case XCB_FOCUS_IN:
     {
 		auto& focus = reinterpret_cast<xcb_focus_in_event_t&>(ev);
+		auto wc = windowContext(focus.event);
+		keyboardContext_->focus(wc);
+
 		EventHandlerEvent(FocusEvent, focus.event);
 		event.focus = true;
 		dispatch(event);
@@ -279,6 +300,9 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispa
     case XCB_FOCUS_OUT:
     {
 		auto& focus = reinterpret_cast<xcb_focus_in_event_t&>(ev);
+		auto wc = windowContext(focus.event);
+		if(keyboardContext_->focus() == wc)keyboardContext_->focus(nullptr);
+
 		EventHandlerEvent(FocusEvent, focus.event);
 		event.focus = false;
 		dispatch(event);
@@ -404,7 +428,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispa
 
 	}
 
-    return 1;
+    return true;
 	#undef EventHandlerEvent
 }
 

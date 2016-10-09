@@ -29,12 +29,28 @@ nytl::Vec2ui X11MouseContext::position() const
 
 bool X11MouseContext::pressed(MouseButton button) const
 {
-	return buttonStates_[static_cast<unsigned char>(button)];
+	//TODO: async checking?
+	return buttonStates_[static_cast<unsigned int>(button)];
 }
 
-WindowContext* X11MouseContext::over() const
+void X11MouseContext::over(X11WindowContext* now)
 {
-	return over_;
+	if(over_ == now) return;
+	onFocus(*this, over_, now);
+	over_ = now;
+}
+
+void X11MouseContext::mouseButton(MouseButton button, bool pressed)
+{
+	buttonStates_[static_cast<unsigned int>(button)] = pressed;
+	onButton(*this, button, pressed);
+}
+
+void X11MouseContext::move(const nytl::Vec2ui& pos)
+{
+	if(allEqual(pos, lastPosition_)) return;
+	onMove(*this, pos, pos - lastPosition_);
+	lastPosition_ = pos;
 }
 
 //Keyboard
@@ -103,6 +119,7 @@ X11KeyboardContext::X11KeyboardContext(X11AppContext& ac) : appContext_(ac)
 
 bool X11KeyboardContext::pressed(Keycode key) const
 {
+	//TODO: XQueryKeymap for async checking
 	auto uint = static_cast<unsigned int>(key);
 	if(uint > 255) return false;
 	return keyStates_[uint];
@@ -147,12 +164,15 @@ void X11KeyboardContext::processXkbEvent(xcb_generic_event_t& ev)
 
 bool X11KeyboardContext::updateKeymap()
 {
+	//TODO
 	return true;
 }
 
 bool X11KeyboardContext::keyEvent(std::uint8_t keycode, KeyEvent& ev)
 {
 	ev.keycode = xkbToKey(keycode);
+	auto keyuint = static_cast<unsigned int>(ev.keycode);
+	keyStates_[keyuint] = ev.pressed;
 
 	auto keysym = xkb_state_key_get_one_sym(xkbState_, keycode);
 	if(ev.pressed)
@@ -178,7 +198,17 @@ bool X11KeyboardContext::keyEvent(std::uint8_t keycode, KeyEvent& ev)
 	auto needed = xkb_state_key_get_utf8(xkbState_, keycode, nullptr, 0) + 1;
 	ev.unicode.resize(needed);
 	xkb_state_key_get_utf8(xkbState_, keycode, &ev.unicode[0], needed);
+
+	onKey(*this, ev.keycode, ev.unicode, ev.pressed);
+
 	return true;
+}
+
+void X11KeyboardContext::focus(X11KeyboardContext* now)
+{
+	if(focus_ == now) return;
+	onFocus(*this, focus_, now);
+	focus_ = now;
 }
 	
 }

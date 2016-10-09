@@ -44,12 +44,12 @@ public:
 public:
 	///Will be called every time a key status changes.
 	// Callback<void(Keycode keycode, std::uint32_t utf32, bool pressed)> onKey;
-	nytl::Callback<void(Keycode key, std::string utf8, bool pressed)> onKey;
+	nytl::Callback<void(const KeyboardContext&, Keycode, std::string utf8, bool pressed)> onKey;
 
 	///Will be called every time the keyboard focus changes.
 	///Note that both parameters might be a nullptr
 	///It is guaranteed that both parameters will have different values.
-	nytl::Callback<void(WindowContext* prev, WindowContext* now)> onFocus;
+	nytl::Callback<void(const KeyboardContext&, WindowContext* prev, WindowContext* now)> onFocus;
 };
 
 namespace eventType

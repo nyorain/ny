@@ -45,7 +45,7 @@ MutableImageData WaylandBufferSurface::init()
 	for(auto& b : buffers_)
 	{
 		if(b.used()) continue;
-		if(nytl::anyOf(b.size() != size)) b.size(size);
+		if(!nytl::allEqual(b.size(), size)) b.size(size);
 
 		b.use();
 		active_ = &b;
@@ -73,7 +73,7 @@ void WaylandBufferSurface::apply(MutableImageData&)
 void WaylandBufferSurface::resize(const nytl::Vec2ui& newSize)
 {
 	for(auto& b : buffers_)
-		if(!b.used() && nytl::anyOf(b.size() != newSize))
+		if(!b.used() && !nytl::allEqual(b.size(), newSize))
 			b.size(windowContext_.size());
 }
 

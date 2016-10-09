@@ -19,7 +19,7 @@ enum class MouseButton : unsigned int
     left,
     right,
     middle,
-	custom1,
+	custom1, 
     custom2,
     custom3,
     custom4,
@@ -43,15 +43,16 @@ public:
 	///Returns the WindowContext over that the pointer is located, or nullptr if there is none.
 	virtual WindowContext* over() const = 0;
 
+public:
 	///Will be called every time a mouse button is clicked or released.
-	Callback<void(MouseButton button, bool pressed)> onButton;
+	nytl::Callback<void(MouseContext&, MouseButton, bool pressed)> onButton;
 
 	///Will be called every time the mouse moves.
-	Callback<void(const Vec2ui& pos, const Vec2ui& delta)> onMove;
+	nytl::Callback<void(MouseContext&, const nytl::Vec2ui& pos, const nytl::Vec2ui& delta)> onMove;
 
 	///Will be called every time the pointer focus changes.
 	///Note that both parameters might be a nullptr
-	Callback<void(WindowContext* prev, WindowContext* now)> onFocus;
+	nytl::Callback<void(MouseContext&, WindowContext* prev, WindowContext* now)> onFocus;
 };
 
 //Events
@@ -71,7 +72,7 @@ public:
 
     bool pressed;
     MouseButton button;
-    Vec2i position;
+	nytl::Vec2i position;
 };
 
 ///Event for a mouse move.
@@ -80,9 +81,9 @@ class MouseMoveEvent : public EventBase<eventType::mouseMove, MouseMoveEvent, 1>
 public:
 	using EvBase::EvBase;
 
-    Vec2i position; //position in relation to the eventHandler
-    Vec2i screenPosition;
-    Vec2i delta;
+	nytl::Vec2i position; //position in relation to the eventHandler
+	nytl::Vec2i screenPosition;
+	nytl::Vec2i delta;
 };
 
 ///Event that will be send when the mouse crosses a window border, i.e. leaves or enters it.
@@ -92,7 +93,7 @@ public:
 	using EvBase::EvBase;
 
     bool entered;
-    Vec2i position;
+	nytl::Vec2i position;
 };
 
 ///Event that will be send when the mouse wheel is moved.

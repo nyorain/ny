@@ -55,7 +55,7 @@ cairo_surface_t& WaylandCairoIntegration::init()
 	{
 		if(b.buffer.used()) continue;
 
-		if(nytl::anyOf(b.buffer.size() != windowContext_.size()))
+		if(!nytl::allEqual(b.buffer.size(), windowContext_.size()))
 		{
 			b.buffer.size(size);
 			buffers_.back().surface = cairo_image_surface_create_for_data(&b.buffer.data(),
@@ -88,7 +88,7 @@ void WaylandCairoIntegration::resize(const nytl::Vec2ui& newSize)
 {
 	for(auto& b : buffers_)
 	{
-		if(!b.buffer.used() && nytl::anyOf(b.buffer.size() != newSize))
+		if(!b.buffer.used() && !nytl::allEqual(b.buffer.size(), newSize))
 		{
 			b.buffer.size(windowContext_.size());
 			buffers_.back().surface = cairo_image_surface_create_for_data(&b.buffer.data(),
