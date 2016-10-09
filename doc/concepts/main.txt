@@ -142,8 +142,59 @@ Therefore ny abstracts keyboard input on a pretty low level.
 linux backends:
 	- uses xkbcommon
 	- ny::Keycode represents the xkb_keycode_t that comes from the backend
-	- ny::Keysym represents the xkb_keysym_t that is parsed using the keymap and keystate
+	- ny::Keysym will be parsed using the retrieved xkb_keysym_t
 
 windows backend:
 	- ny::Keycode represents the virtual key code resulted from MapVirtualKey
-	- ny::Keysym represents 
+	- ny::Keysym will be parsed from the virtual key code using various winapi unicode/mapping 
+		functions
+
+Example code:
+
+````cpp
+void handlePress(const ny::KeyEvent& event, const ny::KeyboardContext& kbdctx)
+{
+	//We could have modifier-independet controls e.g. in a game:
+	//we simply look up which action (e.g. move forward) is associated with the given keycode
+	//and then execute that action.
+	//All of this is totally independent from any keymap or modifiers.
+	auto action = controls.actionForKeycode(event.keycode);
+	if(action)
+	{
+		//We could also retrieve a default keysym that is associated with the given
+		//keycode from the KeyboardContext. In this case we do so independent from the
+		//current state.
+		//If the keysym is a special key we can also retrieve a string describing it.
+		auto keysym = kbdctx.keysym(event.keycode, false);
+		if(keysym.type() == ny::Key::unicode)
+			ny::log("Control unicode ", keysym.utf8(), " pressed");
+		else
+			ny::log("Control special ", ny::keyName(keysym.type()), " pressed");
+
+		//perform the action
+		performAction(action);
+		return;
+	}
+
+	//Or just wait for unicode input e.g. for a textfield:
+	//We first check whether the keysym is natively expressed as unicode values
+	//There are chars that could be expressed as unicode values (and calling utf32() or utf8() on
+	//them will return that unicode value) but doing so does not make much sense since they mainly
+	//are special keys (like e.g. escape which has a usual unicode value).
+	if(event.keysym.type() == ny::Key::unicode)
+	{
+		//Simply further process the given unicode
+		handleUnicodeInput(event.keysym.utf8());
+		return;
+	}
+
+	//Or just handle every keysym:
+	//We first have to check whether the keysym is a valid keysym
+	if(event.keysym.type() != ny::Key::unknown && event.keysym.type() != ny::Key::none)
+	{
+		//This function could deal with the unicode values or special keys.
+		handleKeysym(event.keysym());
+		return;
+	}
+}
+````
