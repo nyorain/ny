@@ -1,111 +1,521 @@
 #pragma once
 
 #include <cstdint>
-#include <array>
+#include <nytl/stringParam.hpp>
 
 namespace ny
 {
 
-///The Keycode struct is only a typesafe wrapper around a 64-bit unsigned integer value.
-///This integer value should represent some hardware keyboard key by the backend.
-///The value is completely independent from some current keyboard state, i.e. the keyboard
-///key 'A' should always generate the same Keycode no matter if the shift, control or alt
-///modifier is currently active. 
-///Note that one should never try give the keycode any meaning since e.g. the keycode
-///generated from pressing the same hardware key may differ on different backends and
-///the meaning associated with a keycode is dependent on the used keymap.
-///This is only useful where a utf representation (i.e. the meaning for the current state) 
-///of a key contains unneeded information and the application intends to deal with the
-///raw hardware keys (which could be e.g. the case for dynamic game controls).
-class Keycode 
-{ 
-public:
-	///Represents an invalid keycode that has no associated hardware key.
-	static Keycode none;
-	using Value = std::uint64_t;
+//Modeled after linux/input.h
 
-public:
-	Value value {}; 
+//Note that the keycodes therefore directly match with the linux keycodes defined
+//in linux/input.h. They are also similiarly named.
+//Keys which names cannot be used as enum name are usually changed a bit.
+//If there is no possiblity to change the name (like e.g. for number keys 0-9) they
+//have a k (like key) prefix.
 
-public:
-	constexpr Keycode() = default;
-	constexpr Keycode(Value v) : value(v) {}
+//Note that e.g. Keycode::a should never be treated as if the user pressed a keyboard
+//button labeled 'A'. The keycodes are only a platform and device independent way of
+//representing hardware keys that could be located on a standard us keyboard.
+//For keyboards with other character sets (like e.g. japanese or russian keyboards)
+//Keycode::a will be generated when the key that is at the location where the 'A' key
+//would be on an us keyboard. But that does neither mean that the key that was pressed
+//is labeled 'A' nor that the user does now expect to e.g. see an 'A' on screen.
+//One should not try to e.g. give keycodes names and represent them to the user
+//in any way e.g. as application controls (which seems to make sense first, but
+//users may not have any idea how to press the 'W' key for moving forward
+//when they have a japanese keyboard).
 
-	constexpr operator Value() const { return value; }
-};
-
-constexpr bool operator==(const Keycode& a, const Keycode& b) { return a.value == b.value; }
-constexpr bool operator!=(const Keycode& a, const Keycode& b) { return a.value != b.value; }
-constexpr bool operator<=(const Keycode& a, const Keycode& b) { return a.value <= b.value; }
-constexpr bool operator<(const Keycode& a, const Keycode& b) { return a.value < b.value; }
-constexpr bool operator>=(const Keycode& a, const Keycode& b) { return a.value >= b.value; }
-constexpr bool operator>(const Keycode& a, const Keycode& b) { return a.value > b.value; }
-
-///Basically just a utf32 encoded char or a special value of the Key enumeration.
-///Note that the first idea was to just represent every keysym as their raw utf32 equivalent
-///but the problem is that keyboards usually have keys that have no real unicode equivalent 
-///(at least not for their meaning, maybe there exists one for their symbol).
-///Example keys would be media keys (play, pause, volume), directional arrow keys or
-///shift/alt/super modifiers.
-///Furthermore it can be inconvinient to always use the raw unicode values in code e.g. when
-///explicitly checking for certain chars like escape.
-class Keysym
+//Therefore the only use case for Keycodes is when handling special input keys such
+//as escape or leftshift that cannot be represented using unicode.
+enum class Keycode : unsigned int
 {
-public:
-	Keysym(Key xkey = Key::none, char32_t xutf32 = 0) : key_(xkey), utf32_(xutf32) {};
-	Keysym(std::uint64_t serialized);
+	none = 0,
+	escape,
 
-	///If the keysym has a representation in the Key enum it will be returned.
-	///If the keysym has no such representation, but it displayable as a unicode code,
-	///Key::unicode will be returned.
-	///For an empty Keysym (e.g. default constructed), Key::none will be returned.
-	///If the Keysym represents a valid keysym that can neither represented using unicode, nor
-	///has a entry in the Key enumeration, Key::unkown will be returned.
-	///Note that some keys (like e.g. escape) can be displayed as a unicode char but have
-	///a Key enum representation for convinience.
-	Key type() const { return key_; }
+	k1,
+	k2,
+	k3,
+	k4,
+	k5,
+	k6,
+	k7,
+	k8,
+	k9,
+	k0,
+	minus,
+	equals,
+	backspace,
+	tab,
 
-	///If the keysym can be represented using unicode, this function returns its utf32-encoded
-	///unicode char.
-	///If the keysym holds no keysym or it cannot be represented as a unicode value, 0 is returned.
-	///Note that this might overlap with the NUL character ('\0') so to actually test if
-	///it can be represented as unicode, the return value of the key() function should be checked.
-	char32_t utf32() const { return utf32_; }
+	q,
+	w,
+	e,
+	r,
+	t,
+	y,
+	u,
+	i,
+	o,
+	p,
+	leftbrace,
+	rightbrace,
+	enter,
+	leftctrl,
 
-	///\{
-	///Changes the value of this keysym to the given utf8 encoded unicode value.
-	void utf8(const std::string& value, Key = Key::unicode);
-	void utf8(const char* value, Key = Key::unicode);
-	void utf8(const std::array<char, 4>& value, Key = Key::unicode);
-	///\}
+	a,
+	s,
+	d,
+	f,
+	g,
+	h,
+	j,
+	k,
+	l,
+	semicolon,
+	aporstrophe,
+	grave,
+	leftshift,
+	backslash,
 
-	///Changes the value of this Keysym to the given utf32 encoded unicode value.
-	void utf32(char32_t value, Key = Key::unicode);
+	z,
+	x,
+	c,
+	v,
+	b,
+	n,
+	m,
+	comma,
+	period,
+	slash,
+	rightshift,
+	kpmultiply,
+	leftalt,
+	space,
+	capslock,
 
-	///Sets the value of this Keysym to the given keytype.
-	///Note that this will reset the utf32 representation.
-	///If the special Key type could also represented using unicode, prefer to call one of
-	///the utf functions to set the new Key and unicode value.
-	///\exception std::logic_error if the given Key is Key::unicode.
-	void type(Key);
+	f1,
+	f2,
+	f3,
+	f4,
+	f5,
+	f6,
+	f7,
+	f8,
+	f9,
+	f10,
 
-	///If the keysym can be represented using unicode, this function returns its utf8-encoded
-	///unicode char.
-	///If the keysym holds no keysym or it cannot be represented as a unicode value, an array
-	///filled with zeroes is returned.
-	///Note that this might overlap with the NUL character ('\0') so to actually test if
-	///it can be represented as unicode, the return value of the key() function should be checked.
-	std::array<char, 4> utf8() const;
+	numlock,
+	scrollock,
+	kp7,
+	kp8,
+	kp9,
+	kpminus,
+	kp4,
+	kp5,
+	kp6,
+	kpplus,
+	kp1,
+	kp2,
+	kp3,
+	kp0,
+	kpperiod,
 
-	///Serializes the keysym to a single 64-bit unsigned integer that can be e.g. used to store
-	///the keysym in a file. If read, simply use the Keysym constructor that just takes
-	///a 64-bit unsigned integer as parameter.
-	std::uint64_t serialize() const;
+	zenkakuhankaku = 85,
+	nonushash,
+	f11,
+	f12,
+	ro,
+	katakana,
+	hiragana,
+	henkan,
+	katakanahiragana,
+	muhenkan,
+	kpjpcomma,
+	kpenter,
+	rightctrl,
+	kpdivide,
+	sysrq,
+	rightalt,
+	linefeed,
+	home,
+	up,
+	pageup,
+	left,
+	right,
+	end,
+	down,
+	pagedown,
+	insert,
+	del,
+	macro,
+	mute,
+	volumedown,
+	volumeup,
+	power,
+	kpequals,
+	kpplusminus,
+	pause,
+	scale,
+	kpcomma,
+	hangeul,
+	hanguel = hangeul,
+	hanja,
+	yen,
+	leftmeta,
+	rightmeta,
+	compose,
+	stop,
+	again,
+	props,
+	undo,
+	front,
+	copy,
+	open,
+	paste,
+	find,
+	cut,
+	help,
+	menu,
+	calc,
+	setup,
+	sleep,
+	wakeup,
+	file,
+	sendfile,
+	deletefile,
+	xfer,
+	prog1,
+	prog2,
+	www,
+	msdos,
+	coffee,
+	screenlock = coffee,
+	rotateDisplay,
+	direction = rotateDisplay,
+	cyclewindows,
+	mail,
+	bookmarks,
+	computer,
+	back,
+	forward,
+	closecd,
+	ejectcd,
+	ejectclosecd,
+	nextsong,
+	playpause,
+	previoussong,
+	stopcd,
+	record,
+	rewind,
+	phone,
+	iso,
+	config,
+	homepage,
+	refresh,
+	exit,
+	move,
+	edit,
+	scrollup,
+	scrolldown,
+	kpleftparen,
+	kprightparen,
+	knew,
+	redo,
+	f13,
+	f14,
+	f15,
+	f16,
+	f17,
+	f18,
+	f19,
+	f20,
+	f21,
+	f22,
+	f23,
+	f24,
 
-protected:
-	Key key_;
-	char32_t utf32_;
+	playcd = 200,
+	pausecd,
+	prog3,
+	prog4,
+	dashboard,
+	suspend,
+	close,
+	play,
+	fastforward,
+	bassboost,
+	print,
+	hp,
+	camera,
+	sound,
+	question,
+	email,
+	chat,
+	search,
+	connect,
+	finance,
+	sport,
+	shop,
+	alterase,
+	cancel,
+	brightnessdown,
+	brightnessup,
+	media,
+	switchvideomode,
+	kbdillumtoggle,
+	kbdillumdown,
+	kbdillumup,
+	send,
+	reply,
+	forwardmail,
+	save,
+	documents,
+	battery,
+	bluetooth,
+	wlan,
+	uwb,
+	unkown,
+	videoNext,
+	videoPrev,
+	brightnessCycle,
+	brightnessAuto,
+	brightnessZero = brightnessAuto,
+	displayOff,
+	wwan,
+	wimax = wwan,
+	rfkill,
+	micmute,
+
+	//extra keycodes that are usually not used in any way and just here for completeness.
+	ok = 352,
+	select,
+	kgoto,
+	clear,
+	power2,
+	option,
+	info,
+	time,
+	vendor,
+	archive,
+	program,
+	channel,
+	favorites,
+	epg,
+	pvr,
+	mhp,
+	language,
+	title,
+	subtitle,
+	angle,
+	zoom,
+	mode,
+	keyboard,
+	screen,
+	pc,
+	tv,
+	tv2,
+	vcr,
+	vcr2,
+	sat,
+	sat2,
+	cd,
+	tape,
+	radio,
+	tuner,
+	player,
+	text,
+	dvd,
+	aux,
+	mp3,
+	audio,
+	video,
+	directory,
+	list,
+	memo,
+	calendar,
+	red,
+	green,
+	yellow,
+	blue,
+	channelup,
+	channeldown,
+	first,
+	last,
+	ab,
+	next,
+	restart,
+	slow,
+	shuffle,
+	kbreak,
+	previous,
+	digits,
+	teen,
+	twen,
+	videophone,
+	games,
+	zoomin,
+	zoomout,
+	zoomreset,
+	wordprocessor,
+	editor,
+	spreadsheet,
+	graphicseditor,
+	presentation,
+	database,
+	news,
+	voicemail,
+	addressbook,
+	messenger,
+	displaytoggle,
+	brightnessToggle = displaytoggle,
+	spellcheck,
+	logoff,
+
+	dollar,
+	euro,
+
+	frameback,
+	frameforward,
+	contextMenu,
+	mediaRepeat,
+	channelsup10,
+	channelsdown10,
+	images,
+
+	delEol = 0x1c0,
+	delEos,
+	insLine,
+	delLine,
+
+	fn = 0x1d0,
+	fnEsc,
+	fnF1,
+	fnF2,
+	fnF3,
+	fnF4,
+	fnF5,
+	fnF6,
+	fnF7,
+	fnF8,
+	fnF9,
+	fnF10,
+	fnF11,
+	fnF12,
+	fn1,
+	fn2,
+	fnD,
+	fnE,
+	fnF,
+	fnS,
+	fnB,
+
+	brlDot1 = 0x1f1, 
+	brlDot2,
+	brlDot3,
+	brlDot4,
+	brlDot5,
+	brlDot6,
+	brlDot7,
+	brlDot8,
+	brlDot9,
+	brlDot10,
+
+	numeric0 = 0x200,
+	numeric1,
+	numeric2,
+	numeric3,
+	numeric4,
+	numeric5,
+	numeric6,
+	numeric7,
+	numeric8,
+	numeric9,
+	numericStar,
+	numericPound,
+	numericA,
+	numericB,
+	numericC,
+	numericD,
+
+	cameraFocus,
+	wpsButton,
+
+	touchpadToggle,
+	touchpadOn,
+	touchpadOff,
+
+	cameraZoomin,
+	cameraZoomout,
+	cameraUp,
+	cameraDown,
+	cameraLeft,
+	cameraRight,
+
+	attendantOn,
+	attendantOff,
+	attendantToggle,
+	lightsToggle,
+
+	alsToggle = 0x230,
+
+	buttonconfig = 0x240,
+	taskmanager,
+	journal,
+	controlpanel,
+	appselect,
+	screensaver,
+	voicecommand,
+
+	brightnessMin = 0x250,
+	brightnessMax,
+
+	kbdinputassistPrev = 0x260,
+	kbdinputassistNext,
+	kbdinputassistPrevgroup,
+	kbdinputassistNextgroup,
+	kbdinputassistAccept,
+	kbdinputassistCancel,
+
+	rightUp,
+	rightDown,
+	leftUp,
+	leftDown,
+
+	rootMenu,
+	mediaTopMenu,
+	numeric11,
+	numeric12,
+
+	audioDesc,
+	mode3d,
+	nextFavorite,
+	stopRecord,
+	pauseRecord,
+	vod,
+	unmute,
+	fastreverse,
+	slowreverse,
+
+	data = fastreverse,
+	
+	extra = 0x10000,
 };
 
+//linux/input.h
+//If one of those static_asserts fails for your compiler, please report it to the ny maintainers.
+static_assert(static_cast<unsigned int>(Keycode::micmute) == 248, "Wrong enum numbering!");
+static_assert(static_cast<unsigned int>(Keycode::data) == 0x275, "Wrong enum numbering!");
+
+///Returns the name of a keycode.
+///Basically just transforms the enumeration value into a string.
+///Returns an empty ("") name for Keycode::none or invalid keycodes.
+///\sa keycodeFromName
+const char* keycodeName(Keycode keycode);
+
+///Constructs a keycode value from a given name string.
+///Returns the correspondingly named Keycode value or Keycode::none if there is no such value.
+///\sa keycodeName
+Keycode keycodeFromName(const nytl::StringParam& string);
 
 }

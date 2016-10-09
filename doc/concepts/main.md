@@ -157,7 +157,7 @@ Therefore ny abstracts keyboard input on a pretty low, but cross-platform level.
 Example code:
 ------------
 
-````cpp
+``` cpp
 void handlePress(const ny::KeyEvent& event, const ny::KeyboardContext& kbdctx)
 {
 	//We could have modifier-independet controls e.g. in a game:
@@ -192,7 +192,7 @@ void handlePress(const ny::KeyEvent& event, const ny::KeyboardContext& kbdctx)
 		return;
 	}
 }
-````
+```
 
 When e.g. storing keyboard controls for a game in a file one should usually store the keycode
 as 32 bit integer. Note that this approach has the effect that if the used keymap is changed

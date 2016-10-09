@@ -2,7 +2,6 @@
 
 #include <ny/include.hpp>
 #include <ny/base/event.hpp>
-#include <ny/base/key.hpp>
 
 #include <nytl/callback.hpp>
 
@@ -16,48 +15,41 @@ class KeyboardContext
 {
 public:
 	///Returns whether the given key code is pressed.
-	///This functions may be async to any received events and callbacks, e.g. if checked
+	///This functions may be async to any received events and callbacks e.g. if checked
 	///here a key might appear press although the application has not yet received (and maybe will
 	///never receive) a matching KeyEvent.
 	///\exception std::logic_error for invalid keycodes.
-	// virtual bool pressed(Keycode keycode) const = 0;
-	virtual bool pressed(Key key) const = 0;
+	virtual bool pressed(Keycode keycode) const = 0;
 
-	///Returns the utf32 encoded char that is associated with the given Keycode.
-	///Useful for serializing keycodes i.e. storing them in a keymap and backend independent manner.
-	///If the keycode is invalid or cannot be converted to a unicode meaning, 0 is returned.
-	///\param currentState Determines whether the keycode should be converted taking the current
-	///keyboard state in account (i.e. modifiers) or if the default unicode char should be
-	///returned for that keycode, i.e. the char what would be generated when not taking
-	///into account any other modifiers.
-	// virtual char32_t keycodeToUtf32(Keycode, bool currentState = false) const = 0;
-
-	///Returns the utf8 encoded char that is associated with the given Keycode.
-	///Useful for serializing keycodes i.e. storing them in a keymap and backend independent manner.
-	///If the keycode is invalid or cannot be converted to a unicode meaning, 0 is returned.
-	///\param currentState Determines whether the keycode should be converted taking the current
-	///keyboard state in account (i.e. modifiers) or if the default unicode char should be
-	///returned for that keycode, i.e. the char what would be generated when not taking
-	///into account any other modifiers.
-	// virtual std::array<char, 4> keycodeToUtf8(Keycode, bool currentState = false) const = 0;
-	
-	// virtual Keysym keycodeToKeysym(Keycode, bool currentState = false) const = 0;
-	
+	///Converts the given Keycode to utf8 encoded characters.
+	///If the Keycode cannot be represented using unicode (e.g. leftshift or escape) an
+	///empty string will be returned.
+	///Usually the returned string should only 1 utf8 encoded unicode value but in
+	///some cases (e.g. character composition, dead keys) it may hold more characters.
+	///Remember that std::string[0] does NOT return the first unicode character of
+	///a string but the first 8-bit char.
+	///\param currentState Whether the returned unicode values should be dependent
+	///on the current keyboard state (e.g. modifiers). If this is false, the
+	///default unicode value for the given Keycode will be returned.
+	///\exception std::logic_error for invalid keycodes.
 	virtual std::string utf8(Keycode, bool currentState = false) const = 0;
 
 	///Returns the WindowContext that has the current keyboard focus or nullptr if there
 	///is none.
+	///This function may be async to any received events and callbacks i.e. the WindowContext
+	///might be returned as the focused one here although it has not yet handled the focus
+	///event.
 	virtual WindowContext* focus() const = 0;
 
 public:
 	///Will be called every time a key status changes.
 	// Callback<void(Keycode keycode, std::uint32_t utf32, bool pressed)> onKey;
-	Callback<void(Key key, bool pressed)> onKey;
+	nytl::Callback<void(Keycode key, std::string utf8, bool pressed)> onKey;
 
 	///Will be called every time the keyboard focus changes.
 	///Note that both parameters might be a nullptr
 	///It is guaranteed that both parameters will have different values.
-	Callback<void(WindowContext* prev, WindowContext* now)> onFocus;
+	nytl::Callback<void(WindowContext* prev, WindowContext* now)> onFocus;
 };
 
 namespace eventType
@@ -82,7 +74,7 @@ class FocusEvent : public EventBase<eventType::focus, FocusEvent>
 {
 public:
 	using EvBase::EvBase;
-	bool focus; //whether it hast gained or lost focus
+	bool focus; //whether it gained focus
 };
 
 
