@@ -40,14 +40,21 @@ public:
 	~X11KeyboardContext() = default;
 
 	//KeyboardContext impl
-	bool pressed(Key key) const override;
+	bool pressed(Keycode key) const override;
 	WindowContext* focus() const override { return focus_; }
 
 	//custom
+	///Returns the xkb even type id. Events with this id should be passed to
+	///processXkbEvent.
 	std::uint8_t xkbEventType() const { return eventType_; }	
+
+	///Processed xkb server events to e.g. update the keymap
 	void processXkbEvent(xcb_generic_event_t& ev);
-	std::string xkbUnicode(std::uint8_t keycode);
-	Key xkbKey(std::uint8_t keycode, bool pressed = true);
+
+	///Fills the given KeyEvent depending on the KeyEvent::pressed member and the given
+	///x keycode.
+	///Returns false when the given keycode cancelled the current compose state.
+	bool keyEvent(std::uint8_t keycode, KeyEvent& ev);
 	bool updateKeymap();
 
 protected:

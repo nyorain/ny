@@ -101,9 +101,11 @@ X11KeyboardContext::X11KeyboardContext(X11AppContext& ac) : appContext_(ac)
 	XkbKeyboardContext::setupCompose();
 }
 
-bool X11KeyboardContext::pressed(Key key) const
+bool X11KeyboardContext::pressed(Keycode key) const
 {
-	return keyStates_[static_cast<unsigned char>(key)];
+	auto uint = static_cast<unsigned int>(key);
+	if(uint > 255) return false;
+	return keyStates_[uint];
 }
 
 void X11KeyboardContext::processXkbEvent(xcb_generic_event_t& ev)
@@ -148,54 +150,35 @@ bool X11KeyboardContext::updateKeymap()
 	return true;
 }
 
-std::string X11KeyboardContext::xkbUnicode(std::uint8_t keycode)
+bool X11KeyboardContext::keyEvent(std::uint8_t keycode, KeyEvent& ev)
 {
-	char buffer[6] {};
-	xkb_state_key_get_utf8(xkbState_, keycode, buffer, 6);
-	return buffer;
-}
+	ev.keycode = xkbToKey(keycode);
 
-Key X11KeyboardContext::xkbKey(std::uint8_t keycode, bool pressed)
-{
-	// keycode += 0x1B;
-	debug("keycode: ", (void*) (keycode));
 	auto keysym = xkb_state_key_get_one_sym(xkbState_, keycode);
-	debug("keysym: ", (void*) (keysym));
-	debug("keyname: ", xkb_keymap_key_get_name(xkbKeymap_, keycode));
-
-	auto utf32 = xkb_state_key_get_utf32(xkbState_, keycode);
-	char utf8[7];
-	xkb_state_key_get_utf8(xkbState_, keycode, utf8, 7);
-	debug("default unicode: ", (void*) utf32, " --> ", utf8);
-
-	if(pressed)
+	if(ev.pressed)
 	{
 		xkb_compose_state_feed(xkbComposeState_, keysym);
 		auto status = xkb_compose_state_get_status(xkbComposeState_);
+		if(status == XKB_COMPOSE_CANCELLED) 
+		{
+			xkb_compose_state_reset(xkbComposeState_);
+			return false;
+		}
 
 		if(status == XKB_COMPOSE_COMPOSED)
 		{
-			auto sym = xkb_compose_state_get_one_sym(xkbComposeState_);
-			auto utf32 = xkb_keysym_to_utf32(sym);
-			char utf8[7];
-			xkb_keysym_to_utf8(sym, utf8, 7);
-			debug("composed a unicode: ", (void*) utf32, " --> ", utf8);
-
-			char utf8v2[7];
-			xkb_compose_state_get_utf8(xkbComposeState_, utf8v2, 7);
-			debug("composed b unicode: ", (void*) utf32, " --> ", utf8v2);
+			auto needed = xkb_compose_state_get_utf8(xkbComposeState_, nullptr, 0) + 1;
+			ev.unicode.resize(needed);
+			xkb_compose_state_get_utf8(xkbComposeState_, &ev.unicode[0], needed);
+			xkb_compose_state_reset(xkbComposeState_);
+			return true;
 		}
 	}
 
-	auto status = xkb_compose_state_get_status(xkbComposeState_);
-	if(status == XKB_COMPOSE_CANCELLED || status == XKB_COMPOSE_COMPOSED)
-	{
-		// xkb_compose_state_reset(xkbComposeState_);
-	}
-	
-
-
-	return xkbToKey(keysym);
+	auto needed = xkb_state_key_get_utf8(xkbState_, keycode, nullptr, 0) + 1;
+	ev.unicode.resize(needed);
+	xkb_state_key_get_utf8(xkbState_, keycode, &ev.unicode[0], needed);
+	return true;
 }
 	
 }

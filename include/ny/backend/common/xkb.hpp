@@ -10,24 +10,19 @@ struct xkb_state;
 struct xkb_compose_table;
 struct xkb_compose_state;
 
-using xkb_keysym_t = std::uint32_t;
+using xkb_keycode_t = std::uint32_t;
 
 namespace ny
 {
 
-Key xkbToKey(xkb_keysym_t code);
-xkb_keysym_t keyToXkb(Key key);
+Keycode xkbToKey(xkb_keycode_t code);
+xkb_keycode_t keyToXkb(Keycode key);
 
 ///Partial KeyboardContext implementation for backends that can be used with xkb.
 class XkbKeyboardContext : public KeyboardContext
 {
 public:
-	// virtual Keycode keycodeFromUtf32(char32_t utf32) const;
-	// virtual Keycode keycodeFromUtf8(const std::array<char, 4>& utf8) const;
-	// virtual char32_t keycodeToUtf32(Keycode, bool currentState = false) const;
-	// virtual std::array<char, 4> keycodeToUtf8(Keycode, bool currentState = false) const;
-
-	std::string unicode(Key key) const override;
+	std::string utf8(Keycode, bool currentState = false) const override;
 
 	//specific
 	xkb_context& xkbContext() const { return *xkbContext_; }
@@ -41,16 +36,20 @@ protected:
 	///Creates a default context with default keymap and state.
 	void createDefault();
 
-	///Sets up compose table and state
+	///Sets up default compose table and state
 	void setupCompose();
 
 	///Updates the given key to the given bool value for the xkb state.
 	///Note that these calls must only be called when having the backends has no
 	///possibility to retrieve modifier information (for an updateState call) from
 	///the window system.
-	void updateKey(unsigned int keybode, bool pressed);
+	void updateKey(unsigned int keycode, bool pressed);
 
-	///Updates the modifier state.
+	///Feeds the keysym to the compose state machine.
+	///Returns false if the keysym cancelled the current sequence.
+	bool feedComposeKey(unsigned int keysym);
+
+	///Updates the modifier state from backend events.
 	void updateState(const Vec3ui& mods, const Vec3ui& layouts);
 
 protected:

@@ -1,5 +1,6 @@
 #include <ny/base.hpp>
 #include <ny/backend.hpp>
+#include <ny/base/key.hpp>
 #include <ny/backend/integration/surface.hpp>
 
 class MyEventHandler : public ny::EventHandler
@@ -80,36 +81,38 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 		const auto& kev = static_cast<const ny::KeyEvent&>(ev);
 		if(!kev.pressed) return false;
 
-		if(kev.key == ny::Key::escape)
-		{
-			ny::debug("Esc key pressed. Exiting.");
-			lc_.stop();
-			return true;
-		}
-		else if(kev.key == ny::Key::f)
-		{
-			ny::debug("f key pressed. Fullscreen.");
-			wc_.fullscreen();
-			return true;
-		}
-		else if(kev.key == ny::Key::n)
-		{
-			ny::debug("n key pressed. Normal.");
-			wc_.normalState();
-			return true;
-		}
-		else if(kev.key == ny::Key::i)
-		{
-			ny::debug("i key pressed. Iconic (minimize).");
-			wc_.minimize();
-			return true;
-		}
-		else if(kev.key == ny::Key::m)
-		{
-			ny::debug("m key pressed. maximize.");
-			wc_.maximize();
-			return true;
-		}
+		ny::debug("key pressed : ", ny::keycodeName(kev.keycode), " --> ", kev.unicode);
+
+		// if(kev.key == ny::Key::escape)
+		// {
+		// 	ny::debug("Esc key pressed. Exiting.");
+		// 	lc_.stop();
+		// 	return true;
+		// }
+		// else if(kev.key == ny::Key::f)
+		// {
+		// 	ny::debug("f key pressed. Fullscreen.");
+		// 	wc_.fullscreen();
+		// 	return true;
+		// }
+		// else if(kev.key == ny::Key::n)
+		// {
+		// 	ny::debug("n key pressed. Normal.");
+		// 	wc_.normalState();
+		// 	return true;
+		// }
+		// else if(kev.key == ny::Key::i)
+		// {
+		// 	ny::debug("i key pressed. Iconic (minimize).");
+		// 	wc_.minimize();
+		// 	return true;
+		// }
+		// else if(kev.key == ny::Key::m)
+		// {
+		// 	ny::debug("m key pressed. maximize.");
+		// 	wc_.maximize();
+		// 	return true;
+		// }
 	}
 
 	return false;

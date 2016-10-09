@@ -292,8 +292,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispa
 
 		EventHandlerEvent(KeyEvent, key.event);
 		event.pressed = true;
-		event.key = keyboardContext_->xkbKey(key.detail);
-		event.unicode = keyboardContext_->xkbUnicode(key.detail);
+		if(!keyboardContext_->keyEvent(key.detail, event)) bell();
 		dispatch(event);
 
 		return true;
@@ -305,8 +304,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispa
 
 		EventHandlerEvent(KeyEvent, key.event);
 		event.pressed = false;
-		event.key = keyboardContext_->xkbKey(key.detail, false);
-		event.unicode = keyboardContext_->xkbUnicode(key.detail);
+		if(!keyboardContext_->keyEvent(key.detail, event)) bell();
 		dispatch(event);
 
 		return true;
@@ -567,6 +565,10 @@ xcb_atom_t X11AppContext::atom(const std::string& name)
 	return atoms_[name];
 }
 
+void X11AppContext::bell()
+{
+	xcb_bell(xConnection_, 100);
+}
 
 /*
 void x11AppContext::setClipboard(dataObject& obj)

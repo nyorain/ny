@@ -153,7 +153,7 @@ public:
 
 //convert function
 MouseButton linuxToButton(unsigned int id);
-Key linuxToKey(unsigned int id);
+// Key linuxToKey(unsigned int id);
 
 std::string cursorToWayland(CursorType type);
 CursorType waylandToCursor(std::string id);

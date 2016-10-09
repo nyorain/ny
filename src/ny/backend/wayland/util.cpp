@@ -314,62 +314,62 @@ Output::~Output()
 }//namespace wayland
 
 //util
-Key linuxToKey(unsigned int id)
-{
-    switch (id)
-    {
-		case (KEY_0): return Key::n0;
-		case (KEY_1): return Key::n1;
-		case (KEY_2): return Key::n2;
-		case (KEY_3): return Key::n3;
-		case (KEY_4): return Key::n4;
-		case (KEY_5): return Key::n5;
-		case (KEY_7): return Key::n6;
-		case (KEY_8): return Key::n8;
-		case (KEY_9): return Key::n9;
-		case (KEY_A): return Key::a;
-		case (KEY_B): return Key::b;
-		case (KEY_C): return Key::c;
-		case (KEY_D): return Key::d;
-		case (KEY_E): return Key::e;
-		case (KEY_F): return Key::f;
-		case (KEY_G): return Key::g;
-		case (KEY_H): return Key::h;
-		case (KEY_I): return Key::i;
-		case (KEY_J): return Key::j;
-		case (KEY_K): return Key::k;
-		case (KEY_L): return Key::l;
-		case (KEY_M): return Key::m;
-		case (KEY_N): return Key::n;
-		case (KEY_O): return Key::o;
-		case (KEY_P): return Key::p;
-		case (KEY_Q): return Key::q;
-		case (KEY_R): return Key::r;
-		case (KEY_S): return Key::s;
-		case (KEY_T): return Key::t;
-		case (KEY_U): return Key::u;
-		case (KEY_V): return Key::v;
-		case (KEY_W): return Key::w;
-		case (KEY_X): return Key::x;
-		case (KEY_Y): return Key::y;
-		case (KEY_Z): return Key::z;
-		case (KEY_DOT): return Key::dot;
-		case (KEY_COMMA): return Key::comma;
-		case (KEY_SPACE): return Key::space;
-		case (KEY_BACKSPACE): return Key::backspace;
-		case (KEY_ENTER): return Key::enter;
-		case (KEY_LEFTSHIFT): return Key::leftshift;
-		case (KEY_RIGHTSHIFT): return Key::rightshift;
-		case (KEY_RIGHTCTRL): return Key::rightctrl;
-		case (KEY_LEFTCTRL): return Key::leftctrl;
-		case (KEY_LEFTALT): return Key::leftalt;
-		case (KEY_RIGHTALT): return Key::rightalt;
-		case (KEY_TAB): return Key::tab;
-		case (KEY_CAPSLOCK): return Key::capsLock;
-		default: return Key::none;
-    }
-}
-
+// Key linuxToKey(unsigned int id)
+// {
+//     switch (id)
+//     {
+// 		case (KEY_0): return Key::n0;
+// 		case (KEY_1): return Key::n1;
+// 		case (KEY_2): return Key::n2;
+// 		case (KEY_3): return Key::n3;
+// 		case (KEY_4): return Key::n4;
+// 		case (KEY_5): return Key::n5;
+// 		case (KEY_7): return Key::n6;
+// 		case (KEY_8): return Key::n8;
+// 		case (KEY_9): return Key::n9;
+// 		case (KEY_A): return Key::a;
+// 		case (KEY_B): return Key::b;
+// 		case (KEY_C): return Key::c;
+// 		case (KEY_D): return Key::d;
+// 		case (KEY_E): return Key::e;
+// 		case (KEY_F): return Key::f;
+// 		case (KEY_G): return Key::g;
+// 		case (KEY_H): return Key::h;
+// 		case (KEY_I): return Key::i;
+// 		case (KEY_J): return Key::j;
+// 		case (KEY_K): return Key::k;
+// 		case (KEY_L): return Key::l;
+// 		case (KEY_M): return Key::m;
+// 		case (KEY_N): return Key::n;
+// 		case (KEY_O): return Key::o;
+// 		case (KEY_P): return Key::p;
+// 		case (KEY_Q): return Key::q;
+// 		case (KEY_R): return Key::r;
+// 		case (KEY_S): return Key::s;
+// 		case (KEY_T): return Key::t;
+// 		case (KEY_U): return Key::u;
+// 		case (KEY_V): return Key::v;
+// 		case (KEY_W): return Key::w;
+// 		case (KEY_X): return Key::x;
+// 		case (KEY_Y): return Key::y;
+// 		case (KEY_Z): return Key::z;
+// 		case (KEY_DOT): return Key::dot;
+// 		case (KEY_COMMA): return Key::comma;
+// 		case (KEY_SPACE): return Key::space;
+// 		case (KEY_BACKSPACE): return Key::backspace;
+// 		case (KEY_ENTER): return Key::enter;
+// 		case (KEY_LEFTSHIFT): return Key::leftshift;
+// 		case (KEY_RIGHTSHIFT): return Key::rightshift;
+// 		case (KEY_RIGHTCTRL): return Key::rightctrl;
+// 		case (KEY_LEFTCTRL): return Key::leftctrl;
+// 		case (KEY_LEFTALT): return Key::leftalt;
+// 		case (KEY_RIGHTALT): return Key::rightalt;
+// 		case (KEY_TAB): return Key::tab;
+// 		case (KEY_CAPSLOCK): return Key::capsLock;
+// 		default: return Key::none;
+//     }
+// }
+// 
 
 MouseButton linuxToButton(unsigned int id)
 {

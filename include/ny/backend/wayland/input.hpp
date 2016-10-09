@@ -46,7 +46,7 @@ public:
 	WaylandKeyboardContext(WaylandAppContext& ac, wl_seat& seat);
 	~WaylandKeyboardContext();
 
-	bool pressed(Key key) const override;
+	bool pressed(Keycode key) const override;
 	WindowContext* focus() const override { return focus_; }
 
 	//specific

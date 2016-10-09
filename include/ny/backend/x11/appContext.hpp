@@ -48,6 +48,7 @@ public:
     void unregisterContext(xcb_window_t w);
     X11WindowContext* windowContext(xcb_window_t win);
 	EventHandler* eventHandler(xcb_window_t w);
+	void bell(); //rings the bell 
 
 	xcb_atom_t atom(const std::string& name);
 

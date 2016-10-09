@@ -33,8 +33,13 @@
 set(Skia_BUILD_DIR "" CACHE PATH "Skia build directory")
 
 find_path(Skia_INCLUDE_DIR_base
-  core/SkCanvas.h
-  HINTS ${Skia_BUILD_DIR}/include)
+	NAMES
+		core/SkCanvas.h
+	PATH_SUFFIXES
+		skia
+		chromium/skia
+	HINTS 
+		${Skia_BUILD_DIR}/include)
 
 find_library(Skia_LIBRARY skia PATH 
 		${Skia_BUILD_DIR}/out

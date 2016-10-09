@@ -1,6 +1,6 @@
 set(include_base ${default_include})
 set(libs_base ${default_libs})
-set(src_base log.cpp cursor.cpp data.cpp eventDispatcher.cpp imageData.cpp)
+set(src_base log.cpp cursor.cpp data.cpp eventDispatcher.cpp imageData.cpp key.cpp)
 
 add_library(ny-base SHARED ${src_base})
 target_link_libraries(ny-base ${libs_base})
