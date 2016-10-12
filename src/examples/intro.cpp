@@ -85,6 +85,8 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 	//Some backends (wayland) may not have a possibilty to really close the window.
 	else if(ev.type() == ny::eventType::key)
 	{
+		//Check if the KeyEvent was sent because a key was pressed.
+		//If it was sent because it was released, dont handle the event.
 		if(!static_cast<const ny::KeyEvent&>(ev).pressed) return false;
 
 		ny::debug("Key pressed. Exiting.");

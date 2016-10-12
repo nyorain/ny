@@ -46,7 +46,7 @@ void WaylandMouseContext::handleMotion(unsigned int time, const Vec2ui& pos)
 {
 	unused(time);
 
-	onMove(position_, pos);
+	onMove(*this, position_, pos);
 	if(over_ && over_->eventHandler())
 	{
 		MouseMoveEvent event(over_->eventHandler());
@@ -64,7 +64,7 @@ void WaylandMouseContext::handleEnter(unsigned int serial, wl_surface& surface, 
 
 	if(wc != over_)
 	{
-		onFocus(over_, wc);
+		onFocus(*this, over_, wc);
 
 		if(over_ && over_->eventHandler())
 		{
@@ -90,7 +90,7 @@ void WaylandMouseContext::handleLeave(unsigned int serial, wl_surface& surface)
 	if(wc != over_)
 		warning("WlMouseContext::handleLeave: over_ and wc not matching");
 
-	if(over_ != nullptr) onFocus(over_, nullptr);
+	if(over_ != nullptr) onFocus(*this, over_, nullptr);
 	if(wc && wc->eventHandler())
 	{
 		MouseCrossEvent event(wc->eventHandler());
@@ -107,7 +107,7 @@ void WaylandMouseContext::handleButton(unsigned int serial, unsigned int time,
 	unused(time);
 
 	auto nybutton = linuxToButton(button);
-	onButton(nybutton, pressed);
+	onButton(*this, nybutton, pressed);
 
 	if(over_)
 	{
@@ -133,7 +133,9 @@ WaylandKeyboardContext::WaylandKeyboardContext(WaylandAppContext& ac, wl_seat& s
 {
 	wlKeyboard_ = wl_seat_get_keyboard(&seat);
     wl_keyboard_add_listener(wlKeyboard_, &keyboardListener, this);
+
 	XkbKeyboardContext::createDefault();
+	XkbKeyboardContext::setupCompose();
 }
 
 WaylandKeyboardContext::~WaylandKeyboardContext()
@@ -148,7 +150,7 @@ bool WaylandKeyboardContext::pressed(Keycode key) const
 	return keyStates_[uint];
 }
 
-bool WaylandKeyboardContext::keymap()
+bool WaylandKeyboardContext::withKeymap()
 {
 	return keymap_;
 }
@@ -201,15 +203,14 @@ void WaylandKeyboardContext::handleEnter(unsigned int serial, wl_surface& surfac
 	keyStates_.reset();
 	for(auto i = 0u; i < keys.size / sizeof(std::uint32_t); ++i)
 	{
-		// auto keyid = (static_cast<std::uint32_t*>(keys.data))[i];
-		// auto key = linuxToKey(keyid);
-		// keyStates_[static_cast<unsigned int>(key)] = true;
+		auto keyid = (static_cast<std::uint32_t*>(keys.data))[i];
+		keyStates_[keyid] = true;
 	}
 	
 	auto* wc = appContext_.windowContext(surface);
 	if(wc != focus_)
 	{
-		onFocus(focus_, wc);
+		onFocus(*this, focus_, wc);
 
 		if(focus_ && focus_->eventHandler())
 		{
@@ -237,13 +238,14 @@ void WaylandKeyboardContext::handleLeave(unsigned int serial, wl_surface& surfac
 
 	if(wc)
 	{
-		onFocus(wc, nullptr);
+		onFocus(*this, wc, nullptr);
 
 		if(wc->eventHandler())
 		{
 			FocusEvent event(wc->eventHandler());
 			event.data = std::make_unique<WaylandEventData>(serial);
 			event.focus = false;
+
 			appContext_.dispatch(std::move(event));
 		}
 	}
@@ -254,19 +256,15 @@ void WaylandKeyboardContext::handleLeave(unsigned int serial, wl_surface& surfac
 void WaylandKeyboardContext::handleKey(unsigned int serial, unsigned int time, 
 	unsigned int key, bool pressed)
 {
-	unused(time);
+	nytl::unused(time);
 
-	// auto nykey = linuxToKey(key);
-	// XkbKeyboardContext::updateKey(key, pressed);
-	// onKey(nykey, pressed);
-	
 	if(focus_ && focus_->eventHandler())
 	{
 		KeyEvent event(focus_->eventHandler());
 		event.data = std::make_unique<WaylandEventData>(serial);
-		// event.key = nykey;
-		// event.unicode = unicode(nykey);
 		event.pressed = pressed;
+		XkbKeyboardContext::keyEvent(key + 8, event);
+
 		appContext_.dispatch(std::move(event));
 	}
 }

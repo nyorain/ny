@@ -18,6 +18,10 @@ namespace ny
 Keycode xkbToKey(xkb_keycode_t code);
 xkb_keycode_t keyToXkb(Keycode key);
 
+//TODO: unicode currently also writes for control keys like esc or ^C
+//either filter this in this implementation or change the specification of
+//the KeyboardContext and KeyEvent members.
+//TODO: rethink public/protected
 ///Partial KeyboardContext implementation for backends that can be used with xkb.
 class XkbKeyboardContext : public KeyboardContext
 {
@@ -28,6 +32,16 @@ public:
 	xkb_context& xkbContext() const { return *xkbContext_; }
 	xkb_keymap& xkbKeymap() const { return *xkbKeymap_; }
 	xkb_state& xkbState() const { return *xkbState_; }
+
+	xkb_compose_table* xkbComposeTable() const { return xkbComposeTable_; }
+	xkb_compose_state* xkbComposeState() const { return xkbComposeState_; }
+
+	const std::bitset<256>& keyStates() const { return keyStates_; }
+
+	///Fills the given KeyEvent depending on the KeyEvent::pressed member and the given
+	///xkbcommon keycode. Does also trigger the onKey callback.
+	///Returns false when the given keycode cancelled the current compose state.
+	bool keyEvent(std::uint8_t keycode, KeyEvent& ev);
 
 protected:
 	XkbKeyboardContext();
@@ -47,6 +61,7 @@ protected:
 
 	///Feeds the keysym to the compose state machine.
 	///Returns false if the keysym cancelled the current sequence.
+	[[deprecated("Should not be needed if keyEvent is always used correctly")]]
 	bool feedComposeKey(unsigned int keysym);
 
 	///Updates the modifier state from backend events.
@@ -59,6 +74,8 @@ protected:
 
 	xkb_compose_table* xkbComposeTable_ = nullptr;
 	xkb_compose_state* xkbComposeState_ = nullptr;
+
+	std::bitset<256> keyStates_;
 };
 
 }

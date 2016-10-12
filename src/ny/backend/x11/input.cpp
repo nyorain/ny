@@ -4,6 +4,7 @@
 #include <ny/base/log.hpp>
 
 #include <nytl/utf.hpp>
+#include <nytl/vecOps.hpp>
 
 #include <xcb/xcb.h>
 
@@ -48,9 +49,14 @@ void X11MouseContext::mouseButton(MouseButton button, bool pressed)
 
 void X11MouseContext::move(const nytl::Vec2ui& pos)
 {
-	if(allEqual(pos, lastPosition_)) return;
+	if(nytl::allEqual(pos, lastPosition_)) return;
 	onMove(*this, pos, pos - lastPosition_);
 	lastPosition_ = pos;
+}
+
+WindowContext* X11MouseContext::over() const
+{
+	return over_;
 }
 
 //Keyboard
@@ -125,6 +131,11 @@ bool X11KeyboardContext::pressed(Keycode key) const
 	return keyStates_[uint];
 }
 
+WindowContext* X11KeyboardContext::focus() const
+{
+	return focus_;
+}
+
 void X11KeyboardContext::processXkbEvent(xcb_generic_event_t& ev)
 {
 	union XkbEvent 
@@ -168,43 +179,7 @@ bool X11KeyboardContext::updateKeymap()
 	return true;
 }
 
-bool X11KeyboardContext::keyEvent(std::uint8_t keycode, KeyEvent& ev)
-{
-	ev.keycode = xkbToKey(keycode);
-	auto keyuint = static_cast<unsigned int>(ev.keycode);
-	keyStates_[keyuint] = ev.pressed;
-
-	auto keysym = xkb_state_key_get_one_sym(xkbState_, keycode);
-	if(ev.pressed)
-	{
-		xkb_compose_state_feed(xkbComposeState_, keysym);
-		auto status = xkb_compose_state_get_status(xkbComposeState_);
-		if(status == XKB_COMPOSE_CANCELLED) 
-		{
-			xkb_compose_state_reset(xkbComposeState_);
-			return false;
-		}
-
-		if(status == XKB_COMPOSE_COMPOSED)
-		{
-			auto needed = xkb_compose_state_get_utf8(xkbComposeState_, nullptr, 0) + 1;
-			ev.unicode.resize(needed);
-			xkb_compose_state_get_utf8(xkbComposeState_, &ev.unicode[0], needed);
-			xkb_compose_state_reset(xkbComposeState_);
-			return true;
-		}
-	}
-
-	auto needed = xkb_state_key_get_utf8(xkbState_, keycode, nullptr, 0) + 1;
-	ev.unicode.resize(needed);
-	xkb_state_key_get_utf8(xkbState_, keycode, &ev.unicode[0], needed);
-
-	onKey(*this, ev.keycode, ev.unicode, ev.pressed);
-
-	return true;
-}
-
-void X11KeyboardContext::focus(X11KeyboardContext* now)
+void X11KeyboardContext::focus(X11WindowContext* now)
 {
 	if(focus_ == now) return;
 	onFocus(*this, focus_, now);

@@ -101,31 +101,31 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 		const auto& kev = static_cast<const ny::KeyEvent&>(ev);
 		if(!kev.pressed) return false;
 
-		if(kev.key == ny::Key::escape)
+		if(kev.keycode == ny::Keycode::escape)
 		{
 			ny::debug("Esc key pressed. Exiting.");
 			lc_.stop();
 			return true;
 		}
-		else if(kev.key == ny::Key::f)
+		else if(kev.keycode == ny::Keycode::f)
 		{
 			ny::debug("f key pressed. Fullscreen.");
 			wc_.fullscreen();
 			return true;
 		}
-		else if(kev.key == ny::Key::n)
+		else if(kev.keycode == ny::Keycode::n)
 		{
 			ny::debug("n key pressed. Normal.");
 			wc_.normalState();
 			return true;
 		}
-		else if(kev.key == ny::Key::i)
+		else if(kev.keycode == ny::Keycode::i)
 		{
 			ny::debug("i key pressed. Iconic (minimize).");
 			wc_.minimize();
 			return true;
 		}
-		else if(kev.key == ny::Key::m)
+		else if(kev.keycode == ny::Keycode::m)
 		{
 			ny::debug("m key pressed. maximize.");
 			wc_.maximize();

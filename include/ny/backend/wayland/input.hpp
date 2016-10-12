@@ -53,7 +53,9 @@ public:
 	///Returns whether the context retrieved a keymap from the compositor or not.
 	///If it did not, one has to pass every key event (press/release) to it, otherwise
 	///it is enough to just pass changed modifiers.
-	bool keymap();
+	bool withKeymap();
+
+	wl_keyboard* wlKeyboard() const { return wlKeyboard_; }
 
 	//those functions are called by the listeners
     void handleKeymap(unsigned int format, int fd, unsigned int size);
@@ -63,14 +65,10 @@ public:
     void handleModifiers(unsigned int serial, unsigned int mdepressed, unsigned int mlatched, 
 		unsigned int mlocked, unsigned int group);
 
-	wl_keyboard* wlKeyboard() const { return wlKeyboard_; }
-	const std::bitset<255> keyStates() const { return keyStates_; }
-
 protected:
 	WaylandAppContext& appContext_;
 	WindowContext* focus_ {};
 	wl_keyboard* wlKeyboard_ {};
-	std::bitset<255> keyStates_;
 	bool keymap_ {};
 };
 

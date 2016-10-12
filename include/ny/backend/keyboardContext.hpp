@@ -24,8 +24,8 @@ public:
 	///Converts the given Keycode to utf8 encoded characters.
 	///If the Keycode cannot be represented using unicode (e.g. leftshift or escape) an
 	///empty string will be returned.
-	///Usually the returned string should only 1 utf8 encoded unicode value but in
-	///some cases (e.g. character composition, dead keys) it may hold more characters.
+	///Usually the returned string should only one utf8 encoded unicode value but in
+	///some cases (e.g. character composition, added dead keys) it may hold more characters.
 	///Remember that std::string[0] does NOT return the first unicode character of
 	///a string but the first 8-bit char.
 	///\param currentState Whether the returned unicode values should be dependent

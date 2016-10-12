@@ -20,7 +20,7 @@ public:
 	//MouseContext
 	Vec2ui position() const override;
 	bool pressed(MouseButton button) const override;
-	X11WindowContext* over() const override { return over_; }
+	WindowContext* over() const override; //defined in src because X11WC inheritance
 
 	//custom
 	//TODO: something about over change and relative move delta...
@@ -52,7 +52,7 @@ public:
 
 	//KeyboardContext impl
 	bool pressed(Keycode key) const override;
-	X11WindowContext* focus() const override { return focus_; }
+	WindowContext* focus() const override; //defined in src because X11WC return inheritance
 
 	//custom
 	///Returns the xkb even type id. Events with this id should be passed to
@@ -62,19 +62,13 @@ public:
 	///Processed xkb server events to e.g. update the keymap
 	void processXkbEvent(xcb_generic_event_t& ev);
 
-	///Fills the given KeyEvent depending on the KeyEvent::pressed member and the given
-	///x keycode.
-	///Returns false when the given keycode cancelled the current compose state.
-	bool keyEvent(std::uint8_t keycode, KeyEvent& ev);
-
 	///Updates the current focused WindowContext and calls the onFocus callback.
-	bool focus(X11WindowContext* now);
+	void focus(X11WindowContext* now);
 	bool updateKeymap();
 
 protected:
 	X11AppContext& appContext_;
 	X11WindowContext* focus_ {};
-	std::bitset<255> keyStates_;
 	std::uint8_t eventType_ {};
 };
 

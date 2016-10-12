@@ -259,7 +259,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispa
     case XCB_ENTER_NOTIFY:
     {
 		auto& enter = reinterpret_cast<xcb_enter_notify_event_t&>(ev);
-		auto wc = windowContext(focus.event);
+		auto wc = windowContext(enter.event);
 		mouseContext_->over(wc);
 
 		EventHandlerEvent(MouseCrossEvent, enter.event);
@@ -273,7 +273,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispa
     case XCB_LEAVE_NOTIFY:
     {
 		auto& leave = reinterpret_cast<xcb_enter_notify_event_t&>(ev);
-		auto wc = windowContext(focus.event);
+		auto wc = windowContext(leave.event);
 		if(mouseContext_->over() == wc) mouseContext_->over(nullptr);
 
 		EventHandlerEvent(MouseCrossEvent, leave.event);
