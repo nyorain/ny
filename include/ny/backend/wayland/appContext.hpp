@@ -72,6 +72,11 @@ public:
     wl_seat* wlSeat() const { return wlSeat_; };
     wl_shell* wlShell() const { return wlShell_; };
     xdg_shell* xdgShell() const { return xdgShell_; }
+	wl_cursor_theme* wlCursorTheme() const { return wlCursorTheme_; }
+	wl_data_device_manager* wlDataManager() const { return wlDataManager_; }
+
+	wl_pointer* wlPointer() const;
+	wl_keyboard* wlKeyboard() const;
 
 	WaylandWindowContext* windowContext(wl_surface& surface) const;
     const std::vector<wayland::Output>& outputs() const { return outputs_; }

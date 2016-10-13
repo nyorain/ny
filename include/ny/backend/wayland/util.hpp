@@ -63,15 +63,16 @@ class ShmBuffer
 {
 public:
 	ShmBuffer() = default;
-    ShmBuffer(WaylandAppContext& ac, Vec2ui size);
+    ShmBuffer(WaylandAppContext& ac, Vec2ui size, unsigned int stride = 0);
     ~ShmBuffer();
 
 	ShmBuffer(ShmBuffer&& other);
 	ShmBuffer& operator=(ShmBuffer&& other);
 
     Vec2ui size() const { return size_; }
-    unsigned int dataSize() const { return size_.x * 4 * size_.y; }
+    unsigned int dataSize() const { return stride_ * size_.y; }
 	unsigned int format() const { return format_; }
+	unsigned int stride() const { return stride_; }
 	std::uint8_t& data(){ return *data_; }
     wl_buffer& wlBuffer() const { return *buffer_; }
 
@@ -81,22 +82,28 @@ public:
 	///Will trigger a buffer recreate if the given size exceeds the current size.
 	///At the beginning 5MB will be allocated for a buffer 
 	///(e.g. more than 1000x1000px with 32bit color).
-	///\return true if the data pointer changed, false if it stayed the same
-    bool size(const Vec2ui& size);
+	///\return true if the data pointer changed, false if it stayed the same, i.e.
+	///returns whether a new shm pool had to be created
+    bool size(const Vec2ui& size, unsigned int stride = 0);
 
 protected:
-	WaylandAppContext* appContext_ = nullptr;
-    unsigned int shmSize_ = 1024 * 1024 * 5; //5MB
+	WaylandAppContext* appContext_ {};
 
     Vec2ui size_;
-    wl_buffer* buffer_;
-    wl_shm_pool* pool_;
-	std::uint8_t* data_;
-	unsigned int format_; //argb > bgra > rgba > abgr > xrgb (all 32 bits)
+	unsigned int stride_ {};
+    unsigned int shmSize_ = 1024 * 1024 * 5; //5MB at the beginning
+
+    wl_buffer* buffer_ {};
+    wl_shm_pool* pool_ {};
+	std::uint8_t* data_ {};
+	unsigned int format_ {}; //wayland format; argb > bgra > rgba > abgr > xrgb (all 32 bits)
     bool used_ {0}; //whether the compositor owns the buffer atm
 
 protected:
+	//could be also named recreate. Does automatically call destroy
     void create();
+
+	//frees all resources. Called by destructor and (re)create
     void destroy();
 
     //release cb
@@ -152,12 +159,6 @@ public:
 }//wayland
 
 //convert function
-MouseButton linuxToButton(unsigned int id);
-// Key linuxToKey(unsigned int id);
-
-std::string cursorToWayland(CursorType type);
-CursorType waylandToCursor(std::string id);
-
 WindowEdge waylandToEdge(unsigned int edge);
 unsigned int edgeToWayland(WindowEdge edge);
 

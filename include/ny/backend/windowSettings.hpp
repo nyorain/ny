@@ -2,6 +2,7 @@
 
 #include <ny/include.hpp>
 #include <ny/base/data.hpp>
+#include <ny/base/cursor.hpp>
 
 #include <nytl/clone.hpp>
 #include <nytl/flags.hpp>
@@ -202,7 +203,8 @@ public:
 	Vec2ui size = {800, 500}; ///< Beginning window size
 	Vec2i position = {~0, ~0}; ///< Beginngin window position
 	std::string title = "Some Random Window Title"; ///< The title of the window
-	bool initShown = true; ///< Show the window direclty after initialization?
+	bool show = true; ///< Show the window direclty after initialization?
+	Cursor cursor; ///< Default cursor for the whole window
 	NativeWidgetType nativeWidgetType = NativeWidgetType::none;
 
 	DialogType dialogType = DialogType::none; ///< Should the window be a native dialog?

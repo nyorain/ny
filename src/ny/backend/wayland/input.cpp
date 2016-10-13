@@ -3,6 +3,7 @@
 #include <ny/backend/wayland/appContext.hpp>
 #include <ny/backend/wayland/windowContext.hpp>
 #include <ny/backend/wayland/util.hpp>
+#include <ny/backend/common/unix.hpp>
 #include <ny/backend/windowContext.hpp>
 #include <ny/base/log.hpp>
 
@@ -73,12 +74,15 @@ void WaylandMouseContext::handleEnter(unsigned int serial, wl_surface& surface, 
 			event.entered = false;
 			appContext_.dispatch(std::move(event));
 		}
-		if(wc && wc->eventHandler())
+		if(wc)
 		{
 			MouseCrossEvent event(wc->eventHandler());
 			event.data = std::make_unique<WaylandEventData>(serial);
 			event.entered = true;
-			appContext_.dispatch(std::move(event));
+			wc->handleEvent(event);
+
+			if(wc->eventHandler()) appContext_.dispatch(std::move(event));
+
 		}
 
 		over_ = wc;

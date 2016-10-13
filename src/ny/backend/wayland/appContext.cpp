@@ -535,6 +535,18 @@ WaylandWindowContext* WaylandAppContext::windowContext(wl_surface& surface) cons
 	return static_cast<WaylandWindowContext*>(data);
 }
 
+wl_pointer* WaylandAppContext::wlPointer() const
+{
+	if(!mouseContext_) return nullptr;
+	return mouseContext_->wlPointer();
+}
+
+wl_keyboard* WaylandAppContext::wlKeyboard() const
+{
+	if(!keyboardContext_) return nullptr;
+	return keyboardContext_->wlKeyboard();
+}
+
 /*
 void waylandAppContext::setCursor(const image* img, Vec2i hotspot, unsigned int serial)
 {

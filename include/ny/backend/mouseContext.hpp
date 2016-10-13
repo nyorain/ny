@@ -13,21 +13,27 @@ namespace ny
 
 ///Contains all mouse buttons.
 ///Note that there might be no support for custom buttons one some backends.
+///
+///E.g. windows only supports 2 custom mouse buttons while linux (theoretically supports
+///way too much to list here) supports 5.
 enum class MouseButton : unsigned int
 {
     none,
+	unkown, //signals that the button is just not in this enumeration but theoretically valid
+
     left,
     right,
     middle,
-	custom1, 
-    custom2,
+
+	custom1, //used by some applications as "back"
+    custom2, //used by some applications as "forward"
     custom3,
     custom4,
 	custom5,
 	custom6
 };
 
-///Mouse interface.
+///MouseContext interface, implemented by a backend.
 class MouseContext
 {
 public:

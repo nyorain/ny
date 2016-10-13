@@ -1,6 +1,8 @@
 #pragma once
 
 #include <ny/backend/wayland/include.hpp>
+#include <ny/backend/wayland/util.hpp> //for wayland::ShmBuffer. Problem?
+
 #include <ny/backend/windowContext.hpp>
 #include <ny/backend/windowSettings.hpp>
 #include <nytl/vec.hpp>
@@ -83,6 +85,7 @@ public:
 	wl_callback* frameCallback() const { return frameCallback_; }
 	WaylandSurfaceRole surfaceRole() const { return role_; }
 	nytl::Vec2ui size() const { return size_; }
+	bool shown() const { return shown_; }
 
     wl_shell_surface* wlShellSurface() const; 
     wl_subsurface* wlSubsurface() const; 
@@ -91,7 +94,10 @@ public:
 
 	///Attaches the given buffer, damages the surface and commits it.
 	///Does also add a frameCallback to the surface.
-	void attachCommit(wl_buffer& buffer);
+	///If called with a nullptr, no framecallback will be attached and the surface will
+	///be unmapped. Note that if the WindowContext is hidden, no buffer will be 
+	///attached.
+	void attachCommit(wl_buffer* buffer);
 
 	///Sets the integration to the given one.
 	///Will return false if there is already such an integration or this implementation
@@ -116,13 +122,13 @@ protected:
     void createSubsurface(wl_surface& parent);
 
 protected:
-	WaylandAppContext* appContext_ = nullptr;
-    wl_surface* wlSurface_ = nullptr;
+	WaylandAppContext* appContext_ {};
+    wl_surface* wlSurface_ {};
 	nytl::Vec2ui size_ {};
 	
 	//if this is == nullptr, the window is ready to be redrawn.
 	//otherwise waiting for the callback to be called
-    wl_callback* frameCallback_ = nullptr; 
+    wl_callback* frameCallback_ {};
 
 	//stores if the window has a pending refresh request, i.e. if it should refresh
 	//as soon as possible
@@ -143,8 +149,14 @@ protected:
         wl_subsurface* wlSubsurface_;
     };
 
-	//may hold an associated draw integration
-	WaylandDrawIntegration* drawIntegration_ = nullptr;
+	WaylandDrawIntegration* drawIntegration_ = nullptr; //optional assocated DrawIntegration
+	bool shown_ {}; //Whether the WindowContext should be shown or hidden
+
+	wl_surface* cursorSurface_ {};
+	wl_buffer* cursorBuffer_ {};
+	wayland::ShmBuffer shmCursorBuffer_ {};
+	nytl::Vec2i cursorHotspot_ {};
+	nytl::Vec2ui cursorSize_ {};
 };
 
 

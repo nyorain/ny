@@ -2,7 +2,8 @@ set(include_backend ${default_include})
 set(libs_backend ${default_libs} ny-base)
 set(src_backend
 	backend.cpp
-	integration/surface.cpp)
+	integration/surface.cpp
+	common/unix.cpp) # does not actually require any unix heades/libs
 
 if(WithWinapi)
 	list(APPEND src_backend

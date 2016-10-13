@@ -5,6 +5,7 @@
 #include <ny/backend/x11/appContext.hpp>
 #include <ny/backend/x11/internal.hpp>
 #include <ny/backend/x11/surface.hpp>
+#include <ny/backend/common/unix.hpp>
 #include <ny/backend/events.hpp>
 
 #include <ny/base/event.hpp>
@@ -86,7 +87,8 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 				XCB_ATOM_STRING, 8, settings.title.size(), settings.title.c_str());
 	}
 
-	if(settings.initShown) show();
+	cursor(settings.cursor);
+	if(settings.show) show();
     xcb_flush(xConnection());
 }
 
@@ -219,10 +221,11 @@ void X11WindowContext::cursor(const Cursor& curs)
     if(curs.type() != CursorType::image && curs.type() != CursorType::none)
 	{
 		auto xdpy = appContext().xDisplay();
-		auto name = cursorToX11Char(curs.type());
+		auto name = cursorToXName(curs.type());
 		if(!name)
 		{
-			//TODO: warning
+			//TODO: serialize cursor type
+			warning("X11WC::cursor: cursor type not supported");
 			return;
 		}
 

@@ -27,8 +27,6 @@ int main()
 	auto& backend = ny::Backend::choose();
 	auto ac = backend.createAppContext();
 
-	std::printf("Jan stinkt\b\b\b\b\b\bist geil\n");
-
 	ny::WindowSettings settings;
 	auto wc = ac->createWindowContext(settings);
 
@@ -69,8 +67,6 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 		SkImageInfo info = SkImageInfo::Make(data.size.x, data.size.y, kBGRA_8888_SkColorType, 
 			kPremul_SkAlphaType);
 		size_t rowBytes = info.minRowBytes();
-		ny::debug("rowBytes: ", rowBytes);
-		ny::debug("data: ", (void*)data.data);
 
 		auto surface = SkSurface::MakeRasterDirect(info, data.data, data.stride);
 		SkCanvas* canvas = surface->getCanvas();

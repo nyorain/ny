@@ -50,7 +50,7 @@ public:
 protected:
     wl_egl_window* wlEglWindow_ {};
 	EGLSurface eglSurface_ {};
-	std::unique_ptr<EglContext> context_;
+	std::unique_ptr<EglContext> context_; //actually holds WaylandEglContext defined in src
 };
 
 }

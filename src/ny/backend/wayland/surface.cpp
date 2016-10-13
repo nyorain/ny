@@ -66,7 +66,7 @@ MutableImageData WaylandBufferSurface::init()
 
 void WaylandBufferSurface::apply(MutableImageData&)
 {
-	windowContext_.attachCommit(active_->wlBuffer());
+	windowContext_.attachCommit(&active_->wlBuffer());
 	active_ = nullptr;
 }
 

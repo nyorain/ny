@@ -9,10 +9,11 @@
 #endif // NY_WithGL
 
 #include <ny/base/event.hpp>
+#include <ny/base/log.hpp>
 #include <ny/base/cursor.hpp>
 #include <ny/base/imageData.hpp>
+#include <nytl/scope.hpp>
 
-#include <wayland-cursor.h>
 #include <wayland-client-protocol.h>
 
 #include <fcntl.h>
@@ -34,21 +35,21 @@ int setCloexecOrClose(int fd)
 {
     long flags;
 
-    if (fd == -1)
+    if(fd == -1)
         return -1;
 
     flags = fcntl(fd, F_GETFD);
-    if (flags == -1)
+    if(flags == -1)
         goto err;
 
-    if (fcntl(fd, F_SETFD, flags | FD_CLOEXEC) == -1)
+    if(fcntl(fd, F_SETFD, flags | FD_CLOEXEC) == -1)
         goto err;
 
     return fd;
 
 err:
     close(fd);
-    std::cout << "error" << std::endl;
+	warning("ny::wayland::setCloexecOrClose: failed");
     return -1;
 }
 
@@ -57,16 +58,16 @@ int createTmpfileCloexec(char *tmpname)
     int fd;
 
     #ifdef HAVE_MKOSTEMP
-    fd = mkostemp(tmpname, O_CLOEXEC);
-    if (fd >= 0)
-        unlink(tmpname);
+		fd = mkostemp(tmpname, O_CLOEXEC);
+		if(fd >= 0) unlink(tmpname);
+
     #else
-    fd = mkstemp(tmpname);
-    if (fd >= 0)
-    {
-        fd = setCloexecOrClose(fd);
-        unlink(tmpname);
-    }
+		fd = mkstemp(tmpname);
+		if(fd >= 0)
+		{
+			fd = setCloexecOrClose(fd);
+			unlink(tmpname);
+		}
     #endif
 
     return fd;
@@ -87,19 +88,17 @@ int osCreateAnonymousFile(off_t size)
     }
 
     name = (char*) malloc(strlen(path) + sizeof(template1));
-    if (!name)
-        return -1;
+    if(!name) return -1;
+
     strcpy(name, path);
     strcat(name, template1);
 
     fd = createTmpfileCloexec(name);
-
     free(name);
 
-    if (fd < 0)
-        return -1;
+    if(fd < 0) return -1;
 
-    if (ftruncate(fd, size) < 0)
+    if(ftruncate(fd, size) < 0)
     {
         close(fd);
         return -1;
@@ -120,9 +119,11 @@ const wl_buffer_listener bufferListener =
 };
 
 //shmBuffer
-ShmBuffer::ShmBuffer(WaylandAppContext& ac, Vec2ui size) : appContext_(&ac), size_(size)
+ShmBuffer::ShmBuffer(WaylandAppContext& ac, Vec2ui size, unsigned int stride) 
+	: appContext_(&ac), size_(size), stride_(stride)
 {
 	format_ = WL_SHM_FORMAT_ARGB8888;
+	if(!stride_) stride_ = size.x * 4;
     create();
 }
 
@@ -179,35 +180,27 @@ ShmBuffer& ShmBuffer::operator=(ShmBuffer&& other)
 
 void ShmBuffer::create()
 {
-    auto* shm = appContext_->wlShm();
-    if(!shm)
-    {
-        throw std::runtime_error("wayland shm buffer: no wayland shm initialized");
-        return;
-    }
+	destroy();
 
-    auto stride = size_.x * 4;
-    auto vecSize = stride * size_.y;
+    auto* shm = appContext_->wlShm();
+    if(!shm) throw std::runtime_error("ny::wayland::ShmBuffer: wlAC has no wl_shm");
+
+    auto vecSize = stride_ * size_.y;
     shmSize_ = std::max(vecSize, shmSize_);
 
     auto fd = osCreateAnonymousFile(shmSize_);
-    if (fd < 0)
-    {
-        throw std::runtime_error("wayland shm buffer: could not create file");
-        return;
-    }
+    if (fd < 0) throw std::runtime_error("ny::wayland::ShmBuffer: could not create shm file");
+
+	//the fd is not needed here anymore AFTER the pool was created
+	//our access to the file is represented by the pool
+	auto fdGuard = nytl::makeScopeGuard([&]{ close(fd); });
 
     auto ptr = mmap(nullptr, shmSize_, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    if(ptr == MAP_FAILED)
-    {
-        close(fd);
-        throw std::runtime_error("wayland shm buffer: could not mmap file");
-        return;
-    }
+    if(ptr == MAP_FAILED) throw std::runtime_error("ny::wayland::ShmBuffer: could not mmap file");
 
 	data_ = reinterpret_cast<std::uint8_t*>(ptr);
     pool_ = wl_shm_create_pool(shm, fd, shmSize_);
-    buffer_ = wl_shm_pool_create_buffer(pool_, 0, size_.x, size_.y, stride, format_);
+    buffer_ = wl_shm_pool_create_buffer(pool_, 0, size_.x, size_.y, stride_, format_);
     wl_buffer_add_listener(buffer_, &bufferListener, this);
 }
 
@@ -218,23 +211,23 @@ void ShmBuffer::destroy()
     if(data_) munmap(data_, shmSize_);
 }
 
-bool ShmBuffer::size(const Vec2ui& size)
+bool ShmBuffer::size(const Vec2ui& size, unsigned int stride)
 {
     size_ = size;
+	stride_ = stride;
 
-    unsigned int stride = size_.x * 4;
-    unsigned int VecSize = stride * size_.y;
+	if(!stride_) stride_ = size.x * 4;
+    unsigned int vecSize = stride_ * size_.y;
 
-    if(VecSize > shmSize_)
+    if(vecSize > shmSize_)
     {
-        destroy();
         create();
 		return true;
     }
     else
     {
         wl_buffer_destroy(buffer_);
-        buffer_ = wl_shm_pool_create_buffer(pool_, 0, size_.x, size_.y, stride, format_);
+        buffer_ = wl_shm_pool_create_buffer(pool_, 0, size_.x, size_.y, stride_, format_);
 		return false;
     }
 }
@@ -312,116 +305,6 @@ Output::~Output()
 }
 
 }//namespace wayland
-
-//util
-// Key linuxToKey(unsigned int id)
-// {
-//     switch (id)
-//     {
-// 		case (KEY_0): return Key::n0;
-// 		case (KEY_1): return Key::n1;
-// 		case (KEY_2): return Key::n2;
-// 		case (KEY_3): return Key::n3;
-// 		case (KEY_4): return Key::n4;
-// 		case (KEY_5): return Key::n5;
-// 		case (KEY_7): return Key::n6;
-// 		case (KEY_8): return Key::n8;
-// 		case (KEY_9): return Key::n9;
-// 		case (KEY_A): return Key::a;
-// 		case (KEY_B): return Key::b;
-// 		case (KEY_C): return Key::c;
-// 		case (KEY_D): return Key::d;
-// 		case (KEY_E): return Key::e;
-// 		case (KEY_F): return Key::f;
-// 		case (KEY_G): return Key::g;
-// 		case (KEY_H): return Key::h;
-// 		case (KEY_I): return Key::i;
-// 		case (KEY_J): return Key::j;
-// 		case (KEY_K): return Key::k;
-// 		case (KEY_L): return Key::l;
-// 		case (KEY_M): return Key::m;
-// 		case (KEY_N): return Key::n;
-// 		case (KEY_O): return Key::o;
-// 		case (KEY_P): return Key::p;
-// 		case (KEY_Q): return Key::q;
-// 		case (KEY_R): return Key::r;
-// 		case (KEY_S): return Key::s;
-// 		case (KEY_T): return Key::t;
-// 		case (KEY_U): return Key::u;
-// 		case (KEY_V): return Key::v;
-// 		case (KEY_W): return Key::w;
-// 		case (KEY_X): return Key::x;
-// 		case (KEY_Y): return Key::y;
-// 		case (KEY_Z): return Key::z;
-// 		case (KEY_DOT): return Key::dot;
-// 		case (KEY_COMMA): return Key::comma;
-// 		case (KEY_SPACE): return Key::space;
-// 		case (KEY_BACKSPACE): return Key::backspace;
-// 		case (KEY_ENTER): return Key::enter;
-// 		case (KEY_LEFTSHIFT): return Key::leftshift;
-// 		case (KEY_RIGHTSHIFT): return Key::rightshift;
-// 		case (KEY_RIGHTCTRL): return Key::rightctrl;
-// 		case (KEY_LEFTCTRL): return Key::leftctrl;
-// 		case (KEY_LEFTALT): return Key::leftalt;
-// 		case (KEY_RIGHTALT): return Key::rightalt;
-// 		case (KEY_TAB): return Key::tab;
-// 		case (KEY_CAPSLOCK): return Key::capsLock;
-// 		default: return Key::none;
-//     }
-// }
-// 
-
-MouseButton linuxToButton(unsigned int id)
-{
-    switch(id)
-    {
-		case BTN_LEFT: return MouseButton::left;
-		case BTN_RIGHT: return MouseButton::right;
-		case BTN_MIDDLE: return MouseButton::middle;
-		case BTN_FORWARD: return MouseButton::custom1;
-		case BTN_BACK: return MouseButton::custom2;
-		case BTN_SIDE: return MouseButton::custom3;
-		case BTN_EXTRA: return MouseButton::custom4;
-		case BTN_TASK: return MouseButton::custom5;
-		default: return MouseButton::none;
-    }
-}
-
-
-std::string cursorToWayland(const CursorType c)
-{
-    switch(c)
-    {
-		case CursorType::leftPtr: return "left_ptr";
-		case CursorType::sizeBottom: return "bottom_side";
-		case CursorType::sizeBottomLeft: return "bottom_left_corner";
-		case CursorType::sizeBottomRight: return "bottom_right_corner";
-		case CursorType::sizeTop: return "top_side";
-		case CursorType::sizeTopLeft: return "top_left_corner";
-		case CursorType::sizeTopRight: return "top_right_corner";
-		case CursorType::sizeLeft: return "left_side";
-		case CursorType::sizeRight: return "right_side";
-		case CursorType::grab: return "grabbing";
-		default: return "";
-    }
-}
-
-CursorType waylandToCursor(std::string id)
-{
-    //if(id == "fleur") return cursorType::Move;
-    if(id == "left_ptr") return CursorType::leftPtr;
-    if(id == "bottom_side") return CursorType::sizeBottom;
-    if(id == "left_side") return CursorType::sizeLeft;
-    if(id == "right_side") return CursorType::sizeRight;
-    if(id == "top_side") return CursorType::sizeTop;
-    if(id == "top_side") return CursorType::sizeTop;
-    if(id == "top_left_corner") return CursorType::sizeTopLeft;
-    if(id == "top_right_corner") return CursorType::sizeTopRight;
-    if(id == "bottom_right_corner") return CursorType::sizeBottomRight;
-    if(id == "bottom_left_corner") return CursorType::sizeBottomLeft;
-    if(id == "grabbing") return CursorType::grab;
-    return CursorType::unknown;
-}
 
 WindowEdge waylandToEdge(unsigned int wlEdge)
 {

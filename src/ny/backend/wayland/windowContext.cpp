@@ -4,14 +4,17 @@
 #include <ny/backend/wayland/util.hpp>
 #include <ny/backend/wayland/surface.hpp>
 #include <ny/backend/wayland/xdg-shell-client-protocol.h>
+#include <ny/backend/common/unix.hpp>
 
 #include <ny/base/event.hpp>
 #include <ny/base/cursor.hpp>
 #include <ny/base/log.hpp>
 #include <ny/backend/events.hpp>
 
+#include <wayland-cursor.h>
+
 #include <iostream>
-#include <cassert>
+#include <cstring>
 
 namespace ny
 {
@@ -35,6 +38,8 @@ WaylandWindowContext::WaylandWindowContext(WaylandAppContext& ac,
 	}
 
 	size_ = settings.size;
+	shown_ = settings.show;
+	cursor(settings.cursor);
 }
 
 WaylandWindowContext::~WaylandWindowContext()
@@ -62,9 +67,6 @@ void WaylandWindowContext::createShellSurface()
     wl_shell_surface_set_toplevel(wlShellSurface_);
     wl_shell_surface_set_user_data(wlShellSurface_, this);
 
-    // wl_shell_surface_set_class(wlShellSurface_, nyMainApp()->getName().c_str());
-    // wl_shell_surface_set_title(wlShellSurface_, tw->getTitle().c_str());
-
     wl_shell_surface_add_listener(wlShellSurface_, &wayland::shellSurfaceListener, this);
 }
 
@@ -77,7 +79,7 @@ void WaylandWindowContext::createXDGSurface()
 
     role_ = WaylandSurfaceRole::xdg;
 
-    // xdg_surface_set_window_geometry(xdgSurface_, window_.getPositionX(), window_.getPositionY(), window_.getWidth(), window_.getHeight());
+	xdg_surface_set_window_geometry(xdgSurface_, 0, 0, size_.x, size_.y);
     xdg_surface_set_user_data(xdgSurface_, this);
     xdg_surface_add_listener(xdgSurface_, &wayland::xdgSurfaceListener, this);
 }
@@ -109,25 +111,28 @@ void WaylandWindowContext::refresh()
 
 void WaylandWindowContext::show()
 {
-
+	shown_ = true;
 }
 
 void WaylandWindowContext::hide()
 {
-
+	shown_ = false;
+	attachCommit(nullptr);
 }
 
 void WaylandWindowContext::addWindowHints(WindowHints hints)
 {
-
+	nytl::unused(hints);
 }
 void WaylandWindowContext::removeWindowHints(WindowHints hints)
 {
-
+	nytl::unused(hints);
 }
 
 void WaylandWindowContext::size(const Vec2ui& size)
 {
+	size_ = size;
+	if(drawIntegration_) drawIntegration_->resize(size);
 }
 
 void WaylandWindowContext::position(const Vec2i& position)
@@ -142,9 +147,63 @@ void WaylandWindowContext::position(const Vec2i& position)
 	}
 }
 
-void WaylandWindowContext::cursor(const Cursor& c)
+void WaylandWindowContext::cursor(const Cursor& cursor)
 {
-	//TODO
+	if(!cursorSurface_)
+		cursorSurface_ = wl_compositor_create_surface(&appContext().wlCompositor());
+
+	if(cursor.type() == Cursor::Type::image)
+	{
+		auto* img = cursor.image();
+		if(!img || !img->data)
+		{
+			warning("ny::WlWC::cursor: invalid image cursor");
+			return;
+		}
+
+		shmCursorBuffer_ = wayland::ShmBuffer(appContext(), img->size, img->stride);
+		if(img->format != ImageDataFormat::argb8888)
+		{
+			convertFormat(*img, ImageDataFormat::argb8888, shmCursorBuffer_.data());
+		}
+		else
+		{
+			std::memcpy(&shmCursorBuffer_.data(), img->data, shmCursorBuffer_.dataSize());
+		}
+
+
+		cursorHotspot_ = cursor.imageHotspot();
+		cursorSize_ = img->size;
+		cursorBuffer_ = &shmCursorBuffer_.wlBuffer();
+	}
+	else if(cursor.type() == Cursor::Type::none)
+	{
+		cursorHotspot_ = {};
+		cursorSize_ = {};
+		cursorBuffer_ = {};
+	}
+	else
+	{
+		auto cursorName = cursorToXName(cursor.type());
+		auto cursorTheme = appContext().wlCursorTheme();
+		auto* wlCursor = wl_cursor_theme_get_cursor(cursorTheme, cursorName);
+		if(!wlCursor)
+		{
+			warning("ny::WlWC::cursor: failed to retrieve cursor ", cursorName);
+			return;
+		}
+
+		//TODO: handle mulitple/animated images
+		auto img = wlCursor->images[0];
+
+		cursorBuffer_ = wl_cursor_image_get_buffer(img);
+
+		cursorHotspot_.x = img->hotspot_y;
+		cursorHotspot_.x = img->hotspot_x;
+
+		cursorSize_.x = img->width;
+		cursorSize_.y = img->height;
+	}
 }
 
 void WaylandWindowContext::droppable(const DataTypes&)
@@ -181,7 +240,7 @@ bool WaylandWindowContext::handleEvent(const Event& event)
     {
         if(frameCallback_)
         {
-            wl_callback_destroy(frameCallback_); //TODO: needed?
+            wl_callback_destroy(frameCallback_);
             frameCallback_ = nullptr;
         }
 
@@ -190,8 +249,6 @@ bool WaylandWindowContext::handleEvent(const Event& event)
             refreshFlag_ = 0;
 			if(eventHandler()) appContext_->dispatch(DrawEvent(eventHandler()));
         }
-
-		return true;
     }
 	else if(event.type() == eventType::size)
 	{
@@ -199,7 +256,21 @@ bool WaylandWindowContext::handleEvent(const Event& event)
 		size_ = ev.size;
 
 		if(drawIntegration_) drawIntegration_->resize(ev.size);
-		return true;
+	}
+	else if(event.type() == eventType::mouseCross)
+	{
+		auto& ev = static_cast<const MouseCrossEvent&>(event);
+		if(!ev.entered) return false;
+
+		auto data = dynamic_cast<WaylandEventData*>(event.data.get());
+		if(!cursorSurface_ || !appContext().wlPointer() || !data) return false;
+
+		wl_pointer_set_cursor(appContext().wlPointer(), data->serial, cursorSurface_, 
+			cursorHotspot_.x, cursorHotspot_.y);
+
+		wl_surface_attach(cursorSurface_, cursorBuffer_, 0, 0);
+		wl_surface_damage(cursorSurface_, 0, 0, cursorSize_.x, cursorSize_.y);
+		wl_surface_commit(cursorSurface_);
 	}
 
 	return false;
@@ -215,8 +286,8 @@ void WaylandWindowContext::fullscreen()
 	// TODO: output param?
     if(wlShellSurface()) 
 	{
-		wl_shell_surface_set_fullscreen(wlShellSurface_, WL_SHELL_SURFACE_FULLSCREEN_METHOD_DEFAULT, 
-			0, nullptr);
+		wl_shell_surface_set_fullscreen(wlShellSurface_, 
+			WL_SHELL_SURFACE_FULLSCREEN_METHOD_DEFAULT, 0, nullptr);
 	}
 	else if(xdgSurface())
 	{
@@ -296,13 +367,21 @@ wl_display& WaylandWindowContext::wlDisplay() const
 	return appContext().wlDisplay();
 }
 
-void WaylandWindowContext::attachCommit(wl_buffer& buffer)
+void WaylandWindowContext::attachCommit(wl_buffer* buffer)
 {
-	frameCallback_ = wl_surface_frame(wlSurface_);
-	wl_callback_add_listener(frameCallback_, &wayland::frameListener, this);
- 
-	wl_surface_damage(wlSurface_, 0, 0, size_.x, size_.y);
-	wl_surface_attach(wlSurface_, &buffer, 0, 0);
+	if(shown_)
+	{
+		frameCallback_ = wl_surface_frame(wlSurface_);
+		wl_callback_add_listener(frameCallback_, &wayland::frameListener, this);
+	 
+		wl_surface_damage(wlSurface_, 0, 0, size_.x, size_.y);
+		wl_surface_attach(wlSurface_, buffer, 0, 0);
+	}
+	else
+	{
+		wl_surface_attach(wlSurface_, nullptr, 0, 0);
+	}
+
 	wl_surface_commit(wlSurface_);
 }
 
@@ -317,11 +396,14 @@ bool WaylandWindowContext::surface(Surface& surface)
 {
 	if(drawIntegration_) return false;
 
-	try {
+	try 
+	{
 		surface.buffer = std::make_unique<WaylandBufferSurface>(*this);
 		surface.type = SurfaceType::buffer;
 		return true;
-	} catch(const std::exception& ex) {
+	} 
+	catch(const std::exception& ex) 
+	{
 		return false;
 	}
 }
@@ -339,30 +421,3 @@ WaylandDrawIntegration::~WaylandDrawIntegration()
 }
 
 }
-
-// case WindowEdge::top:
-//     wlEdge = WL_SHELL_SURFACE_RESIZE_TOP;
-//     break;
-// case WindowEdge::left:
-//     wlEdge = WL_SHELL_SURFACE_RESIZE_LEFT;
-//     break;
-// case WindowEdge::bottom:
-//     wlEdge = WL_SHELL_SURFACE_RESIZE_BOTTOM;
-//     break;
-// case WindowEdge::right:
-//     wlEdge = WL_SHELL_SURFACE_RESIZE_RIGHT;
-//     break;
-// case WindowEdge::topLeft:
-//     wlEdge = WL_SHELL_SURFACE_RESIZE_TOP_LEFT;
-//     break;
-// case WindowEdge::topRight:
-//     wlEdge = WL_SHELL_SURFACE_RESIZE_TOP_RIGHT;
-//     break;
-// case WindowEdge::bottomLeft:
-//     wlEdge = WL_SHELL_SURFACE_RESIZE_BOTTOM_LEFT;
-//     break;
-// case WindowEdge::bottomRight:
-//     wlEdge = WL_SHELL_SURFACE_RESIZE_BOTTOM_RIGHT;
-//     break;
-// default:
-//     return;

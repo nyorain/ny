@@ -81,38 +81,36 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 		const auto& kev = static_cast<const ny::KeyEvent&>(ev);
 		if(!kev.pressed) return false;
 
-		ny::debug("key pressed : ", ny::keycodeName(kev.keycode), " --> ", kev.unicode);
-
-		// if(kev.key == ny::Key::escape)
-		// {
-		// 	ny::debug("Esc key pressed. Exiting.");
-		// 	lc_.stop();
-		// 	return true;
-		// }
-		// else if(kev.key == ny::Key::f)
-		// {
-		// 	ny::debug("f key pressed. Fullscreen.");
-		// 	wc_.fullscreen();
-		// 	return true;
-		// }
-		// else if(kev.key == ny::Key::n)
-		// {
-		// 	ny::debug("n key pressed. Normal.");
-		// 	wc_.normalState();
-		// 	return true;
-		// }
-		// else if(kev.key == ny::Key::i)
-		// {
-		// 	ny::debug("i key pressed. Iconic (minimize).");
-		// 	wc_.minimize();
-		// 	return true;
-		// }
-		// else if(kev.key == ny::Key::m)
-		// {
-		// 	ny::debug("m key pressed. maximize.");
-		// 	wc_.maximize();
-		// 	return true;
-		// }
+		if(kev.keycode == ny::Keycode::escape)
+		{
+			ny::debug("Esc key pressed. Exiting.");
+			lc_.stop();
+			return true;
+		}
+		else if(kev.keycode == ny::Keycode::f)
+		{
+			ny::debug("f key pressed. Fullscreen.");
+			wc_.fullscreen();
+			return true;
+		}
+		else if(kev.keycode == ny::Keycode::n)
+		{
+			ny::debug("n key pressed. Normal.");
+			wc_.normalState();
+			return true;
+		}
+		else if(kev.keycode == ny::Keycode::i)
+		{
+			ny::debug("i key pressed. Iconic (minimize).");
+			wc_.minimize();
+			return true;
+		}
+		else if(kev.keycode == ny::Keycode::m)
+		{
+			ny::debug("m key pressed. maximize.");
+			wc_.maximize();
+			return true;
+		}
 	}
 
 	return false;

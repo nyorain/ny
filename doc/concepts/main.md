@@ -111,6 +111,20 @@ applications that need this error-prone feature should be able to implement it f
 Since creating a context is considered pretty expensive, backends should generally only
 create them when needed (for a window) and not e.g. on AppContext creation.
 
+The usual solution to this problem (e.g. used by egl and soon reworked in wgl/glx) is to
+have a raw context (maybe guarded using RAII) and implemente the actual GlContext interface
+with a non-owned reference to this context and a surface/WindowContext on which the
+context should be made current on a call to makeCurrentImpl.
+For every window (that supports the already created raw context) there just has to be
+a new wrapper GlContext implementation be created that associates the raw context with
+the specific surface.
+
+In future (on the todo list) there might be the possibility to explicitly create a 
+new raw context for a window on creation which could be useful when e.g. trying to
+render multiple windows in multiple threads at the same time (would not work with the
+used mulitple-wrappers-around-one-context approach since a context may not be current
+in multiple threads).
+
 Vulkan
 ======
 
@@ -199,3 +213,13 @@ as 32 bit integer. Note that this approach has the effect that if the used keyma
 in between two application startups, the unicode value of the key associated with the
 control will change (i.e. from 'Y' to 'Z' when switching between german/us layout). 
 The control mappings to the raw hardware keys, however, will stay the same.
+
+
+Backend-specific - Wayland
+==========================
+
+Current cursor implementation (not optimal, to be changed):
+- every WindowContext has its own cursor surface and wayland::ShmBuffer
+- the ShmBuffer is only used if the cursor image is a custom image
+- Every time the pointer enters the WindowContext, the AppContext signals the WindowContext,
+	which then sets the cursor

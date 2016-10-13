@@ -3,6 +3,7 @@
 #include <ny/backend/x11/util.hpp>
 #include <ny/backend/x11/input.hpp>
 #include <ny/backend/x11/internal.hpp>
+#include <ny/backend/common/unix.hpp>
 #include <ny/base/loopControl.hpp>
 #include <ny/base/log.hpp>
 #include <ny/base/eventDispatcher.hpp>
@@ -227,7 +228,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispa
     case XCB_BUTTON_PRESS:
     {
 		auto& button = reinterpret_cast<xcb_button_press_event_t&>(ev);
-		auto b = x11ToButton(button.detail);
+		auto b = linuxToButton(button.detail);
 		mouseContext_->mouseButton(b, true);
 
 		EventHandlerEvent(MouseButtonEvent, button.event);
@@ -243,7 +244,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispa
     case XCB_BUTTON_RELEASE:
     {
 		auto& button = reinterpret_cast<xcb_button_release_event_t&>(ev);
-		auto b = x11ToButton(button.detail);
+		auto b = linuxToButton(button.detail);
 		mouseContext_->mouseButton(b, false);
 
 		EventHandlerEvent(MouseButtonEvent, button.event);

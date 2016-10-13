@@ -44,11 +44,9 @@ bool testCookie(xcb_connection_t& conn, const xcb_void_cookie_t& cookie, const c
 //utility conversions.
 ImageDataFormat visualToFormat(const xcb_visualtype_t& visual, unsigned int depth);
 
-MouseButton x11ToButton(unsigned int id);
-// Key x11ToKey(unsigned int id);
-
-int cursorToX11(CursorType cursor);
-CursorType x11ToCursor(int xcID);
-const char* cursorToX11Char(CursorType cursor);
+//Both poorly implemented
+//Int values instead of names
+// int cursorToX11(CursorType cursor);
+// CursorType x11ToCursor(int xcID);
 
 }

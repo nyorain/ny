@@ -80,7 +80,7 @@ cairo_surface_t& WaylandCairoIntegration::init()
 
 void WaylandCairoIntegration::apply(cairo_surface_t&)
 {
-	windowContext_.attachCommit(active_->buffer.wlBuffer());
+	windowContext_.attachCommit(&active_->buffer.wlBuffer());
 	active_ = nullptr;
 }
 

@@ -11,6 +11,23 @@
 namespace ny
 {
 
+//A small derivate of EglContext that holds a reference to the WindowContext it is current for.
+//If the WindowContext is not shown, the EglContext does not swapBuffers on apply()
+//Could be done more beatiful with new constructor and protected wc member...
+class WaylandEglContext : public EglContext
+{
+public:
+	using EglContext::EglContext;
+	WaylandWindowContext* waylandWC_;
+
+public:
+	bool apply() override
+	{
+		if(!waylandWC_->shown()) return true;
+		return EglContext::apply();
+	}
+};
+
 //WaylandEglDisplay
 WaylandEglDisplay::WaylandEglDisplay(WaylandAppContext& ac)
 {
@@ -92,8 +109,10 @@ WaylandEglWindowContext::WaylandEglWindowContext(WaylandAppContext& ac,
 	auto dpy = ac.waylandEglDisplay();
 	if(!dpy) throw std::runtime_error("WaylandEglWC: cant retrieve waylandEglDisplay");
 
-	context_ = std::make_unique<EglContext>(dpy->eglDisplay(), dpy->eglContext(), 
+	auto ctx = std::make_unique<WaylandEglContext>(dpy->eglDisplay(), dpy->eglContext(), 
 		dpy->eglConfig(), GlApi::gl);
+	ctx->waylandWC_ = this;
+	context_ = std::move(ctx);
 
     wlEglWindow_ = wl_egl_window_create(&wlSurface(), ws.size.x, ws.size.y);
     if(!wlEglWindow_) throw std::runtime_error("WaylandEglWC: wl_egl_window_create failed");
