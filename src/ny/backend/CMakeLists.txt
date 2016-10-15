@@ -72,6 +72,7 @@ if(WithWayland)
 		wayland/surface.cpp
 		wayland/windowContext.cpp
 		wayland/interfaces.cpp
+		wayland/data.cpp
 		wayland/xdg-shell-protocol.c)
 
 	list(APPEND libs_backend ${WAYLAND_LIBRARIES})

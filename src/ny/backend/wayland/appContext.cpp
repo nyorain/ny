@@ -230,14 +230,22 @@ WindowContextPtr WaylandAppContext::createWindowContext(const WindowSettings& se
 
 bool WaylandAppContext::clipboard(std::unique_ptr<DataSource>&& dataSource)
 {
+	nytl::unused(dataSource);
 	// wl_data_device_manager_create_data_source();
 	// wl_data_device_set_selection();
 }
 std::unique_ptr<DataOffer> WaylandAppContext::clipboard()
 {
+	if(clipboardOfferID_ >= dataOffers_.size()) return nullptr;
+	auto& offer = dataOffers_[clipboardOfferID_];
+	if(!offer.valid()) return nullptr;
+
+	return std::make_unique<WaylandDataOfferWrapper>(offer);
+	// return std::make_unique<WaylandDataOffer>(*this, *wlClipboardOffer_);
 }
 bool WaylandAppContext::startDragDrop(std::unique_ptr<DataSource>&& dataSource)
 {
+	nytl::unused(dataSource);
 	// wl_data_device_manager_create_data_source();
 	// wl_data_device_start_drag();
 }
@@ -249,6 +257,23 @@ std::vector<const char*> WaylandAppContext::vulkanExtensions() const
 	#else
 		return {};
 	#endif
+}
+
+void WaylandAppContext::clipboardOffer(wl_data_offer& offer)
+{
+	for(auto i = 0u; i < dataOffers_.size(); ++i)
+	{
+		if(&dataOffers_[i].wlDataOffer() == &offer) 
+		{
+			clipboardOfferID_ = i;
+			break;
+		}
+	}
+}
+
+void WaylandAppContext::dataOffer(wl_data_offer& offer)
+{
+	dataOffers_.emplace_back(*this, offer);
 }
 
 WaylandEglDisplay* WaylandAppContext::waylandEglDisplay()
@@ -342,7 +367,7 @@ int WaylandAppContext::dispatchDisplay()
 			auto& pfd = pfds[i + 2];
 			if(pfd.revents == 0) continue;
 
-			auto connref = nytl::CbConnRef(fdCallbacks_, fdCallbacks_.items[i].clID_);
+			nytl::CbConnRef connref(fdCallbacks_, fdCallbacks_.items[i].clID_);
 			fdCallbacks_.items[i].callback(connref, pfd.fd, pfd.revents);
 		}
 
@@ -429,7 +454,7 @@ void WaylandAppContext::registryAdd(unsigned int id, const char* cinterface, uns
     }
     else if(interface == "wl_data_device_manager" && !wlDataManager_)
     {
-		auto ptr = wl_registry_bind(wlRegistry_, id, &wl_data_device_manager_interface, 1);
+		auto ptr = wl_registry_bind(wlRegistry_, id, &wl_data_device_manager_interface, 3);
         wlDataManager_ = {static_cast<wl_data_device_manager*>(ptr), id};
 
 		//TODO: add extra function for this (e.g. initExtraResources) that is called after

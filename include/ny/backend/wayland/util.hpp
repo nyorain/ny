@@ -6,6 +6,7 @@
 #include <nytl/vec.hpp>
 #include <nytl/callback.hpp>
 #include <nytl/functionTraits.hpp>
+#include <nytl/compFunc.hpp>
 
 #include <type_traits>
 
@@ -153,45 +154,56 @@ public:
     int scale;
 };
 
+}//wayland
+
+
 namespace detail
 {
+	///\tparam Signature The Signature with which the callback will be called
 	template<typename F, F f, 
-		typename R = typename nytl::FunctionTraits<F>::ReturnType,
-		typename ArgsTuple = typename nytl::FunctionTraits<F>::ArgTuple>
+		typename Signature = typename nytl::FunctionTraits<F>::Signaure,
+		typename R = typename nytl::FunctionTraits<Signature>::ReturnType,
+		typename ArgsTuple = typename nytl::FunctionTraits<Signature>::ArgTuple>
 	struct MemberCallback;
 
-	template<typename F, F f, typename R, typename... Args>
-	struct MemberCallback<F, f, R, std::tuple<Args...>>
+	template<typename F, F f, typename Signature, typename R, typename... Args>
+	struct MemberCallback<F, f, Signature, R, std::tuple<Args...>>
 	{
 		using Class = typename nytl::FunctionTraits<F>::Class;
-		static auto call(void* self, Args&&... args)
+		static auto call(void* self, Args... args)
 		{
-			return (static_cast<Class*>(self)->*f)(std::forward<Args>(args)...);
+			using Func = nytl::CompatibleFunction<Signature>;
+			auto func = Func(nytl::memberCallback(f, static_cast<Class*>(self)));
+			return func(std::forward<Args>(args)...);
 		}
 	};
 
-	template<typename F, F f, typename... Args>
-	struct MemberCallback<F, f, void, std::tuple<Args...>> 
+	template<typename F, F f, typename Signature, typename... Args>
+	struct MemberCallback<F, f, Signature, void, std::tuple<Args...>> 
 	{
 		using Class = typename nytl::FunctionTraits<F>::Class;
-		static void call(void* self, Args&&... args) 
+		static void call(void* self, Args... args) 
 		{
-			(static_cast<Class*>(self)->*f)(std::forward<Args>(args)...);
+			using Func = nytl::CompatibleFunction<Signature>;
+			auto func = Func(nytl::memberCallback(f, static_cast<Class*>(self)));
+			func(std::forward<Args>(args)...);
+
+			// Func(&static_cast<Class*>(self)->*f)(std::forward<Args>(args)...);
 		}
 	};
-}
+
+} //detail
 
 //Can be used to implement wayland callbacks directly to member functions.
 //Does only work if the first parameter of the callback is a void* userdata pointer and
 //the pointer holds the object of which the given member function should be called.
-template<typename F, F f> 
-auto constexpr memberCallback = &detail::MemberCallback<std::decay_t<F>, f>::call;
+template<typename F, F f, typename S = typename nytl::FunctionTraits<F>::Signature> 
+auto constexpr memberCallback = &detail::MemberCallback<std::decay_t<F>, f, S>::call;
 
 //C++17
 // template<auto f> 
 // constexpr auto memberCallback = &detail::MemberCallback<std::decay_t<decltype(f)>, f>::call;
 
-}//wayland
 
 //convert function
 WindowEdge waylandToEdge(unsigned int edge);

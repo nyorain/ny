@@ -101,6 +101,12 @@ else()
 	  	GIT_REPOSITORY https://github.com/nyorain/nytl.git
 		INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/external/install
 		CMAKE_ARGS ${ExternalProjectCMakeArgs})
+
+	ExternalProject_Add_Step(nytl_ep
+		forceinstall
+		DEPENDEES configure
+		DEPENDERS install
+		ALWAYS 1)
 	install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/external/install/." DESTINATION .)
 endif()
 

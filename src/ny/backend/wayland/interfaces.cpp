@@ -239,21 +239,11 @@ const wl_data_source_listener dataSourceListener =
     dataSourceCancelled
 };
 
-//dataOffer
-void dataOfferOffer(void* data, wl_data_offer* wl_data_offer, const char* mime_type)
-{
-    std::cout << "offer" << std::endl;
-}
-
-const wl_data_offer_listener dataOfferListener =
-{
-    dataOfferOffer
-};
-
 //dataDevice
 void dataDeviceOffer(void* data, wl_data_device* wl_data_device, wl_data_offer* id)
 {
-     std::cout << "deviceOffer" << std::endl;
+    auto* ac = static_cast<WaylandAppContext*>(data);
+	ac->dataOffer(*id);
 }
 void dataDeviceEnter(void* data, wl_data_device* wl_data_device, unsigned int serial, 
 	wl_surface* surface, wl_fixed_t x, wl_fixed_t y, wl_data_offer* id)
@@ -275,7 +265,8 @@ void dataDeviceDrop(void* data, wl_data_device* wl_data_device)
 }
 void dataDeviceSelection(void* data, wl_data_device* wl_data_device, wl_data_offer* id)
 {
-    std::cout << "deviceSelection" << std::endl;
+    auto* ac = static_cast<WaylandAppContext*>(data);
+	ac->clipboardOffer(*id);
 }
 const wl_data_device_listener dataDeviceListener =
 {

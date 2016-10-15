@@ -97,8 +97,7 @@ public:
 class DataOffer
 {
 public:
-	// using DataFunction = CompFunc<void(DataOffer& off, unsigned int fmt, const std::any& data)>;
-	using DataFunction = std::function<void(DataOffer&, unsigned int, const std::any&)>;
+	using DataFunction = nytl::CompFunc<void(const std::any&, DataOffer&, unsigned int)>;
 
 public:
 	//TODO: make this a function that registers a function (to make sense on e.g. winapi)

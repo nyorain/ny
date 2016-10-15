@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ny/backend/wayland/include.hpp>
+#include <ny/backend/wayland/data.hpp>
 #include <ny/backend/appContext.hpp>
 #include <nytl/callback.hpp>
 
@@ -140,6 +141,8 @@ public:
     void seatCapabilities(unsigned int caps);
 	void seatName(const char* name);
     void addShmFormat(unsigned int format);
+	void clipboardOffer(wl_data_offer& offer);
+	void dataOffer(wl_data_offer& offer);
 
 protected:
 	///Modified version of wl_dispatch_display that performs the same operations but
@@ -161,9 +164,12 @@ protected:
 	wayland::NamedGlobal<wl_seat> wlSeat_;
 	wayland::NamedGlobal<xdg_shell> xdgShell_;
 
-    wl_data_device* wlDataDevice_ = nullptr;
-    wl_cursor_theme* wlCursorTheme_ = nullptr;
-    wl_surface* wlCursorSurface_ = nullptr;
+    wl_data_device* wlDataDevice_ {};
+    wl_cursor_theme* wlCursorTheme_ {};
+    wl_surface* wlCursorSurface_ {};
+
+	std::vector<WaylandDataOffer> dataOffers_;
+	unsigned int clipboardOfferID_ = -1;
 
 	//if the current cursor was set from a custom image this will hold an owned pointer
 	//to the buffer.
