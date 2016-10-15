@@ -4,6 +4,7 @@
 #include <ny/backend/wayland/interfaces.hpp>
 #include <ny/backend/wayland/windowContext.hpp>
 #include <ny/backend/wayland/input.hpp>
+#include <ny/backend/wayland/data.hpp>
 #include <ny/backend/wayland/xdg-shell-client-protocol.h>
 
 #include <ny/base/eventDispatcher.hpp>
@@ -41,7 +42,6 @@ namespace
 
 void callbackDestroy(void*, wl_callback* callback, unsigned int) 
 { 
-	debug("callback done");
 	wl_callback_destroy(callback); 
 }
 
@@ -230,12 +230,16 @@ WindowContextPtr WaylandAppContext::createWindowContext(const WindowSettings& se
 
 bool WaylandAppContext::clipboard(std::unique_ptr<DataSource>&& dataSource)
 {
+	// wl_data_device_manager_create_data_source();
+	// wl_data_device_set_selection();
 }
 std::unique_ptr<DataOffer> WaylandAppContext::clipboard()
 {
 }
 bool WaylandAppContext::startDragDrop(std::unique_ptr<DataSource>&& dataSource)
 {
+	// wl_data_device_manager_create_data_source();
+	// wl_data_device_start_drag();
 }
 
 std::vector<const char*> WaylandAppContext::vulkanExtensions() const
@@ -266,6 +270,11 @@ WaylandEglDisplay* WaylandAppContext::waylandEglDisplay()
 	#endif //EGL
 
 	return waylandEglDisplay_.get();
+}
+
+nytl::CbConn WaylandAppContext::fdCallback(int fd, unsigned int events, const FdCallback& func)
+{
+	return fdCallbacks_.add({fd, events, func});
 }
 
 int WaylandAppContext::dispatchDisplay()
@@ -301,17 +310,42 @@ int WaylandAppContext::dispatchDisplay()
 	auto dpypoll = [&](int events){
 		int ret;
 
-		pollfd pfds[2] {};
+		std::vector<pollfd> pfds;
+		pfds.reserve(2 + fdCallbacks_.items.size());
+		pfds.resize(2);
+		
+		//wl_display fd
 		pfds[0].fd = wl_display_get_fd(wlDisplay_);
 		pfds[0].events = events;
 
+		//eventfd
 		pfds[1].fd = eventfd_;
 		pfds[1].events = POLLIN;
 
-		do ret = poll(pfds, 2, -1);
+		//other fds
+		for(auto& callback : fdCallbacks_.items)
+		{
+			pfds.emplace_back();
+			pfds.back().fd = callback.fd;
+			pfds.back().events = callback.events;
+		}
+
+		do ret = poll(pfds.data(), pfds.size(), -1);
 		while(ret == -1 && errno == EINTR);
 
+		//check if eventfd was triggered
 		if(pfds[1].revents > POLLIN) event = true;
+
+		//check for callback fds
+		for(auto i = 0u; i < fdCallbacks_.items.size(); ++i)
+		{
+			auto& pfd = pfds[i + 2];
+			if(pfd.revents == 0) continue;
+
+			auto connref = nytl::CbConnRef(fdCallbacks_, fdCallbacks_.items[i].clID_);
+			fdCallbacks_.items[i].callback(connref, pfd.fd, pfd.revents);
+		}
+
 		return ret;
 	};
 
@@ -339,7 +373,7 @@ int WaylandAppContext::dispatchDisplay()
 		}
 	}
 
-	if (ret < 0 && errno != EPIPE) 
+	if(ret < 0 && errno != EPIPE) 
 	{
 		wl_display_cancel_read(wlDisplay_);
 		return -1;
@@ -397,6 +431,10 @@ void WaylandAppContext::registryAdd(unsigned int id, const char* cinterface, uns
     {
 		auto ptr = wl_registry_bind(wlRegistry_, id, &wl_data_device_manager_interface, 1);
         wlDataManager_ = {static_cast<wl_data_device_manager*>(ptr), id};
+
+		//TODO: add extra function for this (e.g. initExtraResources) that is called after
+		//all primary registry objects were received so we dont have to check here AND 
+		//on seat creation
         if(wlSeat_ && !wlDataDevice_)
         {
             wlDataDevice_ = wl_data_device_manager_get_data_device(wlDataManager_, wlSeat_);

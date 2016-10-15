@@ -1,5 +1,9 @@
 #include <ny/base.hpp>
 #include <ny/backend.hpp>
+#include <ny/backend/wayland/appContext.hpp>
+
+#include <poll.h>
+#include <unistd.h>
 
 //used in the moment to test data sources and data offers, dragndrop and clipboard stuff
 
@@ -38,26 +42,40 @@ int main()
 	if(!dataOffer)
 	{
 		ny::error("Backend does not support clipboard operations...");
-		return EXIT_FAILURE;
+		// return EXIT_FAILURE;
 	}
+	else
+	{
+		for(auto& t : dataOffer->types().types) ny::debug("clipboard type ", t);
 
-	for(auto& t : dataOffer->types().types) ny::debug("clipboard type ", t);
+		//trying to retrieve the data in text form and outputting it if successful
+		dataOffer->data(ny::dataType::text, [](const ny::DataOffer&, int, const std::any& text) {
+			// if(!text.has_value()) return;
+			ny::debug("Received clipboard text data: ", std::any_cast<std::string>(text));
+		});
 
-	//trying to retrieve the data in text form and outputting it if successful
-	dataOffer->data(ny::dataType::text, [](const ny::DataOffer&, int, const std::any& text) {
-		if(!text.has_value()) return;
-		ny::debug("Received clipboard text data: ", std::any_cast<std::string>(text));
-	});
-
-	//setting the clipboard data to the custom DataSource
-	ny::debug("Setting clipboard data to 'ayyyy got em'");
-	ny::debug("success: ", ac->clipboard(std::make_unique<CustomDataSource>()));
+		//setting the clipboard data to the custom DataSource
+		ny::debug("Setting clipboard data to 'ayyyy got em'");
+		ny::debug("success: ", ac->clipboard(std::make_unique<CustomDataSource>()));
+	}
 
 	ny::WindowSettings settings;
 	auto wc = ac->createWindowContext(settings);
 
 	ny::LoopControl control;
 	MyEventHandler handler(control, *wc);
+
+	//DEBUG
+	auto wlac = dynamic_cast<ny::WaylandAppContext*>(ac.get());
+	wlac->fdCallback(STDIN_FILENO, POLLIN, [&]{ 
+		std::cout << "input!\n";
+		std::string a;
+		std::cin >> a;
+		if(a == "hi") std::cout << ">> hi \n";
+		if(a == "exit") control.stop();
+		else std::cout << ">> received " << a << "\n";
+	});
+	//DEBUG
 
 	wc->droppable({{ny::dataType::text, ny::dataType::filePaths}});
 	wc->eventHandler(handler);

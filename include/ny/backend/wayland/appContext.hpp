@@ -2,10 +2,12 @@
 
 #include <ny/backend/wayland/include.hpp>
 #include <ny/backend/appContext.hpp>
+#include <nytl/callback.hpp>
 
 #include <vector>
 #include <string>
 #include <memory>
+#include <map>
 
 namespace ny
 {
@@ -27,6 +29,46 @@ struct NamedGlobal
 };
 
 }
+
+///Utility template
+///TODO: does not belong here... rather some common util file
+template<typename T>
+class ConnectionList : public nytl::Connectable<nytl::CbIdType>
+{
+public:
+	class Value : public T 
+	{ 
+	public:
+		using T::T;
+		nytl::ConnectionDataPtr<unsigned int> clID_;
+	};
+
+	std::vector<Value> items;
+	unsigned int highestID;
+
+public:
+	void removeConnection(unsigned int id) override
+	{
+		for(auto it = items.begin(); it != items.end(); ++it)
+		{
+			if(*it->clID_.get() == id) 
+			{
+				items.erase(it);
+				return;
+			}
+		}
+	}
+
+	nytl::CbConn add(const T& value) 
+	{ 
+		items.emplace_back(); 
+		static_cast<T&>(items.back()) = value;
+		items.back().clID_ = std::make_shared<unsigned int>(nextID());
+		return {*this, items.back().clID_};
+	}
+
+	unsigned int nextID() { return ++highestID; }
+};
 
 ///Wayland AppContext implementation.
 ///Holds a wayland display connection as well as all global resurces.
@@ -82,6 +124,11 @@ public:
     const std::vector<wayland::Output>& outputs() const { return outputs_; }
     bool shmFormatSupported(unsigned int wlShmFormat);
 
+	///Can be called to register custom listeners for fds that the dispatch loop will
+	///then poll for.
+	using FdCallback = nytl::CompFunc<void(nytl::CbConnRef, int fd, unsigned int events)>;
+	nytl::CbConn fdCallback(int fd, unsigned int events, const FdCallback& func);
+
 	///Returns an eglContext or nullptr if it could not be initialized or ny was built
 	///without egl support.
 	WaylandEglDisplay* waylandEglDisplay();
@@ -97,6 +144,7 @@ public:
 protected:
 	///Modified version of wl_dispatch_display that performs the same operations but
 	///does stop blocking (no matter at which stage) if eventfd_ is signaled (i.e. set to 1).
+	///Returns 0 if stopped because of eventfd, -1 on error and a value > 0 otherwise.
 	int dispatchDisplay();
 
 protected:
@@ -138,6 +186,16 @@ protected:
 	//on the build config
 	bool eglFailed_ = false; //if init failed once this will set to true (and not tried again)
 	std::unique_ptr<WaylandEglDisplay> waylandEglDisplay_;
+
+	struct ListenerEntry
+	{
+		int fd;
+		unsigned int events;
+		FdCallback callback;
+	};
+
+	ConnectionList<ListenerEntry> fdCallbacks_;
+	// std::nytl::Callback<void(int fd, unsigned int events)> fdListeners_;
 
 	//data transfer
     // wl_surface* dataSourceSurface_ = nullptr;

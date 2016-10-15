@@ -1,0 +1,12 @@
+- wayland data impl
+	- wayland data pipe call for receive
+		- cloexec
+	- formatToMimeType
+		- mime types
+	- wayland AppContext general fd wait/callback interface
+		- callback registering
+			- implement ConnectionList
+			- nytl callback size type
+				- fix cmake nytl generation
+			- implement register functions
+		- displayDispatch implementation

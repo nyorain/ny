@@ -220,17 +220,17 @@ const wl_keyboard_listener keyboardListener =
 
 
 //dataSourceListener
-void dataSourceTarget(void* data, wl_data_source* wl_data_source, const char* mime_type)
+void dataSourceTarget(void* data, wl_data_source* dataSource, const char* mimeType)
 {
-    // std::cout << "target" << std::endl;
+    std::cout << "target " << mimeType << std::endl;
 }
-void dataSourceSend(void* data, wl_data_source* wl_data_source, const char* mime_type, int fd)
+void dataSourceSend(void* data, wl_data_source* dataSource, const char* mimeType, int fd)
 {
-    // std::cout << "send" << std::endl;
+    std::cout << "send " << mimeType << std::endl;
 }
 void dataSourceCancelled(void* data, wl_data_source* wl_data_source)
 {
-    // std::cout << "cancelled" << std::endl;
+    std::cout << "cancelled" << std::endl;
 }
 const wl_data_source_listener dataSourceListener =
 {
@@ -242,7 +242,7 @@ const wl_data_source_listener dataSourceListener =
 //dataOffer
 void dataOfferOffer(void* data, wl_data_offer* wl_data_offer, const char* mime_type)
 {
-    // std::cout << "offer" << std::endl;
+    std::cout << "offer" << std::endl;
 }
 
 const wl_data_offer_listener dataOfferListener =
@@ -253,29 +253,29 @@ const wl_data_offer_listener dataOfferListener =
 //dataDevice
 void dataDeviceOffer(void* data, wl_data_device* wl_data_device, wl_data_offer* id)
 {
-     // std::cout << "deviceOffer" << std::endl;
+     std::cout << "deviceOffer" << std::endl;
 }
 void dataDeviceEnter(void* data, wl_data_device* wl_data_device, unsigned int serial, 
 	wl_surface* surface, wl_fixed_t x, wl_fixed_t y, wl_data_offer* id)
 {
-    // std::cout << "deviceEnter" << std::endl;
+    std::cout << "deviceEnter" << std::endl;
 }
 void dataDeviceLeave(void* data, wl_data_device* wl_data_device)
 {
-    // std::cout << "deviceLeave" << std::endl;
+    std::cout << "deviceLeave" << std::endl;
 }
 void dataDeviceMotion(void* data, wl_data_device* wl_data_device, unsigned int time, 
 	wl_fixed_t x, wl_fixed_t y)
 {
-    // std::cout << "deviceMotion" << std::endl;
+    std::cout << "deviceMotion" << std::endl;
 }
 void dataDeviceDrop(void* data, wl_data_device* wl_data_device)
 {
-    // std::cout << "deviceDrop" << std::endl;
+    std::cout << "deviceDrop" << std::endl;
 }
 void dataDeviceSelection(void* data, wl_data_device* wl_data_device, wl_data_offer* id)
 {
-    // std::cout << "deviceSelection" << std::endl;
+    std::cout << "deviceSelection" << std::endl;
 }
 const wl_data_device_listener dataDeviceListener =
 {

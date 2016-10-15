@@ -1,16 +1,13 @@
 #pragma once
 
 #include <ny/backend/wayland/include.hpp>
-#include <ny/backend/mouseContext.hpp>
-#include <ny/backend/keyboardContext.hpp>
-#include <ny/base/cursor.hpp>
 #include <ny/base/event.hpp>
 
 #include <nytl/vec.hpp>
+#include <nytl/callback.hpp>
+#include <nytl/functionTraits.hpp>
 
-#include <iostream>
-#include <atomic>
-
+#include <type_traits>
 
 namespace ny
 {
@@ -155,6 +152,44 @@ public:
     unsigned int transform;
     int scale;
 };
+
+namespace detail
+{
+	template<typename F, F f, 
+		typename R = typename nytl::FunctionTraits<F>::ReturnType,
+		typename ArgsTuple = typename nytl::FunctionTraits<F>::ArgTuple>
+	struct MemberCallback;
+
+	template<typename F, F f, typename R, typename... Args>
+	struct MemberCallback<F, f, R, std::tuple<Args...>>
+	{
+		using Class = typename nytl::FunctionTraits<F>::Class;
+		static auto call(void* self, Args&&... args)
+		{
+			return (static_cast<Class*>(self)->*f)(std::forward<Args>(args)...);
+		}
+	};
+
+	template<typename F, F f, typename... Args>
+	struct MemberCallback<F, f, void, std::tuple<Args...>> 
+	{
+		using Class = typename nytl::FunctionTraits<F>::Class;
+		static void call(void* self, Args&&... args) 
+		{
+			(static_cast<Class*>(self)->*f)(std::forward<Args>(args)...);
+		}
+	};
+}
+
+//Can be used to implement wayland callbacks directly to member functions.
+//Does only work if the first parameter of the callback is a void* userdata pointer and
+//the pointer holds the object of which the given member function should be called.
+template<typename F, F f> 
+auto constexpr memberCallback = &detail::MemberCallback<std::decay_t<F>, f>::call;
+
+//C++17
+// template<auto f> 
+// constexpr auto memberCallback = &detail::MemberCallback<std::decay_t<decltype(f)>, f>::call;
 
 }//wayland
 

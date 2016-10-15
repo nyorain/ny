@@ -71,6 +71,7 @@ enum class NativeWidgetType : unsigned int;
 enum class DialogType : unsigned int;
 enum class ContextType : unsigned int;
 enum class CursorType : unsigned int;
+enum class ImageDataFormat : unsigned int;
 
 
 }

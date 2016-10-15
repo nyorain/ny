@@ -5,6 +5,7 @@
 #include <ny/backend/wayland/surface.hpp>
 #include <ny/backend/wayland/xdg-shell-client-protocol.h>
 #include <ny/backend/common/unix.hpp>
+#include <ny/backend/mouseContext.hpp>
 
 #include <ny/base/event.hpp>
 #include <ny/base/cursor.hpp>
