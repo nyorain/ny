@@ -14,7 +14,7 @@ class WaylandDataOffer : public DataOffer
 {
 public:
 	WaylandDataOffer() = default;
-	WaylandDataOffer(WaylandAppContext& ac, wl_data_offer& wlDataOffer);
+	WaylandDataOffer(WaylandAppContext& ac, wl_data_offer& wlDataOffer, bool dnd = false);
 	~WaylandDataOffer();
 
 	WaylandDataOffer(WaylandDataOffer&& other) noexcept;
@@ -26,12 +26,16 @@ public:
 	wl_data_offer& wlDataOffer() const { return *wlDataOffer_; }
 	WaylandAppContext& appContext() const { return *appContext_; }
 
+	bool dnd() const { return dnd_; }
+	void dnd(bool x) { dnd_ = x; }
+
 	bool valid() const { return (wlDataOffer_); }
 
 protected:
 	WaylandAppContext* appContext_ {};
 	wl_data_offer* wlDataOffer_ {};
 	DataTypes dataTypes_ {};
+	bool dnd_ {};
 
 	struct PendingRequest
 	{
@@ -56,6 +60,9 @@ protected:
 	///This function is registered as callback function when a data receive fd can be 
 	///read. 
 	void fdReceive(int fd);
+
+	///Called by destructor and move assignment operator
+	void destroy();
 };
 
 ///Free wrapper class around wl_data_source objects.
@@ -69,14 +76,17 @@ protected:
 class WaylandDataSource
 {
 public:
-	WaylandDataSource(wl_data_device_manager&, std::unique_ptr<DataSource>);
+	WaylandDataSource(WaylandAppContext&, std::unique_ptr<DataSource>, bool dnd);
 	
 	wl_data_source& wlDataSource() const { return *wlDataSource_; }
 	DataSource& dataSource() const { return *source_; }
+	bool dnd() const { return dnd_; }
 
 protected:
+	WaylandAppContext& appContext_;
 	std::unique_ptr<DataSource> source_;
 	wl_data_source* wlDataSource_ {};
+	bool dnd_ {};
 
 protected:
 	~WaylandDataSource();

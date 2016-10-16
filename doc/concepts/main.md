@@ -223,3 +223,8 @@ Current cursor implementation (not optimal, to be changed):
 - the ShmBuffer is only used if the cursor image is a custom image
 - Every time the pointer enters the WindowContext, the AppContext signals the WindowContext,
 	which then sets the cursor
+
+New:
+- every WindowContext has its own wayland::ShmBuffer that is used for custom image cursors
+- every WindowContext has a non-owned wl_buffer* that holds the cursor contents for its surface
+- WaylandMouseContext has a wl_surface* that is always the cursor surface

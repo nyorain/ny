@@ -122,7 +122,9 @@ public:
 	///Note that the returned DataOffer (if any) is only guaranteed to be valid until the next
 	///dispatch call. If the clipboard content changes or is unset while there are still
 	///callbacks waiting for data in the requestes formats, they should be called
-	///without any data to signal that data retrieval failed.
+	///without any data to signal that data retrieval failed. Then one should simply
+	///try again to retrieve the data since the clipboard changed before the data
+	///could be transmitted.
 	///\sa DataOffer
 	virtual DataOffer* clipboard() = 0;
 

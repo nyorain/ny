@@ -11,7 +11,7 @@ namespace ny
 {
 
 ///Specifies the different roles a WaylandWindowContext can have.
-enum class WaylandSurfaceRole
+enum class WaylandSurfaceRole : unsigned int
 {
     none,
     shell,
@@ -40,6 +40,9 @@ protected:
 ///Basically holds a wayland surface with a description on how it is used.
 class WaylandWindowContext : public WindowContext
 {
+public:
+	using Role = WaylandSurfaceRole;
+
 public:
     WaylandWindowContext(WaylandAppContext& ac, const WaylandWindowSettings& s = {});
     virtual ~WaylandWindowContext();
@@ -91,6 +94,10 @@ public:
     wl_subsurface* wlSubsurface() const; 
     xdg_surface* xdgSurface() const; 
     xdg_popup* xdgPopup() const; 
+
+	wl_buffer* wlCursorBuffer() const { return cursorBuffer_; }
+	nytl::Vec2i cursorHotspot() const { return cursorHotspot_; }
+	nytl::Vec2ui cursorSize() const { return cursorSize_; }
 
 	///Attaches the given buffer, damages the surface and commits it.
 	///Does also add a frameCallback to the surface.
@@ -152,9 +159,9 @@ protected:
 	WaylandDrawIntegration* drawIntegration_ = nullptr; //optional assocated DrawIntegration
 	bool shown_ {}; //Whether the WindowContext should be shown or hidden
 
-	wl_surface* cursorSurface_ {};
+	wayland::ShmBuffer shmCursorBuffer_ {}; //only needed when cursor is custom image
+
 	wl_buffer* cursorBuffer_ {};
-	wayland::ShmBuffer shmCursorBuffer_ {};
 	nytl::Vec2i cursorHotspot_ {};
 	nytl::Vec2ui cursorSize_ {};
 };

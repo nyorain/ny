@@ -2,11 +2,13 @@
 #include <ny/backend/wayland/util.hpp>
 #include <ny/backend/wayland/appContext.hpp>
 #include <ny/backend/wayland/windowContext.hpp>
+#include <ny/backend/wayland/input.hpp>
 #include <ny/base/log.hpp>
 
 #include <nytl/stringParam.hpp>
 
 #include <wayland-client-protocol.h>
+#include <wayland-cursor.h>
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -27,6 +29,7 @@ namespace
 
 	//TODO: could be part of the public interface
 	//TODO: still many missing
+	//NOTE: this is total bullshit and does not really make sense for correct impl...
 	unsigned int mimeTypeToFormat(nytl::StringParam param)
 	{
 		if(comp("text/plain", param)) return dataType::text;
@@ -46,7 +49,7 @@ namespace
 	{
 		switch(fmt)
 		{
-			case dataType::text: return "text/plain";
+			case dataType::text: return "text/plain;charset=utf-8";
 			case dataType::png: return "image/png";
 			case dataType::bmp: return "image/bmp";
 			case dataType::jpeg: return "image/jpeg";
@@ -60,8 +63,8 @@ namespace
 }
 
 //WaylandDataOffer
-WaylandDataOffer::WaylandDataOffer(WaylandAppContext& ac, wl_data_offer& wlDataOffer)
-	: appContext_(&ac), wlDataOffer_(&wlDataOffer)
+WaylandDataOffer::WaylandDataOffer(WaylandAppContext& ac, wl_data_offer& wlDataOffer, bool dnd)
+	: appContext_(&ac), wlDataOffer_(&wlDataOffer), dnd_(dnd)
 {
 	static constexpr wl_data_offer_listener listener =
 	{
@@ -78,9 +81,12 @@ WaylandDataOffer::WaylandDataOffer(WaylandAppContext& ac, wl_data_offer& wlDataO
 	wl_data_offer_add_listener(&wlDataOffer, &listener, this);
 }
 
-WaylandDataOffer::WaylandDataOffer(WaylandDataOffer&& other) noexcept
-	: appContext_(other.appContext_), wlDataOffer_(other.wlDataOffer_), 
-	dataTypes_(std::move(other.dataTypes_)), requests_(std::move(other.requests_))
+WaylandDataOffer::WaylandDataOffer(WaylandDataOffer&& other) noexcept : 
+	appContext_(other.appContext_), 
+	wlDataOffer_(other.wlDataOffer_), 
+	dataTypes_(std::move(other.dataTypes_)), 
+	dnd_(other.dnd_), 
+	requests_(std::move(other.requests_))
 {
 	if(wlDataOffer_) wl_data_offer_set_user_data(wlDataOffer_, this);
 
@@ -90,27 +96,38 @@ WaylandDataOffer::WaylandDataOffer(WaylandDataOffer&& other) noexcept
 
 WaylandDataOffer& WaylandDataOffer::operator=(WaylandDataOffer&& other) noexcept
 {
-	if(wlDataOffer_)
-	{
-		// wl_data_offer_finish(wlDataOffer_);
-		wl_data_offer_destroy(wlDataOffer_);
-	}
+	destroy();
 
 	appContext_ = other.appContext_;
 	wlDataOffer_ = other.wlDataOffer_;
 	dataTypes_ = std::move(other.dataTypes_);
 	requests_ = std::move(other.requests_);
+	dnd_ = other.dnd_;
 
 	if(wlDataOffer_) wl_data_offer_set_user_data(wlDataOffer_, this);
+
+	other.appContext_ = {};
+	other.wlDataOffer_ = {};
 
 	return *this;
 }
 
 WaylandDataOffer::~WaylandDataOffer()
 {
+	destroy();
+}
+
+void WaylandDataOffer::destroy()
+{
+	for(auto& r : requests_)
+	{
+		r.second.callback({}, *this, r.first);
+		r.second.connection.destroy();
+	}
+
 	if(wlDataOffer_)
 	{
-		// wl_data_offer_finish(wlDataOffer_);
+		if(dnd_) wl_data_offer_finish(wlDataOffer_);
 		wl_data_offer_destroy(wlDataOffer_);
 	}
 }
@@ -181,8 +198,8 @@ nytl::CbConn WaylandDataOffer::data(unsigned int fmt, const DataOffer::DataFunct
 void WaylandDataOffer::offer(const char* mimeType)
 {
 	auto fmt = mimeTypeToFormat(mimeType);
-	log("ny::WaylandDataOffer::offer: ", mimeType);
-	log("ny::WaylandDataOffer::offer format: ", fmt);
+	// log("ny::WaylandDataOffer::offer: ", mimeType);
+	// log("ny::WaylandDataOffer::offer format: ", fmt);
 
 	if(fmt != dataType::none)
 	{
@@ -203,10 +220,10 @@ void WaylandDataOffer::action(unsigned int action)
 }
 
 //WaylandDataSource
-WaylandDataSource::WaylandDataSource(wl_data_device_manager& wldm, std::unique_ptr<DataSource> src)
-	: source_(std::move(src))
+WaylandDataSource::WaylandDataSource(WaylandAppContext& ac, std::unique_ptr<DataSource> src, 
+	bool dnd) : appContext_(ac), source_(std::move(src)), dnd_(dnd)
 {
-	wlDataSource_ = wl_data_device_manager_create_data_source(&wldm);
+	wlDataSource_ = wl_data_device_manager_create_data_source(ac.wlDataManager());
 
 	static constexpr wl_data_source_listener listener =
 	{
@@ -238,6 +255,8 @@ WaylandDataSource::WaylandDataSource(wl_data_device_manager& wldm, std::unique_p
 		if(!mimeType) continue;
 		wl_data_source_offer(wlDataSource_, mimeType);
 	}
+
+	if(dnd_) wl_data_source_set_actions(wlDataSource_, WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY);
 }
 
 WaylandDataSource::~WaylandDataSource()
@@ -249,6 +268,7 @@ void WaylandDataSource::target(const char* mimeType)
 {
 	//we dont care about this information
 	nytl::unused(mimeType);
+	debug("target ", mimeType);
 }
 void WaylandDataSource::send(const char* mimeType, int fd)
 {
@@ -275,29 +295,49 @@ void WaylandDataSource::send(const char* mimeType, int fd)
 	}
 
 	close(fd);
+	debug("send ", mimeType, " fd: ", fd);
 }
 
 void WaylandDataSource::action(unsigned int action)
 {
-	//relevant when implementing dnd regions/actions
-	nytl::unused(action);
+	debug("action ", action);
+
+	const char* cursorName = nullptr;
+	switch(action)
+	{
+		case WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY: cursorName = "dnd-copy"; break;
+		case WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE: cursorName = "dnd-move"; break;
+		default: cursorName = "dnd-none";
+	}
+
+	auto cursor = wl_cursor_theme_get_cursor(appContext_.wlCursorTheme(), cursorName);
+	auto* img = cursor->images[0];
+	auto buffer = wl_cursor_image_get_buffer(img);
+
+	auto hotspot = nytl::Vec2i(img->hotspot_x, img->hotspot_y);
+	auto size = nytl::Vec2i(img->width, img->height);
+
+	appContext_.waylandMouseContext().cursorBuffer(buffer, hotspot, size);
 }
 
 void WaylandDataSource::dndPerformed()
 {
 	//we dont care about this information
 	//important: do not destroy the source here, only in cancelled/finished
+	debug("performed");
 }
 
 void WaylandDataSource::cancelled()
 {
 	//destroy self here
+	debug("cancelled");
 	delete this;
 }
 
 void WaylandDataSource::dndFinished()
 {
 	//destroy self here
+	debug("finished");
 	delete this;
 }
 
@@ -354,6 +394,7 @@ void WaylandDataDevice::enter(unsigned int serial, wl_surface* surface, wl_fixed
 		if(&o->wlDataOffer() == offer)
 		{
 			dndOffer_ = o.get();
+			dndOffer_->dnd(true);
 			break;
 		}
 	}
@@ -426,11 +467,12 @@ void WaylandDataDevice::selection(wl_data_offer* offer)
 		if(&o->wlDataOffer() == offer)
 		{
 			clipboardOffer_ = o.get();
+			clipboardOffer_->dnd(false);
 			return;
 		}
 	}
 
-	warning("ny::WaylandDataDevice::selectio: unkown offer argument");
+	warning("ny::WaylandDataDevice::selection: unkown offer argument");
 }
 
 }

@@ -96,14 +96,6 @@ public:
 	std::vector<const char*> vulkanExtensions() const override;
 
     //wayland specific
-	///Changes the cursor a cursor with the given name.
-	///Note that serial can only be 0 (or invalid) if the cursor was already set by this
-	///application of surface entering.
-    void cursor(std::string cursorName, unsigned int serial = 0);
-
-	///Changes the cursor to the content of the given image with the given hotspot.
-    void cursor(const ImageData& img, const Vec2i& hotspot, unsigned int serial = 0);
-
 	///Dispatched the given event as soon as possible. Needed by wayland callbacks.
 	void dispatch(Event&& event);
 
@@ -130,9 +122,10 @@ public:
 	using FdCallback = nytl::CompFunc<void(nytl::CbConnRef, int fd, unsigned int events)>;
 	nytl::CbConn fdCallback(int fd, unsigned int events, const FdCallback& func);
 
-	///Returns an eglContext or nullptr if it could not be initialized or ny was built
-	///without egl support.
-	WaylandEglDisplay* waylandEglDisplay();
+	WaylandEglDisplay* waylandEglDisplay(); //nullptr if egl not available
+
+	WaylandKeyboardContext& waylandKeyboardContext() const { return *keyboardContext_; }
+	WaylandMouseContext& waylandMouseContext() const { return *mouseContext_; }
 	
 	//functions called by wayland callbacks
 	void outputDone(const wayland::Output& out); //called by wayland callback

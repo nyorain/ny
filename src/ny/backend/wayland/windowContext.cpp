@@ -1,6 +1,7 @@
 #include <ny/backend/wayland/windowContext.hpp>
 #include <ny/backend/wayland/appContext.hpp>
 #include <ny/backend/wayland/interfaces.hpp>
+#include <ny/backend/wayland/input.hpp>
 #include <ny/backend/wayland/util.hpp>
 #include <ny/backend/wayland/surface.hpp>
 #include <ny/backend/wayland/xdg-shell-client-protocol.h>
@@ -150,9 +151,6 @@ void WaylandWindowContext::position(const Vec2i& position)
 
 void WaylandWindowContext::cursor(const Cursor& cursor)
 {
-	if(!cursorSurface_)
-		cursorSurface_ = wl_compositor_create_surface(&appContext().wlCompositor());
-
 	if(cursor.type() == Cursor::Type::image)
 	{
 		auto* img = cursor.image();
@@ -205,6 +203,11 @@ void WaylandWindowContext::cursor(const Cursor& cursor)
 		cursorSize_.x = img->width;
 		cursorSize_.y = img->height;
 	}
+
+	//update the cursor if needed
+	auto& wmc = appContext_->waylandMouseContext();
+	if(wmc.over() == this)
+		wmc.cursorBuffer(cursorBuffer_, cursorHotspot_, cursorSize_);
 }
 
 void WaylandWindowContext::droppable(const DataTypes&)
@@ -258,21 +261,21 @@ bool WaylandWindowContext::handleEvent(const Event& event)
 
 		if(drawIntegration_) drawIntegration_->resize(ev.size);
 	}
-	else if(event.type() == eventType::mouseCross)
-	{
-		auto& ev = static_cast<const MouseCrossEvent&>(event);
-		if(!ev.entered) return false;
-
-		auto data = dynamic_cast<WaylandEventData*>(event.data.get());
-		if(!cursorSurface_ || !appContext().wlPointer() || !data) return false;
-
-		wl_pointer_set_cursor(appContext().wlPointer(), data->serial, cursorSurface_, 
-			cursorHotspot_.x, cursorHotspot_.y);
-
-		wl_surface_attach(cursorSurface_, cursorBuffer_, 0, 0);
-		wl_surface_damage(cursorSurface_, 0, 0, cursorSize_.x, cursorSize_.y);
-		wl_surface_commit(cursorSurface_);
-	}
+	// else if(event.type() == eventType::mouseCross)
+	// {
+	// 	auto& ev = static_cast<const MouseCrossEvent&>(event);
+	// 	if(!ev.entered) return false;
+	//
+	// 	auto data = dynamic_cast<WaylandEventData*>(event.data.get());
+	// 	if(!cursorSurface_ || !appContext().wlPointer() || !data) return false;
+	// 	
+	// 	wl_pointer_set_cursor(appContext().wlPointer(), data->serial, cursorSurface_, 
+	// 		cursorHotspot_.x, cursorHotspot_.y);
+	//
+	// 	wl_surface_attach(cursorSurface_, cursorBuffer_, 0, 0);
+	// 	wl_surface_damage(cursorSurface_, 0, 0, cursorSize_.x, cursorSize_.y);
+	// 	wl_surface_commit(cursorSurface_);
+	// }
 
 	return false;
 }

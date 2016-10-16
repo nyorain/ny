@@ -3,6 +3,7 @@
 #include <ny/backend/integration/cairo.hpp>
 
 #include <cairo/cairo.h>
+#include <nytl/vecOps.hpp>
 
 //used in the moment to test data sources and data offers, dragndrop and clipboard stuff
 
@@ -89,9 +90,13 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 	}
 	else if(ev.type() == ny::eventType::mouseButton)
 	{
-		//Initiate a dnd operation with the CustomDataSource
-		// ny::debug("Starting a dnd operation");
-		// appContext_.startDragDrop(std::make_unique<CustomDataSource>());
+		// initiate a dnd operation with the CustomDataSource
+		if(nytl::anyOf(static_cast<const ny::MouseButtonEvent&>(ev).position > 100))
+			return false;
+
+		auto ret = ac->startDragDrop(std::make_unique<CustomDataSource>());
+		ny::debug("Starting a dnd operation: ", ret);
+		return true;
 	}
 	else if(ev.type() == ny::eventType::draw)
 	{
@@ -117,10 +122,11 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 		if(!static_cast<const ny::KeyEvent&>(ev).pressed) return false;
 
 		//retrieving the clipboard DataOffer and listing all formats
+		ny::debug("checking clipboard...");
 		auto dataOffer = ac->clipboard();
 		if(!dataOffer)
 		{
-			ny::error("Backend does not support clipboard operations...");
+			ny::warning("Backend does not support clipboard operations...");
 		}
 		else
 		{
@@ -129,12 +135,17 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 			// trying to retrieve the data in text form and outputting it if successful
 			dataOffer->data(ny::dataType::text, 
 				[](const std::any& text, const ny::DataOffer&) {
-					if(!text.has_value()) return;
+					if(!text.has_value()) 
+					{
+						ny::warning("invalid text clipboard data offer");
+						return;
+					}
+
 					ny::debug("Received clipboard text data: ", std::any_cast<std::string>(text));
 				});
 		}
 
-		ny::debug("ayy result: ", ac->clipboard(std::make_unique<CustomDataSource>()));
+		// ny::debug("ayy result: ", ac->clipboard(std::make_unique<CustomDataSource>()));
 	}
 
 	return false;
