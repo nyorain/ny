@@ -66,6 +66,8 @@ int main()
 
 bool MyEventHandler::handleEvent(const ny::Event& ev)
 { 
+	static std::unique_ptr<ny::DataOffer> offer;
+
 	if(ev.type() == ny::eventType::close)
 	{
 		ny::debug("Window closed. Exiting.");
@@ -73,9 +75,15 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 	}
 	else if(ev.type() == ny::eventType::dataOffer)
 	{
-		auto& offer = reinterpret_cast<const ny::DataOfferEvent&>(ev).offer;
-		offer->data(ny::dataType::text, [](const std::any& text, const ny::DataOffer&, int) {
-			if(!text.has_value()) return;
+		ny::debug("offer event received");
+		offer = std::move(reinterpret_cast<const ny::DataOfferEvent&>(ev).offer);
+		offer->data(ny::dataType::text, [] (const std::any& text, const ny::DataOffer&, int) {
+			if(!text.has_value())
+			{
+				ny::debug("invalid dnd text data");
+				return;
+			}
+
 			ny::debug("Received dnd text data: ", std::any_cast<std::string>(text));
 		});
 	}

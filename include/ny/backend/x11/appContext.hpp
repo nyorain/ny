@@ -32,7 +32,7 @@ public:
 
 	//TODO
 	bool clipboard(std::unique_ptr<DataSource>&& dataSource) override;
-	std::unique_ptr<DataOffer> clipboard() override;
+	DataOffer* clipboard() override;
 	bool startDragDrop(std::unique_ptr<DataSource>&& dataSource) override;
 
 	std::vector<const char*> vulkanExtensions() const override;

@@ -94,6 +94,8 @@ public:
 ///was data dropped onto a window.
 ///It can then be used to determine the different data types in which the data can be represented
 ///or to retrieve the data in a supported format.
+///On Destruction, the DataOffer should trigger all waiting data callback without data to
+///signal them that they dont have to wait for it any longer since retrieval failed.
 class DataOffer
 {
 public:
@@ -105,6 +107,7 @@ public:
 	Callback<bool(DataOffer& off, unsigned int fmt)> onFormat;
 
 public:
+	DataOffer() = default;
 	virtual ~DataOffer() = default;
 
 	///Returns all currently known supported data representation formats.
@@ -143,7 +146,7 @@ public:
 	//XXX: should this be mutable?
 	//events are usually passed around as const (EventHandler::handleEvent) but the
 	//handler receiving this might wanna take ownership of the DataOffer implementation
-	//which is not (really??) possible with a const event.
+	//which is not possible with a const event.
     mutable std::unique_ptr<DataOffer> offer;
 };
 

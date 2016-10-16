@@ -89,6 +89,8 @@ WaylandAppContext::WaylandAppContext()
 	//we rountripped above
     if(!wlCompositor_) throw std::runtime_error("ny::WaylandAC: could not get compositor");
 	eventfd_ = eventfd(0, EFD_NONBLOCK);
+
+	if(wlSeat_ && wlDataManager_) dataDevice_ = std::make_unique<WaylandDataDevice>(*this);
 }
 
 WaylandAppContext::~WaylandAppContext()
@@ -100,7 +102,6 @@ WaylandAppContext::~WaylandAppContext()
 	if(eventfd_) close(eventfd_);
 
 	if(wlCursorTheme_) wl_cursor_theme_destroy(wlCursorTheme_);
-	if(wlDataDevice_) wl_data_device_destroy(wlDataDevice_);
 
 	if(keyboardContext_) keyboardContext_.reset();
 	if(mouseContext_) mouseContext_.reset();
@@ -230,24 +231,32 @@ WindowContextPtr WaylandAppContext::createWindowContext(const WindowSettings& se
 
 bool WaylandAppContext::clipboard(std::unique_ptr<DataSource>&& dataSource)
 {
-	nytl::unused(dataSource);
-	// wl_data_device_manager_create_data_source();
-	// wl_data_device_set_selection();
+	// nytl::unused(dataSource);
+	
+	auto src = new WaylandDataSource(*wlDataManager_, std::move(dataSource));
+	wl_data_device_set_selection(&dataDevice_->wlDataDevice(), &src->wlDataSource(), 0);
 }
-std::unique_ptr<DataOffer> WaylandAppContext::clipboard()
-{
-	if(clipboardOfferID_ >= dataOffers_.size()) return nullptr;
-	auto& offer = dataOffers_[clipboardOfferID_];
-	if(!offer.valid()) return nullptr;
 
-	return std::make_unique<WaylandDataOfferWrapper>(offer);
+DataOffer* WaylandAppContext::clipboard()
+{
+	return dataDevice_->clipboardOffer();
+
+	// if(clipboardOfferID_ >= dataOffers_.size()) return nullptr;
+	// auto& offer = dataOffers_[clipboardOfferID_];
+	// if(!offer.valid()) return nullptr;
+	// return &offer;
+
+	// return std::make_unique<WaylandDataOfferWrapper>(offer);
 	// return std::make_unique<WaylandDataOffer>(*this, *wlClipboardOffer_);
 }
+
 bool WaylandAppContext::startDragDrop(std::unique_ptr<DataSource>&& dataSource)
 {
-	nytl::unused(dataSource);
-	// wl_data_device_manager_create_data_source();
-	// wl_data_device_start_drag();
+	//see WaylandDataSource documentation for a reason why <new> is used here.
+	//this is not a leak!
+	auto src = new WaylandDataSource(*wlDataManager_, std::move(dataSource));
+	auto surf = &static_cast<WaylandWindowContext*>(mouseContext_->over())->wlSurface();
+	wl_data_device_start_drag(&dataDevice_->wlDataDevice(), &src->wlDataSource(), surf, nullptr, 0);
 }
 
 std::vector<const char*> WaylandAppContext::vulkanExtensions() const
@@ -257,23 +266,6 @@ std::vector<const char*> WaylandAppContext::vulkanExtensions() const
 	#else
 		return {};
 	#endif
-}
-
-void WaylandAppContext::clipboardOffer(wl_data_offer& offer)
-{
-	for(auto i = 0u; i < dataOffers_.size(); ++i)
-	{
-		if(&dataOffers_[i].wlDataOffer() == &offer) 
-		{
-			clipboardOfferID_ = i;
-			break;
-		}
-	}
-}
-
-void WaylandAppContext::dataOffer(wl_data_offer& offer)
-{
-	dataOffers_.emplace_back(*this, offer);
 }
 
 WaylandEglDisplay* WaylandAppContext::waylandEglDisplay()
@@ -456,27 +448,12 @@ void WaylandAppContext::registryAdd(unsigned int id, const char* cinterface, uns
     {
 		auto ptr = wl_registry_bind(wlRegistry_, id, &wl_data_device_manager_interface, 3);
         wlDataManager_ = {static_cast<wl_data_device_manager*>(ptr), id};
-
-		//TODO: add extra function for this (e.g. initExtraResources) that is called after
-		//all primary registry objects were received so we dont have to check here AND 
-		//on seat creation
-        if(wlSeat_ && !wlDataDevice_)
-        {
-            wlDataDevice_ = wl_data_device_manager_get_data_device(wlDataManager_, wlSeat_);
-            wl_data_device_add_listener(wlDataDevice_, &dataDeviceListener, this);
-        }
     }
     else if(interface == "wl_seat" && !wlSeat_)
     {
 		auto ptr = wl_registry_bind(wlRegistry_, id, &wl_seat_interface, 1);
         wlSeat_ = {static_cast<wl_seat*>(ptr), id};
         wl_seat_add_listener(wlSeat_, &seatListener, this);
-
-        if(wlDataManager_ && !wlDataDevice_)
-        {
-            wlDataDevice_ = wl_data_device_manager_get_data_device(wlDataManager_, wlSeat_);
-            wl_data_device_add_listener(wlDataDevice_, &dataDeviceListener, this);
-        }
     }
     else if(interface == "xdg_shell" && !xdgShell_)
     {

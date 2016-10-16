@@ -117,8 +117,14 @@ public:
 	///Retrieves the data stored in the systems clipboard, or an nullptr if there is none.
 	///The DataOffer implementation can then be used to get the data in the needed formats.
 	///If the clipboard is empty or cannot be retrieved, returns nullptr.
+	///Some backends also have no clipboard support at all, then nullptr should be returned
+	///as well.
+	///Note that the returned DataOffer (if any) is only guaranteed to be valid until the next
+	///dispatch call. If the clipboard content changes or is unset while there are still
+	///callbacks waiting for data in the requestes formats, they should be called
+	///without any data to signal that data retrieval failed.
 	///\sa DataOffer
-	virtual std::unique_ptr<DataOffer> clipboard() = 0;
+	virtual DataOffer* clipboard() = 0;
 
 	///Start a drag and drop action at the current cursor position.
 	///Note that this function might not return (running an internal event loop)

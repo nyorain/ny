@@ -218,66 +218,6 @@ const wl_keyboard_listener keyboardListener =
 	keyboardHandleRepeatInfo
 };
 
-
-//dataSourceListener
-void dataSourceTarget(void* data, wl_data_source* dataSource, const char* mimeType)
-{
-    std::cout << "target " << mimeType << std::endl;
-}
-void dataSourceSend(void* data, wl_data_source* dataSource, const char* mimeType, int fd)
-{
-    std::cout << "send " << mimeType << std::endl;
-}
-void dataSourceCancelled(void* data, wl_data_source* wl_data_source)
-{
-    std::cout << "cancelled" << std::endl;
-}
-const wl_data_source_listener dataSourceListener =
-{
-    dataSourceTarget,
-    dataSourceSend,
-    dataSourceCancelled
-};
-
-//dataDevice
-void dataDeviceOffer(void* data, wl_data_device* wl_data_device, wl_data_offer* id)
-{
-    auto* ac = static_cast<WaylandAppContext*>(data);
-	ac->dataOffer(*id);
-}
-void dataDeviceEnter(void* data, wl_data_device* wl_data_device, unsigned int serial, 
-	wl_surface* surface, wl_fixed_t x, wl_fixed_t y, wl_data_offer* id)
-{
-    std::cout << "deviceEnter" << std::endl;
-}
-void dataDeviceLeave(void* data, wl_data_device* wl_data_device)
-{
-    std::cout << "deviceLeave" << std::endl;
-}
-void dataDeviceMotion(void* data, wl_data_device* wl_data_device, unsigned int time, 
-	wl_fixed_t x, wl_fixed_t y)
-{
-    std::cout << "deviceMotion" << std::endl;
-}
-void dataDeviceDrop(void* data, wl_data_device* wl_data_device)
-{
-    std::cout << "deviceDrop" << std::endl;
-}
-void dataDeviceSelection(void* data, wl_data_device* wl_data_device, wl_data_offer* id)
-{
-    auto* ac = static_cast<WaylandAppContext*>(data);
-	ac->clipboardOffer(*id);
-}
-const wl_data_device_listener dataDeviceListener =
-{
-    dataDeviceOffer,
-    dataDeviceEnter,
-    dataDeviceLeave,
-    dataDeviceMotion,
-    dataDeviceDrop,
-    dataDeviceSelection
-};
-
 //xdg-shell
 void xdgShellPing(void* data, struct xdg_shell* shell, uint32_t serial)
 {

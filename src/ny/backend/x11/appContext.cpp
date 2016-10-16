@@ -542,12 +542,19 @@ bool X11AppContext::threadedDispatchLoop(EventDispatcher& dispatcher, LoopContro
 
 bool X11AppContext::clipboard(std::unique_ptr<DataSource>&& dataSource)
 {
+	unused(dataSource);
+	return false;
 }
-std::unique_ptr<DataOffer> X11AppContext::clipboard()
+
+DataOffer* X11AppContext::clipboard()
 {
+	return nullptr;
 }
+
 bool X11AppContext::startDragDrop(std::unique_ptr<DataSource>&& dataSource)
 {
+	unused(dataSource);
+	return false;
 }
 
 std::vector<const char*> X11AppContext::vulkanExtensions() const
