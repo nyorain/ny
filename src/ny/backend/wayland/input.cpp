@@ -257,9 +257,10 @@ void WaylandKeyboardContext::handleLeave(unsigned int serial, wl_surface& surfac
 	keyStates_.reset();
 	focus_ = nullptr;
 }
-void WaylandKeyboardContext::handleKey(unsigned int serial, unsigned int time, 
+void WaylandKeyboardContext::handleKey(unsigned int xserial, unsigned int time, 
 	unsigned int key, bool pressed)
 {
+	this->serial = xserial;
 	nytl::unused(time);
 
 	if(focus_ && focus_->eventHandler())

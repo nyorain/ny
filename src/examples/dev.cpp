@@ -134,7 +134,7 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 				});
 		}
 
-		ny::debug("aryy");
+		ny::debug("ayy result: ", ac->clipboard(std::make_unique<CustomDataSource>()));
 	}
 
 	return false;

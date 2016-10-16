@@ -234,7 +234,9 @@ bool WaylandAppContext::clipboard(std::unique_ptr<DataSource>&& dataSource)
 	// nytl::unused(dataSource);
 	
 	auto src = new WaylandDataSource(*wlDataManager_, std::move(dataSource));
-	wl_data_device_set_selection(&dataDevice_->wlDataDevice(), &src->wlDataSource(), 0);
+	wl_data_device_set_selection(&dataDevice_->wlDataDevice(), &src->wlDataSource(), 
+		keyboardContext_->serial);
+	return true;
 }
 
 DataOffer* WaylandAppContext::clipboard()

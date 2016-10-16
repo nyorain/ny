@@ -65,6 +65,8 @@ public:
     void handleModifiers(unsigned int serial, unsigned int mdepressed, unsigned int mlatched, 
 		unsigned int mlocked, unsigned int group);
 
+	unsigned int serial = 0;
+
 protected:
 	WaylandAppContext& appContext_;
 	WindowContext* focus_ {};

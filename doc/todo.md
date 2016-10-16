@@ -16,5 +16,5 @@ when reworking gl:
 - example egl/wayland: is EglContextGuard really needed? WaylandEglDisplay sufficient?
 
 wayland backend:
-- DrawIntegrations WC::shown_ impl
+- store last dispatched event serials, fix them for data impl (remove clilpboard hack)
 - animated cursor (low prio)
