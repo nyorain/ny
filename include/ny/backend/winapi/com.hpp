@@ -2,8 +2,8 @@
 
 #include <ny/include.hpp>
 #include <ny/base/data.hpp>
+#include <ny/backend/winapi/windows.hpp>
 
-#include <windows.h>
 #include <ole2.h>
 
 #include <atomic>
@@ -94,9 +94,9 @@ template<typename T, const GUID&... ids>
 class UnknownImplementation : public T
 {
 public:
- 	__stdcall HRESULT QueryInterface(REFIID riid, void** ppv) override;
-  	__stdcall ULONG AddRef() override;
-  	__stdcall ULONG Release() override;
+	 __stdcall HRESULT QueryInterface(REFIID riid, void** ppv) override;
+	  __stdcall ULONG AddRef() override;
+	  __stdcall ULONG Release() override;
 
 protected:
 	volatile std::atomic<unsigned int> refCount_ {0};
@@ -137,15 +137,15 @@ class DataObjectImpl : public UnknownImplementation<IDataObject, IID_IDataObject
 public:
 	DataObjectImpl(std::unique_ptr<DataSource> src);
 
-    __stdcall HRESULT GetData(FORMATETC*, STGMEDIUM*) override;
-    __stdcall HRESULT GetDataHere(FORMATETC*, STGMEDIUM*) override;
-    __stdcall HRESULT QueryGetData(FORMATETC*) override;
-    __stdcall HRESULT GetCanonicalFormatEtc(FORMATETC*, FORMATETC*) override;
-    __stdcall HRESULT SetData(FORMATETC*, STGMEDIUM*, BOOL) override;
-    __stdcall HRESULT EnumFormatEtc(DWORD, IEnumFORMATETC**) override;
-    __stdcall HRESULT DAdvise(FORMATETC*, DWORD, IAdviseSink*, DWORD*) override;
-    __stdcall HRESULT DUnadvise(DWORD) override;
-    __stdcall HRESULT EnumDAdvise(IEnumSTATDATA**) override;
+	__stdcall HRESULT GetData(FORMATETC*, STGMEDIUM*) override;
+	__stdcall HRESULT GetDataHere(FORMATETC*, STGMEDIUM*) override;
+	__stdcall HRESULT QueryGetData(FORMATETC*) override;
+	__stdcall HRESULT GetCanonicalFormatEtc(FORMATETC*, FORMATETC*) override;
+	__stdcall HRESULT SetData(FORMATETC*, STGMEDIUM*, BOOL) override;
+	__stdcall HRESULT EnumFormatEtc(DWORD, IEnumFORMATETC**) override;
+	__stdcall HRESULT DAdvise(FORMATETC*, DWORD, IAdviseSink*, DWORD*) override;
+	__stdcall HRESULT DUnadvise(DWORD) override;
+	__stdcall HRESULT EnumDAdvise(IEnumSTATDATA**) override;
 
 protected:
 	///Returns the dataType id of the supported types that matches the given format.
@@ -194,7 +194,7 @@ template<typename T, const GUID&... ids> ULONG
 UnknownImplementation<T, ids...>::Release()
 {
 	if(refCount_-- == 0) delete this;
-    return refCount_;
+	return refCount_;
 }
 
 } //namespace com

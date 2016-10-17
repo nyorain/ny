@@ -14,6 +14,7 @@ namespace ny
 namespace
 {
 
+//TODO: use dummy window from AppContext
 //Utilty winapi window wrapper following RAII
 class WinapiWindow
 {
@@ -116,12 +117,12 @@ void WglContext::init(const GlContextSettings& settings)
 	assureWglLoaded(); //will load functions and assure there is a dummy context bound
 	initPixelFormat(24, 8);
 	auto pfd = pixelFormatDescriptor();
-    ::SetPixelFormat(dc_, pixelFormat_, &pfd);
+	::SetPixelFormat(dc_, pixelFormat_, &pfd);
 
 	createContext();
 	makeCurrent();
 
-    GlContext::initContext(Api::gl, 24, 8);
+	GlContext::initContext(Api::gl, 24, 8);
 	if(settings.vsync) activateVsync();
 	if(settings.storeContext) *settings.storeContext = this;
 }
@@ -130,17 +131,17 @@ void WglContext::initPixelFormat(unsigned int depth, unsigned int stencil)
 {
 	if(GLAD_WGL_ARB_pixel_format)
 	{
-	    int attr[] =
-        {
-            WGL_DRAW_TO_WINDOW_ARB, true,
-            WGL_SUPPORT_OPENGL_ARB, true,
-            WGL_DOUBLE_BUFFER_ARB,  true,
+		int attr[] =
+		{
+			WGL_DRAW_TO_WINDOW_ARB, true,
+			WGL_SUPPORT_OPENGL_ARB, true,
+			WGL_DOUBLE_BUFFER_ARB,  true,
 			WGL_DEPTH_BITS_ARB, 	static_cast<int>(depth),
 			WGL_STENCIL_BITS_ARB, 	static_cast<int>(stencil),
 			WGL_DOUBLE_BUFFER_ARB,	true,
-            WGL_PIXEL_TYPE_ARB,     WGL_TYPE_RGBA_ARB,
-            0,                      0
-        };
+			WGL_PIXEL_TYPE_ARB,     WGL_TYPE_RGBA_ARB,
+			0,                      0
+		};
 
 		unsigned int c;
 		if(wglChoosePixelFormatARB(dc_, attr, nullptr, 1, &pixelFormat_, &c) && c > 0) return;
@@ -240,7 +241,7 @@ bool WglContext::makeNotCurrentImpl()
 bool WglContext::apply()
 {
 	GlContext::apply();
-    auto ret = ::SwapBuffers(dc_);
+	auto ret = ::SwapBuffers(dc_);
 	if(!ret) warning(errorMessage("Wgl::apply (SwapBuffer)"));
 	return ret;
 }
@@ -249,7 +250,7 @@ bool WglContext::apply()
 WglWindowContext::WglWindowContext(WinapiAppContext& ctx, const WinapiWindowSettings& settings)
 {
 	appContext_ = &ctx;
-    if(!hinstance()) throw std::runtime_error("winapiWC::create: uninitialized appContext");
+	if(!hinstance()) throw std::runtime_error("winapiWC::create: uninitialized appContext");
 
 	WinapiWindowContext::initWindowClass(settings);
 	WinapiWindowContext::setStyle(settings);

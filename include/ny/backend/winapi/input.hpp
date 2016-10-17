@@ -7,6 +7,8 @@
 namespace ny
 {
 
+//TODO: set over and focus (from AppContext)
+//TODO: call callbacks correctly (trigger events from AppContext)
 ///Winapi MouseContext implementation.
 class WinapiMouseContext : public MouseContext
 {
@@ -19,6 +21,7 @@ public:
 
 protected:
 	WinapiAppContext& context_;
+	WinapiWindowContext* over_ {};
 };
 
 ///Winapi KeyboardContext implementation.
@@ -27,14 +30,13 @@ class WinapiKeyboardContext : public KeyboardContext
 public:
 	WinapiKeyboardContext(WinapiAppContext& context) : context_(context) {}
 
-	bool pressed(Key key) const override;
-	std::string unicode(Key key) const override;
+	bool pressed(Keycode) const override;
+	std::string utf8(Keycode, bool currentState = false) const override;
 	WindowContext* focus() const override;
-
-	std::string unicode(unsigned int vkcode) const;
 
 protected:
 	WinapiAppContext& context_;
+	WinapiWindowContext* focus_ {};
 };
 
 }

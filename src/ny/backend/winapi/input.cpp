@@ -1,6 +1,7 @@
 #include <ny/backend/winapi/input.hpp>
 #include <ny/backend/winapi/windows.hpp>
 #include <ny/backend/winapi/util.hpp>
+#include <ny/backend/winapi/windowContext.hpp>
 #include <nytl/utf.hpp>
 
 namespace ny
@@ -23,29 +24,33 @@ bool WinapiMouseContext::pressed(MouseButton button) const
 }
 WindowContext* WinapiMouseContext::over() const
 {
-
+	return over_;
 }
 
-bool WinapiKeyboardContext::pressed(Key key) const
+bool WinapiKeyboardContext::pressed(Keycode key) const
 {
-	auto keyState = ::GetAsyncKeyState(keyToWinapi(key));
+	auto keyState = ::GetAsyncKeyState(keycodeToWinapi(key));
 	return ((1 << 16) & keyState);
 }
-std::string WinapiKeyboardContext::unicode(Key key) const
+
+std::string WinapiKeyboardContext::utf8(Keycode keycode, bool currentState) const
 {
-	return unicode(keyToWinapi(key));
+	auto vkcode = keycodeToWinapi(keycode);
+
+	uint8_t state[256] {0};
+	if(currentState) ::GetKeyboardState(state);
+
+	wchar_t utf16[64];
+	auto bytes = ::ToUnicode(vkcode, MapVirtualKey(vkcode, MAPVK_VK_TO_VSC), state, utf16, 6, 0);
+	if(bytes <= 0) return {};
+
+	utf16[bytes] = '\0';
+	return nytl::toUtf8(static_cast<const wchar_t*>(utf16));
 }
-std::string WinapiKeyboardContext::unicode(unsigned int vkcode) const
-{
-	std::uint8_t kb[256];
-	::GetKeyboardState(kb);
-	wchar_t unicode[6];
-	::ToUnicode(vkcode, MapVirtualKey(vkcode, MAPVK_VK_TO_VSC), kb, unicode, 6, 0);
-	return nytl::toUtf8(unicode);
-}
+
 WindowContext* WinapiKeyboardContext::focus() const
 {
-
+	return focus_;
 }
 
 }

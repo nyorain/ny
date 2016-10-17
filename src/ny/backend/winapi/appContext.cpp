@@ -25,7 +25,6 @@
 #include <nytl/utf.hpp>
 #include <nytl/scope.hpp>
 
-#include <windowsx.h>
 #include <ole2.h>
 
 #include <stdexcept>
@@ -77,40 +76,51 @@ LRESULT CALLBACK WinapiAppContext::dlgProcCallback(HWND a, UINT b, WPARAM c, LPA
 //WinapiAC
 WinapiAppContext::WinapiAppContext() : mouseContext_(*this), keyboardContext_(*this)
 {
-    instance_ = GetModuleHandle(nullptr);
-
-	//XXX: is this check needed?
-    if(instance_ == nullptr)
-    {
-        throw std::runtime_error("winapiAppContext: could not get hInstance");
-        return;
-    }
+	instance_ = GetModuleHandle(nullptr);
 
 	//start gdiplus since some GdiDrawContext functions need it
-    GetStartupInfo(&startupInfo_);
-    GdiplusStartup(&gdiplusToken_, &gdiplusStartupInput_, nullptr);
+	GetStartupInfo(&startupInfo_);
+	GdiplusStartup(&gdiplusToken_, &gdiplusStartupInput_, nullptr);
 
 	//needed for dnd and clipboard
 	auto res = ::OleInitialize(nullptr);
-	// auto res = ::CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 	if(res != S_OK) warning("WinapiWC: OleInitialize failed with code ", res);
+
+	//init dummy window (needed as clipboard viewer)
+	//TODO: use this window also for dummy wgl context init (see wgl.cpp)
+	dummyWindow_ = ::CreateWindow("STATIC", "", WS_DISABLED, 0, 0, 10, 10, nullptr, nullptr,
+		hinstance(), nullptr);
+
+	//we must load AddClipboardFormatListener dynamically since it does not link correctly
+	//with mingw and is not supported for windows versions before vista
+	//It is not really needed to call this function since we check for new clipboard content
+	//anyways everytime clipboard() is called.
+	//But this can free the old clipboard DataOffer object as soon as the clipboard
+	//changes and create the new one.
+	auto lib = ::LoadLibrary("User32.dll");
+	if(lib)
+	{
+		auto func = ::GetProcAddress(lib, "AddClipboardFormatListener");
+		if(!func) warning("ny::WinapiAC: Failed to retrieve AddClipboardFormatListener");
+		else (reinterpret_cast<BOOL(*)(HWND)>(func))(dummyWindow_);
+		::FreeLibrary(lib);
+	}
 }
 
 WinapiAppContext::~WinapiAppContext()
 {
-	// Font::defaultFont().resetCache("ny::GdiFontHandle");
-    if(gdiplusToken_) Gdiplus::GdiplusShutdown(gdiplusToken_);
-	OleUninitialize();
-	// ::CoUninitialize();
+	if(dummyWindow_) ::DestroyWindow(dummyWindow_);
+	if(gdiplusToken_) Gdiplus::GdiplusShutdown(gdiplusToken_);
+	::OleUninitialize();
 }
 
 std::unique_ptr<WindowContext> WinapiAppContext::createWindowContext(const WindowSettings& settings)
 {
-    WinapiWindowSettings winapiSettings;
-    const WinapiWindowSettings* ws = dynamic_cast<const WinapiWindowSettings*>(&settings);
+	WinapiWindowSettings winapiSettings;
+	const WinapiWindowSettings* ws = dynamic_cast<const WinapiWindowSettings*>(&settings);
 
-    if(ws) winapiSettings = *ws;
-    else winapiSettings.WindowSettings::operator=(settings);
+	if(ws) winapiSettings = *ws;
+	else winapiSettings.WindowSettings::operator=(settings);
 
 	auto contextType = settings.context;
 	if(contextType == ContextType::gl)
@@ -150,9 +160,9 @@ bool WinapiAppContext::dispatchEvents()
 	pendingEvents_.clear();
 
 	receivedQuit_ = false;
-    MSG msg;
+	MSG msg;
 
-    while(PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
+	while(PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
 	{
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
@@ -230,7 +240,7 @@ bool WinapiAppContext::threadedDispatchLoop(EventDispatcher& dispatcher,
 	{
 		for(auto& e : pendingEvents_) if(e->handler) e->handler->handleEvent(*e);
 		pendingEvents_.clear();
-		
+
 		auto ret = GetMessage(&msg, nullptr, 0, 0);
 		if(ret == -1)
 		{
@@ -257,12 +267,20 @@ bool WinapiAppContext::clipboard(std::unique_ptr<DataSource>&& source)
 	return(::OleSetClipboard(dataObj) == S_OK);
 }
 
-std::unique_ptr<DataOffer> WinapiAppContext::clipboard()
+DataOffer* WinapiAppContext::clipboard()
 {
-	IDataObject* obj;
-	::OleGetClipboard(&obj);
-	if(!obj) return nullptr;
-	return std::make_unique<winapi::DataOfferImpl>(*obj);
+	auto seq = GetClipboardSequenceNumber();
+	if(!clipboardOffer_ || seq > clipboardSequenceNumber_)
+	{
+		clipboardOffer_ = nullptr;
+		clipboardSequenceNumber_ = seq;
+
+		IDataObject* obj;
+		::OleGetClipboard(&obj);
+		if(obj) clipboardOffer_ = std::make_unique<winapi::DataOfferImpl>(*obj);
+	}
+
+	return clipboardOffer_.get();
 }
 
 bool WinapiAppContext::startDragDrop(std::unique_ptr<DataSource>&& source)
@@ -302,7 +320,7 @@ void WinapiAppContext::dispatch(Event&& event)
 //wndProc
 LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LPARAM lparam)
 {
-    //todo: implement all events correctly, look em up
+	//todo: implement all events correctly, look em up
 	auto context = windowContext(window);
 	auto handler = context ? context->eventHandler() : nullptr;
 
@@ -315,16 +333,16 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 	//to be returned
 	LRESULT result = 0;
 
-    switch(message)
-    {
-        case WM_CREATE:
-        {
+	switch(message)
+	{
+		case WM_CREATE:
+		{
 			result = DefWindowProc(window, message, wparam, lparam);
 			break;
-        }
+		}
 
-        case WM_MOUSEMOVE:
-        {
+		case WM_MOUSEMOVE:
+		{
 			Vec2i position{GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
 
 			if(!mouseOver_ || mouseOver_->handle() != window)
@@ -347,7 +365,7 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 			}
 
 			break;
-        }
+		}
 
 		case WM_MOUSELEAVE:
 		{
@@ -363,7 +381,7 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 		}
 
 		case WM_LBUTTONDOWN:
-        {
+		{
 			if(handler)
 			{
 				MouseButtonEvent ev(handler);
@@ -373,10 +391,10 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 				dispatch(ev);
 			}
 			break;
-        }
+		}
 
 		case WM_LBUTTONUP:
-        {
+		{
 			if(handler)
 			{
 				MouseButtonEvent ev(handler);
@@ -387,15 +405,15 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 			}
 
 			break;
-        }
+		}
 
 		case WM_KEYDOWN:
 		{
 			if(handler)
 			{
 				KeyEvent ev(handler);
-				ev.key = winapiToKey(wparam);
-				ev.unicode = keyboardContext_.unicode(wparam);
+				ev.keycode = winapiToKeycode(wparam);
+				ev.unicode = keyboardContext_.utf8(ev.keycode, true);
 				ev.pressed = true;
 				dispatch(ev);
 			}
@@ -408,8 +426,8 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 			if(handler)
 			{
 				KeyEvent ev(handler);
-				ev.key = winapiToKey(wparam);
-				ev.unicode = keyboardContext_.unicode(wparam);
+				ev.keycode = winapiToKeycode(wparam);
+				ev.unicode = keyboardContext_.utf8(ev.keycode, true);
 				ev.pressed = false;
 				dispatch(ev);
 			}
@@ -417,17 +435,17 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 			break;
 		}
 
-        case WM_PAINT:
-        {
+		case WM_PAINT:
+		{
 			if(handler)
 			{
 				DrawEvent ev(handler);
 				dispatch(ev);
 			}
 
-            result = DefWindowProc(window, message, wparam, lparam); //to validate the window
+			result = DefWindowProc(window, message, wparam, lparam); //to validate the window
 			break;
-        }
+		}
 
 		case WM_DESTROY:
 		{
@@ -440,8 +458,8 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 			break;
 		}
 
-        case WM_SIZE:
-        {
+		case WM_SIZE:
+		{
 			if(handler)
 			{
 				SizeEvent ev(handler);
@@ -451,10 +469,10 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 			}
 
 			break;
-        }
+		}
 
-        case WM_MOVE:
-        {
+		case WM_MOVE:
+		{
 			if(handler)
 			{
 				PositionEvent ev(handler);
@@ -462,7 +480,7 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 			}
 
 			break;
-        }
+		}
 
 		case WM_SYSCOMMAND:
 		{
@@ -491,11 +509,22 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 			break;
 		}
 
-        case WM_ERASEBKGND:
-        {
+		case WM_ERASEBKGND:
+		{
 			result = 1;
 			break;
-        }
+		}
+
+		case WM_CLIPBOARDUPDATE:
+		{
+			clipboardSequenceNumber_ = ::GetClipboardSequenceNumber();
+			clipboardOffer_.reset();
+
+			IDataObject* obj;
+			::OleGetClipboard(&obj);
+			if(obj) clipboardOffer_ = std::make_unique<winapi::DataOfferImpl>(*obj);
+			break;
+		}
 
 		case WM_QUIT:
 		{
@@ -509,7 +538,7 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 			result = DefWindowProc(window, message, wparam, lparam);
 			break;
 		}
-    }
+	}
 
 	return result;
 }

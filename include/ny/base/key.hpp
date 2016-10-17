@@ -73,7 +73,7 @@ enum class Keycode : unsigned int
 	k,
 	l,
 	semicolon,
-	aporstrophe,
+	apostrophe,
 	grave,
 	leftshift,
 	backslash,
@@ -410,7 +410,7 @@ enum class Keycode : unsigned int
 	fnS,
 	fnB,
 
-	brlDot1 = 0x1f1, 
+	brlDot1 = 0x1f1,
 	brlDot2,
 	brlDot3,
 	brlDot4,
@@ -498,7 +498,7 @@ enum class Keycode : unsigned int
 	slowreverse,
 
 	data = fastreverse,
-	
+
 	extra = 0x10000,
 };
 

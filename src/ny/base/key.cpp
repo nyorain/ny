@@ -8,7 +8,7 @@ constexpr struct Mapping
 {
 	Keycode keycode;
 	const char* name;
-} mappings[] = 
+} mappings[] =
 {
 	{Keycode::escape, "escape"},
 
@@ -24,7 +24,7 @@ constexpr struct Mapping
 	{Keycode::k0, "0"},
 	{Keycode::minus, "minus"},
 	{Keycode::equals, "equals"},
-	{Keycode::backslash, "backslash"},
+	{Keycode::backspace, "backspace"},
 	{Keycode::tab, "tab"},
 
 	{Keycode::q, "q"},
@@ -52,7 +52,7 @@ constexpr struct Mapping
 	{Keycode::k, "k"},
 	{Keycode::l, "l"},
 	{Keycode::semicolon, "semicolon"},
-	{Keycode::aporstrophe, "aporstrophe"},
+	{Keycode::apostrophe, "apostrophe"},
 	{Keycode::grave, "grave"},
 	{Keycode::leftshift, "leftshift"},
 	{Keycode::backslash, "backslash"},
@@ -216,7 +216,7 @@ constexpr struct Mapping
 	{Keycode::f22, "f22"},
 	{Keycode::f23, "f23"},
 	{Keycode::f24, "f24"},
-	
+
 	{Keycode::playcd, "playcd"},
 	{Keycode::pausecd, "pausecd"},
 	{Keycode::prog3, "prog3"},

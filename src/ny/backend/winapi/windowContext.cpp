@@ -33,9 +33,9 @@ const char* WinapiWindowContext::nativeWidgetClassName(NativeWidgetType type)
 WinapiWindowContext::WinapiWindowContext(WinapiAppContext& appContext,
 	const WinapiWindowSettings& settings)
 {
-    //init check
+	//init check
 	appContext_ = &appContext;
-    if(!hinstance()) throw std::runtime_error("winapiWC::create: uninitialized appContext");
+	if(!hinstance()) throw std::runtime_error("winapiWC::create: uninitialized appContext");
 
 	initWindowClass(settings);
 	setStyle(settings);
@@ -61,12 +61,12 @@ WinapiWindowContext::~WinapiWindowContext()
 	if(icon_)
 	{
 		PostMessage(handle(), WM_SETICON, ICON_BIG, (LPARAM) nullptr);
-        PostMessage(handle(), WM_SETICON, ICON_SMALL, (LPARAM) nullptr);
+		PostMessage(handle(), WM_SETICON, ICON_SMALL, (LPARAM) nullptr);
 		::DestroyIcon(icon_);
 		icon_ = nullptr;
 	}
 
-    if(handle_)
+	if(handle_)
 	{
 		::SetWindowLongPtr(handle_, GWLP_USERDATA, (LONG_PTR)nullptr);
 		::DestroyWindow(handle_);
@@ -163,7 +163,7 @@ void WinapiWindowContext::initDialog(const WinapiWindowSettings& settings)
 
 void WinapiWindowContext::showWindow(const WinapiWindowSettings& settings)
 {
-	if(!settings.initShown) return;
+	if(!settings.show) return;
 
 	if(settings.initState == ToplevelState::maximized) {
 		::ShowWindowAsync(handle_, SW_SHOWMAXIMIZED);
@@ -183,7 +183,7 @@ HINSTANCE WinapiWindowContext::hinstance() const
 
 void WinapiWindowContext::refresh()
 {
-    ::RedrawWindow(handle_, nullptr, nullptr, RDW_INVALIDATE | RDW_NOERASE);
+	::RedrawWindow(handle_, nullptr, nullptr, RDW_INVALIDATE | RDW_NOERASE);
 }
 
 void WinapiWindowContext::show()
@@ -365,9 +365,9 @@ void WinapiWindowContext::fullscreen()
 	savedState_.extents = extents();
 	if(::IsZoomed(handle())) savedState_.state = 1;
 
- 	MONITORINFO monitorinfo;
-  	monitorinfo.cbSize = sizeof(monitorinfo);
-    ::GetMonitorInfo(::MonitorFromWindow(handle(), MONITOR_DEFAULTTONEAREST), &monitorinfo);
+	 MONITORINFO monitorinfo;
+	  monitorinfo.cbSize = sizeof(monitorinfo);
+	::GetMonitorInfo(::MonitorFromWindow(handle(), MONITOR_DEFAULTTONEAREST), &monitorinfo);
 	auto& rect = monitorinfo.rcMonitor;
 	rect.right -= rect.left;
 	rect.bottom -= rect.top;
@@ -426,7 +426,7 @@ void WinapiWindowContext::icon(const ImageData& imgdata)
 	if(!imgdata.data)
 	{
 		::PostMessage(handle(), WM_SETICON, ICON_BIG, (LPARAM) nullptr);
-        ::PostMessage(handle(), WM_SETICON, ICON_SMALL, (LPARAM) nullptr);
+		::PostMessage(handle(), WM_SETICON, ICON_SMALL, (LPARAM) nullptr);
 		return;
 	}
 
@@ -445,7 +445,7 @@ void WinapiWindowContext::icon(const ImageData& imgdata)
 	}
 
 	icon_ = ::CreateIcon(hinstance(), imgdata.size.x, imgdata.size.y, 1, 32, nullptr, pixelsData);
-   	if(!icon_)
+	   if(!icon_)
 	{
 		warning("WinapiWindowContext::icon: Failed to create winapi icon handle");
 		return;
@@ -524,7 +524,7 @@ WinapiDrawIntegration::~WinapiDrawIntegration()
 }
 
 // COLORREF custcolors[16];
-// 
+//
 // ::CHOOSECOLOR cc {};
 // cc.hwndOwner = static_cast<ny::WinapiWindowContext&>(*wc).handle();
 // cc.lStructSize = sizeof(cc);
@@ -533,4 +533,3 @@ WinapiDrawIntegration::~WinapiDrawIntegration()
 // // cc.Flags = CC_ANYCOLOR | CC_FULLOPEN | CC_ENABLEHOOK;
 // // cc.lpfnHook = reinterpret_cast<LPCCHOOKPROC>(&::DefWindowProc);
 // ::ChooseColor(&cc);
-

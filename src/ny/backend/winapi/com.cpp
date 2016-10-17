@@ -81,7 +81,7 @@ CbConn DataOfferImpl::data(unsigned int format, const DataFunction& func)
 
 	//always call the given function (empty any on failure)
 	auto callGuard = nytl::makeScopeGuard([&]{
-		func(*this, format, any);
+		func(any, *this, format);
 	});
 
 	auto it = typeFormats_.find(format);
@@ -193,9 +193,9 @@ bool DropTargetImpl::supported(IDataObject& data)
 //DropSourceImpl
 HRESULT DropSourceImpl::QueryContinueDrag(BOOL fEscapePressed, DWORD grfKeyState)
 {
-    if(fEscapePressed) return DRAGDROP_S_CANCEL;
-    if(!(grfKeyState & MK_LBUTTON)) return DRAGDROP_S_DROP;
-    return S_OK;
+	if(fEscapePressed) return DRAGDROP_S_CANCEL;
+	if(!(grfKeyState & MK_LBUTTON)) return DRAGDROP_S_DROP;
+	return S_OK;
 }
 HRESULT DropSourceImpl::GiveFeedback(DWORD dwEffect)
 {
@@ -235,16 +235,16 @@ HRESULT DataObjectImpl::QueryGetData(FORMATETC* format)
 HRESULT DataObjectImpl::GetCanonicalFormatEtc(FORMATETC*, FORMATETC* formatOut)
 {
 	formatOut->ptd = nullptr;
-    return E_NOTIMPL;
+	return E_NOTIMPL;
 }
 HRESULT DataObjectImpl::SetData(FORMATETC*, STGMEDIUM*, BOOL)
 {
-    return E_NOTIMPL;
+	return E_NOTIMPL;
 }
 HRESULT DataObjectImpl::EnumFormatEtc(DWORD direction, IEnumFORMATETC** formatOut)
 {
-    if(direction != DATADIR_GET) return E_NOTIMPL;
-    else return SHCreateStdEnumFmtEtc(formats_.size(), formats_.data(), formatOut);
+	if(direction != DATADIR_GET) return E_NOTIMPL;
+	else return SHCreateStdEnumFmtEtc(formats_.size(), formats_.data(), formatOut);
 }
 HRESULT DataObjectImpl::DAdvise(FORMATETC*, DWORD, IAdviseSink*, DWORD*)
 {

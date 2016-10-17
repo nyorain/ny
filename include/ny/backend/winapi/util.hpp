@@ -6,8 +6,8 @@
 namespace ny
 {
 
-Key winapiToKey(unsigned int code);
-unsigned int keyToWinapi(Key key);
+Keycode winapiToKeycode(unsigned int code);
+unsigned int keycodeToWinapi(Keycode key);
 
 unsigned int buttonToWinapi(MouseButton button);
 MouseButton winapiToButton(unsigned int code);
