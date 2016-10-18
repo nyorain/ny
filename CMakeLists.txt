@@ -60,7 +60,7 @@ include(CMakeDependentOption)
 cmake_dependent_option(WithGL "Build ny with gl support" on
 	"OPENGL_FOUND" off)
 cmake_dependent_option(WithEGL "Built ny with egl support" on
-	"OPENGL_FOUND;EGL_FOUND" off)
+	"WithGL;EGL_FOUND" off)
 cmake_dependent_option(WithVulkan "Build ny with vulkan support" on
 	"VULKAN_FOUND" off)
 cmake_dependent_option(WithCairo "Build with cairo integration" on

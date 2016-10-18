@@ -11,6 +11,9 @@
 #include <map>
 #include <memory>
 
+typedef struct __GLXcontextRec* GLXContext;
+typedef struct __GLXFBConfigRec* GLXFBConfig;
+
 namespace ny
 {
 
@@ -48,9 +51,12 @@ public:
     void unregisterContext(xcb_window_t w);
     X11WindowContext* windowContext(xcb_window_t win);
 	EventHandler* eventHandler(xcb_window_t w);
-	void bell(); //rings the bell 
+	void bell(); 
 
 	xcb_atom_t atom(const std::string& name);
+
+	//returns nullptr on failure or if ny was built without gl
+	GLXContext glxContext(GLXFBConfig fbc) const;
 
 protected:
     Display* xDisplay_  = nullptr;
@@ -67,6 +73,11 @@ protected:
 
 	std::unique_ptr<X11MouseContext> mouseContext_;
 	std::unique_ptr<X11KeyboardContext> keyboardContext_;
+
+	//used for built-config dependent members like e.g. GlxContexts
+	//can also be used to add members while keeping the changes abi-compatible
+	struct Impl;
+	std::unique_ptr<Impl> impl_;
 
 protected:
     bool processEvent(xcb_generic_event_t& ev, EventDispatcher* dispatcher = nullptr);

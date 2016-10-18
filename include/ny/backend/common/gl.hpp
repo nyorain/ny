@@ -124,6 +124,7 @@ public:
 	///Alternative name(may not be matching for all backends though) would be swapBuffers().
 	virtual bool apply();
 
+	//TODO: use nytl::StringParam
 	///Returns a proc addr for a given function name or nullptr if it could not be found.
 	virtual void* procAddr(const char*) const { return nullptr; }
 

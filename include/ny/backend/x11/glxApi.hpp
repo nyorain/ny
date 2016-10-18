@@ -41,7 +41,6 @@
 #include <X11/X.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
-#include <evg/gl/api.h>
 
 #ifndef __glad_glxext_h_
 
@@ -440,7 +439,7 @@ GLAPI PFNGLXGETSELECTEDEVENTPROC glad_glXGetSelectedEvent;
 #ifndef GLX_VERSION_1_4
 #define GLX_VERSION_1_4 1
 GLAPI int GLAD_GLX_VERSION_1_4;
-typedef __GLXextFuncPtr (APIENTRYP PFNGLXGETPROCADDRESSPROC)(const GLubyte* procName);
+typedef __GLXextFuncPtr (APIENTRYP PFNGLXGETPROCADDRESSPROC)(const char* procName);
 GLAPI PFNGLXGETPROCADDRESSPROC glad_glXGetProcAddress;
 #define glXGetProcAddress glad_glXGetProcAddress
 #endif

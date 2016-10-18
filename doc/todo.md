@@ -18,3 +18,6 @@ when reworking gl:
 wayland backend:
 - store last dispatched event serials, fix them for data impl (remove clilpboard hack)
 - animated cursor (low prio)
+- egl resize events (make DrawIntegration?)
+- build/linux2 (wayland not working when built without egl/gl, invalid unique_ptr)
+	- implement like x11 with pimpl

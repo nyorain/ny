@@ -132,26 +132,30 @@ public:
 	};
 
 public:
+	Output() = default;
     Output(WaylandAppContext& ac, wl_output& outp, unsigned int id);
     ~Output();
 
+	Output(Output&& other) noexcept;
+	Output& operator=(Output&& other) noexcept;
+
 public:
 	WaylandAppContext* appContext;
-    wl_output* wlOutput = nullptr;
-	unsigned int globalID;
+    wl_output* wlOutput {};
+	unsigned int globalID {};
 
     Vec2i position;
     Vec2ui physicalSize;
 	std::vector<Mode> modes;
 
-    unsigned int subpixel;
-    unsigned int refreshRate;
+    unsigned int subpixel {};
+    unsigned int refreshRate {};
 
     std::string make;
     std::string model;
 
-    unsigned int transform;
-    int scale;
+    unsigned int transform {};
+    int scale {};
 };
 
 }//wayland

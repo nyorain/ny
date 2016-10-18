@@ -29,13 +29,6 @@ if(WithWinapi)
 	if(WithCairo)
 		list(APPEND src_backend winapi/cairo.cpp)
 	endif()
-
-	# 0x0600 aka _WIN32_WINNT_VISTA
-	# ny has no support for windows versions below vista
-	# features that depend on these macros should be listed here, so they could
-	# be made optional (if anyone feels like ny should support windows xp).
-	#  - clipboard (winapi/appContext.cpp), AddClipboardFormatListener
-	# list(APPEND defs_backend "WINVER=0x0600" "_WIN32_WINNT=0x0600")
 endif()
 
 if(WithX11)
@@ -59,7 +52,7 @@ if(WithX11)
 	list(APPEND libs_backend X11 xcb xcb-icccm xcb-ewmh X11-xcb pthread)
 
 	if(WithGL)
-		# list(APPEND src_backend x11/glx.cpp x11/glxApi.cpp)
+		list(APPEND src_backend x11/glx.cpp x11/glxApi.c)
 	endif()
 
 	if(WithCairo)
@@ -131,8 +124,6 @@ endif()
 add_library(ny-backend SHARED ${src_backend})
 target_link_libraries(ny-backend ${libs_backend})
 target_include_directories(ny-backend PUBLIC ${include_backend})
-
-message("defs: " ${defs_backend})
 target_compile_definitions(ny-backend PRIVATE ${defs_backend})
 
 if(nytl_own)

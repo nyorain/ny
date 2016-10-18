@@ -1,12 +1,14 @@
 #include <ny/backend/x11/glx.hpp>
 #include <ny/backend/x11/windowContext.hpp>
 #include <ny/backend/x11/appContext.hpp>
-#include <ny/draw/gl/drawContext.hpp>
+#include <ny/backend/x11/glxApi.hpp>
+#include <ny/backend/integration/surface.hpp>
 #include <ny/base/log.hpp>
 
 #include <nytl/misc.hpp>
+#include <nytl/range.hpp>
 
-#include <GL/glx.h>
+// #include <dlfcn.h>
 #include <algorithm>
 
 namespace ny
@@ -14,36 +16,34 @@ namespace ny
 
 namespace
 {
-	//errorHandler
-	bool errorOccured = 0;
+	//This error handler might be signaled when glx context creation fails
+	bool errorOccured = false;
 	int ctxErrorHandler(Display*, XErrorEvent*)
 	{
-		sendWarning("GlxContext::GlxContext: Error occured");
+		warning("GlxContext::GlxContext: Error occured");
 	    errorOccured = true;
 	    return 0;
 	}
+
+	void assureGlxLoaded(Display* dpy)
+	{
+		static bool loaded = false;
+		if(!loaded)
+		{
+			gladLoadGLX(dpy, DefaultScreen(dpy));
+			loaded = true;
+		}
+	}
 }
 
-//
-GlxContext::GlxContext(X11WindowContext& wc, GLXFBConfig fbc) : wc_(&wc)
+GlxContextWrapper::GlxContextWrapper(Display* dpy, GLXFBConfig fbc) : xDisplay(dpy)
 {
-	auto xDisplay = wc.appContext().xDisplay();
-	glxWindow_ = glXCreateWindow(xDisplay, fbc, wc_->xWindow(), 0);
+	assureGlxLoaded(dpy);
 
     int (*oldHandler)(Display*, XErrorEvent*) = XSetErrorHandler(&ctxErrorHandler);
-    using procType = GLXContext(*)(Display*, GLXFBConfig, GLXContext, Bool, const int*);
+    using Pfn = GLXContext(*)(Display*, GLXFBConfig, GLXContext, Bool, const int*);
 
-    procType glXCreateContextAttribsARB =
-		(procType) glXGetProcAddressARB((const GLubyte*) "glXCreateContextAttribsARB" );
-
-    const char* glxExts = glXQueryExtensionsString(xDisplay, DefaultScreen(xDisplay()));
-	auto extVec = split(glxExts, ' ');
-
-	//sendLog("glx extensions: ", glxExts);
-	auto it = std::find(extVec.begin(), extVec.end(), "GLX_ARB_create_context");
-	bool supported = (it != extVec.end());
-
-    if(supported && glXCreateContextAttribsARB)
+    if(GLAD_GLX_ARB_create_context && glXCreateContextAttribsARB)
     {
         int attribs[] =
         {
@@ -52,91 +52,142 @@ GlxContext::GlxContext(X11WindowContext& wc, GLXFBConfig fbc) : wc_(&wc)
             None
         };
 
-        glxContext_ = glXCreateContextAttribsARB(xDisplay(), fbc, nullptr, True, attribs);
-        XSync(xDisplay(), False);
-        if(!glxContext_ || errorOccured)
+        context = glXCreateContextAttribsARB(xDisplay, fbc, nullptr, True, attribs);
+        XSync(xDisplay, False);
+        if(!context || errorOccured)
         {
-            errorOccured = 0;
-            glxContext_ = nullptr;
-			sendWarning("modern GL context could not be created, creating legacy GL context");
+            errorOccured = false;
+            context = nullptr;
+			log("ny::Glx: failed to create modern opengl context, trying legacy context.");
         }
 
-        if(!glxContext_)
+        if(!context)
         {
             attribs[1] = 1;
             attribs[3] = 0;
 
-            glxContext_ = glXCreateContextAttribsARB(xDisplay(), fbc, nullptr, True, attribs );
-            XSync(xDisplay(), False);
-            if(!glxContext_ || errorOccured)
+            context = glXCreateContextAttribsARB(xDisplay, fbc, nullptr, True, attribs );
+            XSync(xDisplay, False);
+            if(!context || errorOccured)
             {
-                errorOccured = 0;
-                glxContext_ = nullptr;
-				sendWarning("legacy GL context could not be created, trying old method");
+                errorOccured = false;
+                context = nullptr;
+				warning("ny::Glx: legacy GL context could not be created, trying old method");
             }
         }
     }
 
-    if(!glxContext_)
-    {
-        glxContext_ = glXCreateNewContext(xDisplay(), fbc, GLX_RGBA_TYPE, 0, True);
-    }
-
+    if(!context) context = glXCreateNewContext(xDisplay, fbc, GLX_RGBA_TYPE, 0, True);
 
     XSetErrorHandler(oldHandler);
-    if(!glxContext_ || errorOccured)
+    if(!context || errorOccured)
     {
-        throw std::runtime_error("glxContext: could not create glx Context");
-        return;
+		errorOccured = true;
+        throw std::runtime_error("ny::Glx: failed to create glx Context.");
     }
+}
 
-    int depth, stencil = 0;
-    glXGetFBConfigAttrib(xDisplay(), fbc, GLX_STENCIL_SIZE, &stencil);
-    glXGetFBConfigAttrib(xDisplay(), fbc, GLX_DEPTH_SIZE, &depth);
+GlxContextWrapper::~GlxContextWrapper()
+{
+    if(context) glXDestroyContext(xDisplay, context);
+}
 
-	GlContext::initContext(Api::openGL, depth, stencil);
+GlxContextWrapper::GlxContextWrapper(GlxContextWrapper&& other) noexcept
+	: xDisplay(other.xDisplay), context(other.context)
+{
+	other.context = {};
+}
+
+GlxContextWrapper& GlxContextWrapper::operator=(GlxContextWrapper&& other) noexcept
+{
+    if(context) glXDestroyContext(xDisplay, context);
+
+	xDisplay = other.xDisplay;
+	context = other.context;
+	other.context = {};
+
+	return *this;
+}
+
+//GlxContext
+GlxContext::GlxContext(Display* dpy, unsigned int drawable, GLXContext ctx, GLXFBConfig fbc)
+	: xDisplay_(dpy), drawable_(drawable), glxContext_(ctx)
+{
+	// glxWindow_ = glXCreateWindow(xDisplay, fbc, wc_->xWindow(), 0);
+
+	int depth = 0, stencil = 0;
+	if(fbc)
+	{
+		glXGetFBConfigAttrib(xDisplay_, fbc, GLX_STENCIL_SIZE, &stencil);
+		glXGetFBConfigAttrib(xDisplay_, fbc, GLX_DEPTH_SIZE, &depth);
+	}
+
+	GlContext::initContext(GlApi::gl, depth, stencil);
 }
 
 GlxContext::~GlxContext()
 {
-    if(glxContext_) glXDestroyContext(xDisplay(), glxContext_);
+	makeNotCurrent();
 }
 
 bool GlxContext::makeCurrentImpl()
 {
-    if(!glXMakeCurrent(xDisplay(), glxWindow_, glxContext_))
+    if(!glXMakeCurrent(xDisplay_, drawable_, glxContext_))
     {
-		sendWarning("Glx::makeCurrentImpl: glxmakecurrent failed");
-        return 0;
+		warning("ny::GlxContext::makeCurrentImpl: glxmakecurrent failed");
+        return false;
     }
 
-    return 1;
+    return true;
 }
 
 bool GlxContext::makeNotCurrentImpl()
 {
-    if(!glXMakeCurrent(xDisplay(), 0, nullptr))
+    if(!glXMakeCurrent(xDisplay_, 0, nullptr))
     {
-		sendWarning("Glx::makeNotCurrentImpl: glxmakecurrent failed");
-        return 0;
+		warning("ny::GlxContext::makeNotCurrentImpl: glxmakecurrent failed");
+        return false;
 
     }
 
-    return 1;
+    return true;
 }
 
 bool GlxContext::apply()
 {
 	GlContext::apply();
-    glXSwapBuffers(xDisplay(), glxWindow_);
-    return 1;
+    glXSwapBuffers(xDisplay_, drawable_);
+    return true;
 }
 
-/*
-GLXFBConfig X11WindowContext::matchGLXVisualInfo()
+void* GlxContext::procAddr(const char* name) const
 {
-#ifdef NY_WithGL
-    const int attribs[] =
+	auto ret = reinterpret_cast<void*>(::glXGetProcAddress(name));
+	// if(!ret) ret = reinterpret_cast<void*>(::dlsym(glLibHandle(), name));
+	return ret;
+}
+
+
+//GlxWindowContext
+GlxWindowContext::GlxWindowContext(X11AppContext& ac, const X11WindowSettings& settings)
+{
+	GLXFBConfig fbc;
+	initFbcVisual(fbc);
+
+	X11WindowContext::create(ac, settings);
+
+	auto ctx = ac.glxContext(fbc);
+	glxContext_ = std::make_unique<GlxContext>(appContext().xDisplay(), xWindow(), ctx, fbc);
+
+	if(settings.gl.storeContext) *settings.gl.storeContext = glxContext_.get();
+}
+
+void GlxWindowContext::initFbcVisual(GLXFBConfig& fbconfig)
+{
+	auto* const xDisplay = appContext().xDisplay();
+	const auto screenNumber = appContext().xDefaultScreenNumber();
+
+    constexpr int attribs[] =
     {
         GLX_RENDER_TYPE, GLX_RGBA_BIT,
         GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT,
@@ -149,53 +200,28 @@ GLXFBConfig X11WindowContext::matchGLXVisualInfo()
         None
     };
 
-    int glxMajor, glxMinor;
-    if(!glXQueryVersion(xDisplay(), &glxMajor, &glxMinor)
-			|| ((glxMajor == 1) && (glxMinor < 3) ) || (glxMajor < 1))
-    {
-        throw std::runtime_error("Invalid glx version. glx Version must be > 1.3");
-    }
-
+	//TODO; better choosing...
+	//maybe there is no fbconfig with alpha, then just one without
+	//compare the returned ones, dont just choose the first one
     int fbcount = 0;
-    GLXFBConfig* fbc = glXChooseFBConfig(xDisplay(), DefaultScreen(xDisplay()), attribs, &fbcount);
-    if (!fbc || !fbcount)
-    {
-        throw std::runtime_error("failed to retrieve fbconfig");
-    }
+    GLXFBConfig* fbc = glXChooseFBConfig(xDisplay, screenNumber, attribs, &fbcount);
+    if (!fbc || !fbcount) throw std::runtime_error("ny::GlxWC: failed to choose fbconfig");
 
-    //get the config with the most samples
-    int best_fbc = -1, worst_fbc = -1, best_num_samp = 0, worst_num_samp = 0;
-    for(int i(0); i < fbcount; i++)
-    {
-        XVisualInfo *vi = glXGetVisualFromFBConfig(xDisplay(), fbc[i]);
+	fbconfig = fbc[0];
+	XFree(fbc);
 
-        if(!vi) continue;
+	int visualID;
+	glXGetFBConfigAttrib(xDisplay, fbconfig, GLX_VISUAL_ID, &visualID);
+	if(!visualID) throw std::runtime_error("ny::GlxWC: failed to retrieve glx_visual_id");
 
-        int samp_buf, samples;
-        glXGetFBConfigAttrib(xDisplay(), fbc[i], GLX_SAMPLE_BUFFERS, &samp_buf);
-        glXGetFBConfigAttrib(xDisplay(), fbc[i], GLX_SAMPLES, &samples);
-
-        if(best_fbc < 0 || (samp_buf && samples > best_num_samp))
-        {
-            best_fbc = i;
-            best_num_samp = samples;
-        }
-
-        if(worst_fbc < 0 || (!samp_buf || samples < worst_num_samp))
-        {
-            worst_fbc = i;
-            worst_num_samp = samples;
-        }
-
-        XFree(vi);
-    }
-
-	auto ret = fbc[best_fbc];
-    XFree(fbc);
-
-    xVinfo_ = glXGetVisualFromFBConfig(xDisplay(), ret);
-	return ret;
-#endif
+	visualID_ = visualID;
 }
-*/
+
+bool GlxWindowContext::surface(Surface& surface)
+{
+	surface.type = Surface::Type::gl;
+	surface.gl = glxContext_.get();
+	return true;
+}
+
 }

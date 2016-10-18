@@ -15,6 +15,10 @@
  #include <vulkan/vulkan.h>
 #endif //Vulkan
 
+#ifdef NY_WithGL
+ #include <ny/backend/x11/glx.hpp>
+#endif //GL
+
 #include <nytl/scope.hpp>
 
 #include <X11/Xlib.h>
@@ -61,10 +65,18 @@ public:
 
 }
 
+struct X11AppContext::Impl
+{
+#ifdef NY_WithGL
+	GlxContextWrapper glContext;
+#endif //GL
+};
+
 //appContext
 X11AppContext::X11AppContext()
 {
     //XInitThreads(); //todo, make this optional
+	impl_ = std::make_unique<Impl>();
 
 	//xDisplay
     xDisplay_ = XOpenDisplay(nullptr);
@@ -560,9 +572,19 @@ bool X11AppContext::startDragDrop(std::unique_ptr<DataSource>&& dataSource)
 std::vector<const char*> X11AppContext::vulkanExtensions() const
 {
 	#ifdef NY_WithVulkan
-	 return {VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_XCB_SURFACE_EXTENSION_NAME};
+		return {VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_XCB_SURFACE_EXTENSION_NAME};
 	#else
-	 return {};
+		return {};
+	#endif
+}
+
+GLXContext X11AppContext::glxContext(GLXFBConfig fbc) const
+{
+	#ifdef NY_WithGL
+		if(!impl_->glContext.context) impl_->glContext = {xDisplay(), fbc};
+		return impl_->glContext.context;
+	#else
+		return nullptr;
 	#endif
 }
 

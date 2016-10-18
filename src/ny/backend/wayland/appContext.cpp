@@ -106,6 +106,9 @@ WaylandAppContext::~WaylandAppContext()
 	if(keyboardContext_) keyboardContext_.reset();
 	if(mouseContext_) mouseContext_.reset();
 
+	outputs_.clear();
+	waylandEglDisplay_.reset();
+
 	if(xdgShell_) xdg_shell_destroy(xdgShell_);
 	if(wlShell_) wl_shell_destroy(wlShell_);
 	if(wlSeat_) wl_seat_destroy(wlSeat_);
@@ -113,9 +116,6 @@ WaylandAppContext::~WaylandAppContext()
 	if(wlShm_) wl_shm_destroy(wlShm_);
 	if(wlSubcompositor_) wl_subcompositor_destroy(wlSubcompositor_);
 	if(wlCompositor_) wl_compositor_destroy(wlCompositor_);
-
-	outputs_.clear();
-	waylandEglDisplay_.reset();
 
 	if(wlRegistry_) wl_registry_destroy(wlRegistry_);
     if(wlDisplay_) wl_display_disconnect(wlDisplay_);
@@ -439,7 +439,7 @@ void WaylandAppContext::registryAdd(unsigned int id, const char* cinterface, uns
     }
     else if(interface == "wl_output")
     {
-		auto ptr = wl_registry_bind(wlRegistry_, id, &wl_output_interface, 1);
+		auto ptr = wl_registry_bind(wlRegistry_, id, &wl_output_interface, 2);
         outputs_.emplace_back(*this, *static_cast<wl_output*>(ptr), id);
     }
     else if(interface == "wl_data_device_manager" && !wlDataManager_)
@@ -449,21 +449,16 @@ void WaylandAppContext::registryAdd(unsigned int id, const char* cinterface, uns
     }
     else if(interface == "wl_seat" && !wlSeat_)
     {
-		auto ptr = wl_registry_bind(wlRegistry_, id, &wl_seat_interface, 1);
+		auto ptr = wl_registry_bind(wlRegistry_, id, &wl_seat_interface, 5);
         wlSeat_ = {static_cast<wl_seat*>(ptr), id};
         wl_seat_add_listener(wlSeat_, &seatListener, this);
     }
     else if(interface == "xdg_shell" && !xdgShell_)
     {
-		auto ptr = wl_registry_bind(wlRegistry_, id, &xdg_shell_interface, 1);
+		auto ptr = wl_registry_bind(wlRegistry_, id, &xdg_shell_interface, 5);
         xdgShell_ = {static_cast<xdg_shell*>(ptr), id};
         xdg_shell_add_listener(xdgShell_, &xdgShellListener, this);
     }
-}
-
-void WaylandAppContext::outputDone(const Output& out)
-{
-	std::remove_if(outputs_.begin(), outputs_.end(), [=](const Output& o){ return &o == &out; });
 }
 
 void WaylandAppContext::registryRemove(unsigned int id)
@@ -487,8 +482,8 @@ void WaylandAppContext::registryRemove(unsigned int id)
 	}
 	else
 	{
-		std::remove_if(outputs_.begin(), outputs_.end(),
-			[=](const Output& output){ return output.globalID == id; });
+		outputs_.erase(std::remove_if(outputs_.begin(), outputs_.end(),
+			[=](const Output& output){ return output.globalID == id; }), outputs_.end());
 	}
 }
 

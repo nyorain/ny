@@ -258,6 +258,9 @@ WglWindowContext::WglWindowContext(WinapiAppContext& ctx, const WinapiWindowSett
 	WinapiWindowContext::showWindow(settings);
 
 	wglContext_.reset(new WglContext(handle(), settings.gl));
+
+	//store context if requested so
+	if(settings.gl.storeContext) *settings.gl.storeContext = wglContext_.get();
 }
 
 WglWindowContext::~WglWindowContext()

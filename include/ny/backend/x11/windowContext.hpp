@@ -72,51 +72,27 @@ public:
 	void removeWindowHints(WindowHints hints) override;
 
     //x11-specific
-	///Returns the associated X11AppContext.
-	X11AppContext& appContext() const { return *appContext_; }
+public:
+	X11AppContext& appContext() const { return *appContext_; } ///The associated AppContext
+	std::uint32_t xWindow() const { return xWindow_; } ///The underlaying x window handle
+	xcb_connection_t* xConnection() const; ///The associated x conntextion
+	x11::EwmhConnection* ewmhConnection() const; ///The associated ewmh connection (helper)
+	nytl::Vec2ui size() const; ///Queries the current window size
 
-	///Returns the underlaying x11 window handle.
-	std::uint32_t xWindow() const { return xWindow_; }
+    void overrideRedirect(bool redirect); ///Sets the overrideRedirect flag for the window
+    void transientFor(std::uint32_t win); ///Makes the window transient for another x window
 
-	///Utility helper returning the xcbConnection of the app context.
-	xcb_connection_t* xConnection() const;
-
-	///Utility helper returning the ewmhConnection of the app context.
-	x11::EwmhConnection* ewmhConnection() const;
-
-	///Queries the window size with a server request since it is not stored.
-	nytl::Vec2ui size() const; 
-
-	///Sets/unsets the override_redirect flag for the underlaying x11 window.
-	///See some x11 manual for more information.
-    void overrideRedirect(bool redirect);
-
-	///Sets the window transient for some other window handle.
-	///See some x11 manual for more information.
-    void transientFor(std::uint32_t win);
-
-	///Sets the window cursor to a given xCursorID.
-    void cursor(unsigned int xCusrsorID);
-
-	///Creates a request to raise the window.
-    void raise();
-
-	///Creates a request to lower the window.
-    void lower();
-
-	///Creates a request to bring focus to the window.
-    void requestFocus();
+    void raise(); ///tries to raise the window
+    void lower(); ///tries to lower the window
+    void requestFocus(); ///tries to bring the window focus
 
 	///Sets the motif deco and/or function hints for the window.
 	///The hints are declared in ny/backend/x11/util.hpp.
 	///Motif hints are outdated, so may not work on every compositor.
     void mwmHints(unsigned long deco, unsigned long func, bool d = true, bool f = true);
 
-	///Returns the motif decoration hints for this window.
-    unsigned long mwmDecorationHints() const;
-
-	///Returns the motif function hints for this window.
-    unsigned long mwmFunctionHints() const;
+    unsigned long mwmDecorationHints() const; ///Returns the current motif deco hints
+    unsigned long mwmFunctionHints() const; ///Returns the current motif function hints
 
 	///Adds the given state/states to the window.
 	///Look at the ewmh specification for more information and allowed atoms.
@@ -137,8 +113,9 @@ public:
 	///For more information look in the ewmh specification for _NET_WM_STATE.
 	std::vector<std::uint32_t> states() const { return states_; };
 
-	///Reloads the stores window states. XXX: Needed? should they be stored?
-    void refreshStates();
+	///Reloads the stores window states. 
+	///XXX: Needed? should they be stored? TODO
+    void refreshStates(); 
 
 	///Sets the window type. 
 	///For more information look in the ewmh specification for _NET_WM_WINDOW_TYPE.
@@ -160,10 +137,18 @@ public:
 	///For more information look in the ewmh specification for _NET_WM_ALLOWED_ACTIONS.
     std::vector<std::uint32_t> allowedActions() const;
 
-	///Finds and returns the xcb_visualtype_t for this window.
-	xcb_visualtype_t* xVisualType() const { return xVisualtype_; }
+	///Returns the x visual id for this window.
+	///If it has not been set, 0 is retrned.
+	unsigned int xVisualID() const { return visualID_; }
 
-	///Returns the depth of the visual
+	///Finds and returns the xcb_visualtype_t for this window.
+	///If the visual id has not been set or does not have a matching visualtype, nullptr
+	///is returned.
+	xcb_visualtype_t* xVisualType() const;
+
+	///Returns the depth of the visual (i.e. the bits per pixel)
+	///Notice that this might somehow differ from the bits_per_rgb member of the
+	///visual type (since it also counts the alpha bits).
 	unsigned int visualDepth() const { return depth_; }
 
 	///Sets the integration to the given one.
@@ -198,16 +183,20 @@ protected:
 protected:
 	X11AppContext* appContext_ = nullptr;
 	X11WindowSettings settings_ {};
-	std::uint32_t xWindow_ = 0u;
-	std::uint32_t xCursor_ = 0u;
+	std::uint32_t xWindow_ {};
+	std::uint32_t xCursor_ {};
 
-	xcb_visualtype_t* xVisualtype_ = nullptr;
-	unsigned int depth_ = 0u;
+	//we store the visual id instead of the visualtype since e.g. glx does not
+	//care/deal with the visualtype in any way.
+	//if the xcb_visualtype_t* is needed, just call xVisualType() which will try
+	//to query it.
+	unsigned int visualID_ {};
+	unsigned int depth_ {};
 
 	//Stored EWMH states can be used to check whether it is fullscreen, maximized etc.
 	std::vector<std::uint32_t> states_;
-    unsigned long mwmFuncHints_ = 0u;
-    unsigned long mwmDecoHints_ = 0u;
+    unsigned long mwmFuncHints_ {};
+    unsigned long mwmDecoHints_ {};
 
 	//The draw integration for this WindowContext.
 	X11DrawIntegration* drawIntegration_ = nullptr;

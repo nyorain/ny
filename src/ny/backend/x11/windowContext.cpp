@@ -34,17 +34,15 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 	appContext_ = &ctx;
 	settings_ = settings;
 
-	if(!xVisualtype_) initVisual();
-	auto depth = xVisualtype_->bits_per_rgb_value;
-	auto vid = xVisualtype_->visual_id;
+	if(!visualID_) initVisual();
+
+	auto visualtype = xVisualType();
+	if(!visualtype) throw std::runtime_error("ny::X11WC: failed to retrieve the visualtype");
+	auto vid = visualtype->visual_id;
 
     auto xconn = appContext_->xConnection();
 	auto xscreen = appContext_->xDefaultScreen();
-    if(!xconn || !xscreen)
-    {
-        throw std::runtime_error("ny::X11WC: x11 App was not correctly initialized");
-        return;
-    }
+    if(!xconn || !xscreen) throw std::runtime_error("ny::X11WC: invalid X11AppContext");
 
 	bool toplvl = false;
 	auto pos = settings.position;
@@ -72,6 +70,7 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 	xWindow_ = xcb_generate_id(xconn);
 	auto cookie = xcb_create_window_checked(xconn, depth_, xWindow_, xparent, pos.x, pos.y,
 		size.x, size.y, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT, vid, valuemask, valuelist);
+
 	if(!x11::testCookie(*xConnection(), cookie))
 		throw std::runtime_error("ny::X11WC: Failed to create the x window.");
 
@@ -106,6 +105,7 @@ X11WindowContext::~X11WindowContext()
 
 void X11WindowContext::initVisual()
 {
+	visualID_ = 0u;
     auto screen = appContext().xDefaultScreen();
 	auto avDepth = 0u;
 
@@ -125,7 +125,7 @@ void X11WindowContext::initVisual()
 	{
 		if(depth_iter.data->depth == avDepth)
 		{
-			//32 > 24 (should not be decided by this though)
+			//32 > 24 (should not be decided here though)
 			//argb > rgba > bgra for 32
 			//rgb > bgr for 24
 			auto highestScore = 0u;
@@ -142,17 +142,15 @@ void X11WindowContext::initVisual()
 			for(; visual_iter.rem; xcb_visualtype_next(&visual_iter)) 
 			{
 				//TODO: make requested format dynamic with X11WindowSettings
-				xVisualtype_ = visual_iter.data;
 				auto format = visualToFormat(*visual_iter.data, avDepth);
-				if(score(format) > highestScore)
-					xVisualtype_ = visual_iter.data;
+				if(score(format) > highestScore) visualID_ = visual_iter.data->visual_id;
 			}
 
 			break;
 		}
 	}
 
-	if(!xVisualtype_) throw std::runtime_error("X11WC: failed to find a matching visual.");
+	if(!visualID_) throw std::runtime_error("X11WC: failed to find a matching visual.");
 	depth_ = avDepth;
 }
 
@@ -742,27 +740,6 @@ void X11WindowContext::overrideRedirect(bool redirect)
 	xcb_change_window_attributes(xConnection(), xWindow(), XCB_CW_OVERRIDE_REDIRECT, &data);
 }
 
-void X11WindowContext::cursor(unsigned int xCursorID)
-{
-/*
-    XCursor c = XCreateFontCursor(xDisplay(), xCursorID);
-    XDefineCursor(xDisplay(), xWindow_, c);
-*/
-	xcb_font_t font = xcb_generate_id(xConnection());
-    auto fontCookie = xcb_open_font_checked(xConnection(), font, strlen ("cursor"), "cursor" );
-	//testCookie (fontCookie, connection, "can't open font");
-
-    xcb_cursor_t cursor = xcb_generate_id(xConnection());
-    xcb_create_glyph_cursor(xConnection(), cursor, font, font, xCursorID, xCursorID + 1,
-			0, 0, 0, 0, 0, 0 );
-
-    xcb_change_window_attributes(xConnection(), xWindow(), XCB_CW_CURSOR, &cursor);
-    xcb_free_cursor(xConnection(), cursor);
-
-    fontCookie = xcb_close_font_checked(xConnection(), font);
-    //testCookie (fontCookie, connection, "can't close font");
-}
-
 nytl::Vec2ui X11WindowContext::size() const
 {
 	auto cookie = xcb_get_geometry(xConnection(), xWindow());
@@ -770,6 +747,24 @@ nytl::Vec2ui X11WindowContext::size() const
 	auto ret = nytl::Vec2ui(geometry->width, geometry->height);
 	std::free(geometry);
 	return ret;
+}
+
+xcb_visualtype_t* X11WindowContext::xVisualType() const
+{
+	if(!visualID_) return nullptr;
+
+	auto depthi = xcb_screen_allowed_depths_iterator(appContext().xDefaultScreen());
+	for(; depthi.rem; xcb_depth_next(&depthi)) 
+	{
+		auto visuali = xcb_depth_visuals_iterator(depthi.data);
+		for(; visuali.rem; xcb_visualtype_next(&visuali)) 
+		{
+			if(visuali.data->visual_id == visualID_) 
+				return visuali.data;
+		}
+	}
+
+	return nullptr;
 }
 
 bool X11WindowContext::drawIntegration(X11DrawIntegration* integration)

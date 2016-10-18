@@ -204,6 +204,9 @@ void WaylandWindowContext::cursor(const Cursor& cursor)
 		cursorSize_.y = img->height;
 	}
 
+	//ugly hack... TODO
+	if(!appContext_->mouseContext()) return;
+
 	//update the cursor if needed
 	auto& wmc = appContext_->waylandMouseContext();
 	if(wmc.over() == this)

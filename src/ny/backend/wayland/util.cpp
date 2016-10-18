@@ -276,8 +276,6 @@ void outputMode(void* data, wl_output*, unsigned int flags, int width, int heigh
 }
 void outputDone(void* data, wl_output*)
 {
-	auto* output = static_cast<Output*>(data);
-	output->appContext->outputDone(*output);
 }
 void outputScale(void* data, wl_output*, int factor)
 {
@@ -301,7 +299,27 @@ Output::Output(WaylandAppContext& ac, wl_output& outp, unsigned int id)
 
 Output::~Output()
 {
-    if(wlOutput) wl_output_destroy(wlOutput);
+    if(wlOutput) wl_output_release(wlOutput);
+}
+
+Output::Output(Output&& other) noexcept :
+	appContext(other.appContext), wlOutput(other.wlOutput), globalID(other.globalID),
+	position(other.position), physicalSize(other.physicalSize), 
+	modes(std::move(other.modes)), subpixel(other.subpixel), refreshRate(other.refreshRate), 
+	make(std::move(other.make)), model(std::move(other.model)), 
+	transform(other.transform), scale(other.scale)
+
+{
+	other.wlOutput = {};
+	if(wlOutput) wl_output_set_user_data(wlOutput, this);
+}
+
+Output& Output::operator=(Output&& other) noexcept
+{
+    if(wlOutput) wl_output_release(wlOutput);
+	wlOutput = other.wlOutput;
+	if(wlOutput) wl_output_set_user_data(wlOutput, this);
+	return *this;
 }
 
 }//namespace wayland

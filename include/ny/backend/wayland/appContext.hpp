@@ -128,7 +128,6 @@ public:
 	WaylandMouseContext& waylandMouseContext() const { return *mouseContext_; }
 	
 	//functions called by wayland callbacks
-	void outputDone(const wayland::Output& out); //called by wayland callback
     void registryAdd(unsigned int id, const char* cinterface, unsigned int version);
     void registryRemove(unsigned int id);
     void seatCapabilities(unsigned int caps);
