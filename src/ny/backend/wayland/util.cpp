@@ -30,7 +30,10 @@ namespace ny
 namespace wayland
 {
 
-//buffer
+//utility functions
+namespace
+{
+
 int setCloexecOrClose(int fd)
 {
     long flags;
@@ -107,16 +110,7 @@ int osCreateAnonymousFile(off_t size)
     return fd;
 }
 
-//buffer interface
-void bufferRelease(void* data, wl_buffer*)
-{
-    auto* b = static_cast<ShmBuffer*>(data);
-    b->wasReleased();
 }
-const wl_buffer_listener bufferListener =
-{
-    bufferRelease
-};
 
 //shmBuffer
 ShmBuffer::ShmBuffer(WaylandAppContext& ac, Vec2ui size, unsigned int stride) 
@@ -151,6 +145,8 @@ ShmBuffer::ShmBuffer(ShmBuffer&& other)
 	other.data_ = {};
 	other.format_ = {};
 	other.used_ = {};
+
+	if(buffer_) wl_buffer_set_user_data(buffer_, this);
 }
 
 ShmBuffer& ShmBuffer::operator=(ShmBuffer&& other)
@@ -174,6 +170,8 @@ ShmBuffer& ShmBuffer::operator=(ShmBuffer&& other)
 	other.data_ = {};
 	other.format_ = {};
 	other.used_ = {};
+
+	if(buffer_) wl_buffer_set_user_data(buffer_, this);
 
 	return *this;
 }
@@ -201,7 +199,13 @@ void ShmBuffer::create()
 	data_ = reinterpret_cast<std::uint8_t*>(ptr);
     pool_ = wl_shm_create_pool(shm, fd, shmSize_);
     buffer_ = wl_shm_pool_create_buffer(pool_, 0, size_.x, size_.y, stride_, format_);
-    wl_buffer_add_listener(buffer_, &bufferListener, this);
+
+	static constexpr wl_buffer_listener listener
+	{
+		memberCallback<decltype(&ShmBuffer::released), &ShmBuffer::released, void(wl_buffer*)>
+	};
+
+    wl_buffer_add_listener(buffer_, &listener, this);
 }
 
 void ShmBuffer::destroy()
@@ -255,71 +259,83 @@ void ServerCallback::done(wl_callback& cb, unsigned int data)
     onCallback(cb, data);
 }
 
-
-//output
-void outputGeometry(void* data, wl_output*, int x, int y, int phwidth, int phheight, int subpixel, 
-	const char* make, const char* model, int transform)
-{
-	auto* output = static_cast<Output*>(data);
-	output->make = make;
-	output->model = model;
-	output->transform = transform;
-	output->position = {x, y};
-	output->physicalSize = Vec2ui(phwidth, phheight);
-	output->subpixel = subpixel;
-}
-void outputMode(void* data, wl_output*, unsigned int flags, int width, int height, int refresh)
-{
-	auto* output = static_cast<Output*>(data);
-	unsigned int urefresh = refresh;
-	output->modes.push_back({Vec2ui(width, height), flags, urefresh});
-}
-void outputDone(void* data, wl_output*)
-{
-}
-void outputScale(void* data, wl_output*, int factor)
-{
-	auto* output = static_cast<Output*>(data);
-	output->scale = factor;
-}
-const wl_output_listener outputListener =
-{
-    outputGeometry,
-    outputMode,
-    outputDone,
-    outputScale
-};
-
 //output
 Output::Output(WaylandAppContext& ac, wl_output& outp, unsigned int id) 
-	: appContext(&ac), wlOutput(&outp), globalID(id)
+	: appContext_(&ac), wlOutput_(&outp), globalID_(id)
 {
-    wl_output_add_listener(&outp, &outputListener, this);
+	static constexpr wl_output_listener listener
+	{
+		memberCallback<decltype(&Output::geometry), &Output::geometry, 
+			void(wl_output*, int32_t, int32_t, int32_t, int32_t, int32_t, const char*, 
+				const char*, int32_t)>,
+
+		memberCallback<decltype(&Output::mode), &Output::mode, 
+			void(wl_output*, uint32_t, int32_t, int32_t, int32_t)>,
+
+		memberCallback<decltype(&Output::done), &Output::done, void(wl_output*)>,
+		memberCallback<decltype(&Output::scale), &Output::scale, void(wl_output*, int32_t)>,
+	};
+
+    wl_output_add_listener(&outp, &listener, this);
 }
 
 Output::~Output()
 {
-    if(wlOutput) wl_output_release(wlOutput);
+    if(wlOutput_) wl_output_release(wlOutput_);
 }
 
 Output::Output(Output&& other) noexcept :
-	appContext(other.appContext), wlOutput(other.wlOutput), globalID(other.globalID),
-	position(other.position), physicalSize(other.physicalSize), 
-	modes(std::move(other.modes)), subpixel(other.subpixel), refreshRate(other.refreshRate), 
-	make(std::move(other.make)), model(std::move(other.model)), 
-	transform(other.transform), scale(other.scale)
+	appContext_(other.appContext_), wlOutput_(other.wlOutput_), globalID_(other.globalID_),
+	information_(other.information_)
 
 {
-	other.wlOutput = {};
-	if(wlOutput) wl_output_set_user_data(wlOutput, this);
+	other.appContext_ = {};
+	other.wlOutput_ = {};
+
+	if(wlOutput_) wl_output_set_user_data(wlOutput_, this);
 }
 
 Output& Output::operator=(Output&& other) noexcept
 {
-    if(wlOutput) wl_output_release(wlOutput);
-	wlOutput = other.wlOutput;
-	if(wlOutput) wl_output_set_user_data(wlOutput, this);
+    if(wlOutput_) wl_output_release(wlOutput_);
+
+	appContext_ = other.appContext_;
+	wlOutput_ = other.wlOutput_;
+	globalID_ = other.globalID_;
+	information_ = std::move(other.information_);
+
+	other.appContext_ = {};
+	other.wlOutput_ = {};
+
+	if(wlOutput_) wl_output_set_user_data(wlOutput_, this);
 	return *this;
+}
+
+void Output::geometry(int x, int y, int phwidth, int phheight, int subpixel, 
+	const char* make, const char* model, int transform)
+{
+	information_.make = make;
+	information_.model = model;
+	information_.transform = transform;
+	information_.position = {x, y};
+	information_.physicalSize = Vec2ui(phwidth, phheight);
+	information_.subpixel = subpixel;
+}
+
+void Output::mode(unsigned int flags, int width, int height, int refresh)
+{
+	unsigned int urefresh = refresh;
+	information_.modes.push_back({Vec2ui(width, height), flags, urefresh});
+}
+
+void Output::done()
+{
+	information_.done = true;
+}
+
+void Output::scale(int scale)
+{
+	information_.scale = scale;
 }
 
 }//namespace wayland

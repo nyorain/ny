@@ -171,6 +171,8 @@ void* GlxContext::procAddr(const char* name) const
 //GlxWindowContext
 GlxWindowContext::GlxWindowContext(X11AppContext& ac, const X11WindowSettings& settings)
 {
+	appContext_ = &ac;
+
 	GLXFBConfig fbc;
 	initFbcVisual(fbc);
 
@@ -184,9 +186,11 @@ GlxWindowContext::GlxWindowContext(X11AppContext& ac, const X11WindowSettings& s
 
 void GlxWindowContext::initFbcVisual(GLXFBConfig& fbconfig)
 {
+
 	auto* const xDisplay = appContext().xDisplay();
 	const auto screenNumber = appContext().xDefaultScreenNumber();
 
+	assureGlxLoaded(xDisplay);
     constexpr int attribs[] =
     {
         GLX_RENDER_TYPE, GLX_RGBA_BIT,

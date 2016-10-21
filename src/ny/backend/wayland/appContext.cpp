@@ -483,7 +483,7 @@ void WaylandAppContext::registryRemove(unsigned int id)
 	else
 	{
 		outputs_.erase(std::remove_if(outputs_.begin(), outputs_.end(),
-			[=](const Output& output){ return output.globalID == id; }), outputs_.end());
+			[=](const Output& output){ return output.name() == id; }), outputs_.end());
 	}
 }
 

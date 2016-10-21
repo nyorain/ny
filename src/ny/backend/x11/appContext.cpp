@@ -164,6 +164,8 @@ X11AppContext::X11AppContext()
 
 X11AppContext::~X11AppContext()
 {
+	impl_.reset();
+
 	if(xDummyWindow_) xcb_destroy_window(xConnection_, xDummyWindow_);
 	if(ewmhConnection_) xcb_ewmh_connection_wipe(ewmhConnection());
 
@@ -466,7 +468,7 @@ WindowContextPtr X11AppContext::createWindowContext(const WindowSettings& settin
 	else if(contextType == ContextType::gl)
 	{
 		#ifdef NY_WithGL
-		 // return std::make_unique<X11EglWindowContext>(*this, x11Settings);
+		 return std::make_unique<GlxWindowContext>(*this, x11Settings);
 		#else
 		 throw std::logic_error("ny::X11Backend::createWC: ny built without GL suppport");
 		#endif

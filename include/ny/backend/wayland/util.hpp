@@ -98,17 +98,12 @@ protected:
     bool used_ {0}; //whether the compositor owns the buffer atm
 
 protected:
-	//could be also named recreate. Does automatically call destroy
-    void create();
-
-	//frees all resources. Called by destructor and (re)create
-    void destroy();
-
-    //release cb
-    friend void bufferRelease(void*, wl_buffer*);
-    void wasReleased(){ used_ = false; }
+    void create(); //(re)creates the buffer for the set size/format/stride. Calls destroy
+    void destroy(); //frees all associated resources
+    void released(){ used_ = false; } //registered as listener function
 };
 
+//TODO: reimplement using virutal function
 //serverCallback
 class ServerCallback
 {
@@ -124,11 +119,33 @@ public:
 class Output
 {
 public:
+	///Represents a single possible output mode.
+	///Can be set when a WindowContext is made fullscreen.
+	///Usually outputs have multiple output modes.
 	struct Mode
 	{
 		Vec2ui size;
 		unsigned int flags;
 		unsigned int refresh;
+	};
+
+	///All received output information.
+	struct Information
+	{
+		Vec2i position;
+		Vec2ui physicalSize;
+		std::vector<Mode> modes;
+
+		unsigned int subpixel {};
+		unsigned int refreshRate {};
+
+		std::string make;
+		std::string model;
+
+		unsigned int transform {};
+		int scale {};
+
+		bool done {};
 	};
 
 public:
@@ -139,23 +156,24 @@ public:
 	Output(Output&& other) noexcept;
 	Output& operator=(Output&& other) noexcept;
 
-public:
-	WaylandAppContext* appContext;
-    wl_output* wlOutput {};
-	unsigned int globalID {};
+	WaylandAppContext& appContext() const { return *appContext_; }
+	wl_output& wlOutput() const { return *wlOutput_; }
+	unsigned int name() const { return globalID_; }
+	const Information& information() const { return information_; }
 
-    Vec2i position;
-    Vec2ui physicalSize;
-	std::vector<Mode> modes;
+	bool valid() const { return wlOutput_ && appContext_; }
 
-    unsigned int subpixel {};
-    unsigned int refreshRate {};
+protected:
+	WaylandAppContext* appContext_;
+    wl_output* wlOutput_ {};
+	unsigned int globalID_ {};
+	Information information_ {};
 
-    std::string make;
-    std::string model;
-
-    unsigned int transform {};
-    int scale {};
+protected:
+	void geometry(int, int, int, int, int, const char*, const char*, int);
+	void mode(unsigned int, int, int, int);
+	void done();
+	void scale(int);
 };
 
 }//wayland
