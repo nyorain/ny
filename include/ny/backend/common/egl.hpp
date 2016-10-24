@@ -5,6 +5,7 @@
 
 #include <string>
 #include <vector>
+#include <system_error>
 
 using EGLDisplay = void*; //Singleton per backend. Connection
 using EGLConfig = void*; //Represents a context setup. May have more than one
@@ -26,8 +27,8 @@ public:
 	EglContextGuard& operator=(EglContextGuard&& other) noexcept;
 
 	EGLDisplay eglDisplay() const { return eglDisplay_; }
-    EGLContext eglContext() const { return eglContext_; }
-    EGLConfig eglConfig() const { return eglConfig_; }
+	EGLContext eglContext() const { return eglContext_; }
+	EGLConfig eglConfig() const { return eglConfig_; }
 	GlApi glApi() const { return api_; }
 
 protected:
@@ -44,7 +45,7 @@ class EglContext : public GlContext
 {
 public:
 	///Returns the message associated with a given egl error code.
-	static std::string errorMessage(int error);
+	static const char* errorMessage(int error);
 
 	///Outputs a warning with the last egl error if there was any.
 	static int eglErrorWarn();
@@ -65,22 +66,34 @@ public:
 	bool eglExtensionSupported(const std::string& name) const;
 
 	EGLDisplay eglDisplay() const { return eglDisplay_; }
-    EGLContext eglContext() const { return eglContext_; }
-    EGLConfig eglConfig() const { return eglConfig_; }
-    EGLSurface eglSurface() const { return eglSurface_; }
+	EGLContext eglContext() const { return eglContext_; }
+	EGLConfig eglConfig() const { return eglConfig_; }
+	EGLSurface eglSurface() const { return eglSurface_; }
 
-	virtual bool apply() override;
-	virtual void* procAddr(const char* name) const override;
+	bool apply(std::error_code& ec) override;
+	void* procAddr(nytl::StringParam name) const override;
+	void* nativeHandle() const { return static_cast<void*>(eglContext_); }
 
 protected:
-    virtual bool makeCurrentImpl() override;
-    virtual bool makeNotCurrentImpl() override;
+	bool makeCurrentImpl(std::error_code& ec) override;
+	bool makeNotCurrentImpl(std::error_code& ec) override;
 
 protected:
 	EGLDisplay eglDisplay_ {};
 	EGLContext eglContext_ {};
 	EGLConfig eglConfig_ {};
-    EGLSurface eglSurface_ {};
+	EGLSurface eglSurface_ {};
+};
+
+///EGL std::error_category
+class EglErrorCategory : public std::error_category
+{
+public:
+	static EglErrorCategory& instance();
+
+public:
+	const char* name() const noexcept override { return "ny::EglErrorCategory"; }
+	std::string message(int code) const override;
 };
 
 }

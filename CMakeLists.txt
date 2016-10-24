@@ -98,7 +98,8 @@ else()
 
 	ExternalProject_Add(nytl_ep
 		PREFIX ${CMAKE_CURRENT_BINARY_DIR}/nytl
-	  	GIT_REPOSITORY https://github.com/nyorain/nytl.git
+		GIT_REPOSITORY https://github.com/nyorain/nytl.git
+		GIT_TAG dev
 		INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/external/install
 		CMAKE_ARGS ${ExternalProjectCMakeArgs})
 

@@ -15,16 +15,16 @@ namespace ny
 ///Note that e.g. (WindowEdge::top | WindowEdge::right) == (WindowEdge::topRight).
 enum class WindowEdge : unsigned int
 {
-    unknown = 0,
+	unknown = 0,
 
-    top = 1,
-    bottom = 2,
-    left = 4,
-    right = 8,
-    topLeft = 5,
-    bottomLeft = 6,
-    topRight = 9,
-    bottomRight = 10,
+	top = 1,
+	bottom = 2,
+	left = 4,
+	right = 8,
+	topLeft = 5,
+	bottomLeft = 6,
+	topRight = 9,
+	bottomRight = 10,
 };
 
 using WindowEdges = nytl::Flags<WindowEdge>;
@@ -34,11 +34,11 @@ NYTL_FLAG_OPS(WindowEdge)
 ///They can be used to make the backend change how the window is presented.
 enum class WindowHint : unsigned int
 {
-    close = (1L << 1), //can be closed, i.e. contains a close button/menu context
-    maximize = (1L << 2), //can be maximized
-    minimize = (1L << 3), //can be minimized
-    resize = (1L << 4), //can be resized
-    customDecorated = (1L << 5), //is customDecorated
+	close = (1L << 1), //can be closed, i.e. contains a close button/menu context
+	maximize = (1L << 2), //can be maximized
+	minimize = (1L << 3), //can be minimized
+	resize = (1L << 4), //can be resized
+	customDecorated = (1L << 5), //is customDecorated
 };
 
 using WindowHints = nytl::Flags<WindowHint>;
@@ -88,25 +88,25 @@ enum class NativeWidgetType : unsigned int
 {
 	none = 0,
 
-    button,
-    textfield,
-    text,
-    checkbox,
-    menuBar,
-    toolbar,
-    progressbar,
-    dialog,
+	button,
+	textfield,
+	text,
+	checkbox,
+	menuBar,
+	toolbar,
+	progressbar,
+	dialog,
 	dropdown
 };
 
 ///Typesafe enum for the current state of a toplevel window.
 enum class ToplevelState : unsigned int
 {
-    unknown = 0,
-    maximized,
-    minimized,
-    fullscreen,
-    normal
+	unknown = 0,
+	maximized,
+	minimized,
+	fullscreen,
+	normal
 };
 
 
@@ -179,6 +179,17 @@ struct GlContextSettings
 
 	//Whether to enable vsync for the GlContext and window.
 	bool vsync = true;
+
+	///XXX: not supported by any backend atm.
+	///Whether to create a unique gl context.
+	///Should be set if the resulting gl context might ever be used outside the
+	///ui thread and if multiple gl contexts will be created.
+	///If this is set to false the context might be shared and can therefore only safley
+	///be used from the mainthread and there are no state preserving guarantees when
+	///making the context not current/current.
+	///Note that if not needed this should be set to false since creating gl contexts
+	///is considered a pretty heavy operation.
+	bool uniqueContext = false;
 };
 
 struct VulkanSurfaceSettings

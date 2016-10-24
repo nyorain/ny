@@ -14,7 +14,7 @@ namespace ny
 
 namespace eventType
 {
-    constexpr auto dataOffer = 31u;
+	constexpr auto dataOffer = 31u;
 }
 
 //For image it should be like this, but since the object is wrapped in an any, it cant
@@ -33,7 +33,7 @@ namespace dataType
 
 	constexpr auto raw = 2u; //std:vector<std::uint8_t>, raw unspecified data buffer
 	constexpr auto text = 3u; //std::string encoded utf8
-    constexpr auto filePaths = 4u; //std::vector<c++17 ? std::path : std::string>
+	constexpr auto filePaths = 4u; //std::vector<c++17 ? std::path : std::string>
 	constexpr auto image = 5u; //ny::ImageData
 
 	constexpr auto timePoint = 6u; //std::chrono::high_resolution_clock::time_point
@@ -62,12 +62,12 @@ namespace dataType
 class DataTypes
 {
 public:
-    std::vector<unsigned int> types;
+	std::vector<unsigned int> types;
 
 public:
-    void add(unsigned int type);
-    void remove(unsigned int type);
-    bool contains(unsigned int type) const;
+	void add(unsigned int type);
+	void remove(unsigned int type);
+	bool contains(unsigned int type) const;
 };
 
 ///The DataSource class is an interface implemented by the application to start drag and drop
@@ -77,7 +77,7 @@ public:
 class DataSource
 {
 public:
-    virtual ~DataSource() = default;
+	virtual ~DataSource() = default;
 
 	///Returns all supported dataTypes format constants as a DataTypes object.
 	virtual DataTypes types() const = 0;
@@ -136,7 +136,7 @@ public:
 class DataOfferEvent : public EventBase<eventType::dataOffer, DataOfferEvent>
 {
 public:
-    DataOfferEvent(EventHandler* handler = {}, std::unique_ptr<DataOffer> xoffer = {})
+	DataOfferEvent(EventHandler* handler = {}, std::unique_ptr<DataOffer> xoffer = {})
 		: EvBase(handler), offer(std::move(xoffer)) {}
 	~DataOfferEvent() = default;
 
@@ -147,7 +147,7 @@ public:
 	//events are usually passed around as const (EventHandler::handleEvent) but the
 	//handler receiving this might wanna take ownership of the DataOffer implementation
 	//which is not possible with a const event.
-    mutable std::unique_ptr<DataOffer> offer;
+	mutable std::unique_ptr<DataOffer> offer;
 };
 
 ///Converts the given string to a dataType constant. If the given string is not recognized,

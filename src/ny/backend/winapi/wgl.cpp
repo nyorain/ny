@@ -36,6 +36,19 @@ public:
 
 }
 
+//WglSetup
+// WglSetup::WglSetup()
+// {
+// 	shared_.emplace_back();
+// 	gladLoadWglLoader();
+// }
+//
+// WglSetup::~WglSetup()
+// {
+//
+// }
+
+//WglContext
 HMODULE WglContext::glLibHandle()
 {
 	static auto lib = LoadLibrary("opengl32.dll");
@@ -217,33 +230,50 @@ void WglContext::activateVsync()
 		if(!wglSwapIntervalEXT(1)) warning("ny::WglContext: failed to enable vertical sync");
 }
 
-void* WglContext::procAddr(const char* name) const
+void* WglContext::procAddr(nytl::StringParam name) const
 {
-	auto ret = reinterpret_cast<void*>(::wglGetProcAddress(name));
-	if(!ret) ret = reinterpret_cast<void*>(::GetProcAddress(glLibHandle(), name));
+	auto ret = reinterpret_cast<void*>(::GetProcAddress(glLibHandle(), name));
+	if(!ret) ret = reinterpret_cast<void*>(::wglGetProcAddress(name));
 	return ret;
 }
 
-bool WglContext::makeCurrentImpl()
+bool WglContext::makeCurrentImpl(std::error_code& ec)
 {
-	auto ret = ::wglMakeCurrent(dc_, wglContext_);
-	if(!ret) warning(errorMessage("WglContext::makeCurrentImpl"));
-	return ret;
+	::SetLastError(0);
+	if(!::wglMakeCurrent(dc_, wglContext_))
+	{
+		warning(errorMessage("ny::WglContext::makeCurrentImpl (wglMakeCurrent) failed"));
+		ec = {static_cast<int>(::GetLastError()), WinapiErrorCategory::instance()};
+		return false;
+	}
+
+	return true;
 }
 
-bool WglContext::makeNotCurrentImpl()
+bool WglContext::makeNotCurrentImpl(std::error_code& ec)
 {
-	auto ret = ::wglMakeCurrent(nullptr, nullptr);
-	if(!ret) warning(errorMessage("WglContext::makeNotCurrentImpl"));
-	return ret;
+	::SetLastError(0);
+	if(!::wglMakeCurrent(nullptr, nullptr))
+	{
+		warning(errorMessage("ny::WglContext::makeNotCurrentImpl (wglMakeCurrent) failed"));
+		ec = {static_cast<int>(::GetLastError()), WinapiErrorCategory::instance()};
+		return false;
+	}
+
+	return true;
 }
 
-bool WglContext::apply()
+bool WglContext::apply(std::error_code& ec)
 {
-	GlContext::apply();
-	auto ret = ::SwapBuffers(dc_);
-	if(!ret) warning(errorMessage("Wgl::apply (SwapBuffer)"));
-	return ret;
+	::SetLastError(0);
+	if(!::SwapBuffers(dc_))
+	{
+		warning(errorMessage("ny::WglContext::apply (SwapBuffer) failed"));
+		ec = {static_cast<int>(::GetLastError()), WinapiErrorCategory::instance()};
+		return false;
+	}
+
+	return true;
 }
 
 //WglWindowContext

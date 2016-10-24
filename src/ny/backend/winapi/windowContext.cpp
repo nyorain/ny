@@ -11,6 +11,7 @@
 
 #include <nytl/scope.hpp>
 
+#include <Dwmapi.h>
 #include <tchar.h>
 #include <stdexcept>
 
@@ -40,7 +41,7 @@ WinapiWindowContext::WinapiWindowContext(WinapiAppContext& appContext,
 	initWindowClass(settings);
 	setStyle(settings);
 	initWindow(settings);
-	showWindow(settings);
+	// showWindow(settings);
 }
 
 WinapiWindowContext::~WinapiWindowContext()
@@ -115,13 +116,14 @@ WNDCLASSEX WinapiWindowContext::windowClass(const WinapiWindowSettings& settings
 	ret.cbClsExtra = 0;
 	ret.cbWndExtra = 0;
 	ret.hbrBackground = nullptr;
+	// ret.hbrBackground = nullptr;
 
 	return ret;
 }
 
 void WinapiWindowContext::setStyle(const WinapiWindowSettings& settings)
 {
-	style_ = WS_OVERLAPPEDWINDOW;
+	style_ = WS_OVERLAPPEDWINDOW | WS_OVERLAPPED | WS_VISIBLE | WS_CLIPSIBLINGS;
 }
 
 void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
@@ -144,12 +146,56 @@ void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 	}
 	else
 	{
-		handle_ = ::CreateWindowEx(0, _T(wndClassName_.c_str()), _T(settings.title.c_str()),
+		// auto exstyle = WS_EX_APPWINDOW | WS_EX_OVERLAPPEDWINDOW | WS_EX_TRANSPARENT | WS_EX_COMPOSITED;
+		// auto exstyle = WS_EX_APPWINDOW | WS_EX_LAYERED | WS_EX_OVERLAPPEDWINDOW;
+		auto exstyle = WS_EX_LAYERED;
+		// auto exstyle = 0;
+		handle_ = ::CreateWindowEx(exstyle, _T(wndClassName_.c_str()), _T(settings.title.c_str()),
 			style_, position.x, position.y, size.x, size.y, parent, nullptr, hinstance, this);
 	}
 
 	std::uintptr_t ptr = reinterpret_cast<std::uintptr_t>(this);
 	::SetWindowLongPtr(handle_, GWLP_USERDATA, ptr);
+
+	//transparent test
+	// DWM_BLURBEHIND bb = { 0 };
+	// bb.dwFlags = DWM_BB_ENABLE | DWM_BB_BLURREGION;
+	// bb.hRgnBlur = CreateRectRgn(0, 0, -1, -1);  // makes the window transparent
+	// bb.fEnable = TRUE;
+	// ::DwmEnableBlurBehindWindow(handle(), &bb);
+
+	// ::SetWindowLong(handle(), GWL_EXSTYLE, ::GetWindowLong(handle(), GWL_EXSTYLE) | WS_EX_LAYERED);
+	// ::SetLayeredWindowAttributes(handle(), 0x1, 0, LWA_COLORKEY);
+
+
+	// BLENDFUNCTION blend;
+	// blend.BlendOp = AC_SRC_OVER;
+	// blend.BlendFlags = 0;
+	// blend.SourceConstantAlpha = 255;
+	// blend.AlphaFormat = AC_SRC_ALPHA;
+	//
+	// RECT r;
+	// GetClientRect(handle(), &r);
+	//
+	// POINT src = POINT(), dst;
+	// SIZE ssize;
+	//
+	// ssize.cx = r.right - r.left;
+	// ssize.cy = r.bottom - r.top;
+	//
+	// GetWindowRect(handle(), &r);
+	// dst.x = r.left;
+	// dst.y = r.top;
+	//
+	// HDC scrndc = GetDC(HWND_DESKTOP);
+	// // UpdateLayeredWindow(handle(), scrndc, &dst, &size, memdc, &src, 0, &blend, ULW_ALPHA);
+	//
+	// BLENDFUNCTION blend;
+	// blend.BlendOp = AC_SRC_OVER;
+	// blend.BlendFlags = 0;
+	// blend.SourceConstantAlpha = 255;
+	// blend.AlphaFormat = AC_SRC_ALPHA;
+	// UpdateLayeredWindow(handle(), nullptr, nullptr, nullptr, nullptr, nullptr, 0, &blend, ULW_ALPHA);
 }
 
 void WinapiWindowContext::initDialog(const WinapiWindowSettings& settings)
@@ -183,7 +229,7 @@ HINSTANCE WinapiWindowContext::hinstance() const
 
 void WinapiWindowContext::refresh()
 {
-	::RedrawWindow(handle_, nullptr, nullptr, RDW_INVALIDATE | RDW_NOERASE);
+	::RedrawWindow(handle_, nullptr, nullptr, RDW_INVALIDATE | RDW_NOERASE | RDW_FRAME);
 }
 
 void WinapiWindowContext::show()

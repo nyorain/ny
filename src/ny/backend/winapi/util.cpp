@@ -206,8 +206,10 @@ std::string errorMessage(unsigned int code, const char* msg)
 	auto size = ::FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, nullptr, code, 0, buffer,
 		sizeof(buffer), nullptr);
 
-	if(size > 0 && msg) ret += ": ";
-	ret += buffer;
+	if(msg) ret += ": ";
+
+	if(size > 0) ret += buffer;
+	else ret += "<unkown winapi error>";
 
 	return ret;
 }
@@ -241,6 +243,17 @@ const char* cursorToWinapi(CursorType type)
 		// case Cursor::Type::no: return IDC_NO;
 		default: return nullptr;
 	}
+}
+
+WinapiErrorCategory& WinapiErrorCategory::instance()
+{
+	static WinapiErrorCategory ret;
+	return ret;
+}
+
+std::string WinapiErrorCategory::message(int code) const
+{
+	return errorMessage(code);
 }
 
 }

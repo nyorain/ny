@@ -1,6 +1,7 @@
 #include <ny/base.hpp>
 #include <ny/backend.hpp>
 #include <ny/backend/integration/cairo.hpp>
+#include <ny/backend/winapi/appContext.hpp>
 
 #include <cairo/cairo.h>
 
@@ -51,6 +52,8 @@ int main()
 		return EXIT_FAILURE;
 	}
 
+	reinterpret_cast<ny::WinapiAppContext*>(ac.get())->dispatch(ny::DrawEvent(&handler));
+
 	//store the pointer in our event handler
 	handler.cairo = cairo.get();
 
@@ -58,9 +61,16 @@ int main()
 	ac->dispatchLoop(control);
 }
 
-bool MyEventHandler::handleEvent(const ny::Event& ev) 
+bool MyEventHandler::handleEvent(const ny::Event& ev)
 {
+	static bool s = false;
 	ny::debug("Received event with type ", ev.type());
+
+	if(!s)
+	{
+		s = true;
+		handleEvent(ny::DrawEvent(this));
+	}
 
 	if(ev.type() == ny::eventType::close)
 	{
@@ -77,7 +87,12 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 
 		//Then, create a cairo context for the returned surface and use it to draw
 		auto cr = cairo_create(&surf);
-		cairo_set_source_rgb(cr, 0.543, 1.0, 1.0);
+		cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+
+		// cairo_rectangle(cr, 0, 20, 100, 100);
+		// cairo_clip(cr);
+
+		cairo_set_source_rgba(cr, 0.543, 1.0, 1.0, 0.5);
 		cairo_paint(cr);
 
 		//always remember to destroy/recreate the cairo context on every draw call and dont

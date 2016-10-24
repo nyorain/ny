@@ -4,10 +4,11 @@
 
 #include <thread>
 #include <cstring>
+#include <mutex>
+#include <map>
 
 namespace ny
 {
-
 
 namespace
 {
@@ -25,20 +26,45 @@ constexpr unsigned int GL_MAJOR_VERSION = 0x821B;
 constexpr unsigned int GL_MINOR_VERSION = 0x821C;
 constexpr unsigned int GL_VERSION = 0x1F02;
 
+//GlContext std::error_category implementation
+class GlContextErrorCategory : public std::error_category
+{
+public:
+	static GlContextErrorCategory& instance()
+	{
+		static GlContextErrorCategory ret;
+		return ret;
+	}
+
+public:
+	const char* name() const noexcept override { return "ny::GlContextErrorGategory"; }
+	std::string message(int code) const override
+	{
+		using Error = GlContext::Error;
+		auto error = static_cast<Error>(code);
+		switch(error)
+		{
+			case Error::alreadyCurrent: return "GlContext was already current";
+			case Error::alreadyNotCurrent: return "GlContext was already not current";
+			case Error::currentInAnotherThread: return "The native gl context handle is already "
+				" current in another thread.";
+			default: return "<unkown error code>";
+		}
+	}
+};
+
 //parsing shader version
 GlContext::Version parseGlslVersion(const std::string& name)
 {
 	GlContext::Version version;
 	version.api = GlContext::Api::gl;
 
-	auto pos = name.find(" es");
-	if(pos != std::string::npos)
-	{
-		auto next = pos + 3;
-		if(next >= name.size() || name[next] == ' ') version.api = GlContext::Api::gles;
-	}
+	auto pos = name.find(" es ");
+	if(pos == std::string::npos) pos = name.find(" ES");
+	if(pos == std::string::npos) pos = name.find("-es");
+	if(pos == std::string::npos) pos = name.find("-es");
+	if(pos == std::string::npos) pos = name.find("-ES");
 
-	pos = name.find(" ES");
 	if(pos != std::string::npos)
 	{
 		auto next = pos + 3;
@@ -84,11 +110,20 @@ GlContext::Version parseGlslVersion(const std::string& name)
 	}
 	else
 	{
-		warning("GlContext::init: invalid glsl version string: '", name, "' ", count);
+		warning("GlContext::init: invalid glsl version string: '", name, "' c=", count);
 		return version;
 	}
 
 	return version;
+}
+
+std::map<std::thread::id, GlContext*>& contextCurrentMap(std::mutex*& mutex)
+{
+	static std::map<std::thread::id, GlContext*> smap;
+	static std::mutex smutex;
+
+	mutex = &smutex;
+	return smap;
 }
 
 }
@@ -101,28 +136,38 @@ std::string name(const GlVersion& v)
 	return ret;
 }
 
-
-//GlContext
-GlContext* GlContext::threadLocalCurrent(bool change, GlContext* newOne)
+GlContext* GlContext::current()
 {
-	static thread_local GlContext* current_ = nullptr;
-	if(change) current_ = newOne;
-	return current_;
+	std::mutex* mutex;
+	auto& map = contextCurrentMap(mutex);
+
+	std::lock_guard<std::mutex> lock(*mutex);
+	auto it = map.find(std::this_thread::get_id());
+	if(it == map.end()) return nullptr;
+	return it->second;
 }
 
-//non-static
+//GlContext
 GlContext::~GlContext()
 {
 	//if current we ignore it and simply unregister it anyways
-	if(isCurrent()) 
+	if(isCurrent())
 	{
-		warning("ny::~GlContext: current on destruction");
-		threadLocalCurrent(true, nullptr);
+		warning("ny::~GlContext: current on destruction. Implementation issue.");
+
+		std::mutex* mutex;
+		auto& map = contextCurrentMap(mutex);
+
+		{
+			std::lock_guard<std::mutex> lock(*mutex);
+			map[std::this_thread::get_id()] = this;
+		}
 	}
 }
 
 void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)
 {
+	std::error_code error;
 	version_.api = api;
 	depthBits_ = depth;
 	stencilBits_ = stencil;
@@ -131,8 +176,8 @@ void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)
 
 	//some backends need to make it current before
 	if(saved == this) saved = nullptr;
-	else if(!makeCurrent())
-		throw std::runtime_error("ny::GlContext::initContext: failed to make current");
+	else if(!makeCurrent(error))
+		throw std::system_error(error, "ny::GlContext::initContext: failed to make current.");
 
 	//load needed functions
 	auto getString = reinterpret_cast<PfnGetString>(procAddr("glGetString"));
@@ -143,7 +188,7 @@ void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)
 		throw std::runtime_error("ny::GlContext::initContext: failed to load gl functions.");
 
 	//get opengl version
-	//first try >3.0 api
+	//first try >3.0 api. Implementation issue.
 	int major = 0, minor = 0;
 	getIntegerv(GL_MAJOR_VERSION, &major);
 	getIntegerv(GL_MINOR_VERSION, &minor);
@@ -156,28 +201,31 @@ void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)
 
 		//version prefixes used by some implementers
 		constexpr const char* prefixes[] = {
-	        "OpenGL ES-CM ",
-	        "OpenGL ES-CL ",
-	        "OpenGL ES "
-    	};
+			"OpenGL ES-CM ",
+			"OpenGL ES-CL ",
+			"OpenGL ES "
+		};
 
-    	for (auto i = 0u; i < sizeof(prefixes) / sizeof(prefixes[0]); ++i)
+		for(auto& prefix : prefixes)
 		{
-        	const auto length = std::strlen(prefixes[i]);
-        	if(strncmp(version, prefixes[i], length) == 0)
+			const auto length = std::strlen(prefix);
+			if(strncmp(version, prefix, length) == 0)
 			{
-            	version += length;
-            	break;
-        	}
+				if(api != Api::gles)
+					warning("ny::GlContext::initContext: ES version string for gl context");
+
+				version += length;
+				break;
+			}
 		}
 
 		std::sscanf(version, "%d.%d", &major, &minor);
- 	}
+	 }
 
 	version_ = {api, static_cast<unsigned int>(major), static_cast<unsigned int>(minor)};
 
 	//extensions
-	if(versionNumber() >= 30)
+	if(number(version()) >= 30)
 	{
 		auto number = 0;
 		getIntegerv(GL_NUM_EXTENSIONS, &number);
@@ -195,7 +243,7 @@ void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)
 	}
 
 	//glsl
-	if(api == Api::gl && versionNumber() >= 43)
+	if(api == Api::gl && number(version()) >= 43)
 	{
 		auto number = 0;
 		getIntegerv(GL_NUM_SHADING_LANGUAGE_VERSIONS, &number);
@@ -221,37 +269,133 @@ void GlContext::initContext(Api api, unsigned int depth, unsigned int stencil)
 	for(auto& glsl : glslVersions_)	if(number(glsl) > number(pgv)) pgv = glsl;
 
 	//make it not current - needed since it might be made current in another thread
-	makeNotCurrent();
+	if(!makeNotCurrent(error))
+		warning("ny::GlContext::initContext: failed to make context not current at the end.");
 
 	//restore saved one if there is any
-	if(saved && !saved->makeCurrent()) warning("GlCtx::initCtx: failed to make saved current.");
+	if(saved && !saved->makeCurrent(error))
+		warning("ny::GlContext::initContext: failed to make saved current: ", error.message());
 }
 
-bool GlContext::makeCurrent()
+void GlContext::makeCurrent()
 {
-	if(isCurrent()) return true;
+	std::error_code error;
+	if(!makeCurrent(error)) throw std::system_error(error);
+}
 
-	if(makeCurrentImpl())
+bool GlContext::makeCurrent(std::error_code& error)
+{
+	std::mutex* mutex;
+	auto threadid = std::this_thread::get_id();
+	auto& map = contextCurrentMap(mutex);
+	decltype(map.begin()) thisThreadIt {};
+	error.clear();
+
 	{
-		threadLocalCurrent(true, this);
+		std::lock_guard<std::mutex> lock(*mutex);
+
+		thisThreadIt = map.find(threadid);
+		if(thisThreadIt == map.end()) thisThreadIt = map.emplace(threadid, nullptr).first;
+
+		//check if already current
+		if(thisThreadIt->second == this)
+		{
+			auto code = static_cast<int>(Error::alreadyCurrent);
+			error = std::error_code(code, GlContextErrorCategory::instance());
+			return true;
+		}
+
+		//check if another context with same handle is already current
+		for(auto& entry : map)
+		{
+			if(entry.second && entry.second->sameContext(*this))
+			{
+				auto code = static_cast<int>(Error::currentInAnotherThread);
+				error = std::error_code(code, GlContextErrorCategory::instance());
+				return false;
+			}
+		}
+
+		//make current context not current and check for failure
+		if(thisThreadIt->second)
+		{
+			if(!thisThreadIt->second->makeNotCurrent(error))
+				return false;
+		}
+	}
+
+	if(makeCurrentImpl(error))
+	{
+		std::lock_guard<std::mutex> lock(*mutex);
+		thisThreadIt->second = this;
 		return true;
 	}
 
 	return false;
 }
 
-bool GlContext::makeNotCurrent()
+void GlContext::makeNotCurrent()
 {
-	if(!isCurrent()) return true;
+	std::error_code error;
+	if(!makeNotCurrent(error)) throw std::system_error(error);
+}
 
-	//TODO: if branch like in makeCurrent?
-	threadLocalCurrent(true, nullptr);
-	return makeNotCurrentImpl();
+bool GlContext::makeNotCurrent(std::error_code& error)
+{
+	std::mutex* mutex;
+	auto threadid = std::this_thread::get_id();
+	auto& map = contextCurrentMap(mutex);
+	decltype(map.begin()) thisThreadIt {};
+	error.clear();
+
+	//check if it is already not current
+	{
+		std::lock_guard<std::mutex> lock(*mutex);
+
+		thisThreadIt = map.find(threadid);
+		if(thisThreadIt == map.end()) thisThreadIt = map.emplace(threadid, nullptr).first;
+		if(thisThreadIt->second != this)
+		{
+			auto code = static_cast<int>(Error::alreadyNotCurrent);
+			error = std::error_code(code, GlContextErrorCategory::instance());
+			return true;
+		}
+	}
+
+	if(makeNotCurrentImpl(error))
+	{
+		std::lock_guard<std::mutex> lock(*mutex);
+		thisThreadIt->second = nullptr;
+		return true;
+	}
+
+	return false;
 }
 
 bool GlContext::isCurrent() const
 {
-	return (threadLocalCurrent() == this);
+	std::mutex* mutex;
+	auto& map = contextCurrentMap(mutex);
+
+	std::lock_guard<std::mutex> lock(*mutex);
+	return map[std::this_thread::get_id()] == this;
+}
+
+bool GlContext::currentAnywhere() const
+{
+	std::mutex* mutex;
+	auto& map = contextCurrentMap(mutex);
+
+	{
+		std::lock_guard<std::mutex> lock(*mutex);
+
+		for(auto& entry : map)
+		{
+			if(entry.second == this) return true;
+		}
+	}
+
+	return false;
 }
 
 bool GlContext::sharedWith(const GlContext& other) const
@@ -270,9 +414,15 @@ bool GlContext::glExtensionSupported(const std::string& name) const
 	return false;
 }
 
-bool GlContext::apply()
+void GlContext::apply()
 {
-	return true;
+	std::error_code error;
+	if(!apply(error)) throw std::system_error(error);
+}
+
+bool GlContext::sameContext(const GlContext& other) const
+{
+	return (nativeHandle() == other.nativeHandle()) && (nativeHandle() != nullptr);
 }
 
 }

@@ -2,6 +2,7 @@
 
 #include <ny/include.hpp>
 #include <string>
+#include <system_error>
 
 namespace ny
 {
@@ -18,5 +19,16 @@ std::string errorMessage(const char* msg = nullptr);
 //Note: not a string literal returned here. Just a (char?) pointer to some windows
 //resource. Better return void pointer or sth...
 const char* cursorToWinapi(CursorType type);
+
+///Winapi std::error_category
+class WinapiErrorCategory : public std::error_category
+{
+public:
+	static WinapiErrorCategory& instance();
+
+public:
+	const char* name() const noexcept override { return "ny::WinapiErrorCategory"; }
+	std::string message(int code) const override;
+};
 
 }

@@ -3,6 +3,7 @@
 #include <ny/include.hpp>
 
 #include <nytl/nonCopyable.hpp>
+#include <nytl/stringParam.hpp>
 #include <nytl/rect.hpp>
 
 #include <string>
@@ -19,7 +20,8 @@ enum class GlApi : unsigned int
 	gles,
 };
 
-///Represents a general gl or glsl version
+///Represents a general gl or glsl version.
+///Note that e.g. glsl version 330 is represented by major=3, minor=3
 struct GlVersion
 {
 	GlApi api;
@@ -33,10 +35,11 @@ std::string name(const GlVersion& version);
 ///Returns a unique number for a gl version.
 inline constexpr unsigned int number(const GlVersion& v) { return v.major * 10 + v.minor; }
 
-///Abstract base class for an openGL(ES) context. This class is implemented e.g.
+///Abstract base class for an openGL(ES) context wrapper. This class is implemented e.g.
 ///with egl, glx or wgl. With the static current() function one can get the current context
-///for the calling thread. 
-///This class is useful as abstraction for the different backends.
+///for the calling thread. Does usually not own the associated native context handle,
+///but rather connect it with some kind of surface/drawable that is should be made
+///current for.
 ///Implementations should remember to make the context not current in the destructor.
 class GlContext : public nytl::NonMovable
 {
@@ -44,59 +47,29 @@ public:
 	using Api = GlApi;
 	using Version = GlVersion;
 
+	///The cross-platform error codes used for std::error_code objects
+	enum class Error : unsigned int
+	{
+		alreadyCurrent = 1,
+		alreadyNotCurrent = 2,
+		currentInAnotherThread = 3
+	};
+
 	///Returns the current context in the calling thread, nullptr if there is none.
-	static GlContext* current() { return threadLocalCurrent(); }
+	static GlContext* current();
 
 public:
 	GlContext() = default;
 	virtual ~GlContext();
 
-	///Returns the api this openGL context has, see the Api enum for more information.
-	Api api() const { return version().api; }
+	Api api() const { return version().api; } ///The contexts api (gl or gles)
+	Version version() const { return version_; } ///The gl(es) api version
 
-	///Return whether the api opengl
-	bool gl() const { return api() == Api::gl; }
+	unsigned int depthBits() const { return depthBits_; } ///The default number of depth bits
+	unsigned int stencilBits() const { return stencilBits_; } ///The default number of stencil bits
 
-	///Returns whether the api is opengles
-	bool gles() const { return api() == Api::gles; }
-
-	///Returns the version of this context.
-	Version version() const { return version_; }
-
-	///Returns the major version of the api this context has. If it runs e.g. on openGL 4.5 this
-	///function will return 4.
-	unsigned int majorApiVersion() const { return version().major; }
-
-	///Returns the minor version of the api this context has. If it runs e.g. on openGL 4.5 this
-	///function will return 5.
-	unsigned int minorApiVersion() const { return version().minor; }
-
-	///Reeturns majorVersion * 10 + minorVersion. If the context has e.g. the openGLES version
-	///3.1 this function returns 31.
-	unsigned int versionNumber() const { return number(version()); }
-
-	///Returns the number of depth bits this context has. For contexts without depth buffer it
-	///returns therefore 0.
-	unsigned int depthBits() const { return depthBits_; }
-
-	///Returns the number of stencil bits this context has. For contexts without stencil
-	///buffer it returns therefore 0.
-	unsigned int stencilBits() const { return stencilBits_; }
-
-
-	///Makes the context the current one in the calling thread. If there is another current one
-	///before, it will be made not current. Returns 0 on failure.
-	bool makeCurrent();
-
-	///Makes this context not current in the current thread. If it is not current, no changes
-	///will be made and the function returns 0. If this context is the current one, it will be
-	///made not current so that after this function call the calling thread has no
-	///current context. Returns 0 on failure or if the context is not current.
-	bool makeNotCurrent();
-
-	///Checks if the context is the current one in the calling thread.
-	bool isCurrent() const;
-
+	bool isCurrent() const; ///Checks if context is current in calling thread
+	bool currentAnywhere() const; ///Checks if context is current in any thread
 
 	///Returns all extensions returned by glGetString(GL_EXTENSIONS) for this context.
 	const std::vector<std::string>& glExtensions() const { return extensions_; }
@@ -107,58 +80,92 @@ public:
 	///Returns all supported glsl versions
 	std::vector<Version> glslVersions() const { return glslVersions_; }
 
-	///Returns the preferred glsl version
+	///Returns the latest (or otherwise preferred) glsl version
 	Version preferredGlslVersion() const { return preferredGlslVersion_; }
 
 	///Returns a vector of all shared opengl contexts.
+	///The returned list does not include GlContext objects that refer to the
+	///same native context handle.
 	std::vector<GlContext*> sharedContexts() const { return sharedContexts_; }
 
-	///Returns whether the context shares it resources with the other context.
+	///If both GlContext objects refer to the same native context handle, returns true.
+	///If someContext(other) is true, this function returns false.
 	bool sharedWith(const GlContext& other) const;
+
+	///Returns whether this object has the same underlaying native context as the
+	///given GlContext. Note that if this function returns true, those two contexts
+	///must not be made current in different threads at the same time.
+	///Trying to do so will reult in an exception.
+	virtual bool sameContext(const GlContext& other) const;
+
+	///Returns the natvie opengl context handle casted to a void pointer.
+	virtual void* nativeHandle() const = 0;
+
+	///Returns a proc addr for a given function name or nullptr if it could not be found.
+	///Can be used to query core gl/extension gl or extension platform api functions.
+	///Note that just because this call returns a valid function, the extension still has
+	///to be supported.
+	virtual void* procAddr(nytl::StringParam name) const = 0;
+
+	///Makes the context the current one in the calling thread. If there is another current one
+	///before, it will be made not current.
+	///If the context is already current in this thread, this function has no effect.
+	///\exception std::system_error On implementation failure
+	///\excpetion std::system_error If this context or another context associated with the same
+	///native context handle is already current in other thread this function .
+	void makeCurrent();
+
+	///Same as makeCurrent but does not throw. If the context is current after this call returns
+	///true. If the context was already current the error code is set, but true is returned.
+	bool makeCurrent(std::error_code& error);
+
+	///Makes this context not current in the current thread. If this context is the current one,
+	///it will be made not current so that after this function call the calling thread has no
+	///current context.
+	///If the context is not current, this function has no effect.
+	///Note that there is no way to make the context not current from thread A if it is
+	///current in thread B.
+	///\exception std::system_failure On failure
+	void makeNotCurrent();
+
+	///Same as makeNotCurrent but does not throw. If the context is not current after this call
+	///returns true. If the context was already not current the error code is set, but true
+	///is returned.
+	bool makeNotCurrent(std::error_code& error);
+
+	//NOTE: does the context has to be current when calling this? on some implementations
+	//it might be like this...
 
 	///Applies the contents of this context to its surface. Usually this means, the context will
 	///swap the back and the front buffer. No guarantess are given that the contents of the
-	///context will not be visible BEFORE a call to this function (since some backends may
-	///use a single buffer to draw its contents). AFTER a call to this function
-	///all contents should be applied.
-	///Alternative name(may not be matching for all backends though) would be swapBuffers().
-	virtual bool apply();
-
-	//TODO: use nytl::StringParam
-	///Returns a proc addr for a given function name or nullptr if it could not be found.
-	virtual void* procAddr(const char*) const { return nullptr; }
-
-	///Returns a proc addr for a given function name of nullptr if it could not be found.
-	virtual void* procAddr(const std::string& name) const { return procAddr(name.c_str()); }
+	///context will not be visible before a call to this function (since some backends may
+	///use a single buffer to draw its contents). After a call to this function
+	///all contents are or will be applied soon.
+	///Alternative name would be swapBuffers().
+	///\excpetion std::system_error On failure
+	virtual void apply();
+	virtual bool apply(std::error_code& error) = 0; ///Does not throw
 
 protected:
-	static GlContext* threadLocalCurrent(bool change = 0, GlContext* = nullptr);
-	static void assureGlLoaded(const GlContext& ctx);
-	static void assureGlesLoaded(const GlContext& ctx);
+	///This should be called by implementations at some point of context creation/initialisation
+	///to init the context (e.g. function pointer resolution; glew/glbinding).
+	///\exception std::system_error if the context could not be made current
+	///\exception std::runtime_error if the needed gl functions could not be loaded
+	///\exception std::runtime_error if the gl/glsl versions cannot be retrieved
+	virtual void initContext(Api api, unsigned int depth = 0, unsigned int stencil = 0);
+	virtual bool makeCurrentImpl(std::error_code& error) = 0;
+	virtual bool makeNotCurrentImpl(std::error_code& error) = 0;
 
 protected:
 	Version version_;
 
 	unsigned int depthBits_ {0};
-    unsigned int stencilBits_ {0};
+	unsigned int stencilBits_ {0};
 
 	std::vector<std::string> extensions_;
 	std::vector<GlContext*> sharedContexts_;
 	std::vector<Version> glslVersions_;
 	Version preferredGlslVersion_;
-
-protected:
-	///This should be called by implementations at some point of context creation/initialisation
-	///to init the context (e.g. function pointer resolution; glew/glbinding).
-	virtual void initContext(Api api, unsigned int depth = 0, unsigned int stencil = 0);
-
-	///This function will be called by makeCurrent() and should be implemented by derived
-	///classes.
-	virtual bool makeCurrentImpl() = 0;
-
-	///This function will be called by makeNotCurrent() and should be implemented by derived
-	///classes.
-	virtual bool makeNotCurrentImpl() = 0;
 };
 
 ///A guard to make a context current on construction and make it not current on destruction.

@@ -1,9 +1,6 @@
 current:
-- fix gl for x11
-- replace ugly glad wgl/glx/egl apis. Just load the few (like 2 or 3) needed extensions funcs self
-	- discuss this, might not make sense
+- rework glx/egl/wgl api loading (glad without loader), make it possible to load e.g. ANGLE
 - event type register, see doc/concepts/events
-- fix/rework winapi KeyboardContext implementation
 - make WindowContext NOT an EventHandler (instead use own backend-specific functions)
 
 for later:
@@ -16,8 +13,13 @@ when reworking gl:
 - example egl/wayland: is EglContextGuard really needed? WaylandEglDisplay sufficient?
 
 wayland backend:
-- store last dispatched event serials, fix them for data impl (remove clilpboard hack)
 - animated cursor (low prio)
 - egl resize events (make DrawIntegration?)
 - build/linux2 (wayland not working when built without egl/gl, invalid unique_ptr)
 	- implement like x11 with pimpl
+
+winapi backend:
+- correct gl context management. (best example atm: x11 backend)
+- fix/rework winapi KeyboardContext/MouseContext implementation
+	- they .e.g. dont call the callbacks
+	- they should manage sent events

@@ -16,7 +16,7 @@ if(WithWinapi)
 		winapi/surface.cpp
 		winapi/windowContext.cpp)
 
-	list(APPEND libs_backend ${libs_backend} gdi32 gdiplus)
+	list(APPEND libs_backend ${libs_backend} gdi32 gdiplus Dwmapi)
 
 	if(WithGL)
 		list(APPEND src_backend winapi/wgl.cpp winapi/wglApi.c)

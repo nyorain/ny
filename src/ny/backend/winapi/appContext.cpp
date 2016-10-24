@@ -46,13 +46,13 @@ public:
 public:
 	WinapiLoopControlImpl(std::atomic<bool>& prun) : run(&prun)
 	{
-		threadHandle = GetCurrentThreadId();
+		threadHandle = ::GetCurrentThreadId();
 	}
 
 	virtual void stop() override
 	{
 		run->store(0);
-		PostThreadMessage(threadHandle, WM_USER, 0, 0);
+		::PostThreadMessage(threadHandle, WM_USER, 0, 0);
 	};
 };
 
@@ -162,10 +162,10 @@ bool WinapiAppContext::dispatchEvents()
 	receivedQuit_ = false;
 	MSG msg;
 
-	while(PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
+	while(::PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
 	{
-		TranslateMessage(&msg);
-		DispatchMessage(&msg);
+		::TranslateMessage(&msg);
+		::DispatchMessage(&msg);
 	}
 
 	return !receivedQuit_;
@@ -192,7 +192,7 @@ bool WinapiAppContext::dispatchLoop(LoopControl& control)
 		for(auto& e : pendingEvents_) if(e->handler) e->handler->handleEvent(*e);
 		pendingEvents_.clear();
 
-		auto ret = GetMessage(&msg, nullptr, 0, 0);
+		auto ret = ::GetMessage(&msg, nullptr, 0, 0);
 		if(ret == -1)
 		{
 			warning(errorMessage("WinapiAC::dispatchLoop"));
@@ -200,8 +200,8 @@ bool WinapiAppContext::dispatchLoop(LoopControl& control)
 		}
 		else
 		{
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
+			::TranslateMessage(&msg);
+			::DispatchMessage(&msg);
 		}
 	}
 
@@ -217,16 +217,16 @@ bool WinapiAppContext::threadedDispatchLoop(EventDispatcher& dispatcher,
 	receivedQuit_ = false;
 
 	auto threadid = std::this_thread::get_id();
-	auto threadHandle = GetCurrentThreadId();
+	auto threadHandle = ::GetCurrentThreadId();
 	eventDispatcher_ = &dispatcher;
 
 	//register a callback that is called everytime the dispatcher gets an event
 	//if the event comes from this thread, this thread is not waiting, otherwise
 	//wait this thread with a message.
-	nytl::CbConnGuard conn = dispatcher.onDispatch.add([&] {
+	auto conn = nytl::makeConnection(dispatcher.onDispatch, dispatcher.onDispatch.add([&] {
 		if(std::this_thread::get_id() != threadid)
 			PostThreadMessage(threadHandle, WM_USER, 0, 0);
-	});
+	}));
 
 	//exception safety
 	auto scopeGuard = nytl::makeScopeGuard([&]{
@@ -241,7 +241,7 @@ bool WinapiAppContext::threadedDispatchLoop(EventDispatcher& dispatcher,
 		for(auto& e : pendingEvents_) if(e->handler) e->handler->handleEvent(*e);
 		pendingEvents_.clear();
 
-		auto ret = GetMessage(&msg, nullptr, 0, 0);
+		auto ret = ::GetMessage(&msg, nullptr, 0, 0);
 		if(ret == -1)
 		{
 			warning(errorMessage("WinapiAC::dispatchLoop"));
@@ -249,8 +249,8 @@ bool WinapiAppContext::threadedDispatchLoop(EventDispatcher& dispatcher,
 		}
 		else
 		{
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
+			::TranslateMessage(&msg);
+			::DispatchMessage(&msg);
 		}
 
 		dispatcher.processEvents();
@@ -269,7 +269,7 @@ bool WinapiAppContext::clipboard(std::unique_ptr<DataSource>&& source)
 
 DataOffer* WinapiAppContext::clipboard()
 {
-	auto seq = GetClipboardSequenceNumber();
+	auto seq = ::GetClipboardSequenceNumber();
 	if(!clipboardOffer_ || seq > clipboardSequenceNumber_)
 	{
 		clipboardOffer_ = nullptr;
@@ -337,7 +337,7 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 	{
 		case WM_CREATE:
 		{
-			result = DefWindowProc(window, message, wparam, lparam);
+			result = ::DefWindowProc(window, message, wparam, lparam);
 			break;
 		}
 
@@ -443,7 +443,7 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 				dispatch(ev);
 			}
 
-			result = DefWindowProc(window, message, wparam, lparam); //to validate the window
+			result = ::DefWindowProc(window, message, wparam, lparam); //to validate the window
 			break;
 		}
 
@@ -505,7 +505,7 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 				}
 			}
 
-			result = DefWindowProc(window, message, wparam, lparam);
+			result = ::DefWindowProc(window, message, wparam, lparam);
 			break;
 		}
 
@@ -535,7 +535,7 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 
 		default:
 		{
-			result = DefWindowProc(window, message, wparam, lparam);
+			result = ::DefWindowProc(window, message, wparam, lparam);
 			break;
 		}
 	}

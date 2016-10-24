@@ -67,43 +67,44 @@ void EglContext::eglSurface(EGLSurface surface)
 	eglSurface_ = surface;
 }
 
-bool EglContext::makeCurrentImpl()
+bool EglContext::makeCurrentImpl(std::error_code& ec)
 {
-    if(!eglMakeCurrent(eglDisplay(), eglSurface(), eglSurface(), eglContext()))
-    {
-        warning("EglContext::current: eglMakeCurrent failed: ", errorMessage(eglGetError()));
-        return false;
-    }
+	if(!eglMakeCurrent(eglDisplay(), eglSurface(), eglSurface(), eglContext()))
+	{
+		auto error = eglGetError();
+		warning("ny::EglContext::makeCurrent (eglMakeCurrent) failed: ", errorMessage(error));
+		ec = {error, EglErrorCategory::instance()};
+		return false;
+	}
 
-    return true;
+	return true;
 }
 
-bool EglContext::makeNotCurrentImpl()
+bool EglContext::makeNotCurrentImpl(std::error_code& ec)
 {
-    if(!eglMakeCurrent(eglDisplay(), nullptr, nullptr, nullptr))
-    {
-        warning("EglContext::notCurrent: eglMakeCurrent failed: ", errorMessage(eglGetError()));
-        return false;
-    }
+	if(!eglMakeCurrent(eglDisplay(), nullptr, nullptr, nullptr))
+	{
+		auto error = eglGetError();
+		warning("ny::EglContext::makeNotCurrent (eglMakeCurrent) failed: ", errorMessage(error));
+		ec = {error, EglErrorCategory::instance()};
+		return false;
+	}
 
-    return true;
+	return true;
 }
 
-bool EglContext::apply()
+bool EglContext::apply(std::error_code& ec)
 {
-    if(!isCurrent())
-    {
-		warning("ny::EglContext::apply: invalid or not current");
-        return false;
-    }
+	//does the context have to be current?
+	if(!eglSwapBuffers(eglDisplay(), eglSurface()))
+	{
+		auto error = eglGetError();
+		warning("ny::EglContext::apply (eglSwapBuffers) failed: ", errorMessage(error));
+		ec = {error, EglErrorCategory::instance()};
+		return false;
+	}
 
-    if(!eglSwapBuffers(eglDisplay(), eglSurface()))
-    {
-		warning("eglContext::apply: eglSwapBuffers failed\n\t", errorMessage(eglGetError()));
-        return false;
-    }
-
-    return true;
+	return true;
 }
 
 std::vector<std::string> EglContext::eglExtensions() const
@@ -120,7 +121,7 @@ bool EglContext::eglExtensionSupported(const std::string& name) const
 }
 
 //static
-std::string EglContext::errorMessage(int error)
+const char* EglContext::errorMessage(int error)
 {
 	switch(error)
 	{
@@ -139,7 +140,7 @@ std::string EglContext::errorMessage(int error)
 		case EGL_BAD_PARAMETER: return "EGL_BAD_PARAMETER";
 		case EGL_BAD_SURFACE: return "EGL_BAD_SURFACE";
 		case EGL_CONTEXT_LOST: return "EGL_CONTEXT_LOST";
-		default: return "unknown error code";
+		default: return "<unknown egl error>";
 	}
 }
 
@@ -154,6 +155,18 @@ int EglContext::eglErrorWarn()
 void* EglContext::procAddr(const char* name) const
 {
 	return reinterpret_cast<void*>(eglGetProcAddress(name));
+}
+
+//Error category
+EglErrorCategory& EglErrorCategory::instance()
+{
+	static EglErrorCategory ret;
+	return ret;
+}
+
+std::string EglErrorCategory::message(int code) const
+{
+	return EglContext::errorMessage(code);
 }
 
 }

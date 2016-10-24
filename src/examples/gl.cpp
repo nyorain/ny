@@ -42,6 +42,7 @@ int main()
 	settings.context = ny::ContextType::gl;
 	settings.gl.storeContext = &ctx;
 	settings.gl.vsync = false;
+
 	auto wc = ac->createWindowContext(settings);
 
 	//check that the glcontext could be created

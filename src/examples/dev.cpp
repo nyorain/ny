@@ -48,7 +48,7 @@ int main()
 	MyEventHandler handler(control, *wc);
 	handler.ac = ac.get();
 
-	auto cairo = ny::cairoIntegration(*wc); 
+	auto cairo = ny::cairoIntegration(*wc);
 	if(!cairo)
 	{
 		ny::error("Failed to create cairo integration");
@@ -66,7 +66,7 @@ int main()
 }
 
 bool MyEventHandler::handleEvent(const ny::Event& ev)
-{ 
+{
 	static std::unique_ptr<ny::DataOffer> offer;
 
 	if(ev.type() == ny::eventType::close)
@@ -78,15 +78,16 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 	{
 		ny::debug("offer event received");
 		offer = std::move(reinterpret_cast<const ny::DataOfferEvent&>(ev).offer);
-		offer->data(ny::dataType::text, [] (const std::any& text, const ny::DataOffer&, int) {
-			if(!text.has_value())
-			{
-				ny::debug("invalid dnd text data");
-				return;
-			}
+		nytl::CbConn id = offer->data(ny::dataType::text,
+			[] (const std::any& text, const ny::DataOffer&, int) {
+				if(!text.has_value())
+				{
+					ny::debug("invalid dnd text data");
+					return;
+				}
 
-			ny::debug("Received dnd text data: ", std::any_cast<std::string>(text));
-		});
+				ny::debug("Received dnd text data: ", std::any_cast<std::string>(text));
+			});
 	}
 	else if(ev.type() == ny::eventType::mouseButton)
 	{
@@ -131,11 +132,11 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 		else
 		{
 			for(auto& t : dataOffer->types().types) ny::debug("clipboard type ", t);
- 
+
 			// trying to retrieve the data in text form and outputting it if successful
-			dataOffer->data(ny::dataType::text, 
+			dataOffer->data(ny::dataType::text,
 				[](const std::any& text, const ny::DataOffer&) {
-					if(!text.has_value()) 
+					if(!text.has_value())
 					{
 						ny::warning("invalid text clipboard data offer");
 						return;
@@ -151,7 +152,7 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 	return false;
 }
 
-std::any CustomDataSource::data(unsigned int format) const 
+std::any CustomDataSource::data(unsigned int format) const
 {
 	if(format != ny::dataType::text) return {};
 	return std::string("ayyy got em");

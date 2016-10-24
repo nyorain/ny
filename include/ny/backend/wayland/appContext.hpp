@@ -37,8 +37,8 @@ template<typename T>
 class ConnectionList : public nytl::Connectable<nytl::CbIdType>
 {
 public:
-	class Value : public T 
-	{ 
+	class Value : public T
+	{
 	public:
 		using T::T;
 		nytl::ConnectionDataPtr<unsigned int> clID_;
@@ -52,7 +52,7 @@ public:
 	{
 		for(auto it = items.begin(); it != items.end(); ++it)
 		{
-			if(*it->clID_.get() == id) 
+			if(*it->clID_.get() == id)
 			{
 				items.erase(it);
 				return;
@@ -60,9 +60,9 @@ public:
 		}
 	}
 
-	nytl::CbConn add(const T& value) 
-	{ 
-		items.emplace_back(); 
+	nytl::CbConn add(const T& value)
+	{
+		items.emplace_back();
 		static_cast<T&>(items.back()) = value;
 		items.back().clID_ = std::make_shared<unsigned int>(nextID());
 		return {*this, items.back().clID_};
@@ -76,15 +76,15 @@ public:
 class WaylandAppContext : public AppContext
 {
 public:
-    WaylandAppContext();
-    virtual ~WaylandAppContext();
+	WaylandAppContext();
+	virtual ~WaylandAppContext();
 
 	//AppContext
 	bool dispatchEvents() override;
 	bool dispatchLoop(LoopControl& control) override;
 	bool threadedDispatchLoop(EventDispatcher& dispatcher, LoopControl& control) override;
 
-	MouseContext* mouseContext() override; 
+	MouseContext* mouseContext() override;
 	KeyboardContext* keyboardContext() override;
 	WindowContextPtr createWindowContext(const WindowSettings& windowSettings) override;
 
@@ -95,18 +95,18 @@ public:
 
 	std::vector<const char*> vulkanExtensions() const override;
 
-    //wayland specific
+	//wayland specific
 	///Dispatched the given event as soon as possible. Needed by wayland callbacks.
 	void dispatch(Event&& event);
 
-    wl_display& wlDisplay() const { return *wlDisplay_; };
-    wl_compositor& wlCompositor() const { return *wlCompositor_; };
+	wl_display& wlDisplay() const { return *wlDisplay_; };
+	wl_compositor& wlCompositor() const { return *wlCompositor_; };
 
-    wl_subcompositor* wlSubcompositor() const{ return wlSubcompositor_; };
-    wl_shm* wlShm() const { return wlShm_; };
-    wl_seat* wlSeat() const { return wlSeat_; };
-    wl_shell* wlShell() const { return wlShell_; };
-    xdg_shell* xdgShell() const { return xdgShell_; }
+	wl_subcompositor* wlSubcompositor() const{ return wlSubcompositor_; };
+	wl_shm* wlShm() const { return wlShm_; };
+	wl_seat* wlSeat() const { return wlSeat_; };
+	wl_shell* wlShell() const { return wlShell_; };
+	xdg_shell* xdgShell() const { return xdgShell_; }
 	wl_cursor_theme* wlCursorTheme() const { return wlCursorTheme_; }
 	wl_data_device_manager* wlDataManager() const { return wlDataManager_; }
 
@@ -114,25 +114,25 @@ public:
 	wl_keyboard* wlKeyboard() const;
 
 	WaylandWindowContext* windowContext(wl_surface& surface) const;
-    const std::vector<wayland::Output>& outputs() const { return outputs_; }
-    bool shmFormatSupported(unsigned int wlShmFormat);
+	const std::vector<wayland::Output>& outputs() const { return outputs_; }
+	bool shmFormatSupported(unsigned int wlShmFormat);
 
 	///Can be called to register custom listeners for fds that the dispatch loop will
 	///then poll for.
 	using FdCallback = nytl::CompFunc<void(nytl::CbConnRef, int fd, unsigned int events)>;
-	nytl::CbConn fdCallback(int fd, unsigned int events, const FdCallback& func);
+	nytl::CallbackID fdCallback(int fd, unsigned int events, const FdCallback& func);
 
 	WaylandEglDisplay* waylandEglDisplay(); //nullptr if egl not available
 
 	WaylandKeyboardContext& waylandKeyboardContext() const { return *keyboardContext_; }
 	WaylandMouseContext& waylandMouseContext() const { return *mouseContext_; }
-	
+
 	//functions called by wayland callbacks
-    void registryAdd(unsigned int id, const char* cinterface, unsigned int version);
-    void registryRemove(unsigned int id);
-    void seatCapabilities(unsigned int caps);
+	void registryAdd(unsigned int id, const char* cinterface, unsigned int version);
+	void registryRemove(unsigned int id);
+	void seatCapabilities(unsigned int caps);
 	void seatName(const char* name);
-    void addShmFormat(unsigned int format);
+	void addShmFormat(unsigned int format);
 
 protected:
 	///Modified version of wl_dispatch_display that performs the same operations but
@@ -154,8 +154,8 @@ protected:
 	wayland::NamedGlobal<wl_seat> wlSeat_;
 	wayland::NamedGlobal<xdg_shell> xdgShell_;
 
-    wl_cursor_theme* wlCursorTheme_ {};
-    wl_surface* wlCursorSurface_ {};
+	wl_cursor_theme* wlCursorTheme_ {};
+	wl_surface* wlCursorSurface_ {};
 
 	std::unique_ptr<WaylandDataDevice> dataDevice_;
 
@@ -192,12 +192,11 @@ protected:
 	// std::nytl::Callback<void(int fd, unsigned int events)> fdListeners_;
 
 	//data transfer
-    // wl_surface* dataSourceSurface_ = nullptr;
-    // wl_surface* dataIconSurface_ = nullptr;
-    // wayland::ShmBuffer* dataIconBuffer_ = nullptr;
+	// wl_surface* dataSourceSurface_ = nullptr;
+	// wl_surface* dataIconSurface_ = nullptr;
+	// wayland::ShmBuffer* dataIconBuffer_ = nullptr;
 	// const dataSource* dataSource_ = nullptr;
 	// wl_data_source* wlDataSource_ = nullptr;
 };
 
 }
-

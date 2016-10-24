@@ -53,8 +53,8 @@ Examples for such functions are AppContext::startDragDrop or Dialog::runModal.
 
 Ny considers itself a thread-aware library that may be used for efficient single-threaded as well as
 multi-threaded applications.
-You can make your application multi-threaded by running the AppContext::dispatchLoop overload 
-that takes an EventDispatcher parameter and then sending events from multiple thread 
+You can make your application multi-threaded by running the AppContext::dispatchLoop overload
+that takes an EventDispatcher parameter and then sending events from multiple thread
 to this EventDispatcher.
 The way to communication method between the ui thread running the event dispatch loop and other
 threads are therefore usually events. This way you are able to e.g. resize, refresh or
@@ -119,7 +119,7 @@ For every window (that supports the already created raw context) there just has 
 a new wrapper GlContext implementation be created that associates the raw context with
 the specific surface.
 
-In future (on the todo list) there might be the possibility to explicitly create a 
+In future (on the todo list) there might be the possibility to explicitly create a
 new raw context for a window on creation which could be useful when e.g. trying to
 render multiple windows in multiple threads at the same time (would not work with the
 used mulitple-wrappers-around-one-context approach since a context may not be current
@@ -151,11 +151,11 @@ Keyboard input
 
 There are two entry points for keyboard input: events and the KeyboardContext interface.
 Events are sent to the registered EventHandler while the KeyboardContext implementation
-can be retrieved on demand from an AppContext implementation and then be used to 
+can be retrieved on demand from an AppContext implementation and then be used to
 check e.g. if certain keys are pressed, which WindowContext is currently focused or to get
 unicode representations of keycodes.
 Since a KeyboardContext does obviously represent a single keyboard and there is no possibility
-to get multiple objects, there is no may to deal with multiple keyboards or differentiate 
+to get multiple objects, there is no may to deal with multiple keyboards or differentiate
 between them at the moment. Such capability might be added later but for most backends
 it would be useless since the backend apis do not support multiple keyboard differentiation
 as well.
@@ -211,7 +211,7 @@ void handlePress(const ny::KeyEvent& event, const ny::KeyboardContext& kbdctx)
 When e.g. storing keyboard controls for a game in a file one should usually store the keycode
 as 32 bit integer. Note that this approach has the effect that if the used keymap is changed
 in between two application startups, the unicode value of the key associated with the
-control will change (i.e. from 'Y' to 'Z' when switching between german/us layout). 
+control will change (i.e. from 'Y' to 'Z' when switching between german/us layout).
 The control mappings to the raw hardware keys, however, will stay the same.
 
 
@@ -219,12 +219,6 @@ Backend-specific - Wayland
 ==========================
 
 Current cursor implementation (not optimal, to be changed):
-- every WindowContext has its own cursor surface and wayland::ShmBuffer
-- the ShmBuffer is only used if the cursor image is a custom image
-- Every time the pointer enters the WindowContext, the AppContext signals the WindowContext,
-	which then sets the cursor
-
-New:
 - every WindowContext has its own wayland::ShmBuffer that is used for custom image cursors
 - every WindowContext has a non-owned wl_buffer* that holds the cursor contents for its surface
 - WaylandMouseContext has a wl_surface* that is always the cursor surface
