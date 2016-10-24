@@ -251,6 +251,12 @@ WinapiErrorCategory& WinapiErrorCategory::instance()
 	return ret;
 }
 
+std::system_error WinapiErrorCategory::excpetion(const char* msg)
+{
+	if(!msg) msg = "ny::Winapi: an error without message occurred";
+	return std::system_error(std::error_code(::GetLastError(), instance()), msg);
+}
+
 std::string WinapiErrorCategory::message(int code) const
 {
 	return errorMessage(code);

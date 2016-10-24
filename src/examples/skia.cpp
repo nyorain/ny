@@ -51,7 +51,7 @@ int main()
 
 bool MyEventHandler::handleEvent(const ny::Event& ev)
 {
-	ny::debug("Received event with type ", ev.type());
+	// ny::debug("Received event with type ", ev.type());
 
 	if(ev.type() == ny::eventType::close)
 	{
@@ -64,7 +64,7 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 		auto guard = buffer->get();
 		auto data = guard.get(); //decltype(data): ny::MutableImageData
 
-		SkImageInfo info = SkImageInfo::Make(data.size.x, data.size.y, kBGRA_8888_SkColorType, 
+		SkImageInfo info = SkImageInfo::Make(data.size.x, data.size.y, kBGRA_8888_SkColorType,
 			kPremul_SkAlphaType);
 		size_t rowBytes = info.minRowBytes();
 
@@ -75,7 +75,7 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 		const SkScalar R = 0.45f * scale;
 		const SkScalar TAU = 6.2831853f;
 		SkPath path;
-		for (int i = 0; i < 5; ++i) 
+		for (int i = 0; i < 5; ++i)
 		{
 			SkScalar theta = 2 * i * TAU / 5;
 			if (i == 0) {

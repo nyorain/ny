@@ -1,7 +1,6 @@
 #include <ny/base.hpp>
 #include <ny/backend.hpp>
 #include <ny/backend/integration/cairo.hpp>
-#include <ny/backend/winapi/appContext.hpp>
 
 #include <cairo/cairo.h>
 
@@ -52,8 +51,6 @@ int main()
 		return EXIT_FAILURE;
 	}
 
-	reinterpret_cast<ny::WinapiAppContext*>(ac.get())->dispatch(ny::DrawEvent(&handler));
-
 	//store the pointer in our event handler
 	handler.cairo = cairo.get();
 
@@ -63,14 +60,7 @@ int main()
 
 bool MyEventHandler::handleEvent(const ny::Event& ev)
 {
-	static bool s = false;
-	ny::debug("Received event with type ", ev.type());
-
-	if(!s)
-	{
-		s = true;
-		handleEvent(ny::DrawEvent(this));
-	}
+	// ny::debug("Received event with type ", ev.type());
 
 	if(ev.type() == ny::eventType::close)
 	{
@@ -89,9 +79,6 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 		auto cr = cairo_create(&surf);
 		cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
 
-		// cairo_rectangle(cr, 0, 20, 100, 100);
-		// cairo_clip(cr);
-
 		cairo_set_source_rgba(cr, 0.543, 1.0, 1.0, 0.5);
 		cairo_paint(cr);
 
@@ -103,10 +90,40 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 	}
 	else if(ev.type() == ny::eventType::key)
 	{
-		if(!static_cast<const ny::KeyEvent&>(ev).pressed) return false;
+		const auto& kev = static_cast<const ny::KeyEvent&>(ev);
+		if(!kev.pressed) return false;
 
-		// ny::debug("Key pressed. Exiting.");
-		// lc_.stop();
+		if(kev.keycode == ny::Keycode::escape)
+		{
+			ny::debug("Esc key pressed. Exiting.");
+			lc_.stop();
+			return true;
+		}
+		else if(kev.keycode == ny::Keycode::f)
+		{
+			ny::debug("f key pressed. Fullscreen.");
+			wc_.fullscreen();
+			return true;
+		}
+		else if(kev.keycode == ny::Keycode::n)
+		{
+			ny::debug("n key pressed. Normal.");
+			wc_.normalState();
+			return true;
+		}
+		else if(kev.keycode == ny::Keycode::i)
+		{
+			ny::debug("i key pressed. Iconic (minimize).");
+			wc_.minimize();
+			return true;
+		}
+		else if(kev.keycode == ny::Keycode::m)
+		{
+			ny::debug("m key pressed. maximize.");
+			wc_.maximize();
+			return true;
+		}
+
 		return true;
 	}
 

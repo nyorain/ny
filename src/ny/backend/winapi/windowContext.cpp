@@ -36,12 +36,12 @@ WinapiWindowContext::WinapiWindowContext(WinapiAppContext& appContext,
 {
 	//init check
 	appContext_ = &appContext;
-	if(!hinstance()) throw std::runtime_error("winapiWC::create: uninitialized appContext");
+	if(!hinstance()) throw std::runtime_error("ny::WinapiWC::create: uninitialized appContext");
 
 	initWindowClass(settings);
 	setStyle(settings);
 	initWindow(settings);
-	// showWindow(settings);
+	showWindow(settings);
 }
 
 WinapiWindowContext::~WinapiWindowContext()
@@ -82,7 +82,7 @@ void WinapiWindowContext::initWindowClass(const WinapiWindowSettings& settings)
 		if(settings.nativeWidgetType == NativeWidgetType::dialog) return;
 
 		auto name = nativeWidgetClassName(settings.nativeWidgetType);
-		if(!name) throw std::logic_error("WinapiWC: invalid native widget type");
+		if(!name) throw std::logic_error("ny::WinapiWC: invalid native widget type");
 		wndClassName_ = name;
 
 		return;
@@ -90,14 +90,12 @@ void WinapiWindowContext::initWindowClass(const WinapiWindowSettings& settings)
 
 	auto wndClass = windowClass(settings);
 	if(!::RegisterClassEx(&wndClass))
-	{
-		throw std::runtime_error("winapiWC::create: could not register window class");
-		return;
-	}
+		throw winapi::EC::excpetion("ny::WinapiWC: RegisterClassEx failed");
 }
 
 WNDCLASSEX WinapiWindowContext::windowClass(const WinapiWindowSettings& settings)
 {
+	//TODO: does every window needs it own class (sa setCursor function)?
 	static unsigned int highestID = 0;
 	highestID++;
 
@@ -116,7 +114,6 @@ WNDCLASSEX WinapiWindowContext::windowClass(const WinapiWindowSettings& settings
 	ret.cbClsExtra = 0;
 	ret.cbWndExtra = 0;
 	ret.hbrBackground = nullptr;
-	// ret.hbrBackground = nullptr;
 
 	return ret;
 }
@@ -146,56 +143,45 @@ void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 	}
 	else
 	{
-		// auto exstyle = WS_EX_APPWINDOW | WS_EX_OVERLAPPEDWINDOW | WS_EX_TRANSPARENT | WS_EX_COMPOSITED;
-		// auto exstyle = WS_EX_APPWINDOW | WS_EX_LAYERED | WS_EX_OVERLAPPEDWINDOW;
-		auto exstyle = WS_EX_LAYERED;
-		// auto exstyle = 0;
+		//NOTE
+		//The window has to be layered to enable transparent drawing on it
+		//On newer windows versions it is not enough to call DwmEnableBlueBehinWindow, only
+		//layered windows are considered really transparent and contents beneath it
+		//are rerendered.
+		//
+		//Note that we even set this flag here for e.g. opengl windows which have CS_OWNDC set
+		//which is not allowed per msdn. But windows applications do it themselves, it
+		//is the only way to get the possibility for transparent windows and it works.
+		//
+		//Settings this flag can also really hit performance (e.g. resizing can lag) so
+		//this should probably only be set if really needed
+		//TODO: make this optional using WinapiWindowSettings
+		auto exstyle = WS_EX_APPWINDOW | WS_EX_LAYERED | WS_EX_OVERLAPPEDWINDOW;
 		handle_ = ::CreateWindowEx(exstyle, _T(wndClassName_.c_str()), _T(settings.title.c_str()),
 			style_, position.x, position.y, size.x, size.y, parent, nullptr, hinstance, this);
+
+		if(!handle_) throw winapi::EC::excpetion("ny::WinapiWC: CreateWindowEx failed");
 	}
 
+	//TODO: check for windows version > xp here.
+	//Otherwise ny will no compile/run on xp
+	//This will simply cause windows to respect the alpha bits in the content of the window
+	//and not actually blur anything. Windows is stupid af.
+	DWM_BLURBEHIND bb = { 0 };
+	bb.dwFlags = DWM_BB_ENABLE | DWM_BB_BLURREGION;
+	bb.hRgnBlur = CreateRectRgn(0, 0, -1, -1);  // makes the window transparent
+	bb.fEnable = TRUE;
+	::DwmEnableBlurBehindWindow(handle(), &bb);
+
+	//This is not what makes the window transparent.
+	//We simply have to do this so the window contents are shown.
+	//We only have to set the layered flag to make DwmEnableBlueBehinWindow function
+	//correctly and this causes the flag to have no further effect.
+	::SetLayeredWindowAttributes(handle(), 0x1, 0, LWA_COLORKEY);
+
+	//Set the userdata
 	std::uintptr_t ptr = reinterpret_cast<std::uintptr_t>(this);
 	::SetWindowLongPtr(handle_, GWLP_USERDATA, ptr);
-
-	//transparent test
-	// DWM_BLURBEHIND bb = { 0 };
-	// bb.dwFlags = DWM_BB_ENABLE | DWM_BB_BLURREGION;
-	// bb.hRgnBlur = CreateRectRgn(0, 0, -1, -1);  // makes the window transparent
-	// bb.fEnable = TRUE;
-	// ::DwmEnableBlurBehindWindow(handle(), &bb);
-
-	// ::SetWindowLong(handle(), GWL_EXSTYLE, ::GetWindowLong(handle(), GWL_EXSTYLE) | WS_EX_LAYERED);
-	// ::SetLayeredWindowAttributes(handle(), 0x1, 0, LWA_COLORKEY);
-
-
-	// BLENDFUNCTION blend;
-	// blend.BlendOp = AC_SRC_OVER;
-	// blend.BlendFlags = 0;
-	// blend.SourceConstantAlpha = 255;
-	// blend.AlphaFormat = AC_SRC_ALPHA;
-	//
-	// RECT r;
-	// GetClientRect(handle(), &r);
-	//
-	// POINT src = POINT(), dst;
-	// SIZE ssize;
-	//
-	// ssize.cx = r.right - r.left;
-	// ssize.cy = r.bottom - r.top;
-	//
-	// GetWindowRect(handle(), &r);
-	// dst.x = r.left;
-	// dst.y = r.top;
-	//
-	// HDC scrndc = GetDC(HWND_DESKTOP);
-	// // UpdateLayeredWindow(handle(), scrndc, &dst, &size, memdc, &src, 0, &blend, ULW_ALPHA);
-	//
-	// BLENDFUNCTION blend;
-	// blend.BlendOp = AC_SRC_OVER;
-	// blend.BlendFlags = 0;
-	// blend.SourceConstantAlpha = 255;
-	// blend.AlphaFormat = AC_SRC_ALPHA;
-	// UpdateLayeredWindow(handle(), nullptr, nullptr, nullptr, nullptr, nullptr, 0, &blend, ULW_ALPHA);
 }
 
 void WinapiWindowContext::initDialog(const WinapiWindowSettings& settings)
@@ -341,7 +327,7 @@ void WinapiWindowContext::cursor(const Cursor& c)
 
 		if(!bitmap || !dummyBitmap)
 		{
-			warning(errorMessage("ny::WinapiWindowContext::cursor: failed to create bitmap"));
+			warning(errorMessage("ny::WinapiWC::cursor: failed to create bitmap"));
 			return;
 		}
 
@@ -356,7 +342,7 @@ void WinapiWindowContext::cursor(const Cursor& c)
 		cursor_ = reinterpret_cast<HCURSOR>(::CreateIconIndirect(&iconinfo));
 		if(!cursor_)
 		{
-			warning(errorMessage("ny::WinapiWindowContext::cursor: failed to create icon"));
+			warning(errorMessage("ny::WinapiWC::cursor: failed to create icon"));
 			return;
 		}
 
@@ -411,8 +397,8 @@ void WinapiWindowContext::fullscreen()
 	savedState_.extents = extents();
 	if(::IsZoomed(handle())) savedState_.state = 1;
 
-	 MONITORINFO monitorinfo;
-	  monitorinfo.cbSize = sizeof(monitorinfo);
+	MONITORINFO monitorinfo;
+	monitorinfo.cbSize = sizeof(monitorinfo);
 	::GetMonitorInfo(::MonitorFromWindow(handle(), MONITOR_DEFAULTTONEAREST), &monitorinfo);
 	auto& rect = monitorinfo.rcMonitor;
 	rect.right -= rect.left;

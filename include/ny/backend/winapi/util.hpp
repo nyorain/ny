@@ -25,10 +25,13 @@ class WinapiErrorCategory : public std::error_category
 {
 public:
 	static WinapiErrorCategory& instance();
+	static std::system_error excpetion(const char* msg = nullptr);
 
 public:
 	const char* name() const noexcept override { return "ny::WinapiErrorCategory"; }
 	std::string message(int code) const override;
 };
+
+namespace winapi { using EC = WinapiErrorCategory; }
 
 }
