@@ -2,36 +2,13 @@
 
 #include <ny/include.hpp>
 #include <ny/base/event.hpp>
+#include <ny/base/mouseButton.hpp>
 
 #include <nytl/vec.hpp>
 #include <nytl/callback.hpp>
 
-///Header can be used without linking to ny-backend.
-
 namespace ny
 {
-
-///Contains all mouse buttons.
-///Note that there might be no support for custom buttons one some backends.
-///
-///E.g. windows only supports 2 custom mouse buttons while linux (theoretically supports
-///way too much to list here) supports 5.
-enum class MouseButton : unsigned int
-{
-    none,
-	unkown, //signals that the button is just not in this enumeration but theoretically valid
-
-    left,
-    right,
-    middle,
-
-	custom1, //used by some applications as "back"
-    custom2, //used by some applications as "forward"
-    custom3,
-    custom4,
-	custom5,
-	custom6
-};
 
 ///MouseContext interface, implemented by a backend.
 class MouseContext
@@ -50,15 +27,19 @@ public:
 	virtual WindowContext* over() const = 0;
 
 public:
-	///Will be called every time a mouse button is clicked or released.
+	///Will be called everytime a mouse button is clicked or released.
 	nytl::Callback<void(MouseContext&, MouseButton, bool pressed)> onButton;
 
-	///Will be called every time the mouse moves.
+	///Will be called everytime the mouse moves.
 	nytl::Callback<void(MouseContext&, const nytl::Vec2ui& pos, const nytl::Vec2ui& delta)> onMove;
 
-	///Will be called every time the pointer focus changes.
+	///Will be called everytime the pointer focus changes.
 	///Note that both parameters might be a nullptr
 	nytl::Callback<void(MouseContext&, WindowContext* prev, WindowContext* now)> onFocus;
+
+	///Will be called everytime the mousewheel is rotated.
+	///A value >0 means that the wheel was rotated forwards, a value < 0 backwards.
+	nytl::Callback<void(MouseContext&, float value)> onWheel;
 };
 
 //Events
@@ -76,8 +57,8 @@ class MouseButtonEvent : public EventBase<eventType::mouseButton, MouseButtonEve
 public:
 	using EvBase::EvBase;
 
-    bool pressed;
-    MouseButton button;
+	bool pressed;
+	MouseButton button;
 	nytl::Vec2i position;
 };
 
@@ -98,7 +79,7 @@ class MouseCrossEvent : public EventBase<eventType::mouseCross, MouseCrossEvent>
 public:
 	using EvBase::EvBase;
 
-    bool entered;
+	bool entered;
 	nytl::Vec2i position;
 };
 
@@ -108,7 +89,7 @@ class MouseWheelEvent : public EventBase<eventType::mouseWheel, MouseWheelEvent>
 {
 public:
 	using EvBase::EvBase;
-    float value;
+	float value;
 };
 
 }

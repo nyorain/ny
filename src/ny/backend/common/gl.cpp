@@ -398,14 +398,6 @@ bool GlContext::currentAnywhere() const
 	return false;
 }
 
-bool GlContext::sharedWith(const GlContext& other) const
-{
-	for(auto& ctx : sharedContexts())
-		if(ctx == &other) return true;
-
-	return false;
-}
-
 bool GlContext::glExtensionSupported(const std::string& name) const
 {
 	for(auto& s : glExtensions())

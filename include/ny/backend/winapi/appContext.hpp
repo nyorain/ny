@@ -66,11 +66,11 @@ protected:
 	EventDispatcher* eventDispatcher_ = nullptr;
 	bool receivedQuit_ = false;
 
-	WinapiWindowContext* focus_ = nullptr;
-	WinapiWindowContext* mouseOver_ = nullptr;
-
 	WinapiMouseContext mouseContext_;
 	WinapiKeyboardContext keyboardContext_;
+
+	struct Impl;
+	std::unique_ptr<Impl> impl_;
 };
 
 }

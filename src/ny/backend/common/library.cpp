@@ -73,7 +73,7 @@ Library& Library::operator=(Library&& other) noexcept
 	other.handle_ = nullptr;
 }
 
-void* Library::symbol(nytl::StringParam name)
+void* Library::symbol(nytl::StringParam name) const
 {
 	return detail::dlsym(handle_, name);
 }

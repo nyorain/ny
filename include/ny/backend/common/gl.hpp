@@ -83,21 +83,16 @@ public:
 	///Returns the latest (or otherwise preferred) glsl version
 	Version preferredGlslVersion() const { return preferredGlslVersion_; }
 
-	///Returns a vector of all shared opengl contexts.
-	///The returned list does not include GlContext objects that refer to the
-	///same native context handle.
-	std::vector<GlContext*> sharedContexts() const { return sharedContexts_; }
-
-	///If both GlContext objects refer to the same native context handle, returns true.
-	///If someContext(other) is true, this function returns false.
-	bool sharedWith(const GlContext& other) const;
-
 	///Returns whether this object has the same underlaying native context as the
 	///given GlContext. Note that if this function returns true, those two contexts
 	///must not be made current in different threads at the same time.
 	///Trying to do so will reult in an exception.
 	virtual bool sameContext(const GlContext& other) const;
 
+	///If both GlContext objects refer to the same native context handle, returns true.
+	///If someContext(other) is true, this function returns true as well.
+	virtual bool sharedWith(const GlContext& other) const = 0;
+	
 	///Returns the natvie opengl context handle casted to a void pointer.
 	virtual void* nativeHandle() const = 0;
 
@@ -163,7 +158,6 @@ protected:
 	unsigned int stencilBits_ {0};
 
 	std::vector<std::string> extensions_;
-	std::vector<GlContext*> sharedContexts_;
 	std::vector<Version> glslVersions_;
 	Version preferredGlslVersion_;
 };

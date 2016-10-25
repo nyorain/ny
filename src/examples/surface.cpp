@@ -74,7 +74,7 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 		//better performance (since cairo is optimized).
 		auto size = ny::imageDataFormatSize(data.format);
 		for(unsigned int i = 0; i < data.size.x * data.size.y * size; i += 1)
-			data.data[i] = 0xFF;
+			data.data[i] = 0xAA;
 	}
 	else if(ev.type() == ny::eventType::key)
 	{

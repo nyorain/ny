@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ny/backend/winapi/include.hpp>
+#include <ny/backend/winapi/windowContext.hpp>
 #include <ny/backend/mouseContext.hpp>
 #include <ny/backend/keyboardContext.hpp>
 
@@ -17,11 +18,16 @@ public:
 
 	Vec2ui position() const override;
 	bool pressed(MouseButton button) const override;
-	WindowContext* over() const override;
+	WinapiWindowContext* over() const override { return over_; }
+
+	//winapi specific
+	void over(WinapiWindowContext* wc);
+	nytl::Vec2i move(nytl::Vec2i pos); //returns the movement delta
 
 protected:
 	WinapiAppContext& context_;
 	WinapiWindowContext* over_ {};
+	nytl::Vec2i position_;
 };
 
 ///Winapi KeyboardContext implementation.
@@ -32,7 +38,10 @@ public:
 
 	bool pressed(Keycode) const override;
 	std::string utf8(Keycode, bool currentState = false) const override;
-	WindowContext* focus() const override;
+	WinapiWindowContext* focus() const override { return focus_; }
+
+	//winapi specific
+	void focus(WinapiWindowContext* wc);
 
 protected:
 	WinapiAppContext& context_;

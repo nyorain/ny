@@ -14,6 +14,10 @@ target_link_libraries(ny-multithread ny-base ny-backend)
 add_executable(ny-surface surface.cpp)
 target_link_libraries(ny-surface ny-base ny-backend)
 
+#callbacks
+add_executable(ny-callbacks callbacks.cpp)
+target_link_libraries(ny-callbacks ny-base ny-backend)
+
 #vulkan
 if(WithVulkan)
 	add_executable(ny-vulkan vulkan.cpp)
@@ -48,4 +52,3 @@ if(Skia_FOUND)
 	# target_link_libraries(ny-skia ny-base ny-backend "/home/nyorain/.local/build/skia/out/gn-Debug/libskia.a"
 	# 	fontconfig freetype png jpeg)
 endif()
-

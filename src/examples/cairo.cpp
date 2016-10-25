@@ -21,7 +21,6 @@ protected:
 	ny::WindowContext& wc_;
 };
 
-
 int main()
 {
 	auto& backend = ny::Backend::choose();
@@ -124,6 +123,12 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 			return true;
 		}
 
+		return true;
+	}
+	else if(ev.type() == ny::eventType::focus)
+	{
+		const auto& fev = static_cast<const ny::FocusEvent&>(ev);
+		ny::debug("focus event: ", fev.focus);
 		return true;
 	}
 

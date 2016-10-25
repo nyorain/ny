@@ -516,6 +516,6 @@ const char* keycodeName(Keycode keycode);
 ///Constructs a keycode value from a given name string.
 ///Returns the correspondingly named Keycode value or Keycode::none if there is no such value.
 ///\sa keycodeName
-Keycode keycodeFromName(const nytl::StringParam& string);
+Keycode keycodeFromName(nytl::StringParam name);
 
 }

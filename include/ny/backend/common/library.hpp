@@ -40,7 +40,7 @@ public:
 	///Tries to find the symbol for the given name.
 	///Returns nullptr if the symbol was not found or the library handle
 	///is invalid.
-	void* symbol(nytl::StringParam name);
+	void* symbol(nytl::StringParam name) const;
 
 	///Converts the Library object to a bool that specifies whether the object
 	///refers to a valid handle.

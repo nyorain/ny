@@ -7,39 +7,39 @@ namespace ny
 
 const char* cursorToXName(CursorType cursor)
 {
-    switch(cursor)
-    {
-        case CursorType::leftPtr: return "left_ptr";
-        case CursorType::sizeBottom: return "bottom_side";
-        case CursorType::sizeBottomLeft: return "bottom_left_corner";
-        case CursorType::sizeBottomRight: return "bottom_right_corner";
-        case CursorType::sizeTop: return "top_side";
-        case CursorType::sizeTopLeft: return "top_left_corner";
-        case CursorType::sizeTopRight: return "top_right_corner";
-        case CursorType::sizeLeft: return "left_side";
-        case CursorType::sizeRight: return "right_side";
-        case CursorType::hand: return "fleur";
-        case CursorType::grab: return "grabbing";
-        default: return nullptr;
-    }
+	switch(cursor)
+	{
+		case CursorType::leftPtr: return "left_ptr";
+		case CursorType::sizeBottom: return "bottom_side";
+		case CursorType::sizeBottomLeft: return "bottom_left_corner";
+		case CursorType::sizeBottomRight: return "bottom_right_corner";
+		case CursorType::sizeTop: return "top_side";
+		case CursorType::sizeTopLeft: return "top_left_corner";
+		case CursorType::sizeTopRight: return "top_right_corner";
+		case CursorType::sizeLeft: return "left_side";
+		case CursorType::sizeRight: return "right_side";
+		case CursorType::hand: return "fleur";
+		case CursorType::grab: return "grabbing";
+		default: return nullptr;
+	}
 }
 
 CursorType xNameToCursor(const nytl::StringParam& name)
 {
-    if(name == "left_ptr") return CursorType::leftPtr;
-    if(name == "right_ptr") return CursorType::rightPtr;
-    if(name == "bottom_side") return CursorType::sizeBottom;
-    if(name == "left_side") return CursorType::sizeLeft;
-    if(name == "right_side") return CursorType::sizeRight;
-    if(name == "top_side") return CursorType::sizeTop;
-    if(name == "top_side") return CursorType::sizeTop;
-    if(name == "top_left_corner") return CursorType::sizeTopLeft;
-    if(name == "top_right_corner") return CursorType::sizeTopRight;
-    if(name == "bottom_right_corner") return CursorType::sizeBottomRight;
-    if(name == "bottom_left_corner") return CursorType::sizeBottomLeft;
-    if(name == "fleur") return CursorType::hand;
-    if(name == "grabbing") return CursorType::grab;
-    return CursorType::unknown;
+	if(name == "left_ptr") return CursorType::leftPtr;
+	if(name == "right_ptr") return CursorType::rightPtr;
+	if(name == "bottom_side") return CursorType::sizeBottom;
+	if(name == "left_side") return CursorType::sizeLeft;
+	if(name == "right_side") return CursorType::sizeRight;
+	if(name == "top_side") return CursorType::sizeTop;
+	if(name == "top_side") return CursorType::sizeTop;
+	if(name == "top_left_corner") return CursorType::sizeTopLeft;
+	if(name == "top_right_corner") return CursorType::sizeTopRight;
+	if(name == "bottom_right_corner") return CursorType::sizeBottomRight;
+	if(name == "bottom_left_corner") return CursorType::sizeBottomLeft;
+	if(name == "fleur") return CursorType::hand;
+	if(name == "grabbing") return CursorType::grab;
+	return CursorType::unknown;
 }
 
 unsigned int keyToLinux(Keycode keycode)
@@ -82,7 +82,7 @@ MouseButton linuxToButton(unsigned int buttoncode)
 		case 0x115: return MouseButton::custom3;
 		case 0x116: return MouseButton::custom4;
 		case 0x117: return MouseButton::custom5;
-		default: return MouseButton::unkown;
+		default: return MouseButton::unknown;
 	}
 }
 

@@ -14,134 +14,252 @@ namespace ny
 namespace
 {
 
-//TODO: use dummy window from AppContext
-//Utilty winapi window wrapper following RAII
-class WinapiWindow
+thread_local WglSetup* gWglSetup;
+void* wglLoadFunc(const char* name)
+{
+	if(!gWglSetup) return nullptr;
+	return gWglSetup->procAddr(name);
+}
+
+}
+
+class WglSetup::WglContextWrapper
 {
 public:
-	HWND handle;
+	WglContextWrapper(HDC hdc, HGLRC share);
+	~WglContextWrapper();
 
 public:
-	WinapiWindow()
-	{
-		handle = ::CreateWindow("STATIC", "", WS_DISABLED, 0, 0, 100, 100, nullptr, nullptr,
-			GetModuleHandle(nullptr), nullptr);
-	}
-
-	~WinapiWindow()
-	{
-		if(handle) ::DestroyWindow(handle);
-	}
+	HGLRC context;
+	bool shared;
 };
 
+//Throws on failure to create any context.
+WglSetup::WglContextWrapper::WglContextWrapper(HDC hdc, HGLRC share)
+{
+	if(GLAD_WGL_ARB_create_context)
+	{
+		int attributes[] =
+		{
+			WGL_CONTEXT_MAJOR_VERSION_ARB, 4,
+			WGL_CONTEXT_MINOR_VERSION_ARB, 5,
+			0, 0
+		};
+
+		unsigned int versionPairs[][2] = {{3, 3}, {3, 2}, {3, 1}, {3, 0}, {1, 2}, {1, 0}};
+		unsigned int length = sizeof(versionPairs) / sizeof(versionPairs[0]);
+		for(auto currPair = 0; currPair < length; ++currPair)
+		{
+			context = ::wglCreateContextAttribsARB(hdc, share, attributes);
+			if(!context)
+			{
+				attributes[1] = versionPairs[currPair][0];
+				attributes[3] = versionPairs[currPair][1];
+
+				auto error = ::GetLastError();
+				if(error == ERROR_INVALID_VERSION_ARB) continue;
+			}
+
+			break;
+		}
+
+		if(context) return;
+		warning(errorMessage("ny::WglContext: wglCreateContextAttribsARB failed, using old func"));
+	}
+
+	context = ::wglCreateContext(hdc);
+	if(!context) throw winapi::EC::excpetion("ny::WglContext: wglCreateContext failed");
+
+	if(share && !::wglShareLists(share, context))
+		warning(errorMessage("ny::WglContext: wglShareLists"));
+}
+
+WglSetup::WglContextWrapper::~WglContextWrapper()
+{
+	if(context) ::wglDeleteContext(context);
 }
 
 //WglSetup
-// WglSetup::WglSetup()
-// {
-// 	shared_.emplace_back();
-// 	gladLoadWglLoader();
-// }
-//
-// WglSetup::~WglSetup()
-// {
-//
-// }
+WglSetup::WglSetup() = default;
 
-//WglContext
-HMODULE WglContext::glLibHandle()
+WglSetup::WglSetup(HWND dummy) : dummyWindow_(dummy)
 {
-	static auto lib = LoadLibrary("opengl32.dll");
-	if(!lib) lib = LoadLibrary("opengl32sf.dll");
-	return lib;
-}
+	//choose the used pixel format
+	dummyDC_ = ::GetDC(dummyWindow_);
 
-HGLRC WglContext::dummyContext(HDC* hdcOut)
-{
-	static HGLRC context = nullptr;
-	static HDC dc = nullptr;
+	PIXELFORMATDESCRIPTOR pfd {};
+	pfd.nSize = sizeof(pfd);
+	pfd.nVersion = 1;
+	pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+	pfd.iPixelType = PFD_TYPE_RGBA;
+	pfd.cColorBits = 32;
+	pfd.cDepthBits = 24;
+	pfd.cStencilBits = 8;
+	pfd.cAlphaBits = 8;
+	pfd.iLayerType = PFD_MAIN_PLANE;
 
-	if(!context)
+	pixelFormat_ = ::ChoosePixelFormat(dummyDC_, &pfd);
+	::SetPixelFormat(dummyDC_, pixelFormat_, &pfd);
+
+	//try to find/open the opengl library
+	glLibrary_ = {"opengl32"};
+	if(!glLibrary_) glLibrary_ = {"openglsf"};
+	if(!glLibrary_) glLibrary_ = {"GL"};
+	if(!glLibrary_) glLibrary_ = {"OpenGL"};
+	if(!glLibrary_) glLibrary_ = {"wgl"};
+	if(!glLibrary_) glLibrary_ = {"WGL"};
+
+	if(!glLibrary_)
+		throw std::runtime_error("ny::WinapiAppContext::WglSetup: Failed to load opengl library");
+
+	//create a dummy context
 	{
-		//hidden window
-		static WinapiWindow window;
-		ShowWindow(window.handle, SW_HIDE);
-		dc = GetDC(window.handle);
+		HGLRC share = nullptr;
+		WglContextWrapper dummyGl(dummyDC_, share);
 
-		PIXELFORMATDESCRIPTOR pfd {};
-		pfd.nSize = sizeof(pfd);
-		pfd.nVersion = 1;
-		pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
-		pfd.iPixelType = PFD_TYPE_RGBA;
-		pfd.cColorBits = 32;
-		pfd.cDepthBits = 24;
-		pfd.cStencilBits = 8;
-		pfd.cAlphaBits = 8;
-		pfd.iLayerType = PFD_MAIN_PLANE;
-
-		auto pixelformat = ::ChoosePixelFormat(dc, &pfd);
-		::SetPixelFormat(dc, pixelformat, &pfd);
-		context = ::wglCreateContext(dc);
-	}
-
-	if(hdcOut) *hdcOut = dc;
-	return context;
-}
-
-void WglContext::assureWglLoaded()
-{
-	static bool loaded = false;
-	if(!loaded)
-	{
-		HDC hdc;
-		auto ctx = dummyContext(&hdc);
-		wglMakeCurrent(hdc, ctx);
-		gladLoadWGLLoader(&WglContext::wglProcAddr, hdc);
-		loaded = true;
+		//load the further needed gl functions/extensions
+		gWglSetup = this; //needed by wglLoadFunc
+		wglMakeCurrent(dummyDC_, dummyGl.context);
+		gladLoadWGLLoader(wglLoadFunc, dummyDC_);
+		wglMakeCurrent(nullptr, nullptr);
+		gWglSetup = nullptr;
 	}
 }
 
-void* WglContext::wglProcAddr(const char* name)
+WglSetup::~WglSetup()
 {
-	return reinterpret_cast<void*>(wglGetProcAddress(name));
+	if(dummyWindow_ && dummyDC_) ::ReleaseDC(dummyWindow_, dummyDC_);
+}
+
+WglSetup::WglSetup(WglSetup&& other) noexcept
+{
+	shared_ = std::move(other.shared_);
+	unique_ = std::move(other.unique_);
+	glLibrary_ = std::move(other.glLibrary_);
+
+	pixelFormat_ = other.pixelFormat_;
+	dummyWindow_ = other.dummyWindow_;
+	dummyDC_ = other.dummyDC_;
+
+	other.pixelFormat_ = {};
+	other.dummyWindow_ = {};
+	other.dummyDC_ = {};
+}
+
+WglSetup& WglSetup::operator=(WglSetup&& other) noexcept
+{
+	if(dummyWindow_ && dummyDC_) ::ReleaseDC(dummyWindow_, dummyDC_);
+
+	shared_ = std::move(other.shared_);
+	unique_ = std::move(other.unique_);
+	glLibrary_ = std::move(other.glLibrary_);
+
+	pixelFormat_ = other.pixelFormat_;
+	dummyWindow_ = other.dummyWindow_;
+	dummyDC_ = other.dummyDC_;
+
+	other.pixelFormat_ = {};
+	other.dummyWindow_ = {};
+	other.dummyDC_ = {};
+
+	return *this;
+}
+
+HGLRC WglSetup::sharedContext() const
+{
+	for(auto& ctx : shared_)
+		if(ctx.shared)
+			return ctx.context;
+
+	for(auto& ctx : unique_)
+		if(ctx.shared)
+			return ctx.context;
+
+	return nullptr;
+}
+
+HGLRC WglSetup::createContext(bool& shared, bool unique)
+{
+	shared = false;
+	HGLRC sharedctx = nullptr;
+
+	if(shared) sharedctx = sharedContext();
+
+	if(unique)
+	{
+
+		unique_.emplace_back(dummyDC_, sharedctx);
+		if(shared && !unique_.back().shared) shared = false;
+		return unique_.back().context;
+	}
+	else
+	{
+		shared_.emplace_back(dummyDC_, sharedctx);
+		if(shared && !shared_.back().shared) shared = false;
+		return shared_.back().context;
+	}
+}
+
+HGLRC WglSetup::getContext(bool& shared)
+{
+	shared = false;
+
+	//first try to find an already existent really shared context
+	for(auto& ctx : shared_)
+	{
+		if(ctx.shared)
+		{
+			shared = true;
+			return ctx.context;
+		}
+	}
+
+	//otherwise create one
+	return createContext(shared, false);
+}
+
+void* WglSetup::procAddr(nytl::StringParam name) const
+{
+	auto ret = reinterpret_cast<void*>(wglGetProcAddress(name));
+	if(!ret) ret = glLibrary_.symbol(name);
+	return ret;
 }
 
 //WglContext
-WglContext::WglContext(HWND hwnd, const GlContextSettings& settings) : hwnd_(hwnd)
+WglContext::WglContext(WglSetup& setup, HDC hdc, const GlContextSettings& settings)
+	: setup_(&setup), hdc_(hdc), shared_(true)
 {
-	dc_ = ::GetDC(hwnd_);
-	init(settings);
-}
+	PIXELFORMATDESCRIPTOR pfd {};
+	::DescribePixelFormat(hdc_, setup.pixelFormat(), sizeof(pfd), &pfd);
+	::SetPixelFormat(hdc_, setup.pixelFormat(), &pfd);
 
-WglContext::WglContext(HDC hdc, const GlContextSettings& settings) : dc_(hdc)
-{
-	init(settings);
+	//the initPixelFormat function would use the wgl pixel format arb extensions to
+	//let us choose a better pixel format. The problem:
+	//If we set the pixel format here to something different than the setup provides
+	//the context wont work (if we create the context for our hdc, the loaded function
+	//pointers may not work).
+	//Therefore TODO: use the code from initPixelFormat in WglSetup to choose a better pixelformat.
+	// initPixelFormat(24, 8);
+
+	if(!settings.uniqueContext) wglContext_ = setup.createContext(shared_);
+	else wglContext_ = setup.createContext(shared_);
+
+	GlContext::initContext(Api::gl, 24, 8); //dont hardcode this
+
+	if(settings.vsync) activateVsync();
+	if(settings.storeContext) *settings.storeContext = this;
 }
 
 WglContext::~WglContext()
 {
 	makeNotCurrent();
-	if(wglContext_) ::wglDeleteContext(wglContext_);
-	if(hwnd_ && dc_) ::ReleaseDC(hwnd_, dc_);
-}
-
-void WglContext::init(const GlContextSettings& settings)
-{
-	assureWglLoaded(); //will load functions and assure there is a dummy context bound
-	initPixelFormat(24, 8);
-	auto pfd = pixelFormatDescriptor();
-	::SetPixelFormat(dc_, pixelFormat_, &pfd);
-
-	createContext();
-	makeCurrent();
-
-	GlContext::initContext(Api::gl, 24, 8);
-	if(settings.vsync) activateVsync();
-	if(settings.storeContext) *settings.storeContext = this;
 }
 
 void WglContext::initPixelFormat(unsigned int depth, unsigned int stencil)
 {
+	//this function is not used at the moment.
+	//TODO use this in the setup code
+
 	if(GLAD_WGL_ARB_pixel_format)
 	{
 		int attr[] =
@@ -157,7 +275,8 @@ void WglContext::initPixelFormat(unsigned int depth, unsigned int stencil)
 		};
 
 		unsigned int c;
-		if(wglChoosePixelFormatARB(dc_, attr, nullptr, 1, &pixelFormat_, &c) && c > 0) return;
+		int pixelFormat;
+		if(wglChoosePixelFormatARB(hdc_, attr, nullptr, 1, &pixelFormat, &c) && c > 0) return;
 		warning(errorMessage("ny::WglContext: wglChoosePixelFormatARB failed"));
 	}
 
@@ -172,75 +291,34 @@ void WglContext::initPixelFormat(unsigned int depth, unsigned int stencil)
 	pfd.cAlphaBits = 8;
 	pfd.iLayerType = PFD_MAIN_PLANE;
 
-	pixelFormat_ = ::ChoosePixelFormat(dc_, &pfd);
-	if(!pixelFormat_)
-	{
-		//TODO getlasterror
-		throw std::runtime_error(errorMessage("ny::WglContext: ChoosePixelFormat failed"));
-	}
-}
-
-PIXELFORMATDESCRIPTOR WglContext::pixelFormatDescriptor() const
-{
-	PIXELFORMATDESCRIPTOR ret;
-	ret.nSize = sizeof(ret);
-	ret.nVersion = 1;
-	::DescribePixelFormat(dc_, pixelFormat_, sizeof(ret), &ret);
-	return ret;
-}
-
-void WglContext::createContext()
-{
-	if(GLAD_WGL_ARB_create_context)
-	{
-		int attributes[] =
-		{
-			WGL_CONTEXT_MAJOR_VERSION_ARB, 4,
-			WGL_CONTEXT_MINOR_VERSION_ARB, 5,
-			0, 0
-		};
-
-		unsigned int versionPairs[][2] = {{3, 3}, {3, 2}, {3, 1}, {3, 0}, {1, 2}};
-		for(auto currPair = 0; currPair < sizeof(versionPairs); ++currPair)
-		{
-			wglContext_ = ::wglCreateContextAttribsARB(dc_, nullptr, attributes);
-			if(!wglContext_)
-			{
-				attributes[1] = versionPairs[currPair][0];
-				attributes[3] = versionPairs[currPair][1];
-
-				auto error = ::GetLastError();
-				if(error == ERROR_INVALID_VERSION_ARB) continue;
-			}
-			break;
-		}
-
-		if(wglContext_) return;
-		warning(errorMessage("ny::WglContext: createContextAttribsARB failed, using old func"));
-	}
-
-	wglContext_ = ::wglCreateContext(dc_);
-	if(!wglContext_)
-		throw std::runtime_error(errorMessage("ny::WglContext: failed to create context"));
+	auto pixelFormat = ::ChoosePixelFormat(hdc_, &pfd);
+	if(!pixelFormat) throw winapi::EC::excpetion("ny::WglContext: ChoosePixelFormat failed");
 }
 
 void WglContext::activateVsync()
 {
+	//wglSwapIntervalEXT has no effect on the current context, but rather on the window
+	//that is associated with the current context. Therefore we can use it safely here
+	//without effecting other windows that use the same context (at least per spec).
 	if(GLAD_WGL_EXT_swap_control)
 		if(!wglSwapIntervalEXT(1)) warning("ny::WglContext: failed to enable vertical sync");
 }
 
+bool WglContext::sharedWith(const GlContext& other) const
+{
+	auto* wgl = dynamic_cast<const WglContext*>(&other);
+	return wgl && ((shared_ && wgl->shared_) || wglContext_ == wgl->wglContext_);
+}
+
 void* WglContext::procAddr(nytl::StringParam name) const
 {
-	auto ret = reinterpret_cast<void*>(::GetProcAddress(glLibHandle(), name));
-	if(!ret) ret = reinterpret_cast<void*>(::wglGetProcAddress(name));
-	return ret;
+	return setup_->procAddr(name);
 }
 
 bool WglContext::makeCurrentImpl(std::error_code& ec)
 {
 	::SetLastError(0);
-	if(!::wglMakeCurrent(dc_, wglContext_))
+	if(!::wglMakeCurrent(hdc_, wglContext_))
 	{
 		warning(errorMessage("ny::WglContext::makeCurrentImpl (wglMakeCurrent) failed"));
 		ec = {static_cast<int>(::GetLastError()), WinapiErrorCategory::instance()};
@@ -266,7 +344,7 @@ bool WglContext::makeNotCurrentImpl(std::error_code& ec)
 bool WglContext::apply(std::error_code& ec)
 {
 	::SetLastError(0);
-	if(!::SwapBuffers(dc_))
+	if(!::SwapBuffers(hdc_))
 	{
 		warning(errorMessage("ny::WglContext::apply (SwapBuffer) failed"));
 		ec = {static_cast<int>(::GetLastError()), WinapiErrorCategory::instance()};
@@ -277,24 +355,24 @@ bool WglContext::apply(std::error_code& ec)
 }
 
 //WglWindowContext
-WglWindowContext::WglWindowContext(WinapiAppContext& ctx, const WinapiWindowSettings& settings)
+WglWindowContext::WglWindowContext(WinapiAppContext& ac, WglSetup& setup,
+	const WinapiWindowSettings& settings)
 {
-	appContext_ = &ctx;
-	if(!hinstance()) throw std::runtime_error("winapiWC::create: uninitialized appContext");
+	appContext_ = &ac;
 
 	WinapiWindowContext::initWindowClass(settings);
 	WinapiWindowContext::setStyle(settings);
 	WinapiWindowContext::initWindow(settings);
 	WinapiWindowContext::showWindow(settings);
 
-	wglContext_.reset(new WglContext(handle(), settings.gl));
-
-	//store context if requested so
-	if(settings.gl.storeContext) *settings.gl.storeContext = wglContext_.get();
+	hdc_ = ::GetDC(handle());
+	context_.reset(new WglContext(setup, hdc_, settings.gl));
 }
 
 WglWindowContext::~WglWindowContext()
 {
+	context_.reset();
+	if(hdc_) ::ReleaseDC(handle(), hdc_);
 }
 
 WNDCLASSEX WglWindowContext::windowClass(const WinapiWindowSettings& settings)
@@ -307,7 +385,7 @@ WNDCLASSEX WglWindowContext::windowClass(const WinapiWindowSettings& settings)
 bool WglWindowContext::surface(Surface& surface)
 {
 	surface.type = SurfaceType::gl;
-	surface.gl = wglContext_.get();
+	surface.gl = context_.get();
 	return true;
 }
 

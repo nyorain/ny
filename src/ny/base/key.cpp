@@ -83,7 +83,7 @@ constexpr struct Mapping
 	{Keycode::f8, "f8"},
 	{Keycode::f9, "f9"},
 	{Keycode::f10, "f10"},
-	{Keycode::scrollock, "numlock"},
+	{Keycode::numlock, "numlock"},
 	{Keycode::scrollock, "scrolllock"},
 
 	{Keycode::kp7, "kp7"},
@@ -274,12 +274,11 @@ constexpr struct Mapping
 
 const char* keycodeName(Keycode keycode)
 {
-
 	for(auto m : mappings) if(m.keycode == keycode) return m.name;
 	return "";
 }
 
-Keycode keycodeFromName(const nytl::StringParam& name)
+Keycode keycodeFromName(nytl::StringParam name)
 {
 	for(auto m : mappings) if(name == m.name) return m.keycode;
 	return Keycode::none;

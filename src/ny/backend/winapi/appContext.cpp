@@ -56,6 +56,13 @@ public:
 	};
 };
 
+}
+
+struct WinapiAppContext::Impl
+{
+#ifdef NY_WithGL
+	WglSetup wglSetup;
+#endif //GL
 };
 
 //winapi callbacks
@@ -76,7 +83,8 @@ LRESULT CALLBACK WinapiAppContext::dlgProcCallback(HWND a, UINT b, WPARAM c, LPA
 //WinapiAC
 WinapiAppContext::WinapiAppContext() : mouseContext_(*this), keyboardContext_(*this)
 {
-	instance_ = GetModuleHandle(nullptr);
+	impl_ = std::make_unique<Impl>();
+	instance_ = ::GetModuleHandle(nullptr);
 
 	//start gdiplus since some GdiDrawContext functions need it
 	GetStartupInfo(&startupInfo_);
@@ -126,7 +134,8 @@ std::unique_ptr<WindowContext> WinapiAppContext::createWindowContext(const Windo
 	if(contextType == ContextType::gl)
 	{
 		#ifdef NY_WithGL
-		 return std::make_unique<WglWindowContext>(*this, winapiSettings);
+		 if(!impl_->wglSetup.valid()) impl_->wglSetup = {dummyWindow_};
+		 return std::make_unique<WglWindowContext>(*this, impl_->wglSetup, winapiSettings);
 		#else
 		 throw std::logic_error("ny::WinapiAC::createWC: ny was built without gl support");
 		#endif //gl
@@ -343,24 +352,31 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 
 		case WM_MOUSEMOVE:
 		{
-			Vec2i position{GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+			Vec2i pos(GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
+			POINT point {pos.x, pos.y};
+			::ClientToScreen(window, &point);
+			auto delta = mouseContext_.move(pos);
 
-			if(!mouseOver_ || mouseOver_->handle() != window)
+			if(!mouseContext_.over() || mouseContext_.over()->handle() != window)
 			{
-				mouseOver_ = windowContext(window);
 				if(handler)
 				{
 					MouseCrossEvent ev(handler);
 					ev.entered = true;
-					ev.position = position;
+					ev.position = pos;
 					dispatch(ev);
 				}
+
+				if(context) mouseContext_.over(context);
+				else mouseContext_.over(nullptr);
 			}
 
 			if(handler)
 			{
 				MouseMoveEvent ev(handler);
-				ev.position = position;
+				ev.position = pos;
+				ev.screenPosition = nytl::Vec2i(point.x, point.y);
+				ev.delta = delta;
 				dispatch(ev);
 			}
 
@@ -369,7 +385,7 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 
 		case WM_MOUSELEAVE:
 		{
-			mouseOver_ = nullptr;
+			mouseContext_.over(nullptr);
 
 			if(handler)
 			{
@@ -377,11 +393,14 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 				ev.entered = false;
 				dispatch(ev);
 			}
+
 			break;
 		}
 
 		case WM_LBUTTONDOWN:
 		{
+			mouseContext_.onButton(mouseContext_, MouseButton::left, true);
+
 			if(handler)
 			{
 				MouseButtonEvent ev(handler);
@@ -390,11 +409,14 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 				ev.button = MouseButton::left;
 				dispatch(ev);
 			}
+
 			break;
 		}
 
 		case WM_LBUTTONUP:
 		{
+			mouseContext_.onButton(mouseContext_, MouseButton::left, false);
+
 			if(handler)
 			{
 				MouseButtonEvent ev(handler);
@@ -407,13 +429,158 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 			break;
 		}
 
+		case WM_RBUTTONDOWN:
+		{
+			mouseContext_.onButton(mouseContext_, MouseButton::right, true);
+
+			if(handler)
+			{
+				MouseButtonEvent ev(handler);
+				ev.position = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+				ev.pressed = true;
+				ev.button = MouseButton::right;
+				dispatch(ev);
+			}
+
+			break;
+		}
+
+		case WM_RBUTTONUP:
+		{
+			mouseContext_.onButton(mouseContext_, MouseButton::right, false);
+
+			if(handler)
+			{
+				MouseButtonEvent ev(handler);
+				ev.position = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+				ev.pressed = false;
+				ev.button = MouseButton::right;
+				dispatch(ev);
+			}
+
+			break;
+		}
+
+		case WM_MBUTTONDOWN:
+		{
+			mouseContext_.onButton(mouseContext_, MouseButton::middle, true);
+
+			if(handler)
+			{
+				MouseButtonEvent ev(handler);
+				ev.position = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+				ev.pressed = true;
+				ev.button = MouseButton::middle;
+				dispatch(ev);
+			}
+
+			break;
+		}
+
+		case WM_MBUTTONUP:
+		{
+			mouseContext_.onButton(mouseContext_, MouseButton::middle, false);
+
+			if(handler)
+			{
+				MouseButtonEvent ev(handler);
+				ev.position = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+				ev.pressed = false;
+				ev.button = MouseButton::middle;
+				dispatch(ev);
+			}
+
+			break;
+		}
+
+		case WM_XBUTTONDOWN:
+		{
+			auto button = (HIWORD(wparam) == 1) ? MouseButton::custom1 : MouseButton::custom2;
+			mouseContext_.onButton(mouseContext_, button, true);
+
+			if(handler)
+			{
+				MouseButtonEvent ev(handler);
+				ev.position = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+				ev.pressed = true;
+				ev.button = button;
+				dispatch(ev);
+			}
+
+			break;
+		}
+
+		case WM_XBUTTONUP:
+		{
+			auto button = (HIWORD(wparam) == 1) ? MouseButton::custom1 : MouseButton::custom2;
+			mouseContext_.onButton(mouseContext_, button, false);
+
+			if(handler)
+			{
+				MouseButtonEvent ev(handler);
+				ev.position = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+				ev.pressed = false;
+				ev.button = button;
+				dispatch(ev);
+			}
+
+			break;
+		}
+
+		case WM_MOUSEWHEEL:
+		{
+			float value = GET_WHEEL_DELTA_WPARAM(wparam);
+			mouseContext_.onWheel(mouseContext_, value);
+
+			if(handler)
+			{
+				MouseWheelEvent ev(handler);
+				ev.value = value;
+				dispatch(ev);
+			}
+
+			break;
+		}
+
+		case WM_SETFOCUS:
+		{
+			if(context || keyboardContext_.focus()) keyboardContext_.focus(context);
+
+			if(handler)
+			{
+				FocusEvent ev(handler);
+				ev.focus = true;
+				dispatch(ev);
+			}
+
+			break;
+		}
+
+		case WM_KILLFOCUS:
+		{
+			if(keyboardContext_.focus() == context) keyboardContext_.focus(nullptr);
+
+			if(handler)
+			{
+				FocusEvent ev(handler);
+				ev.focus = false;
+				dispatch(ev);
+			}
+
+			break;
+		}
+
 		case WM_KEYDOWN:
 		{
+			auto keycode = winapiToKeycode(wparam);
+			auto utf8 = keyboardContext_.utf8(keycode, true);
+			keyboardContext_.onKey(keyboardContext_, keycode, utf8, true);
+
 			if(handler)
 			{
 				KeyEvent ev(handler);
-				ev.keycode = winapiToKeycode(wparam);
-				ev.unicode = keyboardContext_.utf8(ev.keycode, true);
+				ev.keycode = keycode;
+				ev.unicode = utf8;
 				ev.pressed = true;
 				dispatch(ev);
 			}
@@ -423,11 +590,15 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 
 		case WM_KEYUP:
 		{
+			auto keycode = winapiToKeycode(wparam);
+			auto utf8 = keyboardContext_.utf8(keycode, true);
+			keyboardContext_.onKey(keyboardContext_, keycode, utf8, false);
+
 			if(handler)
 			{
 				KeyEvent ev(handler);
-				ev.keycode = winapiToKeycode(wparam);
-				ev.unicode = keyboardContext_.utf8(ev.keycode, true);
+				ev.keycode = keycode;
+				ev.unicode = utf8;
 				ev.pressed = false;
 				dispatch(ev);
 			}
@@ -476,6 +647,8 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 			if(handler)
 			{
 				PositionEvent ev(handler);
+				ev.position.x = LOWORD(lparam);
+				ev.position.y = HIWORD(lparam);
 				dispatch(ev);
 			}
 
@@ -488,6 +661,7 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 			{
 				ShowEvent ev(handler);
 				ev.show = true;
+
 				if(wparam == SC_MAXIMIZE)
 				{
 					ev.state = ToplevelState::maximized;
