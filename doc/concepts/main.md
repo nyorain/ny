@@ -101,36 +101,19 @@ About graphics, visuals and pixel formats
 
 Most window systems are really old and therefore still deal with things like colormaps
 or visuals. But since today nearly all hardware has support for 24 or 32 bit images/window
-contents ny 
+contents ny does not implement full support for backends that don't support 24 or 32 bit
+drawing in any way (e.g. some ancient x server/driver/hardware).
 
 OpenGL contexts
 ===============
 
-Backend implementations should try to use as few contexts as possible.
-The only reason to create a new context should be if it is needed because all existent
-contexts would be incompatible with the window to create a context for (or with its settings)
-or if explicitly called so by the application. Usually one opengl context per backend is enough,
-even when multiple opengl windows are used.
-The user could specify to use a seperate conetxt for every window e.g. if the windows are
-rendered to from different threads. Note that ny with evg does not support rendering from
-multiple threads (but since ny was designed to be well-usable without any evg dependency,
-applications that need this error-prone feature should be able to implement it for themselves).
-Since creating a context is considered pretty expensive, backends should generally only
-create them when needed (for a window) and not e.g. on AppContext creation.
+Contexts are explicitly created and managed by the application if needed.
+Configs can be explicitly selected in a cross-platform way, or one can simply use the
+default config which should have pretty good attributes.
 
-The usual solution to this problem (e.g. used by egl and soon reworked in wgl/glx) is to
-have a raw context (maybe guarded using RAII) and implemente the actual GlContext interface
-with a non-owned reference to this context and a surface/WindowContext on which the
-context should be made current on a call to makeCurrentImpl.
-For every window (that supports the already created raw context) there just has to be
-a new wrapper GlContext implementation be created that associates the raw context with
-the specific surface.
-
-In future (on the todo list) there might be the possibility to explicitly create a
-new raw context for a window on creation which could be useful when e.g. trying to
-render multiple windows in multiple threads at the same time (would not work with the
-used mulitple-wrappers-around-one-context approach since a context may not be current
-in multiple threads).
+If requested, a GlSurface implementation will be created for a WindowContext that can then
+be used to render onto the Window. There are some platform-dependent ways to render into
+a pixel buffer.
 
 Vulkan
 ======

@@ -10,96 +10,69 @@
 namespace ny
 {
 
-//NOTE: the documentation is kinda confusing.
-//There are 2 different types of sharing: The sharing on glcontext level
-//e.g. wglShareLists and the shared using of one context handle.
-//Maybe give one of them another name? document naming in gl.hpp (GlContext)
-
-///Creates and manages WglContexts and loading of the wgl api.
-///Does also query and hold the pixel format that the opengl functions were loaded for.
-///If a context is created for another pixel format, the wgl speicification states that
-///the loaded functions may be invalid (e.g. if using a different pixel format
-///triggers anothe gpu/driver implementation to be used).
-///All contexts are shared with each other, if possible (wglCreateContextAttribsARB).
-class WglSetup
+class WglSetup : public GlSetup
 {
 public:
-	WglSetup();
+	WglSetup() = default;
 	WglSetup(HWND dummy);
 	~WglSetup();
 
 	WglSetup(WglSetup&& other) noexcept;
 	WglSetup& operator=(WglSetup&& other) noexcept;
 
-	///Creates a new context and returns it. The returned context is still owned by this
-	///object and should not be destroyed.
-	///\param shared Whether the created should be shared with all already shared contexts.
-	///If this is set to true, all existent and later created contexts will be shared with
-	///the created one. Will be changed to false if sharing was requested but failed.
-	///\param unique Whether the created context may not be returned from getContext.
-	HGLRC createContext(bool& shared, bool unique = true);
-
-	///Returns a gl context. The returned context is owned by this object and should not
-	///be destroyed. The returned object may be shared with other GlContext objects, i.e. it
-	///should always only be used in the ui thread and there are no guarantees for state after
-	///making the context current/not current.
-	///\param shared Whether the created should be shared with all already shared contexts.
-	///If this is set to true, all existent and later created contexts will be shared with
-	///the created one. Will be changed to false if sharing was requested but failed.
-	HGLRC getContext(bool& shared);
-
-	///The pixelformat the wgl api was loaded for.
-	int pixelFormat() const { return pixelFormat_; }
-
-	///Returns all shared context handles.
-	std::vector<HGLRC> sharedContexts() const;
-
-	///Returns one context that is shared with all contexts in the share chain.
-	///If there is none such contexts, returns nullptr.
-	HGLRC sharedContext() const;
-
-	///Returns the symbol address for the given name or nullptr.
+	GlConfig defaultConfig() const override;
+	std::vector<GlConfig> configs() const override { return configs_; }
+	std::unique_ptr<GlContext> createContext(const GlContextSettings& = {}) const override;
 	void* procAddr(nytl::StringParam name) const;
 
-	///Returns whether the state of this object is valid.
-	bool valid() const { return dummyDC_; }
+	const Library& glLibrary() const { return glLibrary_; }
+	HDC dummyDC() const { return dummyDC_; }
+	bool valid() const { return (dummyDC_); }
 
 protected:
-	class WglContextWrapper;
-	std::vector<WglContextWrapper> shared_;
-	std::vector<WglContextWrapper> unique_;
-
+	std::vector<GlConfig> configs_;
+	GlConfig* defaultConfig_ {};
 	Library glLibrary_;
-	int pixelFormat_ {};
 
 	HWND dummyWindow_ {};
 	HDC dummyDC_ {};
+};
+
+class WglSurface : public GlSurface
+{
+public:
+	WglSurface(HDC hdc, const GlConfig& config) : hdc_(hdc), config_(config) {}
+	~WglSurface() = default;
+
+	NativeHandle nativeHandle() const override { return {hdc_}; }
+	GlConfig config() const override { return config_; }
+	bool apply(std::error_code& ec) const override;
+
+	HDC hdc() const { return hdc_; }
+
+protected:
+	HDC hdc_;
+	GlConfig config_;
 };
 
 ///OpenGL context implementation using the wgl api on windows.
 class WglContext : public GlContext
 {
 public:
-	WglContext(WglSetup& setup, HDC hdc, const GlContextSettings& settings = {});
+	WglContext(const WglSetup& setup, const GlContextSettings& settings = {});
 	virtual ~WglContext();
 
-	bool apply(std::error_code& ec) override;
-	void* procAddr(nytl::StringParam name) const override;
-	void* nativeHandle() const override { return static_cast<void*>(wglContext_); }
-	bool sharedWith(const GlContext& other) const override;
+	NativeHandle nativeHandle() const override { return {wglContext_}; }
+	GlContextExtensions contextExtensions() const override;
+	bool swapInterval(int interval, std::error_code& ec) const override;
 
 protected:
-	virtual bool makeCurrentImpl(std::error_code& ec) override;
-	virtual bool makeNotCurrentImpl(std::error_code& ec) override;
-
-	void initPixelFormat(unsigned int depth, unsigned int stencil); //TODO, src
-	void activateVsync();
+	bool makeCurrentImpl(const GlSurface&, std::error_code& ec) override;
+	bool makeNotCurrentImpl(std::error_code& ec) override;
 
 protected:
-	WglSetup* setup_ {};
-	HDC hdc_ {};
+	const WglSetup* setup_ {};
 	HGLRC wglContext_ {};
-	bool shared_ {};
 };
 
 ///Winapi WindowContext using wgl (OpenGL) to draw.
@@ -116,7 +89,7 @@ protected:
 	WNDCLASSEX windowClass(const WinapiWindowSettings& settings) override;
 
 protected:
-	std::unique_ptr<WglContext> context_;
+	std::unique_ptr<WglSurface> surface_;
 	HDC hdc_ {};
 };
 

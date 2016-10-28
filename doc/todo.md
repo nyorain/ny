@@ -27,4 +27,4 @@ wayland backend:
 	- implement like x11 with pimpl
 
 winapi backend:
-- wgl setup pixel format
+- wgl api reparse [loader, swap control tear]

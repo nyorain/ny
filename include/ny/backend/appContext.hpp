@@ -32,8 +32,8 @@ using AppContextPtr = std::unique_ptr<AppContext>;
 class AppContext : public NonCopyable
 {
 public:
-    AppContext() = default;
-    virtual ~AppContext() = default;
+	AppContext() = default;
+	virtual ~AppContext() = default;
 
 	///Creates a WindowContext implementation for the given settings.
 	///May throw backend specific errors on failure.
@@ -142,8 +142,10 @@ public:
 	///Otherwise this returns an empty vector.
 	virtual std::vector<const char*> vulkanExtensions() const { return {}; }
 
-	///Creates and returns an opengl context.
-	virtual std::unique_ptr<GlContext> glContext(const GlContextSettings& settings) const;
+	///Returns a non-owned GlSetup implementation or nullptr if gl is not supported.
+	///The returned GlSetup can be used to retrieve the different gl configs and to create
+	///opengl contextes.
+	virtual GlSetup* glSetup() const = 0;
 };
 
 }

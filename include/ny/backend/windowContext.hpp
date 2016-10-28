@@ -2,6 +2,8 @@
 
 #include <ny/include.hpp>
 #include <ny/base/eventHandler.hpp>
+#include <ny/base/nativeHandle.hpp>
+
 #include <nytl/flags.hpp>
 
 #include <memory>
@@ -31,7 +33,7 @@ class WindowContext : public EventHandler
 {
 public:
 	WindowContext() = default;
-    virtual ~WindowContext() = default;
+	virtual ~WindowContext() = default;
 
 	///Sets the EventHandler that should receive the events associated with this windowContext.
 	///The event handler will receive information about window state changes and input.
@@ -41,10 +43,10 @@ public:
 	virtual EventHandler* eventHandler() const { return eventHandler_; }
 
 	///Makes the window visible.
-    virtual void show() = 0;
+	virtual void show() = 0;
 
 	///Hides the window.
-    virtual void hide() = 0;
+	virtual void hide() = 0;
 
 	//TODO: allow to specify regions (or a binary predicate) in which different types may
 	//be dropped.
@@ -54,77 +56,77 @@ public:
 	///should be removed from the window.
 	///When the WindowContext receives a drop request for a matching type, it will send
 	///a DataOfferEvent to the registered EventHandler.
-    virtual void droppable(const DataTypes&) = 0;
+	virtual void droppable(const DataTypes&) = 0;
 
 	//TODO? XXX: make these functions bool to signal if they had any effect?
 	//Should they output a warning if not? it can be queried using capabilites
 
 	///Sets the minimal size of the window.
 	///Might have no effect on certain backends.
-    virtual void minSize(const nytl::Vec2ui&) = 0;
+	virtual void minSize(const nytl::Vec2ui&) = 0;
 
 	///Sets the maximal size of the window.
 	///Might have no effect on certain backends.
-    virtual void maxSize(const nytl::Vec2ui&) = 0;
+	virtual void maxSize(const nytl::Vec2ui&) = 0;
 
 	///Resizes the window.
 	///Will usually trigger a DrawEvent.
-    virtual void size(const nytl::Vec2ui& size) = 0;
+	virtual void size(const nytl::Vec2ui& size) = 0;
 
 	///Sets the position of the window.
 	///Note that on some backends or if the window is in a fullscreen/maximized state, this
 	///might have no effect.
-    virtual void position(const nytl::Vec2i& position) = 0;
+	virtual void position(const nytl::Vec2i& position) = 0;
 
 	///Sets the mouse cursor of the window. The mouse cursor will only be changed to the given
 	///cursor when the pointer is oven this window.
-    virtual void cursor(const Cursor& c) = 0;
+	virtual void cursor(const Cursor& c) = 0;
 
 	///Returns the underlaying native window handle.
 	///This handle can then be passed on to other window toolkits or used in some backend-specific
 	///way.
-	virtual NativeWindowHandle nativeHandle() const = 0;
+	virtual NativeHandle nativeHandle() const = 0;
 
 	///Asks the platform-specific windowing api for a window refresh.
 	///Will basically send a DrawEvent to the registered EventHandler as soon as the window is
 	///ready to draw. This function might directly dispatch a DrawEvent to the registered
 	///EventHandler which might lead to a redraw before this function returns depending on
 	///the used event dispatching system.
-    virtual void refresh() = 0;
+	virtual void refresh() = 0;
 
-    //toplevel-specific
+	//toplevel-specific
 	///Maximized the window.
 	///\warning Shall have only an effect for toplevel windows.
-    virtual void maximize() = 0;
+	virtual void maximize() = 0;
 
 	///Minimized the window.
 	///\warning Shall have only an effect for toplevel windows.
-    virtual void minimize() = 0;
+	virtual void minimize() = 0;
 
 	///Sets the window in a fullscreen state.
 	///\warning Shall have only an effect for toplevel windows.
-    virtual void fullscreen() = 0;
+	virtual void fullscreen() = 0;
 
 	///Resets the window in normal toplevel state.
 	///If it is currently maximized, minimized or in fullscreen, these states will be removed.
 	///\warning Shall have only an effect for toplevel windows.
-    virtual void normalState() = 0; //or reset()?
+	virtual void normalState() = 0; //or reset()?
 
 	///Asks the window manager to start an interactive move for the window.
 	///\param event A pointer to a MouseButtonEvent. Only required for some implementations, so
 	///may also be a nullptr (does work then only on some backends!)
 	///\warning Shall have only an effect for toplevel windows.
-    virtual void beginMove(const MouseButtonEvent* ev) = 0;
+	virtual void beginMove(const MouseButtonEvent* ev) = 0;
 
 	///Asks the window manager to start an interactive resizing for the window.
 	///\param event A pointer to a MouseButtonEvent. Only required for some implementations, so
 	///may also be a nullptr (does work then only on some backends!)
 	///\warning Shall have only an effect for toplevel windows.
-    virtual void beginResize(const MouseButtonEvent* event, WindowEdges edges) = 0;
+	virtual void beginResize(const MouseButtonEvent* event, WindowEdges edges) = 0;
 
 	///Sets the title for the native window.
 	///\warning Shall have only an effect for toplevel windows.
-    virtual void title(const std::string& name) = 0;
+	virtual void title(const std::string& name) = 0;
 
 	///Sets the icon of the native window.
 	///If the given icon pointer variable is an empty image, the icon will be reset/unset.

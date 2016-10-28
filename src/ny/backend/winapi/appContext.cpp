@@ -726,4 +726,10 @@ std::vector<const char*> WinapiAppContext::vulkanExtensions() const
 	#endif
 }
 
+GlSetup* WinapiAppContext::glSetup() const
+{
+	if(!impl_->wglSetup.valid()) impl_->wglSetup = {dummyWindow_};
+	return &impl_->wglSetup;
+}
+
 }

@@ -59,7 +59,13 @@ class Surface;
 class BufferSurface;
 class BufferGuard;
 
+using GlConfigId = struct GlConfigIdType*; //opaque
+class GlSetup;
 class GlContext;
+class GlSurface;
+
+struct GlVersion;
+struct GlConfig;
 
 //enums
 enum class ToplevelState : unsigned int;
@@ -75,10 +81,9 @@ enum class ContextType : unsigned int;
 enum class CursorType : unsigned int;
 enum class ImageDataFormat : unsigned int;
 
-
 }
 
-//XXX: duh... please make this go away...
+//XXX: duh... please just make this go away...
 #define DEFINE_HANDLE(object) typedef struct object##_T* object;
 
 #if defined(__LP64__) || \

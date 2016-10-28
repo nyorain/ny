@@ -37,6 +37,7 @@ public:
 	bool startDragDrop(std::unique_ptr<DataSource>&& source) override;
 
 	std::vector<const char*> vulkanExtensions() const override;
+	GlSetup* glSetup() const override;
 
 	//custom winapi stuff
 	LONG_PTR eventProc(HWND, UINT, WPARAM, LPARAM);

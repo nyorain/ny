@@ -3,6 +3,7 @@
 #include <ny/include.hpp>
 #include <ny/base/data.hpp>
 #include <ny/base/cursor.hpp>
+#include <ny/base/nativeHandle.hpp>
 
 #include <nytl/clone.hpp>
 #include <nytl/flags.hpp>
@@ -144,26 +145,19 @@ enum class ContextType : unsigned int
 	vulkan
 };
 
-struct GlContextSettings
+struct GlSurfaceSettings
 {
-	//A pointer to store a pointer to the used GlContext.
-	//Note that the underlaying GlContext is only guaranteed to be existent as long as
-	//the WindowContext associated with the settings exists.
-	GlContext** storeContext;
+	///A pointer to store a pointer to the create GlSurface.
+	///Another way for retrieving the surface is to construct a surface integration
+	///object (see surface.hpp).
+	GlSurface** storeSurface {};
 
-	//Whether to enable vsync for the GlContext and window.
-	bool vsync = true;
-
-	///XXX: not supported by any backend atm.
-	///Whether to create a unique gl context.
-	///Should be set if the resulting gl context might ever be used outside the
-	///ui thread and if multiple gl contexts will be created.
-	///If this is set to false the context might be shared and can therefore only safley
-	///be used from the mainthread and there are no state preserving guarantees when
-	///making the context not current/current.
-	///Note that if not needed this should be set to false since creating gl contexts
-	///is considered a pretty heavy operation.
-	bool uniqueContext = false;
+	///The config id that the surface should be created with.
+	///Can be retrieved from the GlSetup implementation which can be retrieved
+	///from the AppContext implementation.
+	///Note that if this value is not set (i.e. the default value is used), the surface
+	///will be created using the default config (should be enough for most usages).
+	GlConfigId config {};
 };
 
 struct VulkanSurfaceSettings
@@ -182,8 +176,8 @@ struct VulkanSurfaceSettings
 class WindowSettings
 {
 public:
-	NativeHandle nativeHandle = nullptr; ///< May specify an already existent native handle
-	NativeHandle parent = nullptr; ///< May specify the windows native parent
+	NativeHandle nativeHandle; ///< May specify an already existent native handle
+	NativeHandle parent; ///< May specify the windows native parent
 	ToplevelState initState = ToplevelState::normal; ///< Window state after initialization
 	Vec2ui size = {800, 500}; ///< Beginning window size
 	Vec2i position = {~0, ~0}; ///< Beginngin window position
@@ -203,7 +197,7 @@ public:
 	ContextType context = ContextType::none;
 	union
 	{
-		GlContextSettings gl {};
+		GlSurfaceSettings gl {};
 		VulkanSurfaceSettings vulkan;
 	};
 
@@ -211,7 +205,7 @@ public:
 	//Needed because of the union...
 	//Destructor is virtual to allow backends to dynamic_cast the Settings to detect
 	//their own derivates
-	WindowSettings() : gl() {}
+	WindowSettings() : vulkan() {}
 	virtual ~WindowSettings() = default;
 };
 

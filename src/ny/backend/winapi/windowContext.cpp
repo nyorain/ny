@@ -90,7 +90,7 @@ void WinapiWindowContext::initWindowClass(const WinapiWindowSettings& settings)
 
 	auto wndClass = windowClass(settings);
 	if(!::RegisterClassEx(&wndClass))
-		throw winapi::EC::excpetion("ny::WinapiWC: RegisterClassEx failed");
+		throw winapi::EC::exception("ny::WinapiWC: RegisterClassEx failed");
 }
 
 WNDCLASSEX WinapiWindowContext::windowClass(const WinapiWindowSettings& settings)
@@ -160,7 +160,7 @@ void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 		handle_ = ::CreateWindowEx(exstyle, _T(wndClassName_.c_str()), _T(settings.title.c_str()),
 			style_, position.x, position.y, size.x, size.y, parent, nullptr, hinstance, this);
 
-		if(!handle_) throw winapi::EC::excpetion("ny::WinapiWC: CreateWindowEx failed");
+		if(!handle_) throw winapi::EC::exception("ny::WinapiWC: CreateWindowEx failed");
 	}
 
 	//TODO: check for windows version > xp here.
@@ -492,7 +492,7 @@ void WinapiWindowContext::title(const std::string& title)
 	SetWindowText(handle(), _T(title.c_str()));
 }
 
-NativeWindowHandle WinapiWindowContext::nativeHandle() const
+NativeHandle WinapiWindowContext::nativeHandle() const
 {
 	return handle_;
 }

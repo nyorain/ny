@@ -35,45 +35,45 @@ public:
 	static const char* nativeWidgetClassName(NativeWidgetType);
 
 public:
-    WinapiWindowContext(WinapiAppContext& ctx, const WinapiWindowSettings& settings = {});
-    ~WinapiWindowContext();
+	WinapiWindowContext(WinapiAppContext& ctx, const WinapiWindowSettings& settings = {});
+	~WinapiWindowContext();
 
-    void refresh() override;
-    void show() override;
-    void hide() override;
+	void refresh() override;
+	void show() override;
+	void hide() override;
 
 	void droppable(const DataTypes&) override;
 
-    void addWindowHints(WindowHints hints) override;
-    void removeWindowHints(WindowHints hints) override;
+	void addWindowHints(WindowHints hints) override;
+	void removeWindowHints(WindowHints hints) override;
 
-    void size(const Vec2ui& size) override;
-    void position(const Vec2i& position) override;
+	void size(const Vec2ui& size) override;
+	void position(const Vec2i& position) override;
 
-    void cursor(const Cursor& c) override;
-    bool handleEvent(const Event& e) override;
+	void cursor(const Cursor& c) override;
+	bool handleEvent(const Event& e) override;
 
-	NativeWindowHandle nativeHandle() const override;
+	NativeHandle nativeHandle() const override;
 	WindowCapabilities capabilities() const override;
 
-    //toplevel
-    void maximize() override;
-    void minimize() override;
-    void fullscreen() override;
-    void normalState() override;
+	//toplevel
+	void maximize() override;
+	void minimize() override;
+	void fullscreen() override;
+	void normalState() override;
 
-    void minSize(const Vec2ui& size) override {};
-    void maxSize(const Vec2ui& size) override {};
+	void minSize(const Vec2ui& size) override {};
+	void maxSize(const Vec2ui& size) override {};
 
-    void beginMove(const MouseButtonEvent* ev) override {};
-    void beginResize(const MouseButtonEvent* ev, WindowEdges edges) override {};
+	void beginMove(const MouseButtonEvent* ev) override {};
+	void beginResize(const MouseButtonEvent* ev, WindowEdges edges) override {};
 
 	bool customDecorated() const override { return 0; };
 
-    void icon(const ImageData& img) override;
-    void title(const std::string& title) override;
+	void icon(const ImageData& img) override;
+	void title(const std::string& title) override;
 
-    //winapi specific
+	//winapi specific
 	///Returns the AppContext this WindowContext was created from.
 	WinapiAppContext& appContext() const { return *appContext_; }
 
@@ -82,7 +82,7 @@ public:
 	HINSTANCE hinstance() const;
 
 	///Returns the manages win32 window handle.
-    HWND handle() const { return handle_; }
+	HWND handle() const { return handle_; }
 
 	///Returns the current (async) extents of the whole window, i.e. with server side
 	///decorations.
@@ -130,7 +130,7 @@ protected:
 	WinapiAppContext* appContext_ = nullptr;
 	std::string wndClassName_;
 
-    HWND handle_ = nullptr;
+	HWND handle_ = nullptr;
 	winapi::com::DropTargetImpl* dropTarget_ = nullptr; //referenced-counted (shared owned here)
 
 	//If ownedCursor_ is true, cursor_ was created, otherwise it was loaded (and must not

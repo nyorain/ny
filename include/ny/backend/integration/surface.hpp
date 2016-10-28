@@ -90,7 +90,7 @@ public:
 	Type type = Type::none;
 	union
 	{
-		GlContext* gl {};
+		GlSurface* gl {};
 		VkSurfaceKHR vulkan;
 		std::unique_ptr<BufferSurface> buffer;
 	};
