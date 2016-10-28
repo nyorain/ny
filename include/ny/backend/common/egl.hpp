@@ -2,6 +2,7 @@
 
 #include <ny/include.hpp>
 #include <ny/backend/common/gl.hpp>
+#include <ny/backend/common/library.hpp>
 
 #include <string>
 #include <vector>
@@ -16,11 +17,11 @@ namespace ny
 {
 
 ///RAII wrapper around an EGLContext.
-class EglContextGuard
+class EglContextGuard : public nytl::NonCopyable
 {
 public:
 	EglContextGuard() = default;
-	EglContextGuard(EGLDisplay, EGLConfig config, GlApi api = GlApi::gl);
+	EglContextGuard(EGLDisplay, EGLConfig config, EGLContext shared, GlApi api = GlApi::gl);
 	~EglContextGuard();
 
 	EglContextGuard(EglContextGuard&& other) noexcept;
@@ -30,12 +31,48 @@ public:
 	EGLContext eglContext() const { return eglContext_; }
 	EGLConfig eglConfig() const { return eglConfig_; }
 	GlApi glApi() const { return api_; }
+	bool shared() const { return shared_; }
 
 protected:
-	EGLDisplay eglDisplay_;
-	EGLContext eglContext_;
-	EGLConfig eglConfig_;
+	EGLDisplay eglDisplay_ {};
+	EGLContext eglContext_ {};
+	EGLConfig eglConfig_ {};
+	bool shared_ {};
 	GlApi api_;
+};
+
+//TODO: replace void* as display with some NativeHandle class
+//TODO: dont select config here (but in EglContextGuard).
+//TODO: better documentation (see winapi/wgl WglSetup)
+///Manages multiple egl contexts and the loading of egl extensions functions.
+class EglSetup : public nytl::NonCopyable
+{
+public:
+	EglSetup(void* natvieDisplay);
+	~EglSetup();
+
+	///Creates a shared or unique context.
+	EGLContext createContext(bool& shared, bool unique = true);
+
+	///Returns a shared context that may also be used by other EglContext objects.
+	EGLContext getContext(bool& shared);
+
+	EGLDisplay eglDisplay() const { return eglDisplay_; }
+	EGLConfig eglConfig() const { return eglConfig_; }
+
+	std::vector<EGLContext> sharedContexts() const;
+	EGLContext sharedContext() const;
+
+	void* procAddr(nytl::StringParam& name) const;
+
+protected:
+	std::vector<EglContextGuard> shared_;
+	std::vector<EglContextGuard> unique_;
+	
+	Library eglLibrary_;
+
+	EGLDisplay eglDisplay_ {};
+	EGLConfig eglConfig_ {};
 };
 
 ///EglContext for a specific surface
@@ -72,7 +109,7 @@ public:
 
 	bool apply(std::error_code& ec) override;
 	void* procAddr(nytl::StringParam name) const override;
-	void* nativeHandle() const { return static_cast<void*>(eglContext_); }
+	void* nativeHandle() const override { return static_cast<void*>(eglContext_); }
 
 protected:
 	bool makeCurrentImpl(std::error_code& ec) override;
@@ -90,6 +127,7 @@ class EglErrorCategory : public std::error_category
 {
 public:
 	static EglErrorCategory& instance();
+	static std::exception exception(nytl::StringParam msg = "");
 
 public:
 	const char* name() const noexcept override { return "ny::EglErrorCategory"; }

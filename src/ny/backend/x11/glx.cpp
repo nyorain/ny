@@ -47,34 +47,28 @@ GlxContextWrapper::GlxContextWrapper(Display* dpy, GLXFBConfig fbc) : xDisplay(d
     {
         int attribs[] =
         {
-            GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
-            GLX_CONTEXT_MINOR_VERSION_ARB, 3,
-            None
+            GLX_CONTEXT_MAJOR_VERSION_ARB, 4,
+            GLX_CONTEXT_MINOR_VERSION_ARB, 5,
+			GLX_CONTEXT_PROFILE_MASK_ARB, GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
+            0
         };
 
-        context = glXCreateContextAttribsARB(xDisplay, fbc, nullptr, True, attribs);
-        XSync(xDisplay, False);
-        if(!context || errorOccured)
-        {
-            errorOccured = false;
-            context = nullptr;
-			log("ny::Glx: failed to create modern opengl context, trying legacy context.");
-        }
+		unsigned int versionPairs[][2] = {{3, 3}, {3, 2}, {3, 1}, {3, 0}, {1, 2}, {1, 0}};
+		for(const auto& p : versionPairs)
+		{
+			context = glXCreateContextAttribsARB(xDisplay, fbc, nullptr, true, attribs);
+			XSync(xDisplay, False);
+			if(!context || errorOccured)
+			{
+				errorOccured = false;
+				context = nullptr;
+				attribs[1] = p[0];
+				attribs[3] = p[1];
+				continue;
+			}
 
-        if(!context)
-        {
-            attribs[1] = 1;
-            attribs[3] = 0;
-
-            context = glXCreateContextAttribsARB(xDisplay, fbc, nullptr, True, attribs );
-            XSync(xDisplay, False);
-            if(!context || errorOccured)
-            {
-                errorOccured = false;
-                context = nullptr;
-				warning("ny::Glx: legacy GL context could not be created, trying old method");
-            }
-        }
+			break;
+		}
     }
 
     if(!context) context = glXCreateNewContext(xDisplay, fbc, GLX_RGBA_TYPE, 0, True);

@@ -33,7 +33,7 @@ WaylandEglDisplay::WaylandEglDisplay(WaylandAppContext& ac)
 {
 	//init display
 	auto ndpy = reinterpret_cast<EGLNativeDisplayType>(&ac.wlDisplay());
-    eglDisplay_ = eglGetDisplay(ndpy);
+    eglDisplay_ = ::eglGetDisplay(ndpy);
 
     if(eglDisplay_ == EGL_NO_DISPLAY)
     {

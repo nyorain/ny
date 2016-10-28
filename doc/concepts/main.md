@@ -96,6 +96,13 @@ The cost of using runtime polymorphism is that high that one could use this as r
 supporting multiple backends in one executable (at least for ny, most other toolkits that use
 compile-time switches have good reason to do so).
 
+About graphics, visuals and pixel formats
+=========================================
+
+Most window systems are really old and therefore still deal with things like colormaps
+or visuals. But since today nearly all hardware has support for 24 or 32 bit images/window
+contents ny 
+
 OpenGL contexts
 ===============
 

@@ -141,6 +141,9 @@ public:
 	///an instance to make it suited for vulkan surface creation.
 	///Otherwise this returns an empty vector.
 	virtual std::vector<const char*> vulkanExtensions() const { return {}; }
+
+	///Creates and returns an opengl context.
+	virtual std::unique_ptr<GlContext> glContext(const GlContextSettings& settings) const;
 };
 
 }

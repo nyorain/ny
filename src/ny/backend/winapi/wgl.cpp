@@ -47,14 +47,13 @@ WglSetup::WglContextWrapper::WglContextWrapper(HDC hdc, HGLRC share)
 		};
 
 		unsigned int versionPairs[][2] = {{3, 3}, {3, 2}, {3, 1}, {3, 0}, {1, 2}, {1, 0}};
-		unsigned int length = sizeof(versionPairs) / sizeof(versionPairs[0]);
-		for(auto currPair = 0; currPair < length; ++currPair)
+		for(const auto& p : versionPairs)
 		{
 			context = ::wglCreateContextAttribsARB(hdc, share, attributes);
 			if(!context)
 			{
-				attributes[1] = versionPairs[currPair][0];
-				attributes[3] = versionPairs[currPair][1];
+				attributes[1] = p[0];
+				attributes[3] = p[1];
 
 				auto error = ::GetLastError();
 				if(error == ERROR_INVALID_VERSION_ARB) continue;

@@ -109,32 +109,6 @@ enum class ToplevelState : unsigned int
 	normal
 };
 
-
-///Class to reprsent the window handle of the underlaying window system api.
-///Holds either a pointer to backend-specific type or an 64 bit unsigned int.
-class NativeWindowHandle
-{
-public:
-	using Value = std::uintptr_t;
-
-public:
-	NativeWindowHandle(void* ptr = nullptr) : value_(reinterpret_cast<Value>(ptr)) {}
-	NativeWindowHandle(std::uint64_t uint) : value_(reinterpret_cast<Value>(uint)) {}
-
-	void* pointer() const { return reinterpret_cast<void*>(value_); }
-	std::uint64_t uint() const { return reinterpret_cast<std::uint64_t>(value_); }
-	std::uintptr_t uintptr() const { return reinterpret_cast<std::uintptr_t>(value_); }
-
-	operator void*() const { return pointer(); }
-	operator std::uint64_t() const { return uint(); }
-
-	template<typename T> T* asPtr() const { return reinterpret_cast<T*>(value_); }
-
-protected:
-	Value value_;
-};
-
-
 ///Result from a dialog.
 enum class DialogResult : unsigned int
 {
@@ -208,8 +182,8 @@ struct VulkanSurfaceSettings
 class WindowSettings
 {
 public:
-	NativeWindowHandle nativeHandle = nullptr; ///< May specify an already existent native handle
-	NativeWindowHandle parent = nullptr; ///< May specify the windows native parent
+	NativeHandle nativeHandle = nullptr; ///< May specify an already existent native handle
+	NativeHandle parent = nullptr; ///< May specify the windows native parent
 	ToplevelState initState = ToplevelState::normal; ///< Window state after initialization
 	Vec2ui size = {800, 500}; ///< Beginning window size
 	Vec2i position = {~0, ~0}; ///< Beginngin window position
