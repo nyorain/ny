@@ -13,19 +13,6 @@ namespace ny
 namespace
 {
 
-//the needed parts of the opengl spec
-// using PfnGetString = const char*(*)(unsigned int);
-// using PfnGetStringi = const char*(*)(unsigned int, unsigned int);
-// using PfnGetIntegerv = void*(*)(unsigned int, int*);
-//
-// constexpr unsigned int GL_EXTENSIONS = 0x1F03;
-// constexpr unsigned int GL_NUM_EXTENSIONS = 0x821D;
-// constexpr unsigned int GL_NUM_SHADING_LANGUAGE_VERSIONS = 0x82E9;
-// constexpr unsigned int GL_SHADING_LANGUAGE_VERSION = 0x8B8C;
-// constexpr unsigned int GL_MAJOR_VERSION = 0x821B;
-// constexpr unsigned int GL_MINOR_VERSION = 0x821C;
-// constexpr unsigned int GL_VERSION = 0x1F02;
-
 //GlContext std::error_category implementation
 class GlContextErrorCategory : public std::error_category
 {
@@ -112,14 +99,14 @@ unsigned int rate(const GlConfig& config)
 	else if(config.stencil == 16) ret += 3;
 	else if(config.stencil == 0) ret += 1;
 
-	if(config.multisample == 0) ret += 5;
-	else if(config.multisample == 2) ret += 4;
-	else if(config.multisample == 4) ret += 3;
-	else if(config.multisample == 8) ret += 2;
-	else if(config.multisample == 16) ret += 1;
+	if(config.samples == 0) ret += 5;
+	else if(config.samples == 2) ret += 4;
+	else if(config.samples == 4) ret += 3;
+	else if(config.samples == 8) ret += 2;
+	else if(config.samples == 16) ret += 1;
 
-	if(config.red == config.green == config.blue == 8) ret += 20;
-	else if(config.red == config.green == config.blue == 16) ret += 5;
+	if(config.red == config.green && config.red == config.blue && config.red == 8) ret += 20;
+	if(config.red == config.green && config.red == config.blue && config.red == 16) ret += 5;
 	else if(config.red + config.green + config.blue == 16) ret += 2;
 
 	if(config.alpha == 8) ret += 12;
@@ -201,8 +188,6 @@ void GlSurface::apply() const
 //GlContext - static
 GlContext* GlContext::current(const GlSurface** currentSurface)
 {
-	auto ec = std::error_code(GlContextErrorCode::invalidConfig);
-
 	std::mutex* mutex;
 	auto& map = contextCurrentMap(mutex);
 

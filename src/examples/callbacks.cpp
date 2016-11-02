@@ -3,6 +3,7 @@
 
 #include <nytl/vecOps.hpp>
 #include <nytl/time.hpp>
+#include <nytl/utf.hpp>
 
 //This example shows how to handle certain events independent from any WindowContext.
 //Note that this does not work without any WindowContext but it unites all created WindowContext

@@ -28,10 +28,7 @@ void shellSurfaceHandleConfigure(void* data, wl_shell_surface*, uint32_t edges,
 	auto wc = static_cast<WaylandWindowContext*>(data);
     if(!wc) return;
 	
-	ConfigureEvent event(wc);
-	event.edge = waylandToEdge(edges);
-	event.size = nytl::Vec2ui(width, height);
-	wc->appContext().dispatch(std::move(event));
+	wc->configureEvent(nytl::Vec2ui(width, height), static_cast<WindowEdge>(edges));
 }
 
 void shellSurfaceHandlePopupDone(void* data, wl_shell_surface *shellSurface)
@@ -49,9 +46,9 @@ const wl_shell_surface_listener shellSurfaceListener =
 void surfaceHandleFrame(void* data, wl_callback* callback, uint32_t)
 {
     auto* wc = static_cast<WaylandWindowContext*>(data);
-	FrameEvent ev(wc);
-	ev.wlCallback = callback;
-    wc->appContext().dispatch(std::move(ev));
+	if(!wc) return;
+
+	wc->frameEvent();
 }
 const wl_callback_listener frameListener =
 {
@@ -123,13 +120,9 @@ void xdgSurfaceConfigure(void *data, struct xdg_surface *xdg_surface, int32_t wi
 	int32_t height, struct wl_array *states, uint32_t serial)
 {
     auto* wc = static_cast<WaylandWindowContext*>(data);
-	auto* eh = wc->eventHandler();
-    if(!eh) return;
+    if(!wc) return;
 
-	SizeEvent event(eh, new WaylandEventData(serial));
-	event.size = Vec2ui(width, height);
-  
-	wc->appContext().dispatch(std::move(event));
+	wc->configureEvent(nytl::Vec2ui(width, height), static_cast<WindowEdge>(0u));
 }
 
 void xdgSurfaceClose(void *data, struct xdg_surface *xdg_surface)

@@ -33,7 +33,7 @@ namespace detail
 #else
 	void* dlopen(const char* name, std::error_code* error)
 	{
-		return ::dlopen(name);
+		return ::dlopen(name, 0);
 	}
 
 	void dlclose(void* handle)

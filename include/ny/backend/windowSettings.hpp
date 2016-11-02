@@ -82,24 +82,6 @@ NYTL_FLAG_OPS(WindowCapability)
 //	//...
 // };
 
-///Defines all possible native widgets that may be implemented on the specific backends.
-///Note that none of them are guaranteed to exist, some backends to not have native widgets
-///at all (linux backends).
-enum class NativeWidgetType : unsigned int
-{
-	none = 0,
-
-	button,
-	textfield,
-	text,
-	checkbox,
-	menuBar,
-	toolbar,
-	progressbar,
-	dialog,
-	dropdown
-};
-
 ///Typesafe enum for the current state of a toplevel window.
 enum class ToplevelState : unsigned int
 {
@@ -109,33 +91,6 @@ enum class ToplevelState : unsigned int
 	fullscreen,
 	normal
 };
-
-///Result from a dialog.
-enum class DialogResult : unsigned int
-{
-	none, ///not finished yet
-	ok, ///Dialog finished as expected
-	cancel ///Dialog was canceled
-};
-
-//NOTE: at the moment, there is no documentation or support for custom in any way.
-///Type of a natvie dialog.
-enum class DialogType : unsigned int
-{
-	none = 0, ///Default, no dialog type
-	color, ///return: [nytl::Vec4u8], settings: [ColorDialogSettings]
-	path, ///return: [c++17 ? std::path : std::string], settings[PathDialogSettings]
-	custom ///custom, backend-specific (should only be used if you know what you are doing)
-};
-
-struct PathDialogSettings
-{
-	bool allowAll;
-	DataTypes allowedTypes;
-};
-
-struct ColorDialogSettings {};
-
 
 ///Enum that represents the context types that can be created for a window.
 enum class ContextType : unsigned int
@@ -163,6 +118,8 @@ struct GlSurfaceSettings
 struct VulkanSurfaceSettings
 {
 	///The vulkan instance which should be used to create the surface.
+	///Note that this instance must have the needed extensions enabled, those can be
+	///queried using ny::AppContext::vulkanExtensions
 	VkInstance instance {};
 
 	///A pointer to a VulkanSurfaceContext in which a pointer to the used context and the
@@ -184,13 +141,6 @@ public:
 	std::string title = "Some Random Window Title"; ///< The title of the window
 	bool show = true; ///< Show the window direclty after initialization?
 	Cursor cursor; ///< Default cursor for the whole window
-	NativeWidgetType nativeWidgetType = NativeWidgetType::none;
-
-	DialogType dialogType = DialogType::none; ///< Should the window be a native dialog?
-
-	///May hold an object to specify the settings of the native dialog.
-	///The object any holds must match the settings type specified in the DialogType enum.
-	std::any dialogSettings;
 
 	///Can be used to specify if and which context should be created for the window.
 	///Specifies which union member is active.
@@ -202,7 +152,7 @@ public:
 	};
 
 public:
-	//Needed because of the union...
+	//Constructor Needed because of the union.
 	//Destructor is virtual to allow backends to dynamic_cast the Settings to detect
 	//their own derivates
 	WindowSettings() : vulkan() {}

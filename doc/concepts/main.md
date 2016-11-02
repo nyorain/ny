@@ -1,4 +1,4 @@
-Editors notes:
+Editor notes:
  - This text is really unstructured and maybe only makes sense when read entirely.
  - TODO: restructure it.
 
@@ -8,11 +8,17 @@ The goal
 The goal of ny is to offer a modern, independent and lightweight toolkit for all windowing uses.
 It aims for gaming/cad/general-hardware-accelerated applications as well as normal ui applications.
 This is achieved by offering integration with drawing capabilities while keeping the connection
-as small as possible. Ny can be compiled without any drawing toolkits at all.
+as small as possible. It can be compiled without any drawing toolkits (or other bloated 
+dependencies) at all.
+The only things it needs are basically the needed underlaying backend libraries, a bunch
+modern C++ template headers that are downloaded automatically during building (cmake + git)
+and xkbcommon on linux backends (could theoretically be replaced, but using it is really sane
+since it is a good, efficient, lightweight and independent library).
 
 The goal is not:
 	- fully integrated drawing library
 	- complex ui/widget library
+	- gaming-only windowing system
 
 Model of operation - Threads
 ============================
@@ -95,6 +101,105 @@ and therefore one could not have one executable for all backends.
 The cost of using runtime polymorphism is that high that one could use this as reason for not
 supporting multiple backends in one executable (at least for ny, most other toolkits that use
 compile-time switches have good reason to do so).
+
+Custom Decoration
+=================
+
+Custom deocration refers to things like titlebar with close/maximize/minimize buttons, title
+and additional button, borders or shadows drawn as part of the window.
+Backends have some default setting for custom decoration (on/off), on common backends like
+x11 or win32 they will be set to off since usually the window manager takes care of
+decoration. On wayland (where client side decorations are common) they will be enabled
+by default. The application can query whether it is expected to draw custom decoration for
+the window using WindowContext::customDecorated.
+Backends that have no server-side decoration, but where the user does usually not expect
+decorations at all (like android or drm display) should return false.
+
+If the application does explicitly wish for custom decorations and WindowContext::customDecorated
+returns false, it can try to enable it (which should work on most backends), i.e. ask the
+backend to not draw its own decorations around the window.
+Notice that doing so does only make sense wihtin reason, since some users would like to
+have an uniform look across all applications on their desktop. The best way to go
+is probably making it possible for the user to toggle custom decorations or to just
+go with default decorations.
+
+Asking the backend for client side decorations (or for server side decorations if they are
+off by default) can be done using the WindowContext::{add/remove}WindowHints functions.
+Note that the result queried by ny::WindowContext::customDecorated might be wrong in 
+some cases (e.g. it cannot be correctly detected on an x11 backend - one only asks the server
+to not decorate it, if they do so is not known) so this result should be used as sane
+default while giving the user the possiblity to explicitly enable/disable client decorations
+no matter what ny reports.
+Example code:
+
+```
+bool customDecorated; //will hold if we should draw decorations in the end
+if(windowContext.customDecorated())
+{
+	//the application should decorate the window by default
+	customDecorated = true;
+
+	//check if the user wishes for server side decorations
+	if(!settings.customDecorations)
+	{
+		//ask the WindowContext/backend/server for server side decorations
+		//Note that this case is usually rare and will most likely fail in practice
+		//since if WindowContext::customDecorated() returns true, there
+		//are most likely simply no server side decorations like e.g. for
+		//most wayland compositors
+		windowContext.removeWindowHints(ny::WindowHint::customDecorated);
+		if(settings.customDecorated())
+		{
+			customDecorated = true;
+			ny::log("Requested server side decorations are not supported by the backend");
+		}
+		else
+		{
+			//The application does not have to draw any decorations.
+			customDecorated = false;
+		}
+	}
+}
+else
+{
+	//the application should not decorate the window by default
+	customDecorated = false;
+
+	//check if the user wishes for client side decorations
+	if(settings.customDecorations)
+	{
+		//ask the WindowContext/backend/server to not draw any decorations
+		//This may be done by many usual applications if they have some smart
+		//custom decoration design ideas to improve the ui.
+		//Note that forcing your own decorations onto the user - no matter how
+		//nice they actually look - is never a good choice.
+		//Like we do above, applications should always leave the choice to the user.
+		windowContext.addWindowHints(ny::WindowHint::customDecorated);
+		if(settings.customDecorated())
+		{
+			//The window is now customDecorated - decorate it!
+			customDecorated = true;
+		}
+		else
+		{
+			customDecorated = false;
+			ny::log("Requested client side decorations are not supported by the backend");
+		}
+	}
+}
+
+//If the user did explicitly set settings.customDecorations, the application should only
+//repect this value and not the final value reported by ny (which is now stored in
+//the variable <customDecorated>). So it might make sense to simply override
+//<customDecorated> with the user preferece, as explained above.
+```
+
+Good applications should check WindowContext::customDecorated as default since on backends like
+Wayland, the application might really look poor to begin with without custom decorations.
+Note that in future there might be additional ways for wayland to query whether the user/server
+wants client side decorations (since e.g. KDE users might not expect them) so on should
+always only use the value returned from WindowContext::customDecorated and only do so
+for the WindowContext it was called for.
 
 About graphics, visuals and pixel formats
 =========================================

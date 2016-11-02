@@ -122,7 +122,6 @@ void WaylandDataOffer::destroy()
 	for(auto& r : requests_)
 	{
 		r.second.callback({}, *this, r.first);
-		r.second.connection.destroy();
 	}
 
 	if(wlDataOffer_)
@@ -132,7 +131,7 @@ void WaylandDataOffer::destroy()
 	}
 }
 
-nytl::CbConn WaylandDataOffer::data(unsigned int fmt, const DataOffer::DataFunction& func)
+nytl::Connection WaylandDataOffer::data(unsigned int fmt, const DataOffer::DataFunction& func)
 {
 	auto mimeType = formatToMimeType(fmt);
 	if(!mimeType)
@@ -183,9 +182,7 @@ nytl::CbConn WaylandDataOffer::data(unsigned int fmt, const DataOffer::DataFunct
 			else any = buffer;
 
 			self->requests_[fmt].callback(any, *self, fmt);
-			self->requests_[fmt].callback.clear();
-			self->requests_[fmt].connection.destroy();
-			self->requests_[fmt].buffer.clear();
+			self->requests_.erase(self->requests_.find(fmt));
 			close(fd);
 		};
 		

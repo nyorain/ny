@@ -78,7 +78,7 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 	{
 		ny::debug("offer event received");
 		offer = std::move(reinterpret_cast<const ny::DataOfferEvent&>(ev).offer);
-		nytl::CbConn id = offer->data(ny::dataType::text,
+		offer->data(ny::dataType::text,
 			[] (const std::any& text, const ny::DataOffer&, int) {
 				if(!text.has_value())
 				{

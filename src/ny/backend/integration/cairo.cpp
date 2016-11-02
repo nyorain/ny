@@ -9,19 +9,15 @@ using CairoIntegrateFunc = std::function<std::unique_ptr<CairoIntegration>(Windo
 unsigned int registerCairoIntegrateFunc(const CairoIntegrateFunc& func);
 
 //CairoSurfaceGuard
-CairoSurfaceGuard::CairoSurfaceGuard(CairoIntegration& integration)
-	: surface_(&integration.init()), integration_(&integration)
+CairoSurfaceGuard::CairoSurfaceGuard(CairoIntegration& integration, 
+	cairo_surface_t& surf, nytl::Vec2ui size)
+	:  integration_(&integration), surface_(&surf), size_(size)
 {
 }
 
 CairoSurfaceGuard::~CairoSurfaceGuard()
 {
 	if(integration_) integration_->apply(*surface_);
-}
-
-cairo_surface_t& CairoSurfaceGuard::surface() const
-{
-	return *surface_;
 }
 
 //Cairo integration mechanism

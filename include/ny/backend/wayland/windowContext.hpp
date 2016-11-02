@@ -60,7 +60,7 @@ public:
     void position(const nytl::Vec2i& position) override;
 
     void cursor(const Cursor& c) override;
-	NativeWindowHandle nativeHandle() const override;
+	NativeHandle nativeHandle() const override;
 
 	WindowCapabilities capabilities() const override;
 
@@ -80,8 +80,9 @@ public:
 	void addWindowHints(WindowHints hints) override;
 	void removeWindowHints(WindowHints hints) override;
 
-	//
-	bool handleEvent(const Event& event) override;
+	//callbacks - may be override by derived implementations
+	virtual void configureEvent(nytl::Vec2ui size, WindowEdges);
+	virtual void frameEvent();
 
     //wayland specific functions
     wl_surface& wlSurface() const { return *wlSurface_; };
@@ -122,11 +123,10 @@ public:
 	wl_display& wlDisplay() const;
 
 protected:
-    //util functions
-    void createShellSurface();
-    void createXDGSurface();
-    void createXDGPopup();
-    void createSubsurface(wl_surface& parent);
+    void createShellSurface(const WaylandWindowSettings& ws);
+    void createXDGSurface(const WaylandWindowSettings& ws);
+    void createXDGPopup(const WaylandWindowSettings& ws);
+    void createSubsurface(wl_surface& parent, const WaylandWindowSettings& ws);
 
 protected:
 	WaylandAppContext* appContext_ {};
@@ -139,7 +139,7 @@ protected:
 
 	//stores if the window has a pending refresh request, i.e. if it should refresh
 	//as soon as possible
-	//flag will be set by refresh() and trigger a DrawEvent when the frameCallback is called
+	//flag will be set by refresh() and trigger a DrawEvent when frameEvent is called
     bool refreshFlag_ = false;
 
     //stores which kinds of surface this context holds

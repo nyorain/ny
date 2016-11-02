@@ -131,6 +131,7 @@ ShmBuffer::ShmBuffer(ShmBuffer&& other)
 	appContext_ = other.appContext_;
 	shmSize_ = other.shmSize_;
 	size_ = other.size_;
+	stride_ = other.stride_;
 	buffer_ = other.buffer_;
 	pool_ = other.pool_;
 	data_ = other.data_;
@@ -156,6 +157,7 @@ ShmBuffer& ShmBuffer::operator=(ShmBuffer&& other)
 	appContext_ = other.appContext_;
 	shmSize_ = other.shmSize_;
 	size_ = other.size_;
+	stride_ = other.stride_;
 	buffer_ = other.buffer_;
 	pool_ = other.pool_;
 	data_ = other.data_;
@@ -179,6 +181,8 @@ ShmBuffer& ShmBuffer::operator=(ShmBuffer&& other)
 void ShmBuffer::create()
 {
 	destroy();
+	if(!size_.x || !size_.y) throw std::runtime_error("ny::wayland::ShmBuffer invalid size");
+	if(!stride_) throw std::runtime_error("ny::wayland::ShmBuffer invalid stride");
 
     auto* shm = appContext_->wlShm();
     if(!shm) throw std::runtime_error("ny::wayland::ShmBuffer: wlAC has no wl_shm");
@@ -222,6 +226,9 @@ bool ShmBuffer::size(const Vec2ui& size, unsigned int stride)
 
 	if(!stride_) stride_ = size.x * 4;
     unsigned int vecSize = stride_ * size_.y;
+
+	if(!size_.x || !size_.y) throw std::runtime_error("ny::wayland::ShmBuffer invalid size");
+	if(!stride_) throw std::runtime_error("ny::wayland::ShmBuffer invalid stride");
 
     if(vecSize > shmSize_)
     {

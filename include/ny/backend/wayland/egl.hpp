@@ -12,45 +12,25 @@ struct wl_egl_window;
 namespace ny
 {
 
-//TODO: support for multiple configs, impl config querying
-///RAII wrapper around EGLDisplay and EglContextGuard.
-class WaylandEglDisplay
-{
-public:
-    WaylandEglDisplay(WaylandAppContext&);
-    ~WaylandEglDisplay();
-
-	EGLDisplay eglDisplay() const { return eglDisplay_; }
-	EGLContext eglContext() const { return eglContext_; }
-	EGLConfig eglConfig() const { return eglConfig_; }
-
-protected:
-	EGLDisplay eglDisplay_;
-	EGLContext eglContext_;
-	EGLConfig eglConfig_;
-};
-
-
 ///Egl WindowContext implementation for wayland.
 class WaylandEglWindowContext: public WaylandWindowContext
 {
 public:
-    WaylandEglWindowContext(WaylandAppContext&, const WaylandWindowSettings&);
+    WaylandEglWindowContext(WaylandAppContext&, const EglSetup&, const WaylandWindowSettings&);
     virtual ~WaylandEglWindowContext();
 
 	void size(const Vec2ui& newSize) override;
 	bool surface(Surface& surface) override;
 	bool drawIntegration(WaylandDrawIntegration*) override { return false; }
 
-    wl_egl_window& wlEglWindow() const { return *wlEglWindow_; };
-	EGLSurface eglSurface() const { return eglSurface_; }
+	void configureEvent(nytl::Vec2ui size, WindowEdges) override;
 
-	EglContext& context() const { return *context_; }
+    wl_egl_window& wlEglWindow() const { return *wlEglWindow_; };
+	EglSurface& surface() const { return *surface_; }
 
 protected:
     wl_egl_window* wlEglWindow_ {};
-	EGLSurface eglSurface_ {};
-	std::unique_ptr<EglContext> context_; //actually holds WaylandEglContext defined in src
+	std::unique_ptr<EglSurface> surface_;
 };
 
 }

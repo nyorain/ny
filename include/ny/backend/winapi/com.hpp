@@ -206,7 +206,7 @@ public:
 	DataOfferImpl(IDataObject& object);
 
 	DataTypes types() const override { return types_; }
-	nytl::CbConn data(unsigned int fmt, const DataFunction& func) override;
+	nytl::Connection data(unsigned int fmt, const DataFunction& func) override;
 
 protected:
 	DataTypes types_;

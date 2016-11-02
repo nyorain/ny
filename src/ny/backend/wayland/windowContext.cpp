@@ -32,11 +32,15 @@ WaylandWindowContext::WaylandWindowContext(WaylandAppContext& ac,
 	if(settings.parent.pointer())
 	{
 		auto& parent = *reinterpret_cast<wl_surface*>(settings.parent.pointer());
-		createSubsurface(parent);
+		createSubsurface(parent, settings);
+	}
+	else if(ac.xdgShell())
+	{
+		createXDGSurface(settings);
 	}
 	else
 	{
-		createShellSurface();
+		createShellSurface(settings);
 	}
 
 	size_ = settings.size;
@@ -57,7 +61,7 @@ WaylandWindowContext::~WaylandWindowContext()
     if(wlSurface_) wl_surface_destroy(wlSurface_);
 }
 
-void WaylandWindowContext::createShellSurface()
+void WaylandWindowContext::createShellSurface(const WaylandWindowSettings& ws)
 {
     if(!appContext_->wlShell()) throw std::runtime_error("WaylandWC: No wl_shell available");
 
@@ -70,9 +74,12 @@ void WaylandWindowContext::createShellSurface()
     wl_shell_surface_set_user_data(wlShellSurface_, this);
 
     wl_shell_surface_add_listener(wlShellSurface_, &wayland::shellSurfaceListener, this);
+
+	wl_shell_surface_set_title(wlShellSurface_, ws.title.c_str());
+	//TODO: class (AppContextSettings)
 }
 
-void WaylandWindowContext::createXDGSurface()
+void WaylandWindowContext::createXDGSurface(const WaylandWindowSettings& ws)
 {
     if(!appContext_->xdgShell()) throw std::runtime_error("WaylandWC: no xdg_shell available");
 
@@ -84,9 +91,12 @@ void WaylandWindowContext::createXDGSurface()
 	xdg_surface_set_window_geometry(xdgSurface_, 0, 0, size_.x, size_.y);
     xdg_surface_set_user_data(xdgSurface_, this);
     xdg_surface_add_listener(xdgSurface_, &wayland::xdgSurfaceListener, this);
+
+	xdg_surface_set_title(xdgSurface_, ws.title.c_str());
+	//TODO: app id (AppContextSettings)
 }
 
-void WaylandWindowContext::createSubsurface(wl_surface& parent)
+void WaylandWindowContext::createSubsurface(wl_surface& parent, const WaylandWindowSettings&)
 {
 	auto subcomp = appContext_->wlSubcompositor();
     if(!subcomp) throw std::runtime_error("WaylandWC: no wl_subcompositor");
@@ -145,7 +155,7 @@ void WaylandWindowContext::position(const Vec2i& position)
     }
 	else
 	{
-		warning("WaylandWC::position: wayland does not support custom positionts");
+		warning("ny::WlWC::position: wayland does not support custom positions");
 	}
 }
 
@@ -215,6 +225,8 @@ void WaylandWindowContext::cursor(const Cursor& cursor)
 
 void WaylandWindowContext::droppable(const DataTypes&)
 {
+	//TODO
+	//currently all windows are droppabe, store it here and check it in wayland/data.cpp
 }
 
 void WaylandWindowContext::minSize(const Vec2ui&)
@@ -226,7 +238,7 @@ void WaylandWindowContext::maxSize(const Vec2ui&)
 	warning("WaylandWC::maxSize: wayland has no capability for size limits");
 }
 
-NativeWindowHandle WaylandWindowContext::nativeHandle() const
+NativeHandle WaylandWindowContext::nativeHandle() const
 {
 	return {wlSurface_};
 }
@@ -241,65 +253,50 @@ WindowCapabilities WaylandWindowContext::capabilities() const
 		WindowCapability::maximize;
 }
 
-bool WaylandWindowContext::handleEvent(const Event& event)
+void WaylandWindowContext::configureEvent(nytl::Vec2ui size, WindowEdges)
 {
-    if(event.type() == eventType::wayland::frame)
-    {
-        if(frameCallback_)
-        {
-            wl_callback_destroy(frameCallback_);
-            frameCallback_ = nullptr;
-        }
+	size_ = size;
+	if(drawIntegration_) drawIntegration_->resize(size_);
 
-        if(refreshFlag_)
-        {
-            refreshFlag_ = 0;
-			if(eventHandler()) appContext_->dispatch(DrawEvent(eventHandler()));
-        }
-    }
-	else if(event.type() == eventType::size)
+	if(!eventHandler()) return;
+	
+	auto sizeEvent = SizeEvent(eventHandler());
+	sizeEvent.size = size_;
+	appContext().dispatch(std::move(sizeEvent));
+
+	refresh();
+}
+
+void WaylandWindowContext::frameEvent()
+{
+	if(frameCallback_)
 	{
-		auto& ev = static_cast<const SizeEvent&>(event);
-		size_ = ev.size;
-
-		if(drawIntegration_) drawIntegration_->resize(ev.size);
+		wl_callback_destroy(frameCallback_);
+		frameCallback_ = nullptr;
 	}
-	// else if(event.type() == eventType::mouseCross)
-	// {
-	// 	auto& ev = static_cast<const MouseCrossEvent&>(event);
-	// 	if(!ev.entered) return false;
-	//
-	// 	auto data = dynamic_cast<WaylandEventData*>(event.data.get());
-	// 	if(!cursorSurface_ || !appContext().wlPointer() || !data) return false;
-	// 	
-	// 	wl_pointer_set_cursor(appContext().wlPointer(), data->serial, cursorSurface_, 
-	// 		cursorHotspot_.x, cursorHotspot_.y);
-	//
-	// 	wl_surface_attach(cursorSurface_, cursorBuffer_, 0, 0);
-	// 	wl_surface_damage(cursorSurface_, 0, 0, cursorSize_.x, cursorSize_.y);
-	// 	wl_surface_commit(cursorSurface_);
-	// }
 
-	return false;
+	if(refreshFlag_)
+	{
+		refreshFlag_ = 0;
+		if(eventHandler()) appContext_->dispatch(DrawEvent(eventHandler()));
+	}
 }
 
 void WaylandWindowContext::maximize()
 {
     if(wlShellSurface()) wl_shell_surface_set_maximized(wlShellSurface_, nullptr);
+	else if(xdgSurface()) xdg_surface_set_maximized(xdgSurface());
 }
 
 void WaylandWindowContext::fullscreen()
 {
 	// TODO: output param?
     if(wlShellSurface()) 
-	{
-		wl_shell_surface_set_fullscreen(wlShellSurface_, 
+		wl_shell_surface_set_fullscreen(wlShellSurface(),
 			WL_SHELL_SURFACE_FULLSCREEN_METHOD_DEFAULT, 0, nullptr);
-	}
+
 	else if(xdgSurface())
-	{
-		xdg_surface_set_fullscreen(xdgSurface_, nullptr);
-	}
+		xdg_surface_set_fullscreen(xdgSurface(), nullptr);
 }
 
 void WaylandWindowContext::minimize()
@@ -315,6 +312,8 @@ void WaylandWindowContext::normalState()
 	else if(xdgSurface())
 	{
 		//TODO
+		xdg_surface_unset_fullscreen(xdgSurface());
+		xdg_surface_unset_maximized(xdgSurface());
 	}
 }
 void WaylandWindowContext::beginMove(const MouseButtonEvent* ev)
@@ -323,13 +322,9 @@ void WaylandWindowContext::beginMove(const MouseButtonEvent* ev)
     if(!data || !appContext_->wlSeat()) return;
 
 	if(wlShellSurface())
-	{
 		wl_shell_surface_move(wlShellSurface_, appContext_->wlSeat(), data->serial);
-	}
 	else if(xdgSurface())
-	{
 		xdg_surface_move(xdgSurface_, appContext_->wlSeat(), data->serial);
-	}
 }
 
 void WaylandWindowContext::beginResize(const MouseButtonEvent* ev, WindowEdges edge)

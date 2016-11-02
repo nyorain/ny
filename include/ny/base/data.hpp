@@ -127,7 +127,7 @@ public:
 	///empty any object.
 	///Note that on some backends this function might not return (running an internal event loop)
 	///until the data is retrieved.
-	virtual nytl::CbConn data(unsigned int fmt, const DataFunction& func) = 0;
+	virtual nytl::Connection data(unsigned int fmt, const DataFunction& func) = 0;
 };
 
 ///Event which will be sent when the application recieves data from another application.

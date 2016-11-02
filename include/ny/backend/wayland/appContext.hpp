@@ -12,9 +12,7 @@
 namespace ny
 {
 
-class WaylandEglDisplay;
-class WaylandDataDevice;
-class EglContext;
+class EglSetup;
 
 namespace wayland
 {
@@ -34,41 +32,47 @@ struct NamedGlobal
 ///Utility template
 ///TODO: does not belong here... rather some common util file
 template<typename T>
-class ConnectionList : public nytl::Connectable<nytl::CbIdType>
+class ConnectionList : public nytl::Connectable
 {
 public:
 	class Value : public T
 	{
 	public:
 		using T::T;
-		nytl::ConnectionDataPtr<unsigned int> clID_;
+		nytl::ConnectionID clID_;
 	};
 
 	std::vector<Value> items;
-	unsigned int highestID;
+	nytl::ConnectionID highestID;
 
 public:
-	void removeConnection(unsigned int id) override
+	bool disconnect(nytl::ConnectionID id) override
 	{
 		for(auto it = items.begin(); it != items.end(); ++it)
 		{
-			if(*it->clID_.get() == id)
+			if(it->clID_ == id)
 			{
 				items.erase(it);
-				return;
+				return true;
 			}
 		}
+
+		return false;
 	}
 
-	nytl::CbConn add(const T& value)
+	nytl::Connection add(const T& value)
 	{
 		items.emplace_back();
 		static_cast<T&>(items.back()) = value;
-		items.back().clID_ = std::make_shared<unsigned int>(nextID());
+		items.back().clID_ = nextID();
 		return {*this, items.back().clID_};
 	}
 
-	unsigned int nextID() { return ++highestID; }
+	nytl::ConnectionID nextID() 
+	{ 
+		++reinterpret_cast<std::uintptr_t&>(highestID);
+		return highestID;
+	}
 };
 
 ///Wayland AppContext implementation.
@@ -94,6 +98,7 @@ public:
 	bool startDragDrop(std::unique_ptr<DataSource>&& dataSource) override;
 
 	std::vector<const char*> vulkanExtensions() const override;
+	GlSetup* glSetup() const override;
 
 	//wayland specific
 	///Dispatched the given event as soon as possible. Needed by wayland callbacks.
@@ -119,13 +124,13 @@ public:
 
 	///Can be called to register custom listeners for fds that the dispatch loop will
 	///then poll for.
-	using FdCallback = nytl::CompFunc<void(nytl::CbConnRef, int fd, unsigned int events)>;
-	nytl::CallbackID fdCallback(int fd, unsigned int events, const FdCallback& func);
-
-	WaylandEglDisplay* waylandEglDisplay(); //nullptr if egl not available
+	using FdCallback = nytl::CompFunc<void(nytl::ConnectionRef, int fd, unsigned int events)>;
+	nytl::Connection fdCallback(int fd, unsigned int events, const FdCallback& func);
 
 	WaylandKeyboardContext& waylandKeyboardContext() const { return *keyboardContext_; }
 	WaylandMouseContext& waylandMouseContext() const { return *mouseContext_; }
+
+	EglSetup* eglSetup() const;
 
 	//functions called by wayland callbacks
 	void registryAdd(unsigned int id, const char* cinterface, unsigned int version);
@@ -175,11 +180,9 @@ protected:
 	//in the next dispatch loop iteration/dispatchEvents call.
 	std::vector<std::unique_ptr<Event>> pendingEvents_;
 
-	//only used when built with gl and a gl window is created
-	//note that their existence is not conditional to not change the abi here only depending
-	//on the build config
-	bool eglFailed_ = false; //if init failed once this will set to true (and not tried again)
-	std::unique_ptr<WaylandEglDisplay> waylandEglDisplay_;
+	//if init failed once, will be set to true (and not tried again)
+	//mutable since is only some kind of "cache" and will be changed from [e]glSetup() const
+	mutable bool eglFailed_ = false; 
 
 	struct ListenerEntry
 	{
@@ -189,14 +192,9 @@ protected:
 	};
 
 	ConnectionList<ListenerEntry> fdCallbacks_;
-	// std::nytl::Callback<void(int fd, unsigned int events)> fdListeners_;
 
-	//data transfer
-	// wl_surface* dataSourceSurface_ = nullptr;
-	// wl_surface* dataIconSurface_ = nullptr;
-	// wayland::ShmBuffer* dataIconBuffer_ = nullptr;
-	// const dataSource* dataSource_ = nullptr;
-	// wl_data_source* wlDataSource_ = nullptr;
+	struct Impl;
+	std::unique_ptr<Impl> impl_;
 };
 
 }

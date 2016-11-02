@@ -47,9 +47,9 @@ namespace ny
 	class WaylandKeyboardContext;
 	class WaylandMouseContext;
 	class WaylandWindowSettings;
+	class WaylandDataDevice;
 
 #ifdef NY_WithEGL
-	class WaylandEglDisplay;
 	class WaylandEglWindowContext;
 #endif //WithEGL
 

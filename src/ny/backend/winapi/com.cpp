@@ -73,7 +73,7 @@ DataOfferImpl::DataOfferImpl(IDataObject& object) : data_(object)
 	enumerator->Release();
 }
 
-CbConn DataOfferImpl::data(unsigned int format, const DataFunction& func)
+nytl::Connection DataOfferImpl::data(unsigned int format, const DataFunction& func)
 {
 	HRESULT res = 0;
 	STGMEDIUM med {};

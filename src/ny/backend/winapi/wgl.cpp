@@ -18,12 +18,7 @@ namespace
 {
 
 thread_local WglSetup* gWglSetup;
-void* wglLoadFunc(const char* name)
-{
-	auto ret = reinterpret_cast<void*>(wglGetProcAddress(name));
-	if(!ret && gWglSetup) ret = gWglSetup->glLibrary().symbol(name);
-	return ret;
-}
+void* wglLoadFunc(const char* name) { return gWglSetup->procAddr(name); }
 
 }
 
@@ -300,7 +295,8 @@ WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 	if(settings.version.api != GlApi::gl)
 		throw GlContextError(GlContextErrorCode::invalidApi, "ny::WglContext");
 
-	if((settings.version.minor != 0 && settings.version.major == 0) || settings.version.major > 4)
+	if((settings.version.minor != 0 && settings.version.major == 0) || 
+		settings.version.major > 4 || settings.version.minor > 5)
 		throw GlContextError(GlContextErrorCode::invalidVersion, "ny::WglContext");
 
 	//we create our own dummyDC that is compatibly to the default dummy dc
@@ -329,7 +325,7 @@ WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 		if(!shareCtx || shareCtx->config().id != config_.id)
 			throw GlContextError(GlEC::invalidSharedContext, "ny::WglContext");
 
-		share = static_cast<HGLRC>(shareCtx->nativeHandle().pointer());
+		share = shareCtx->wglContext();
 	}
 
 	::SetLastError(0);
@@ -354,7 +350,7 @@ WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 		}
 
 		auto flags = 0;
-		if(settings.forwardCompatible) flags |= WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
+		if(settings.forwardCompatible) flags |= WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB;
 		if(settings.debug) flags |= WGL_CONTEXT_DEBUG_BIT_ARB;
 
 		if(flags)
@@ -367,37 +363,38 @@ WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 		attributes.push_back(0);
 
 		wglContext_ = ::wglCreateContextAttribsARB(dummyDC, share, attributes.data());
-		if(!wglContext_)
+		if(!wglContext_ && ::GetLastError() == ERROR_INVALID_VERSION_ARB && !settings.forceVersion)
 		{
-			if(::GetLastError() == ERROR_INVALID_VERSION_ARB && !settings.forceVersion)
+			//try version pairs
+			constexpr unsigned int versionPairs[][2] = {
+				{4, 5}, {3, 3}, {3, 2}, {3, 1}, {3, 0}, {1, 2}, {1, 1}, {1, 0}
+			};
+
+			for(const auto& p : versionPairs)
 			{
-				//try version pairs
-				constexpr unsigned int versionPairs[][2] = {
-					{4, 5}, {3, 3}, {3, 2}, {3, 1}, {3, 0}, {1, 2}, {1, 1}, {1, 0}
-				};
+				attributes[1] = p[0];
+				attributes[3] = p[1];
 
-				for(const auto& p : versionPairs)
-				{
-					attributes[1] = p[0];
-					attributes[3] = p[1];
-
-					wglContext_ = ::wglCreateContextAttribsARB(dummyDC, share, attributes.data());
-					if(!wglContext_ && ::GetLastError() == ERROR_INVALID_VERSION_ARB) continue;
-					break;
-				}
-
-				//try legacy version
-				wglContext_ = ::wglCreateContext(dummyDC);
-				if(share && !::wglShareLists(share, wglContext_))
-				{
-					::wglDeleteContext(wglContext_);
-					throw winapi::EC::exception("ny::WglContext: wglShareLists");
-				}
+				wglContext_ = ::wglCreateContextAttribsARB(dummyDC, share, attributes.data());
+				if(!wglContext_ && ::GetLastError() == ERROR_INVALID_VERSION_ARB) continue;
+				break;
 			}
-
-			if(!wglContext_) throw winapi::EC::exception("ny::WglContext: failed to create context");
 		}
 	}
+
+	if(!wglContext_ && !settings.forceVersion)
+	{
+		//try legacy version
+		wglContext_ = ::wglCreateContext(dummyDC);
+		if(share && !::wglShareLists(share, wglContext_))
+		{
+			::wglDeleteContext(wglContext_);
+			throw winapi::EC::exception("ny::WglContext: wglShareLists");
+		}
+	}
+
+	if(!wglContext_) 
+		throw winapi::EC::exception("ny::WglContext: failed to create context");
 
 	GlContext::initContext(settings.version.api, config_, settings.share);
 }
@@ -406,7 +403,10 @@ WglContext::~WglContext()
 {
 	if(wglContext_)
 	{
-		makeNotCurrent();
+		std::error_code ec;
+		if(!makeNotCurrent(ec))
+			warning("ny::~WglContext: failed to make the context not current: ", ec.message());
+
 		::wglDeleteContext(wglContext_);
 	}
 }
@@ -461,6 +461,14 @@ bool WglContext::swapInterval(int interval, std::error_code& ec) const
 	}
 
 	return true;
+}
+
+bool WglContext::compatible(const GlSurface& surface) const
+{
+	if(!GlContext::compatible(surface)) return false;
+
+	auto wglSurface = dynamic_cast<const WglSurface*>(&surface);
+	return (wglSurface);
 }
 
 

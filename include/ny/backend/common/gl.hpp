@@ -6,6 +6,7 @@
 #include <nytl/nonCopyable.hpp>
 #include <nytl/stringParam.hpp>
 #include <nytl/rect.hpp>
+#include <nytl/flags.hpp>
 
 #include <string>
 #include <vector>
@@ -15,8 +16,10 @@
 namespace ny
 {
 
-enum class GlApi : unsigned int { gl, gles, }; ///Possible opengl apis a context can have
+///Possible opengl apis a context can have
+enum class GlApi : unsigned int { gl, gles, }; 
 
+///Opaque GlConfig id. Is used by backends as pointer or unsigned int.
 using GlConfigId = struct GlConfigIdType*;
 
 ///Represents a general gl or glsl version.
@@ -33,7 +36,7 @@ struct GlConfig
 {
 	unsigned int depth {};
 	unsigned int stencil {};
-	unsigned int multisample {};
+	unsigned int samples {};
 
 	unsigned int red {};
 	unsigned int green {};
@@ -106,20 +109,14 @@ enum class GlContextErrorCode : unsigned int
 	extensionNotSupported //the extensions for the called function is not supported
 };
 
-///Returns a std::error_code for the given GlContextErrorCode.
-///Note that this also enables constructing std::error_code objects directly
-///only from a GlContextErrorCode value (which should be used over this).
-///Therefore the function has to use this naming.
-std::error_code make_error_code(GlContextErrorCode);
-
 ///Exception class thrown on general logic errors that can be expressed using a
 ///GlContext::ErrorCode.
 ///Is usually thrown for arguments or situations that result in some critical logic error.
 class GlContextError : public std::logic_error
 {
 public:
-	GlContextError(GlContextErrorCode error, const char* msg = nullptr);
-	GlContextError(std::error_code code, const char* msg = nullptr);
+	GlContextError(GlContextErrorCode, const char* msg = nullptr);
+	GlContextError(std::error_code, const char* msg = nullptr);
 
 	const std::error_code& code() const { return code_; }
 
@@ -177,7 +174,7 @@ public:
 	///Applies the pending contents of the surface, swaps buffers for multibuffered surfaces.
 	///\excpetion std::system_error If calling the native function fails.
 	virtual void apply() const;
-	virtual bool apply(std::error_code& ec) const = 0;
+	virtual bool apply(std::error_code&) const = 0;
 };
 
 ///Abstract base class for native gl context implementations. This class is implemented e.g.
@@ -206,7 +203,7 @@ public:
 	///\excpetion GlContextError If making the context current is logically not possible
 	///This can happen if it is already current in another thread or the surface is invalid.
 	///If the context is already current, no exception is thrown.
-	virtual void makeCurrent(const GlSurface& surface);
+	virtual void makeCurrent(const GlSurface&);
 
 	///Makes the context not current in the calling thread.
 	///Note that there is no way to make a context not current in another thread.
@@ -217,8 +214,8 @@ public:
 	//Those functions behave like their equivalents without error_code parameter, but they
 	//do not throw on error, but simply set the error code and return 0 on failure.
 	//Note that the error code might be set to a non-critical error when true is returned.
-	virtual bool makeCurrent(const GlSurface& surface, std::error_code& ec);
-	virtual bool makeNotCurrent(std::error_code& ec);
+	virtual bool makeCurrent(const GlSurface&, std::error_code&);
+	virtual bool makeNotCurrent(std::error_code&);
 
 	///Returns whether the context is current in the calling thread.
 	///If so and a non-null GlSurface** parameter was given, sets it to the associated surface.
@@ -243,7 +240,7 @@ public:
 	///or different implementations.
 	///Note that this does not check if context or surface are already current in some way
 	///and can therefore not be made current at the moment.
-	virtual bool compatible(const GlSurface&) const;
+	virtual bool compatible(const GlSurface&) const = 0;
 
 	///Can be used to determine whether special extensions that are available on multiple
 	///backends can be used. The extensions-specifc functions should only be called
@@ -256,12 +253,12 @@ public:
 	///\excpetion GlContextError If the extensions needed for this function is not available
 	///\excpetion std::system_error If calling the native function failed
 	virtual void swapInterval(int interval) const;
-	virtual bool swapInterval(int interval, std::error_code& ec) const;
+	virtual bool swapInterval(int interval, std::error_code&) const;
 
 protected:
-	virtual void initContext(GlApi api, const GlConfig& config, const GlContext* shared);
-	virtual bool makeCurrentImpl(const GlSurface& surface, std::error_code& ec) = 0;
-	virtual bool makeNotCurrentImpl(std::error_code& ec) = 0;
+	virtual void initContext(GlApi, const GlConfig&, const GlContext* shared);
+	virtual bool makeCurrentImpl(const GlSurface&, std::error_code&) = 0;
+	virtual bool makeNotCurrentImpl(std::error_code&) = 0;
 
 protected:
 	GlConfig config_;
@@ -290,8 +287,13 @@ GlConfigId& glConfigId(std::uintmax_t& number);
 const std::uintmax_t& glConfigNumber(const GlConfigId& id);
 const GlConfigId& glConfigId(const std::uintmax_t& number);
 
-}
+///Returns a std::error_code for the given GlContextErrorCode.
+///Note that this also enables constructing std::error_code objects directly
+///only from a GlContextErrorCode value (which should be used over this).
+///Therefore the function has to use this naming.
+std::error_code make_error_code(GlContextErrorCode);
 
+}
 
 namespace std
 {

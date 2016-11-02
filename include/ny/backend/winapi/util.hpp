@@ -1,6 +1,8 @@
 #pragma once
 
 #include <ny/include.hpp>
+#include <nytl/stringParam.hpp>
+
 #include <string>
 #include <system_error>
 
@@ -25,7 +27,7 @@ class WinapiErrorCategory : public std::error_category
 {
 public:
 	static WinapiErrorCategory& instance();
-	static std::system_error exception(const char* msg = nullptr);
+	static std::system_error exception(nytl::StringParam msg = "");
 
 public:
 	const char* name() const noexcept override { return "ny::WinapiErrorCategory"; }

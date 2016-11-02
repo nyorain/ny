@@ -56,7 +56,7 @@ std::string WinapiKeyboardContext::utf8(Keycode keycode, bool currentState) cons
 	if(currentState) ::GetKeyboardState(state);
 
 	wchar_t utf16[64];
-	auto bytes = ::ToUnicode(vkcode, MapVirtualKey(vkcode, MAPVK_VK_TO_VSC), state, utf16, 6, 0);
+	auto bytes = ::ToUnicode(vkcode, MapVirtualKey(vkcode, MAPVK_VK_TO_VSC), state, utf16, 64, 0);
 	if(bytes <= 0) return {};
 
 	utf16[bytes] = '\0';

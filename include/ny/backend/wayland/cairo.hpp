@@ -20,7 +20,7 @@ protected:
 	//CairoIntegration
 	///Will select/create an unused buffer and return a surface to draw into it.
 	///Does assure that the buffer/surface has the right size.
-	cairo_surface_t& init() override;
+	CairoSurfaceGuard get() override;
 
 	///Will apply the contents of the surface to the underlaying buffer, attach the buffer
 	///to the associated surface and commit it.

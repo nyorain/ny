@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ny/include.hpp>
+#include <nytl/vec.hpp>
 #include <memory>
 
 typedef struct _cairo_surface cairo_surface_t;
@@ -14,14 +15,16 @@ class CairoSurfaceGuard;
 class CairoSurfaceGuard
 {
 public:
-	CairoSurfaceGuard(CairoIntegration&);
+	CairoSurfaceGuard(CairoIntegration&, cairo_surface_t&, Vec2ui size);
 	~CairoSurfaceGuard();
 
-	cairo_surface_t& surface() const;
+	cairo_surface_t& surface() const { return *surface_; }
+	Vec2ui size() const { return size_; }
 
 protected:
-	cairo_surface_t* surface_;
 	CairoIntegration* integration_;
+	cairo_surface_t* surface_;
+	nytl::Vec2ui size_;
 };
 
 
@@ -31,13 +34,10 @@ class CairoIntegration
 public:
 	CairoIntegration() = default;
 	virtual ~CairoIntegration() = default;
-
-	CairoSurfaceGuard get() { return CairoSurfaceGuard(*this); }
+	virtual CairoSurfaceGuard get() = 0;
 
 protected:
-	virtual cairo_surface_t& init() = 0;
 	virtual void apply(cairo_surface_t& surf) = 0;
-
 	friend class CairoSurfaceGuard;
 };
 

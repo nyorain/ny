@@ -149,46 +149,14 @@ public:
 	///\sa WindowHints
 	virtual void removeWindowHints(WindowHints hints) = 0;
 
-	///Returns the capabilities this window has.
+	///Returns the capabilities this WindowContext has.
+	///This makes it possible for implementations like e.g. linux drm to
+	///at least signal the application somehow that it is barely able to implement any of
+	///the default window functions.
 	virtual WindowCapabilities capabilities() const = 0;
-
-	///If this window is a native dialog, a dialog context pointer is returned, nullptr otherwise.
-	virtual DialogContext* dialogContext() const { return nullptr; }
 
 protected:
 	EventHandler* eventHandler_ {nullptr};
 };
-
-///Interface for native dialogs.
-///Dialogs are temorary windows that can be used to collect data from the user.
-///Such data can be e.g. simply a result (like ok or abort) or a filepath, color or font.
-///At the moment windows (winapi) is the only platform/backend to have something like native
-///dialogs. Note that for creating a general dialog one would simply create a WindowContext
-///with the appropriate settings. This class is for a native Dialog that is implemented
-///by the platform to collect information from the user.
-class DialogContext
-{
-public:
-	///Returns the result of the dialog, or DialogResult::none if the dialog
-	///is not yet finished.
-	virtual DialogResult result() const = 0;
-
-	///Returns only once the dialog has finished and returns the result.
-	virtual DialogResult modal() = 0;
-
-	///Returns whether the dialog has already finished.
-	virtual bool finished() const = 0;
-
-	///Returns the data the dialog was dealing with. This usually be something like
-	///Color, filepath or other variable type.
-	///The stored type is determined by the DialogType value the Window context associated
-	///with this DialogContext was created with.
-	///If the dialog is not yet finished, an empty any object should be returned.
-	///There can also exist dialog contexts that do not have any data (e.g. messsage boxes)
-	///which should return an empty any object as well.
-	virtual std::any data() const = 0;
-};
-
-
 
 }

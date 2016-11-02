@@ -21,7 +21,7 @@ public:
 	WaylandDataOffer& operator=(WaylandDataOffer&& other) noexcept;
 
 	DataTypes types() const override { return dataTypes_; }
-	nytl::CbConn data(unsigned int fmt, const DataOffer::DataFunction& func) override;
+	nytl::Connection data(unsigned int fmt, const DataOffer::DataFunction& func) override;
 
 	wl_data_offer& wlDataOffer() const { return *wlDataOffer_; }
 	WaylandAppContext& appContext() const { return *appContext_; }
@@ -41,7 +41,7 @@ protected:
 	{
 		std::vector<std::uint8_t> buffer;
 		nytl::Callback<void(const std::any&, DataOffer&, unsigned int)> callback;
-		nytl::CbConnGuard connection;
+		nytl::ConnectionGuard connection;
 	};
 
 	std::map<unsigned int, PendingRequest> requests_;

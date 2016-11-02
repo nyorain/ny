@@ -258,7 +258,13 @@ bool WinapiAppContext::threadedDispatchLoop(EventDispatcher& dispatcher,
 		}
 		else
 		{
-			::TranslateMessage(&msg);
+			// if(::TranslateMessage(&msg))
+			// {
+			// 	MSG charMsg;
+			// 	if(::PeekMessage(&charMsg, 0, 0, 0, PM_REMOVE))
+			// 		::DispatchMessage(&charMsg);
+			// }
+
 			::DispatchMessage(&msg);
 		}
 
@@ -342,8 +348,23 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 	//to be returned
 	LRESULT result = 0;
 
+	static std::string last;
+
 	switch(message)
 	{
+		case WM_CHAR:
+		{
+			char16_t string[] = {static_cast<char16_t>(wparam), u'\0'};
+			last = nytl::toUtf8(std::u16string(string));
+			break;
+		}
+
+		case WM_DEADCHAR:
+		{
+			last = {};
+			break;
+		}
+
 		case WM_CREATE:
 		{
 			result = ::DefWindowProc(window, message, wparam, lparam);
@@ -574,6 +595,7 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 		{
 			auto keycode = winapiToKeycode(wparam);
 			auto utf8 = keyboardContext_.utf8(keycode, true);
+			// auto utf8 = last;
 			keyboardContext_.onKey(keyboardContext_, keycode, utf8, true);
 
 			if(handler)
@@ -592,6 +614,7 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 		{
 			auto keycode = winapiToKeycode(wparam);
 			auto utf8 = keyboardContext_.utf8(keycode, true);
+			// auto utf8 = last;
 			keyboardContext_.onKey(keyboardContext_, keycode, utf8, false);
 
 			if(handler)

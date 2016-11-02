@@ -13,16 +13,6 @@
 namespace ny
 {
 
-//wayland specific events
-namespace eventType
-{
-	namespace wayland
-	{
-		constexpr auto frame = 1001u;
-		constexpr auto configure = 1002u;
-	}
-}
-
 ///Used for e.g. move/resize requests where the serial of the trigger must be given
 class WaylandEventData : public ny::EventData
 {
@@ -35,25 +25,6 @@ public:
 //wayland
 namespace wayland
 {
-
-//events
-///This Event will be sent to a WaylandWindowContext if its frame callback was triggered.
-class FrameEvent : public EventBase<eventType::wayland::frame, FrameEvent>
-{
-public:
-	using EvBase::EvBase;
-	wl_callback* wlCallback;
-};
-
-///This Event will be sent to a WaylandWindowContext if it holds a surface with shell
-///(wayland or xdg) role that is configured. Holds new size and resized edge.
-class ConfigureEvent : public EventBase<eventType::wayland::configure, ConfigureEvent>
-{
-public:
-	using EvBase::EvBase;
-	ny::WindowEdge edge;
-	nytl::Vec2ui size;
-};
 
 //TODO: use one shared shm_pool (or maybe one per thread or sth.)
 ///Defines a wayland shm buffer that can be resized.

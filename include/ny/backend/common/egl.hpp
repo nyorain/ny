@@ -16,122 +16,86 @@ using EGLSurface = void*; //One surface needed per WindowContext
 namespace ny
 {
 
-///RAII wrapper around an EGLContext.
-class EglContextGuard : public nytl::NonCopyable
+///EGL GlSetup implementation
+class EglSetup : public GlSetup
 {
 public:
-	EglContextGuard() = default;
-	EglContextGuard(EGLDisplay, EGLConfig config, EGLContext shared, GlApi api = GlApi::gl);
-	~EglContextGuard();
-
-	EglContextGuard(EglContextGuard&& other) noexcept;
-	EglContextGuard& operator=(EglContextGuard&& other) noexcept;
-
-	EGLDisplay eglDisplay() const { return eglDisplay_; }
-	EGLContext eglContext() const { return eglContext_; }
-	EGLConfig eglConfig() const { return eglConfig_; }
-	GlApi glApi() const { return api_; }
-	bool shared() const { return shared_; }
-
-protected:
-	EGLDisplay eglDisplay_ {};
-	EGLContext eglContext_ {};
-	EGLConfig eglConfig_ {};
-	bool shared_ {};
-	GlApi api_;
-};
-
-//TODO: replace void* as display with some NativeHandle class
-//TODO: dont select config here (but in EglContextGuard).
-//TODO: better documentation (see winapi/wgl WglSetup)
-///Manages multiple egl contexts and the loading of egl extensions functions.
-class EglSetup : public nytl::NonCopyable
-{
-public:
-	EglSetup(void* natvieDisplay);
+	EglSetup() = default;
+	EglSetup(void* nativeDisplay);
 	~EglSetup();
 
-	///Creates a shared or unique context.
-	EGLContext createContext(bool& shared, bool unique = true);
+	EglSetup(EglSetup&& other) noexcept;
+	EglSetup& operator=(EglSetup&& other) noexcept;
 
-	///Returns a shared context that may also be used by other EglContext objects.
-	EGLContext getContext(bool& shared);
+	GlConfig defaultConfig() const override { return *defaultConfig_; }
+	std::vector<GlConfig> configs() const override { return configs_; }
 
+	std::unique_ptr<GlContext> createContext(const GlContextSettings& = {}) const override;
+	void* procAddr(nytl::StringParam name) const override;
+
+	///Returns the EGLConfig for the given GlConfigId.
+	///If the given id is invalid returns nullptr.
+	EGLConfig eglConfig(GlConfigId id) const;
 	EGLDisplay eglDisplay() const { return eglDisplay_; }
-	EGLConfig eglConfig() const { return eglConfig_; }
 
-	std::vector<EGLContext> sharedContexts() const;
-	EGLContext sharedContext() const;
-
-	void* procAddr(nytl::StringParam& name) const;
+	bool valid() const { return (eglDisplay_); }
 
 protected:
-	std::vector<EglContextGuard> shared_;
-	std::vector<EglContextGuard> unique_;
-	
-	Library eglLibrary_;
-
 	EGLDisplay eglDisplay_ {};
-	EGLConfig eglConfig_ {};
+
+	std::vector<GlConfig> configs_;
+	GlConfig* defaultConfig_ {};
+
+	//TODO:
+	Library glLibrary_;
+	Library glesLibrary_;
+	Library eglLibrary_;
 };
 
-///EglContext for a specific surface
-///Holds basically just an EGLContext, its EGLConfig and an EGLSurface.
-///Note that this class does not own the EGLContext it holds.
+///EGL GlSurface implementation
+class EglSurface : public GlSurface
+{
+public:
+	EglSurface(EGLDisplay, void* nativeWindow, GlConfigId, const EglSetup&);
+	EglSurface(EGLDisplay, void* nativeWindow, const GlConfig&, EGLConfig eglConfig);
+	virtual ~EglSurface();
+
+	NativeHandle nativeHandle() const override { return {eglSurface_}; }
+	GlConfig config() const override { return config_; }
+	bool apply(std::error_code&) const override;
+
+	EGLDisplay eglDisplay() const { return eglDisplay_; }
+	EGLSurface eglSurface() const { return eglSurface_; }
+
+protected:
+	EGLDisplay eglDisplay_ {};
+	EGLSurface eglSurface_ {};
+	GlConfig config_;
+};
+
+///EGL GlContext implementation
 class EglContext : public GlContext
 {
 public:
-	///Returns the message associated with a given egl error code.
-	static const char* errorMessage(int error);
-
-	///Outputs a warning with the last egl error if there was any.
-	static int eglErrorWarn();
-
-public:
-	EglContext(EGLDisplay, EGLContext, EGLConfig, GlApi = GlApi::gl, EGLSurface = nullptr);
+	EglContext(const EglSetup& setup, const GlContextSettings& = {});
 	virtual ~EglContext();
 
-	///Changes the surface associated with this context, i.e. the surface for which the context
-	///will be made current on a call to makeCurrent (makeCurrentImpl).
-	///Note that for this call to have an effect the context must be made current (if it
-	///already is current it must first be made not current).
-	///Calling this between making the context current for a different surface and calling
-	///apply() results in undefined behaviour.
-	void eglSurface(EGLSurface surface);
+	NativeHandle nativeHandle() const override { return {eglContext_}; }
+	bool compatible(const GlSurface&) const override;
+	GlContextExtensions contextExtensions() const override;
+	bool swapInterval(int interval, std::error_code&) const override;
 
-	std::vector<std::string> eglExtensions() const;
-	bool eglExtensionSupported(const std::string& name) const;
-
-	EGLDisplay eglDisplay() const { return eglDisplay_; }
+	EGLDisplay eglDisplay() const { return (setup_) ? setup_->eglDisplay() : nullptr; }
 	EGLContext eglContext() const { return eglContext_; }
-	EGLConfig eglConfig() const { return eglConfig_; }
-	EGLSurface eglSurface() const { return eglSurface_; }
-
-	bool apply(std::error_code& ec) override;
-	void* procAddr(nytl::StringParam name) const override;
-	void* nativeHandle() const override { return static_cast<void*>(eglContext_); }
+	EGLConfig eglConfig() const;
 
 protected:
-	bool makeCurrentImpl(std::error_code& ec) override;
-	bool makeNotCurrentImpl(std::error_code& ec) override;
+	bool makeCurrentImpl(const GlSurface&, std::error_code&) override;
+	bool makeNotCurrentImpl(std::error_code&) override;
 
 protected:
-	EGLDisplay eglDisplay_ {};
+	const EglSetup* setup_ {};
 	EGLContext eglContext_ {};
-	EGLConfig eglConfig_ {};
-	EGLSurface eglSurface_ {};
-};
-
-///EGL std::error_category
-class EglErrorCategory : public std::error_category
-{
-public:
-	static EglErrorCategory& instance();
-	static std::exception exception(nytl::StringParam msg = "");
-
-public:
-	const char* name() const noexcept override { return "ny::EglErrorCategory"; }
-	std::string message(int code) const override;
 };
 
 }

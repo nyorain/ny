@@ -251,7 +251,7 @@ WinapiErrorCategory& WinapiErrorCategory::instance()
 	return ret;
 }
 
-std::system_error WinapiErrorCategory::exception(const char* msg)
+std::system_error WinapiErrorCategory::exception(nytl::StringParam msg)
 {
 	if(!msg) msg = "ny::Winapi: an error without message occurred";
 	return std::system_error(std::error_code(::GetLastError(), instance()), msg);

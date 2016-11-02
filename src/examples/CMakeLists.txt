@@ -8,7 +8,7 @@ target_link_libraries(ny-intro ny-base ny-backend)
 
 #multithread
 add_executable(ny-multithread multithread.cpp)
-target_link_libraries(ny-multithread ny-base ny-backend)
+target_link_libraries(ny-multithread ny-base ny-backend pthread)
 
 #surface
 add_executable(ny-surface surface.cpp)
@@ -46,7 +46,7 @@ endif()
 find_package(Skia)
 if(Skia_FOUND)
 	add_executable(ny-skia skia.cpp)
-	target_link_libraries(ny-skia ny-base ny-backend ${Skia_LIBRARIES} fontconfig freetype)
+	target_link_libraries(ny-skia ny-base ny-backend ${Skia_LIBRARIES} fontconfig freetype pthread)
 	target_include_directories(ny-skia PUBLIC ${Skia_INCLUDE_DIRS})
 
 	# target_link_libraries(ny-skia ny-base ny-backend "/home/nyorain/.local/build/skia/out/gn-Debug/libskia.a"

@@ -45,7 +45,7 @@ WaylandCairoIntegration::~WaylandCairoIntegration()
 	buffers_.clear();
 }
 
-cairo_surface_t& WaylandCairoIntegration::init()
+CairoSurfaceGuard WaylandCairoIntegration::get()
 {
 	if(active_)
 		throw std::logic_error("WlCairoIntegration: there is already an active SurfaceGuard");
@@ -55,16 +55,17 @@ cairo_surface_t& WaylandCairoIntegration::init()
 	{
 		if(b.buffer.used()) continue;
 
-		if(!nytl::allEqual(b.buffer.size(), windowContext_.size()))
+		if(!nytl::allEqual(b.buffer.size(), size))
 		{
 			b.buffer.size(size);
-			buffers_.back().surface = cairo_image_surface_create_for_data(&b.buffer.data(),
+			cairo_surface_destroy(b.surface);
+			b.surface = cairo_image_surface_create_for_data(&b.buffer.data(),
 				CAIRO_FORMAT_ARGB32, size.x, size.y, size.x * 4);
 		}
 
 		active_ = &b;
 		b.buffer.use();
-		return *b.surface;
+		return {*this, *b.surface, size};
 	}
 
 	//create new buffer if none is unused
@@ -75,7 +76,7 @@ cairo_surface_t& WaylandCairoIntegration::init()
 
 	buffers_.back().buffer.use();
 	active_ = &buffers_.back();
-	return *buffers_.back().surface;
+	return {*this, *buffers_.back().surface, size};
 }
 
 void WaylandCairoIntegration::apply(cairo_surface_t&)
@@ -91,7 +92,8 @@ void WaylandCairoIntegration::resize(const nytl::Vec2ui& newSize)
 		if(!b.buffer.used() && !nytl::allEqual(b.buffer.size(), newSize))
 		{
 			b.buffer.size(windowContext_.size());
-			buffers_.back().surface = cairo_image_surface_create_for_data(&b.buffer.data(),
+			cairo_surface_destroy(b.surface);
+			b.surface = cairo_image_surface_create_for_data(&b.buffer.data(),
 				CAIRO_FORMAT_ARGB32, newSize.x, newSize.y, newSize.x * 4);
 		}
 	}

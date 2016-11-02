@@ -11,132 +11,40 @@
 namespace ny
 {
 
-//A small derivate of EglContext that holds a reference to the WindowContext it is current for.
+//A small derivate of EglSurface that holds a reference to the WindowContext it is associated with.
 //If the WindowContext is not shown, the EglContext does not swapBuffers on apply()
-//Could be done more beatiful with new constructor and protected wc member...
-class WaylandEglContext : public EglContext
+class WaylandEglSurface : public EglSurface
 {
 public:
-	using EglContext::EglContext;
+	using EglSurface::EglSurface;
 	WaylandWindowContext* waylandWC_;
 
 public:
-	bool apply() override
+	bool apply(std::error_code& ec) const override
 	{
 		if(!waylandWC_->shown()) return true;
-		return EglContext::apply();
+		return EglSurface::apply(ec);
 	}
 };
 
-//WaylandEglDisplay
-WaylandEglDisplay::WaylandEglDisplay(WaylandAppContext& ac)
-{
-	//init display
-	auto ndpy = reinterpret_cast<EGLNativeDisplayType>(&ac.wlDisplay());
-    eglDisplay_ = ::eglGetDisplay(ndpy);
-
-    if(eglDisplay_ == EGL_NO_DISPLAY)
-    {
-		auto msg = EglContext::errorMessage(eglGetError());
-        throw std::runtime_error("WaylandEGLDisplay: Can't create egl display: " + msg);
-    }
-
-	int major, minor;
-	if(eglInitialize(eglDisplay_, &major, &minor) != EGL_TRUE)
-	{
-		auto msg = EglContext::errorMessage(eglGetError());
-        throw std::runtime_error("WaylandEGLDisplay: Can't init egl display: " + msg);
-	}
-
-	log("ny::WaylandEglDisplay: EGL version: ", major, ".", minor);
-
-
-	//init context
-    EGLint renderable = EGL_OPENGL_BIT; //todo
-    EGLint attribs[] =
-    {
-        EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-        EGL_RED_SIZE, 8,
-        EGL_GREEN_SIZE, 8,
-        EGL_BLUE_SIZE, 8,
-        EGL_ALPHA_SIZE, 8,
-        EGL_RENDERABLE_TYPE, renderable,
-        EGL_NONE
-    };
-
-	int configSize;
-
-	//TODO: better config choosing... !important since it might really fail here on some platforms
-    eglChooseConfig(eglDisplay_, attribs, &eglConfig_, 1, &configSize);
-    if(!eglConfig_)
-    {
-		auto msg = EglContext::errorMessage(eglGetError());
-        throw std::runtime_error("WaylandEGLDisplay: Can't choose egl config: " + msg);
-    }
-
-	//TODO: enable option for gles contexts?
-	constexpr auto api = GlApi::gl;
-
-	if(api == GlApi::gles)
-	{
-		eglBindAPI(EGL_OPENGL_ES_API);
-		const int attrib[] = {EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
-		eglContext_ = eglCreateContext(eglDisplay_, eglConfig_, nullptr, attrib);
-	}
-	else if(api == GlApi::gl)
-	{
-		eglBindAPI(EGL_OPENGL_API);
-		eglContext_ = eglCreateContext(eglDisplay_, eglConfig_, nullptr, nullptr);
-	}
-
-	if(!eglContext_)
-	{
-		auto msg = EglContext::errorMessage(eglGetError());
-		throw std::runtime_error("ny::EglContextGuard: failed to create EGLContext: " + msg);
-	}
-}
-
-WaylandEglDisplay::~WaylandEglDisplay()
-{
-	if(eglDisplay_ && eglContext_) eglDestroyContext(eglDisplay_, eglContext_);
-	if(eglDisplay_) eglTerminate(eglDisplay_);
-}
-
 //WaylandEglWindowContext
-WaylandEglWindowContext::WaylandEglWindowContext(WaylandAppContext& ac, 
+WaylandEglWindowContext::WaylandEglWindowContext(WaylandAppContext& ac, const EglSetup& setup,
 	const WaylandWindowSettings& ws) : WaylandWindowContext(ac, ws)
 {
-	auto dpy = ac.waylandEglDisplay();
-	if(!dpy) throw std::runtime_error("WaylandEglWC: cant retrieve waylandEglDisplay");
-
-	auto ctx = std::make_unique<WaylandEglContext>(dpy->eglDisplay(), dpy->eglContext(), 
-		dpy->eglConfig(), GlApi::gl);
-	ctx->waylandWC_ = this;
-	context_ = std::move(ctx);
-
     wlEglWindow_ = wl_egl_window_create(&wlSurface(), ws.size.x, ws.size.y);
-    if(!wlEglWindow_) throw std::runtime_error("WaylandEglWC: wl_egl_window_create failed");
+    if(!wlEglWindow_) throw std::runtime_error("ny::WaylandEglWC: wl_egl_window_create failed");
 
-    eglSurface_ = eglCreateWindowSurface(context_->eglDisplay(), context_->eglConfig(), 
-		(EGLNativeWindowType)wlEglWindow_, nullptr);
-    if(!eglSurface_)
-    {
-		auto msg = EglContext::errorMessage(eglGetError());
-        throw std::runtime_error("WaylandEglWC: eglCreateWindowSurface failed: " + msg);
-        return;
-    }
+	auto eglDisplay = setup.eglDisplay();
+	auto eglnwindow = static_cast<void*>(wlEglWindow_);
+	surface_ = std::make_unique<EglSurface>(eglDisplay, eglnwindow, ws.gl.config, setup);
 
-	context_->eglSurface(eglSurface_);
-
-	//store context if requested so
-	if(ws.gl.storeContext) *ws.gl.storeContext = context_.get();
+	//store surface if requested so
+	if(ws.gl.storeSurface) *ws.gl.storeSurface = surface_.get();
 }
 
 WaylandEglWindowContext::~WaylandEglWindowContext()
 {
-	if(eglSurface_) eglDestroySurface(context_->eglDisplay(), eglSurface_);
-	context_.reset();
-
+	surface_.reset();
 	if(wlEglWindow_) wl_egl_window_destroy(wlEglWindow_);
 }
 
@@ -149,8 +57,14 @@ void WaylandEglWindowContext::size(const nytl::Vec2ui& newSize)
 bool WaylandEglWindowContext::surface(Surface& surface)
 {
 	surface.type = SurfaceType::gl;
-	surface.gl = context_.get();
+	surface.gl = surface_.get();
 	return true;
+}
+
+void WaylandEglWindowContext::configureEvent(nytl::Vec2ui size, WindowEdges edges)
+{
+	WaylandWindowContext::configureEvent(size, edges);
+	wl_egl_window_resize(wlEglWindow_, size.x, size.y, 0, 0);
 }
 
 }

@@ -65,6 +65,9 @@ public:
 	NativeHandle nativeHandle() const override { return {wglContext_}; }
 	GlContextExtensions contextExtensions() const override;
 	bool swapInterval(int interval, std::error_code& ec) const override;
+	bool compatible(const GlSurface&) const override;
+
+	HGLRC wglContext() const { return wglContext_; }
 
 protected:
 	bool makeCurrentImpl(const GlSurface&, std::error_code& ec) override;

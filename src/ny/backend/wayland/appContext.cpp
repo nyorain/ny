@@ -70,10 +70,18 @@ public:
 
 }
 
+struct WaylandAppContext::Impl
+{
+#ifdef NY_WithEGL
+	EglSetup eglSetup;
+#endif //WithEGL
+};
+
 using namespace wayland;
 
 WaylandAppContext::WaylandAppContext()
 {
+	impl_ = std::make_unique<Impl>();
     wlDisplay_ = wl_display_connect(nullptr);
 
     if(!wlDisplay_) throw std::runtime_error("ny::WaylandAC: could not connect to display");
@@ -99,15 +107,14 @@ WaylandAppContext::~WaylandAppContext()
 	//note that additional (even RAII) members might have to be reset here too if there
 	//destructor require the wayland display (or anything else) to be valid
 	//therefor, we e.g. explicitly reset the egl unique ptrs
+	impl_.reset();
+	outputs_.clear();
+
 	if(eventfd_) close(eventfd_);
-
 	if(wlCursorTheme_) wl_cursor_theme_destroy(wlCursorTheme_);
-
 	if(keyboardContext_) keyboardContext_.reset();
 	if(mouseContext_) mouseContext_.reset();
 
-	outputs_.clear();
-	waylandEglDisplay_.reset();
 
 	if(xdgShell_) xdg_shell_destroy(xdgShell_);
 	if(wlShell_) wl_shell_destroy(wlShell_);
@@ -124,7 +131,13 @@ WaylandAppContext::~WaylandAppContext()
 //TODO: exception safety!
 bool WaylandAppContext::dispatchEvents()
 {
-	for(auto& e : pendingEvents_) if(e->handler) e->handler->handleEvent(*e);
+	//dont use range-based for here, since they might insert new events
+	for(auto i = 0u; i < pendingEvents_.size(); ++i) 
+	{
+		auto& e = pendingEvents_[i];
+		if(e->handler) e->handler->handleEvent(*e);
+	}
+
 	pendingEvents_.clear();
 
 	auto ret = wl_display_dispatch_pending(wlDisplay_);
@@ -141,8 +154,15 @@ bool WaylandAppContext::dispatchLoop(LoopControl& control)
 	auto ret = 0;
 	while(run && ret != -1)
 	{
-		for(auto& e : pendingEvents_) if(e->handler) e->handler->handleEvent(*e);
+		//dont use range-based for here, since they might insert new events
+		for(auto i = 0u; i < pendingEvents_.size(); ++i) 
+		{
+			auto& e = pendingEvents_[i];
+			if(e->handler) e->handler->handleEvent(*e);
+		}
+
 		pendingEvents_.clear();
+
 		ret = dispatchDisplay();
 		if(ret == 0)
 		{
@@ -165,16 +185,22 @@ bool WaylandAppContext::threadedDispatchLoop(EventDispatcher& dispatcher, LoopCo
 
 	//wake the loop up every time an event is dispatched from another thread
 	//using the eventfd. See also dispatchDisplay() that polls for it (and the wl_display fd)
-	nytl::CbConnGuard conn = dispatcher.onDispatch.add([&]{
+	auto conn = nytl::ConnectionGuard(dispatcher.onDispatch.add([&]{
 		std::int64_t v = 1;
 		write(eventfd_, &v, 8);
-	});
+	}));
 
 
 	auto ret = 0;
 	while(run && ret != -1)
 	{
-		for(auto& e : pendingEvents_) if(e->handler) e->handler->handleEvent(*e);
+		//dont use range-based for here, since they might insert new events
+		for(auto i = 0u; i < pendingEvents_.size(); ++i) 
+		{
+			auto& e = pendingEvents_[i];
+			if(e->handler) e->handler->handleEvent(*e);
+		}
+
 		pendingEvents_.clear();
 
 		ret = dispatchDisplay();
@@ -220,7 +246,8 @@ WindowContextPtr WaylandAppContext::createWindowContext(const WindowSettings& se
 	else if(contextType == ContextType::gl)
 	{
 		#ifdef NY_WithGL
-			return std::make_unique<WaylandEglWindowContext>(*this, waylandSettings);
+			if(!eglSetup()) throw std::runtime_error("ny::WaylandAC::createWC: cannot init egl");
+			return std::make_unique<WaylandEglWindowContext>(*this, *eglSetup(), waylandSettings);
 		#else
 			throw std::logic_error("ny::WaylandAC::createWC: ny built without GL suppport");
 		#endif
@@ -266,28 +293,40 @@ std::vector<const char*> WaylandAppContext::vulkanExtensions() const
 	#endif
 }
 
-WaylandEglDisplay* WaylandAppContext::waylandEglDisplay()
+GlSetup* WaylandAppContext::glSetup() const
 {
-	#ifdef NY_WithEGL
-		if(!eglFailed_ && !waylandEglDisplay_)
-		{
-			try 
-			{ 
-				waylandEglDisplay_ = std::make_unique<WaylandEglDisplay>(*this); 
-			}
-			catch(const std::exception& err)
-			{ 
-				const static std::string msg = "ny::WaylandAC: failed to init waylandEglDisplay: ";
-				warning(msg + err.what());
-				eglFailed_ = true; 
-			}
-		}
-	#endif //EGL
-
-	return waylandEglDisplay_.get();
+	return eglSetup();
 }
 
-nytl::CbConn WaylandAppContext::fdCallback(int fd, unsigned int events, const FdCallback& func)
+EglSetup* WaylandAppContext::eglSetup() const
+{
+	#ifdef NY_WithEGL
+		if(eglFailed_) return nullptr;
+
+		if(!impl_->eglSetup.valid())
+		{
+			try
+			{
+				impl_->eglSetup = {static_cast<void*>(&wlDisplay())};
+			}
+			catch(const std::exception& error)
+			{
+				warning("WaylandAppContext::eglSetup: creating failed: ", error.what());
+				eglFailed_ = true;
+				impl_->eglSetup = {};
+				return nullptr;
+			}
+		}
+
+		return &impl_->eglSetup;
+
+	#else
+		return nullptr;
+
+	#endif
+}
+
+nytl::Connection WaylandAppContext::fdCallback(int fd, unsigned int events, const FdCallback& func)
 {
 	return fdCallbacks_.add({fd, events, func});
 }
@@ -357,7 +396,7 @@ int WaylandAppContext::dispatchDisplay()
 			auto& pfd = pfds[i + 2];
 			if(pfd.revents == 0) continue;
 
-			nytl::CbConnRef connref(fdCallbacks_, fdCallbacks_.items[i].clID_);
+			nytl::ConnectionRef connref(fdCallbacks_, fdCallbacks_.items[i].clID_);
 			fdCallbacks_.items[i].callback(connref, pfd.fd, pfd.revents);
 		}
 

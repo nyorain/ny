@@ -74,6 +74,8 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 		auto surfGuard = cairo->get();
 		auto& surf = surfGuard.surface();
 
+		ny::debug("draw size: ", surfGuard.size());
+
 		//Then, create a cairo context for the returned surface and use it to draw
 		auto cr = cairo_create(&surf);
 		cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
