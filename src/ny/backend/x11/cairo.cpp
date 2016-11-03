@@ -38,9 +38,9 @@ X11CairoIntegration::~X11CairoIntegration()
 	if(surface_) cairo_surface_destroy(surface_);
 }
 
-cairo_surface_t& X11CairoIntegration::init()
+CairoSurfaceGuard X11CairoIntegration::get()
 {
-	return *surface_;
+	return {*this, *surface_, windowContext_.size()};
 }
 void X11CairoIntegration::apply(cairo_surface_t&)
 {

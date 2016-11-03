@@ -45,7 +45,7 @@ EglSetup::EglSetup(void* nativeDisplay)
 
 	//query all available configs
 	//change this to only hold really required attributes
-    EGLint attribs[] = 
+    constexpr EGLint attribs[] = 
 	{
         EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
         EGL_RED_SIZE, 8,
@@ -162,11 +162,7 @@ EGLConfig EglSetup::eglConfig(GlConfigId id) const
 	EGLint configAttribs[] = {EGL_CONFIG_ID, static_cast<int>(glConfigNumber(id)), EGL_NONE};
 
 	if(!::eglChooseConfig(eglDisplay_, configAttribs, &eglConfig, 1, &configCount))
-	{
-		debug("eglChooseConfig: ", EglErrorCategory::errorCode().message());
-		debug("config id: ", static_cast<int>(glConfigNumber(id)));
 		return nullptr;
-	}
 
 	return eglConfig;
 }

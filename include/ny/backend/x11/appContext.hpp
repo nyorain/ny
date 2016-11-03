@@ -17,6 +17,8 @@ typedef struct __GLXFBConfigRec* GLXFBConfig;
 namespace ny
 {
 
+class GlxSetup;
+
 ///X11 AppContext implementation.
 class X11AppContext : public AppContext
 {
@@ -39,6 +41,7 @@ public:
 	bool startDragDrop(std::unique_ptr<DataSource>&& dataSource) override;
 
 	std::vector<const char*> vulkanExtensions() const override;
+	GlSetup* glSetup() const override;
 
 	//custom
     Display* xDisplay() const { return xDisplay_; }
@@ -47,6 +50,8 @@ public:
     int xDefaultScreenNumber() const { return xDefaultScreenNumber_; }
     xcb_screen_t* xDefaultScreen() const { return xDefaultScreen_; }
 
+	GlxSetup* glxSetup() const;
+
     void registerContext(xcb_window_t w, X11WindowContext& c);
     void unregisterContext(xcb_window_t w);
     X11WindowContext* windowContext(xcb_window_t win);
@@ -54,9 +59,6 @@ public:
 	void bell(); 
 
 	xcb_atom_t atom(const std::string& name);
-
-	//returns nullptr on failure or if ny was built without gl
-	GLXContext glxContext(GLXFBConfig fbc) const;
 
 protected:
     Display* xDisplay_  = nullptr;
@@ -73,6 +75,10 @@ protected:
 
 	std::unique_ptr<X11MouseContext> mouseContext_;
 	std::unique_ptr<X11KeyboardContext> keyboardContext_;
+
+	//Set to true if glx init failed. Will then not be tried again
+	//mutable since not state-relevant and changed from glxSetup/glSetup
+	mutable bool glxFailed_ {};
 
 	//used for built-config dependent members like e.g. GlxContexts
 	//can also be used to add members while keeping the changes abi-compatible

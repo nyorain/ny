@@ -3,6 +3,7 @@
 #include <ny/backend/x11/include.hpp>
 #include <ny/backend/x11/windowContext.hpp>
 #include <ny/backend/common/gl.hpp>
+#include <ny/backend/common/library.hpp>
 #include <nytl/vec.hpp>
 
 //prototypes to include glx.h
@@ -12,63 +13,98 @@ typedef struct __GLXFBConfigRec* GLXFBConfig;
 namespace ny
 {
 
-// RAII wrapper around GLXContext.
-class GlxContextWrapper
+//TODO: for glx calls: correct error handling
+
+//TODO: api loading, glLibrary, context extensions, swapInterval, screen number
+class GlxSetup : public GlSetup
 {
 public:
-	Display* xDisplay;
-	GLXContext context;
+	GlxSetup() = default;
+	GlxSetup(Display& xdpy, unsigned int screenNumber = 0);
+	~GlxSetup() = default;
 
-public:
-	GlxContextWrapper() = default;
-	GlxContextWrapper(Display*, GLXFBConfig);
-	~GlxContextWrapper();
+	GlxSetup(GlxSetup&&) noexcept;
+	GlxSetup& operator=(GlxSetup&&) noexcept;
 
-	GlxContextWrapper(GlxContextWrapper&& other) noexcept;
-	GlxContextWrapper& operator=(GlxContextWrapper&& other) noexcept;
-};
+	GlConfig defaultConfig() const override { return *defaultConfig_; }
+	std::vector<GlConfig> configs() const override { return configs_; }
 
-///GlContext implementation that associates a GLXContext with an x11 window.
-///Does neither own the GLXContext nor the x drawable it holds.
-class GlxContext : public GlContext
-{
-public:
-    GlxContext(Display* dpy, unsigned int drawable, GLXContext, GLXFBConfig = nullptr);
-    ~GlxContext();
+	std::unique_ptr<GlContext> createContext(const GlContextSettings& = {}) const override;
+	void* procAddr(nytl::StringParam name) const override;
 
-    bool apply() override;
-	void* procAddr(const char* name) const override;
+	GLXFBConfig glxConfig(GlConfigId id) const;
+	Display* xDisplay() const { return xDisplay_; }
+	
+	bool valid() const { return (xDisplay_); }
 
 protected:
 	Display* xDisplay_ {};
-	unsigned int drawable_ {};
-    GLXContext glxContext_ {};
 
-	// std::uint32_t glxWindow_;
+	std::vector<GlConfig> configs_;
+	GlConfig* defaultConfig_ {};
 
-protected:
-    virtual bool makeCurrentImpl() override;
-    virtual bool makeNotCurrentImpl() override;
-
-protected:
-	static void* glLibHandle();
+	//TODO
+	Library glLibrary_;
 };
 
-///WindowContext implementation on an x11 backend with opengl (glx) used for rendering.
+class GlxSurface : public GlSurface
+{
+public:
+	GlxSurface(Display& xdpy, unsigned int xDrawable, const GlConfig& config);
+	~GlxSurface() = default;
+
+	NativeHandle nativeHandle() const override { return {xDrawable_}; }
+	GlConfig config() const override { return config_; }
+	bool apply(std::error_code&) const override;
+
+	unsigned int xDrawable() const { return xDrawable_; }
+	Display* xDisplay() const { return xDisplay_; }
+
+protected:
+	Display* xDisplay_ {};
+	unsigned int xDrawable_ {};
+	GlConfig config_ {};
+};
+
+class GlxContext : public GlContext
+{
+public:
+	GlxContext(const GlxSetup& setup, const GlContextSettings& settings);
+    GlxContext(const GlxSetup& setup, GLXContext context, const GlConfig& config);
+    ~GlxContext();
+
+	NativeHandle nativeHandle() const override { return {glxContext_}; }
+	bool compatible(const GlSurface&) const override;
+	GlContextExtensions contextExtensions() const override;
+	bool swapInterval(int interval, std::error_code&) const override;
+
+	Display* xDisplay() const { return (setup_) ? setup_->xDisplay() : nullptr; }
+	GLXContext glxContext() const { return glxContext_; }
+
+protected:
+    virtual bool makeCurrentImpl(const GlSurface&, std::error_code&) override;
+    virtual bool makeNotCurrentImpl(std::error_code&) override;
+
+protected:
+	const GlxSetup* setup_ {};
+    GLXContext glxContext_ {};
+};
+
 class GlxWindowContext : public X11WindowContext
 {
 public:
-	GlxWindowContext(X11AppContext&, const X11WindowSettings&);
+	GlxWindowContext(X11AppContext&, const GlxSetup& setup, const X11WindowSettings&);
 
 	bool drawIntegration(X11DrawIntegration*) override { return false; }
 	bool surface(Surface&) override;
 
-protected:
-	void initVisual() override {};
-	void initFbcVisual(GLXFBConfig& config);
+	GlxSurface& glxSurface() const { return *surface_; }
 
 protected:
-	std::unique_ptr<GlxContext> glxContext_;
+	void initVisual() override {};
+
+protected:
+	std::unique_ptr<GlxSurface> surface_;
 };
 
 }

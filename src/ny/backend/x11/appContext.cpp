@@ -68,7 +68,7 @@ public:
 struct X11AppContext::Impl
 {
 #ifdef NY_WithGL
-	GlxContextWrapper glContext;
+	GlxSetup glxSetup;
 #endif //GL
 };
 
@@ -460,17 +460,18 @@ WindowContextPtr X11AppContext::createWindowContext(const WindowSettings& settin
 	if(contextType == ContextType::vulkan)
 	{
 		#ifdef NY_WithVulkan
-		 return std::make_unique<X11VulkanWindowContext>(*this, x11Settings);
+			return std::make_unique<X11VulkanWindowContext>(*this, x11Settings);
 		#else
-		 throw std::logic_error("ny::X11Backend::createWC: ny built without vulkan support");
+			throw std::logic_error("ny::X11AC::createWC: ny built without vulkan support");
 		#endif
 	}
 	else if(contextType == ContextType::gl)
 	{
 		#ifdef NY_WithGL
-		 return std::make_unique<GlxWindowContext>(*this, x11Settings);
+			if(!glxSetup()) throw std::runtime_error("ny::X11AC::createWC: failed to init glx");
+			return std::make_unique<GlxWindowContext>(*this, *glxSetup(), x11Settings);
 		#else
-		 throw std::logic_error("ny::X11Backend::createWC: ny built without GL suppport");
+			throw std::logic_error("ny::X11AC::createWC: ny built without GL suppport");
 		#endif
 	}
 
@@ -529,7 +530,7 @@ bool X11AppContext::threadedDispatchLoop(EventDispatcher& dispatcher, LoopContro
 	control.impl_ = std::make_unique<x11::LoopControlImpl>(run, xConnection_, xDummyWindow_);
 	auto loopguard = nytl::makeScopeGuard([&]{ control.impl_.reset(); });
 
-	nytl::CbConnGuard connection = dispatcher.onDispatch.add([&]{
+	nytl::ConnectionGuard connection = dispatcher.onDispatch.add([&]{
 		auto win = xDummyWindow_;
 		xcb_client_message_event_t dummyEvent {};
 		dummyEvent.window = win;
@@ -580,11 +581,33 @@ std::vector<const char*> X11AppContext::vulkanExtensions() const
 	#endif
 }
 
-GLXContext X11AppContext::glxContext(GLXFBConfig fbc) const
+GlSetup* X11AppContext::glSetup() const
+{
+	return glxSetup();
+}
+
+GlxSetup* X11AppContext::glxSetup() const
 {
 	#ifdef NY_WithGL
-		if(!impl_->glContext.context) impl_->glContext = {xDisplay(), fbc};
-		return impl_->glContext.context;
+		if(glxFailed_) return nullptr;
+
+		if(!impl_->glxSetup.valid())
+		{
+			try
+			{
+				impl_->glxSetup = {*xDisplay()};
+			}
+			catch(const std::exception& error)
+			{
+				warning("WaylandAppContext::eglSetup: creating failed: ", error.what());
+				glxFailed_ = true;
+				impl_->glxSetup = {};
+				return nullptr;
+			}
+		}
+
+		return &impl_->glxSetup;
+
 	#else
 		return nullptr;
 	#endif

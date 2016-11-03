@@ -48,7 +48,7 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 	auto pos = settings.position;
 	auto size = settings.size;
 
-    xcb_window_t xparent = settings.parent.uint();
+    xcb_window_t xparent = settings.parent.uint64();
 	if(!xparent)
 	{
 		xparent = xscreen->root;
@@ -383,9 +383,9 @@ void X11WindowContext::title(const std::string& str)
 	xcb_ewmh_set_wm_name(ewmhConnection(), xWindow(), str.size(), str.c_str());
 }
 
-NativeWindowHandle X11WindowContext::nativeHandle() const
+NativeHandle X11WindowContext::nativeHandle() const
 {
-	return NativeWindowHandle(xWindow_);
+	return NativeHandle(xWindow_);
 }
 
 void X11WindowContext::minSize(const Vec2ui& size)

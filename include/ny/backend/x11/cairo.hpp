@@ -17,7 +17,7 @@ public:
 
 protected:
 	//CairoIntegration
-	cairo_surface_t& init() override;
+	CairoSurfaceGuard get() override;
 	void apply(cairo_surface_t&) override;
 
 	//X11DrawIntegration

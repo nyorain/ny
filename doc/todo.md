@@ -19,6 +19,7 @@ when reworking gl:
 x11 backend:
 - selections and stuff not working at all
 - wheel input
+- correct error handling (for xlib calls e.g. glx use an error handle in X11AppContext or util)
 
 wayland backend:
 - wheel input

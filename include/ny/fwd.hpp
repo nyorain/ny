@@ -38,7 +38,7 @@ class DialogContext;
 class MouseContext;
 class KeyboardContext;
 class WindowSettings;
-class NativeWindowHandle;
+class NativeHandle;
 class Keyboard;
 class Mouse;
 

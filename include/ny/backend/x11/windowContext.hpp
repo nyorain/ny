@@ -50,7 +50,7 @@ public:
 
     void cursor(const Cursor& c) override;
 
-	NativeWindowHandle nativeHandle() const override;
+	NativeHandle nativeHandle() const override;
     bool handleEvent(const Event& e) override;
 
 	WindowCapabilities capabilities() const override;
