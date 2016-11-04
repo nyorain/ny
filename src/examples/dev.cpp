@@ -119,7 +119,15 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 	}
 	else if(ev.type() == ny::eventType::key)
 	{
-		if(!static_cast<const ny::KeyEvent&>(ev).pressed) return false;
+		auto& kev = static_cast<const ny::KeyEvent&>(ev);
+		if(!kev.pressed) return false;
+
+		if(kev.keycode == ny::Keycode::escape)
+		{
+			ny::debug("Escape pressed, exiting");
+			lc_.stop();
+			return true;
+		}
 
 		//retrieving the clipboard DataOffer and listing all formats
 		ny::debug("checking clipboard...");

@@ -49,10 +49,10 @@ Backend& Backend::choose()
 		//score is chosen this way since there might be x servers on winapi
 		//but no winapi on linux and we always want the native backend
 		//wayland > x11 because of Xwayland
-		auto score = 0u;
-		if(backend->name() == winapiString) score = 3u;
-		else if(backend->name() == waylandString) score = 2u;
-		else if(backend->name() == x11String) score = 1u;
+		auto score = 0;
+		if(backend->name() == winapiString) score = 3;
+		else if(backend->name() == waylandString) score = 2;
+		else if(backend->name() == x11String) score = 1;
 
 		if(score > bestScore)
 		{
