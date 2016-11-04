@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ny/include.hpp>
+#include <ny/windowSettings.hpp>
 #include <nytl/stringParam.hpp>
 
 #include <string>
@@ -18,9 +19,11 @@ MouseButton winapiToButton(unsigned int code);
 std::string errorMessage(unsigned int code, const char* msg = nullptr);
 std::string errorMessage(const char* msg = nullptr);
 
-//Note: not a string literal returned here. Just a (char?) pointer to some windows
+//Note: there isnt a string literal returned here. Just a (char?) pointer to some windows
 //resource. Better return void pointer or sth...
 const char* cursorToWinapi(CursorType type);
+
+unsigned int edgesToWinapi(WindowEdges edges);
 
 ///Winapi std::error_category
 class WinapiErrorCategory : public std::error_category

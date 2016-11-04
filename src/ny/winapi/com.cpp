@@ -1,11 +1,11 @@
-#include <ny/backend/winapi/com.hpp>
-#include <ny/backend/winapi/windowContext.hpp>
-#include <ny/backend/winapi/appContext.hpp>
-#include <ny/backend/winapi/util.hpp>
-#include <ny/base/eventDispatcher.hpp>
-#include <ny/base/data.hpp>
-#include <ny/base/log.hpp>
-#include <ny/base/imageData.hpp>
+#include <ny/winapi/com.hpp>
+#include <ny/winapi/windowContext.hpp>
+#include <ny/winapi/appContext.hpp>
+#include <ny/winapi/util.hpp>
+#include <ny/eventDispatcher.hpp>
+#include <ny/data.hpp>
+#include <ny/log.hpp>
+#include <ny/imageData.hpp>
 
 #include <nytl/utf.hpp>
 #include <nytl/time.hpp>

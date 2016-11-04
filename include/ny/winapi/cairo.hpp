@@ -1,8 +1,8 @@
 #pragma once
 
-#include <ny/backend/winapi/include.hpp>
-#include <ny/backend/winapi/windowContext.hpp>
-#include <ny/backend/integration/cairo.hpp>
+#include <ny/winapi/include.hpp>
+#include <ny/winapi/windowContext.hpp>
+#include <ny/common/cairo.hpp>
 #include <nytl/vec.hpp>
 
 namespace ny
@@ -17,7 +17,7 @@ public:
 
 protected:
 	//CairoIntegration
-	cairo_surface_t& init() override;
+	CairoSurfaceGuard get() override;
 	void apply(cairo_surface_t&) override;
 };
 

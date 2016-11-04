@@ -1,7 +1,7 @@
 #pragma once
 
-#include <ny/backend/winapi/include.hpp>
-#include <ny/backend/winapi/windowContext.hpp>
+#include <ny/winapi/include.hpp>
+#include <ny/winapi/windowContext.hpp>
 
 namespace ny
 {

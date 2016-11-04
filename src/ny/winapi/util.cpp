@@ -1,8 +1,8 @@
-#include <ny/backend/winapi/util.hpp>
-#include <ny/backend/winapi/windows.hpp>
-#include <ny/backend/mouseContext.hpp>
-#include <ny/base/cursor.hpp>
-#include <ny/base/key.hpp>
+#include <ny/winapi/util.hpp>
+#include <ny/winapi/windows.hpp>
+#include <ny/mouseContext.hpp>
+#include <ny/cursor.hpp>
+#include <ny/key.hpp>
 
 namespace ny
 {
@@ -232,16 +232,47 @@ const char* cursorToWinapi(CursorType type)
 		case CursorType::crosshair: return IDC_CROSS;
 		case CursorType::help: return IDC_HELP;
 		case CursorType::size: return IDC_SIZEALL;
-		case CursorType::sizeLeft: return IDC_SIZENS;
+
+		case CursorType::sizeLeft: return IDC_SIZEWE;
 		case CursorType::sizeRight: return IDC_SIZEWE;
+
 		case CursorType::sizeTop: return IDC_SIZENS;
-		case CursorType::sizeBottom: return IDC_SIZEWE;
-		case CursorType::sizeBottomRight: return IDC_SIZENWSE;
-		case CursorType::sizeBottomLeft: return IDC_SIZENESW;
-		case CursorType::sizeTopRight: return IDC_SIZENESW;
+		case CursorType::sizeBottom: return IDC_SIZENS;
+
 		case CursorType::sizeTopLeft: return IDC_SIZENWSE;
+		case CursorType::sizeBottomRight: return IDC_SIZENWSE;
+
+		case CursorType::sizeTopRight: return IDC_SIZENESW;
+		case CursorType::sizeBottomLeft: return IDC_SIZENESW;
+
 		// case Cursor::Type::no: return IDC_NO;
+
 		default: return nullptr;
+	}
+}
+
+unsigned int edgesToWinapi(WindowEdges edges)
+{
+	// SC_SIZE_HTLEFT = 1,
+	// SC_SIZE_HTRIGHT = 2,
+	// SC_SIZE_HTTOP = 3,
+	// SC_SIZE_HTTOPLEFT = 4,
+	// SC_SIZE_HTTOPRIGHT = 5,
+	// SC_SIZE_HTBOTTOM = 6,
+	// SC_SIZE_HTBOTTOMLEFT = 7,
+	// SC_SIZE_HTBOTTOMRIGHT = 8
+
+	switch(static_cast<WindowEdge>(edges.value()))
+	{
+		case WindowEdge::top: return 3;
+		case WindowEdge::bottom: return 6;
+		case WindowEdge::left: return 1;
+		case WindowEdge::right: return 2;
+		case WindowEdge::topLeft: return 4;
+		case WindowEdge::bottomLeft: return 7;
+		case WindowEdge::topRight: return 5;
+		case WindowEdge::bottomRight: return 8;
+		default: return 0u;
 	}
 }
 

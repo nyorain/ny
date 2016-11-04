@@ -1,4 +1,4 @@
-#include <ny/backend/winapi/surface.hpp>
+#include <ny/winapi/surface.hpp>
 #include <nytl/vecOps.hpp>
 #include <windows.h>
 

@@ -1,11 +1,11 @@
-#include <ny/backend/winapi/wgl.hpp>
-#include <ny/backend/winapi/windowContext.hpp>
-#include <ny/backend/winapi/appContext.hpp>
-#include <ny/backend/winapi/util.hpp>
-#include <ny/backend/winapi/wglApi.hpp>
+#include <ny/winapi/wgl.hpp>
+#include <ny/winapi/windowContext.hpp>
+#include <ny/winapi/appContext.hpp>
+#include <ny/winapi/util.hpp>
+#include <ny/winapi/wglApi.hpp>
 
-#include <ny/backend/integration/surface.hpp>
-#include <ny/base/log.hpp>
+#include <ny/surface.hpp>
+#include <ny/log.hpp>
 
 #include <nytl/scope.hpp>
 
@@ -127,10 +127,9 @@ WglSetup::WglSetup(HWND dummy) : dummyWindow_(dummy)
 				configs_.back().stencil = values[6];
 				configs_.back().doublebuffer = values[7];
 
-				if(GLAD_WGL_ARB_multisample && values[8]) configs_.back().multisample = values[9];
-				else configs_.back().multisample = 0;
+				if(GLAD_WGL_ARB_multisample && values[8]) configs_.back().samples = values[9];
 
-				auto rating = rate(configs_.back()) + values[0] * 100;
+				auto rating = rate(configs_.back()) + values[0] * 50;
 				if(rating >= bestRating)
 				{
 					bestRating = rating;
@@ -295,7 +294,7 @@ WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 	if(settings.version.api != GlApi::gl)
 		throw GlContextError(GlContextErrorCode::invalidApi, "ny::WglContext");
 
-	if((settings.version.minor != 0 && settings.version.major == 0) || 
+	if((settings.version.minor != 0 && settings.version.major == 0) ||
 		settings.version.major > 4 || settings.version.minor > 5)
 		throw GlContextError(GlContextErrorCode::invalidVersion, "ny::WglContext");
 
@@ -393,7 +392,7 @@ WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 		}
 	}
 
-	if(!wglContext_) 
+	if(!wglContext_)
 		throw winapi::EC::exception("ny::WglContext: failed to create context");
 
 	GlContext::initContext(settings.version.api, config_, settings.share);

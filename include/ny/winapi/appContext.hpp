@@ -1,9 +1,9 @@
 #pragma once
 
-#include <ny/backend/winapi/include.hpp>
-#include <ny/backend/winapi/windows.hpp>
-#include <ny/backend/winapi/input.hpp>
-#include <ny/backend/appContext.hpp>
+#include <ny/winapi/include.hpp>
+#include <ny/winapi/windows.hpp>
+#include <ny/winapi/input.hpp>
+#include <ny/appContext.hpp>
 
 #include <gdiplus.h>
 

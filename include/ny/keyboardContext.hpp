@@ -21,18 +21,17 @@ public:
 	///\exception std::logic_error for invalid keycodes.
 	virtual bool pressed(Keycode keycode) const = 0;
 
-	///Converts the given Keycode to utf8 encoded characters.
-	///If the Keycode cannot be represented using unicode (e.g. leftshift or escape) an
-	///empty string will be returned.
-	///Usually the returned string should only one utf8 encoded unicode value but in
-	///some cases (e.g. character composition, added dead keys) it may hold more characters.
-	///Remember that std::string[0] does NOT return the first unicode character of
+	///Converts the given Keycode to its default utf8 encoded characters.
+	///If the Keycode cannot be represented using unicode (e.g. leftshift or escape) or it
+	///is not recognized (e.g. because it is invalid) an empty string will be returned.
+	///Usually the returned string should contain not more than one utf8 encoded unicode
+	///value. Remember that std::string[0] does NOT return the first unicode code point of
 	///a string but the first 8-bit char.
-	///\param currentState Whether the returned unicode values should be dependent
-	///on the current keyboard state (e.g. modifiers). If this is false, the
-	///default unicode value for the given Keycode will be returned.
-	///\exception std::logic_error for invalid keycodes.
-	virtual std::string utf8(Keycode, bool currentState = false) const = 0;
+	///\warning This function cannot be used in exchange for the utf8 field of a KeyEvent.
+	///It does only map a keycode to SOME (usually the "default") unicode string this
+	///keycode could produce with the used keyboard layout and not to the one the
+	///user expects to see regarding modifiers or dead key composition.
+	virtual std::string utf8(Keycode) const = 0;
 
 	///Returns the WindowContext that has the current keyboard focus or nullptr if there
 	///is none.
@@ -64,8 +63,8 @@ class KeyEvent : public EventBase<eventType::key, KeyEvent>
 public:
 	using EvBase::EvBase;
 
-    bool pressed; //whether it was pressed or released
-    Keycode keycode; //the raw keycode of the pressed key
+	bool pressed; //whether it was pressed or released
+	Keycode keycode; //the raw keycode of the pressed key
 	std::string unicode; //utf-8 encoded, keyboard state dependent
 };
 

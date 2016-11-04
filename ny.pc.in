@@ -5,6 +5,6 @@ libdir=${prefix}/lib
 Name: ny
 Description: Modern c++ cross-platform window library.
 Version: @vmajor@.@vminor@.@vpatch@
-Libs: -L${libdir} -lny-base -lny-backend
+Libs: -L${libdir} -lny
 Cflags: -I${includedir}
-Requires.private: nytl >= 0.2.0
+Requires.private: nytl >= 0.3.0

@@ -48,7 +48,7 @@ void XkbKeyboardContext::createDefault()
 
 	rules.rules = getenv("XKB_DEFAULT_RULES");
 	rules.model = getenv("XKB_DEFAULT_MODEL");
-    rules.layout = getenv("XKB_DEFAULT_LAYOUT");
+	rules.layout = getenv("XKB_DEFAULT_LAYOUT");
 	rules.variant = getenv("XKB_DEFAULT_VARIANT");
 	rules.options = getenv("XKB_DEFAULT_OPTIONS");
 
@@ -67,7 +67,7 @@ void XkbKeyboardContext::setupCompose()
 	if(!locale)
 		throw std::runtime_error("XkbKC::setupCompose: failed to retrieve locale");
 
-	xkbComposeTable_ = xkb_compose_table_new_from_locale(xkbContext_, locale, 
+	xkbComposeTable_ = xkb_compose_table_new_from_locale(xkbContext_, locale,
 		XKB_COMPOSE_COMPILE_NO_FLAGS);
 	if(!xkbComposeTable_)
 		throw std::runtime_error("XkbKC::setupCompose: failed to setup compose table");
@@ -93,24 +93,19 @@ bool XkbKeyboardContext::feedComposeKey(unsigned int keysym)
 	return (xkb_compose_state_get_status(xkbComposeState_) != XKB_COMPOSE_CANCELLED);
 }
 
-std::string XkbKeyboardContext::utf8(Keycode key, bool currentState) const
+std::string XkbKeyboardContext::utf8(Keycode key) const
 {
-	//TODO: composing here for currentState == true is not supported atm.
-	//doing so would actually change the state. It would be required to manually save
-	//the current pending compose sequence, then compose with the given key and then
-	//reset the compose state to the saved sequence. Way too complex for a not that useful
-	//feature (at least atm).
 	auto code = keyToXkb(key);
 	std::string ret;
 
-	auto state = xkb_state_ref(xkbState_);
-	if(!currentState) state = xkb_state_new(xkbKeymap_);
+	//create a dummy state to not interfer/copy any current state
+	auto state = xkb_state_new(xkbKeymap_);
 
-	auto needed = xkb_state_key_get_utf8(xkbState_, code, nullptr, 0) + 1;
+	auto needed = xkb_state_key_get_utf8(state, code, nullptr, 0) + 1;
 	ret.resize(needed);
-	
+	xkb_state_key_get_utf8(state, code, &ret[0], ret.size());
+
 	xkb_state_unref(state);
-	xkb_state_key_get_utf8(xkbState_, code, &ret[0], ret.size());
 	return ret;
 }
 
@@ -129,7 +124,7 @@ bool XkbKeyboardContext::keyEvent(std::uint8_t keycode, KeyEvent& ev)
 	{
 		xkb_compose_state_feed(xkbComposeState_, keysym);
 		auto status = xkb_compose_state_get_status(xkbComposeState_);
-		if(status == XKB_COMPOSE_CANCELLED) 
+		if(status == XKB_COMPOSE_CANCELLED)
 		{
 			xkb_compose_state_reset(xkbComposeState_);
 			ret = false;

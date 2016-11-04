@@ -1,8 +1,8 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <ny/base/data.hpp>
-#include <ny/backend/winapi/windows.hpp>
+#include <ny/data.hpp>
+#include <ny/winapi/windows.hpp>
 
 #include <ole2.h>
 

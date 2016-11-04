@@ -24,9 +24,9 @@ include_directories("${CMAKE_BINARY_DIR}/external/install/include")
 link_directories("${CMAKE_BINARY_DIR}/external/install/lib")
 
 #cmake options
-list(APPEND CMAKE_CXX_FLAGS "-std=c++17") # C++ 17
-# set(CMAKE_CXX_STANDARD 17)
-# set(CMAKE_CXX_STANDARD_REQUIRED on)
+# list(APPEND CMAKE_CXX_FLAGS "-std=c++17") # C++ 17
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED on)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/src/cmake")
@@ -77,11 +77,11 @@ cmake_dependent_option(WithWinapi "Build ny with a winapi backend" on
 # check for invalid configurations
 # no backend
 if(NOT WithWayland AND NOT WithX11 AND NOT WithWinapi)
-	message(FATAL_ERROR "Could not find any backend")
+	message(FATAL_ERROR "Could not find any backend to build ny with")
 endif()
 
 #test for nytl
-find_package(nytl 0.2.0)
+find_package(nytl 0.3.0)
 if(nytl_FOUND AND nytl_INCLUDE_DIRS EQUAL CMAKE_INSTALL_PREFIX)
 	set(nytl_location ${nytl_INCLUDE_DIRS})
 	set(nytl_own false)

@@ -1,0 +1,50 @@
+class SceneParameter
+{
+public:
+	enum class Type
+	{
+	};
+
+	std::vector<PathBase*> references_;
+};
+
+class Scene : public MulitCache<>
+{
+protected:
+	std::vector<PathBase> paths_;
+	std::vector<SceneParameter> parameter_;
+};
+
+class DrawContext
+{
+public:
+	draw(const Scene& scene);
+};
+
+
+
+///
+class Surface
+{
+public:
+	enum Type
+	{
+		opengl,
+		vulkan,
+		buffer
+	};
+
+public:
+	Type type;
+	union
+	{
+		Range<std::uint8_t> buffer;
+		VulkanContext* vkContext;
+		GlContext* glContext;
+	};
+
+	virtual void init() = 0;
+	virtual void apply() = 0;
+};
+
+auto* surface = windowContext.surface();

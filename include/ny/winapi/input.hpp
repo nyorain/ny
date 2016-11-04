@@ -1,20 +1,20 @@
 #pragma once
 
-#include <ny/backend/winapi/include.hpp>
-#include <ny/backend/winapi/windowContext.hpp>
-#include <ny/backend/mouseContext.hpp>
-#include <ny/backend/keyboardContext.hpp>
+#include <ny/winapi/include.hpp>
+#include <ny/winapi/windowContext.hpp>
+#include <ny/mouseContext.hpp>
+#include <ny/keyboardContext.hpp>
+#include <map>
 
 namespace ny
 {
 
-//TODO: set over and focus (from AppContext)
-//TODO: call callbacks correctly (trigger events from AppContext)
 ///Winapi MouseContext implementation.
 class WinapiMouseContext : public MouseContext
 {
 public:
 	WinapiMouseContext(WinapiAppContext& context) : context_(context) {}
+	WinapiMouseContext() = default;
 
 	Vec2ui position() const override;
 	bool pressed(MouseButton button) const override;
@@ -34,18 +34,21 @@ protected:
 class WinapiKeyboardContext : public KeyboardContext
 {
 public:
-	WinapiKeyboardContext(WinapiAppContext& context) : context_(context) {}
+	WinapiKeyboardContext(WinapiAppContext& context);
+	WinapiKeyboardContext() = default;
 
 	bool pressed(Keycode) const override;
-	std::string utf8(Keycode, bool currentState = false) const override;
+	std::string utf8(Keycode) const override;
 	WinapiWindowContext* focus() const override { return focus_; }
 
 	//winapi specific
 	void focus(WinapiWindowContext* wc);
+	void keyEvent(WinapiWindowContext* wc, unsigned int vkcode, unsigned int lparam);
 
 protected:
 	WinapiAppContext& context_;
 	WinapiWindowContext* focus_ {};
+	std::map<Keycode, std::string> keycodeUnicodeMap_;
 };
 
 }

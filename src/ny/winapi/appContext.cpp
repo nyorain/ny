@@ -1,24 +1,24 @@
-#include <ny/backend/winapi/appContext.hpp>
-#include <ny/backend/winapi/windowContext.hpp>
-#include <ny/backend/winapi/util.hpp>
-#include <ny/backend/winapi/com.hpp>
+#include <ny/winapi/appContext.hpp>
+#include <ny/winapi/windowContext.hpp>
+#include <ny/winapi/util.hpp>
+#include <ny/winapi/com.hpp>
 
-#include <ny/backend/mouseContext.hpp>
-#include <ny/backend/keyboardContext.hpp>
-#include <ny/backend/events.hpp>
+#include <ny/mouseContext.hpp>
+#include <ny/keyboardContext.hpp>
+#include <ny/events.hpp>
 
-#include <ny/base/log.hpp>
-#include <ny/base/event.hpp>
-#include <ny/base/loopControl.hpp>
-#include <ny/base/eventDispatcher.hpp>
+#include <ny/log.hpp>
+#include <ny/event.hpp>
+#include <ny/loopControl.hpp>
+#include <ny/eventDispatcher.hpp>
 
 #ifdef NY_WithGL
- #include <ny/backend/winapi/wgl.hpp>
+ #include <ny/winapi/wgl.hpp>
 #endif //Gl
 
 #ifdef NY_WithVulkan
  #define VK_USE_PLATFORM_WIN32_KHR
- #include <ny/backend/winapi/vulkan.hpp>
+ #include <ny/winapi/vulkan.hpp>
  #include <vulkan/vulkan.h>
 #endif //Vulkan
 
@@ -173,7 +173,7 @@ bool WinapiAppContext::dispatchEvents()
 
 	while(::PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
 	{
-		::TranslateMessage(&msg);
+		// ::TranslateMessage(&msg);
 		::DispatchMessage(&msg);
 	}
 
@@ -209,7 +209,7 @@ bool WinapiAppContext::dispatchLoop(LoopControl& control)
 		}
 		else
 		{
-			::TranslateMessage(&msg);
+			// ::TranslateMessage(&msg);
 			::DispatchMessage(&msg);
 		}
 	}
@@ -232,10 +232,10 @@ bool WinapiAppContext::threadedDispatchLoop(EventDispatcher& dispatcher,
 	//register a callback that is called everytime the dispatcher gets an event
 	//if the event comes from this thread, this thread is not waiting, otherwise
 	//wait this thread with a message.
-	auto conn = nytl::makeConnection(dispatcher.onDispatch, dispatcher.onDispatch.add([&] {
+	auto conn = dispatcher.onDispatch.add([&] {
 		if(std::this_thread::get_id() != threadid)
 			PostThreadMessage(threadHandle, WM_USER, 0, 0);
-	}));
+	});
 
 	//exception safety
 	auto scopeGuard = nytl::makeScopeGuard([&]{
@@ -352,19 +352,6 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 
 	switch(message)
 	{
-		case WM_CHAR:
-		{
-			char16_t string[] = {static_cast<char16_t>(wparam), u'\0'};
-			last = nytl::toUtf8(std::u16string(string));
-			break;
-		}
-
-		case WM_DEADCHAR:
-		{
-			last = {};
-			break;
-		}
-
 		case WM_CREATE:
 		{
 			result = ::DefWindowProc(window, message, wparam, lparam);
@@ -386,6 +373,13 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 					ev.entered = true;
 					ev.position = pos;
 					dispatch(ev);
+
+					//Request wm_mouseleave events
+					TRACKMOUSEEVENT trackMouse {};
+					trackMouse.cbSize = sizeof(trackMouse);
+					trackMouse.dwFlags = TME_LEAVE;
+					trackMouse.hwndTrack = window;
+					::TrackMouseEvent(&trackMouse);
 				}
 
 				if(context) mouseContext_.over(context);
@@ -565,7 +559,7 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 
 		case WM_SETFOCUS:
 		{
-			if(context || keyboardContext_.focus()) keyboardContext_.focus(context);
+			keyboardContext_.focus(context);
 
 			if(handler)
 			{
@@ -593,39 +587,13 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 
 		case WM_KEYDOWN:
 		{
-			auto keycode = winapiToKeycode(wparam);
-			auto utf8 = keyboardContext_.utf8(keycode, true);
-			// auto utf8 = last;
-			keyboardContext_.onKey(keyboardContext_, keycode, utf8, true);
-
-			if(handler)
-			{
-				KeyEvent ev(handler);
-				ev.keycode = keycode;
-				ev.unicode = utf8;
-				ev.pressed = true;
-				dispatch(ev);
-			}
-
+			keyboardContext_.keyEvent(context, wparam, lparam);
 			break;
 		}
 
 		case WM_KEYUP:
 		{
-			auto keycode = winapiToKeycode(wparam);
-			auto utf8 = keyboardContext_.utf8(keycode, true);
-			// auto utf8 = last;
-			keyboardContext_.onKey(keyboardContext_, keycode, utf8, false);
-
-			if(handler)
-			{
-				KeyEvent ev(handler);
-				ev.keycode = keycode;
-				ev.unicode = utf8;
-				ev.pressed = false;
-				dispatch(ev);
-			}
-
+			keyboardContext_.keyEvent(context, wparam, lparam);
 			break;
 		}
 
@@ -654,11 +622,13 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 
 		case WM_SIZE:
 		{
+			nytl::Vec2ui size(LOWORD(lparam), HIWORD(lparam));
+			if(context) context->sizeEvent(size);
+
 			if(handler)
 			{
 				SizeEvent ev(handler);
-				ev.size.x = LOWORD(lparam);
-				ev.size.y = HIWORD(lparam);
+				ev.size = size;
 				dispatch(ev);
 			}
 
@@ -703,6 +673,20 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 			}
 
 			result = ::DefWindowProc(window, message, wparam, lparam);
+			break;
+		}
+
+		case WM_GETMINMAXINFO:
+		{
+			if(context)
+			{
+				::MINMAXINFO* mmi = reinterpret_cast<MINMAXINFO*>(lparam);
+				mmi->ptMaxTrackSize.x = context->maxSize().x;
+				mmi->ptMaxTrackSize.y = context->maxSize().y;
+				mmi->ptMinTrackSize.x = context->minSize().x;
+				mmi->ptMinTrackSize.y = context->minSize().y;
+			}
+
 			break;
 		}
 

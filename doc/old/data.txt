@@ -1,0 +1,13 @@
+processEvent(Event& event)
+{
+
+	//...
+	if(event.type() == eventType::dataOffer)
+	{
+		auto& offerEvent = static_cast<DataOfferEvent&>(event);
+		if(offerEvent.dataOffer.dataTypes().contains(DataType::image::jpeg))
+		{
+			offerEvent.dataOffer.accept();
+		}
+	}
+}

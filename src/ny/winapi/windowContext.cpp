@@ -1,13 +1,13 @@
-#include <ny/backend/winapi/windowContext.hpp>
-#include <ny/backend/winapi/util.hpp>
-#include <ny/backend/winapi/appContext.hpp>
-#include <ny/backend/winapi/com.hpp>
-#include <ny/backend/winapi/surface.hpp>
+#include <ny/winapi/windowContext.hpp>
+#include <ny/winapi/util.hpp>
+#include <ny/winapi/appContext.hpp>
+#include <ny/winapi/com.hpp>
+#include <ny/winapi/surface.hpp>
 
-#include <ny/base/log.hpp>
-#include <ny/base/cursor.hpp>
-#include <ny/base/imageData.hpp>
-#include <ny/backend/events.hpp>
+#include <ny/log.hpp>
+#include <ny/cursor.hpp>
+#include <ny/imageData.hpp>
+#include <ny/events.hpp>
 
 #include <nytl/scope.hpp>
 
@@ -21,13 +21,15 @@ namespace ny
 //static
 const char* WinapiWindowContext::nativeWidgetClassName(NativeWidgetType type)
 {
-	switch(type)
-	{
-		case NativeWidgetType::button: return "Button";
-		case NativeWidgetType::textfield: return "Edit";
-		case NativeWidgetType::checkbox: return "Combobox";
-		default: return nullptr;
-	}
+	// switch(type)
+	// {
+	// 	case NativeWidgetType::button: return "Button";
+	// 	case NativeWidgetType::textfield: return "Edit";
+	// 	case NativeWidgetType::checkbox: return "Combobox";
+	// 	default: return nullptr;
+	// }
+
+	return nullptr;
 }
 
 //windowContext
@@ -77,16 +79,16 @@ WinapiWindowContext::~WinapiWindowContext()
 
 void WinapiWindowContext::initWindowClass(const WinapiWindowSettings& settings)
 {
-	if(settings.nativeWidgetType != NativeWidgetType::none)
-	{
-		if(settings.nativeWidgetType == NativeWidgetType::dialog) return;
-
-		auto name = nativeWidgetClassName(settings.nativeWidgetType);
-		if(!name) throw std::logic_error("ny::WinapiWC: invalid native widget type");
-		wndClassName_ = name;
-
-		return;
-	}
+	// if(settings.nativeWidgetType != NativeWidgetType::none)
+	// {
+	// 	if(settings.nativeWidgetType == NativeWidgetType::dialog) return;
+	//
+	// 	auto name = nativeWidgetClassName(settings.nativeWidgetType);
+	// 	if(!name) throw std::logic_error("ny::WinapiWC: invalid native widget type");
+	// 	wndClassName_ = name;
+	//
+	// 	return;
+	// }
 
 	auto wndClass = windowClass(settings);
 	if(!::RegisterClassEx(&wndClass))
@@ -137,12 +139,12 @@ void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 	if(size.x == -1) size.x = CW_USEDEFAULT;
 	if(size.y == -1) size.y = CW_USEDEFAULT;
 
-	if(settings.nativeWidgetType == NativeWidgetType::dialog)
-	{
-		initDialog(settings);
-	}
-	else
-	{
+	// if(settings.nativeWidgetType == NativeWidgetType::dialog)
+	// {
+	// 	initDialog(settings);
+	// }
+	// else
+	// {
 		//NOTE
 		//The window has to be layered to enable transparent drawing on it
 		//On newer windows versions it is not enough to call DwmEnableBlueBehinWindow, only
@@ -161,23 +163,25 @@ void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 			style_, position.x, position.y, size.x, size.y, parent, nullptr, hinstance, this);
 
 		if(!handle_) throw winapi::EC::exception("ny::WinapiWC: CreateWindowEx failed");
+	// }
+
+	{
+		//TODO: check for windows version > xp here.
+		//Otherwise ny will no compile/run on xp
+		//This will simply cause windows to respect the alpha bits in the content of the window
+		//and not actually blur anything. Windows is stupid af.
+		DWM_BLURBEHIND bb = { 0 };
+		bb.dwFlags = DWM_BB_ENABLE | DWM_BB_BLURREGION;
+		bb.hRgnBlur = CreateRectRgn(0, 0, -1, -1);  // makes the window transparent
+		bb.fEnable = TRUE;
+		::DwmEnableBlurBehindWindow(handle(), &bb);
+
+		//This is not what makes the window transparent.
+		//We simply have to do this so the window contents are shown.
+		//We only have to set the layered flag to make DwmEnableBlueBehinWindow function
+		//correctly and this causes the flag to have no further effect.
+		::SetLayeredWindowAttributes(handle(), 0x1, 0, LWA_COLORKEY);
 	}
-
-	//TODO: check for windows version > xp here.
-	//Otherwise ny will no compile/run on xp
-	//This will simply cause windows to respect the alpha bits in the content of the window
-	//and not actually blur anything. Windows is stupid af.
-	DWM_BLURBEHIND bb = { 0 };
-	bb.dwFlags = DWM_BB_ENABLE | DWM_BB_BLURREGION;
-	bb.hRgnBlur = CreateRectRgn(0, 0, -1, -1);  // makes the window transparent
-	bb.fEnable = TRUE;
-	::DwmEnableBlurBehindWindow(handle(), &bb);
-
-	//This is not what makes the window transparent.
-	//We simply have to do this so the window contents are shown.
-	//We only have to set the layered flag to make DwmEnableBlueBehinWindow function
-	//correctly and this causes the flag to have no further effect.
-	::SetLayeredWindowAttributes(handle(), 0x1, 0, LWA_COLORKEY);
 
 	//Set the userdata
 	std::uintptr_t ptr = reinterpret_cast<std::uintptr_t>(this);
@@ -277,16 +281,9 @@ void WinapiWindowContext::removeWindowHints(WindowHints hints)
 	}
 }
 
-bool WinapiWindowContext::handleEvent(const Event& e)
+void WinapiWindowContext::sizeEvent(nytl::Vec2ui size)
 {
-	if(e.type() == ny::eventType::size)
-	{
-		auto& ev = static_cast<const ny::SizeEvent&>(e);
-		if(drawIntegration_) drawIntegration_->resize(ev.size);
-		return true;
-	}
-
-	return false;
+	if(drawIntegration_) drawIntegration_->resize(size);
 }
 
 void WinapiWindowContext::size(const Vec2ui& size)
@@ -450,6 +447,36 @@ void WinapiWindowContext::normalState()
 {
 	unsetFullscreen();
 	::ShowWindowAsync(handle_, SW_RESTORE);
+}
+
+void WinapiWindowContext::minSize(const nytl::Vec2ui& size)
+{
+	minSize_ = size;
+}
+
+void WinapiWindowContext::maxSize(const nytl::Vec2ui& size)
+{
+	maxSize_ = size;
+}
+
+void WinapiWindowContext::beginMove(const MouseButtonEvent*)
+{
+	// auto currentCursor = ::GetClassLongPtr(handle_, -12);
+	// this->cursor(CursorType::crosshair);
+	::PostMessage(handle_, WM_SYSCOMMAND, SC_MOVE, 0);
+	// ::SetClassLongPtr(handle_, -12, currentCursor);
+}
+
+void WinapiWindowContext::beginResize(const MouseButtonEvent*, WindowEdges edges)
+{
+	auto cursor = sizeCursorFromEdge(static_cast<WindowEdge>(edges.value()));
+	auto currentCursor = ::GetClassLongPtr(handle_, -12);
+	this->cursor(cursor);
+
+	auto winapiEdges = edgesToWinapi(edges);
+	::PostMessage(handle_, WM_SYSCOMMAND, SC_SIZE + winapiEdges, 0);
+
+	// ::SetClassLongPtr(handle_, -12, currentCursor);
 }
 
 void WinapiWindowContext::icon(const ImageData& imgdata)

@@ -3,6 +3,5 @@ buildwin/
 private/
 obj/
 bin/
-old/
 *.swp
 config.hpp

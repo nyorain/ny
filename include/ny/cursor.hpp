@@ -39,6 +39,8 @@ enum class CursorType : unsigned int
 	//fobidden/no
 };
 
+WindowEdge edgeFromSizeCursor(CursorType cursor);
+CursorType sizeCursorFromEdge(WindowEdge edge);
 
 //TODO: cursor themes for all applications. loaded with styles
 ///The Cursor class represents either a native cursor image or a custom loaded image.
@@ -49,39 +51,39 @@ class Cursor
 {
 public:
 	using Type = CursorType;
-	
+
 public:
 	///Default-constructs the Cursor with the leftPtr native type.
-    Cursor() = default;
+	Cursor() = default;
 
 	///Constructs the Cursor with a native cursor type.
-    Cursor(CursorType type);
+	Cursor(CursorType type);
 
 	///Constructs the Cursor from an image.
 	///Note that the given ImageData must therefore remain valid while the cursor object
 	///is used.
-    Cursor(const ImageData& img, const nytl::Vec2i& hotspot = {0, 0});
+	Cursor(const ImageData& img, const nytl::Vec2i& hotspot = {0, 0});
 
 	///Sets the cursor to image type and stores the given image.
 	///Note that the given ImageData must therefore remain valid while the cursor object
 	///is used.
-    void image(const ImageData& image, const nytl::Vec2i& hotspot = {0, 0});
+	void image(const ImageData& image, const nytl::Vec2i& hotspot = {0, 0});
 
 	///Sets to cursor to the given native type.
-    void nativeType(CursorType type);
+	void nativeType(CursorType type);
 
 	///Returns the image of this image cursor, or nullptr if it is a native cursor type.
-    const ImageData* image() const;
+	const ImageData* image() const;
 
 	///Returns the image hotspot.
 	///The result will be undefined when the type of this cursor is not image.
-    const Vec2i& imageHotspot() const;
+	const Vec2i& imageHotspot() const;
 
 	///Returns the type of this cursor.
-    CursorType type() const;
+	CursorType type() const;
 
 protected:
-    CursorType type_ = CursorType::leftPtr;
+	CursorType type_ = CursorType::leftPtr;
 	nytl::Vec2i hotspot_{};
 	ImageData image_{};
 };

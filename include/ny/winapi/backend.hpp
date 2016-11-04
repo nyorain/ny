@@ -1,7 +1,7 @@
 #pragma once
 
-#include <ny/backend/winapi/include.hpp>
-#include <ny/backend/backend.hpp>
+#include <ny/winapi/include.hpp>
+#include <ny/backend.hpp>
 
 namespace ny
 {
@@ -13,12 +13,12 @@ public:
 	static WinapiBackend& instance(){ return instance_; }
 
 public:
-    bool available() const override { return true; } //TODO: sth to check here?
-    AppContextPtr createAppContext() override;
+	bool available() const override { return true; } //TODO: sth to check here?
+	AppContextPtr createAppContext() override;
 	const char* name() const override { return "winapi"; }
 
 protected:
-    static WinapiBackend instance_;
+	static WinapiBackend instance_;
 	WinapiBackend() = default;
 };
 

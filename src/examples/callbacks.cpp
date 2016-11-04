@@ -49,13 +49,13 @@ int main()
 	//This callback is called everytime a key is pressed or released.
 	//We quit the window on escape (what we did previously using the EventHandler implementation).
 	kc->onKey += [&](ny::Keycode key, const std::string& utf8, bool pressed) {
-		ny::debug("Key ", ny::keycodeName(key), pressed ? " pressed: " : " released: ", utf8);
+		ny::log("Key ", ny::keycodeName(key), pressed ? " pressed: " : " released: ", utf8);
 		if(key == ny::Keycode::escape) control.stop();
 	};
 
 	//This callback is called everytime our WindowContext gains or loses focus.
 	kc->onFocus += [&](ny::WindowContext*, ny::WindowContext* now) {
-		ny::debug("KeyboardFocus ", now ? "gained " : "lost ");
+		ny::log("KeyboardFocus ", now ? "gained " : "lost ");
 	};
 
 	//This callback is called everytime the mouse moves
@@ -68,8 +68,8 @@ int main()
 		if(length(absDeltaSum) > 500)
 		{
 			auto mis = nytl::duration_cast<nytl::Microseconds>(nytl::Clock::now() - lastReset);
-			ny::debug("Mouse moved ", absDeltaSum, " in ", mis.count() / 1000, " milliseconds");
-			ny::debug("\tCurrent mouse position in window: ", position);
+			ny::log("Mouse moved ", absDeltaSum, " in ", mis.count() / 1000, " milliseconds",
+				" -> postition: ", mc->position());
 
 			lastReset = nytl::Clock::now();
 			absDeltaSum = {};
@@ -79,24 +79,29 @@ int main()
 	//This callback is called everytime a mouse button is pressed or released.
 	//We can also use the MouseContext implementation to query the current mouse position
 	mc->onButton += [&](ny::MouseButton button, bool pressed) {
-		ny::debug("Button ", ny::mouseButtonName(button), pressed ? " pressed " : " released");
-		ny::debug("\tCurrent mouse position in window: ", mc->position());
+		ny::log("Button ", ny::mouseButtonName(button), pressed ? " pressed" : " released",
+			" -> postition: ", mc->position());
+
+		if(button != ny::MouseButton::left) return;
+
+		if(mc->position().x > 100) wc->beginMove(nullptr);
+		else wc->beginResize(nullptr, ny::WindowEdge::left);
 	};
 
 	//This callback is called everytime when the mouse leaves or enters our WindowContext.
 	mc->onFocus += [&](ny::WindowContext*, ny::WindowContext* next) {
-		ny::debug("Mouse now ", next ? " over " : " not over ", " WindowContext");
+		ny::log("Mouse now ", next ? "over " : "not over ", "WindowContext");
 	};
 
 	//This callback is called everytime the mouse wheel is rotated
 	mc->onWheel += [&](float value) {
-		ny::debug("MouseWheel rotated: ", value);
+		ny::log("MouseWheel rotated: ", value);
 	};
 
 	wc->eventHandler(handler);
 	wc->refresh();
 
-	ny::debug("Entering main loop");
+	ny::log("Entering main loop");
 	ac->dispatchLoop(control);
 }
 
@@ -106,7 +111,7 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 
 	if(ev.type() == ny::eventType::close)
 	{
-		ny::debug("Window closed. Exiting.");
+		ny::log("Window closed. Exiting.");
 		lc_.stop();
 		return true;
 	}

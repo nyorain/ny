@@ -5,6 +5,7 @@ current:
 - normalize wheel input values
 - rework events (concepts/events.md, concepts/window.md), eventDispatcher async funcions
 - xkbcommon, unix header error on wrong config (like with gl or backends)
+- general keydown/keyup unicode value specificiation (cross-platform, differents atm)
 
 for later:
 - touch support (TouchContext and touch events)
@@ -21,5 +22,4 @@ wayland backend:
 
 winapi backend:
 - wgl api reparse [loader, swap control tear]
-- keyboard input unicode [store pending dead keys in local keyboard state and then use this
-	when calling ToUnicode], scancode parameter (up/down)
+- better beginResize/beginMove implementations

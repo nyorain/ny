@@ -1,9 +1,9 @@
 #pragma once
 
-#include <ny/backend/winapi/include.hpp>
-#include <ny/backend/winapi/windows.hpp>
-#include <ny/backend/windowContext.hpp>
-#include <ny/backend/windowSettings.hpp>
+#include <ny/winapi/include.hpp>
+#include <ny/winapi/windows.hpp>
+#include <ny/windowContext.hpp>
+#include <ny/windowSettings.hpp>
 #include <nytl/rect.hpp>
 
 #include <ole2.h>
@@ -51,7 +51,6 @@ public:
 	void position(const Vec2i& position) override;
 
 	void cursor(const Cursor& c) override;
-	bool handleEvent(const Event& e) override;
 
 	NativeHandle nativeHandle() const override;
 	WindowCapabilities capabilities() const override;
@@ -62,34 +61,29 @@ public:
 	void fullscreen() override;
 	void normalState() override;
 
-	void minSize(const Vec2ui& size) override {};
-	void maxSize(const Vec2ui& size) override {};
+	void minSize(const Vec2ui& size) override;
+	void maxSize(const Vec2ui& size) override;
 
-	void beginMove(const MouseButtonEvent* ev) override {};
-	void beginResize(const MouseButtonEvent* ev, WindowEdges edges) override {};
+	void beginMove(const MouseButtonEvent* ev) override;
+	void beginResize(const MouseButtonEvent* ev, WindowEdges edges) override;
 
-	bool customDecorated() const override { return 0; };
+	bool customDecorated() const override { return false; };
 
 	void icon(const ImageData& img) override;
 	void title(const std::string& title) override;
 
 	//winapi specific
-	///Returns the AppContext this WindowContext was created from.
-	WinapiAppContext& appContext() const { return *appContext_; }
+	void sizeEvent(nytl::Vec2ui size);
 
-	///Returns the module handle associated with the AppContext this WindowContext was created
-	///from.
-	HINSTANCE hinstance() const;
+	WinapiAppContext& appContext() const { return *appContext_; } ///The associated AppContext
+	HINSTANCE hinstance() const; ///The associated HINSTANCE
+	HWND handle() const { return handle_; } ///The managed window handle
 
-	///Returns the manages win32 window handle.
-	HWND handle() const { return handle_; }
+	Rect2i extents() const; ///Current (async) window extents with server decorations
+	Rect2i clientExtents() const; ///Current (async) client area window extents
 
-	///Returns the current (async) extents of the whole window, i.e. with server side
-	///decorations.
-	Rect2i extents() const;
-
-	///Returns the extents of just the client area of the window.
-	Rect2i clientExtents() const;
+	const nytl::Vec2ui minSize() const { return minSize_; }
+	const nytl::Vec2ui maxSize() const { return maxSize_; }
 
 	///Sets the integration to the given one.
 	///Will return false if there is already such an integration or this implementation
@@ -142,6 +136,9 @@ protected:
 	bool fullscreen_ = false;
 	std::uint64_t style_ = 0;
 	State savedState_; //used e.g. for resetState
+
+	nytl::Vec2ui minSize_ {};
+	nytl::Vec2ui maxSize_ {9999, 9999};
 
 	WinapiDrawIntegration* drawIntegration_ = nullptr;
 };

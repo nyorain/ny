@@ -1,8 +1,8 @@
 #pragma once
 
-#include <ny/backend/winapi/include.hpp>
-#include <ny/backend/winapi/windowContext.hpp>
-#include <ny/backend/integration/surface.hpp>
+#include <ny/winapi/include.hpp>
+#include <ny/winapi/windowContext.hpp>
+#include <ny/surface.hpp>
 #include <nytl/vec.hpp>
 
 namespace ny

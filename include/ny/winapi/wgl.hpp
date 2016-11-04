@@ -1,11 +1,11 @@
 #pragma once
 
-#include <ny/backend/winapi/include.hpp>
-#include <ny/backend/winapi/windowContext.hpp>
-#include <ny/backend/winapi/windows.hpp>
+#include <ny/winapi/include.hpp>
+#include <ny/winapi/windowContext.hpp>
+#include <ny/winapi/windows.hpp>
 
-#include <ny/backend/common/gl.hpp>
-#include <ny/backend/common/library.hpp>
+#include <ny/library.hpp>
+#include <ny/common/gl.hpp>
 
 namespace ny
 {

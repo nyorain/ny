@@ -1,8 +1,8 @@
-#define VK_USE_PLATFORM_WIN32_KHR
+#include <ny/winapi/vulkan.hpp>
+#include <ny/winapi/appContext.hpp>
+#include <ny/surface.hpp>
 
-#include <ny/backend/winapi/vulkan.hpp>
-#include <ny/backend/winapi/appContext.hpp>
-#include <ny/backend/integration/surface.hpp>
+#define VK_USE_PLATFORM_WIN32_KHR
 #include <vulkan/vulkan.h>
 
 namespace ny

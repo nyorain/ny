@@ -1,0 +1,447 @@
+namespace ny
+{
+
+//
+struct ArcData
+{
+	vec2f radius;
+	bool largeArc;
+    bool clockwise;
+};
+
+///The PathSegment class represents a part of a Path object, it is able to represent all
+///svg path subcommands. It does always hold the position of the next point in the path and
+///additionally some data that are specific to the used draw type, e.g. some kind of curve or line.
+class PathSegment
+{
+public:
+    enum class Type
+    {
+        line,
+        smoothQuadCurve,
+        quadCurve,
+        smoothCubicCurve,
+        cubicCurve,
+        arc
+    };
+
+protected:
+	Type type_;
+    vec2f position_;
+
+	union
+	{
+        vec2f controlPoint_;
+		std::pair<vec2f> quadCurveControlPoints_;
+		ArcData arc_;
+	};
+
+public:
+    PathSegment(const vec2f& position, Type t = Type::line);
+
+    const vec2f& position() const { return position_; }
+    void position(const vec2f& pos){ position_ = pos; }
+
+    Type type() const { return type_; }
+
+    void line();
+    void smoothQuadCurve();
+    void quadCurve(const vec2f& control);
+    void smoothCubicCurve(const vec2f& control);
+    void cubicCurve(const vec2f& control1, const vec2f& control2);
+    void arc(const arcData& data);
+
+    vec2f controlPoint() const;
+    std::pair<vec2f> quadCurveControlPoints() const;
+    ArcData arcData() const;
+};
+
+///The PlainSubpath class represents a closed path that consists of straight lines only.
+///It can be created (baked) from every normal subpath but just approximates the curves.
+///Since it is basically just an array of points, the class is derived from std::vector<vec2f>.
+class PlainSubpath : public std::vector<vec2f>
+{
+protected:
+    bool closed_;
+
+public:
+    PlainSubpath(const std::vector<vec2f>& points, bool closed = 0);
+
+    bool closed() const { return closed_; }
+    void closed(bool b){ closed_ = b; }
+};
+
+//Subpath
+class Subpath
+{
+protected:
+    vec2f start_;
+    std::vector<PathSegment> segments_;
+    bool closed_ = 0;
+
+public:
+    Subpath(const vec2f& start = {0,0});
+
+    const PathSegment& line(const vec2f& point);
+    const PathSegment& curve();
+    const PathSegment& smoothCurve();
+    const PathSegment& quadraticBezier();
+    const PathSegment& smoothQuadraticBezier();
+    const PathSegment& arc();
+    void close(){ closed_ = 1; }
+
+    const std::vector<PathSegment>& getSegments() const { return segments_; }
+    bool closed() const { return closed_; }
+
+    PlainSubpath bake() const;
+};
+
+//Path
+class Path : public transformable2
+{
+protected:
+    std::vector<Subpath> subpaths_;
+
+public:
+    Path();
+    ~Path() = default;
+
+    Subpath& newSubpath();
+    Subpath& move(const vec2f& point);
+    const PathSegment& line(const vec2f& point);
+    const PathSegment& curve();
+    const PathSegment& smoothCurve();
+    const PathSegment& quadraticBezier();
+    const PathSegment& smoothQuadraticBezier();
+    const PathSegment& arc();
+    Subpath& close();
+
+    Subpath& currentSubpath() const { return subpaths_.back(); }
+};
+
+//rectangle
+class Rectangle : public transformable2
+{
+protected:
+    vec2f size_;
+    vec4f borderRadius_;
+
+public:
+    rectangle(vec2f position = vec2f(), vec2f size = vec2f()) : size_(size) { setPosition(position); }
+    rectangle(float px, float py, float sx = 0, float sy = 0) : size_(sx, sy) { setPosition({px,py}); }
+
+    void setSize(vec2f size){ size_ = size; }
+    void setSize(float width, float height){ size_ = {width, height}; }
+
+    void setBorderRadius(vec4f br){ borderRadius_ = br; }
+    void setBorderRadius(float value){ borderRadius_.fill(value); }
+    void setBorderRadius(float leftTop, float rightTop, float rightBottom, float leftBottom){ borderRadius_ = {leftTop, rightTop, rightBottom, leftBottom}; }
+
+    vec2f getSize() const { return size_; }
+    vec4f getBorderRadius() const { return borderRadius_; }
+
+    customPath getAsCustomPath() const;
+
+    template<class prec> operator rect2<prec>() const { return rect2<prec>(getPosition(), size_); }
+
+    //inherited from transformable
+    virtual rect2f getExtents() const override { return rect2f(getPosition(), size_); }
+};
+
+//Text
+class Text : public transformable2
+{
+protected:
+    vec2f position_ {};
+    float size_ {14};
+    std::string string_ {};
+    textBound bound_ {textBound::left};
+    font* font_ {nullptr};
+
+public:
+    text(const std::string& s = "", float size = 14) : size_(size), string_(s), bound_(textBound::left), font_(&font::getDefault()) {}
+    text(vec2f position, const std::string& s = "", float size = 14) : position_(position), size_(size), string_(s), font_(&font::getDefault()) {};
+    text(float x, float y, float size) : position_(x,y), size_(size), font_(&font::getDefault()) {}
+
+    void setPosition(vec2f position){ position_ = position; }
+    void setPosition(float x, float y){ position_ = {x,y}; }
+
+    void setString(const std::string& s){ string_ = s; }
+    std::string getString() const { return string_; }
+
+    vec2f getPosition() const { return position_; }
+    float getSize() const { return size_; }
+
+    textBound getBound() const { return bound_; }
+    void setBound(textBound b) { bound_ = b; }
+
+    font* getFont() const { return font_; }
+    void setFont(font& f) { font_ = &f; }
+
+    //inherited from transformable
+    rect2f getExtents() const { rect2f ret; return ret; }
+};
+
+//Circle
+class Circle : public transformable2
+{
+protected:
+    vec2f position_ {};
+    float radius_ {0};
+    unsigned int points_ {30};
+
+public:
+    circle() = default;
+    circle(float radius) : radius_(radius) {}
+    circle(vec2f position, float radius = 0, unsigned int points = 30) : position_(position), radius_(radius), points_(points) {}
+    circle(float x, float y, float radius = 0, unsigned int points = 30) : position_(x,y), radius_(radius), points_(points) {}
+
+    circle(const circle& other) = default;
+
+    void setPosition(vec2f position){ position_ = position; }
+    void setPosition(float x, float y){ position_ = {x,y}; }
+
+    void setRadius(float r){ radius_ = r; }
+    void setPoints(unsigned int points){ points_ = points; }
+
+    vec2f getPosition() const { return position_; }
+    float getRadius() const { return radius_; }
+    unsigned int getPoints() const { return points_; }
+
+    vec2f getCenter() const { return getPosition() - getOrigin() + vec2f(radius_, radius_); } //todo?
+
+    customPath getAsCustomPath() const;
+
+    //inherited from transformable
+    rect2f getExtents() const { return rect2f(position_, vec2f(radius_ * 2, radius_ * 2)); }
+};
+
+//PathBase
+class PathBase
+{
+public:
+    enum class Type
+    {
+        text,
+        rectangle,
+        path,
+        circle
+    };
+
+protected:
+    Type type_;
+
+    union
+	{
+		Text text_;
+		Rectangle rectangle_;
+		Circle circle_;
+		Path path_ {};
+	};
+
+public:
+	PathBase() : type_(Type::path), custom_() {}
+
+    PathBase(const rectangle& obj) : type_(pathType::rectangle), rectangle_(obj) {}
+    PathBase(const circle& obj) : type_(pathType::circle), circle_(obj) {}
+    PathBase(const text& obj) : type_(pathType::text), text_(obj) {}
+    PathBase(const customPath& obj) : type_(pathType::custom), custom_(obj) {}
+
+	PathBase(const PathBase& lhs) noexcept;
+    PathBase& operator=(const PathBase& lhs) noexcept;
+
+	PathBase(PathBase&& lhs) noexcept;
+    PathBase& operator=(PathBase&& lhs) noexcept;
+
+    ~PathBase();
+
+	void text(const text& obj){ type_ = pathType::text; text_ = obj; }
+	void rectangle(const rectangle& obj){ type_ = pathType::rectangle; rectangle_ = obj; }
+	void circle(const circle& obj){ type_ = pathType::circle; circle_ = obj; }
+	void path(const customPath& obj){ type_ = pathType::custom; custom_ = obj; }
+
+	Type type() const { return type_; }
+
+	const text& text() const { return text_; }
+	const rectangle& rectangle() const { return rectangle_; }
+	const circle& circle() const { return circle_; }
+	const customPath& custom() const { return custom_; }
+
+	const transformable2& transformable() const;
+	transformable2& transformable();
+
+    ////transformable//////////////
+    void rotate(float rotation){ transformable().rotate(rotation); }
+    void move(const vec2f& translation){ transformable().move(translation); }
+    void scale(const vec2f& pscale){ transformable().scale(pscale); }
+    void moveOrigin(const vec2f& m) { transformable().moveOrigin(m); };
+
+    void rotation(float rotation){ transformable().setRotation(rotation); }
+    void position(const vec2f& translation){ transformable().setPosition(translation); }
+    void scale(const vec2f& pscale){ transformable().setScale(pscale); }
+    void origin(const vec2f& origin) { transformable().setOrigin(origin); }
+
+    float rotation() const { return transformable().getRotation(); }
+    const vec2f& position() const { return transformable().getPosition(); }
+    const vec2f& scale() const { return transformable().getScale(); }
+    const vec2f& origin() const { return transformable().getOrigin(); }
+
+	void copyTransform(const transformable2& other){ transformable().copyTransform(other); };
+
+    mat3f transformMatrix() const { return transformable().getTransformMatrix(); }
+
+	rect2f extents() const { return transformable().getExtents(); }
+	rect2f transformedExtents() const { return transformable().getTransformedExtents(); }
+
+};
+//Mask
+class Mask : std::vector<PathBase>
+{
+
+};
+
+
+//Shape
+class Shape
+{
+protected:
+    PathBase path_;
+    Brush brush_;
+    Pen pen_;
+};
+
+}
+
+
+
+
+
+
+
+class CairoSurface
+{
+public:
+	virtual SurfaceGuard get() = 0;
+};
+
+CairoSurface cairoSurface(const WindowContext& context)
+{
+	auto fncs = funcs();
+	for(auto f : fncs)
+	{
+		auto ret = f(context);
+		if(ret) return ret;
+	}
+
+	return nullptr;
+}
+
+using CairoSurfaceCreateFunction =
+	std::function<std::unique_ptr<CairoSurface>(const WindowContext& context)>;
+
+std::vector<CairoSurfaceCreateFunction>& funcs()
+{
+	static std::vector<CairoSurfaceCreateFunction> funcs;
+	return funcs;
+}
+
+class WinapiCairoSurface
+{
+public:
+	SurfaceGuard get() override;
+};
+
+std::unique_ptr<CairoSurface> winapiCairoSurface(const WindowContext& context)
+{
+	auto* wc = dynamic_cast<WinapiWindowContext*>(context);
+	if(!wc) return nullptr;
+
+	...
+}
+
+
+#include <ny/backend.hpp>
+#include <ny/integration/cairo.hpp>
+
+int main()
+{
+	auto windowContext = ...;
+
+
+
+	//connect cairo to the windowContext
+	auto cairoIntegration = ny::cairoIntegration(*windowContext);
+
+	//when drawing
+	auto guard = cairoIntegration.get();
+	auto& surf = guard.surface();
+	auto cr = cairo_create(&surf);
+	... use cr ...
+
+
+
+	//or connect evg to the windowContext
+	auto evgIntegration = ny::evgIntegration(*windowContext);
+
+	//when drawing
+	auto guard = evgIntegration->get();
+	auto& dc = guard.dc();
+	... use dc ...
+
+
+
+	//or connect skia to the windowContext
+	auto skiaIntegration = ny::skiaIntegration(*windowContext);
+
+	//when drawing
+	auto guard = skiaIntegration.get();
+}
+
+
+
+
+class Surface
+{
+public:
+	enum Type
+	{
+		none,
+		buffer,
+		gl,
+		vulkan
+	};
+
+public:
+	Type type;
+	union
+	{
+		GlContext* gl;
+		VulkanSurfaceContext* vulkan;
+		std::unique_ptr<SurfaceBuffer> buffer;
+	};
+};
+
+class BufferGuard
+{
+public:
+	BufferGuard(SurfaceBuffer&);
+	~BufferGuard();
+
+	const ImageData& get() { return data_; }
+
+protected:
+	ImageData data_;
+};
+
+class SurfaceBuffer
+{
+public:
+	SurfaceBuffer() = default;
+	virtual ~SurfaceBuffer() = default;
+
+	BufferGuard get() { return BufferGuard(*this); }
+
+protected:
+	virtual ImageData init() = 0;
+	virtual void apply(ImageData&) = 0;
+};

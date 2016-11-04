@@ -1,7 +1,7 @@
-#include <ny/backend/winapi/cairo.hpp>
-#include <ny/backend/winapi/appContext.hpp>
-#include <ny/backend/winapi/windowContext.hpp>
-#include <ny/base/log.hpp>
+#include <ny/winapi/cairo.hpp>
+#include <ny/winapi/appContext.hpp>
+#include <ny/winapi/windowContext.hpp>
+#include <ny/log.hpp>
 
 #include <cairo/cairo-win32.h>
 
@@ -37,11 +37,11 @@ WinapiCairoIntegration::~WinapiCairoIntegration()
 {
 }
 
-cairo_surface_t& WinapiCairoIntegration::init()
+CairoSurfaceGuard WinapiCairoIntegration::get()
 {
-	auto extents = windowContext_.clientExtents();
-	auto surface = cairo_win32_surface_create_with_dib(CAIRO_FORMAT_ARGB32, extents.width(), extents.height());
-	return *surface;
+	auto size = windowContext_.clientExtents().size;
+	auto surface = cairo_win32_surface_create_with_dib(CAIRO_FORMAT_ARGB32, size.x, size.y);
+	return {*this, *surface, size};
 }
 void WinapiCairoIntegration::apply(cairo_surface_t& surface)
 {

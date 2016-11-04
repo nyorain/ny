@@ -9,7 +9,7 @@ The goal
 The goal of ny is to offer a modern, independent and lightweight toolkit for all windowing uses.
 It aims for gaming/cad/general-hardware-accelerated applications as well as normal ui applications.
 This is achieved by offering integration with drawing capabilities while keeping the connection
-as small as possible. It can be compiled without any drawing toolkits (or other bloated 
+as small as possible. It can be compiled without any drawing toolkits (or other bloated
 dependencies) at all.
 The only things it needs are basically the needed underlaying backend libraries, a bunch
 modern C++ template headers that are downloaded automatically during building (cmake + git)
@@ -126,7 +126,7 @@ go with default decorations.
 
 Asking the backend for client side decorations (or for server side decorations if they are
 off by default) can be done using the WindowContext::{add/remove}WindowHints functions.
-Note that the result queried by ny::WindowContext::customDecorated might be wrong in 
+Note that the result queried by ny::WindowContext::customDecorated might be wrong in
 some cases (e.g. it cannot be correctly detected on an x11 backend - one only asks the server
 to not decorate it, if they do so is not known) so this result should be used as sane
 default while giving the user the possiblity to explicitly enable/disable client decorations
@@ -346,3 +346,18 @@ Current cursor implementation (not optimal, to be changed):
 - every WindowContext has its own wayland::ShmBuffer that is used for custom image cursors
 - every WindowContext has a non-owned wl_buffer* that holds the cursor contents for its surface
 - WaylandMouseContext has a wl_surface* that is always the cursor surface
+
+Backend-specifi - Winapi
+------------------------
+
+About winapi, keycodes and unicode:
+Winapi makes it very hard for ny to correctly convert keycodes to utf8 string.
+To correctly implement the KeyboardContext::utf8 function, WinapiKeyboardContext holds
+an internal table of keycodes mapped to their default unicode strings since querying this
+when needed might interfer with the real key events.
+The only free function for converting keycodes to unicode is ::ToUnicode which does not really
+meet all needs.
+
+Some posts regarding clearing the keyboard buffer:
+web.archive.org/web/20101004154432/http://blogs.msdn.com/b/michkap/archive/2006/04/06/569632.aspx
+web.archive.org/web/20100820152419/http://blogs.msdn.com/b/michkap/archive/2007/10/27/5717859.aspx
