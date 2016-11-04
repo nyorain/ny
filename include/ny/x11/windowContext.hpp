@@ -1,8 +1,8 @@
 #pragma once
 
-#include <ny/backend/x11/include.hpp>
-#include <ny/backend/windowContext.hpp>
-#include <ny/backend/windowSettings.hpp>
+#include <ny/x11/include.hpp>
+#include <ny/windowContext.hpp>
+#include <ny/windowSettings.hpp>
 
 #include <cstdint>
 #include <vector>

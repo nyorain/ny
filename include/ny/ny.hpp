@@ -2,9 +2,26 @@
 
 #include <ny/include.hpp>
 
-#include <ny/app.hpp>
-#include <ny/window.hpp>
-#include <ny/base.hpp>
-#include <ny/draw.hpp>
 #include <ny/backend.hpp>
-#include <ny/gui.hpp>
+#include <ny/appContext.hpp>
+#include <ny/windowContext.hpp>
+
+#include <ny/windowSettings.hpp>
+#include <ny/imageData.hpp>
+#include <ny/data.hpp>
+#include <ny/cursor.hpp>
+#include <ny/eventHandler.hpp>
+#include <ny/eventDispatcher.hpp>
+#include <ny/event.hpp>
+#include <ny/events.hpp>
+#include <ny/loopControl.hpp>
+#include <ny/log.hpp>
+#include <ny/library.hpp>
+#include <ny/nativeHandle.hpp>
+#include <ny/surface.hpp>
+
+#include <ny/key.hpp>
+#include <ny/keyboardContext.hpp>
+
+#include <ny/mouseButton.hpp>
+#include <ny/mouseContext.hpp>

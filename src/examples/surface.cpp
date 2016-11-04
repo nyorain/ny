@@ -1,7 +1,8 @@
-#include <ny/base.hpp>
-#include <ny/backend.hpp>
-#include <ny/base/key.hpp>
-#include <ny/backend/integration/surface.hpp>
+#include <ny/ny.hpp>
+
+///XXX: this example shows how to draw into a raw memory buffer to display content in a window.
+///This way one can easily use all software rasterizer do draw onto a ny window without having
+///to call any platform-dependent code.
 
 class MyEventHandler : public ny::EventHandler
 {

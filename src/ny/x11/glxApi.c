@@ -40,7 +40,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ny/backend/x11/glxApi.hpp>
+#include <ny/x11/glxApi.hpp>
 
 static void* get_proc(const char *namez);
 

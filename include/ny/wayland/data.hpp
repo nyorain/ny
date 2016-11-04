@@ -1,7 +1,8 @@
 #pragma once
 
-#include <ny/backend/wayland/include.hpp>
-#include <ny/base/data.hpp>
+#include <ny/wayland/include.hpp>
+#include <ny/data.hpp>
+
 #include <nytl/callback.hpp>
 #include <map>
 

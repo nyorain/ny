@@ -1,4 +1,4 @@
-#include <ny/backend/integration/cairo.hpp>
+#include <ny/common/cairo.hpp>
 #include <vector>
 
 namespace ny

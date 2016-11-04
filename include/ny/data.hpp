@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <ny/base/event.hpp>
+#include <ny/event.hpp>
 
 #include <nytl/callback.hpp>
 

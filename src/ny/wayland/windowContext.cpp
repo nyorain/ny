@@ -1,17 +1,17 @@
-#include <ny/backend/wayland/windowContext.hpp>
-#include <ny/backend/wayland/appContext.hpp>
-#include <ny/backend/wayland/interfaces.hpp>
-#include <ny/backend/wayland/input.hpp>
-#include <ny/backend/wayland/util.hpp>
-#include <ny/backend/wayland/surface.hpp>
-#include <ny/backend/wayland/xdg-shell-client-protocol.h>
-#include <ny/backend/common/unix.hpp>
-#include <ny/backend/mouseContext.hpp>
+#include <ny/wayland/windowContext.hpp>
+#include <ny/wayland/appContext.hpp>
+#include <ny/wayland/interfaces.hpp>
+#include <ny/wayland/input.hpp>
+#include <ny/wayland/util.hpp>
+#include <ny/wayland/surface.hpp>
+#include <ny/wayland/xdg-shell-client-protocol.h>
 
-#include <ny/base/event.hpp>
-#include <ny/base/cursor.hpp>
-#include <ny/base/log.hpp>
-#include <ny/backend/events.hpp>
+#include <ny/common/unix.hpp>
+#include <ny/mouseContext.hpp>
+#include <ny/event.hpp>
+#include <ny/cursor.hpp>
+#include <ny/log.hpp>
+#include <ny/events.hpp>
 
 #include <wayland-cursor.h>
 

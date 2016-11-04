@@ -1,8 +1,8 @@
-#define VK_USE_PLATFORM_WAYLAND_KHR
+#include <ny/wayland/vulkan.hpp>
+#include <ny/wayland/appContext.hpp>
+#include <ny/surface.hpp>
 
-#include <ny/backend/wayland/vulkan.hpp>
-#include <ny/backend/wayland/appContext.hpp>
-#include <ny/backend/integration/surface.hpp>
+#define VK_USE_PLATFORM_WAYLAND_KHR
 #include <vulkan/vulkan.h>
 
 namespace ny

@@ -1,8 +1,8 @@
 #pragma once
 
-#include <ny/backend/wayland/include.hpp>
-#include <ny/backend/wayland/windowContext.hpp>
-#include <ny/backend/common/egl.hpp>
+#include <ny/wayland/include.hpp>
+#include <ny/wayland/windowContext.hpp>
+#include <ny/common/egl.hpp>
 
 #include <nytl/nonCopyable.hpp>
 #include <nytl/vec.hpp>

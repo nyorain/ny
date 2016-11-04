@@ -1,8 +1,8 @@
 #pragma once
 
-#include <ny/backend/wayland/include.hpp>
-#include <ny/backend/wayland/windowContext.hpp>
-#include <ny/backend/integration/surface.hpp>
+#include <ny/wayland/include.hpp>
+#include <ny/wayland/windowContext.hpp>
+#include <ny/surface.hpp>
 #include <nytl/vec.hpp>
 
 namespace ny

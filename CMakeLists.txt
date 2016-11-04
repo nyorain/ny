@@ -185,8 +185,7 @@ message("\tWithCairo:\t\t" ${WithCairo})
 message("\n")
 
 message("\tnytl build:\t\t" ${nytl_location})
+message("\texamples:\t\t" ${BuildExamples})
 
 message("\n\tny version:\t\t" ${vmajor} "." ${vminor} "." ${vpatch})
 message("\n")
-
-# contributions to the ny cmake files are highly appreciated. lol

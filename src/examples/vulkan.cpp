@@ -1,5 +1,4 @@
-#include <ny/base.hpp>
-#include <ny/backend.hpp>
+#include <ny/ny.hpp>
 #include <vulkan/vulkan.h>
 
 //This example only creates a window with vulkan surface

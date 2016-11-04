@@ -1,9 +1,9 @@
-#include <ny/backend/wayland/data.hpp>
-#include <ny/backend/wayland/util.hpp>
-#include <ny/backend/wayland/appContext.hpp>
-#include <ny/backend/wayland/windowContext.hpp>
-#include <ny/backend/wayland/input.hpp>
-#include <ny/base/log.hpp>
+#include <ny/wayland/data.hpp>
+#include <ny/wayland/util.hpp>
+#include <ny/wayland/appContext.hpp>
+#include <ny/wayland/windowContext.hpp>
+#include <ny/wayland/input.hpp>
+#include <ny/log.hpp>
 
 #include <nytl/stringParam.hpp>
 

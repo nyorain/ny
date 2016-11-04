@@ -1,6 +1,4 @@
-#include <ny/base.hpp>
-#include <ny/backend.hpp>
-#include <ny/backend/integration/surface.hpp>
+#include <ny/ny.hpp>
 
 #include <SkBitmap.h>
 #include <SkCanvas.h>

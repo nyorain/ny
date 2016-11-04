@@ -1,9 +1,9 @@
 #pragma once
 
-#include <ny/backend/x11/include.hpp>
-#include <ny/backend/x11/windowContext.hpp>
-#include <ny/backend/common/gl.hpp>
-#include <ny/backend/common/library.hpp>
+#include <ny/x11/include.hpp>
+#include <ny/x11/windowContext.hpp>
+#include <ny/common/gl.hpp>
+#include <ny/library.hpp>
 #include <nytl/vec.hpp>
 
 //prototypes to include glx.h

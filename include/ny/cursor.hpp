@@ -1,8 +1,9 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <ny/base/imageData.hpp>
+#include <ny/imageData.hpp>
 #include <nytl/vec.hpp>
+
 #include <memory>
 
 namespace ny

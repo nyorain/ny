@@ -1,9 +1,9 @@
-#include <ny/backend/wayland/cairo.hpp>
-#include <ny/backend/wayland/appContext.hpp>
-#include <ny/backend/wayland/interfaces.hpp>
+#include <ny/wayland/cairo.hpp>
+#include <ny/wayland/appContext.hpp>
+#include <ny/wayland/interfaces.hpp>
 
-#include <ny/base/log.hpp>
-#include <ny/base/imageData.hpp>
+#include <ny/log.hpp>
+#include <ny/imageData.hpp>
 
 #include <nytl/rect.hpp>
 #include <nytl/vecOps.hpp>

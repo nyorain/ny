@@ -1,24 +1,24 @@
-#include <ny/backend/wayland/appContext.hpp>
+#include <ny/wayland/appContext.hpp>
 
-#include <ny/backend/wayland/util.hpp>
-#include <ny/backend/wayland/interfaces.hpp>
-#include <ny/backend/wayland/windowContext.hpp>
-#include <ny/backend/wayland/input.hpp>
-#include <ny/backend/wayland/data.hpp>
-#include <ny/backend/wayland/xdg-shell-client-protocol.h>
+#include <ny/wayland/util.hpp>
+#include <ny/wayland/interfaces.hpp>
+#include <ny/wayland/windowContext.hpp>
+#include <ny/wayland/input.hpp>
+#include <ny/wayland/data.hpp>
+#include <ny/wayland/xdg-shell-client-protocol.h>
 
-#include <ny/base/eventDispatcher.hpp>
-#include <ny/base/loopControl.hpp>
-#include <ny/base/log.hpp>
+#include <ny/eventDispatcher.hpp>
+#include <ny/loopControl.hpp>
+#include <ny/log.hpp>
 
 #ifdef NY_WithEGL
- #include <ny/backend/common/egl.hpp>
- #include <ny/backend/wayland/egl.hpp>
+ #include <ny/common/egl.hpp>
+ #include <ny/wayland/egl.hpp>
 #endif //WithGL
 
 #ifdef NY_WithVulkan
  #define VK_USE_PLATFORM_WAYLAND_KHR
- #include <ny/backend/wayland/vulkan.hpp>
+ #include <ny/wayland/vulkan.hpp>
  #include <vulkan/vulkan.h>
 #endif //WithVulkan
 

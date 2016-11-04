@@ -1,4 +1,4 @@
-#include <ny/base/key.hpp>
+#include <ny/key.hpp>
 
 namespace ny
 {

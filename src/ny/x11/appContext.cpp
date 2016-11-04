@@ -1,22 +1,22 @@
-#include <ny/backend/x11/appContext.hpp>
-#include <ny/backend/x11/windowContext.hpp>
-#include <ny/backend/x11/util.hpp>
-#include <ny/backend/x11/input.hpp>
-#include <ny/backend/x11/internal.hpp>
-#include <ny/backend/common/unix.hpp>
-#include <ny/base/loopControl.hpp>
-#include <ny/base/log.hpp>
-#include <ny/base/eventDispatcher.hpp>
-#include <ny/backend/events.hpp>
+#include <ny/x11/appContext.hpp>
+#include <ny/x11/windowContext.hpp>
+#include <ny/x11/util.hpp>
+#include <ny/x11/input.hpp>
+#include <ny/x11/internal.hpp>
+#include <ny/common/unix.hpp>
+#include <ny/loopControl.hpp>
+#include <ny/log.hpp>
+#include <ny/eventDispatcher.hpp>
+#include <ny/events.hpp>
 
 #ifdef NY_WithVulkan
  #define VK_USE_PLATFORM_XCB_KHR
- #include <ny/backend/x11/vulkan.hpp>
+ #include <ny/x11/vulkan.hpp>
  #include <vulkan/vulkan.h>
 #endif //Vulkan
 
 #ifdef NY_WithGL
- #include <ny/backend/x11/glx.hpp>
+ #include <ny/x11/glx.hpp>
 #endif //GL
 
 #include <nytl/scope.hpp>

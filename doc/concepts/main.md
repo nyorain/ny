@@ -1,4 +1,5 @@
 Editor notes:
+ - Documentation for devs
  - This text is really unstructured and maybe only makes sense when read entirely.
  - TODO: restructure it.
 
@@ -309,9 +310,37 @@ in between two application startups, the unicode value of the key associated wit
 control will change (i.e. from 'Y' to 'Z' when switching between german/us layout).
 The control mappings to the raw hardware keys, however, will stay the same.
 
+Backends
+========
+
+The entry point to most of nys functionality is a Backend object.
+This can either be manually implemented, manually chosen or automatically be chosen by ny.
+The sane default that should be used if there are no reasons to not do so it letting ny
+chose the backend by using the static ny::Backend::choose function.
+It will test which of the registered backends (which are the default ny backends and any number
+of custom implemented or loaded backends) are available and then just chose one.
+First of all the algorithm checks if the "NY_BACKEND" environment variable is set and if
+there is a registered backend with the value of the variable and this backend is available it will
+be chosen.
+
+Otherwise it will chose one of the available backends, where it will prefer the built-in backends
+but if none of them are available it will just chose the first unknown one.
+If multiple built-in backends are availble, the function choses winapi > wayland > x11 since
+x11 (and theoretically wayland) might be emulated on windows as well as x11 is usually
+emulated on wayland and ny wants to chose the native backend.
+
+If the function finds no available backend, it will throw a std::runtime_error which could
+be caught by the application, but since it cannot use ny in any way in this case, the application
+usually wants to exit this way.
+
+Custom Backend implementations just have to create an instance of themselfs (which is usually
+done with a static variable) to getting considered by the Backend::choose algorithm.
+Notice that ny is always open for new custom backends so please consider to let ny pull
+your backend implementations into its own codebase.
+
 
 Backend-specific - Wayland
-==========================
+--------------------------
 
 Current cursor implementation (not optimal, to be changed):
 - every WindowContext has its own wayland::ShmBuffer that is used for custom image cursors

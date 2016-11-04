@@ -1,4 +1,4 @@
-#include <ny/base/cursor.hpp>
+#include <ny/cursor.hpp>
 
 namespace ny
 {

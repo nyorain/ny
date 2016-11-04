@@ -1,7 +1,7 @@
 #pragma once
 
-#include <ny/backend/wayland/include.hpp>
-#include <ny/backend/wayland/windowContext.hpp>
+#include <ny/wayland/include.hpp>
+#include <ny/wayland/windowContext.hpp>
 
 namespace ny
 {

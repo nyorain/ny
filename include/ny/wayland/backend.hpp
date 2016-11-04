@@ -1,7 +1,7 @@
 #pragma once
 
-#include <ny/backend/wayland/include.hpp>
-#include <ny/backend/backend.hpp>
+#include <ny/wayland/include.hpp>
+#include <ny/backend.hpp>
 
 namespace ny
 {

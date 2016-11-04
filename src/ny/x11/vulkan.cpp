@@ -1,8 +1,8 @@
-#define VK_USE_PLATFORM_XCB_KHR
+#include <ny/x11/vulkan.hpp>
+#include <ny/x11/appContext.hpp>
+#include <ny/surface.hpp>
 
-#include <ny/backend/x11/vulkan.hpp>
-#include <ny/backend/x11/appContext.hpp>
-#include <ny/backend/integration/surface.hpp>
+#define VK_USE_PLATFORM_XCB_KHR
 #include <vulkan/vulkan.h>
 
 namespace ny

@@ -1,8 +1,8 @@
 #pragma once
 
-#include <ny/backend/x11/include.hpp>
-#include <ny/backend/x11/windowContext.hpp>
-#include <ny/backend/integration/cairo.hpp>
+#include <ny/x11/include.hpp>
+#include <ny/x11/windowContext.hpp>
+#include <ny/common/cairo.hpp>
 #include <nytl/vec.hpp>
 
 namespace ny

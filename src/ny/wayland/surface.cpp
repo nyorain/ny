@@ -1,8 +1,8 @@
-#include <ny/backend/wayland/surface.hpp>
-#include <ny/backend/wayland/util.hpp>
-#include <ny/base/log.hpp>
-#include <nytl/vecOps.hpp>
+#include <ny/wayland/surface.hpp>
+#include <ny/wayland/util.hpp>
+#include <ny/log.hpp>
 
+#include <nytl/vecOps.hpp>
 #include <stdexcept>
 
 namespace ny

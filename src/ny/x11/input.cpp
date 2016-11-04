@@ -1,7 +1,7 @@
-#include <ny/backend/x11/input.hpp>
-#include <ny/backend/x11/appContext.hpp>
-#include <ny/backend/x11/windowContext.hpp>
-#include <ny/base/log.hpp>
+#include <ny/x11/input.hpp>
+#include <ny/x11/appContext.hpp>
+#include <ny/x11/windowContext.hpp>
+#include <ny/log.hpp>
 
 #include <nytl/utf.hpp>
 #include <nytl/vecOps.hpp>

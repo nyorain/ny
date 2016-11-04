@@ -1,4 +1,4 @@
-#include <ny/backend/common/library.hpp>
+#include <ny/library.hpp>
 
 #ifdef _WIN32
 	#include <windows.h>

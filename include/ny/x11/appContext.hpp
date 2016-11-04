@@ -1,7 +1,7 @@
 #pragma once
 
-#include <ny/backend/x11/include.hpp>
-#include <ny/backend/appContext.hpp>
+#include <ny/x11/include.hpp>
+#include <ny/appContext.hpp>
 
 //TODO: remove this. Needs some typedef magic + void* args...
 //problem: xcb uses anonymous typedef structs which cannot be forward declared.

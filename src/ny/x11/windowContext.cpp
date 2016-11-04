@@ -1,16 +1,16 @@
-#include <ny/backend/x11/windowContext.hpp>
+#include <ny/x11/windowContext.hpp>
 
-#include <ny/backend/x11/util.hpp>
-#include <ny/backend/x11/defs.hpp>
-#include <ny/backend/x11/appContext.hpp>
-#include <ny/backend/x11/internal.hpp>
-#include <ny/backend/x11/surface.hpp>
-#include <ny/backend/common/unix.hpp>
-#include <ny/backend/events.hpp>
+#include <ny/x11/util.hpp>
+#include <ny/x11/defs.hpp>
+#include <ny/x11/appContext.hpp>
+#include <ny/x11/internal.hpp>
+#include <ny/x11/surface.hpp>
+#include <ny/common/unix.hpp>
+#include <ny/events.hpp>
 
-#include <ny/base/event.hpp>
-#include <ny/base/log.hpp>
-#include <ny/base/cursor.hpp>
+#include <ny/event.hpp>
+#include <ny/log.hpp>
+#include <ny/cursor.hpp>
 
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>

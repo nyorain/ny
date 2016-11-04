@@ -1,5 +1,4 @@
-#include <ny/base.hpp>
-#include <ny/backend.hpp>
+#include <ny/ny.hpp>
 
 //XXX: This is the first ny example.
 //It tries to cover the most important parts a ny application has or might use.

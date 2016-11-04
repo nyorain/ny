@@ -1,8 +1,8 @@
 #pragma once
 
-#include <ny/backend/x11/include.hpp>
-#include <ny/backend/common/xkb.hpp>
-#include <ny/backend/mouseContext.hpp>
+#include <ny/x11/include.hpp>
+#include <ny/common/xkb.hpp>
+#include <ny/mouseContext.hpp>
 
 //argh...
 #include <xcb/xcb.h>

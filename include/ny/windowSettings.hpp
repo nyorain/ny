@@ -1,8 +1,8 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <ny/base/cursor.hpp>
-#include <ny/base/nativeHandle.hpp>
+#include <ny/cursor.hpp>
+#include <ny/nativeHandle.hpp>
 
 #include <nytl/flags.hpp>
 #include <nytl/vec.hpp>

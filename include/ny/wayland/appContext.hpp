@@ -1,7 +1,7 @@
 #pragma once
 
-#include <ny/backend/wayland/include.hpp>
-#include <ny/backend/appContext.hpp>
+#include <ny/wayland/include.hpp>
+#include <ny/appContext.hpp>
 #include <nytl/callback.hpp>
 
 #include <vector>

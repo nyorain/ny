@@ -1,8 +1,8 @@
-#include <ny/base/eventDispatcher.hpp>
-#include <ny/base/event.hpp>
-#include <ny/base/eventHandler.hpp>
-#include <ny/base/loopControl.hpp>
-#include <ny/base/log.hpp>
+#include <ny/eventDispatcher.hpp>
+#include <ny/event.hpp>
+#include <ny/eventHandler.hpp>
+#include <ny/loopControl.hpp>
+#include <ny/log.hpp>
 
 #include <nytl/scope.hpp>
 

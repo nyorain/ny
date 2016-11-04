@@ -1,8 +1,8 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <ny/base/eventHandler.hpp>
-#include <ny/base/nativeHandle.hpp>
+#include <ny/eventHandler.hpp>
+#include <ny/nativeHandle.hpp>
 
 #include <nytl/flags.hpp>
 

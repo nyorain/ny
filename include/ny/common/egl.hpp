@@ -1,8 +1,8 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <ny/backend/common/gl.hpp>
-#include <ny/backend/common/library.hpp>
+#include <ny/library.hpp>
+#include <ny/common/gl.hpp>
 
 #include <string>
 #include <vector>

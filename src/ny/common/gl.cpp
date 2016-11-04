@@ -1,5 +1,5 @@
-#include <ny/backend/common/gl.hpp>
-#include <ny/base/log.hpp>
+#include <ny/common/gl.hpp>
+#include <ny/log.hpp>
 #include <nytl/misc.hpp>
 
 #include <thread>

@@ -1,8 +1,8 @@
 #pragma once
 
-#include <ny/backend/wayland/include.hpp>
-#include <ny/backend/common/xkb.hpp>
-#include <ny/backend/mouseContext.hpp>
+#include <ny/wayland/include.hpp>
+#include <ny/common/xkb.hpp>
+#include <ny/mouseContext.hpp>
 #include <nytl/vec.hpp>
 
 namespace ny

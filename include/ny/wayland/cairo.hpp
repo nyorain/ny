@@ -1,9 +1,9 @@
 #pragma once
 
-#include <ny/backend/wayland/include.hpp>
-#include <ny/backend/wayland/windowContext.hpp>
-#include <ny/backend/wayland/util.hpp>
-#include <ny/backend/integration/cairo.hpp>
+#include <ny/wayland/include.hpp>
+#include <ny/wayland/windowContext.hpp>
+#include <ny/wayland/util.hpp>
+#include <ny/common/cairo.hpp>
 #include <nytl/vec.hpp>
 
 namespace ny

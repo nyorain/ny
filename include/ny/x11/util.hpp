@@ -1,10 +1,10 @@
 #pragma once
 
-#include <ny/backend/x11/include.hpp>
+#include <ny/x11/include.hpp>
 
-#include <ny/backend/keyboardContext.hpp>
-#include <ny/backend/mouseContext.hpp>
-#include <ny/base/cursor.hpp>
+#include <ny/keyboardContext.hpp>
+#include <ny/mouseContext.hpp>
+#include <ny/cursor.hpp>
 
 #include <xcb/xcb.h>
 

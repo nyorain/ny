@@ -1,17 +1,14 @@
-#include <ny/backend/wayland/util.hpp>
+#include <ny/wayland/util.hpp>
 
-#include <ny/backend/wayland/appContext.hpp>
-#include <ny/backend/wayland/windowContext.hpp>
-#include <ny/backend/wayland/cairo.hpp>
+#include <ny/wayland/appContext.hpp>
+#include <ny/wayland/windowContext.hpp>
+#include <ny/wayland/cairo.hpp>
 
-#ifdef NY_WithGL
-#include <ny/backend/wayland/egl.hpp>
-#endif // NY_WithGL
+#include <ny/event.hpp>
+#include <ny/log.hpp>
+#include <ny/cursor.hpp>
+#include <ny/imageData.hpp>
 
-#include <ny/base/event.hpp>
-#include <ny/base/log.hpp>
-#include <ny/base/cursor.hpp>
-#include <ny/base/imageData.hpp>
 #include <nytl/scope.hpp>
 
 #include <wayland-client-protocol.h>

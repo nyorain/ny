@@ -2,14 +2,23 @@ set(ny_include)
 set(ny_defs)
 set(ny_libs)
 
-set(src_backend
+# all common src files
+set(ny_src
+	log.cpp
+	cursor.cpp
+	data.cpp
+	eventDispatcher.cpp
+	imageData.cpp
+	key.cpp
+	mouseButton.cpp
 	backend.cpp
-	integration/surface.cpp
-	common/library.cpp
-	common/unix.cpp) # does not actually require any unix heades/libs
+	surface.cpp
+	library.cpp)
 
+# =======================================================================================
+# Winapi backend
 if(WithWinapi)
-	list(APPEND src_backend
+	list(APPEND ny_src
 		winapi/appContext.cpp
 		winapi/backend.cpp
 		winapi/util.cpp
@@ -18,23 +27,25 @@ if(WithWinapi)
 		winapi/surface.cpp
 		winapi/windowContext.cpp)
 
-	list(APPEND libs_backend ${libs_backend} gdi32 gdiplus Dwmapi)
+	list(APPEND ny_libs gdi32 gdiplus Dwmapi)
 
 	if(WithGL)
-		list(APPEND src_backend winapi/wgl.cpp winapi/wglApi.c)
+		list(APPEND ny_src winapi/wgl.cpp winapi/wglApi.c)
 	endif()
 
 	if(WithVulkan)
-		list(APPEND src_backend winapi/vulkan.cpp)
+		list(APPEND ny_src winapi/vulkan.cpp)
 	endif()
 
 	if(WithCairo)
-		list(APPEND src_backend winapi/cairo.cpp)
+		list(APPEND ny_src winapi/cairo.cpp)
 	endif()
 endif()
 
+# =======================================================================================
+# X11 backend
 if(WithX11)
-	list(APPEND src_backend
+	list(APPEND ny_src
 		x11/appContext.cpp
 		x11/backend.cpp
 		x11/util.cpp
@@ -42,32 +53,34 @@ if(WithX11)
 		x11/input.cpp
 		x11/windowContext.cpp)
 
-	list(APPEND libs_backend
+	list(APPEND ny_libs
 		${XCB_LIBRARIES}
 		${X11_LIBRARIES}
 		${X11_Xcursor_LIB})
-	list(APPEND include_backend
+	list(APPEND ny_include
 		${XCB_INCLUDE_DIRS}
 		${X11_XCB_INCLUDE_DIR}
 		${X11_Xcursor_INCLUDE_PATH})
 
-	list(APPEND libs_backend X11 xcb xcb-icccm xcb-ewmh X11-xcb pthread)
+	list(APPEND ny_libs X11 xcb xcb-icccm xcb-ewmh X11-xcb pthread)
 
 	if(WithGL)
-		list(APPEND src_backend x11/glx.cpp x11/glxApi.c)
+		list(APPEND ny_src x11/glx.cpp x11/glxApi.c)
 	endif()
 
 	if(WithCairo)
-		list(APPEND src_backend x11/cairo.cpp)
+		list(APPEND ny_src x11/cairo.cpp)
 	endif()
 
 	if(WithVulkan)
-		list(APPEND src_backend x11/vulkan.cpp)
+		list(APPEND ny_src x11/vulkan.cpp)
 	endif()
 endif()
 
+# =======================================================================================
+# Wayland backend
 if(WithWayland)
-	list(APPEND src_backend
+	list(APPEND ny_src
 		wayland/appContext.cpp
 		wayland/backend.cpp
 		wayland/input.cpp
@@ -78,62 +91,68 @@ if(WithWayland)
 		wayland/data.cpp
 		wayland/xdg-shell-protocol.c)
 
-	list(APPEND libs_backend ${WAYLAND_LIBRARIES})
-	list(APPEND include_backend ${WAYLAND_INCLUDE_DIRS})
+	list(APPEND ny_libs ${WAYLAND_LIBRARIES})
+	list(APPEND ny_include ${WAYLAND_INCLUDE_DIRS})
 
 	if(WithEGL)
-		list(APPEND src_backend wayland/egl.cpp)
+		list(APPEND ny_src wayland/egl.cpp)
 	endif()
 
 	if(WithCairo)
-		list(APPEND src_backend wayland/cairo.cpp)
+		list(APPEND ny_src wayland/cairo.cpp)
 	endif()
 
 	if(WithVulkan)
-		list(APPEND src_backend wayland/vulkan.cpp)
+		list(APPEND ny_src wayland/vulkan.cpp)
 	endif()
 endif()
 
+# xkbcommon, unix
 if(WithX11 OR WithWayland)
-	list(APPEND src_backend common/xkb.cpp)
-	list(APPEND libs_backend ${XKBCOMMON_LIBRARIES})
-	list(APPEND include_backend ${XKBCOMMON_INCLUDE_DIRS})
+	list(APPEND ny_src common/xkb.cpp common/unix.cpp)
+	list(APPEND ny_libs ${XKBCOMMON_LIBRARIES})
+	list(APPEND ny_include ${XKBCOMMON_INCLUDE_DIRS})
 endif()
 
+# gl
 if(WithGL)
-	list(APPEND src_backend common/gl.cpp)
-	list(APPEND libs_backend ${OPENGL_LIBRARY})
-	list(APPEND include_backend ${OPENGL_INCLUDE_DIR})
+	list(APPEND ny_src common/gl.cpp)
+	list(APPEND ny_libs ${OPENGL_LIBRARY})
+	list(APPEND ny_include ${OPENGL_INCLUDE_DIR})
 endif()
 
+# egl
 if(WithEGL)
-	list(APPEND src_backend common/egl.cpp)
-	list(APPEND libs_backend ${EGL_LIBRARIES})
-	list(APPEND include_backend ${EGL_INCLUDE_DIRS})
+	list(APPEND ny_src common/egl.cpp)
+	list(APPEND ny_libs ${EGL_LIBRARIES})
+	list(APPEND ny_include ${EGL_INCLUDE_DIRS})
 endif()
 
+# vulkan
 if(WithVulkan)
-	list(APPEND libs_backend ${Vulkan_LIBRARY})
-	list(APPEND include_backend ${Vulkan_INCLUDE_DIR})
+	list(APPEND ny_libs ${Vulkan_LIBRARY})
+	list(APPEND ny_include ${Vulkan_INCLUDE_DIR})
 endif()
 
+# cairo
 if(WithCairo)
-	list(APPEND src_backend integration/cairo.cpp)
-	list(APPEND libs_backend ${CAIRO_LIBRARIES})
-	list(APPEND include_backend ${CAIRO_INCLUDE_DIRS})
+	list(APPEND ny_src common/cairo.cpp)
+	list(APPEND ny_libs ${CAIRO_LIBRARIES})
+	list(APPEND ny_include ${CAIRO_INCLUDE_DIRS})
 endif()
 
-add_library(ny-backend SHARED ${src_backend})
-target_link_libraries(ny-backend ${libs_backend})
-target_include_directories(ny-backend PUBLIC ${include_backend})
-target_compile_definitions(ny-backend PRIVATE ${defs_backend})
+add_library(ny SHARED ${ny_src})
+target_link_libraries(ny ${ny_libs})
+target_include_directories(ny PUBLIC ${ny_include})
+target_compile_definitions(ny PRIVATE ${ny_defs})
 
+# nytl build dep
 if(nytl_own)
-	add_dependencies(ny-backend nytl_ep)
+	add_dependencies(ny nytl_ep)
 endif()
 
 #install
-install (TARGETS ny-backend
+install (TARGETS ny
 	ARCHIVE DESTINATION lib
 	LIBRARY DESTINATION lib
 	RUNTIME DESTINATION bin)

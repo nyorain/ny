@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ny/fwd.hpp>
+#include <ny/include.hpp>
 #include <nytl/stringParam.hpp>
 
 #include <system_error>
@@ -17,8 +17,10 @@ namespace ny
 //The implementation is compile time defined. If ny is built on windows it will use
 //the winapi functionality, otherwise dlfcn.h.
 
-//TODO: open flags
+//TODO: open/construct flags
+
 ///Cross-platform loaded dynamic library.
+///Basically abstracts unix dlfcn and winapi.
 class Library
 {
 public:

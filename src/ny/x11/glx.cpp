@@ -1,9 +1,9 @@
-#include <ny/backend/x11/glx.hpp>
-#include <ny/backend/x11/windowContext.hpp>
-#include <ny/backend/x11/appContext.hpp>
-#include <ny/backend/x11/glxApi.hpp>
-#include <ny/backend/integration/surface.hpp>
-#include <ny/base/log.hpp>
+#include <ny/x11/glx.hpp>
+#include <ny/x11/windowContext.hpp>
+#include <ny/x11/appContext.hpp>
+#include <ny/x11/glxApi.hpp>
+#include <ny/surface.hpp>
+#include <ny/log.hpp>
 
 #include <nytl/misc.hpp>
 #include <nytl/range.hpp>

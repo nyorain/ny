@@ -1,11 +1,11 @@
-#include <ny/backend/wayland/interfaces.hpp>
-#include <ny/backend/wayland/util.hpp>
-#include <ny/backend/wayland/appContext.hpp>
-#include <ny/backend/wayland/windowContext.hpp>
-#include <ny/backend/wayland/input.hpp>
-#include <ny/backend/events.hpp>
+#include <ny/wayland/interfaces.hpp>
+#include <ny/wayland/util.hpp>
+#include <ny/wayland/appContext.hpp>
+#include <ny/wayland/windowContext.hpp>
+#include <ny/wayland/input.hpp>
+#include <ny/events.hpp>
 
-#include <ny/backend/wayland/xdg-shell-client-protocol.h>
+#include <ny/wayland/xdg-shell-client-protocol.h>
 #include <wayland-client-protocol.h>
 
 #include <iostream>

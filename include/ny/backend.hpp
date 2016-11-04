@@ -36,7 +36,7 @@ public:
 	static std::vector<Backend*> backends() { return backendsFunc(); }
 
 	///Chooses one available backend.
-	///\exception std::logic_error if no backend is available.
+	///\exception std::runtime_error if no backend is available.
 	static Backend& choose();
 
 public:

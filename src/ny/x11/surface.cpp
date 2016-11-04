@@ -1,7 +1,7 @@
-#include <ny/backend/x11/surface.hpp>
-#include <ny/backend/x11/appContext.hpp>
-#include <ny/backend/x11/util.hpp>
-#include <ny/base/log.hpp>
+#include <ny/x11/surface.hpp>
+#include <ny/x11/appContext.hpp>
+#include <ny/x11/util.hpp>
+#include <ny/log.hpp>
 
 #include <xcb/xcb_image.h>
 #include <xcb/shm.h>

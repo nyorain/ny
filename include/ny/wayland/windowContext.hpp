@@ -1,10 +1,10 @@
 #pragma once
 
-#include <ny/backend/wayland/include.hpp>
-#include <ny/backend/wayland/util.hpp> //for wayland::ShmBuffer. Problem?
+#include <ny/wayland/include.hpp>
+#include <ny/wayland/util.hpp> //for wayland::ShmBuffer. Problem?
 
-#include <ny/backend/windowContext.hpp>
-#include <ny/backend/windowSettings.hpp>
+#include <ny/windowContext.hpp>
+#include <ny/windowSettings.hpp>
 #include <nytl/vec.hpp>
 
 namespace ny

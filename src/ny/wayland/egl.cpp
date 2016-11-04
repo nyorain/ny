@@ -1,9 +1,9 @@
-#include <ny/backend/wayland/egl.hpp>
-#include <ny/backend/wayland/windowContext.hpp>
-#include <ny/backend/wayland/appContext.hpp>
-#include <ny/backend/wayland/util.hpp>
-#include <ny/backend/integration/surface.hpp>
-#include <ny/base/log.hpp>
+#include <ny/wayland/egl.hpp>
+#include <ny/wayland/windowContext.hpp>
+#include <ny/wayland/appContext.hpp>
+#include <ny/wayland/util.hpp>
+#include <ny/surface.hpp>
+#include <ny/log.hpp>
 
 #include <wayland-egl.h>
 #include <EGL/egl.h>

@@ -1,6 +1,5 @@
-#include <ny/base.hpp>
-#include <ny/backend.hpp>
-#include <ny/backend/integration/cairo.hpp>
+#include <ny/ny.hpp>
+#include <ny/common/cairo.hpp>
 
 #include <cairo/cairo.h>
 #include <nytl/vecOps.hpp>

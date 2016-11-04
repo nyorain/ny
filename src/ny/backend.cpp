@@ -1,4 +1,4 @@
-#include <ny/backend/backend.hpp>
+#include <ny/backend.hpp>
 #include <cstdlib>
 #include <cstring>
 
@@ -39,7 +39,7 @@ Backend& Backend::choose()
 
 	auto* envBackend = std::getenv("NY_BACKEND");
 
-	auto bestScore = 0u;
+	auto bestScore = -1;
 	Backend* best = nullptr;
 	for(auto& backend : backends())
 	{
@@ -61,7 +61,7 @@ Backend& Backend::choose()
 		}
 	}
 
-	if(!best) throw std::logic_error("ny::Backend: no backend available.");
+	if(!best) throw std::runtime_error("ny::Backend: no backend available.");
 	return *best;
 }
 

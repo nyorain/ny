@@ -1,5 +1,5 @@
-#include <ny/backend/common/egl.hpp>
-#include <ny/base/log.hpp>
+#include <ny/common/egl.hpp>
+#include <ny/log.hpp>
 
 #include <EGL/egl.h>
 #include <stdexcept>

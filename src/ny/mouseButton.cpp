@@ -1,4 +1,4 @@
-#include <ny/base/mouseButton.hpp>
+#include <ny/mouseButton.hpp>
 
 namespace ny
 {

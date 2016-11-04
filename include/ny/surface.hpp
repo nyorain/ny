@@ -1,9 +1,7 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <ny/base/imageData.hpp>
-
-//TODO: documentation.
+#include <ny/imageData.hpp>
 
 namespace ny
 {
@@ -48,7 +46,7 @@ protected:
 	friend class BufferGuard;
 };
 
-///Holds the different types of draw connection a surface can have.
+///Holds the different types of draw integration a surface can have.
 enum class SurfaceType : unsigned int
 {
 	none = 0,
@@ -57,7 +55,12 @@ enum class SurfaceType : unsigned int
 	vulkan
 };
 
-/// Holds the type of draw integration for a WindowContext.
+///Holds the type of draw integration for a WindowContext.
+///Can be used to get the associated harware acceleration surface or a raw
+///memory image buffer into which can be drawn to display context on the
+///associated Window.
+///Note that it is not (and should not be) possible to get a raw memory buffer
+///for hardware accelerated Windows (i.e. if a vulkan/opengl surface was created for them).
 /** ```
 auto surface = ny::surface(windowContext);
 if(surface.type == ny::SurfaceType::buffer)
@@ -105,6 +108,9 @@ public:
 
 ///Returns a surface for the given windowContext, if the associated backend does provide
 ///an implementation. Otherwise an empty Surface object (with type = Type::none) is returned.
+///If the backend does provide an implementation but is somehow unable to construct a surface
+///it will output an error message and return an empty Surface object.
+///Therefore this function should not throw on error.
 Surface surface(WindowContext&);
 
 }

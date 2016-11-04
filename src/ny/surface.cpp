@@ -1,4 +1,4 @@
-#include <ny/backend/integration/surface.hpp>
+#include <ny/surface.hpp>
 
 #include <functional>
 #include <vector>

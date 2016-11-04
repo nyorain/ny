@@ -1,5 +1,5 @@
-#include <ny/base.hpp>
-#include <ny/backend.hpp>
+#include <ny/ny.hpp>
+#include <ny/common/gl.hpp>
 
 //XXX: This example is a basic example on how to use ny with opengl[es].
 

@@ -1,7 +1,9 @@
 #pragma once
 
-#include <cstdint>
+#include <ny/include.hpp>
 #include <nytl/stringParam.hpp>
+
+#include <cstdint>
 
 namespace ny
 {

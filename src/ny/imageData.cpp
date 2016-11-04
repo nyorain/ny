@@ -1,5 +1,5 @@
-#include <ny/base/imageData.hpp>
-#include <ny/base/log.hpp>
+#include <ny/imageData.hpp>
+#include <ny/log.hpp>
 
 namespace ny
 {

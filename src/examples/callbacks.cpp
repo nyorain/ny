@@ -1,5 +1,4 @@
-#include <ny/base.hpp>
-#include <ny/backend.hpp>
+#include <ny/ny.hpp>
 
 #include <nytl/vecOps.hpp>
 #include <nytl/time.hpp>

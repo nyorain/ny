@@ -1,5 +1,5 @@
-#include <ny/backend/x11/util.hpp>
-#include <ny/base/log.hpp>
+#include <ny/x11/util.hpp>
+#include <ny/log.hpp>
 
 #define XK_LATIN1
 #define XK_MISCELLANY

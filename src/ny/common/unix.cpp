@@ -1,6 +1,6 @@
-#include <ny/backend/common/unix.hpp>
-#include <ny/backend/mouseContext.hpp>
-#include <ny/base/cursor.hpp>
+#include <ny/common/unix.hpp>
+#include <ny/mouseContext.hpp>
+#include <ny/cursor.hpp>
 
 namespace ny
 {

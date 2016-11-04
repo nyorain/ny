@@ -1,6 +1,5 @@
-#include <ny/base.hpp>
-#include <ny/backend.hpp>
-#include <ny/backend/integration/surface.hpp>
+#include <ny/ny.hpp>
+
 #include <cairo/cairo.h>
 #include <nytl/time.hpp>
 

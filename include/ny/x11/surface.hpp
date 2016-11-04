@@ -1,8 +1,9 @@
 #pragma once
 
-#include <ny/backend/x11/include.hpp>
-#include <ny/backend/x11/windowContext.hpp>
-#include <ny/backend/integration/surface.hpp>
+#include <ny/x11/include.hpp>
+#include <ny/x11/windowContext.hpp>
+#include <ny/surface.hpp>
+
 #include <nytl/vec.hpp>
 #include <memory>
 

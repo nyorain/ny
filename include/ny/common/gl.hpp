@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <ny/base/nativeHandle.hpp>
+#include <ny/nativeHandle.hpp>
 
 #include <nytl/nonCopyable.hpp>
 #include <nytl/stringParam.hpp>

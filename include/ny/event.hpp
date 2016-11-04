@@ -9,7 +9,7 @@ namespace ny
 
 ///All eventType constants should go in this namespace as constexpr unsigned int.
 ///ny-internal event ranges:
-/// - 1 - 20 abstract
+/// - 1 - 20 abstract/window
 /// - 20 - 100 app/backend/input (mouse, keyboard, data)
 /// - 100 - 200 window
 /// - 1000 - 1100 backend wayland

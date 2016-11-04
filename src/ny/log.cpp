@@ -1,4 +1,4 @@
-#include <ny/base/log.hpp>
+#include <ny/log.hpp>
 #include <nytl/utf.hpp>
 
 #include <iostream>
