@@ -4,6 +4,7 @@ current:
 - make WindowContext NOT an EventHandler (instead use own backend-specific functions)
 	- especially clean up wayland mess (draw integration, resize (..egl), interfaces)
 - normalize wheel input values
+- rework events
 
 for later:
 - touch support (TouchContext and touch events)

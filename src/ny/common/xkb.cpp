@@ -123,6 +123,8 @@ bool XkbKeyboardContext::keyEvent(std::uint8_t keycode, KeyEvent& ev)
 	keyStates_[keyuint] = ev.pressed;
 
 	auto keysym = xkb_state_key_get_one_sym(xkbState_, keycode);
+	auto ret = true;
+	auto composed = false;
 	if(ev.pressed)
 	{
 		xkb_compose_state_feed(xkbComposeState_, keysym);
@@ -130,26 +132,27 @@ bool XkbKeyboardContext::keyEvent(std::uint8_t keycode, KeyEvent& ev)
 		if(status == XKB_COMPOSE_CANCELLED) 
 		{
 			xkb_compose_state_reset(xkbComposeState_);
-			return false;
+			ret = false;
 		}
-
-		if(status == XKB_COMPOSE_COMPOSED)
+		else if(status == XKB_COMPOSE_COMPOSED)
 		{
 			auto needed = xkb_compose_state_get_utf8(xkbComposeState_, nullptr, 0) + 1;
 			ev.unicode.resize(needed);
 			xkb_compose_state_get_utf8(xkbComposeState_, &ev.unicode[0], needed);
 			xkb_compose_state_reset(xkbComposeState_);
-			return true;
+			composed = true;
 		}
 	}
 
-	auto needed = xkb_state_key_get_utf8(xkbState_, keycode, nullptr, 0) + 1;
-	ev.unicode.resize(needed);
-	xkb_state_key_get_utf8(xkbState_, keycode, &ev.unicode[0], needed);
+	if(!composed)
+	{
+		auto needed = xkb_state_key_get_utf8(xkbState_, keycode, nullptr, 0) + 1;
+		ev.unicode.resize(needed);
+		xkb_state_key_get_utf8(xkbState_, keycode, &ev.unicode[0], needed);
+	}
 
 	onKey(*this, ev.keycode, ev.unicode, ev.pressed);
-
-	return true;
+	return ret;
 }
 
 }

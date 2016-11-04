@@ -29,7 +29,7 @@ using WindowCapabilities = nytl::Flags<WindowCapability>;
 ///content changes. Then it can call the refresh function.
 ///Redrawing the window at a random time without receiving a DrawEvent might lead to artefacts
 ///such as flickering.
-class WindowContext : public EventHandler
+class WindowContext
 {
 public:
 	WindowContext() = default;
@@ -48,8 +48,8 @@ public:
 	///Hides the window.
 	virtual void hide() = 0;
 
-	//TODO: allow to specify regions (or a binary predicate) in which different types may
-	//be dropped.
+	//TODO: allow to specify regions (or a predicate) in which different types may
+	//be dropped in some way.
 
 	///Signals that the window accepts drag-and-drops of the given DataTypes.
 	///If this function is called with an emtpy DataTypes object drag-and-drop support

@@ -51,9 +51,11 @@ public:
     void cursor(const Cursor& c) override;
 
 	NativeHandle nativeHandle() const override;
-    bool handleEvent(const Event& e) override;
-
 	WindowCapabilities capabilities() const override;
+
+	//specific event handlers
+	virtual void reparentEvent();
+	virtual void sizeEvent(nytl::Vec2ui size);
 
     //toplevel window
     void maximize() override;

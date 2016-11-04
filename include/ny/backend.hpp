@@ -1,45 +1,63 @@
 #pragma once
 
 #include <ny/include.hpp>
+#include <nytl/nonCopyable.hpp>
 
-#include <ny/backend/backend.hpp>
-#include <ny/backend/windowContext.hpp>
-#include <ny/backend/windowSettings.hpp>
-#include <ny/backend/appContext.hpp>
-#include <ny/backend/mouseContext.hpp>
-#include <ny/backend/keyboardContext.hpp>
-#include <ny/backend/events.hpp>
+#include <vector>
+#include <memory>
+#include <string>
 
-#ifdef NY_WithGL
- #include <ny/backend/common/gl.hpp>
-#endif //GL
+namespace ny
+{
 
-/*
-#ifdef NY_WithWinapi
- #include <ny/backend/winapi/windowContext.hpp>
- #include <ny/backend/winapi/appContext.hpp>
-#endif //Winapi
+//Convinient typedefs.
+using AppContextPtr = std::unique_ptr<AppContext>;
+using WindowContextPtr = std::unique_ptr<WindowContext>;
 
-#ifdef NY_WithX11
- #include <ny/backend/x11/windowContext.hpp>
- #include <ny/backend/x11/appContext.hpp>
-#endif //X11
+///Base class for backend implementations.
+///Can be used to retrieve a list of the built-in backends which can then be checked for
+///availability and used to create app or window contexts.
+///A Backend represents an abstract possibility to display something on screen and to
+///retrieve events from the system. Usually a backend represents a output method (display
+///manager protocol or direct) in combination with a method to retrieve input.
+///Example backend implementations are:
+///- Winapi for windows
+///- x11 for unix
+///- wayland for linux
+///But backends like linux drm + udev/libinput would be possible as well.
+class Backend : public nytl::NonMovable
+{
+public:
+	///Returns a list of all current registered backends.
+	///Note that backend implementations usually hold a static object of theiself, so this
+	///function will returned undefined contents if called before or after main().
+	///The Backends registered here are the backends that are loaded/ny was built with.
+	///It does not guarantee that they are available, this must be checked with Backend::available.
+	static std::vector<Backend*> backends() { return backendsFunc(); }
 
-#ifdef NY_WithWayland
- #include <ny/backend/wayland/windowContext.hpp>
- #include <ny/backend/wayland/appContext.hpp>
-#endif //Wayland
+	///Chooses one available backend.
+	///\exception std::logic_error if no backend is available.
+	static Backend& choose();
 
+public:
+	///Returns whether the backend is available.
+    virtual bool available() const = 0;
 
-#ifdef NY_WithEGL
- #include <ny/backend/common/egl.hpp>
-#endif //EGL
+	///Creates an AppContext that can be used to retrieve events from this backend or to create
+	///a WindowContext.
+	///\sa AppContext
+    virtual AppContextPtr createAppContext() = 0;
 
-#ifdef NY_WithVulkan
- #include <ny/backend/common/vulkan.hpp>
-#endif //Vulkan
+	///Returns the name of this backend.
+	///Example for backend names are e.g. "wayland", "x11" or "winapi".
+	virtual const char* name() const = 0;
 
-#ifdef NY_WithXkbcommon
- #include <ny/backend/common/xkb.hpp>
-#endif //Xkbcommon
-*/
+protected:
+	Backend() { backendsFunc(this); }
+	~Backend() { backendsFunc(this, true); }
+
+	//small helper func to add/remove backends from the static variable.
+	static std::vector<Backend*> backendsFunc(Backend* reg = nullptr, bool remove = 0);
+};
+
+}

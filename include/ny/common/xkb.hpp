@@ -40,7 +40,8 @@ public:
 
 	///Fills the given KeyEvent depending on the KeyEvent::pressed member and the given
 	///xkbcommon keycode. Does also trigger the onKey callback.
-	///Returns false when the given keycode cancelled the current compose state.
+	///Returns false when the given keycode cancelled the current compose state, i.e.
+	///if it does not generate any valid keysym.
 	bool keyEvent(std::uint8_t keycode, KeyEvent& ev);
 
 protected:

@@ -106,6 +106,7 @@ void WaylandMouseContext::handleEnter(unsigned int serial, wl_surface* surface,
 	{
 		onFocus(*this, over_, wc);
 
+		//send leave event
 		if(over_ && over_->eventHandler())
 		{
 			MouseCrossEvent event(over_->eventHandler());
@@ -113,16 +114,19 @@ void WaylandMouseContext::handleEnter(unsigned int serial, wl_surface* surface,
 			event.entered = false;
 			appContext_.dispatch(std::move(event));
 		}
+
+		//if still in a ny window, send enter event
+		//and update cursor
 		if(wc)
 		{
-			MouseCrossEvent event(wc->eventHandler());
-			event.data = std::make_unique<WaylandEventData>(serial);
-			event.entered = true;
-			wc->handleEvent(event);
+			if(wc->eventHandler())
+			{
+				MouseCrossEvent event(wc->eventHandler());
+				event.data = std::make_unique<WaylandEventData>(serial);
+				event.entered = true;
+				appContext_.dispatch(std::move(event));
+			}
 
-			if(wc->eventHandler()) appContext_.dispatch(std::move(event));
-
-			//update cursor
 			cursorBuffer(wc->wlCursorBuffer(), wc->cursorHotspot(), wc->cursorSize());
 		}
 

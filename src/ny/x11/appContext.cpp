@@ -352,11 +352,8 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispa
 	case XCB_REPARENT_NOTIFY:
 	{
 		auto& reparent = reinterpret_cast<xcb_reparent_notify_event_t&>(ev);
-		auto handler = windowContext(reparent.window);
-		if(!handler) return true;
-
-		auto event = x11::ReparentEvent(handler);
-		dispatch(event);
+		auto wc = windowContext(reparent.window);
+		if(wc) wc->reparentEvent();
 
 		return true;
 	}
@@ -369,9 +366,8 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispa
         auto nsize = Vec2ui(configure.width, configure.height);
         // auto npos = Vec2i(configure.x, configure.y); //positionEvent
 
-		auto event = SizeEvent(windowContext(configure.window));
-		event.size = nsize;
-		dispatch(event);
+		auto wc = windowContext(configure.window);
+		if(wc) wc->sizeEvent(nsize);
 
         if(!eventHandler(configure.window))
             return true;

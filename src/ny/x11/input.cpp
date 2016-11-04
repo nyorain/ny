@@ -155,6 +155,8 @@ void X11KeyboardContext::processXkbEvent(xcb_generic_event_t& ev)
 	};
 
 	XkbEvent& xkbev = reinterpret_cast<XkbEvent&>(ev);
+	debug("xkbevent: ", xkbev.any.xkbType);
+
 	switch(xkbev.any.xkbType)
 	{
 		case XCB_XKB_STATE_NOTIFY:

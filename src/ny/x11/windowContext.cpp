@@ -406,21 +406,14 @@ void X11WindowContext::maxSize(const Vec2ui& size)
 	xcb_icccm_set_wm_normal_hints(xConnection(), xWindow(), &hints);
 }
 
-bool X11WindowContext::handleEvent(const Event& e)
+void X11WindowContext::reparentEvent()
 {
-    if(e.type() == eventType::x11::reparent)
-	{
-		position(settings_.position);
-		return true;
-	}
-	else if(e.type() == eventType::size)
-	{
-		auto& ev = static_cast<const SizeEvent&>(e);
-		if(drawIntegration_) drawIntegration_->resize(ev.size);
-		return true;
-	}
+	position(settings_.position);
+}
 
-	return false;
+void X11WindowContext::sizeEvent(nytl::Vec2ui size)
+{
+	if(drawIntegration_) drawIntegration_->resize(size);
 }
 
 bool X11WindowContext::customDecorated() const

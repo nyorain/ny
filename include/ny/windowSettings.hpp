@@ -1,11 +1,9 @@
 #pragma once
 
 #include <ny/include.hpp>
-#include <ny/base/data.hpp>
 #include <ny/base/cursor.hpp>
 #include <ny/base/nativeHandle.hpp>
 
-#include <nytl/clone.hpp>
 #include <nytl/flags.hpp>
 #include <nytl/vec.hpp>
 
@@ -57,30 +55,9 @@ enum class WindowCapability : unsigned int
 	sizeLimits = (1L << 6)
 };
 
-//additional capabitlity suggestions:
-// - merge customDecorated with Capability
-// - change cursor
-// - change icon
-// - make droppable
-// - beginMove
-// - beginResize
-// - title
 
 using WindowCapabilities = nytl::Flags<WindowCapability>;
 NYTL_FLAG_OPS(WindowCapability)
-
-//TODO: this could be really useful for all backends
-///Specifies the type of the window, i.e. the intention of its display.
-///This might change how the window is presented to the user by the backend.
-///Otherwise just achieve it using the DialogSettings since there are mainly only 2 WindowType
-///members across all platforms?
-// enum class WindowType : unsigned int
-// {
-// 	none =  0,
-// 	toplevel,
-// 	dialog,
-//	//...
-// };
 
 ///Typesafe enum for the current state of a toplevel window.
 enum class ToplevelState : unsigned int
