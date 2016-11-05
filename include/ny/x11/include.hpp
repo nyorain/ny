@@ -16,6 +16,7 @@ namespace ny
     class X11AppContext;
 	class X11MouseContext;
 	class X11KeyboardContext;
+	class X11DataManager;
     // class GlxContext;
 
 	namespace x11

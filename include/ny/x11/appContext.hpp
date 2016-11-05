@@ -1,6 +1,8 @@
 #pragma once
 
 #include <ny/x11/include.hpp>
+#include <ny/x11/util.hpp>
+
 #include <ny/appContext.hpp>
 
 //TODO: remove this. Needs some typedef magic + void* args...
@@ -10,9 +12,6 @@
 
 #include <map>
 #include <memory>
-
-typedef struct __GLXcontextRec* GLXContext;
-typedef struct __GLXFBConfigRec* GLXFBConfig;
 
 namespace ny
 {
@@ -59,6 +58,7 @@ public:
 	void bell(); 
 
 	xcb_atom_t atom(const std::string& name);
+	const x11::Atoms& atoms() const { return atoms_; }
 
 protected:
     Display* xDisplay_  = nullptr;
@@ -71,10 +71,13 @@ protected:
     xcb_screen_t* xDefaultScreen_ = nullptr;
 
     std::map<xcb_window_t, X11WindowContext*> contexts_;
-	std::map<std::string, xcb_atom_t> atoms_;
+	x11::Atoms atoms_;
 
 	std::unique_ptr<X11MouseContext> mouseContext_;
 	std::unique_ptr<X11KeyboardContext> keyboardContext_;
+
+	std::unique_ptr<DataSource> clipboardSource_;
+	// std::unique_ptr<X11DataManager> dataManager_;
 
 	//Set to true if glx init failed. Will then not be tried again
 	//mutable since not state-relevant and changed from glxSetup/glSetup

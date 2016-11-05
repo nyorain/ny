@@ -82,10 +82,9 @@ int main()
 		ny::log("Button ", ny::mouseButtonName(button), pressed ? " pressed" : " released",
 			" -> postition: ", mc->position());
 
-		if(button != ny::MouseButton::left) return;
-
-		if(mc->position().x > 100) wc->beginMove(nullptr);
-		else wc->beginResize(nullptr, ny::WindowEdge::left);
+		// if(button != ny::MouseButton::left) return;
+		// if(mc->position().x > 100) wc->beginMove(nullptr);
+		// else wc->beginResize(nullptr, ny::WindowEdge::left);
 	};
 
 	//This callback is called everytime when the mouse leaves or enters our WindowContext.

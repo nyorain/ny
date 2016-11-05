@@ -1,13 +1,11 @@
 #include <ny/x11/windowContext.hpp>
-
 #include <ny/x11/util.hpp>
 #include <ny/x11/defs.hpp>
 #include <ny/x11/appContext.hpp>
-#include <ny/x11/internal.hpp>
 #include <ny/x11/surface.hpp>
+
 #include <ny/common/unix.hpp>
 #include <ny/events.hpp>
-
 #include <ny/event.hpp>
 #include <ny/log.hpp>
 #include <ny/cursor.hpp>
@@ -78,7 +76,7 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
     if(toplvl)
 	{
 		auto protocols = ewmhConnection()->WM_PROTOCOLS;
-		auto list = appContext_->atom("WM_DELETE_WINDOW");
+		auto list = appContext_->atoms().wmDeleteWindow;
 
 		xcb_change_property(xconn, XCB_PROP_MODE_REPLACE, xWindow_, protocols,
 				XCB_ATOM_ATOM, 32, 1, &list);
@@ -580,24 +578,24 @@ void X11WindowContext::lower()
 void X11WindowContext::requestFocus()
 {
 	xcb_ewmh_request_change_active_window(ewmhConnection(), 0, xWindow(),
-			XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL, XCB_TIME_CURRENT_TIME, XCB_NONE);
+		XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL, XCB_TIME_CURRENT_TIME, XCB_NONE);
 }
 void X11WindowContext::addStates(xcb_atom_t state1, xcb_atom_t state2)
 {
 	xcb_ewmh_request_change_wm_state(ewmhConnection(), 0, xWindow(), XCB_EWMH_WM_STATE_ADD,
-			state1, state2, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
+		state1, state2, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
 }
 
 void X11WindowContext::removeStates(xcb_atom_t state1, xcb_atom_t state2)
 {
 	xcb_ewmh_request_change_wm_state(ewmhConnection(), 0, xWindow(), XCB_EWMH_WM_STATE_REMOVE,
-			state1, state2, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
+		state1, state2, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
 }
 
 void X11WindowContext::toggleStates(xcb_atom_t state1, xcb_atom_t state2)
 {
 	xcb_ewmh_request_change_wm_state(ewmhConnection(), 0, xWindow(), XCB_EWMH_WM_STATE_TOGGLE,
-			state1, state2, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
+		state1, state2, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
 }
 
 void X11WindowContext::mwmHints(unsigned long deco, unsigned long func, bool d, bool f)
@@ -618,7 +616,7 @@ void X11WindowContext::mwmHints(unsigned long deco, unsigned long func, bool d, 
 
 	///XXX: use XCB_ATOM_ATOM?
     xcb_change_property(xConnection(), XCB_PROP_MODE_REPLACE, xWindow(),
-		appContext().atom("_MOTIF_WM_HINTS"), XCB_ATOM_CARDINAL, 32, sizeof(x11::MwmHints) / 32,
+		appContext().atoms().motifWmHints, XCB_ATOM_CARDINAL, 32, sizeof(x11::MwmHints) / 32,
 		reinterpret_cast<std::uint32_t*>(&mhints));
 }
 

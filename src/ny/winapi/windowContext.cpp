@@ -463,7 +463,9 @@ void WinapiWindowContext::beginMove(const MouseButtonEvent*)
 {
 	// auto currentCursor = ::GetClassLongPtr(handle_, -12);
 	// this->cursor(CursorType::crosshair);
-	::PostMessage(handle_, WM_SYSCOMMAND, SC_MOVE, 0);
+	// ::PostMessage(handle_, WM_SYSCOMMAND, SC_MOVE, 0);
+	constexpr auto SC_DRAGMOVE = 0xf012; //or: 0xf009. Difference?
+	::PostMessage(handle_, WM_SYSCOMMAND, SC_DRAGMOVE, 0);
 	// ::SetClassLongPtr(handle_, -12, currentCursor);
 }
 

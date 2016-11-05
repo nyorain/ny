@@ -69,6 +69,28 @@ ImageDataFormat visualToFormat(const xcb_visualtype_t& v, unsigned int depth)
 	return ImageDataFormat::none;
 }
 
+MouseButton x11ToButton(unsigned int button)
+{
+	switch(button)
+	{
+		case 1: return MouseButton::left;
+		case 2: return MouseButton::middle;
+		case 3: return MouseButton::right;
+		default: return MouseButton::unknown;
+	}
+}
+
+unsigned int buttonToX11(MouseButton button)
+{
+	switch(button)
+	{
+		case MouseButton::left: return 1u;
+		case MouseButton::middle: return 2u;
+		case MouseButton::right: return 3u;
+		default: return 0u;
+	}
+}
+
 namespace x11
 {
 

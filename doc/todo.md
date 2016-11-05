@@ -13,13 +13,15 @@ for later:
 
 x11 backend:
 - selections and stuff not working at all
-- wheel input
+- wheel input (mouse buttons 4, 5)
 - correct error handling (for xlib calls e.g. glx use an error handle in X11AppContext or util)
 
 wayland backend:
 - wheel input
 - animated cursor (low prio)
+- support xdg popup (and version 6), other protocols (low prio)
 
 winapi backend:
 - wgl api reparse [loader, swap control tear]
 - better beginResize/beginMove implementations
+- initial mouse focus (see KeyboardContext handler inconsistency)

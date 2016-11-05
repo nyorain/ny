@@ -2,12 +2,13 @@
 #include <ny/x11/windowContext.hpp>
 #include <ny/x11/util.hpp>
 #include <ny/x11/input.hpp>
-#include <ny/x11/internal.hpp>
+
 #include <ny/common/unix.hpp>
 #include <ny/loopControl.hpp>
 #include <ny/log.hpp>
 #include <ny/eventDispatcher.hpp>
 #include <ny/events.hpp>
+#include <ny/data.hpp>
 
 #ifdef NY_WithVulkan
  #define VK_USE_PLATFORM_XCB_KHR
@@ -31,6 +32,8 @@
 
 namespace ny
 {
+
+class X11DataManager {};
 
 namespace x11
 {
@@ -113,45 +116,72 @@ X11AppContext::X11AppContext()
 		0, 0, 50, 50, 10, XCB_WINDOW_CLASS_INPUT_ONLY, xDefaultScreen_->root_visual, 0, nullptr);
 
 	//atoms
-    std::vector<std::string> names =
+	struct
 	{
-        "XdndEnter",
-        "XdndPosition",
-        "XdndStatus",
-        "XdndTypeList",
-        "XdndActionCopy",
-        "XdndDrop",
-        "XdndLeave",
-        "XdndFinished",
-        "XdndSelection",
-        "XdndProxy",
-        "XdndAware",
-        "PRIMARY",
-        "CLIPBOARD",
-        "TARGETS",
-        "Text",
-        "CARDINAL"
-    };
+		xcb_atom_t& atom;
+		const char* name;
+	} atomNames[] =
+	{
+		{atoms_.xdndEnter, "XdndEnter"},
+		{atoms_.xdndPosition, "XdndPosition"},
+		{atoms_.xdndStatus, "XdndStatus"},
+		{atoms_.xdndTypeList, "XdndTypeList"},
+		{atoms_.xdndActionCopy, "XdndActionCopy"},
+		{atoms_.xdndActionMove, "XdndActionMove"},
+		{atoms_.xdndActionAsk, "XdndActionAsk"},
+		{atoms_.xdndDrop, "XdndDrop"},
+		{atoms_.xdndLeave, "XdndLeave"},
+		{atoms_.xdndFinished, "XdndFinished"},
+		{atoms_.xdndSelection, "XdndSelection"},
+		{atoms_.xdndProxy, "XdndProxy"},
+		{atoms_.xdndAware, "XdndAware"},
 
+		{atoms_.primary, "PRIMARY"},
+		{atoms_.clipboard, "CLIPBOARD"},
+
+		{atoms_.targets, "TARGETS"},
+		{atoms_.text, "TEXT"},
+		{atoms_.string, "STRING"},
+		{atoms_.utf8string, "UTF8_STRING"},
+
+		{atoms_.wmDeleteWindow, "WM_DELETE_WINDOW"},
+		{atoms_.motifWmHints, "_MOTIF_WM_HINTS"},
+
+		{atoms_.mime.textPlain, "text/plain"},
+		{atoms_.mime.textPlainUtf8, "text/plain;charset=utf8"},
+		{atoms_.mime.textUriList, "text/uri-list"},
+
+		{atoms_.mime.imageJpeg, "image/jpeg"},
+		{atoms_.mime.imageGif, "image/gif"},
+		{atoms_.mime.imagePng, "image/png"},
+		{atoms_.mime.imageBmp, "image/bmp"},
+
+		{atoms_.mime.imageData, "image/x-ny-data"},
+		{atoms_.mime.timePoint, "x-special/ny-time-point"},
+		{atoms_.mime.timeDuration, "x-special/ny-time-duration"},
+		{atoms_.mime.raw, "x-special/ny-raw-buffer"},
+	};
+
+	auto length = sizeof(atomNames) / sizeof(atomNames[0]);
 	std::vector<xcb_intern_atom_cookie_t> atomCookies;
-	atomCookies.reserve(names.size());
+	atomCookies.reserve(length);
 
-	for(auto& name : names)
+	for(auto& name : atomNames)
 	{
-		atomCookies.push_back(xcb_intern_atom(xConnection_, 0, name.size(), name.c_str()));
+		atomCookies.push_back(xcb_intern_atom(xConnection_, 0, std::strlen(name.name), name.name));
 	}
 
-	for(std::size_t i(0); i < names.size(); ++i)
+	for(auto i = 0u; i < atomCookies.size(); ++i)
 	{
 		auto reply = xcb_intern_atom_reply(xConnection_, atomCookies[i], 0);
 		if(reply)
 		{
-			atoms_[names[i]] = reply->atom;
+			atomNames[i].atom = reply->atom;
 			free(reply);
 			continue;
 		}
 
-		warning("ny::X11AC: Failed to load atom ", names[i]);
+		warning("ny::X11AC: Failed to load atom ", atomNames[i].name);
 	}
 
 	//ewmh
@@ -179,7 +209,6 @@ X11AppContext::~X11AppContext()
 	xConnection_ = nullptr;
 	xDefaultScreen_ = nullptr;
 
-	atoms_.clear();
 	contexts_.clear();
 }
 
@@ -231,6 +260,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispa
 
 		return true;
     }
+
     case XCB_MAP_NOTIFY:
     {
 		auto& map = reinterpret_cast<xcb_map_notify_event_t&>(ev);
@@ -242,7 +272,24 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispa
     case XCB_BUTTON_PRESS:
     {
 		auto& button = reinterpret_cast<xcb_button_press_event_t&>(ev);
-		auto b = linuxToButton(button.detail);
+
+		int scroll = 0;
+		if(button.detail == 4) scroll = 1;
+		else if(button.detail == 5) scroll = -1;
+
+		if(scroll)
+		{
+			EventHandlerEvent(MouseWheelEvent, button.event);
+			event.data = std::make_unique<X11EventData>(ev);
+			event.value = scroll;
+
+			mouseContext_->onWheel(*mouseContext_, scroll);
+			dispatch(event);
+
+			return true;
+		}
+
+		auto b = x11ToButton(button.detail);
 		mouseContext_->mouseButton(b, true);
 
 		EventHandlerEvent(MouseButtonEvent, button.event);
@@ -258,7 +305,9 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispa
     case XCB_BUTTON_RELEASE:
     {
 		auto& button = reinterpret_cast<xcb_button_release_event_t&>(ev);
-		auto b = linuxToButton(button.detail);
+		if(button.detail == 4 || button.detail == 5) return true;
+
+		auto b = x11ToButton(button.detail);
 		mouseContext_->mouseButton(b, false);
 
 		EventHandlerEvent(MouseButtonEvent, button.event);
@@ -403,13 +452,14 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispa
     case XCB_CLIENT_MESSAGE:
     {
 		auto& client = reinterpret_cast<xcb_client_message_event_t&>(ev);
-        if((unsigned long)client.data.data32[0] == atom("WM_DELETE_WINDOW"))
+		auto protocol = static_cast<unsigned int>(client.data.data32[0]);
+        if(protocol == atoms().wmDeleteWindow)
         {
 			EventHandlerEvent(CloseEvent, client.window);
 			dispatch(event);
+        }
 
 		return true;
-        }
 	}
 
 	default:
@@ -420,7 +470,7 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispa
 			keyboardContext_->processXkbEvent(ev);
 		}
 
-		//required for egl to function correctly somehow...
+		//required for gl to function correctly somehow...
 		XLockDisplay(xDisplay_);
 	    auto proc = XESetWireToEvent(xDisplay_, ev.response_type & ~0x80, nullptr);
 	    if(proc)
@@ -553,12 +603,29 @@ bool X11AppContext::threadedDispatchLoop(EventDispatcher& dispatcher, LoopContro
 
 bool X11AppContext::clipboard(std::unique_ptr<DataSource>&& dataSource)
 {
-	unused(dataSource);
-	return false;
+	//TODO: error check
+    // xcb_set_selection_owner(xConnection_, xDummyWindow_, atoms().clipboard, XCB_CURRENT_TIME);
+    // clipboardSource_ = std::move(dataSource);
+	return true;
 }
 
 DataOffer* X11AppContext::clipboard()
 {
+	// auto clipboardAtom = atoms().clipboard;
+	// auto targetsAtom = atom().targets;
+	//
+	// auto ownerCookie = xcb_get_selection_owner(xConnection_, clipboardAtom);
+	// auto reply = xcb_get_selection_owner_reply(xConnection_, ownerCookie, nullptr);
+	// auto owner = reply->owner;
+	//
+	// free(reply);
+	// if(!owner) return nullptr;
+	//
+	// //ask the selection owner to place a list of the supported target in the
+	// //clilpboard Atom slot of the dummy window.
+	// xcb_convert_selection(xConnection_, xDummyWindow_, clipboardAtom, targetsAtom,
+	// 		clipboardAtom, XCB_CURRENT_TIME);
+
 	return nullptr;
 }
 
@@ -629,15 +696,11 @@ X11WindowContext* X11AppContext::windowContext(xcb_window_t win)
 
 xcb_atom_t X11AppContext::atom(const std::string& name)
 {
-	if(atoms_.find(name) == atoms_.end())
-	{
-		auto cookie = xcb_intern_atom(xConnection_, 0, name.size(), name.c_str());
-		auto reply = xcb_intern_atom_reply(xConnection_, cookie, nullptr);
-		atoms_[name] = reply->atom;
-		free(reply);
-	}
-
-	return atoms_[name];
+	auto cookie = xcb_intern_atom(xConnection_, 0, name.size(), name.c_str());
+	auto reply = xcb_intern_atom_reply(xConnection_, cookie, nullptr);
+	auto ret = reply->atom;
+	free(reply);
+	return ret;
 }
 
 void X11AppContext::bell()
@@ -646,41 +709,6 @@ void X11AppContext::bell()
 }
 
 /*
-void x11AppContext::setClipboard(dataObject& obj)
-{
-    XSetSelectionOwner(xDisplay_, x11::Clipboard, selectionWindow_, CurrentTime);
-
-    clipboardPaste_ = &obj;
-}
-
-bool x11AppContext::getClipboard(dataTypes types, std::function<void(dataObject*)> Callback)
-{
-    Window w = XGetSelectionOwner(xDisplay_, x11::Clipboard);
-    if(!w)
-        return 0;
-
-    clipboardRequest_ = 1;
-    clipboardCallback_ = Callback;
-    clipboardTypes_ = types;
-
-    XConvertSelection(xDisplay_, x11::Clipboard, x11::Targets, x11::Clipboard, selectionWindow_, CurrentTime);
-
-    return 1;
-}
-*/
-
-/*
-    case ReparentNotify: //nothing similar in other backend. done diRectly
-    {
-        if(handler(ev.xreparent.window))
-		{
-			auto event = std::make_unique<X11ReparentEvent>(handler(ev.xreparent.window));
-			event->event = ev.xreparent;
-			nyMainApp()->dispatch(std::move(event));
-		}
-
-        return 1;
-    }
     case SelectionNotify:
     {
         std::cout << "selectionNotify" << std::endl;
