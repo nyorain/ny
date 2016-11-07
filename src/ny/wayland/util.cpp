@@ -12,13 +12,13 @@
 #include <nytl/scope.hpp>
 
 #include <wayland-client-protocol.h>
+#include <ny/wayland/xdg-shell-client-protocol.h>
 
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <errno.h>
 #include <unistd.h>
 #include <string.h>
-#include <linux/input.h>
 #include <iostream>
 
 namespace ny
@@ -34,22 +34,19 @@ namespace
 int setCloexecOrClose(int fd)
 {
     long flags;
-
-    if(fd == -1)
-        return -1;
+    if(fd == -1) goto err2;
 
     flags = fcntl(fd, F_GETFD);
-    if(flags == -1)
-        goto err;
+    if(flags == -1) goto err1;
 
-    if(fcntl(fd, F_SETFD, flags | FD_CLOEXEC) == -1)
-        goto err;
-
+    if(fcntl(fd, F_SETFD, flags | FD_CLOEXEC) == -1) goto err1;
     return fd;
 
-err:
+err1:
     close(fd);
-	warning("ny::wayland::setCloexecOrClose: failed");
+
+err2:
+	warning("ny::wayland::setCloexecOrClose: fctnl failed");
     return -1;
 }
 
@@ -110,7 +107,7 @@ int osCreateAnonymousFile(off_t size)
 }
 
 //shmBuffer
-ShmBuffer::ShmBuffer(WaylandAppContext& ac, Vec2ui size, unsigned int stride) 
+ShmBuffer::ShmBuffer(WaylandAppContext& ac, Vec2ui size, unsigned int stride)
 	: appContext_(&ac), size_(size), stride_(stride)
 {
 	format_ = WL_SHM_FORMAT_ARGB8888;
@@ -264,16 +261,16 @@ void ServerCallback::done(wl_callback& cb, unsigned int data)
 }
 
 //output
-Output::Output(WaylandAppContext& ac, wl_output& outp, unsigned int id) 
+Output::Output(WaylandAppContext& ac, wl_output& outp, unsigned int id)
 	: appContext_(&ac), wlOutput_(&outp), globalID_(id)
 {
 	static constexpr wl_output_listener listener
 	{
-		memberCallback<decltype(&Output::geometry), &Output::geometry, 
-			void(wl_output*, int32_t, int32_t, int32_t, int32_t, int32_t, const char*, 
+		memberCallback<decltype(&Output::geometry), &Output::geometry,
+			void(wl_output*, int32_t, int32_t, int32_t, int32_t, int32_t, const char*,
 				const char*, int32_t)>,
 
-		memberCallback<decltype(&Output::mode), &Output::mode, 
+		memberCallback<decltype(&Output::mode), &Output::mode,
 			void(wl_output*, uint32_t, int32_t, int32_t, int32_t)>,
 
 		memberCallback<decltype(&Output::done), &Output::done, void(wl_output*)>,
@@ -315,7 +312,7 @@ Output& Output::operator=(Output&& other) noexcept
 	return *this;
 }
 
-void Output::geometry(int x, int y, int phwidth, int phheight, int subpixel, 
+void Output::geometry(int x, int y, int phwidth, int phheight, int subpixel,
 	const char* make, const char* model, int transform)
 {
 	information_.make = make;
@@ -362,7 +359,7 @@ unsigned int imageFormatToWayland(ImageDataFormat format)
         default: return -1;
     }
 }
- 
+
 ImageDataFormat waylandToImageFormat(unsigned int wlFormat)
 {
     switch(wlFormat)
@@ -375,6 +372,87 @@ ImageDataFormat waylandToImageFormat(unsigned int wlFormat)
 		case WL_SHM_FORMAT_C8: return ImageDataFormat::a8;
 		default: return ImageDataFormat::none;
     }
+}
+
+//WaylandErrorCategory
+WaylandErrorCategory::WaylandErrorCategory(const wl_interface& interface) : interface_(interface)
+{
+	name_ = std::string() + "ny::wayland::" + interface.name;
+}
+
+std::string WaylandErrorCategory::message(int code) const
+{
+	struct Error
+	{
+		int code;
+		const char* msg;
+	};
+
+	static struct
+	{
+		const wl_interface& interface;
+		std::vector<Error> errors;
+	} interfaces[] =
+	{
+		//core protocol
+		{ wl_display_interface, {
+			{ WL_DISPLAY_ERROR_INVALID_OBJECT, "WL_DISPLAY_ERROR_INVALID_OBJECT" },
+			{ WL_DISPLAY_ERROR_INVALID_METHOD, "WL_DISPLAY_ERROR_INVALID_METHOD" },
+			{ WL_DISPLAY_ERROR_NO_MEMORY, "WL_DISPLAY_ERROR_NO_MEMORY" } }
+		},
+		{ wl_shm_interface, {
+			{ WL_SHM_ERROR_INVALID_FORMAT , "WL_SHM_ERROR_INVALID_FORMAT" },
+			{ WL_SHM_ERROR_INVALID_STRIDE , "WL_SHM_ERROR_INVALID_STRIDE" },
+			{ WL_SHM_ERROR_INVALID_FD , "WL_SHM_ERROR_INVALID_FD" } }
+		},
+		{ wl_data_offer_interface, {
+			{ WL_DATA_OFFER_ERROR_INVALID_FINISH , "WL_DATA_OFFER_ERROR_INVALID_FINISH" },
+			{ WL_DATA_OFFER_ERROR_INVALID_ACTION_MASK , "WL_DATA_OFFER_ERROR_INVALID_ACTION_MASK" },
+			{ WL_DATA_OFFER_ERROR_INVALID_ACTION , "WL_DATA_OFFER_ERROR_INVALID_ACTION" },
+			{ WL_DATA_OFFER_ERROR_INVALID_OFFER  , "WL_DATA_OFFER_ERROR_INVALID_OFFER" } }
+		},
+		{ wl_data_source_interface, {
+			{ WL_DATA_SOURCE_ERROR_INVALID_ACTION_MASK , "WL_DATA_SOURCE_ERROR_INVALID_ACTION_MASK" },
+			{ WL_DATA_SOURCE_ERROR_INVALID_SOURCE , "WL_DATA_SOURCE_ERROR_INVALID_SOURCE" } }
+		},
+		{ wl_data_device_interface, {
+			{ WL_DATA_DEVICE_ERROR_ROLE , "WL_DATA_DEVICE_ERROR_ROLE" } },
+		},
+		{ wl_shell_interface, {
+			{ WL_SHELL_ERROR_ROLE , "WL_SHELL_ERROR_ROLE" } },
+		},
+		{ wl_surface_interface, {
+			{ WL_SURFACE_ERROR_INVALID_SCALE , "WL_SURFACE_ERROR_INVALID_SCALE" },
+			{ WL_SURFACE_ERROR_INVALID_TRANSFORM , "WL_SURFACE_ERROR_INVALID_TRANSFORM" } },
+		},
+		{ wl_shell_interface, {
+			{ WL_POINTER_ERROR_ROLE , "WL_POINTER_ERROR_ROLE" } },
+		},
+		{ wl_subcompositor_interface, {
+			{ WL_SUBCOMPOSITOR_ERROR_BAD_SURFACE , "WL_SUBCOMPOSITOR_ERROR_BAD_SURFACE" } },
+		},
+		{ wl_subsurface_interface, {
+			{ WL_SUBSURFACE_ERROR_BAD_SURFACE , "WL_SUBSURFACE_ERROR_BAD_SURFACE" } },
+		},
+
+		//xdg
+		{ xdg_shell_interface, {
+			{ XDG_SHELL_ERROR_ROLE , "XDG_SHELL_ERROR_ROLE" },
+			{ XDG_SHELL_ERROR_DEFUNCT_SURFACES , "XDG_SHELL_ERROR_DEFUNCT_SURFACES" },
+			{ XDG_SHELL_ERROR_NOT_THE_TOPMOST_POPUP , "XDG_SHELL_ERROR_NOT_THE_TOPMOST_POPUP" },
+			{ XDG_SHELL_ERROR_INVALID_POPUP_PARENT , "XDG_SHELL_ERROR_INVALID_POPUP_PARENT" } },
+		}
+	};
+
+	for(auto& i : interfaces)
+	{
+		if(&i.interface != &interface_) continue;
+
+		for(auto& e : i.errors) if(e.code == code) return e.msg;
+		break;
+	}
+
+	return "unknown error";
 }
 
 }

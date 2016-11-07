@@ -54,7 +54,9 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 	}
 
 	xcb_colormap_t colormap = xcb_generate_id(xconn);
-	xcb_create_colormap(xconn, XCB_COLORMAP_ALLOC_NONE, colormap, xscreen->root, vid);
+	auto cookie = xcb_create_colormap_checked(xconn, XCB_COLORMAP_ALLOC_NONE, colormap,
+		xscreen->root, vid);
+	errorCategory().checkThrow(cookie, "ny::X11WC create_colormap");
 
 	std::uint32_t eventmask =
 		XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_STRUCTURE_NOTIFY | XCB_EVENT_MASK_KEY_PRESS |
@@ -62,15 +64,13 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 		XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_LEAVE_WINDOW | XCB_EVENT_MASK_POINTER_MOTION;
 
 	std::uint32_t valuelist[] = {0, 0, eventmask, colormap, 0};
-	std::uint32_t valuemask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK | 
+	std::uint32_t valuemask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK |
 		XCB_CW_COLORMAP;
 
 	xWindow_ = xcb_generate_id(xconn);
-	auto cookie = xcb_create_window_checked(xconn, depth_, xWindow_, xparent, pos.x, pos.y,
+	cookie = xcb_create_window_checked(xconn, depth_, xWindow_, xparent, pos.x, pos.y,
 		size.x, size.y, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT, vid, valuemask, valuelist);
-
-	if(!x11::testCookie(*xConnection(), cookie))
-		throw std::runtime_error("ny::X11WC: Failed to create the x window.");
+	errorCategory().checkThrow(cookie, "ny::X11WC create_window");
 
     appContext_->registerContext(xWindow_, *this);
     if(toplvl)
@@ -108,7 +108,7 @@ void X11WindowContext::initVisual()
 	auto avDepth = 0u;
 
 	auto depth_iter = xcb_screen_allowed_depths_iterator(screen);
-	for(; depth_iter.rem; xcb_depth_next(&depth_iter)) 
+	for(; depth_iter.rem; xcb_depth_next(&depth_iter))
 	{
 		if(depth_iter.data->depth == 32) avDepth = 32;
 		if(!avDepth && depth_iter.data->depth == 24) avDepth = 24;
@@ -119,7 +119,7 @@ void X11WindowContext::initVisual()
 
 
 	depth_iter = xcb_screen_allowed_depths_iterator(screen);
-	for(; depth_iter.rem; xcb_depth_next(&depth_iter)) 
+	for(; depth_iter.rem; xcb_depth_next(&depth_iter))
 	{
 		if(depth_iter.data->depth == avDepth)
 		{
@@ -137,7 +137,7 @@ void X11WindowContext::initVisual()
 			};
 
 			auto visual_iter = xcb_depth_visuals_iterator(depth_iter.data);
-			for(; visual_iter.rem; xcb_visualtype_next(&visual_iter)) 
+			for(; visual_iter.rem; xcb_visualtype_next(&visual_iter))
 			{
 				//TODO: make requested format dynamic with X11WindowSettings
 				auto format = visualToFormat(*visual_iter.data, avDepth);
@@ -160,6 +160,11 @@ xcb_connection_t* X11WindowContext::xConnection() const
 x11::EwmhConnection* X11WindowContext::ewmhConnection() const
 {
 	return appContext().ewmhConnection();
+}
+
+const X11ErrorCategory& X11WindowContext::errorCategory() const
+{
+	return appContext().errorCategory();
 }
 
 void X11WindowContext::refresh()
@@ -287,14 +292,14 @@ void X11WindowContext::minimize()
     // hints.flags = XCB_ICCCM_WM_HINT_STATE;
     // hints.initial_state = XCB_ICCCM_WM_STATE_ICONIC;
     // xcb_icccm_set_wm_hints(xConnection(), xWindow_, &hints);
-	
+
 	// not working on gnome
 	// addStates(ewmhConnection()->_NET_WM_STATE_HIDDEN);
-	
+
 	// xcb_icccm_wm_hints_t hints;
 	// xcb_icccm_wm_hints_set_withdrawn(&hints);
     // xcb_icccm_set_wm_hints(xConnection(), xWindow_, &hints);
-	
+
 	XIconifyWindow(appContext().xDisplay(), xWindow_, appContext().xDefaultScreenNumber());
 	XSync(appContext().xDisplay(), 1);
 }
@@ -745,12 +750,12 @@ xcb_visualtype_t* X11WindowContext::xVisualType() const
 	if(!visualID_) return nullptr;
 
 	auto depthi = xcb_screen_allowed_depths_iterator(appContext().xDefaultScreen());
-	for(; depthi.rem; xcb_depth_next(&depthi)) 
+	for(; depthi.rem; xcb_depth_next(&depthi))
 	{
 		auto visuali = xcb_depth_visuals_iterator(depthi.data);
-		for(; visuali.rem; xcb_visualtype_next(&visuali)) 
+		for(; visuali.rem; xcb_visualtype_next(&visuali))
 		{
-			if(visuali.data->visual_id == visualID_) 
+			if(visuali.data->visual_id == visualID_)
 				return visuali.data;
 		}
 	}

@@ -1,3 +1,7 @@
+// Copyright (c) 2016 nyorain 
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #pragma once
 
 #include <ny/include.hpp>
@@ -15,11 +19,13 @@ using WindowContextPtr = std::unique_ptr<WindowContext>;
 using AppContextPtr = std::unique_ptr<AppContext>;
 
 //TODO: use some kind of AppContext settings?
+//bunch of ideas:
+
 // struct AppContextSettings
 // {
 // 	std::string name;
 // 	bool multithreaded;
-// 	std::vector<const char*> args;
+// 	nytl::Range<const char*> args;
 //	std::vector<std::pair<const char*, const char*>> licenses;
 //	const char* author;
 // };
@@ -40,7 +46,7 @@ public:
 	///Note that this AppContext object must not be destroyed as long as the WindowContext
 	///exists.
 	////\sa WindowContext
-	virtual WindowContextPtr createWindowContext(const WindowSettings& windowSettings) = 0;
+	virtual WindowContextPtr createWindowContext(const WindowSettings&) = 0;
 
 	///Returns a MouseContext implementation that is able to provide information about the mouse.
 	///Note that this might return the same implementation for every call and the returned
@@ -74,8 +80,8 @@ public:
 	///Dispatches all retrieved events to their eventHandlers.
 	///Does only dispatch all currently queued events and does not wait/block for new events.
 	///Should only be called from the ui thread.
-	///\return false if the display conncetion was destroyed (or an error occurred),
-	///true otherwise (if all queued events were dispatched).
+	///\return false if the display conncetion was destroyed (or an error occurred) and the
+	///AppContext should no longer be used, true otherwise (if all queued events were dispatched).
 	virtual bool dispatchEvents() = 0;
 
 	///Blocks and dispatches all incoming display events until the stop function of the loop control
@@ -85,7 +91,7 @@ public:
 	///inside or from another thread.
 	///\return true if loop was exited because stop() was called by the LoopControl.
 	///\return false if loop was exited because the display conncetion was destroyed or an error
-	///occured.
+	///occured. The AppContext should then no longer be used.
 	virtual bool dispatchLoop(LoopControl& control) = 0;
 
 	///Blocks and dispatches all incoming events from the display and queued events inside
@@ -98,7 +104,7 @@ public:
 	///inside or from another thread.
 	///\return true if loop was exited because stop() was called by the LoopControl.
 	///\return false if loop was exited because the display conncetion was destroyed or an error
-	///occured.
+	///occured. The AppContext should then no longer be used.
 	///\sa ThreadedEventDispatcher
 	virtual bool threadedDispatchLoop(EventDispatcher& dispatcher, LoopControl& control) = 0;
 

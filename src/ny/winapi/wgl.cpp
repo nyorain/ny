@@ -287,16 +287,15 @@ bool WglSurface::apply(std::error_code& ec) const
 WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 	: setup_(&setup)
 {
-	using GlEC = GlContextErrorCode;
 	::SetLastError(0);
 
 	//test for logic errors
 	if(settings.version.api != GlApi::gl)
-		throw GlContextError(GlContextErrorCode::invalidApi, "ny::WglContext");
+		throw GlContextError(GlContextErrc::invalidApi, "ny::WglContext");
 
 	if((settings.version.minor != 0 && settings.version.major == 0) ||
 		settings.version.major > 4 || settings.version.minor > 5)
-		throw GlContextError(GlContextErrorCode::invalidVersion, "ny::WglContext");
+		throw GlContextError(GlContextErrc::invalidVersion, "ny::WglContext");
 
 	//we create our own dummyDC that is compatibly to the default dummy dc
 	//and then select the chosen config (pixel format) into the dc
@@ -312,7 +311,7 @@ WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 
 	PIXELFORMATDESCRIPTOR pfd {};
 	if(!::DescribePixelFormat(dummyDC, pixelformat, sizeof(pfd), &pfd))
-		throw GlContextError(GlContextErrorCode::invalidConfig, "ny::WglContext");
+		throw GlContextError(GlContextErrc::invalidConfig, "ny::WglContext");
 
 	if(!::SetPixelFormat(dummyDC, pixelformat, &pfd))
 		throw winapi::EC::exception("ny::WglContext: failed to set pixel format");
@@ -322,7 +321,7 @@ WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 	{
 		auto shareCtx = dynamic_cast<WglContext*>(settings.share);
 		if(!shareCtx || shareCtx->config().id != config_.id)
-			throw GlContextError(GlEC::invalidSharedContext, "ny::WglContext");
+			throw GlContextError(GlContextErrc::invalidSharedContext, "ny::WglContext");
 
 		share = shareCtx->wglContext();
 	}
@@ -449,7 +448,7 @@ bool WglContext::swapInterval(int interval, std::error_code& ec) const
 {
 	if(!GLAD_WGL_EXT_swap_control || !::wglSwapIntervalEXT)
 	{
-		ec = {GlContextErrorCode::extensionNotSupported};
+		ec = {GlContextErrc::extensionNotSupported};
 		return false;
 	}
 
@@ -488,7 +487,7 @@ WglWindowContext::WglWindowContext(WinapiAppContext& ac, WglSetup& setup,
 
 	PIXELFORMATDESCRIPTOR pfd {};
 	if(!::DescribePixelFormat(hdc_, pixelformat, sizeof(pfd), &pfd))
-		throw GlContextError(GlContextErrorCode::invalidConfig, "ny::WglWC");
+		throw GlContextError(GlContextErrc::invalidConfig, "ny::WglWC");
 
 	if(!::SetPixelFormat(hdc_, pixelformat, &pfd))
 		throw winapi::EC::exception("ny::WglWC: failed to set pixel format");

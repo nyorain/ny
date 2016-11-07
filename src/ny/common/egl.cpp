@@ -40,12 +40,12 @@ EglSetup::EglSetup(void* nativeDisplay)
 	int major, minor;
 	if(!::eglInitialize(eglDisplay_, &major, &minor))
 		throw EglErrorCategory::exception("ny::EglSetup: eglInitialize failed");
-	
+
 	log("ny::EglSetup: egl version: ", major, ".", minor);
 
 	//query all available configs
 	//change this to only hold really required attributes
-    constexpr EGLint attribs[] = 
+    constexpr EGLint attribs[] =
 	{
         EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
         EGL_RED_SIZE, 8,
@@ -66,7 +66,7 @@ EglSetup::EglSetup(void* nativeDisplay)
 
 	configs_.reserve(configSize);
 	auto highestRating = 0u;
-	for(auto& config : nytl::Range<EGLConfig>(configs, configSize))
+	for(auto& config : nytl::Range<EGLConfig>(*configs, configSize))
 	{
 		GlConfig glconf;
 		int r, g, b, a, id, depth, stencil, sampleBuffers, samples;
@@ -168,17 +168,18 @@ EGLConfig EglSetup::eglConfig(GlConfigId id) const
 }
 
 //EglSurface
-EglSurface::EglSurface(EGLDisplay dpy, void* nw, GlConfigId configid, const EglSetup& setup) 
+EglSurface::EglSurface(EGLDisplay dpy, void* nw, GlConfigId configid, const EglSetup& setup)
 	: EglSurface(dpy, nw, configid ? setup.config(configid) : setup.defaultConfig(),
 		configid ? setup.eglConfig(configid) : setup.eglConfig(setup.defaultConfig().id))
 {
 }
 
-EglSurface::EglSurface(EGLDisplay dpy, void* nativeWindow, const GlConfig& config, 
+EglSurface::EglSurface(EGLDisplay dpy, void* nativeWindow, const GlConfig& config,
 	EGLConfig eglConfig) : eglDisplay_(dpy), config_(config)
 {
 	if(!eglConfig)
-		throw GlContextError(GlContextErrorCode::invalidConfig, "ny::EglSurface");
+		throw GlContextError(GlContextErrc::invalidConfig, "ny::EglSurface");
+
 
 	auto eglnwindow = (EGLNativeWindowType) nativeWindow;
 	eglSurface_ = ::eglCreateWindowSurface(eglDisplay_, eglConfig, eglnwindow, nullptr);
@@ -207,12 +208,10 @@ bool EglSurface::apply(std::error_code& ec) const
 EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 	: setup_(&setup)
 {
-	using GlEC = GlContextErrorCode;
-
 	//test for logical errors
-	if((settings.version.minor != 0 && settings.version.major == 0) || 
+	if((settings.version.minor != 0 && settings.version.major == 0) ||
 		settings.version.major > 4 || settings.version.minor > 5)
-		throw GlContextError(GlEC::invalidVersion, "ny::EglContext");
+		throw GlContextError(GlContextErrc::invalidVersion, "ny::EglContext");
 
 	auto eglDisplay = setup.eglDisplay();
 
@@ -230,7 +229,7 @@ EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 		eglConfig = setup.eglConfig(glConfig.id);
 	}
 
-	if(!eglConfig) throw GlContextError(GlEC::invalidConfig, "ny::EglContext");
+	if(!eglConfig) throw GlContextError(GlContextErrc::invalidConfig, "ny::EglContext");
 
 	EGLContext eglShareContext = nullptr;
 	if(settings.share)
@@ -238,7 +237,7 @@ EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 		//do the context have to be associated with the same configs?
 		auto shareCtx = dynamic_cast<EglContext*>(settings.share);
 		if(!shareCtx)
-			throw GlContextError(GlEC::invalidSharedContext, "ny::EglContext");
+			throw GlContextError(GlContextErrc::invalidSharedContext, "ny::EglContext");
 
 		eglShareContext = shareCtx->eglContext();
 	}
@@ -277,7 +276,7 @@ EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 	}
 	else
 	{
-		throw GlContextError(GlContextErrorCode::invalidApi, "ny::EglContext");
+		throw GlContextError(GlContextErrc::invalidApi, "ny::EglContext");
 	}
 
 	//debug
@@ -301,7 +300,7 @@ EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 		{
 			contextAttribs[contextAttribs.size() - 4] = p.first;
 			contextAttribs[contextAttribs.size() - 2] = p.second;
-			eglContext_ = ::eglCreateContext(eglDisplay, eglConfig, eglShareContext, 
+			eglContext_ = ::eglCreateContext(eglDisplay, eglConfig, eglShareContext,
 				contextAttribs.data());
 
 			if(!eglContext_ && ::eglGetError() == EGL_BAD_MATCH) continue;

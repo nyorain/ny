@@ -1,7 +1,14 @@
 Common Unix abstraction
 =======================
 
-```
+The idea is to have a common abstraction above all unix backends to make integrating it
+with already existing applications/libaries easier.
+All unix backends have in common that they somehow operator on file descriptors (since
+this is the usual way for communicating with other application like e.g. a window manager)
+and therefore the main aspect of the unix abstraction deals with file descriptors which
+can be really powerful for applications.
+
+```cpp
 ///Gives unix applications the possibility to integrate ny with existing event loops or
 ///other file descriptors that have to be monitored.
 ///Note that this abstraction does only apply to unix since there is no equivalent of the same

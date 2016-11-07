@@ -14,21 +14,22 @@ namespace
 {
 
 //GlContext std::error_category implementation
-class GlContextErrorCategory : public std::error_category
+class GlEC : public std::error_category
 {
 public:
-	static GlContextErrorCategory& instance()
+	static GlEC& instance()
 	{
-		static GlContextErrorCategory ret;
+		static GlEC ret;
 		return ret;
 	}
 
 public:
-	const char* name() const noexcept override { return "ny::GlContextErrorGategory"; }
+	const char* name() const noexcept override { return "ny::GlContext"; }
 	std::string message(int code) const override
 	{
-		using Error = GlContextErrorCode;
+		using Error = GlContextErrc;
 		auto error = static_cast<Error>(code);
+
 		switch(error)
 		{
 			case Error::invalidConfig: return "Given config id is invalid";
@@ -71,16 +72,16 @@ std::string name(const GlVersion& v)
 	return ret;
 }
 
-std::uintmax_t& glConfigNumber(GlConfigId& id)
-	{ return reinterpret_cast<std::uintmax_t&>(id); }
+std::uintptr_t& glConfigNumber(GlConfigId& id)
+	{ return reinterpret_cast<std::uintptr_t&>(id); }
 
-GlConfigId& glConfigId(std::uintmax_t& number)
+GlConfigId& glConfigId(std::uintptr_t& number)
 	{ return reinterpret_cast<GlConfigId&>(number); }
 
-const std::uintmax_t& glConfigNumber(const GlConfigId& id)
+std::uintptr_t glConfigNumber(const GlConfigId& id)
 	{ return reinterpret_cast<const std::uintmax_t&>(id); }
 
-const GlConfigId& glConfigId(const std::uintmax_t& number)
+GlConfigId glConfigId(const std::uintmax_t& number)
 	{ return reinterpret_cast<const GlConfigId&>(number); }
 
 unsigned int rate(const GlConfig& config)
@@ -117,17 +118,17 @@ unsigned int rate(const GlConfig& config)
 	return ret;
 }
 
-std::error_code make_error_code(GlContextErrorCode code)
+std::error_condition make_error_condition(GlContextErrc code)
 {
-	return {(int) code, GlContextErrorCategory::instance()};
+	return {static_cast<int>(code), GlEC::instance()};
+}
+
+std::error_code make_error_code(GlContextErrc code)
+{
+	return {static_cast<int>(code), GlEC::instance()};
 }
 
 //GlContextError
-GlContextError::GlContextError(GlContextErrorCode error, const char* msg)
-	: GlContextError(std::error_code{error}, msg)
-{
-}
-
 GlContextError::GlContextError(std::error_code code, const char* msg) : logic_error("")
 {
 	std::string whatMsg;
@@ -231,7 +232,7 @@ void GlContext::makeCurrent(const GlSurface& surface)
 	std::error_code error;
 	if(!makeCurrent(surface, error))
 	{
-		if(&error.category() == &GlContextErrorCategory::instance())
+		if(&error.category() == &GlEC::instance())
 			throw GlContextError(error, "ny::GlContext::makeCurrent");
 
 		throw std::system_error(error, "ny::GlContext::makeCurrent");
@@ -242,13 +243,13 @@ bool GlContext::makeCurrent(const GlSurface& surface, std::error_code& error)
 {
 	if(!surface.nativeHandle())
 	{
-		error = {ErrorCode::invalidSurface};
+		error = Errc::invalidSurface;
 		return false;
 	}
 
 	if(!compatible(surface))
 	{
-		error = {ErrorCode::incompatibleSurface};
+		error = Errc::incompatibleSurface;
 		return false;
 	}
 
@@ -269,7 +270,7 @@ bool GlContext::makeCurrent(const GlSurface& surface, std::error_code& error)
 
 		if(thisThreadIt->second.first == this && thisThreadIt->second.second == &surface)
 		{
-			error = {ErrorCode::contextAlreadyCurrent};
+			error = Errc::contextAlreadyCurrent;
 			return true; //return true since this is not critical
 		}
 
@@ -281,13 +282,13 @@ bool GlContext::makeCurrent(const GlSurface& surface, std::error_code& error)
 
 			if(entry.second.first == this)
 			{
-				error = {ErrorCode::contextCurrentInAnotherThread};
+				error = Errc::contextCurrentInAnotherThread;
 				return false;
 			}
 
 			if(entry.second.second == &surface)
 			{
-				error = {ErrorCode::surfaceAlreadyCurrent};
+				error = Errc::surfaceAlreadyCurrent;
 				return false;
 			}
 		}
@@ -338,7 +339,7 @@ bool GlContext::makeNotCurrent(std::error_code& error)
 
 		if(thisThreadIt->second.first != this)
 		{
-			error = {ErrorCode::contextAlreadyNotCurrent};
+			error = Errc::contextAlreadyNotCurrent;
 			return true;
 		}
 	}
@@ -443,7 +444,7 @@ void GlContext::swapInterval(int interval) const
 bool GlContext::swapInterval(int interval, std::error_code& ec) const
 {
 	nytl::unused(interval);
-	ec = {ErrorCode::extensionNotSupported};
+	ec = Errc::extensionNotSupported;
 	return false;
 }
 

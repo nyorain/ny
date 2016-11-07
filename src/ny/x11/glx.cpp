@@ -169,12 +169,10 @@ GlxContext::GlxContext(const GlxSetup& setup, GLXContext context, const GlConfig
 GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 	: setup_(&setup)
 {
-	using GlEC = GlContextErrorCode;
-
 	//test for logical errors
-	if((settings.version.minor != 0 && settings.version.major == 0) || 
+	if((settings.version.minor != 0 && settings.version.major == 0) ||
 		settings.version.major > 4 || settings.version.minor > 5)
-		throw GlContextError(GlEC::invalidVersion, "ny::GlxContext");
+		throw GlContextError(GlContextErrc::invalidVersion, "ny::GlxContext");
 
 	//config
 	GlConfig glConfig;
@@ -191,7 +189,7 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 		glxConfig = setup.glxConfig(glConfig.id);
 	}
 
-	if(!glxConfig) throw GlContextError(GlEC::invalidConfig, "ny::GlxContext");
+	if(!glxConfig) throw GlContextError(GlContextErrc::invalidConfig, "ny::GlxContext");
 
 	//shared
 	GLXContext glxShareContext = nullptr;
@@ -199,7 +197,7 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 	{
 		auto shareCtx = dynamic_cast<GlxContext*>(settings.share);
 		if(!shareCtx)
-			throw GlContextError(GlEC::invalidSharedContext, "ny::EglContext");
+			throw GlContextError(GlContextErrc::invalidSharedContext, "ny::EglContext");
 
 		glxShareContext = shareCtx->glxContext();
 	}
@@ -209,7 +207,7 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 
     if(GLAD_GLX_ARB_create_context && glXCreateContextAttribsARB)
     {
-		constexpr std::pair<unsigned int, unsigned int> versionPairs[] = 
+		constexpr std::pair<unsigned int, unsigned int> versionPairs[] =
 			{{3, 3}, {3, 2}, {3, 1}, {3, 0}, {1, 2}, {1, 0}};
 
 		std::vector<int> contextAttribs;
@@ -236,7 +234,7 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 		//end
 		contextAttribs.push_back(0);
 
-		glxContext_ = ::glXCreateContextAttribsARB(xDisplay(), glxConfig, glxShareContext, 
+		glxContext_ = ::glXCreateContextAttribsARB(xDisplay(), glxConfig, glxShareContext,
 			true, contextAttribs.data());
 
 		if(!glxContext_ && !settings.forceVersion)
@@ -245,7 +243,7 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 			{
 				contextAttribs[contextAttribs.size() - 4] = p.first;
 				contextAttribs[contextAttribs.size() - 2] = p.second;
-				glxContext_ = glXCreateContextAttribsARB(xDisplay(), glxConfig, glxShareContext, 
+				glxContext_ = glXCreateContextAttribsARB(xDisplay(), glxConfig, glxShareContext,
 					true, contextAttribs.data());
 
 				if(glxContext_) break;
@@ -254,16 +252,16 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
     }
 
 
-    if(!glxContext_ && !settings.forceVersion) 
+    if(!glxContext_ && !settings.forceVersion)
 	{
 		warning("ny::GlxContext: failed to create modern context, trying legacy method");
-		glxContext_ = ::glXCreateNewContext(xDisplay(), glxConfig, GLX_RGBA_TYPE, 
+		glxContext_ = ::glXCreateNewContext(xDisplay(), glxConfig, GLX_RGBA_TYPE,
 			glxShareContext, true);
 	}
 
-    if(!glxContext_ && !settings.forceVersion) 
+    if(!glxContext_ && !settings.forceVersion)
 	{
-		glxContext_ = ::glXCreateNewContext(xDisplay(), glxConfig, GLX_RGBA_TYPE, 
+		glxContext_ = ::glXCreateNewContext(xDisplay(), glxConfig, GLX_RGBA_TYPE,
 			glxShareContext, false);
 	}
 
@@ -310,10 +308,10 @@ GlContextExtensions GlxContext::contextExtensions() const
 bool GlxContext::swapInterval(int interval, std::error_code& ec) const
 {
 	//TODO: check for interval < 0 and tear extensions not supported.
-	
-	if(!GLAD_GLX_EXT_swap_control || !glXSwapIntervalEXT) 
+
+	if(!GLAD_GLX_EXT_swap_control || !glXSwapIntervalEXT)
 	{
-		ec = {GlContextErrorCode::extensionNotSupported};
+		ec = {GlContextErrc::extensionNotSupported};
 		return false;
 	}
 
@@ -360,7 +358,7 @@ bool GlxContext::makeNotCurrentImpl(std::error_code& ec)
 }
 
 //GlxWindowContext
-GlxWindowContext::GlxWindowContext(X11AppContext& ac, const GlxSetup& setup, 
+GlxWindowContext::GlxWindowContext(X11AppContext& ac, const GlxSetup& setup,
 	const X11WindowSettings& settings)
 {
 	appContext_ = &ac;

@@ -13,15 +13,6 @@
 namespace ny
 {
 
-///Used for e.g. move/resize requests where the serial of the trigger must be given
-class WaylandEventData : public ny::EventData
-{
-public:
-    WaylandEventData(unsigned int xserial) : serial(xserial) {};
-    unsigned int serial;
-};
-
-
 //wayland
 namespace wayland
 {
@@ -49,7 +40,7 @@ public:
     bool used() const { return used_; }
 
 	///Will trigger a buffer recreate if the given size exceeds the current size.
-	///At the beginning 5MB will be allocated for a buffer 
+	///At the beginning 5MB will be allocated for a buffer
 	///(e.g. more than 1000x1000px with 32bit color).
 	///\return true if the data pointer changed, false if it stayed the same, i.e.
 	///returns whether a new shm pool had to be created
@@ -153,7 +144,7 @@ protected:
 namespace detail
 {
 	///\tparam Signature The Signature with which the callback will be called
-	template<typename F, F f, 
+	template<typename F, F f,
 		typename Signature = typename nytl::FunctionTraits<F>::Signaure,
 		typename R = typename nytl::FunctionTraits<Signature>::ReturnType,
 		typename ArgsTuple = typename nytl::FunctionTraits<Signature>::ArgTuple>
@@ -172,10 +163,10 @@ namespace detail
 	};
 
 	template<typename F, F f, typename Signature, typename... Args>
-	struct MemberCallback<F, f, Signature, void, std::tuple<Args...>> 
+	struct MemberCallback<F, f, Signature, void, std::tuple<Args...>>
 	{
 		using Class = typename nytl::FunctionTraits<F>::Class;
-		static void call(void* self, Args... args) 
+		static void call(void* self, Args... args)
 		{
 			using Func = nytl::CompatibleFunction<Signature>;
 			auto func = Func(nytl::memberCallback(f, static_cast<Class*>(self)));
@@ -190,13 +181,39 @@ namespace detail
 //Can be used to implement wayland callbacks directly to member functions.
 //Does only work if the first parameter of the callback is a void* userdata pointer and
 //the pointer holds the object of which the given member function should be called.
-template<typename F, F f, typename S = typename nytl::FunctionTraits<F>::Signature> 
+template<typename F, F f, typename S = typename nytl::FunctionTraits<F>::Signature>
 auto constexpr memberCallback = &detail::MemberCallback<std::decay_t<F>, f, S>::call;
 
 //C++17
-// template<auto f> 
+// template<auto f>
 // constexpr auto memberCallback = &detail::MemberCallback<std::decay_t<decltype(f)>, f>::call;
 
+///Used for e.g. move/resize requests where the serial of the trigger must be given
+class WaylandEventData : public ny::EventData
+{
+public:
+    WaylandEventData(unsigned int xserial) : serial(xserial) {};
+    unsigned int serial;
+};
+
+///Wayland std::error_category implementation for one wayland interface.
+///Only used for wayland protocol errors, for other errors wayland uses posix
+///error codes, so generic_category will be used.
+class WaylandErrorCategory : public std::error_category
+{
+public:
+	WaylandErrorCategory(const wl_interface&);
+	~WaylandErrorCategory() = default;
+
+	const char* name() const noexcept override { return name_.c_str(); }
+	std::string message(int code) const override;
+
+	const wl_interface& interface() const { return interface_; }
+
+protected:
+	const wl_interface& interface_;
+	std::string name_;
+};
 
 //convert function
 WindowEdge waylandToEdge(unsigned int edge);

@@ -77,10 +77,12 @@ public:
 public:
 	X11AppContext& appContext() const { return *appContext_; } ///The associated AppContext
 	std::uint32_t xWindow() const { return xWindow_; } ///The underlaying x window handle
+
 	xcb_connection_t* xConnection() const; ///The associated x conntextion
 	x11::EwmhConnection* ewmhConnection() const; ///The associated ewmh connection (helper)
-	nytl::Vec2ui size() const; ///Queries the current window size
+	const X11ErrorCategory& errorCategory() const; ///Shortcut for the AppContexts ErrorCategory
 
+	nytl::Vec2ui size() const; ///Queries the current window size
     void overrideRedirect(bool redirect); ///Sets the overrideRedirect flag for the window
     void transientFor(std::uint32_t win); ///Makes the window transient for another x window
 
@@ -115,11 +117,11 @@ public:
 	///For more information look in the ewmh specification for _NET_WM_STATE.
 	std::vector<std::uint32_t> states() const { return states_; };
 
-	///Reloads the stores window states. 
+	///Reloads the stores window states.
 	///XXX: Needed? should they be stored? TODO
-    void refreshStates(); 
+    void refreshStates();
 
-	///Sets the window type. 
+	///Sets the window type.
 	///For more information look in the ewmh specification for _NET_WM_WINDOW_TYPE.
     void xWindowType(std::uint32_t type);
 
@@ -176,7 +178,7 @@ protected:
 
 	///The different context classes derived from this class may override this function to
 	///select a custom visual for the window or query it in a different way connected with
-	///more information. 
+	///more information.
 	///Will automatically be called by the create function if the xVisualtype_ member variable is
 	///not set yet (since it is needed for window creation).
 	///By default, this just selects the 32 or 24 bit visual with the best format.

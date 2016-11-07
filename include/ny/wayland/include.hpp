@@ -11,6 +11,9 @@ struct xdg_surface;
 struct xdg_popup;
 struct xdg_shell;
 
+struct wl_display;
+struct wl_interface;
+
 struct wl_buffer;
 struct wl_callback;
 struct wl_compositor;
@@ -18,7 +21,6 @@ struct wl_data_device;
 struct wl_data_device_manager;
 struct wl_data_offer;
 struct wl_data_source;
-struct wl_display;
 struct wl_keyboard;
 struct wl_output;
 struct wl_pointer;
@@ -48,6 +50,7 @@ namespace ny
 	class WaylandMouseContext;
 	class WaylandWindowSettings;
 	class WaylandDataDevice;
+	class WaylandErrorCategory;
 
 #ifdef NY_WithEGL
 	class WaylandEglWindowContext;
@@ -74,4 +77,3 @@ namespace ny
 	}
 
 }
-

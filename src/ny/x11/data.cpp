@@ -1,6 +1,7 @@
 #include <ny/x11/data.hpp>
 #include <ny/x11/appContext.hpp>
 #include <ny/log.hpp>
+#include <algorithm>
 
 namespace ny
 {
@@ -8,15 +9,11 @@ namespace ny
 // the data manager was modeled after the clipboard specification of iccccm
 // https://www.x.org/releases/X11R7.6/doc/xorg-docs/specs/ICCCM/icccm.html#use_of_selection_atoms
 
-// additional resources:
-// https://www.irif.fr/~jch/software/UTF8_STRING/UTF8_STRING.text
-// https://www.freedesktop.org/wiki/Specifications/XDND/
-
 //DataOffer
 void X11DataOffer::notify(const xcb_selection_notify_event_t& notify)
 {
 	auto propCookie = xcb_get_property(&xConnection(), true, dummyWindow(),
-		appContext().atoms().clipboard, XCB_ATOM_ANY, 0, 32);
+		appContext().atoms().clipboard, XCB_ATOM_ANY, 0, 1);
 	auto reply = xcb_get_property_reply(&xConnection(), propCookie, nullptr);
 
 	auto data = xcb_get_property_value(reply);
@@ -50,7 +47,7 @@ bool X11DataManager::handleEvent(xcb_generic_event_t& ev)
 
 			if(dataOffer) dataOffer->notify(notify);
 			else log("ny::X11DataManager::handleEvent: received unknown selection notify");
-			
+
 			return true;
 		}
 
@@ -79,17 +76,34 @@ bool X11DataManager::handleEvent(xcb_generic_event_t& ev)
 		case XCB_CLIENT_MESSAGE:
 		{
 			auto& clientm = reinterpret_cast<xcb_client_message_event_t&>(ev);
-			if(clientm.type == dndEnterAtom_)
+			if(clientm.type == appContext().atoms().xdndEnter)
 			{
+				auto* data = clientm.data.data32;
+
+				bool typeList = data[1] & 1;
+				xcb_window_t source = data[0];
+				auto protocolVersion = data[1] >> 24;
+
+				if(typeList)
+				{
+				}
+				else
+				{
+				}
 			}
-			else if(clientm.type == dndPositionAtom_)
+			else if(clientm.type == appContext().atoms().xdndPosition)
 			{
+				//reply with dnd status message
 			}
-			else if(clientm.type == dndLeaveAtom_)
+			else if(clientm.type == appContext().atoms().xdndLeave)
 			{
+				//reset the currently active data offer
+				currentDndOffer_ = {};
 			}
-			else if(clientm.type == dndDropAtom_)
+			else if(clientm.type == appContext().atoms().xdndDrop)
 			{
+				//generate a data offer event
+				//push the current data offer into the vector vector with old ones
 			}
 			else
 			{
@@ -103,14 +117,14 @@ bool X11DataManager::handleEvent(xcb_generic_event_t& ev)
 	}
 }
 
-void X11DataManager::answerRequest(DataSource& source, 
+void X11DataManager::answerRequest(DataSource& source,
 	const xcb_selection_request_event_t& request)
 {
 	auto property = request.property;
 	if(!property) property = request.target;
 
 	auto dataTypes = source.types();
-	if(request.target == appContext()->atoms().targets)
+	if(request.target == appContext().atoms().targets)
 	{
 		//store a list with all supported formats converted to atoms
 		std::vector<uint32_t> targets;
@@ -118,21 +132,30 @@ void X11DataManager::answerRequest(DataSource& source,
 
 		for(auto type : dataTypes.types)
 		{
-			auto atom = formatToTargetAtom(type);
-			if(atom) targets.push_back(atom);
+			auto atoms = formatToTargetAtom(type);
+			if(!atoms.empty()) targets.insert(targets.end(), atoms.begin(), atoms.end());
 		}
-	
-		xcb_change_property(&xConnection(), XCB_PROP_MODE_REPLACE, request.requestor, 
+
+		//remove duplicates
+		std::sort(targets.begin(), targets.end());
+		targets.erase(std::unique(targets.begin(), targets.end()), targets.end());
+
+		xcb_change_property(&xConnection(), XCB_PROP_MODE_REPLACE, request.requestor,
 			property, XCB_ATOM_ATOM, 32, targets.size(), targets.data());
 	}
 	else
 	{
-		//let the source convert the data to the request type and store it
+		//let the source convert the data to the request type and send it (store as property)
 		auto fmt = targetAtomToFormat(request.target);
 		if(!fmt || !dataTypes.contains(fmt)) property = 0u;
-		auto data = source.data(fmt);
+		else
+		{
+			auto data = source.data(fmt);
+			xcb_change_property(&xConnection(), XCB_PROP_MODE_REPLACE, request.requestor)
+		}
 	}
 
+	//notify the requestor
 	xcb_selection_notify_event_t notifyEvent {};
 	notifyEvent.selection = request.selection;
 	notifyEvent.property = property;
@@ -152,7 +175,7 @@ std::vector<xcb_atom_t> X11DataManager::formatToTargetAtom(unsigned int format)
 	{
 		case dataType::raw: return {atoms.mime.raw};
 		case dataType::text: return textAtoms;
-		case dataType::filePaths: textAtoms.insert(textAtoms.begin(), atoms.mime.textUriList); 
+		case dataType::filePaths: textAtoms.insert(textAtoms.begin(), atoms.mime.textUriList);
 			return textAtoms;
 
 		case dataType::image: return {atoms.mime.imageData, atoms.mime.imageBmp};

@@ -8,7 +8,7 @@
 //TODO: remove this. Needs some typedef magic + void* args...
 //problem: xcb uses anonymous typedef structs which cannot be forward declared.
 //but the header is really huge and pulls in tons of global x symbols/macros
-#include <xcb/xcb.h> 
+#include <xcb/xcb.h>
 
 #include <map>
 #include <memory>
@@ -48,6 +48,7 @@ public:
 	x11::EwmhConnection* ewmhConnection() const { return ewmhConnection_.get(); }
     int xDefaultScreenNumber() const { return xDefaultScreenNumber_; }
     xcb_screen_t* xDefaultScreen() const { return xDefaultScreen_; }
+	const X11ErrorCategory& errorCategory() const { return errorCategory_; }
 
 	GlxSetup* glxSetup() const;
 
@@ -55,7 +56,7 @@ public:
     void unregisterContext(xcb_window_t w);
     X11WindowContext* windowContext(xcb_window_t win);
 	EventHandler* eventHandler(xcb_window_t w);
-	void bell(); 
+	void bell();
 
 	xcb_atom_t atom(const std::string& name);
 	const x11::Atoms& atoms() const { return atoms_; }
@@ -72,16 +73,13 @@ protected:
 
     std::map<xcb_window_t, X11WindowContext*> contexts_;
 	x11::Atoms atoms_;
+	X11ErrorCategory errorCategory_;
 
 	std::unique_ptr<X11MouseContext> mouseContext_;
 	std::unique_ptr<X11KeyboardContext> keyboardContext_;
 
 	std::unique_ptr<DataSource> clipboardSource_;
 	// std::unique_ptr<X11DataManager> dataManager_;
-
-	//Set to true if glx init failed. Will then not be tried again
-	//mutable since not state-relevant and changed from glxSetup/glSetup
-	mutable bool glxFailed_ {};
 
 	//used for built-config dependent members like e.g. GlxContexts
 	//can also be used to add members while keeping the changes abi-compatible

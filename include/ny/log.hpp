@@ -37,7 +37,7 @@ public:
 	void output(Args&&... args)
 	{
 		std::stringstream sstream;
-		Expand{(sstream << args, 0)...};
+		(void) Expand{(sstream << args, 0)...};
 		write(sstream.str());
 	}
 

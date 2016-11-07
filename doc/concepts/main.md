@@ -73,6 +73,29 @@ pass on App constrcution to true.
 If you want to understand all aspects of multithreading in ny on a lower level, you should really
 read the documentation for EventDispatcher, and the 3 event dispatching functions in AppContext.
 
+Dependencies
+============
+
+The full list of dependencies for ny is fairly small:
+
+- wayland, wayland-egl, wayland-cursor, xkbcommon for wayland backend
+- xlib, xcb (with utility libraries), xkbcommon for x11 backend
+- just the default windows libraries (windows >= vista) for winapi backend
+
+- gl [optional, gl support]
+	- egl [optional, gl support on wayland (and android)]
+- vulkan [optional, vulkan support]
+- cairo [optional, cairo support]
+- skia [future, optional, skia support]
+
+Why no Windows XP
+-----------------
+
+Windows XP support could be actually achieved quite easily since ny only uses a couple
+of newer winapi functions. But since windows xp should not be used by anyone anymore
+anyways, there is simply no reason for workarounds.
+If someone needs windows XP support, they can still send a pull request fixing it.
+
 Hints, decoration and functionality
 ===================================
 
@@ -133,7 +156,7 @@ default while giving the user the possiblity to explicitly enable/disable client
 no matter what ny reports.
 Example code:
 
-```
+```cpp
 bool customDecorated; //will hold if we should draw decorations in the end
 if(windowContext.customDecorated())
 {
@@ -310,6 +333,86 @@ in between two application startups, the unicode value of the key associated wit
 control will change (i.e. from 'Y' to 'Z' when switching between german/us layout).
 The control mappings to the raw hardware keys, however, will stay the same.
 
+Error handling
+==============
+
+Ny makes use of modern C++ error handling techniques including excpetions and error codes.
+For functions that are very error-prone for detectable and handleable errors,
+ny does usually provide an overload that takes a std::error_code parameter.
+
+Many functions that consist of one-time operations (like e.g. WindowContext::refresh) will
+not throw an error if they fail, but output a warning. This cannot be handled by the application
+but it should not because the application cannot react to it in any way.
+The warning is simply a signal for the user that ny/the application/the window system has
+a bug/error somewhere and that the application might not function correctly.
+Those types of functions are per interface not expected to fail in any way (because they should
+not and usually will not).
+
+Giving the application a way to handle errors makes only sense if they can be handled and
+furthermore should be handled. But some functions have to impact on further operations
+and therefore should not drive the application against the wall if they fail.
+
+But if e.g. making a gl context current fails, the application MUST know because it cannot
+call any gl functions now and this failure heavily affects the state of the application.
+Therefore this error is considered critical, the application can handle it manually by
+passing an error code (and if it does not check this error code its the bug in the application)
+or an exception will be thrown.
+
+A Word about exceptions
+-----------------------
+
+Function like AppContext::dispatch* may throw e.g. if some of the functions (e.g. event
+handlers they call) throw or call functions that might throw.
+Therefore all code dealing with ny (generally all modern C++ code, remember that every
+new call can throw) should be exception safe.
+
+###The Bad:
+
+```cpp
+auto fd = open("somefile", O_RDONLY);
+appContext.dispatchEvents();
+close(fd);
+```
+
+In the case above, the file descriptor will remain open and therefore leak if
+ny::AppContext::dispatchEvents will throw an exception.
+The main rule of thumb one should follow is that (nearly) every expression should be self-contained
+i.e. should not need another expression to be correct.
+In this case, the open call is clearly not self-contained since it needs the close call
+to be executed, otherwise the code leaks. This rule goes closely with RAII.
+You will find several RAII helpers around all places in ny that make interacting with ny
+in an excpetion-safe way easier, so using them is strongly encouraged (if not forced anyways).
+Examples are ny::GlCurrentGuard or ny::BufferGuard.
+
+###The Good:
+
+There are multiple ways to fix the idiom from above in an excpetion safe way.
+The first one is to simply use RAII objects, like e.g. fstream or a self-written
+file descriptor guard (should not be that much work to do).
+
+```cpp
+auto ifs = std::ifstream("somefile");
+appContext.dispatchEvents();
+```
+
+In the case above, no resources will be leaked even if appConetxt.dispatchEvents() throws
+an exception.
+
+Another great technique to achieve excpetion safety is (like ny does it internally as well) to
+use scope guards. Scope guards are mainly useful if designing an extra RAII guard class
+for this case seems like an overrkill.
+There exists a really small (like < 100 lines) nytl header that implement a
+simply reason-agnostic scope guard:
+
+```cpp
+auto fd = open("somefile", O_RDONLY);
+auto scopeGuard = nytl::makeScopeGuard([]{ close(fd); });
+appContext.dispatchEvents();
+```
+
+In this case we construct a scope guard that will simply execute the given function when
+the scope exits (no matter if it returns or an exception is thrown).
+
 Backends
 ========
 
@@ -338,6 +441,17 @@ done with a static variable) to getting considered by the Backend::choose algori
 Notice that ny is always open for new custom backends so please consider to let ny pull
 your backend implementations into its own codebase.
 
+Backend-specific - x11
+----------------------
+
+Sources for implementing x11/data:
+
+https://github.com/edrosten/x_clipboard/blob/master/paste.cc
+https://github.com/edrosten/x_clipboard/blob/master/selection.cc
+https://www.freedesktop.org/wiki/Specifications/XDND
+https://www.x.org/releases/X11R7.6/doc/xorg-docs/specs/ICCCM/icccm.html#use_of_selection_atoms
+https://www.irif.fr/~jch/software/UTF8_STRING/UTF8_STRING.text
+
 
 Backend-specific - Wayland
 --------------------------
@@ -359,5 +473,37 @@ The only free function for converting keycodes to unicode is ::ToUnicode which d
 meet all needs.
 
 Some posts regarding clearing the keyboard buffer:
-web.archive.org/web/20101004154432/http://blogs.msdn.com/b/michkap/archive/2006/04/06/569632.aspx
-web.archive.org/web/20100820152419/http://blogs.msdn.com/b/michkap/archive/2007/10/27/5717859.aspx
+http://web.archive.org/web/20101004154432/http://blogs.msdn.com/b/michkap/archive/2006/04/06/569632.aspx
+http://web.archive.org/web/20100820152419/http://blogs.msdn.com/b/michkap/archive/2007/10/27/5717859.aspx
+
+Android
+-------
+
+Sources for a potential ndk/NativeActivity-based android backend:
+
+- native_window header:
+https://android.googlesource.com/platform/frameworks/native/+/master/include/android/native_window.h
+
+- ALooper documentation:
+https://developer.android.com/ndk/reference/group___looper.html#gaa7cd0636edc4ed227aadc585360ebefa
+
+- ndk example:
+https://github.com/googlesamples/android-ndk/blob/master/native-activity/app/src/main/cpp/main.cpp
+
+- native app glue header/source
+http://www.srombauts.fr/android-ndk-r5b/sources/android/native_app_glue/
+
+- native app glue impl
+http://www.ikerhurtado.com/android-ndk-native-activity-app-glue-lib-lifecycle-threads
+
+- android header
+https://github.com/pfalcon/android-platform-headers/tree/master/android-6.0.0_r1/frameworks/native/include/android
+
+- natvieActivity docs
+https://developer.android.com/ndk/reference/group___native_activity.html#ga7b0652533998d61e1a3b542485889113
+
+- sfml android implementation
+ny should have something like sfml has. The android "backend" can be used just like
+every other. One should (theoretically) be able to compile (and run) an application on linux and
+then also run it on android.
+https://github.com/SFML/SFML/blob/master/src/SFML/Main/MainAndroid.cpp

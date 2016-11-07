@@ -33,7 +33,7 @@ public:
 	static std::system_error exception(nytl::StringParam msg = "");
 
 public:
-	const char* name() const noexcept override { return "ny::WinapiErrorCategory"; }
+	const char* name() const noexcept override { return "ny::winapi"; }
 	std::string message(int code) const override;
 };
 

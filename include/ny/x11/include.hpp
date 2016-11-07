@@ -17,6 +17,7 @@ namespace ny
 	class X11MouseContext;
 	class X11KeyboardContext;
 	class X11DataManager;
+	class X11ErrorCategory;
     // class GlxContext;
 
 	namespace x11

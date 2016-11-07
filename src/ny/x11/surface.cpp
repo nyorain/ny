@@ -37,12 +37,12 @@ X11BufferSurface::X11BufferSurface(X11WindowContext& wc) : X11DrawIntegration(wc
 {
 	format_ = visualToFormat(*wc.xVisualType(), wc.visualDepth());
 	if(format_ == ImageDataFormat::none)
-		throw std::runtime_error("X11BufferSurface: Invalid visual format");
+		throw std::runtime_error("ny::X11BufferSurface: Invalid visual format");
 
 	gc_ = xcb_generate_id(wc.xConnection());
 	std::uint32_t value[] = {0, 0};
 	auto c = xcb_create_gc_checked(wc.xConnection(), gc_, wc.xWindow(), XCB_GC_FOREGROUND, value);
-	x11::testCookie(*wc.xConnection(), c, "X11BufferSurface create_gc");
+	windowContext_.errorCategory().checkThrow(c, "ny::X11BufferSurface: create_gc");
 
 	//check if the server has shm suport
 	//it is also implemented without shm but the performance might be worse
@@ -52,22 +52,15 @@ X11BufferSurface::X11BufferSurface(X11WindowContext& wc) : X11DrawIntegration(wc
 	shm_ = (reply && reply->shared_pixmaps);
 	if(reply) free(reply);
 
-	// shm_ = false; //uncomment this if you want to FORCE no shm (when testing)
-	if(!shm_) 
-		warning("X11BufferSurface: xserver has no shm support, might result in bad performance");
-
-	//this call will setup everything with the current size for the first draw call
-	resize(wc.size());
+	if(!shm_) warning("ny::X11BufferSurface: shm server does not support shm extension");
+	resize(wc.size()); //setup shm/buffer
 }
 
 X11BufferSurface::~X11BufferSurface()
 {
-	if(gc_)
-	{
-		xcb_free_gc(windowContext_.xConnection(), gc_);
-	}
+	if(gc_) xcb_free_gc(windowContext_.xConnection(), gc_);
 
-	if(shmseg_) 
+	if(shmseg_)
 	{
 		xcb_shm_detach(windowContext_.xConnection(), shmseg_);
 		shmdt(shmaddr_);
@@ -88,18 +81,15 @@ void X11BufferSurface::apply(MutableImageData&)
 	auto depth = wc.visualDepth();
 	if(!shm_)
 	{
-		auto c = xcb_put_image_checked(wc.xConnection(), XCB_IMAGE_FORMAT_Z_PIXMAP, wc.xWindow(), gc_, 
-			size_.x, size_.y, 0, 0, 0, depth, size_.x * size_.y * (depth / 8), data_.get());
-		x11::testCookie(*wc.xConnection(), c, "X11BufferSurface::apply put_image");
+		auto length = size_.x * size_.y * (depth / 8);
+		xcb_put_image(wc.xConnection(), XCB_IMAGE_FORMAT_Z_PIXMAP,
+			wc.xWindow(), gc_, size_.x, size_.y, 0, 0, 0, depth, length, data_.get());
 	}
 	else
 	{
-		auto c = xcb_shm_put_image_checked(wc.xConnection(), wc.xWindow(), gc_, size_.x, size_.y, 
-			0, 0, size_.x, size_.y, 0, 0, depth, XCB_IMAGE_FORMAT_Z_PIXMAP, 0, shmseg_, 0);
-		x11::testCookie(*wc.xConnection(), c, "X11BufferSurface::apply shm_put_image");
+		xcb_shm_put_image(wc.xConnection(), wc.xWindow(), gc_, size_.x,
+			size_.y, 0, 0, size_.x, size_.y, 0, 0, depth, XCB_IMAGE_FORMAT_Z_PIXMAP, 0, shmseg_, 0);
 	}
-
-	xcb_flush(wc.xConnection());
 }
 
 void X11BufferSurface::resize(const nytl::Vec2ui& size)
@@ -112,7 +102,7 @@ void X11BufferSurface::resize(const nytl::Vec2ui& size)
 
 	if(shm_ && newBytes > byteSize_)
 	{
-		if(shmseg_) 
+		if(shmseg_)
 		{
 			xcb_shm_detach(xconn, shmseg_);
 			shmdt(shmaddr_);

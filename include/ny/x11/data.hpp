@@ -22,8 +22,13 @@ public:
 	//x11 specific
 	void notify(const xcb_selection_notify_event_t& notify);
 
+	xcb_atom_t selection() const { return selection_; }
+	xcb_window_t owner() const { return owner_; }
+	bool valid() const { return (selection_); }
+
 protected:
-	unsigned int selection_ {};
+	xcb_atom_t selection_ {};
+	xcb_window_t owner_ {};
 	DataTypes types_;
 };
 
@@ -57,8 +62,8 @@ protected:
 
 	X11DataOffer clipboardOffer_;
 	X11DataOffer primaryOffer_;
-	X11DataOffer* currentDndOffer_;
-	std::vector<X11DataOffer*> dndOffers_;
+	X11DataOffer currentDndOffer_; //the currently active data offer
+	std::vector<X11DataOffer*> dndOffers_; //old data offers and the currently actvie one
 };
 
 }

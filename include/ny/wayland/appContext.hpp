@@ -68,8 +68,8 @@ public:
 		return {*this, items.back().clID_};
 	}
 
-	nytl::ConnectionID nextID() 
-	{ 
+	nytl::ConnectionID nextID()
+	{
 		++reinterpret_cast<std::uintptr_t&>(highestID);
 		return highestID;
 	}
@@ -121,6 +121,12 @@ public:
 	WaylandWindowContext* windowContext(wl_surface& surface) const;
 	const std::vector<wayland::Output>& outputs() const { return outputs_; }
 	bool shmFormatSupported(unsigned int wlShmFormat);
+
+	///Checks the wayland display for errors.
+	///If the wayland display has an error (i.e. it cannot be used any longer) returns an
+	///error code holding either the posix error code returned, or an interface-specific
+	///error code.
+	std::error_code checkError() const;
 
 	///Can be called to register custom listeners for fds that the dispatch loop will
 	///then poll for.
@@ -180,9 +186,15 @@ protected:
 	//in the next dispatch loop iteration/dispatchEvents call.
 	std::vector<std::unique_ptr<Event>> pendingEvents_;
 
+	//ErrorCategories for wayland interfaces
+	//They will only inserted here if they are needed
+	//Must be unique ptr since std::error_code keep a reference to their Category
+	mutable std::vector<std::unique_ptr<WaylandErrorCategory>> errorCategories_;
+	mutable std::error_code error_; //The cached error code for the display (if any)
+
 	//if init failed once, will be set to true (and not tried again)
 	//mutable since is only some kind of "cache" and will be changed from [e]glSetup() const
-	mutable bool eglFailed_ = false; 
+	mutable bool eglFailed_ = false;
 
 	struct ListenerEntry
 	{

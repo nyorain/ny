@@ -72,6 +72,7 @@ struct X11AppContext::Impl
 {
 #ifdef NY_WithGL
 	GlxSetup glxSetup;
+	bool glxFailed;
 #endif //GL
 };
 
@@ -81,19 +82,18 @@ X11AppContext::X11AppContext()
     //XInitThreads(); //todo, make this optional
 	impl_ = std::make_unique<Impl>();
 
-	//xDisplay
     xDisplay_ = XOpenDisplay(nullptr);
     if(!xDisplay_)
         throw std::runtime_error("ny::x11AC: could not connect to X Server");
 
     xDefaultScreenNumber_ = DefaultScreen(xDisplay_);
 
-	//xcb_connection
  	xConnection_ = XGetXCBConnection(xDisplay_);
     if(!xConnection_)
 		throw std::runtime_error("ny::x11AC: unable to get xcb connection");
 
-	//ewmh connection
+	errorCategory_ = {*xDisplay_, *xConnection_};
+
 	ewmhConnection_ = std::make_unique<x11::EwmhConnection>();
 	auto ewmhCookie = xcb_ewmh_init_atoms(xConnection_, ewmhConnection());
 
@@ -106,16 +106,16 @@ X11AppContext::X11AppContext()
 		break;
     }
 
-	//events are queried with xcb
+	//This must be called because xcb is used to access the event queue
     XSetEventQueueOwner(xDisplay_, XCBOwnsEventQueue);
 
-    //selection events will be sent to this window -> they need no window argument
-    //does not need to be mapped
+	//Generate an x dummy window that can e.g. be used for selections
+	//This window remains invisible, i.e. it is not begin mapped
 	xDummyWindow_ = xcb_generate_id(xConnection_);
     xcb_create_window(xConnection_, XCB_COPY_FROM_PARENT, xDummyWindow_, xDefaultScreen_->root,
 		0, 0, 50, 50, 10, XCB_WINDOW_CLASS_INPUT_ONLY, xDefaultScreen_->root_visual, 0, nullptr);
 
-	//atoms
+	//Load all required atoms
 	struct
 	{
 		xcb_atom_t& atom;
@@ -462,29 +462,41 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispa
 		return true;
 	}
 
+	case 0:
+	{
+		//an error occurred!
+		auto& error = reinterpret_cast<xcb_generic_error_t&>(ev);
+		auto errorMsg = x11::errorMessage(*xDisplay_, error.error_code);
+		warning("ny::X11AC::processEvent: retrieved error code ", error.error_code, ", ", errorMsg);
+
+		//check whether connection has critical error
+		auto err = xcb_connection_has_error(xConnection_);
+		if(err) ny::error("ny::X11AC::processEvent: xcb_connection has critical error ", err);
+
+		return true;
+	}
+
 	default:
 	{
 		//check for xkb event
 		if(ev.response_type == keyboardContext_->xkbEventType())
-		{
 			keyboardContext_->processXkbEvent(ev);
-		}
 
-		//required for gl to function correctly somehow...
-		XLockDisplay(xDisplay_);
-	    auto proc = XESetWireToEvent(xDisplay_, ev.response_type & ~0x80, nullptr);
-	    if(proc)
-		{
-	        XESetWireToEvent(xDisplay_, ev.response_type & ~0x80, proc);
-	        XEvent dummy;
-	        ev.sequence = LastKnownRequestProcessed(xDisplay_);
-	        if(proc(xDisplay_, &dummy, (xEvent*) &ev)) //not handled
-			{
-				//TODO
-			}
-	    }
-
-		XUnlockDisplay(xDisplay_);
+		// May be needed for gl to work correctly...
+		// XLockDisplay(xDisplay_);
+	    // auto proc = XESetWireToEvent(xDisplay_, ev.response_type & ~0x80, nullptr);
+	    // if(proc)
+		// {
+	    //     XESetWireToEvent(xDisplay_, ev.response_type & ~0x80, proc);
+	    //     XEvent dummy;
+	    //     ev.sequence = LastKnownRequestProcessed(xDisplay_);
+	    //     if(proc(xDisplay_, &dummy, (xEvent*) &ev)) //not handled
+		// 	{
+		// 		//TODO
+		// 	}
+	    // }
+		//
+		// XUnlockDisplay(xDisplay_);
 	}
 
 	}
@@ -538,15 +550,21 @@ bool X11AppContext::dispatchEvents()
 {
 	xcb_flush(xConnection());
 
-	xcb_generic_event_t* ev;
-	while((ev = xcb_poll_for_event(xConnection_)))
+	xcb_generic_event_t* event;
+	while((event = xcb_poll_for_event(xConnection_)))
 	{
-		processEvent(*ev);
-		free(ev);
+		processEvent(*event);
+		free(event);
 		xcb_flush(xConnection());
 	}
 
-	if(xcb_connection_has_error(xConnection_)) return false;
+	auto err = xcb_connection_has_error(xConnection_);
+	if(err)
+	{
+		error("ny::X11AC::dispatchEvents: xcb_connection has error ", err);
+		return false;
+	}
+
 	return true;
 }
 
@@ -559,7 +577,14 @@ bool X11AppContext::dispatchLoop(LoopControl& control)
 	while(run.load())
 	{
 		xcb_generic_event_t* event = xcb_wait_for_event(xConnection_);
-		if(!event) return false;
+		if(!event)
+		{
+			auto err = xcb_connection_has_error(xConnection_);
+			if(!err) continue; //strange... try again
+
+			error("ny::X11AC::dispatch: xcb_connection has error ", err);
+			return false;
+		}
 
 		processEvent(*event);
 		free(event);
@@ -590,7 +615,14 @@ bool X11AppContext::threadedDispatchLoop(EventDispatcher& dispatcher, LoopContro
 	while(run.load())
 	{
 		xcb_generic_event_t* event = xcb_wait_for_event(xConnection_);
-		if(!event) return false;
+		if(!event)
+		{
+			auto err = xcb_connection_has_error(xConnection_);
+			if(!err) continue; //strange... try again
+
+			error("ny::X11AC::dispatch: xcb_connection has error ", err);
+			return false;
+		}
 
 		processEvent(*event, &dispatcher);
 		free(event);
@@ -652,7 +684,7 @@ GlSetup* X11AppContext::glSetup() const
 GlxSetup* X11AppContext::glxSetup() const
 {
 	#ifdef NY_WithGL
-		if(glxFailed_) return nullptr;
+		if(impl_->glxFailed) return nullptr;
 
 		if(!impl_->glxSetup.valid())
 		{
@@ -663,7 +695,7 @@ GlxSetup* X11AppContext::glxSetup() const
 			catch(const std::exception& error)
 			{
 				warning("WaylandAppContext::eglSetup: creating failed: ", error.what());
-				glxFailed_ = true;
+				impl_->glxFailed = true;
 				impl_->glxSetup = {};
 				return nullptr;
 			}

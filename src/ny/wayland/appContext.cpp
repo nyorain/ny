@@ -40,9 +40,9 @@ namespace ny
 namespace
 {
 
-void callbackDestroy(void*, wl_callback* callback, unsigned int) 
-{ 
-	wl_callback_destroy(callback); 
+void callbackDestroy(void*, wl_callback* callback, unsigned int)
+{
+	wl_callback_destroy(callback);
 }
 
 const wl_callback_listener callbackDestroyListener { &callbackDestroy };
@@ -131,8 +131,15 @@ WaylandAppContext::~WaylandAppContext()
 //TODO: exception safety!
 bool WaylandAppContext::dispatchEvents()
 {
-	//dont use range-based for here, since they might insert new events
-	for(auto i = 0u; i < pendingEvents_.size(); ++i) 
+	auto ec = checkError();
+	if(ec)
+	{
+		error("ny::WaylandAC: display has error ", ec.message(), ", should no longer be used");
+		return false;
+	}
+
+	//dont use range-based for here, since the handlers might insert new events
+	for(auto i = 0u; i < pendingEvents_.size(); ++i)
 	{
 		auto& e = pendingEvents_[i];
 		if(e->handler) e->handler->handleEvent(*e);
@@ -140,22 +147,37 @@ bool WaylandAppContext::dispatchEvents()
 
 	pendingEvents_.clear();
 
-	auto ret = wl_display_dispatch_pending(wlDisplay_);
-	return ret != -1;
+	wl_display_dispatch_pending(wlDisplay_);
+
+	ec = checkError();
+	if(ec)
+	{
+		error("ny::WaylandAC: display has error ", ec.message(), ", should no longer be used");
+		return false;
+	}
+
+	return true;
 }
 
 bool WaylandAppContext::dispatchLoop(LoopControl& control)
 {
+	auto ec = checkError();
+	if(ec)
+	{
+		error("ny::WaylandAC: display has error ", ec.message(), ", should no longer be used");
+		return false;
+	}
+
 	auto guard = nytl::makeScopeGuard([&]{ control.impl_.reset(); });
 
 	std::atomic<bool> run {true};
 	control.impl_.reset(new WaylandLoopControlImpl(run, eventfd_));
 
 	auto ret = 0;
-	while(run && ret != -1)
+	while(run)
 	{
 		//dont use range-based for here, since they might insert new events
-		for(auto i = 0u; i < pendingEvents_.size(); ++i) 
+		for(auto i = 0u; i < pendingEvents_.size(); ++i)
 		{
 			auto& e = pendingEvents_[i];
 			if(e->handler) e->handler->handleEvent(*e);
@@ -164,6 +186,14 @@ bool WaylandAppContext::dispatchLoop(LoopControl& control)
 		pendingEvents_.clear();
 
 		ret = dispatchDisplay();
+		if(ret == -1)
+		{
+			ec = checkError();
+			if(!ec) continue; //strange... try again
+
+			error("ny::WaylandAC: display has error ", ec.message(), ", should no longer be used");
+			return false;
+		}
 		if(ret == 0)
 		{
 			std::int64_t v;
@@ -171,11 +201,25 @@ bool WaylandAppContext::dispatchLoop(LoopControl& control)
 		}
 	}
 
-	return ret != -1;
+	ec = checkError();
+	if(ec)
+	{
+		error("ny::WaylandAC: display has error ", ec.message(), ", should no longer be used");
+		return false;
+	}
+
+	return true;
 }
 
 bool WaylandAppContext::threadedDispatchLoop(EventDispatcher& dispatcher, LoopControl& control)
 {
+	auto ec = checkError();
+	if(ec)
+	{
+		error("ny::WaylandAC: display has error ", ec.message(), ", should no longer be used");
+		return false;
+	}
+
 	std::atomic<bool> run {true};
 	control.impl_.reset(new WaylandLoopControlImpl(run, eventfd_));
 
@@ -190,12 +234,11 @@ bool WaylandAppContext::threadedDispatchLoop(EventDispatcher& dispatcher, LoopCo
 		write(eventfd_, &v, 8);
 	}));
 
-
 	auto ret = 0;
 	while(run && ret != -1)
 	{
 		//dont use range-based for here, since they might insert new events
-		for(auto i = 0u; i < pendingEvents_.size(); ++i) 
+		for(auto i = 0u; i < pendingEvents_.size(); ++i)
 		{
 			auto& e = pendingEvents_[i];
 			if(e->handler) e->handler->handleEvent(*e);
@@ -204,6 +247,14 @@ bool WaylandAppContext::threadedDispatchLoop(EventDispatcher& dispatcher, LoopCo
 		pendingEvents_.clear();
 
 		ret = dispatchDisplay();
+		if(ret == -1)
+		{
+			ec = checkError();
+			if(!ec) continue; //strange... try again
+
+			error("ny::WaylandAC: display has error ", ec.message(), ", should no longer be used");
+			return false;
+		}
 		if(ret == 0)
 		{
 			std::int64_t v;
@@ -213,7 +264,14 @@ bool WaylandAppContext::threadedDispatchLoop(EventDispatcher& dispatcher, LoopCo
 		dispatcher.processEvents();
 	}
 
-	return ret != -1;
+	ec = checkError();
+	if(ec)
+	{
+		error("ny::WaylandAC: display has error ", ec.message(), ", should no longer be used");
+		return false;
+	}
+
+	return true;
 }
 
 KeyboardContext* WaylandAppContext::keyboardContext()
@@ -259,7 +317,7 @@ WindowContextPtr WaylandAppContext::createWindowContext(const WindowSettings& se
 bool WaylandAppContext::clipboard(std::unique_ptr<DataSource>&& dataSource)
 {
 	auto src = new WaylandDataSource(*this, std::move(dataSource), false);
-	wl_data_device_set_selection(&dataDevice_->wlDataDevice(), &src->wlDataSource(), 
+	wl_data_device_set_selection(&dataDevice_->wlDataDevice(), &src->wlDataSource(),
 		keyboardContext_->lastSerial());
 	return true;
 }
@@ -278,7 +336,7 @@ bool WaylandAppContext::startDragDrop(std::unique_ptr<DataSource>&& dataSource)
 	//this is not a leak!
 	auto src = new WaylandDataSource(*this, std::move(dataSource), true);
 	auto surf = &static_cast<WaylandWindowContext*>(over)->wlSurface();
-	wl_data_device_start_drag(&dataDevice_->wlDataDevice(), &src->wlDataSource(), surf, nullptr, 
+	wl_data_device_start_drag(&dataDevice_->wlDataDevice(), &src->wlDataSource(), surf, nullptr,
 		mouseContext_->lastSerial());
 
 	return true;
@@ -326,6 +384,34 @@ EglSetup* WaylandAppContext::eglSetup() const
 	#endif
 }
 
+std::error_code WaylandAppContext::checkError() const
+{
+	if(error_) return error_;
+
+	auto err = wl_display_get_error(wlDisplay_);
+	if(!err) return {};
+
+	if(err == EPROTO)
+	{
+		const wl_interface* interface;
+		uint32_t id;
+		int code = wl_display_get_protocol_error(wlDisplay_, &interface, &id);
+
+		//find or insert the matching category
+		for(auto& category : errorCategories_)
+			if(&category->interface() == interface) return {code, *category};
+
+		errorCategories_.push_back(std::make_unique<WaylandErrorCategory>(*interface));
+		error_ = {code, *errorCategories_.back()};
+	}
+	else if(err)
+	{
+		error_ = {err, std::system_category()};
+	}
+
+	return error_;
+}
+
 nytl::Connection WaylandAppContext::fdCallback(int fd, unsigned int events, const FdCallback& func)
 {
 	return fdCallbacks_.add({fd, events, func});
@@ -333,12 +419,12 @@ nytl::Connection WaylandAppContext::fdCallback(int fd, unsigned int events, cons
 
 int WaylandAppContext::dispatchDisplay()
 {
-	//In parts taken from wayland-client.c and modified to poll for the wayland fd as well as an 
+	//In parts taken from wayland-client.c and modified to poll for the wayland fd as well as an
 	//eventfd. The wayland license:
 	//
 	// Copyright © 2008-2012 Kristian Høgsberg
 	// Copyright © 2010-2012 Intel Corporation
-	// 
+	//
 	// Permission is hereby granted, free of charge, to any person obtaining
 	// a copy of this software and associated documentation files (the
 	// "Software"), to deal in the Software without restriction, including
@@ -346,11 +432,11 @@ int WaylandAppContext::dispatchDisplay()
 	// distribute, sublicense, and/or sell copies of the Software, and to
 	// permit persons to whom the Software is furnished to do so, subject to
 	// the following conditions:
-	// 
+	//
 	// The above copyright notice and this permission notice (including the
 	// next paragraph) shall be included in all copies or substantial
 	// portions of the Software.
-	// 
+	//
 	// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 	// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 	// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -359,7 +445,7 @@ int WaylandAppContext::dispatchDisplay()
 	// ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 	// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 	// SOFTWARE.
-	
+
 	bool event = false;
 	auto dpypoll = [&](int events){
 		int ret;
@@ -367,7 +453,7 @@ int WaylandAppContext::dispatchDisplay()
 		std::vector<pollfd> pfds;
 		pfds.reserve(2 + fdCallbacks_.items.size());
 		pfds.resize(2);
-		
+
 		//wl_display fd
 		pfds[0].fd = wl_display_get_fd(wlDisplay_);
 		pfds[0].events = events;
@@ -407,7 +493,7 @@ int WaylandAppContext::dispatchDisplay()
 	if(wl_display_prepare_read(wlDisplay_) == -1)
 		return wl_display_dispatch_pending(wlDisplay_);
 
-	while(true) 
+	while(true)
 	{
 		ret = wl_display_flush(wlDisplay_);
 
@@ -427,19 +513,19 @@ int WaylandAppContext::dispatchDisplay()
 		}
 	}
 
-	if(ret < 0 && errno != EPIPE) 
+	if(ret < 0 && errno != EPIPE)
 	{
 		wl_display_cancel_read(wlDisplay_);
 		return -1;
 	}
 
-	if(dpypoll(POLLIN) == -1) 
+	if(dpypoll(POLLIN) == -1)
 	{
 		wl_display_cancel_read(wlDisplay_);
 		return -1;
 	}
 
-	if(event) 
+	if(event)
 	{
 		wl_display_cancel_read(wlDisplay_);
 		return 0;

@@ -17,7 +17,7 @@ namespace ny
 {
 
 ///Possible opengl apis a context can have
-enum class GlApi : unsigned int { gl, gles, }; 
+enum class GlApi : unsigned int { gl, gles, };
 
 ///Opaque GlConfig id. Is used by backends as pointer or unsigned int.
 using GlConfigId = struct GlConfigIdType*;
@@ -91,9 +91,12 @@ using GlContextExtensions = nytl::Flags<GlContextExtension>;
 
 ///Holds error code values for platform-independet logic errors when dealing with gl
 ///contexts.
-enum class GlContextErrorCode : unsigned int
+///Note that this enumeration is used for error codes as well as for error conditions
+///since the values are not platform-dependent but also not converted from platform
+///errors but genereted from ny itself.
+enum class GlContextErrc : unsigned int
 {
-	invalidConfig, //the config id given on context construction is invalid
+	invalidConfig = 1, //the config id given on context construction is invalid
 	invalidSharedContext, //the opengl context to share with is invalid
 	invalidApi, //the api requested on construction cannot be used
 	invalidVersion, //an invalid opengl version was detected
@@ -115,9 +118,7 @@ enum class GlContextErrorCode : unsigned int
 class GlContextError : public std::logic_error
 {
 public:
-	GlContextError(GlContextErrorCode, const char* msg = nullptr);
 	GlContextError(std::error_code, const char* msg = nullptr);
-
 	const std::error_code& code() const { return code_; }
 
 protected:
@@ -186,8 +187,8 @@ class GlContext : public nytl::NonMovable
 public:
 	using Extension = GlContextExtension;
 	using Extensions = GlContextExtensions;
-	using ErrorCode = GlContextErrorCode;
 	using Error = GlContextError;
+	using Errc = GlContextErrc;
 
 	///Returns the GlContext that is current in the calling thread or nullptr if there is none.
 	///If a non-null pointer to a GlSurface* parameter is passed, sets it to the current surface.
@@ -281,23 +282,25 @@ public:
 
 //small conversion helpers for GlConfigId
 //mainly used by implementations
-std::uintmax_t& glConfigNumber(GlConfigId& id);
-GlConfigId& glConfigId(std::uintmax_t& number);
+std::uintptr_t& glConfigNumber(GlConfigId& id);
+GlConfigId& glConfigId(std::uintptr_t& number);
 
-const std::uintmax_t& glConfigNumber(const GlConfigId& id);
-const GlConfigId& glConfigId(const std::uintmax_t& number);
+std::uintptr_t glConfigNumber(const GlConfigId& id);
+GlConfigId glConfigId(const std::uintptr_t& number);
 
 ///Returns a std::error_code for the given GlContextErrorCode.
 ///Note that this also enables constructing std::error_code objects directly
 ///only from a GlContextErrorCode value (which should be used over this).
 ///Therefore the function has to use this naming.
-std::error_code make_error_code(GlContextErrorCode);
+std::error_condition make_error_condition(GlContextErrc);
+std::error_code make_error_code(GlContextErrc);
 
 }
 
 namespace std
 {
-	template<> struct is_error_code_enum<ny::GlContextErrorCode> : public std::true_type {};
+	template<> struct is_error_condition_enum<ny::GlContextErrc> : public std::true_type {};
+	template<> struct is_error_code_enum<ny::GlContextErrc> : public std::true_type {};
 }
 
 #ifndef NY_WithGL
