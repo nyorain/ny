@@ -233,38 +233,6 @@ or visuals. But since today nearly all hardware has support for 24 or 32 bit ima
 contents ny does not implement full support for backends that don't support 24 or 32 bit
 drawing in any way (e.g. some ancient x server/driver/hardware).
 
-OpenGL contexts
-===============
-
-Contexts are explicitly created and managed by the application if needed.
-Configs can be explicitly selected in a cross-platform way, or one can simply use the
-default config which should have pretty good attributes.
-
-If requested, a GlSurface implementation will be created for a WindowContext that can then
-be used to render onto the Window. There are some platform-dependent ways to render into
-a pixel buffer.
-
-Vulkan
-======
-
-Applications can use ny to just create a VkSurfaceKHR for a WindowContext in a
-platform-independent manner. In future further integrations for vulkan contexts are planned, like
-e.g. skia or other vector graphics libraries that can use a vulkan backend.
-If using ny for a larger vulkan application (e.g. game or cad) one has therefore the possiblity
-to simply use ny to create a window and then a VkSurfaceKHR for it platform-independent without
-any unneeded dependencies and features.
-
-When creating the vulkan instance that ny should create the VkSurfaceKHR for, one must activate
-all needed vulkan extensions by the specific backend. These can be checked with the
-ny::AppContext::vulkanExtensions function of the associated AppContex implementation.
-
-Images
-======
-
-Since ny also abstracts things like clipboards or drag-and-drop some backends need image
-encode/decode functionality and therefore ny has an image class with load/save functions altough
-it would usually not fit into its scope.
-
 Keyboard input
 ==============
 

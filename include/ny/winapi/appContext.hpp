@@ -36,7 +36,7 @@ public:
 	DataOffer* clipboard() override;
 	bool startDragDrop(std::unique_ptr<DataSource>&& source) override;
 
-	std::vector<const char*> vulkanExtensions() const override;
+	std::vector<const char*> vulkanExtensions(bool& suppported) const override;
 	GlSetup* glSetup() const override;
 
 	//custom winapi stuff

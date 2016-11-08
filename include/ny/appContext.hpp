@@ -1,4 +1,4 @@
-// Copyright (c) 2016 nyorain 
+// Copyright (c) 2016 nyorain
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
@@ -142,15 +142,16 @@ public:
 	///\return true on success, false on failure (e.g. cursor is not over a window)
 	virtual bool startDragDrop(std::unique_ptr<DataSource>&& dataSource) = 0;
 
-	///If ny was built with vulkan and the backend of the AppContext implementation has
-	///vulkan integration, this returns all instance extensions that must be enabled for
-	///an instance to make it suited for vulkan surface creation.
-	///Otherwise this returns an empty vector.
-	virtual std::vector<const char*> vulkanExtensions() const { return {}; }
+	///If ny was built with vulkan and the AppContext implementation has
+	///vulkan support, this returns all instance extensions that must be enabled for
+	///an instance to make it suited for vulkan surface creation and sets supported to true.
+	///Otherwise this returns an empty vector and sets supported to false.
+	virtual std::vector<const char*> vulkanExtensions() const = 0;
 
-	///Returns a non-owned GlSetup implementation or nullptr if gl is not supported.
+	///Returns a non-owned GlSetup implementation or nullptr if gl is not supported or
+	///initialization failed.
 	///The returned GlSetup can be used to retrieve the different gl configs and to create
-	///opengl contextes.
+	///opengl contexts.
 	virtual GlSetup* glSetup() const = 0;
 };
 

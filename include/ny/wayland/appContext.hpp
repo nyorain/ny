@@ -12,8 +12,6 @@
 namespace ny
 {
 
-class EglSetup;
-
 namespace wayland
 {
 
@@ -97,7 +95,7 @@ public:
 	DataOffer* clipboard() override;
 	bool startDragDrop(std::unique_ptr<DataSource>&& dataSource) override;
 
-	std::vector<const char*> vulkanExtensions() const override;
+	std::vector<const char*> vulkanExtensions(bool& supported) const override;
 	GlSetup* glSetup() const override;
 
 	//wayland specific
@@ -191,10 +189,6 @@ protected:
 	//Must be unique ptr since std::error_code keep a reference to their Category
 	mutable std::vector<std::unique_ptr<WaylandErrorCategory>> errorCategories_;
 	mutable std::error_code error_; //The cached error code for the display (if any)
-
-	//if init failed once, will be set to true (and not tried again)
-	//mutable since is only some kind of "cache" and will be changed from [e]glSetup() const
-	mutable bool eglFailed_ = false;
 
 	struct ListenerEntry
 	{

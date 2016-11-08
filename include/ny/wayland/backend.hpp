@@ -15,7 +15,10 @@ public:
 public:
     bool available() const override;
     AppContextPtr createAppContext() override;
-	const char* name() const override { return "wayland"; } 
+	const char* name() const override { return "wayland"; }
+
+	bool gl() const override;
+	bool vulkan() const override;
 
 protected:
     static WaylandBackend instance_;

@@ -94,7 +94,17 @@ public:
 	///the used event dispatching system.
 	virtual void refresh() = 0;
 
-	//toplevel-specific
+	///Tries to create a BufferSurface implementation for this WindowContext.
+	///Note that a BufferSurface does count as drawing integration and therefore
+	///creating a BufferSurface for a window that already has a drawing integration should
+	///fail.
+	///On failure this function should return a nullptr and not throw.
+	///For WindowContexts that were creating for a specific context, this function will usually
+	///fail. After the returned BufferSurface object is destruced, drawing integration for
+	///the WindowContext can be created again.
+	// virtual std::unique_ptr<BufferSurface> createBufferSurface() = 0;
+
+	// - toplevel-specific -
 	///Maximized the window.
 	///\warning Shall have only an effect for toplevel windows.
 	virtual void maximize() = 0;

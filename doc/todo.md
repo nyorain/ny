@@ -1,14 +1,14 @@
 current:
-- copyright in header/source (see appContext.hpp)
+- copyright in header/source (see appContext.hpp) !important
+- normalize wheel input values !important
+- rework surface (should be WindowContext member) !important
+	- other draw integrations good that way?
 - rework glx/egl/wgl api loading (glad without loader)
 	- make egl loading totally dynamic, so it can e.g. be used on windows with ANGLE
 - event type register, see doc/concepts/events
-- normalize wheel input values
 - rework events (concepts/events.md, concepts/window.md), eventDispatcher async funcions
 - xkbcommon, unix header error on wrong config (like with gl or backends)
 - general keydown/keyup unicode value specificiation (cross-platform, differents atm)
-- rework surface (should be WindowContext member)
-	- other draw integrations good that way?
 
 for later:
 - touch support (TouchContext and touch events)
@@ -21,9 +21,10 @@ x11 backend:
 - icccm: follow ping protocol/set pid
 
 wayland backend:
-- wheel input
+- wglSetup like glx/egl (with init function)
 - animated cursor (low prio)
 - support xdg popup (and version 6), other protocols (low prio)
+- ShmBuffer shm_pool shared (not one per buffer...)
 
 winapi backend:
 - wgl api reparse [loader, swap control tear]

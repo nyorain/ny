@@ -52,6 +52,20 @@ public:
 	///Example for backend names are e.g. "wayland", "x11" or "winapi".
 	virtual const char* name() const = 0;
 
+	///Returns whether this backend does theoretically support gl.
+	///Will return false if it does not implement it or it was built without the
+	///needed libraries.
+	///Note that even if this returns true, gl initialization may still fail so that
+	///it does not guarantee that gl surfaces/contexts will work.
+	virtual bool gl() const = 0;
+
+	///Returns whether this backend does theoretically support vulkan.
+	///Will return false if it does not implement it or it was built without the
+	///needed libraries.
+	///Note that even if this returns true, vulkan surface creation may still fail somehow, so
+	///dont treat this as a guarantee.
+	virtual bool vulkan() const = 0;
+
 protected:
 	Backend() { backendsFunc(this); }
 	~Backend() { backendsFunc(this, true); }

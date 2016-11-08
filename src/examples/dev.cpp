@@ -72,6 +72,12 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 	{
 		ny::debug("Window closed. Exiting.");
 		lc_.stop();
+		return true;
+	}
+	else if(ev.type() == ny::eventType::mouseWheel)
+	{
+		ny::debug("Mouse wheel: ", static_cast<const ny::MouseWheelEvent&>(ev).value);
+		return true;
 	}
 	else if(ev.type() == ny::eventType::dataOffer)
 	{
@@ -87,6 +93,8 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 
 				ny::debug("Received dnd text data: ", std::any_cast<std::string>(text));
 			});
+
+		return true;
 	}
 	else if(ev.type() == ny::eventType::mouseButton)
 	{

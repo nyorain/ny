@@ -29,7 +29,7 @@ if(WithWinapi)
 
 	list(APPEND ny_libs gdi32 gdiplus Dwmapi)
 
-	if(WithGL)
+	if(WithGl)
 		list(APPEND ny_src winapi/wgl.cpp winapi/wglApi.c)
 	endif()
 
@@ -64,7 +64,7 @@ if(WithX11)
 
 	list(APPEND ny_libs X11 xcb xcb-icccm xcb-ewmh X11-xcb pthread)
 
-	if(WithGL)
+	if(WithGl)
 		list(APPEND ny_src x11/glx.cpp x11/glxApi.c)
 	endif()
 
@@ -94,7 +94,7 @@ if(WithWayland)
 	list(APPEND ny_libs ${WAYLAND_LIBRARIES})
 	list(APPEND ny_include ${WAYLAND_INCLUDE_DIRS})
 
-	if(WithEGL)
+	if(WithEGl)
 		list(APPEND ny_src wayland/egl.cpp)
 	endif()
 
@@ -115,14 +115,14 @@ if(WithX11 OR WithWayland)
 endif()
 
 # gl
-if(WithGL)
+if(WithGl)
 	list(APPEND ny_src common/gl.cpp)
 	list(APPEND ny_libs ${OPENGL_LIBRARY})
 	list(APPEND ny_include ${OPENGL_INCLUDE_DIR})
 endif()
 
 # egl
-if(WithEGL)
+if(WithEGl)
 	list(APPEND ny_src common/egl.cpp)
 	list(APPEND ny_libs ${EGL_LIBRARIES})
 	list(APPEND ny_include ${EGL_INCLUDE_DIRS})

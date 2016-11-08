@@ -445,3 +445,17 @@ protected:
 	virtual ImageData init() = 0;
 	virtual void apply(ImageData&) = 0;
 };
+
+
+
+
+
+
+
+auto windowContext = appContext.createWindowContext();
+auto surface = windowContext.surface();
+
+auto bufferSurface = windowContext->createBufferSurface();
+auto context = windowContext->context();
+
+auto cairoIntegration = ny::cairoIntegration(*windowContext);

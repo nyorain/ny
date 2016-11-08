@@ -74,6 +74,9 @@ namespace ny
 		class Output;
 
 		enum class SurfaceRole : unsigned char;
+
+		template<typename T>
+		struct NamedGlobal;
 	}
 
 }

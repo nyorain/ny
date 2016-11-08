@@ -8,11 +8,30 @@
 
 //these macros can be used to check which parts are built in to ny.
 //all ny header files include the parsed config.hpp
-#cmakedefine NY_WithGL
-#cmakedefine NY_WithEGL
+#cmakedefine NY_WithGl
+#cmakedefine NY_WithEgl
 #cmakedefine NY_WithVulkan
 #cmakedefine NY_WithCairo
 
-#cmakedefine NY_WithX11 
-#cmakedefine NY_WithWayland 
-#cmakedefine NY_WithWinapi 
+#cmakedefine NY_WithX11
+#cmakedefine NY_WithWayland
+#cmakedefine NY_WithWinapi
+
+namespace ny
+{
+
+//Use the following functions to determine whether the ny library your application
+//is dynamically linked to was built with the given features.
+
+bool builtWithX11();
+bool builtWithWayland();
+bool builtWithWinapi();
+
+bool builtWithEgl();
+bool builtWithGl();
+bool builtWithVulkan();
+
+bool builtWithCairo();
+bool builtWithSkia();
+
+}

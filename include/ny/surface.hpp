@@ -106,11 +106,10 @@ public:
 	Surface& operator=(Surface&& other) noexcept;
 };
 
-///Returns a surface for the given windowContext, if the associated backend does provide
+///Returns a surface for the given windowContext if the associated backend does provide
 ///an implementation. Otherwise an empty Surface object (with type = Type::none) is returned.
 ///If the backend does provide an implementation but is somehow unable to construct a surface
-///it will output an error message and return an empty Surface object.
-///Therefore this function should not throw on error.
+///it will output a warning and return an empty Surface object.
 Surface surface(WindowContext&);
 
 }

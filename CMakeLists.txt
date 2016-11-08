@@ -57,9 +57,9 @@ endif()
 include(CMakeDependentOption)
 
 # integration/context support
-cmake_dependent_option(WithGL "Build ny with gl support" on
+cmake_dependent_option(WithGl "Build ny with gl support" on
 	"OPENGL_FOUND" off)
-cmake_dependent_option(WithEGL "Built ny with egl support" on
+cmake_dependent_option(WithEgl "Built ny with egl support" on
 	"WithGL;EGL_FOUND" off)
 cmake_dependent_option(WithVulkan "Build ny with vulkan support" on
 	"VULKAN_FOUND" off)
@@ -113,8 +113,8 @@ endif()
 
 #config file
 #first set all macros (they have NY_ prefix since they are macros)
-set(NY_WithGL ${WithGL})
-set(NY_WithEGL ${WithEGL})
+set(NY_WithGl ${WithGl})
+set(NY_WithEgl ${WithEgl})
 set(NY_WithVulkan ${WithVulkan})
 set(NY_WithCairo ${WithCairo})
 
@@ -164,8 +164,8 @@ function(normalize arg)
 endfunction()
 
 #normalize all vars
-normalize(WithGL)
-normalize(WithEGL)
+normalize(WithGl)
+normalize(WithEgl)
 normalize(WithVulkan)
 normalize(WithWinapi)
 normalize(WithX11)
@@ -178,8 +178,8 @@ message("\t\nFinal Configuration:\n")
 message("\tWithWinapi:\t\t" ${WithWinapi})
 message("\tWithWayland:\t\t" ${WithWayland})
 message("\tWithX11:\t\t" ${WithX11})
-message("\tWithGL:\t\t\t" ${WithGL})
-message("\tWithEGL:\t\t" ${WithEGL})
+message("\tWithGl:\t\t\t" ${WithGl})
+message("\tWithEgl:\t\t" ${WithEgl})
 message("\tWithVulkan:\t\t" ${WithVulkan})
 message("\tWithCairo:\t\t" ${WithCairo})
 message("\n")

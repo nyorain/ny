@@ -17,6 +17,9 @@ public:
 	AppContextPtr createAppContext() override;
 	const char* name() const override { return "winapi"; }
 
+	bool gl() const override;
+	bool vulkan() const override;
+
 protected:
 	static WinapiBackend instance_;
 	WinapiBackend() = default;

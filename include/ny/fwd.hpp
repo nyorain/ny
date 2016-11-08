@@ -67,6 +67,10 @@ class GlSurface;
 struct GlVersion;
 struct GlConfig;
 
+class EglSetup;
+class EglSurface;
+class EglContext;
+
 //enums
 enum class ToplevelState : unsigned int;
 enum class WindowEdge : unsigned int;

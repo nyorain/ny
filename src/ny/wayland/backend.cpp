@@ -27,4 +27,14 @@ AppContextPtr WaylandBackend::createAppContext()
     return std::make_unique<WaylandAppContext>();
 }
 
+bool WaylandBackend::gl() const
+{
+	return builtWithGl();
+}
+
+bool WaylandBackend::vulkan() const
+{
+	return builtWithVulkan();
+}
+
 }

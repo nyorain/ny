@@ -237,29 +237,6 @@ bool ShmBuffer::size(const Vec2ui& size, unsigned int stride)
     }
 }
 
-//Callback
-void callbackDone(void* data, wl_callback* callback, uint32_t callbackData)
-{
-    auto* call = static_cast<ServerCallback*>(data);
-    call->done(*callback, callbackData);
-}
-
-const wl_callback_listener callbackListener =
-{
-    &callbackDone,
-};
-
-//
-ServerCallback::ServerCallback(wl_callback& callback)
-{
-    wl_callback_add_listener(&callback, &callbackListener, this);
-}
-
-void ServerCallback::done(wl_callback& cb, unsigned int data)
-{
-    onCallback(cb, data);
-}
-
 //output
 Output::Output(WaylandAppContext& ac, wl_output& outp, unsigned int id)
 	: appContext_(&ac), wlOutput_(&outp), globalID_(id)
@@ -346,7 +323,12 @@ WindowEdge waylandToEdge(unsigned int wlEdge)
 	return static_cast<WindowEdge>(wlEdge);
 }
 
-unsigned int imageFormatToWayland(ImageDataFormat format)
+unsigned int edgeToWayland(WindowEdge edge)
+{
+	return static_cast<unsigned int>(edge);
+}
+
+int imageFormatToWayland(ImageDataFormat format)
 {
     switch(format)
     {

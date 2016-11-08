@@ -13,12 +13,13 @@
 namespace ny
 {
 
-//wayland
 namespace wayland
 {
 
-//TODO: use one shared shm_pool (or maybe one per thread or sth.)
-///Defines a wayland shm buffer that can be resized.
+//TODO: use one shared shm_pool for all ShmBuffers?
+//At least use pool of pools but not one for every buffer. This is really bad
+
+///Wraps and manages a wayland shm buffer.
 class ShmBuffer
 {
 public:
@@ -36,7 +37,15 @@ public:
 	std::uint8_t& data(){ return *data_; }
     wl_buffer& wlBuffer() const { return *buffer_; }
 
+	///Sets the internal used flag to true. Should be called everytime the buffer
+	///is attached to a surface. The ShmBuffer will automatically clear the flag
+	///when the compositor send the buffer release event.
+	///\sa used
     void use() { used_ = true; }
+
+	///Returns whether the ShmBuffer is currently in use by the compostior.
+	///If this is true, the data should not be accessed in any way.
+	///\sa use
     bool used() const { return used_; }
 
 	///Will trigger a buffer recreate if the given size exceeds the current size.
@@ -65,18 +74,6 @@ protected:
     void released(){ used_ = false; } //registered as listener function
 };
 
-//TODO: reimplement using virutal function
-//serverCallback
-class ServerCallback
-{
-public:
-	ServerCallback(wl_callback& callback);
-	nytl::Callback<void(wl_callback&, unsigned int)> onCallback;
-
-	//called by the wayland listener
-    void done(wl_callback&, unsigned int data);
-};
-
 ///Holds information about a wayland output.
 class Output
 {
@@ -86,27 +83,24 @@ public:
 	///Usually outputs have multiple output modes.
 	struct Mode
 	{
-		Vec2ui size;
+		nytl::Vec2ui size;
 		unsigned int flags;
 		unsigned int refresh;
 	};
 
 	///All received output information.
+	///Note that this Information is not finished yet, if the done member is false.
 	struct Information
 	{
-		Vec2i position;
-		Vec2ui physicalSize;
+		nytl::Vec2i position;
+		nytl::Vec2ui physicalSize;
 		std::vector<Mode> modes;
-
 		unsigned int subpixel {};
 		unsigned int refreshRate {};
-
 		std::string make;
 		std::string model;
-
 		unsigned int transform {};
 		int scale {};
-
 		bool done {};
 	};
 
@@ -140,10 +134,12 @@ protected:
 
 }//wayland
 
+//The following could also be moved to some general util file since many c libraries use
+//the user-data-void*-as-first-callback-parameter idiom and this make connecting this
+//to OO-C++ code really convinient.
 
 namespace detail
 {
-	///\tparam Signature The Signature with which the callback will be called
 	template<typename F, F f,
 		typename Signature = typename nytl::FunctionTraits<F>::Signaure,
 		typename R = typename nytl::FunctionTraits<Signature>::ReturnType,
@@ -171,16 +167,24 @@ namespace detail
 			using Func = nytl::CompatibleFunction<Signature>;
 			auto func = Func(nytl::memberCallback(f, static_cast<Class*>(self)));
 			func(std::forward<Args>(args)...);
-
-			// Func(&static_cast<Class*>(self)->*f)(std::forward<Args>(args)...);
 		}
 	};
-
 } //detail
 
-//Can be used to implement wayland callbacks directly to member functions.
-//Does only work if the first parameter of the callback is a void* userdata pointer and
-//the pointer holds the object of which the given member function should be called.
+///Can be used to implement wayland callbacks directly to member functions.
+///Does only work if the first parameter of the callback is a void* userdata pointer and
+///the pointer holds the object of which the given member function should be called.
+///Note that while the same could (usually) also be achieved by just casting the
+///member function pointer to a non-member function pointer taking a void* pointer,
+///this way is C++ standard conform and should also not have any call real overhead.
+///\tparam F The type of the member callback function. This template parameter
+///can be avoided by using <auto f> in C++17.
+///\tparam f The member callback function.
+///\tparam S The original callback signature. Since the actually passed callback function
+///can take less parameters than the wayland listener function takes (nytl::CompatibleFunction is
+///used to achieve parameter mapping at compile time) this parameter should be the
+///Signature the raw listener function (i.e. the function returnd by this expression) should
+///have.
 template<typename F, F f, typename S = typename nytl::FunctionTraits<F>::Signature>
 auto constexpr memberCallback = &detail::MemberCallback<std::decay_t<F>, f, S>::call;
 
@@ -188,7 +192,9 @@ auto constexpr memberCallback = &detail::MemberCallback<std::decay_t<F>, f, S>::
 // template<auto f>
 // constexpr auto memberCallback = &detail::MemberCallback<std::decay_t<decltype(f)>, f>::call;
 
-///Used for e.g. move/resize requests where the serial of the trigger must be given
+///Used for e.g. move/resize requests where the serial of the trigger can be given
+///All wayland event callbacks that retrieve a serial value should create a WaylandEventData
+///object and pass it to the event handler.
 class WaylandEventData : public ny::EventData
 {
 public:
@@ -199,6 +205,9 @@ public:
 ///Wayland std::error_category implementation for one wayland interface.
 ///Only used for wayland protocol errors, for other errors wayland uses posix
 ///error codes, so generic_category will be used.
+///Note that there has to be one ErrorCategory for every wayland interface since
+///otherwise errors cannot be correctly represented just using an integer value
+///(i.e. the error code).
 class WaylandErrorCategory : public std::error_category
 {
 public:
@@ -215,11 +224,22 @@ protected:
 	std::string name_;
 };
 
-//convert function
+///Converts the given wl_shell or xdg_shell surface edge enumerations value to the corresponding
+///WindowEdge value.
+///Undefined behaviour for invalid edge values.
 WindowEdge waylandToEdge(unsigned int edge);
+
+///Converts a WindowEdge enumeration value to the corresponding wl_shell
+///(or xdg_shell, they are the same) surface edge enumeration value.
+///Undefined behaviour for invalid edge values.
 unsigned int edgeToWayland(WindowEdge edge);
 
+///Converts the given wayland shm format to the corresponding ImageDataFormat enum value.
+///Returns ImageDataFormat::none for invalid or not representable formats.
 ImageDataFormat waylandToImageFormat(unsigned int format);
-unsigned int imageFormatToWayland(ImageDataFormat format);
+
+///Converts the given ImageDataFormat enum value to the corresponding wayland shm format.
+///Returns -1 for invalid or not representable formats.
+int imageFormatToWayland(ImageDataFormat format);
 
 }

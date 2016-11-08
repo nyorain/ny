@@ -40,13 +40,6 @@ namespace ny
 namespace
 {
 
-void callbackDestroy(void*, wl_callback* callback, unsigned int)
-{
-	wl_callback_destroy(callback);
-}
-
-const wl_callback_listener callbackDestroyListener { &callbackDestroy };
-
 //LoopControl
 class WaylandLoopControlImpl : public ny::LoopControlImpl
 {
@@ -74,6 +67,10 @@ struct WaylandAppContext::Impl
 {
 #ifdef NY_WithEGL
 	EglSetup eglSetup;
+
+	//if init failed once, will be set to true (and not tried again)
+	//mutable since is only some kind of "cache" and will be changed from [e]glSetup() const
+	bool eglFailed;
 #endif //WithEGL
 };
 
@@ -359,7 +356,7 @@ GlSetup* WaylandAppContext::glSetup() const
 EglSetup* WaylandAppContext::eglSetup() const
 {
 	#ifdef NY_WithEGL
-		if(eglFailed_) return nullptr;
+		if(impl_->eglFailed) return nullptr;
 
 		if(!impl_->eglSetup.valid())
 		{
@@ -370,7 +367,7 @@ EglSetup* WaylandAppContext::eglSetup() const
 			catch(const std::exception& error)
 			{
 				warning("WaylandAppContext::eglSetup: creating failed: ", error.what());
-				eglFailed_ = true;
+				impl_->eglFailed = true;
 				impl_->eglSetup = {};
 				return nullptr;
 			}

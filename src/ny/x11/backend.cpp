@@ -15,12 +15,12 @@ X11Backend::X11Backend()
 
 bool X11Backend::available() const
 {
-    //XInitThreads(); //todo, make this optional
-    Display* dpy = XOpenDisplay(nullptr);
-    if(!dpy) return 0;
-    XCloseDisplay(dpy);
+    ::XInitThreads(); //todo, make this optional
+    Display* dpy = ::XOpenDisplay(nullptr);
+    if(!dpy) return false;
+    ::XCloseDisplay(dpy);
 
-    return 1;
+    return true;
 }
 
 std::unique_ptr<AppContext> X11Backend::createAppContext()
@@ -28,5 +28,14 @@ std::unique_ptr<AppContext> X11Backend::createAppContext()
     return std::make_unique<X11AppContext>();
 }
 
+bool X11Backend::gl() const
+{
+	return builtWithGl();
+}
+
+bool X11Backend::vulkan() const
+{
+	return builtWithVulkan();
+}
 
 }
