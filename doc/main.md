@@ -1,3 +1,9 @@
+Main documentatoin
+==================
+
+This is the main documentation file for ny where many topics are discussed (too) short.
+Over time this will be split up into seperate, up-to-date, long enough doc files.
+
 Editor notes:
  - Documentation for devs
  - This text is really unstructured and maybe only makes sense when read entirely.
@@ -81,6 +87,7 @@ The full list of dependencies for ny is fairly small:
 - wayland, wayland-egl, wayland-cursor, xkbcommon for wayland backend
 - xlib, xcb (with utility libraries), xkbcommon for x11 backend
 - just the default windows libraries (windows >= vista) for winapi backend
+
 
 - gl [optional, gl support]
 	- egl [optional, gl support on wayland (and android)]
@@ -451,25 +458,18 @@ Sources for a potential ndk/NativeActivity-based android backend:
 
 - native_window header:
 https://android.googlesource.com/platform/frameworks/native/+/master/include/android/native_window.h
-
 - ALooper documentation:
 https://developer.android.com/ndk/reference/group___looper.html#gaa7cd0636edc4ed227aadc585360ebefa
-
 - ndk example:
 https://github.com/googlesamples/android-ndk/blob/master/native-activity/app/src/main/cpp/main.cpp
-
 - native app glue header/source
 http://www.srombauts.fr/android-ndk-r5b/sources/android/native_app_glue/
-
 - native app glue impl
 http://www.ikerhurtado.com/android-ndk-native-activity-app-glue-lib-lifecycle-threads
-
 - android header
 https://github.com/pfalcon/android-platform-headers/tree/master/android-6.0.0_r1/frameworks/native/include/android
-
 - natvieActivity docs
 https://developer.android.com/ndk/reference/group___native_activity.html#ga7b0652533998d61e1a3b542485889113
-
 - sfml android implementation
 ny should have something like sfml has. The android "backend" can be used just like
 every other. One should (theoretically) be able to compile (and run) an application on linux and

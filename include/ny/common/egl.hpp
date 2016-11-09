@@ -100,6 +100,6 @@ protected:
 
 }
 
-#ifndef NY_WithEGL
+#ifndef NY_WithEgl
 	#error ny was built without egl. Do not include this header.
 #endif

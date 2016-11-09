@@ -303,6 +303,6 @@ namespace std
 	template<> struct is_error_code_enum<ny::GlContextErrc> : public std::true_type {};
 }
 
-#ifndef NY_WithGL
+#ifndef NY_WithGl
 	#error ny was built without gl. Do not include this header.
 #endif

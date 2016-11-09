@@ -4,32 +4,33 @@ Drawing on windows with ny
 **_Since ny is only a window abstraction it does not mandate or implement some drawing library
 to be used with it. It only abstracts the way an application can draw to a window._**
 
-On WindowContext creation, the application can request some special surface that should be created
-for/with the WindowConetxt in the passed WindowSettings (e.g. gl or vulkan).
-Those integrations cannot be created anymore once the WindowContext is created.
-Other integrations (e.g. with drawing toolkits as cairo or skia) can be created an
-any time for the WindowContext but there can be only one at a time.
+On WindowContext creation, the application can request some kind of surface that should be created
+for/with the WindowContext in the passed WindowSettings.
+Those surfaces cannot be created anymore once the WindowContext is created.
 
-The application can only request those intergrations if ny was built with suppport for them
-and if the specific backend of the WindowContext supports integration for them.
-Therefore the application can also ask ny to create a raw pixel buffer without any
-drawing integration (called __BufferSurface__). The application can then render into some
-retrieved pixel buffer with a drawing toolkit of choice or directly manipulate it somehow.
+At the moment, there are 3 different types of surfaces the application can create and
+use for a WindowContext:
 
-*__Note__*: BufferSurface does also count as drawing integration and if the
-application has already created a BufferSurface for a WindowContext it cannot
-create e.g. a CairoIntegration object for it.
+	- vulkan surface
+	- gl surface
+	- raw pixel buffer surface for software rendering
 
-Furthermore can BufferSurface creation fail as well e.g. when the backend has no
-possibility to implement them. BufferSurface (and some other drawing integration) creation
-will usually fail if the WindowContext was created with a specific context.
-Exceptions for this are mainly drawing integrations for toolkits that can render using
-gl or vulkan.
-Therefore WindowContexts do not care about any kind of drawing, contexts, surfaces or
-pixel buffers automatically, the application must explicitly request them.
+If ny was built without vulkan/gl, creating these surfaces will fail.
+The raw pixel buffer surface does not need any general extra dependencies but might
+still not be supported on all backends (usually is).
+
+If an application wants to draw onto a ny::WindowContext using e.g. toolkits like cairo, skia
+or nanovg, it requests the needed/preferred surface on WindowContext creation and then connects it
+with the tookit (e.g. create a cairo image surface for a raw pixel buffer or a vulkan swapchain
+for the returned vulkan surface).
+
+Below are the basic snippets for creating and then using such surfaces, for full example apps
+see [src/examples](ny/tree/master/src/examples).
 
 Vulkan
 ------
+
+*Creating a vulkan surface for a ny window.*
 
 Since ny is not a general utility toolkit but rather a platform abstraction for displaying
 stuff and receiving user events, it does not provide some huge vulkan functionality.
@@ -61,7 +62,6 @@ windowSettings.vulkan.instance = vkInstance;
 windowSettings.vulkan.storeSurface = &vkSurface;
 
 auto windowContext = appContext.createWindowContext(windowSettings);
-if(!vkSurface) return -1;
 
 //Now we can use the created vulkan surface to render onto windowContext
 //vkSurface is guaranteed to be valid until windowContext is destroyed
@@ -70,6 +70,8 @@ if(!vkSurface) return -1;
 
 OpenGL (ES)
 -----------
+
+*Rendering on a ny window using OpenGL (ES)*.
 
 Using ny to render onto a WindowContext using opengl requires some more steps since huge
 parts of opengl are platform dependent.
@@ -90,14 +92,13 @@ if(!backend.gl() || !appContext.glSetup()) return -1;
 
 //create windowSettings that request to create a GlSurface for the WindowContext
 //we also request to store the created GlSurface (if successful) in glSurface.
-auto glSurface = ny::GlSurface*;
+auto glSurface = ny::GlSurface* {};
 
 auto windowSettings = ny::WindowSettings {};
 windowSettings.surface = ny::SurfaceType::gl;
 windowSettings.gl.storeSurface = &glSurface;
 
 auto windowContext = appContext.createWindowContext(windowSettings);
-if(!glSurface) return -1;
 
 //now we have to create a GlContext to render onto the surface
 //we could now specify the contexts settings using GlContextSettings, but
@@ -123,7 +124,40 @@ vsync for the current surface or create multiple shared contexts that can be use
 in multiple threads.
 
 BufferSurface
-=============
+-------------
+
+*Drawing onto the window using sofware rendering*
+
+Creating a BufferSurface works similiar to gl and vulkan except that created surface
+can be used to directly access the windows contents.
 
 ```cpp
+//This time we do not have to check if the backend does explicitly support buffer surfaces
+//or if the appContext is suitable to create those since every backend does support them by default
+
+//create windowSettings that request to create a BufferSurface for the WindowContext
+//we also request to store the created BufferSurface (if successful) in bufferSurface.
+auto bufferSurface = ny::BufferSurface* {};
+
+auto windowSettings = ny::WindowSettings {};
+windowSettings.surface = ny::SurfaceType::buffer;
+windowSettings.buffer.storeSurface = &bufferSurface;
+
+auto windowContext = appContext.createWindowContext(windowSettings);
+
+//Now we can use the buffer surface to retrieve and access (e.g. draw into) a raw pixel buffer
+//which contents will be displayed on the window.
+//First we have to request a BufferGuard object that guards the drawing process.
+//Imagine retrieving a BufferGuard object as constructing a raw pixel buffer and destructing
+//the BufferGuard (e.g. at the end of the scope) as painting to pixel buffer onto
+//the window. It is now guaranteed though that the content will not be applied before
+//BufferGuard is destructed
+//Note how we use an extra scope for it
+{
+	auto bufferGuard = bufferSurface->get();
+	auto buffer = bufferGuard.buffer(); //decltype(buffer): ny::MutableImageData
+	drawBuffer(buffer.data, buffer.format, buffer.size, buffer.stride);
+}
+
+//Note that bufferSurface is valid at least until windowContext is destructed.
 ```

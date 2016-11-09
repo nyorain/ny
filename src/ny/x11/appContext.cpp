@@ -678,7 +678,11 @@ std::vector<const char*> X11AppContext::vulkanExtensions() const
 
 GlSetup* X11AppContext::glSetup() const
 {
-	return glxSetup();
+	#ifdef NY_WithGL
+		return glxSetup();
+	#else
+		return nullptr;
+	#endif
 }
 
 GlxSetup* X11AppContext::glxSetup() const

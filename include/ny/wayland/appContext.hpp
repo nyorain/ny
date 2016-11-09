@@ -95,7 +95,7 @@ public:
 	DataOffer* clipboard() override;
 	bool startDragDrop(std::unique_ptr<DataSource>&& dataSource) override;
 
-	std::vector<const char*> vulkanExtensions(bool& supported) const override;
+	std::vector<const char*> vulkanExtensions() const override;
 	GlSetup* glSetup() const override;
 
 	//wayland specific

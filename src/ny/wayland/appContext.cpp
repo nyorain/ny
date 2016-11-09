@@ -350,7 +350,11 @@ std::vector<const char*> WaylandAppContext::vulkanExtensions() const
 
 GlSetup* WaylandAppContext::glSetup() const
 {
-	return eglSetup();
+	#ifdef NY_WithGL
+		return eglSetup();
+	#else
+		return nullptr;
+	#endif
 }
 
 EglSetup* WaylandAppContext::eglSetup() const

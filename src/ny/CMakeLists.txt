@@ -5,6 +5,7 @@ set(ny_libs)
 # all common src files
 set(ny_src
 	log.cpp
+	config.cpp
 	cursor.cpp
 	data.cpp
 	eventDispatcher.cpp

@@ -43,7 +43,6 @@ protected:
 
 std::unique_ptr<CairoIntegration> cairoIntegration(WindowContext& context);
 
-
 }
 
 #ifndef NY_WithCairo
