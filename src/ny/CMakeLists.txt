@@ -37,10 +37,6 @@ if(WithWinapi)
 	if(WithVulkan)
 		list(APPEND ny_src winapi/vulkan.cpp)
 	endif()
-
-	if(WithCairo)
-		list(APPEND ny_src winapi/cairo.cpp)
-	endif()
 endif()
 
 # =======================================================================================
@@ -69,10 +65,6 @@ if(WithX11)
 		list(APPEND ny_src x11/glx.cpp x11/glxApi.c)
 	endif()
 
-	if(WithCairo)
-		list(APPEND ny_src x11/cairo.cpp)
-	endif()
-
 	if(WithVulkan)
 		list(APPEND ny_src x11/vulkan.cpp)
 	endif()
@@ -97,10 +89,6 @@ if(WithWayland)
 
 	if(WithEGl)
 		list(APPEND ny_src wayland/egl.cpp)
-	endif()
-
-	if(WithCairo)
-		list(APPEND ny_src wayland/cairo.cpp)
 	endif()
 
 	if(WithVulkan)
@@ -133,13 +121,6 @@ endif()
 if(WithVulkan)
 	list(APPEND ny_libs ${Vulkan_LIBRARY})
 	list(APPEND ny_include ${Vulkan_INCLUDE_DIR})
-endif()
-
-# cairo
-if(WithCairo)
-	list(APPEND ny_src common/cairo.cpp)
-	list(APPEND ny_libs ${CAIRO_LIBRARIES})
-	list(APPEND ny_include ${CAIRO_INCLUDE_DIRS})
 endif()
 
 add_library(ny SHARED ${ny_src})

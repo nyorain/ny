@@ -57,22 +57,4 @@ bool builtWithVulkan()
 	#endif
 }
 
-bool builtWithCairo()
-{
-	#ifdef NY_WithCairo
-		return true;
-	#else
-		return false;
-	#endif
-}
-
-bool builtWithSkia()
-{
-	#ifdef NY_WithSkia
-		return true;
-	#else
-		return false;
-	#endif
-}
-
 }

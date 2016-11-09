@@ -17,6 +17,7 @@ current:
 for later:
 - touch support (TouchContext and touch events)
 - skia integration (would be a great benefit since it might use persistent surfaces and gl/vulkan)
+- x11 egl
 
 x11 backend:
 - selections and xdnd

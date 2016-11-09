@@ -44,7 +44,6 @@ endif()
 find_package(OpenGL)
 find_package(EGL)
 find_package(Vulkan)
-find_package(Cairo)
 
 if(UNIX)
 	find_package(X11 COMPONENTS Xcursor)
@@ -63,10 +62,8 @@ cmake_dependent_option(WithEgl "Built ny with egl support" on
 	"WithGL;EGL_FOUND" off)
 cmake_dependent_option(WithVulkan "Build ny with vulkan support" on
 	"VULKAN_FOUND" off)
-cmake_dependent_option(WithCairo "Build with cairo integration" on
-	"CAIRO_FOUND" off)
-
 # backends
+
 cmake_dependent_option(WithX11 "Build ny with a x11 backend" on
 	"XKBCOMMON_FOUND;X11_FOUND;XCB_FOUND" off)
 cmake_dependent_option(WithWayland "Build ny with a wayland backend" on
@@ -116,7 +113,6 @@ endif()
 set(NY_WithGl ${WithGl})
 set(NY_WithEgl ${WithEgl})
 set(NY_WithVulkan ${WithVulkan})
-set(NY_WithCairo ${WithCairo})
 
 set(NY_WithWinapi ${WithWinapi})
 set(NY_WithX11 ${WithX11})
@@ -170,7 +166,6 @@ normalize(WithVulkan)
 normalize(WithWinapi)
 normalize(WithX11)
 normalize(WithWayland)
-normalize(WithCairo)
 
 #output
 message("\t\nFinal Configuration:\n")
@@ -181,7 +176,6 @@ message("\tWithX11:\t\t" ${WithX11})
 message("\tWithGl:\t\t\t" ${WithGl})
 message("\tWithEgl:\t\t" ${WithEgl})
 message("\tWithVulkan:\t\t" ${WithVulkan})
-message("\tWithCairo:\t\t" ${WithCairo})
 message("\n")
 
 message("\tnytl build:\t\t" ${nytl_location})

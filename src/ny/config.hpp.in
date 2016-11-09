@@ -11,7 +11,6 @@
 #cmakedefine NY_WithGl
 #cmakedefine NY_WithEgl
 #cmakedefine NY_WithVulkan
-#cmakedefine NY_WithCairo
 
 #cmakedefine NY_WithX11
 #cmakedefine NY_WithWayland
@@ -30,8 +29,5 @@ bool builtWithWinapi();
 bool builtWithEgl();
 bool builtWithGl();
 bool builtWithVulkan();
-
-bool builtWithCairo();
-bool builtWithSkia();
 
 }
