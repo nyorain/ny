@@ -12,6 +12,8 @@
 namespace ny
 {
 
+using namespace nytl;
+
 //base
 class Event;
 class EventHandler;
@@ -54,7 +56,6 @@ class KeyEvent;
 class RefreshEvent;
 class ShowEvent;
 
-//integration, contexts
 class Surface;
 class BufferSurface;
 class BufferGuard;
@@ -84,6 +85,11 @@ enum class DialogType : unsigned int;
 enum class ContextType : unsigned int;
 enum class CursorType : unsigned int;
 enum class ImageDataFormat : unsigned int;
+
+using WindowHints = nytl::Flags<WindowHint>;
+using WindowEdges = nytl::Flags<WindowEdge>;
+using WindowCapabilities = nytl::Flags<WindowCapability>;
+
 
 }
 

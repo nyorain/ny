@@ -1,14 +1,18 @@
 current:
 - copyright in header/source (see appContext.hpp) !important
 - normalize wheel input values !important
-- rework surface (should be WindowContext member) !important
-	- other draw integrations good that way?
+- implement drawing (surfaces/abolish cairo n stuff) like in docs
+- BufferSurfaceSettings, things like preferred strideAlign or format
+- noexcept specifications (especially for interfaces!)
+- abolish ny/include.hpp (use fwd where needed and config where needed)
 - rework glx/egl/wgl api loading (glad without loader)
 	- make egl loading totally dynamic, so it can e.g. be used on windows with ANGLE
 - event type register, see doc/concepts/events
 - rework events (concepts/events.md, concepts/window.md), eventDispatcher async funcions
-- xkbcommon, unix header error on wrong config (like with gl or backends)
+- xkbcommon, unix header #error on when #ifndef NY_WithXkbcommon (need this variable)
 - general keydown/keyup unicode value specificiation (cross-platform, differents atm)
+	- which event should contain the utf8 member set?
+- AppContext settings
 
 for later:
 - touch support (TouchContext and touch events)

@@ -10,7 +10,7 @@
 #include <memory>
 #include <vector>
 
-///This header and its functionality can be used without linking to ny-backend.
+//This header and its functionality can be used without linking to ny.
 
 namespace ny
 {

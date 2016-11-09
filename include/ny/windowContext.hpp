@@ -1,3 +1,7 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #pragma once
 
 #include <ny/include.hpp>
@@ -9,14 +13,10 @@
 #include <memory>
 #include <any>
 
-///Header can be used without linking to ny-backend.
+//This header and its functionality can be used without linking to ny.
 
 namespace ny
 {
-
-using WindowHints = Flags<WindowHint>;
-using WindowEdges = Flags<WindowEdge>;
-using WindowCapabilities = nytl::Flags<WindowCapability>;
 
 ///\brief Abstract interface for a window context in the underlaying window system.
 ///The term "window" used in the documentation for this class is used for the underlaying native
@@ -94,15 +94,13 @@ public:
 	///the used event dispatching system.
 	virtual void refresh() = 0;
 
-	///Tries to create a BufferSurface implementation for this WindowContext.
-	///Note that a BufferSurface does count as drawing integration and therefore
-	///creating a BufferSurface for a window that already has a drawing integration should
-	///fail.
-	///On failure this function should return a nullptr and not throw.
-	///For WindowContexts that were creating for a specific context, this function will usually
-	///fail. After the returned BufferSurface object is destruced, drawing integration for
-	///the WindowContext can be created again.
-	// virtual std::unique_ptr<BufferSurface> createBufferSurface() = 0;
+	///Returns a Surface object that holds some type of surface object that was created
+	///for the WindowContext.
+	///If the WindowContext was created without any surface, an empty Surface (with
+	///Surface::type == SurfaceType::none) is returned.
+	virtual Surface surface() const = 0;
+
+	
 
 	// - toplevel-specific -
 	///Maximized the window.

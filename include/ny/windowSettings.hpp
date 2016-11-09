@@ -1,8 +1,13 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #pragma once
 
 #include <ny/include.hpp>
 #include <ny/cursor.hpp>
 #include <ny/nativeHandle.hpp>
+#include <ny/surface.hpp>
 
 #include <nytl/flags.hpp>
 #include <nytl/vec.hpp>
@@ -25,8 +30,6 @@ enum class WindowEdge : unsigned int
 	topRight = 9,
 	bottomRight = 10,
 };
-
-using WindowEdges = nytl::Flags<WindowEdge>;
 NYTL_FLAG_OPS(WindowEdge)
 
 ///Toplevel window style hints.
@@ -39,8 +42,6 @@ enum class WindowHint : unsigned int
 	resize = (1L << 4), //can be resized
 	customDecorated = (1L << 5), //is customDecorated
 };
-
-using WindowHints = nytl::Flags<WindowHint>;
 NYTL_FLAG_OPS(WindowHint)
 
 ///They can be used to determine which actions can be performed on a window.
@@ -55,8 +56,6 @@ enum class WindowCapability : unsigned int
 	sizeLimits = (1L << 6)
 };
 
-
-using WindowCapabilities = nytl::Flags<WindowCapability>;
 NYTL_FLAG_OPS(WindowCapability)
 
 ///Typesafe enum for the current state of a toplevel window.
@@ -69,14 +68,7 @@ enum class ToplevelState : unsigned int
 	normal
 };
 
-///Enum that represents the context types that can be created for a window.
-enum class ContextType : unsigned int
-{
-	none = 0,
-	gl,
-	vulkan
-};
-
+///Settings for creating a GlSurface for a WindowContext.
 struct GlSurfaceSettings
 {
 	///A pointer to store a pointer to the create GlSurface.
@@ -92,6 +84,7 @@ struct GlSurfaceSettings
 	GlConfigId config {};
 };
 
+///Settings for creating a Vulkan Surface for a WindowContext.
 struct VulkanSurfaceSettings
 {
 	///The vulkan instance which should be used to create the surface.
@@ -99,9 +92,15 @@ struct VulkanSurfaceSettings
 	///queried using ny::AppContext::vulkanExtensions
 	VkInstance instance {};
 
-	///A pointer to a VulkanSurfaceContext in which a pointer to the used context and the
-	///created surface will be stored.
+	///A pointer to the variable in which the created surface should be stored.
 	VkSurfaceKHR* storeSurface {};
+};
+
+///Settings for creating a BufferSurface for a WindowContext.
+struct BufferSurfaceSettings
+{
+	///A pointer to a variable in which the created BufferSurface should be stored.
+	BufferSurface** storeSurface {};
 };
 
 
@@ -121,11 +120,12 @@ public:
 
 	///Can be used to specify if and which context should be created for the window.
 	///Specifies which union member is active.
-	ContextType context = ContextType::none;
+	SurfaceType surface = SurfaceType::none;
 	union
 	{
 		GlSurfaceSettings gl {};
 		VulkanSurfaceSettings vulkan;
+		BufferSurfaceSettings buffer;
 	};
 
 public:
