@@ -1,3 +1,7 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #include <ny/wayland/appContext.hpp>
 
 #include <ny/wayland/util.hpp>
@@ -5,13 +9,14 @@
 #include <ny/wayland/windowContext.hpp>
 #include <ny/wayland/input.hpp>
 #include <ny/wayland/data.hpp>
+#include <ny/wayland/bufferSurface.hpp>
 #include <ny/wayland/xdg-shell-client-protocol.h>
 
 #include <ny/eventDispatcher.hpp>
 #include <ny/loopControl.hpp>
 #include <ny/log.hpp>
 
-#ifdef NY_WithEGL
+#ifdef NY_WithEgl
  #include <ny/common/egl.hpp>
  #include <ny/wayland/egl.hpp>
 #endif //WithGL
@@ -65,7 +70,7 @@ public:
 
 struct WaylandAppContext::Impl
 {
-#ifdef NY_WithEGL
+#ifdef NY_WithEgl
 	EglSetup eglSetup;
 
 	//if init failed once, will be set to true (and not tried again)
@@ -104,8 +109,9 @@ WaylandAppContext::~WaylandAppContext()
 	//note that additional (even RAII) members might have to be reset here too if there
 	//destructor require the wayland display (or anything else) to be valid
 	//therefor, we e.g. explicitly reset the egl unique ptrs
-	impl_.reset();
 	outputs_.clear();
+	impl_.reset();
+	dataDevice_.reset();
 
 	if(eventfd_) close(eventfd_);
 	if(wlCursorTheme_) wl_cursor_theme_destroy(wlCursorTheme_);
@@ -289,8 +295,7 @@ WindowContextPtr WaylandAppContext::createWindowContext(const WindowSettings& se
     if(ws) waylandSettings = *ws;
     else waylandSettings.WindowSettings::operator=(settings);
 
-	auto contextType = settings.context;
-	if(contextType == ContextType::vulkan)
+	if(settings.surface == SurfaceType::vulkan)
 	{
 		#ifdef NY_WithVulkan
 			return std::make_unique<WaylandVulkanWindowContext>(*this, waylandSettings);
@@ -298,14 +303,18 @@ WindowContextPtr WaylandAppContext::createWindowContext(const WindowSettings& se
 			throw std::logic_error("ny::WaylandAC::createWC: ny built without vulkan support");
 		#endif
 	}
-	else if(contextType == ContextType::gl)
+	else if(settings.surface == SurfaceType::gl)
 	{
-		#ifdef NY_WithGL
+		#ifdef NY_WithGl
 			if(!eglSetup()) throw std::runtime_error("ny::WaylandAC::createWC: cannot init egl");
 			return std::make_unique<WaylandEglWindowContext>(*this, *eglSetup(), waylandSettings);
 		#else
 			throw std::logic_error("ny::WaylandAC::createWC: ny built without GL suppport");
 		#endif
+	}
+	else if(settings.surface == SurfaceType::buffer)
+	{
+		return std::make_unique<WaylandBufferWindowContext>(*this, waylandSettings);
 	}
 
 	return std::make_unique<WaylandWindowContext>(*this, waylandSettings);
@@ -350,7 +359,7 @@ std::vector<const char*> WaylandAppContext::vulkanExtensions() const
 
 GlSetup* WaylandAppContext::glSetup() const
 {
-	#ifdef NY_WithGL
+	#ifdef NY_WithEgl
 		return eglSetup();
 	#else
 		return nullptr;
@@ -359,7 +368,7 @@ GlSetup* WaylandAppContext::glSetup() const
 
 EglSetup* WaylandAppContext::eglSetup() const
 {
-	#ifdef NY_WithEGL
+	#ifdef NY_WithEgl
 		if(impl_->eglFailed) return nullptr;
 
 		if(!impl_->eglSetup.valid())

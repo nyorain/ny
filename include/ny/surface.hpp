@@ -6,10 +6,13 @@
 
 #include <ny/fwd.hpp>
 
+//This header and its functionality can be used without linking to ny.
+
 namespace ny
 {
 
 ///Holds the different types of draw integration a surface can have.
+///Used to identify which member of the union in ny::Surface is active.
 enum class SurfaceType : unsigned int
 {
 	none = 0,
@@ -63,11 +66,14 @@ public:
 	};
 
 public:
-	Surface();
-	~Surface();
+	Surface() = default;
+	Surface(GlSurface& xgl) : type(Type::gl), gl(&xgl) {}
+	Surface(VkSurfaceKHR vk) : type(Type::vulkan), vulkan(vk) {}
+	Surface(BufferSurface& bs) : type(Type::buffer), buffer(&bs) {}
+	~Surface() = default;
 
-	Surface(Surface&& other) noexcept;
-	Surface& operator=(Surface&& other) noexcept;
+	Surface(const Surface& other) noexcept = default;
+	Surface& operator=(const Surface& other) noexcept = default;
 };
 
 }

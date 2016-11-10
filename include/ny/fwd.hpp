@@ -14,6 +14,17 @@ namespace ny
 
 using namespace nytl;
 
+//treat them as built-in
+using std::uint8_t;
+using std::uint16_t;
+using std::uint32_t;
+using std::uint64_t;
+
+using std::int8_t;
+using std::int16_t;
+using std::int32_t;
+using std::int64_t;
+
 //base
 class Event;
 class EventHandler;
@@ -82,7 +93,6 @@ enum class MouseButton : unsigned int;
 enum class DialogResult : unsigned int;
 enum class NativeWidgetType : unsigned int;
 enum class DialogType : unsigned int;
-enum class ContextType : unsigned int;
 enum class CursorType : unsigned int;
 enum class ImageDataFormat : unsigned int;
 

@@ -98,9 +98,9 @@ public:
 	///for the WindowContext.
 	///If the WindowContext was created without any surface, an empty Surface (with
 	///Surface::type == SurfaceType::none) is returned.
-	virtual Surface surface() const = 0;
+	virtual Surface surface() = 0;
 
-	
+
 
 	// - toplevel-specific -
 	///Maximized the window.

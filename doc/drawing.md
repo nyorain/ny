@@ -54,7 +54,7 @@ auto vkInstance = createInstanceForExtensions(appContext.vulkanExtensions());
 
 //create windowSettings that request to create a VkSurfaceKHR for the WindowContext
 //we also request to store the created surface (if successful) in vkSurface.
-auto vkSurface = vkSurfaceKHR {};
+VkSurfaceKHR vkSurface {};
 
 auto windowSettings = ny::WindowSettings {};
 windowSettings.surface = ny::SurfaceType::vulkan;
@@ -92,7 +92,7 @@ if(!backend.gl() || !appContext.glSetup()) return -1;
 
 //create windowSettings that request to create a GlSurface for the WindowContext
 //we also request to store the created GlSurface (if successful) in glSurface.
-auto glSurface = ny::GlSurface* {};
+ny::GlSurface* glSurface {};
 
 auto windowSettings = ny::WindowSettings {};
 windowSettings.surface = ny::SurfaceType::gl;
@@ -137,7 +137,7 @@ can be used to directly access the windows contents.
 
 //create windowSettings that request to create a BufferSurface for the WindowContext
 //we also request to store the created BufferSurface (if successful) in bufferSurface.
-auto bufferSurface = ny::BufferSurface* {};
+ny::BufferSurface* bufferSurface {};
 
 auto windowSettings = ny::WindowSettings {};
 windowSettings.surface = ny::SurfaceType::buffer;
@@ -154,8 +154,8 @@ auto windowContext = appContext.createWindowContext(windowSettings);
 //BufferGuard is destructed
 //Note how we use an extra scope for it
 {
-	auto bufferGuard = bufferSurface->get();
-	auto buffer = bufferGuard.buffer(); //decltype(buffer): ny::MutableImageData
+	auto bufferGuard = bufferSurface->buffer();
+	auto buffer = bufferGuard.get(); //decltype(buffer): ny::MutableImageData
 	drawBuffer(buffer.data, buffer.format, buffer.size, buffer.stride);
 }
 

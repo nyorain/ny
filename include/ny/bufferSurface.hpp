@@ -28,7 +28,7 @@ public:
 	///this surface or constructing one fails in any other way, this function should
 	///throw an exception.
 	///\sa BufferGuard
-	virtual BufferGuard	bufferGuard() = 0;
+	virtual BufferGuard	buffer() = 0;
 
 	//TODO: some way to query (if) currently active BufferGuard?
 
@@ -58,13 +58,13 @@ public:
 	///\sa BasicImageData
 	///\sa convertFormat
 	///\sa BufferSurface
-	const MutableImageData& buffer() const { return data_; }
+	const MutableImageData& get() const & { return data_; }
 
 	///Returns the BufferSurface associated with this BufferGuard.
 	///The BufferGuard was retrieved from the BufferSurface and will call
 	///BufferSurface::apply on destruction.
 	///\sa BufferSurface
-	BufferSurface& bufferSurface() const { return surface_; }
+	BufferSurface& bufferSurface() const & { return surface_; }
 
 protected:
 	BufferSurface& surface_;

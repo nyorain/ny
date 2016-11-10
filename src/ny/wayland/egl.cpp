@@ -1,3 +1,7 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #include <ny/wayland/egl.hpp>
 #include <ny/wayland/windowContext.hpp>
 #include <ny/wayland/appContext.hpp>
@@ -54,11 +58,9 @@ void WaylandEglWindowContext::size(const nytl::Vec2ui& newSize)
     wl_egl_window_resize(wlEglWindow_, newSize.x, newSize.y, 0, 0);
 }
 
-bool WaylandEglWindowContext::surface(Surface& surface)
+Surface WaylandEglWindowContext::surface()
 {
-	surface.type = SurfaceType::gl;
-	surface.gl = surface_.get();
-	return true;
+	return {*surface_};
 }
 
 void WaylandEglWindowContext::configureEvent(nytl::Vec2ui size, WindowEdges edges)
@@ -68,4 +70,3 @@ void WaylandEglWindowContext::configureEvent(nytl::Vec2ui size, WindowEdges edge
 }
 
 }
-

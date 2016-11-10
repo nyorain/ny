@@ -68,24 +68,24 @@ WaylandDataOffer::WaylandDataOffer(WaylandAppContext& ac, wl_data_offer& wlDataO
 {
 	static constexpr wl_data_offer_listener listener =
 	{
-		memberCallback<decltype(&WaylandDataOffer::offer), 
+		memberCallback<decltype(&WaylandDataOffer::offer),
 			&WaylandDataOffer::offer, void(wl_data_offer*, const char*)>,
 
-		memberCallback<decltype(&WaylandDataOffer::sourceActions), 
+		memberCallback<decltype(&WaylandDataOffer::sourceActions),
 			&WaylandDataOffer::sourceActions, void(wl_data_offer*, unsigned int)>,
 
-		memberCallback<decltype(&WaylandDataOffer::action), 
+		memberCallback<decltype(&WaylandDataOffer::action),
 			&WaylandDataOffer::action, void(wl_data_offer*, unsigned int)>,
 	};
 
 	wl_data_offer_add_listener(&wlDataOffer, &listener, this);
 }
 
-WaylandDataOffer::WaylandDataOffer(WaylandDataOffer&& other) noexcept : 
-	appContext_(other.appContext_), 
-	wlDataOffer_(other.wlDataOffer_), 
-	dataTypes_(std::move(other.dataTypes_)), 
-	dnd_(other.dnd_), 
+WaylandDataOffer::WaylandDataOffer(WaylandDataOffer&& other) noexcept :
+	appContext_(other.appContext_),
+	wlDataOffer_(other.wlDataOffer_),
+	dataTypes_(std::move(other.dataTypes_)),
+	dnd_(other.dnd_),
 	requests_(std::move(other.requests_))
 {
 	if(wlDataOffer_) wl_data_offer_set_user_data(wlDataOffer_, this);
@@ -157,11 +157,11 @@ nytl::Connection WaylandDataOffer::data(unsigned int fmt, const DataOffer::DataF
 		}
 
 		wl_data_offer_receive(wlDataOffer_, "text/plain;charset=utf-8", fds[1]);
-		debug("receive callled...");
+		// debug("receive callled...");
 
 		auto callback = [wlOffer = wlDataOffer_, ac = appContext_, fmt](int fd, unsigned int re)
 		{
-			debug("callback, ", re);
+			// debug("callback, ", re);
 			constexpr auto readCount = 1000;
 			auto self = static_cast<WaylandDataOffer*>(wl_data_offer_get_user_data(wlOffer));
 			auto& buffer = self->requests_[fmt].buffer;
@@ -174,8 +174,8 @@ nytl::Connection WaylandDataOffer::data(unsigned int fmt, const DataOffer::DataF
 			}
 			while(ret == readCount);
 
-			//is eof really assured here? 
-			//the data source side might write multiple data segments and not be 
+			//is eof really assured here?
+			//the data source side might write multiple data segments and not be
 			//finished here...
 			std::any any;
 			if(fmt == dataType::text) any = std::string(buffer.begin(), buffer.end());
@@ -185,7 +185,7 @@ nytl::Connection WaylandDataOffer::data(unsigned int fmt, const DataOffer::DataF
 			self->requests_.erase(self->requests_.find(fmt));
 			close(fd);
 		};
-		
+
 		conn = appContext_->fdCallback(fds[0], POLLIN | POLLHUP, callback);
 	}
 
@@ -213,33 +213,33 @@ void WaylandDataOffer::sourceActions(unsigned int actions)
 void WaylandDataOffer::action(unsigned int action)
 {
 	nytl::unused(action);
-	debug("action: ", action);
+	// debug("action: ", action);
 }
 
 //WaylandDataSource
-WaylandDataSource::WaylandDataSource(WaylandAppContext& ac, std::unique_ptr<DataSource> src, 
+WaylandDataSource::WaylandDataSource(WaylandAppContext& ac, std::unique_ptr<DataSource> src,
 	bool dnd) : appContext_(ac), source_(std::move(src)), dnd_(dnd)
 {
 	wlDataSource_ = wl_data_device_manager_create_data_source(ac.wlDataManager());
 
 	static constexpr wl_data_source_listener listener =
 	{
-		memberCallback<decltype(&WaylandDataSource::target), 
+		memberCallback<decltype(&WaylandDataSource::target),
 			&WaylandDataSource::target, void(wl_data_source*, const char*)>,
 
-		memberCallback<decltype(&WaylandDataSource::send), 
+		memberCallback<decltype(&WaylandDataSource::send),
 			&WaylandDataSource::send, void(wl_data_source*, const char*, int)>,
 
-		memberCallback<decltype(&WaylandDataSource::cancelled), 
+		memberCallback<decltype(&WaylandDataSource::cancelled),
 			&WaylandDataSource::cancelled, void(wl_data_source*)>,
 
-		memberCallback<decltype(&WaylandDataSource::dndPerformed), 
+		memberCallback<decltype(&WaylandDataSource::dndPerformed),
 			&WaylandDataSource::dndPerformed, void(wl_data_source*)>,
 
-		memberCallback<decltype(&WaylandDataSource::dndFinished), 
+		memberCallback<decltype(&WaylandDataSource::dndFinished),
 			&WaylandDataSource::dndFinished, void(wl_data_source*)>,
 
-		memberCallback<decltype(&WaylandDataSource::action), 
+		memberCallback<decltype(&WaylandDataSource::action),
 			&WaylandDataSource::action, void(wl_data_source*, unsigned int)>,
 	};
 
@@ -265,7 +265,7 @@ void WaylandDataSource::target(const char* mimeType)
 {
 	//we dont care about this information
 	nytl::unused(mimeType);
-	debug("target ", mimeType);
+	// debug("target ", mimeType);
 }
 void WaylandDataSource::send(const char* mimeType, int fd)
 {
@@ -292,12 +292,12 @@ void WaylandDataSource::send(const char* mimeType, int fd)
 	}
 
 	close(fd);
-	debug("send ", mimeType, " fd: ", fd);
+	// debug("send ", mimeType, " fd: ", fd);
 }
 
 void WaylandDataSource::action(unsigned int action)
 {
-	debug("action ", action);
+	// debug("action ", action);
 
 	const char* cursorName = nullptr;
 	switch(action)
@@ -321,20 +321,20 @@ void WaylandDataSource::dndPerformed()
 {
 	//we dont care about this information
 	//important: do not destroy the source here, only in cancelled/finished
-	debug("performed");
+	// debug("performed");
 }
 
 void WaylandDataSource::cancelled()
 {
 	//destroy self here
-	debug("cancelled");
+	// debug("cancelled");
 	delete this;
 }
 
 void WaylandDataSource::dndFinished()
 {
 	//destroy self here
-	debug("finished");
+	// debug("finished");
 	delete this;
 }
 
@@ -346,23 +346,23 @@ WaylandDataDevice::WaylandDataDevice(WaylandAppContext& ac) : appContext_(&ac)
 
 	static constexpr wl_data_device_listener listener =
 	{
-		memberCallback<decltype(&WaylandDataDevice::offer), 
+		memberCallback<decltype(&WaylandDataDevice::offer),
 			&WaylandDataDevice::offer, void(wl_data_device*, wl_data_offer*)>,
 
-		memberCallback<decltype(&WaylandDataDevice::enter), 
-			&WaylandDataDevice::enter, void(wl_data_device*, unsigned int, wl_surface*, 
+		memberCallback<decltype(&WaylandDataDevice::enter),
+			&WaylandDataDevice::enter, void(wl_data_device*, unsigned int, wl_surface*,
 			wl_fixed_t, wl_fixed_t, wl_data_offer*)>,
 
-		memberCallback<decltype(&WaylandDataDevice::leave), 
+		memberCallback<decltype(&WaylandDataDevice::leave),
 			&WaylandDataDevice::leave, void(wl_data_device*)>,
 
-		memberCallback<decltype(&WaylandDataDevice::motion), &WaylandDataDevice::motion, 
+		memberCallback<decltype(&WaylandDataDevice::motion), &WaylandDataDevice::motion,
 			void(wl_data_device*, unsigned int, wl_fixed_t, wl_fixed_t)>,
 
-		memberCallback<decltype(&WaylandDataDevice::drop), 
+		memberCallback<decltype(&WaylandDataDevice::drop),
 			&WaylandDataDevice::drop, void(wl_data_device*)>,
 
-		memberCallback<decltype(&WaylandDataDevice::selection), 
+		memberCallback<decltype(&WaylandDataDevice::selection),
 			&WaylandDataDevice::selection, void(wl_data_device*, wl_data_offer*)>,
 	};
 
@@ -376,11 +376,11 @@ WaylandDataDevice::~WaylandDataDevice()
 
 void WaylandDataDevice::offer(wl_data_offer* offer)
 {
-	debug("offer");
+	// debug("offer");
 	offers_.push_back(std::make_unique<WaylandDataOffer>(*appContext_, *offer));
 }
 
-void WaylandDataDevice::enter(unsigned int serial, wl_surface* surface, wl_fixed_t x, wl_fixed_t y, 
+void WaylandDataDevice::enter(unsigned int serial, wl_surface* surface, wl_fixed_t x, wl_fixed_t y,
 	wl_data_offer* offer)
 {
 	nytl::unused(serial,x, y);
@@ -399,10 +399,10 @@ void WaylandDataDevice::enter(unsigned int serial, wl_surface* surface, wl_fixed
 
 void WaylandDataDevice::leave()
 {
-	debug("leave");
+	// debug("leave");
 	if(dndOffer_)
 	{
-		offers_.erase(std::remove_if(offers_.begin(), offers_.end(), 
+		offers_.erase(std::remove_if(offers_.begin(), offers_.end(),
 			[=](auto& v) { return v.get() == dndOffer_; }), offers_.end());
 
 		dndOffer_ = nullptr;
@@ -411,7 +411,7 @@ void WaylandDataDevice::leave()
 
 void WaylandDataDevice::motion(unsigned int time, wl_fixed_t x, wl_fixed_t y)
 {
-	debug("motion");
+	// debug("motion");
 	nytl::unused(time, x, y);
 
 	wl_data_offer_set_actions(&dndOffer_->wlDataOffer(), WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE,
@@ -420,7 +420,7 @@ void WaylandDataDevice::motion(unsigned int time, wl_fixed_t x, wl_fixed_t y)
 
 void WaylandDataDevice::drop()
 {
-	debug("drop");
+	// debug("drop");
 	if(!dndOffer_)
 	{
 		warning("ny::WaylandDataDevice::drop: invalid current dnd session.");
@@ -440,7 +440,7 @@ void WaylandDataDevice::drop()
 
 	if(dndWC_ && dndWC_->eventHandler())
 	{
-		debug("drop drop");
+		// debug("drop drop");
 		DataOfferEvent event(dndWC_->eventHandler());
 		event.offer = std::move(ownedDndOffer);
 		appContext_->dispatch(std::move(event));
@@ -451,10 +451,10 @@ void WaylandDataDevice::drop()
 
 void WaylandDataDevice::selection(wl_data_offer* offer)
 {
-	debug("selection");
+	// debug("selection");
 	if(clipboardOffer_)
 	{
-		offers_.erase(std::remove_if(offers_.begin(), offers_.end(), 
+		offers_.erase(std::remove_if(offers_.begin(), offers_.end(),
 			[=](auto& v) { return v.get() == clipboardOffer_; }), offers_.end());
 	}
 

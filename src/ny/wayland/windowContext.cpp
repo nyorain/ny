@@ -1,9 +1,12 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #include <ny/wayland/windowContext.hpp>
 #include <ny/wayland/appContext.hpp>
 #include <ny/wayland/interfaces.hpp>
 #include <ny/wayland/input.hpp>
 #include <ny/wayland/util.hpp>
-#include <ny/wayland/surface.hpp>
 #include <ny/wayland/xdg-shell-client-protocol.h>
 
 #include <ny/common/unix.hpp>
@@ -21,7 +24,7 @@
 namespace ny
 {
 
-WaylandWindowContext::WaylandWindowContext(WaylandAppContext& ac, 
+WaylandWindowContext::WaylandWindowContext(WaylandAppContext& ac,
 	const WaylandWindowSettings& settings) : appContext_(&ac)
 {
     wlSurface_ = wl_compositor_create_surface(&ac.wlCompositor());
@@ -144,7 +147,6 @@ void WaylandWindowContext::removeWindowHints(WindowHints hints)
 void WaylandWindowContext::size(const Vec2ui& size)
 {
 	size_ = size;
-	if(drawIntegration_) drawIntegration_->resize(size);
 }
 
 void WaylandWindowContext::position(const Vec2i& position)
@@ -256,10 +258,9 @@ WindowCapabilities WaylandWindowContext::capabilities() const
 void WaylandWindowContext::configureEvent(nytl::Vec2ui size, WindowEdges)
 {
 	size_ = size;
-	if(drawIntegration_) drawIntegration_->resize(size_);
 
 	if(!eventHandler()) return;
-	
+
 	auto sizeEvent = SizeEvent(eventHandler());
 	sizeEvent.size = size_;
 	appContext().dispatch(std::move(sizeEvent));
@@ -291,7 +292,7 @@ void WaylandWindowContext::maximize()
 void WaylandWindowContext::fullscreen()
 {
 	// TODO: output param?
-    if(wlShellSurface()) 
+    if(wlShellSurface())
 		wl_shell_surface_set_fullscreen(wlShellSurface(),
 			WL_SHELL_SURFACE_FULLSCREEN_METHOD_DEFAULT, 0, nullptr);
 
@@ -344,24 +345,24 @@ void WaylandWindowContext::title(const std::string& titlestring)
 	else if(xdgSurface_) xdg_surface_set_title(xdgSurface_, titlestring.c_str());
 }
 
-wl_shell_surface* WaylandWindowContext::wlShellSurface() const 
-{ 
-	return (role_ == WaylandSurfaceRole::shell) ? wlShellSurface_ : nullptr; 
+wl_shell_surface* WaylandWindowContext::wlShellSurface() const
+{
+	return (role_ == WaylandSurfaceRole::shell) ? wlShellSurface_ : nullptr;
 }
 
-wl_subsurface* WaylandWindowContext::wlSubsurface() const 
-{ 
-	return (role_ == WaylandSurfaceRole::sub) ? wlSubsurface_ : nullptr; 
+wl_subsurface* WaylandWindowContext::wlSubsurface() const
+{
+	return (role_ == WaylandSurfaceRole::sub) ? wlSubsurface_ : nullptr;
 }
 
-xdg_surface* WaylandWindowContext::xdgSurface() const 
-{ 
-	return (role_ == WaylandSurfaceRole::xdg) ? xdgSurface_ : nullptr; 
+xdg_surface* WaylandWindowContext::xdgSurface() const
+{
+	return (role_ == WaylandSurfaceRole::xdg) ? xdgSurface_ : nullptr;
 }
 
-xdg_popup* WaylandWindowContext::xdgPopup() const 
-{ 
-	return (role_ == WaylandSurfaceRole::xdgPopup) ? xdgPopup_ : nullptr; 
+xdg_popup* WaylandWindowContext::xdgPopup() const
+{
+	return (role_ == WaylandSurfaceRole::xdgPopup) ? xdgPopup_ : nullptr;
 }
 
 wl_display& WaylandWindowContext::wlDisplay() const
@@ -375,7 +376,7 @@ void WaylandWindowContext::attachCommit(wl_buffer* buffer)
 	{
 		frameCallback_ = wl_surface_frame(wlSurface_);
 		wl_callback_add_listener(frameCallback_, &wayland::frameListener, this);
-	 
+
 		wl_surface_damage(wlSurface_, 0, 0, size_.x, size_.y);
 		wl_surface_attach(wlSurface_, buffer, 0, 0);
 	}
@@ -387,39 +388,9 @@ void WaylandWindowContext::attachCommit(wl_buffer* buffer)
 	wl_surface_commit(wlSurface_);
 }
 
-bool WaylandWindowContext::drawIntegration(WaylandDrawIntegration* integration)
+Surface WaylandWindowContext::surface()
 {
-	if(!(bool(drawIntegration_) ^ bool(integration))) return false;
-	drawIntegration_ = integration;
-	return true;
-}
-
-bool WaylandWindowContext::surface(Surface& surface)
-{
-	if(drawIntegration_) return false;
-
-	try 
-	{
-		surface.buffer = std::make_unique<WaylandBufferSurface>(*this);
-		surface.type = SurfaceType::buffer;
-		return true;
-	} 
-	catch(const std::exception& ex) 
-	{
-		return false;
-	}
-}
-
-///Draw integration
-WaylandDrawIntegration::WaylandDrawIntegration(WaylandWindowContext& wc) : windowContext_(wc)
-{
-	if(!wc.drawIntegration(this))
-		throw std::logic_error("WaylandDrawIntegration: windowContext already has an integration");
-}
-
-WaylandDrawIntegration::~WaylandDrawIntegration()
-{
-	windowContext_.drawIntegration(nullptr);
+	return {};
 }
 
 }

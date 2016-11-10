@@ -16,7 +16,7 @@
  #include <vulkan/vulkan.h>
 #endif //Vulkan
 
-#ifdef NY_WithGL
+#ifdef NY_WithGl
  #include <ny/x11/glx.hpp>
 #endif //GL
 
@@ -70,7 +70,7 @@ public:
 
 struct X11AppContext::Impl
 {
-#ifdef NY_WithGL
+#ifdef NY_WithGl
 	GlxSetup glxSetup;
 	bool glxFailed;
 #endif //GL
@@ -525,7 +525,7 @@ WindowContextPtr X11AppContext::createWindowContext(const WindowSettings& settin
 	}
 	else if(contextType == ContextType::gl)
 	{
-		#ifdef NY_WithGL
+		#ifdef NY_WithGl
 			if(!glxSetup()) throw std::runtime_error("ny::X11AC::createWC: failed to init glx");
 			return std::make_unique<GlxWindowContext>(*this, *glxSetup(), x11Settings);
 		#else
@@ -678,7 +678,7 @@ std::vector<const char*> X11AppContext::vulkanExtensions() const
 
 GlSetup* X11AppContext::glSetup() const
 {
-	#ifdef NY_WithGL
+	#ifdef NY_WithGl
 		return glxSetup();
 	#else
 		return nullptr;
@@ -687,7 +687,7 @@ GlSetup* X11AppContext::glSetup() const
 
 GlxSetup* X11AppContext::glxSetup() const
 {
-	#ifdef NY_WithGL
+	#ifdef NY_WithGl
 		if(impl_->glxFailed) return nullptr;
 
 		if(!impl_->glxSetup.valid())

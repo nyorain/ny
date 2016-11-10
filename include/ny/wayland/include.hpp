@@ -1,6 +1,7 @@
 #pragma once
 
-#include <ny/include.hpp>
+#include <ny/fwd.hpp>
+#include <ny/config.hpp>
 
 #ifndef NY_WithWayland
 	#error ny was built without wayland. Do not include this header file!
@@ -51,32 +52,17 @@ namespace ny
 	class WaylandWindowSettings;
 	class WaylandDataDevice;
 	class WaylandErrorCategory;
-
-#ifdef NY_WithEGL
+	class WaylandBufferWindowContext;
 	class WaylandEglWindowContext;
-#endif //WithEGL
-
-
-#ifdef NY_WithVulkan
 	class WaylandVulkanContext;
-#endif //WithVulkan
-
-
-#ifdef NY_WithCairo
-	class WaylandCairoDrawContext;
-	class WaylandCairoWindowContext;
-#endif //WithCairo
 
 	namespace wayland
 	{
 		class ShmBuffer;
 		class ServerCallback;
 		class Output;
-
 		enum class SurfaceRole : unsigned char;
-
-		template<typename T>
-		struct NamedGlobal;
+		template<typename T> struct NamedGlobal;
 	}
 
 }

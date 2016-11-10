@@ -13,7 +13,6 @@ set(ny_src
 	key.cpp
 	mouseButton.cpp
 	backend.cpp
-	surface.cpp
 	library.cpp)
 
 # =======================================================================================
@@ -25,7 +24,7 @@ if(WithWinapi)
 		winapi/util.cpp
 		winapi/com.cpp
 		winapi/input.cpp
-		winapi/surface.cpp
+		winapi/bufferSurface.cpp
 		winapi/windowContext.cpp)
 
 	list(APPEND ny_libs gdi32 gdiplus Dwmapi)
@@ -46,7 +45,7 @@ if(WithX11)
 		x11/appContext.cpp
 		x11/backend.cpp
 		x11/util.cpp
-		x11/surface.cpp
+		x11/bufferSurface.cpp
 		x11/input.cpp
 		x11/windowContext.cpp)
 
@@ -78,7 +77,7 @@ if(WithWayland)
 		wayland/backend.cpp
 		wayland/input.cpp
 		wayland/util.cpp
-		wayland/surface.cpp
+		wayland/bufferSurface.cpp
 		wayland/windowContext.cpp
 		wayland/interfaces.cpp
 		wayland/data.cpp
@@ -87,7 +86,7 @@ if(WithWayland)
 	list(APPEND ny_libs ${WAYLAND_LIBRARIES})
 	list(APPEND ny_include ${WAYLAND_INCLUDE_DIRS})
 
-	if(WithEGl)
+	if(WithEgl)
 		list(APPEND ny_src wayland/egl.cpp)
 	endif()
 
@@ -111,7 +110,7 @@ if(WithGl)
 endif()
 
 # egl
-if(WithEGl)
+if(WithEgl)
 	list(APPEND ny_src common/egl.cpp)
 	list(APPEND ny_libs ${EGL_LIBRARIES})
 	list(APPEND ny_include ${EGL_INCLUDE_DIRS})

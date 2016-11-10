@@ -1,3 +1,7 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #include <ny/wayland/vulkan.hpp>
 #include <ny/wayland/appContext.hpp>
 #include <ny/surface.hpp>
@@ -33,11 +37,9 @@ WaylandVulkanWindowContext::~WaylandVulkanWindowContext()
 		vkDestroySurfaceKHR(vkInstance_, vkSurface_, nullptr);
 }
 
-bool WaylandVulkanWindowContext::surface(Surface& surface)
+Surface WaylandVulkanWindowContext::surface()
 {
-	surface.type = SurfaceType::vulkan;
-	surface.vulkan = vkSurface_;
-	return true;
+	return {vkSurface_};
 }
 
 }

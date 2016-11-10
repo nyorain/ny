@@ -14,6 +14,8 @@ public:
 	MyEventHandler(ny::LoopControl& mainLoop, ny::WindowContext& wc) : lc_(mainLoop), wc_(wc) {}
 	bool handleEvent(const ny::Event& ev) override;
 
+	ny::BufferSurface* surface;
+
 protected:
 	ny::LoopControl& lc_;
 	ny::WindowContext& wc_;
@@ -24,11 +26,16 @@ int main()
 	auto& backend = ny::Backend::choose();
 	auto ac = backend.createAppContext();
 
+	ny::BufferSurface* bufferSurface {};
+
 	ny::WindowSettings settings;
+	settings.surface = ny::SurfaceType::buffer;
+	settings.buffer.storeSurface = &bufferSurface;
 	auto wc = ac->createWindowContext(settings);
 
 	ny::LoopControl control;
 	MyEventHandler handler(control, *wc);
+	handler.surface = bufferSurface;
 
 	//XXX: interesting part here
 	//First check that the AppContext does implement keyboard and mouse input.
@@ -112,6 +119,16 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 	{
 		ny::log("Window closed. Exiting.");
 		lc_.stop();
+		return true;
+	}
+	else if(ev.type() == ny::eventType::draw)
+	{
+		auto bufferGuard = surface->buffer();
+		auto buffer = bufferGuard.get();
+
+		auto size = buffer.stride * buffer.size.y;
+		std::memset(buffer.data, 0xCC, size);
+
 		return true;
 	}
 

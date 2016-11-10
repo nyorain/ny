@@ -1,3 +1,7 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #pragma once
 
 #include <ny/wayland/include.hpp>
@@ -20,8 +24,7 @@ public:
     virtual ~WaylandEglWindowContext();
 
 	void size(const Vec2ui& newSize) override;
-	bool surface(Surface& surface) override;
-	bool drawIntegration(WaylandDrawIntegration*) override { return false; }
+	Surface surface() override;
 
 	void configureEvent(nytl::Vec2ui size, WindowEdges) override;
 

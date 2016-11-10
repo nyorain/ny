@@ -33,24 +33,22 @@ int main()
 	auto& backend = ny::Backend::choose();
 	auto ac = backend.createAppContext();
 
+	if(!backend.gl() || !ac->glSetup())
+	{
+		ny::error("The ny library was built without gl or failed to init it!");
+		return EXIT_FAILURE;
+	}
+
 	//Here we specify that a gl surface should be created and then be stored in surface.
 	//This context is guaranteed to be valid at least until the WindowContext it was created
 	//for gets destructed.
 	ny::GlSurface* surface {};
 
 	ny::WindowSettings settings;
-	settings.context = ny::ContextType::gl;
+	settings.surface = ny::SurfaceType::gl;
 	settings.gl.storeSurface = &surface;
 
 	auto wc = ac->createWindowContext(settings);
-
-	//check that the glSurface could be created and that the appContext does
-	//support the glSetup interface
-	if(!surface || !ac->glSetup())
-	{
-		ny::error("Failed to create gl surface and context");
-		return EXIT_FAILURE;
-	}
 
 	//Create the opengl context
 	//Here, we just use the default config and settings
@@ -67,13 +65,6 @@ int main()
 		ny::warning("Could not get the required gl functions");
 		return EXIT_FAILURE;
 	}
-
-	//output some debug information
-	// ny::debug("Gl version: ", ny::name(ctx->version()));
-	// ny::debug("Preferred glsl version: ", ny::name(ctx->preferredGlslVersion()));
-	// ny::debug("Gl Extensions:");
-	// for(const auto& e : ctx->glExtensions())
-	// 	ny::debug("\t", e);
 
 	///With this object we can stop the dispatchLoop called below from inside.
 	///We construct the EventHandler with a reference to it and when it receives an event that

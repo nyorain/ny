@@ -1,3 +1,7 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #pragma once
 
 #include <ny/wayland/include.hpp>
@@ -166,7 +170,7 @@ protected:
 	wl_cursor_theme* wlCursorTheme_ {};
 	wl_surface* wlCursorSurface_ {};
 
-	std::unique_ptr<WaylandDataDevice> dataDevice_;
+	std::unique_ptr<WaylandDataDevice> dataDevice_; //TODO: move to impl
 
 	//if the current cursor was set from a custom image this will hold an owned pointer
 	//to the buffer.
@@ -177,6 +181,8 @@ protected:
 	std::vector<wayland::Output> outputs_;
 
 	std::string seatName_;
+
+	//TODO: move ot impl
 	std::unique_ptr<WaylandKeyboardContext> keyboardContext_;
 	std::unique_ptr<WaylandMouseContext> mouseContext_;
 

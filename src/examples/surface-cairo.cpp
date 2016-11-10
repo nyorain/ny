@@ -6,7 +6,7 @@
 //XXX: This example shows how to use cairo manually integrated using the surface/BufferSurface
 //integration possibility. The performance should usually not be much worse, but one should
 //nontheless prefer the normal cairo integration.
-//Try to compare the performance of this example (ny-surface-cairo) with the native cairo 
+//Try to compare the performance of this example (ny-surface-cairo) with the native cairo
 //integration (ny-cairo) and on some backends you may notive a real difference (mainly for x11).
 
 class MyEventHandler : public ny::EventHandler
@@ -28,25 +28,26 @@ int main()
 	auto& backend = ny::Backend::choose();
 	auto ac = backend.createAppContext();
 
+	//nothing special here, just create a buffer surface for the WindowContext
+	ny::BufferSurface* bufferSurface {};
+
 	ny::WindowSettings settings;
+	settings.surface = ny::SurfaceType::buffer;
+	settings.buffer.storeSurface = &bufferSurface;
 	auto wc = ac->createWindowContext(settings);
 
-	ny::LoopControl control;
-	MyEventHandler handler(control, *wc);
-
-	wc->eventHandler(handler);
-	wc->refresh();
-
-	//nothing special here, just create a surface integration
-	//see examples/surface.cpp or ny/backend/integration/surface.hpp for more details on it
-	auto surface = ny::surface(*wc);
-	if(surface.type == ny::SurfaceType::none)
+	if(!bufferSurface)
 	{
-		ny::error("Failed to create surface integration");
+		ny::error("Failed to create ny buffer surface");
 		return EXIT_FAILURE;
 	}
 
-	handler.surface = surface.buffer.get();
+	ny::LoopControl control;
+	MyEventHandler handler(control, *wc);
+	handler.surface = bufferSurface;
+
+	wc->eventHandler(handler);
+	wc->refresh();
 
 	ny::debug("Entering main loop");
 	ac->dispatchLoop(control);
@@ -68,11 +69,11 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 		//we just get a buffer from the BufferSurface and then create a cairo surface for it
 		//note that (if the backend supports it) we can also use alpha to make the window
 		//transparent
-		auto buffGuard = surface->get();
+		auto buffGuard = surface->buffer();
 		auto buff = buffGuard.get();
 
 		//note that this only works if the returned buffer has argb8888 format!
-		auto surf = cairo_image_surface_create_for_data(buff.data, CAIRO_FORMAT_ARGB32, 
+		auto surf = cairo_image_surface_create_for_data(buff.data, CAIRO_FORMAT_ARGB32,
 			buff.size.x, buff.size.y, buff.stride);
 		auto cr = cairo_create(surf);
 		cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
@@ -99,4 +100,3 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 
 	return false;
 };
-

@@ -1,3 +1,7 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #pragma once
 
 #include <ny/wayland/include.hpp>
@@ -58,8 +62,8 @@ protected:
 	///Source actions are currently not implemented since they do not have an interface.
 	void action(unsigned int action);
 
-	///This function is registered as callback function when a data receive fd can be 
-	///read. 
+	///This function is registered as callback function when a data receive fd can be
+	///read.
 	void fdReceive(int fd);
 
 	///Called by destructor and move assignment operator
@@ -78,7 +82,7 @@ class WaylandDataSource
 {
 public:
 	WaylandDataSource(WaylandAppContext&, std::unique_ptr<DataSource>, bool dnd);
-	
+
 	wl_data_source& wlDataSource() const { return *wlDataSource_; }
 	DataSource& dataSource() const { return *source_; }
 	bool dnd() const { return dnd_; }
@@ -122,9 +126,9 @@ protected:
 
 	std::vector<std::unique_ptr<WaylandDataOffer>> offers_; //TODO: do it without dma/pointers
 
-	WaylandDataOffer* clipboardOffer_ {};	
-	WaylandDataOffer* dndOffer_ {};	
-	
+	WaylandDataOffer* clipboardOffer_ {};
+	WaylandDataOffer* dndOffer_ {};
+
 	WaylandWindowContext* dndWC_;
 
 protected:

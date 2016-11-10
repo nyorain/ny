@@ -1,6 +1,7 @@
 #pragma once
 
-#include <ny/include.hpp>
+#include <ny/fwd.hpp>
+#include <ny/config.hpp>
 
 #include <ny/backend.hpp>
 #include <ny/appContext.hpp>
@@ -19,6 +20,7 @@
 #include <ny/library.hpp>
 #include <ny/nativeHandle.hpp>
 #include <ny/surface.hpp>
+#include <ny/bufferSurface.hpp>
 
 #include <ny/key.hpp>
 #include <ny/keyboardContext.hpp>

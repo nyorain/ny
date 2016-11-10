@@ -1,3 +1,7 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #pragma once
 
 #include <ny/wayland/include.hpp>
@@ -22,19 +26,6 @@ enum class WaylandSurfaceRole : unsigned int
 
 ///WindowSettings class for wayland WindowContexts.
 class WaylandWindowSettings : public WindowSettings {};
-
-///WaylandDrawIntegration
-class WaylandDrawIntegration
-{
-public:
-	WaylandDrawIntegration(WaylandWindowContext& wc);
-	virtual ~WaylandDrawIntegration();
-	virtual void resize(const nytl::Vec2ui&) {}
-
-protected:
-	WaylandWindowContext& windowContext_;
-};
-
 
 ///Wayland WindowContext implementation.
 ///Basically holds a wayland surface with a description on how it is used.
@@ -63,6 +54,7 @@ public:
 	NativeHandle nativeHandle() const override;
 
 	WindowCapabilities capabilities() const override;
+	Surface surface() override;
 
     //toplevel
     void maximize() override;
@@ -91,10 +83,10 @@ public:
 	nytl::Vec2ui size() const { return size_; }
 	bool shown() const { return shown_; }
 
-    wl_shell_surface* wlShellSurface() const; 
-    wl_subsurface* wlSubsurface() const; 
-    xdg_surface* xdgSurface() const; 
-    xdg_popup* xdgPopup() const; 
+    wl_shell_surface* wlShellSurface() const;
+    wl_subsurface* wlSubsurface() const;
+    xdg_surface* xdgSurface() const;
+    xdg_popup* xdgPopup() const;
 
 	wl_buffer* wlCursorBuffer() const { return cursorBuffer_; }
 	nytl::Vec2i cursorHotspot() const { return cursorHotspot_; }
@@ -103,21 +95,9 @@ public:
 	///Attaches the given buffer, damages the surface and commits it.
 	///Does also add a frameCallback to the surface.
 	///If called with a nullptr, no framecallback will be attached and the surface will
-	///be unmapped. Note that if the WindowContext is hidden, no buffer will be 
+	///be unmapped. Note that if the WindowContext is hidden, no buffer will be
 	///attached.
 	void attachCommit(wl_buffer* buffer);
-
-	///Sets the integration to the given one.
-	///Will return false if there is already such an integration or this implementation
-	///does not support them (e.g. vulkan/opengl WindowContext).
-	///Calling this function with a nullptr resets the integration.
-	virtual bool drawIntegration(WaylandDrawIntegration* integration);
-
-	///Creates a surface and stores it in the given parameter.
-	///Returns false and does not change the given parameter if a surface coult not be
-	///created.
-	///This could be the case if the WindowContext already has another integration.
-	virtual bool surface(Surface& surface);
 
 	WaylandAppContext& appContext() const { return *appContext_; }
 	wl_display& wlDisplay() const;
@@ -132,7 +112,7 @@ protected:
 	WaylandAppContext* appContext_ {};
     wl_surface* wlSurface_ {};
 	nytl::Vec2ui size_ {};
-	
+
 	//if this is == nullptr, the window is ready to be redrawn.
 	//otherwise waiting for the callback to be called
     wl_callback* frameCallback_ {};
@@ -156,7 +136,6 @@ protected:
         wl_subsurface* wlSubsurface_;
     };
 
-	WaylandDrawIntegration* drawIntegration_ = nullptr; //optional assocated DrawIntegration
 	bool shown_ {}; //Whether the WindowContext should be shown or hidden
 
 	wayland::ShmBuffer shmCursorBuffer_ {}; //only needed when cursor is custom image

@@ -2,7 +2,6 @@
 
 #include <ny/wayland/appContext.hpp>
 #include <ny/wayland/windowContext.hpp>
-#include <ny/wayland/cairo.hpp>
 
 #include <ny/event.hpp>
 #include <ny/log.hpp>

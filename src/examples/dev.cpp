@@ -1,7 +1,4 @@
 #include <ny/ny.hpp>
-#include <ny/common/cairo.hpp>
-
-#include <cairo/cairo.h>
 #include <nytl/vecOps.hpp>
 
 //used in the moment to test data sources and data offers, dragndrop and clipboard stuff
@@ -26,7 +23,7 @@ public:
 	bool handleEvent(const ny::Event& ev) override;
 
 	ny::AppContext* ac;
-	ny::CairoIntegration* cairo;
+	ny::BufferSurface* surface;
 
 protected:
 	ny::LoopControl& lc_;
@@ -39,22 +36,18 @@ int main()
 	auto& backend = ny::Backend::choose();
 	auto ac = backend.createAppContext();
 
+	ny::BufferSurface* bufferSurface {};
 
 	ny::WindowSettings settings;
+	settings.surface = ny::SurfaceType::buffer;
+	settings.buffer.storeSurface = &bufferSurface;
 	auto wc = ac->createWindowContext(settings);
 
 	ny::LoopControl control;
+
 	MyEventHandler handler(control, *wc);
 	handler.ac = ac.get();
-
-	auto cairo = ny::cairoIntegration(*wc);
-	if(!cairo)
-	{
-		ny::error("Failed to create cairo integration");
-		return EXIT_FAILURE;
-	}
-
-	handler.cairo = cairo.get();
+	handler.surface = bufferSurface;
 
 	// wc->droppable({{ny::dataType::text, ny::dataType::filePaths}});
 	wc->eventHandler(handler);
@@ -108,20 +101,11 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 	}
 	else if(ev.type() == ny::eventType::draw)
 	{
-		//XXX: using cairo to draw onto the window
-		//Here, get the surface guard which wraps a cairo_surface_t
-		auto surfGuard = cairo->get();
-		auto& surf = surfGuard.surface();
+		auto bufferGuard = surface->buffer();
+		auto buffer = bufferGuard.get();
 
-		//Then, create a cairo context for the returned surface and use it to draw
-		auto cr = cairo_create(&surf);
-		cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
-		cairo_set_source_rgba(cr, 0.543, 0.4, 0.8, 0.5);
-		cairo_paint(cr);
-
-		//always remember to destroy/recreate the cairo context on every draw call and dont
-		//store it since the cairo surface might change from call to call
-		cairo_destroy(cr);
+		auto size = buffer.stride * buffer.size.y;
+		std::memset(buffer.data, 0xCC, size);
 
 		return true;
 	}

@@ -21,6 +21,12 @@ VkInstance createInstance(ny::AppContext& ac);
 int main()
 {
 	auto& backend = ny::Backend::choose();
+	if(!backend.vulkan())
+	{
+		ny::error("The ny library on this system was built without vulkan support!");
+		return EXIT_FAILURE;
+	}
+
 	auto ac = backend.createAppContext();
 
 	//create the vulkan instance
@@ -36,7 +42,7 @@ int main()
 	//specify to create a vulkan surface for the created instance and store this surface
 	//in vkSurface
 	ny::WindowSettings settings;
-	settings.context = ny::ContextType::vulkan;
+	settings.surface = ny::SurfaceType::vulkan;
 	settings.vulkan.instance = vkInstance;
 	settings.vulkan.storeSurface = &vkSurface;
 	auto wc = ac->createWindowContext(settings);

@@ -7,7 +7,7 @@
 class MyEventHandler : public ny::EventHandler
 {
 public:
-	ny::BufferSurface* buffer;
+	ny::BufferSurface* surface;
 
 public:
 	MyEventHandler(ny::LoopControl& mainLoop, ny::WindowContext& wc) : lc_(mainLoop), wc_(wc) {}
@@ -23,8 +23,20 @@ int main()
 	auto& backend = ny::Backend::choose();
 	auto ac = backend.createAppContext();
 
+	//XXX: the new part
+	//Request a buffer surface to be created for the windowContext
+	ny::BufferSurface* bufferSurface {};
+
 	ny::WindowSettings settings;
+	settings.surface = ny::SurfaceType::buffer;
+	settings.buffer.storeSurface = &bufferSurface;
 	auto wc = ac->createWindowContext(settings);
+
+	if(!bufferSurface)
+	{
+		ny::error("Failed to create surface buffer integration");
+		return EXIT_FAILURE;
+	}
 
 	ny::LoopControl control;
 	MyEventHandler handler(control, *wc);
@@ -32,19 +44,7 @@ int main()
 	wc->eventHandler(handler);
 	wc->refresh();
 
-	//XXX: the new part
-	//we just create the surface for the WindowContext
-	//in this case the type of the Surface should be a BufferSurface since we did
-	//not request any context to be created for the WindowContext
-	//Otherwise, the surface could have e.g. the types opengl context or vulkan surface
-	auto surface = ny::surface(*wc);
-	if(surface.type != ny::SurfaceType::buffer)
-	{
-		ny::error("Failed to create surface buffer integration");
-		return EXIT_FAILURE;
-	}
-
-	handler.buffer = surface.buffer.get();
+	handler.surface = bufferSurface;
 
 	ny::debug("Entering main loop");
 	ac->dispatchLoop(control);
@@ -64,8 +64,8 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 	{
 		//XXX: we get a buffer guard from the BufferSurface
 		//and retrieve the buffer from its guard
-		auto guard = buffer->get();
-		auto data = guard.get(); //decltype(data): ny::MutableImageData
+		auto guard = surface->buffer();
+		auto buffer = guard.get(); //decltype(data): ny::MutableImageData
 
 		//we just fill the image data with 255 color values which should result in a white surface
 		//note that doing so is really bad performance-wise (this might be a 1-million-time
@@ -73,9 +73,8 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 		//when resizing.
 		//For a better example, see surface-cairo which uses cairo at this pointer for way
 		//better performance (since cairo is optimized).
-		auto size = ny::imageDataFormatSize(data.format);
-		for(unsigned int i = 0; i < data.size.x * data.size.y * size; i += 1)
-			data.data[i] = 0xAA;
+		auto size = buffer.stride * buffer.size.y;
+		std::memset(buffer.data, 0xCC, size);
 	}
 	else if(ev.type() == ny::eventType::key)
 	{

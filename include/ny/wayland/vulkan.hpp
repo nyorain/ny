@@ -1,3 +1,7 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #pragma once
 
 #include <ny/wayland/include.hpp>
@@ -13,8 +17,7 @@ public:
 	WaylandVulkanWindowContext(WaylandAppContext&, const WaylandWindowSettings&);
 	~WaylandVulkanWindowContext();
 
-	bool surface(Surface&) override;
-	bool drawIntegration(WaylandDrawIntegration*) override { return false; }
+	Surface surface() override;
 
 	VkSurfaceKHR vkSurface() const { return vkSurface_; }
 	VkInstance vkInstance() const { return vkInstance_; }
