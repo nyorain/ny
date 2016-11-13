@@ -84,20 +84,20 @@ using namespace wayland;
 WaylandAppContext::WaylandAppContext()
 {
 	impl_ = std::make_unique<Impl>();
-    wlDisplay_ = wl_display_connect(nullptr);
+	wlDisplay_ = wl_display_connect(nullptr);
 
-    if(!wlDisplay_) throw std::runtime_error("ny::WaylandAC: could not connect to display");
+	if(!wlDisplay_) throw std::runtime_error("ny::WaylandAC: could not connect to display");
 
-    wlRegistry_ = wl_display_get_registry(wlDisplay_);
-    wl_registry_add_listener(wlRegistry_, &globalRegistryListener, this);
+	wlRegistry_ = wl_display_get_registry(wlDisplay_);
+	wl_registry_add_listener(wlRegistry_, &globalRegistryListener, this);
 
-    wl_display_dispatch(wlDisplay_);
-    wl_display_roundtrip(wlDisplay_);
+	wl_display_dispatch(wlDisplay_);
+	wl_display_roundtrip(wlDisplay_);
 
-    //compositor added by registry Callback listener
+	//compositor added by registry Callback listener
 	//note that if it is not there now it simply does not exist on the server since
 	//we rountripped above
-    if(!wlCompositor_) throw std::runtime_error("ny::WaylandAC: could not get compositor");
+	if(!wlCompositor_) throw std::runtime_error("ny::WaylandAC: could not get compositor");
 	eventfd_ = eventfd(0, EFD_NONBLOCK);
 
 	if(wlSeat_ && wlDataManager_) dataDevice_ = std::make_unique<WaylandDataDevice>(*this);
@@ -128,7 +128,7 @@ WaylandAppContext::~WaylandAppContext()
 	if(wlCompositor_) wl_compositor_destroy(wlCompositor_);
 
 	if(wlRegistry_) wl_registry_destroy(wlRegistry_);
-    if(wlDisplay_) wl_display_disconnect(wlDisplay_);
+	if(wlDisplay_) wl_display_disconnect(wlDisplay_);
 }
 
 //TODO: exception safety!
@@ -289,11 +289,11 @@ MouseContext* WaylandAppContext::mouseContext()
 
 WindowContextPtr WaylandAppContext::createWindowContext(const WindowSettings& settings)
 {
-    WaylandWindowSettings waylandSettings;
-    const auto* ws = dynamic_cast<const WaylandWindowSettings*>(&settings);
+	WaylandWindowSettings waylandSettings;
+	const auto* ws = dynamic_cast<const WaylandWindowSettings*>(&settings);
 
-    if(ws) waylandSettings = *ws;
-    else waylandSettings.WindowSettings::operator=(settings);
+	if(ws) waylandSettings = *ws;
+	else waylandSettings.WindowSettings::operator=(settings);
 
 	if(settings.surface == SurfaceType::vulkan)
 	{
@@ -363,7 +363,7 @@ GlSetup* WaylandAppContext::glSetup() const
 		return eglSetup();
 	#else
 		return nullptr;
-	#endif
+	#endif //Egl
 }
 
 EglSetup* WaylandAppContext::eglSetup() const
@@ -379,7 +379,7 @@ EglSetup* WaylandAppContext::eglSetup() const
 			}
 			catch(const std::exception& error)
 			{
-				warning("WaylandAppContext::eglSetup: creating failed: ", error.what());
+				warning("ny::WaylandAppContext::eglSetup: init failed: ", error.what());
 				impl_->eglFailed = true;
 				impl_->eglSetup = {};
 				return nullptr;
@@ -548,52 +548,52 @@ int WaylandAppContext::dispatchDisplay()
 void WaylandAppContext::registryAdd(unsigned int id, const char* cinterface, unsigned int)
 {
 	std::string interface = cinterface;
-    if(interface == "wl_compositor" && !wlCompositor_)
-    {
+	if(interface == "wl_compositor" && !wlCompositor_)
+	{
 		auto ptr = wl_registry_bind(wlRegistry_, id, &wl_compositor_interface, 1);
-        wlCompositor_ = {static_cast<wl_compositor*>(ptr), id};
-    }
-    else if(interface == "wl_shell" && !wlShell_)
-    {
+		wlCompositor_ = {static_cast<wl_compositor*>(ptr), id};
+	}
+	else if(interface == "wl_shell" && !wlShell_)
+	{
 		auto ptr = wl_registry_bind(wlRegistry_, id, &wl_shell_interface, 1);
-        wlShell_ = {static_cast<wl_shell*>(ptr), id};
-    }
-    else if(interface == "wl_shm" && !wlShm_)
-    {
+		wlShell_ = {static_cast<wl_shell*>(ptr), id};
+	}
+	else if(interface == "wl_shm" && !wlShm_)
+	{
 		auto ptr = wl_registry_bind(wlRegistry_, id, &wl_shm_interface, 1);
-        wlShm_ = {static_cast<wl_shm*>(ptr), id};
-        wl_shm_add_listener(wlShm_, &shmListener, this);
+		wlShm_ = {static_cast<wl_shm*>(ptr), id};
+		wl_shm_add_listener(wlShm_, &shmListener, this);
 
 		//TODO
-        wlCursorTheme_ = wl_cursor_theme_load("default", 32, wlShm_);
-    }
-    else if(interface == "wl_subcompositor" && !wlSubcompositor_)
-    {
+		wlCursorTheme_ = wl_cursor_theme_load("default", 32, wlShm_);
+	}
+	else if(interface == "wl_subcompositor" && !wlSubcompositor_)
+	{
 		auto ptr = wl_registry_bind(wlRegistry_, id, &wl_subcompositor_interface, 1);
-        wlSubcompositor_ = {static_cast<wl_subcompositor*>(ptr), id};
-    }
-    else if(interface == "wl_output")
-    {
+		wlSubcompositor_ = {static_cast<wl_subcompositor*>(ptr), id};
+	}
+	else if(interface == "wl_output")
+	{
 		auto ptr = wl_registry_bind(wlRegistry_, id, &wl_output_interface, 2);
-        outputs_.emplace_back(*this, *static_cast<wl_output*>(ptr), id);
-    }
-    else if(interface == "wl_data_device_manager" && !wlDataManager_)
-    {
+		outputs_.emplace_back(*this, *static_cast<wl_output*>(ptr), id);
+	}
+	else if(interface == "wl_data_device_manager" && !wlDataManager_)
+	{
 		auto ptr = wl_registry_bind(wlRegistry_, id, &wl_data_device_manager_interface, 3);
-        wlDataManager_ = {static_cast<wl_data_device_manager*>(ptr), id};
-    }
-    else if(interface == "wl_seat" && !wlSeat_)
-    {
+		wlDataManager_ = {static_cast<wl_data_device_manager*>(ptr), id};
+	}
+	else if(interface == "wl_seat" && !wlSeat_)
+	{
 		auto ptr = wl_registry_bind(wlRegistry_, id, &wl_seat_interface, 5);
-        wlSeat_ = {static_cast<wl_seat*>(ptr), id};
-        wl_seat_add_listener(wlSeat_, &seatListener, this);
-    }
-    else if(interface == "xdg_shell" && !xdgShell_)
-    {
+		wlSeat_ = {static_cast<wl_seat*>(ptr), id};
+		wl_seat_add_listener(wlSeat_, &seatListener, this);
+	}
+	else if(interface == "xdg_shell" && !xdgShell_)
+	{
 		auto ptr = wl_registry_bind(wlRegistry_, id, &xdg_shell_interface, 5);
-        xdgShell_ = {static_cast<xdg_shell*>(ptr), id};
-        xdg_shell_add_listener(xdgShell_, &xdgShellListener, this);
-    }
+		xdgShell_ = {static_cast<xdg_shell*>(ptr), id};
+		xdg_shell_add_listener(xdgShell_, &xdgShellListener, this);
+	}
 }
 
 void WaylandAppContext::registryRemove(unsigned int id)
@@ -625,23 +625,23 @@ void WaylandAppContext::registryRemove(unsigned int id)
 void WaylandAppContext::seatCapabilities(unsigned int caps)
 {
 	//TODO: some kind of notification or warning if no pointer/keyboard
-    if ((caps & WL_SEAT_CAPABILITY_POINTER) && !mouseContext_)
-    {
+	if ((caps & WL_SEAT_CAPABILITY_POINTER) && !mouseContext_)
+	{
 		mouseContext_ = std::make_unique<WaylandMouseContext>(*this, *wlSeat_.global);
-    }
-    else if (!(caps & WL_SEAT_CAPABILITY_POINTER) && mouseContext_)
-    {
+	}
+	else if (!(caps & WL_SEAT_CAPABILITY_POINTER) && mouseContext_)
+	{
 		mouseContext_.reset();
-    }
+	}
 
-    if((caps & WL_SEAT_CAPABILITY_KEYBOARD) && !keyboardContext_)
-    {
+	if((caps & WL_SEAT_CAPABILITY_KEYBOARD) && !keyboardContext_)
+	{
 		keyboardContext_ = std::make_unique<WaylandKeyboardContext>(*this, *wlSeat_.global);
-    }
-    else if(!(caps & WL_SEAT_CAPABILITY_KEYBOARD) && keyboardContext_)
-    {
+	}
+	else if(!(caps & WL_SEAT_CAPABILITY_KEYBOARD) && keyboardContext_)
+	{
 		keyboardContext_.reset();
-    }
+	}
 }
 
 void WaylandAppContext::seatName(const char* name)
@@ -651,13 +651,13 @@ void WaylandAppContext::seatName(const char* name)
 
 void WaylandAppContext::addShmFormat(unsigned int format)
 {
-    shmFormats_.push_back(format);
+	shmFormats_.push_back(format);
 }
 
 bool WaylandAppContext::shmFormatSupported(unsigned int wlShmFormat)
 {
-    for(auto format : shmFormats_) if(format == wlShmFormat) return true;
-    return false;
+	for(auto format : shmFormats_) if(format == wlShmFormat) return true;
+	return false;
 }
 
 void WaylandAppContext::dispatch(Event&& event)

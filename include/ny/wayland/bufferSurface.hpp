@@ -20,18 +20,15 @@ namespace ny
 class WaylandBufferSurface : public nytl::NonCopyable, public BufferSurface
 {
 public:
-	WaylandBufferSurface() = default;
 	WaylandBufferSurface(WaylandWindowContext&);
 	~WaylandBufferSurface();
-
-	WaylandBufferSurface(WaylandBufferSurface&&) noexcept = default;
-	WaylandBufferSurface& operator=(WaylandBufferSurface&&) noexcept = default;
 
 	BufferGuard buffer() override;
 	void apply(const BufferGuard&) noexcept override;
 
 	WaylandWindowContext& windowContext() const { return *windowContext_; }
-	bool valid() const { return (windowContext_); }
+	const std::vector<wayland::ShmBuffer>& shmBuffers() const { return buffers_; }
+	wayland::ShmBuffer* active() const { return active_; }
 
 protected:
 	WaylandWindowContext* windowContext_ {};

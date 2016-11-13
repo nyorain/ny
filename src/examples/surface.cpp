@@ -71,9 +71,10 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 		//note that doing so is really bad performance-wise (this might be a 1-million-time
 		//executed for loop with explicit memory access) so the window might lag far behind
 		//when resizing.
-		//For a better example, see surface-cairo which uses cairo at this pointer for way
-		//better performance (since cairo is optimized).
+		//note than ny::ImageData specifies that stride=0 equals stride=size.x * formatsize
 		auto size = buffer.stride * buffer.size.y;
+		if(!size) size = buffer.size.x * ny::imageDataFormatSize(buffer.format) * buffer.size.y;
+
 		std::memset(buffer.data, 0xCC, size);
 	}
 	else if(ev.type() == ny::eventType::key)

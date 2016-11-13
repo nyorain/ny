@@ -1,8 +1,11 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #include <ny/x11/windowContext.hpp>
 #include <ny/x11/util.hpp>
 #include <ny/x11/defs.hpp>
 #include <ny/x11/appContext.hpp>
-#include <ny/x11/surface.hpp>
 
 #include <ny/common/unix.hpp>
 #include <ny/events.hpp>
@@ -33,14 +36,14 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 	settings_ = settings;
 
 	if(!visualID_) initVisual();
+	debug("vi: ", visualID_);
 
 	auto visualtype = xVisualType();
 	if(!visualtype) throw std::runtime_error("ny::X11WC: failed to retrieve the visualtype");
 	auto vid = visualtype->visual_id;
 
-    auto xconn = appContext_->xConnection();
-	auto xscreen = appContext_->xDefaultScreen();
-    if(!xconn || !xscreen) throw std::runtime_error("ny::X11WC: invalid X11AppContext");
+    auto& xconn = appContext_->xConnection();
+	auto& xscreen = appContext_->xDefaultScreen();
 
 	bool toplvl = false;
 	auto pos = settings.position;
@@ -49,14 +52,16 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
     xcb_window_t xparent = settings.parent.uint64();
 	if(!xparent)
 	{
-		xparent = xscreen->root;
+		xparent = xscreen.root;
 		toplvl = true;
 	}
 
-	xcb_colormap_t colormap = xcb_generate_id(xconn);
-	auto cookie = xcb_create_colormap_checked(xconn, XCB_COLORMAP_ALLOC_NONE, colormap,
-		xscreen->root, vid);
-	errorCategory().checkThrow(cookie, "ny::X11WC create_colormap");
+	//TODO: delete colormap?
+	// auto colormap = xscreen.default_colormap;
+	xcb_colormap_t colormap = xcb_generate_id(&xconn);
+	auto cookie = xcb_create_colormap_checked(&xconn, XCB_COLORMAP_ALLOC_NONE, colormap,
+		xscreen.root, vid);
+	errorCategory().checkThrow(cookie, "ny::X11WindowContext create_colormap failed");
 
 	std::uint32_t eventmask =
 		XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_STRUCTURE_NOTIFY | XCB_EVENT_MASK_KEY_PRESS |
@@ -67,26 +72,27 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 	std::uint32_t valuemask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK |
 		XCB_CW_COLORMAP;
 
-	xWindow_ = xcb_generate_id(xconn);
-	cookie = xcb_create_window_checked(xconn, depth_, xWindow_, xparent, pos.x, pos.y,
+	auto window = xcb_generate_id(&xconn);
+	cookie = xcb_create_window_checked(&xconn, depth_, window, xparent, pos.x, pos.y,
 		size.x, size.y, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT, vid, valuemask, valuelist);
-	errorCategory().checkThrow(cookie, "ny::X11WC create_window");
+	errorCategory().checkThrow(cookie, "ny::X11WindowContext: xcb_create_window failed");
 
+	xWindow_ = window;
     appContext_->registerContext(xWindow_, *this);
     if(toplvl)
 	{
-		auto protocols = ewmhConnection()->WM_PROTOCOLS;
+		auto protocols = ewmhConnection().WM_PROTOCOLS;
 		auto list = appContext_->atoms().wmDeleteWindow;
 
-		xcb_change_property(xconn, XCB_PROP_MODE_REPLACE, xWindow_, protocols,
+		xcb_change_property(&xconn, XCB_PROP_MODE_REPLACE, xWindow_, protocols,
 				XCB_ATOM_ATOM, 32, 1, &list);
-		xcb_change_property(xconn, XCB_PROP_MODE_REPLACE, xWindow_, XCB_ATOM_WM_NAME,
+		xcb_change_property(&xconn, XCB_PROP_MODE_REPLACE, xWindow_, XCB_ATOM_WM_NAME,
 				XCB_ATOM_STRING, 8, settings.title.size(), settings.title.c_str());
 	}
 
 	cursor(settings.cursor);
 	if(settings.show) show();
-    xcb_flush(xConnection());
+    xcb_flush(&xconn);
 }
 
 X11WindowContext::~X11WindowContext()
@@ -94,31 +100,32 @@ X11WindowContext::~X11WindowContext()
 	if(xWindow_)
 	{
 		appContext().unregisterContext(xWindow_);
-		xcb_destroy_window(xConnection(), xWindow_);
+		xcb_destroy_window(&xConnection(), xWindow_);
 	}
 
-	if(xCursor_) xcb_free_cursor(xConnection(), xCursor_);
-	xcb_flush(xConnection());
+	if(xCursor_) xcb_free_cursor(&xConnection(), xCursor_);
+	xcb_flush(&xConnection());
 }
 
 void X11WindowContext::initVisual()
 {
 	visualID_ = 0u;
-    auto screen = appContext().xDefaultScreen();
+    auto& screen = appContext().xDefaultScreen();
 	auto avDepth = 0u;
 
-	auto depth_iter = xcb_screen_allowed_depths_iterator(screen);
+	auto depth_iter = xcb_screen_allowed_depths_iterator(&screen);
 	for(; depth_iter.rem; xcb_depth_next(&depth_iter))
 	{
 		if(depth_iter.data->depth == 32) avDepth = 32;
 		if(!avDepth && depth_iter.data->depth == 24) avDepth = 24;
 	}
 
-	if(avDepth == 0u) throw std::runtime_error("X11WC: no 24 or 32 bit visuals.");
+	avDepth = 24;
+
+	if(avDepth == 0u) throw std::runtime_error("ny::X11WC: no 24 or 32 bit visuals.");
 	else if(avDepth == 24) warning("ny::X11WC: no 32-bit visuals.");
 
-
-	depth_iter = xcb_screen_allowed_depths_iterator(screen);
+	depth_iter = xcb_screen_allowed_depths_iterator(&screen);
 	for(; depth_iter.rem; xcb_depth_next(&depth_iter))
 	{
 		if(depth_iter.data->depth == avDepth)
@@ -128,12 +135,12 @@ void X11WindowContext::initVisual()
 			//rgb > bgr for 24
 			auto highestScore = 0u;
 			auto score = [](ImageDataFormat& f) {
-				if(f == ImageDataFormat::argb8888) return 5u;
-				else if(f == ImageDataFormat::rgba8888) return 4u;
-				else if(f == ImageDataFormat::bgra8888) return 3u;
-				else if(f == ImageDataFormat::rgb888) return 2u;
-				else if(f == ImageDataFormat::bgr888) return 1u;
-				return 0u;
+				if(f == ImageDataFormat::argb8888) return 6u;
+				else if(f == ImageDataFormat::rgba8888) return 5u;
+				else if(f == ImageDataFormat::bgra8888) return 4u;
+				else if(f == ImageDataFormat::rgb888) return 3u;
+				else if(f == ImageDataFormat::bgr888) return 2u;
+				return 1u;
 			};
 
 			auto visual_iter = xcb_depth_visuals_iterator(depth_iter.data);
@@ -152,12 +159,12 @@ void X11WindowContext::initVisual()
 	depth_ = avDepth;
 }
 
-xcb_connection_t* X11WindowContext::xConnection() const
+xcb_connection_t& X11WindowContext::xConnection() const
 {
 	return appContext().xConnection();
 }
 
-x11::EwmhConnection* X11WindowContext::ewmhConnection() const
+x11::EwmhConnection& X11WindowContext::ewmhConnection() const
 {
 	return appContext().ewmhConnection();
 }
@@ -174,24 +181,24 @@ void X11WindowContext::refresh()
     ev.response_type = XCB_EXPOSE;
     ev.window = xWindow();
 
-	xcb_send_event(xConnection(), 0, xWindow(), XCB_EVENT_MASK_EXPOSURE, (const char*)&ev);
-	xcb_flush(xConnection());
+	xcb_send_event(&xConnection(), 0, xWindow(), XCB_EVENT_MASK_EXPOSURE, (const char*)&ev);
+	xcb_flush(&xConnection());
 }
 
 void X11WindowContext::show()
 {
-    xcb_map_window(xConnection(), xWindow_);
+    xcb_map_window(&xConnection(), xWindow_);
 	refresh();
 }
 
 void X11WindowContext::hide()
 {
-    xcb_unmap_window(xConnection(), xWindow_);
+    xcb_unmap_window(&xConnection(), xWindow_);
 }
 
 void X11WindowContext::size(const Vec2ui& size)
 {
-	xcb_configure_window(xConnection(), xWindow_,
+	xcb_configure_window(&xConnection(), xWindow_,
 		XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT, size.data());
     refresh();
 }
@@ -202,9 +209,9 @@ void X11WindowContext::position(const Vec2i& position)
 	data[0] = position.x;
 	data[1] = position.y;
 
-	xcb_configure_window(xConnection(), xWindow(),
+	xcb_configure_window(&xConnection(), xWindow(),
 		XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, data);
-	xcb_flush(xConnection());
+	xcb_flush(&xConnection());
 }
 
 void X11WindowContext::cursor(const Cursor& curs)
@@ -230,10 +237,10 @@ void X11WindowContext::cursor(const Cursor& curs)
 			return;
 		}
 
-		if(xCursor_) xcb_free_cursor(xConnection(), xCursor_);
+		if(xCursor_) xcb_free_cursor(&xConnection(), xCursor_);
 
 		xCursor_ = XcursorLibraryLoadCursor(xdpy, name);
-		xcb_change_window_attributes(xConnection(), xWindow(), XCB_CW_CURSOR, &xCursor_);
+		xcb_change_window_attributes(&xConnection(), xWindow(), XCB_CW_CURSOR, &xCursor_);
 	}
 	else if(curs.type() == CursorType::image)
 	{
@@ -257,32 +264,32 @@ void X11WindowContext::cursor(const Cursor& curs)
 			std::memcpy(xcimage->pixels, imgdata.data, imgdata.stride * imgdata.size.y);
 		}
 
-		if(xCursor_) xcb_free_cursor(xConnection(), xCursor_);
+		if(xCursor_) xcb_free_cursor(&xConnection(), xCursor_);
 
 		xCursor_ = XcursorImageLoadCursor(xdpy, xcimage);
 		XcursorImageDestroy(xcimage);
-		xcb_change_window_attributes(xConnection(), xWindow(), XCB_CW_CURSOR, &xCursor_);
+		xcb_change_window_attributes(&xConnection(), xWindow(), XCB_CW_CURSOR, &xCursor_);
 	}
 	else if(curs.type() == CursorType::none)
 	{
-		auto xconn = xConnection();
-		auto cursorPixmap = xcb_generate_id(xconn);
-		xcb_create_pixmap(xconn, 1, cursorPixmap, xWindow_, 1, 1);
+		auto& xconn = xConnection();
+		auto cursorPixmap = xcb_generate_id(&xconn);
+		xcb_create_pixmap(&xconn, 1, cursorPixmap, xWindow_, 1, 1);
 
-		if(xCursor_) xcb_free_cursor(xConnection(), xCursor_);
-		xCursor_ = xcb_generate_id(xconn);
+		if(xCursor_) xcb_free_cursor(&xConnection(), xCursor_);
+		xCursor_ = xcb_generate_id(&xconn);
 
-		xcb_create_cursor(xconn, xCursor_, cursorPixmap, cursorPixmap,
+		xcb_create_cursor(&xconn, xCursor_, cursorPixmap, cursorPixmap,
 			0, 0, 0, 0, 0, 0, 0, 0);
-		xcb_free_pixmap(xconn, cursorPixmap);
-		xcb_change_window_attributes(xconn, xWindow_, XCB_CW_CURSOR, &xCursor_);
+		xcb_free_pixmap(&xconn, cursorPixmap);
+		xcb_change_window_attributes(&xconn, xWindow_, XCB_CW_CURSOR, &xCursor_);
 	}
 }
 
 void X11WindowContext::maximize()
 {
-    addStates(ewmhConnection()->_NET_WM_STATE_MAXIMIZED_VERT,
-			ewmhConnection()->_NET_WM_STATE_MAXIMIZED_HORZ);
+    addStates(ewmhConnection()._NET_WM_STATE_MAXIMIZED_VERT,
+			ewmhConnection()._NET_WM_STATE_MAXIMIZED_HORZ);
 }
 
 void X11WindowContext::minimize()
@@ -291,14 +298,14 @@ void X11WindowContext::minimize()
 	// xcb_icccm_wm_hints_t hints;
     // hints.flags = XCB_ICCCM_WM_HINT_STATE;
     // hints.initial_state = XCB_ICCCM_WM_STATE_ICONIC;
-    // xcb_icccm_set_wm_hints(xConnection(), xWindow_, &hints);
+    // xcb_icccm_set_wm_hints(&xConnection(), xWindow_, &hints);
 
 	// not working on gnome
 	// addStates(ewmhConnection()->_NET_WM_STATE_HIDDEN);
 
 	// xcb_icccm_wm_hints_t hints;
 	// xcb_icccm_wm_hints_set_withdrawn(&hints);
-    // xcb_icccm_set_wm_hints(xConnection(), xWindow_, &hints);
+    // xcb_icccm_set_wm_hints(&xConnection(), xWindow_, &hints);
 
 	XIconifyWindow(appContext().xDisplay(), xWindow_, appContext().xDefaultScreenNumber());
 	XSync(appContext().xDisplay(), 1);
@@ -306,7 +313,7 @@ void X11WindowContext::minimize()
 
 void X11WindowContext::fullscreen()
 {
-    addStates(ewmhConnection()->_NET_WM_STATE_FULLSCREEN);
+    addStates(ewmhConnection()._NET_WM_STATE_FULLSCREEN);
 }
 
 void X11WindowContext::normalState()
@@ -314,7 +321,7 @@ void X11WindowContext::normalState()
 	xcb_icccm_wm_hints_t hints;
     hints.flags = XCB_ICCCM_WM_HINT_STATE;
     hints.initial_state = XCB_ICCCM_WM_STATE_NORMAL;
-    xcb_icccm_set_wm_hints(xConnection(), xWindow_, &hints);
+    xcb_icccm_set_wm_hints(&xConnection(), xWindow_, &hints);
 }
 
 void X11WindowContext::beginMove(const MouseButtonEvent* ev)
@@ -324,7 +331,7 @@ void X11WindowContext::beginMove(const MouseButtonEvent* ev)
     auto& xev = reinterpret_cast<xcb_button_press_event_t&>(xbev->event);
 
 	//XXX TODO: correct mouse button (index)!
-	xcb_ewmh_request_wm_moveresize(ewmhConnection(), 0, xWindow(), xev.root_x, xev.root_y,
+	xcb_ewmh_request_wm_moveresize(&ewmhConnection(), 0, xWindow(), xev.root_x, xev.root_y,
 		XCB_EWMH_WM_MOVERESIZE_MOVE, XCB_BUTTON_INDEX_1, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
 }
 
@@ -349,7 +356,7 @@ void X11WindowContext::beginResize(const MouseButtonEvent* ev, WindowEdges edge)
     }
 
 	//XXX: correct mouse button!
-	xcb_ewmh_request_wm_moveresize(ewmhConnection(), 0, xWindow(), xev.root_x, xev.root_y,
+	xcb_ewmh_request_wm_moveresize(&ewmhConnection(), 0, xWindow(), xev.root_x, xev.root_y,
 		x11Edge, XCB_BUTTON_INDEX_1, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
 }
 
@@ -370,20 +377,20 @@ void X11WindowContext::icon(const ImageData& img)
 		convertFormat(img, reqFormat, *imgData);
 
 		auto data = ownedData.get();
-		xcb_ewmh_set_wm_icon(ewmhConnection(), XCB_PROP_MODE_REPLACE, xWindow(), size, data);
-		xcb_flush(xConnection());
+		xcb_ewmh_set_wm_icon(&ewmhConnection(), XCB_PROP_MODE_REPLACE, xWindow(), size, data);
+		xcb_flush(&xConnection());
     }
 	else
 	{
 		std::uint32_t buffer[2] = {0};
-		xcb_ewmh_set_wm_icon(ewmhConnection(), XCB_PROP_MODE_REPLACE, xWindow(), 2, buffer);
-		xcb_flush(xConnection());
+		xcb_ewmh_set_wm_icon(&ewmhConnection(), XCB_PROP_MODE_REPLACE, xWindow(), 2, buffer);
+		xcb_flush(&xConnection());
 	}
 }
 
 void X11WindowContext::title(const std::string& str)
 {
-	xcb_ewmh_set_wm_name(ewmhConnection(), xWindow(), str.size(), str.c_str());
+	xcb_ewmh_set_wm_name(&ewmhConnection(), xWindow(), str.size(), str.c_str());
 }
 
 NativeHandle X11WindowContext::nativeHandle() const
@@ -397,7 +404,7 @@ void X11WindowContext::minSize(const Vec2ui& size)
 	hints.min_width = size.x;
 	hints.min_height = size.y;
 	hints.flags = XCB_ICCCM_SIZE_HINT_P_MIN_SIZE;
-	xcb_icccm_set_wm_normal_hints(xConnection(), xWindow(), &hints);
+	xcb_icccm_set_wm_normal_hints(&xConnection(), xWindow(), &hints);
 }
 
 void X11WindowContext::maxSize(const Vec2ui& size)
@@ -406,7 +413,7 @@ void X11WindowContext::maxSize(const Vec2ui& size)
 	hints.max_width = size.x;
 	hints.max_height = size.y;
 	hints.flags = XCB_ICCCM_SIZE_HINT_P_MAX_SIZE;
-	xcb_icccm_set_wm_normal_hints(xConnection(), xWindow(), &hints);
+	xcb_icccm_set_wm_normal_hints(&xConnection(), xWindow(), &hints);
 }
 
 void X11WindowContext::reparentEvent()
@@ -416,7 +423,6 @@ void X11WindowContext::reparentEvent()
 
 void X11WindowContext::sizeEvent(nytl::Vec2ui size)
 {
-	if(drawIntegration_) drawIntegration_->resize(size);
 }
 
 bool X11WindowContext::customDecorated() const
@@ -571,35 +577,35 @@ void X11WindowContext::removeWindowHints(WindowHints hints)
 void X11WindowContext::raise()
 {
 	const uint32_t values[] = {XCB_STACK_MODE_ABOVE};
-    xcb_configure_window(xConnection(), xWindow(), XCB_CONFIG_WINDOW_STACK_MODE, values);
+    xcb_configure_window(&xConnection(), xWindow(), XCB_CONFIG_WINDOW_STACK_MODE, values);
 }
 
 void X11WindowContext::lower()
 {
 	const uint32_t values[] = {XCB_STACK_MODE_BELOW};
-    xcb_configure_window(xConnection(), xWindow(), XCB_CONFIG_WINDOW_STACK_MODE, values);
+    xcb_configure_window(&xConnection(), xWindow(), XCB_CONFIG_WINDOW_STACK_MODE, values);
 }
 
 void X11WindowContext::requestFocus()
 {
-	xcb_ewmh_request_change_active_window(ewmhConnection(), 0, xWindow(),
+	xcb_ewmh_request_change_active_window(&ewmhConnection(), 0, xWindow(),
 		XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL, XCB_TIME_CURRENT_TIME, XCB_NONE);
 }
 void X11WindowContext::addStates(xcb_atom_t state1, xcb_atom_t state2)
 {
-	xcb_ewmh_request_change_wm_state(ewmhConnection(), 0, xWindow(), XCB_EWMH_WM_STATE_ADD,
+	xcb_ewmh_request_change_wm_state(&ewmhConnection(), 0, xWindow(), XCB_EWMH_WM_STATE_ADD,
 		state1, state2, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
 }
 
 void X11WindowContext::removeStates(xcb_atom_t state1, xcb_atom_t state2)
 {
-	xcb_ewmh_request_change_wm_state(ewmhConnection(), 0, xWindow(), XCB_EWMH_WM_STATE_REMOVE,
+	xcb_ewmh_request_change_wm_state(&ewmhConnection(), 0, xWindow(), XCB_EWMH_WM_STATE_REMOVE,
 		state1, state2, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
 }
 
 void X11WindowContext::toggleStates(xcb_atom_t state1, xcb_atom_t state2)
 {
-	xcb_ewmh_request_change_wm_state(ewmhConnection(), 0, xWindow(), XCB_EWMH_WM_STATE_TOGGLE,
+	xcb_ewmh_request_change_wm_state(&ewmhConnection(), 0, xWindow(), XCB_EWMH_WM_STATE_TOGGLE,
 		state1, state2, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
 }
 
@@ -620,7 +626,7 @@ void X11WindowContext::mwmHints(unsigned long deco, unsigned long func, bool d, 
 	}
 
 	///XXX: use XCB_ATOM_ATOM?
-    xcb_change_property(xConnection(), XCB_PROP_MODE_REPLACE, xWindow(),
+    xcb_change_property(&xConnection(), XCB_PROP_MODE_REPLACE, xWindow(),
 		appContext().atoms().motifWmHints, XCB_ATOM_CARDINAL, 32, sizeof(x11::MwmHints) / 32,
 		reinterpret_cast<std::uint32_t*>(&mhints));
 }
@@ -662,12 +668,12 @@ void X11WindowContext::addAllowedAction(xcb_atom_t action)
 	ev.data.data32[1] = action;
 	ev.data.data32[2] = 0;
 
-	xcb_send_event(xConnection(), appContext().xDefaultScreen()->root, );
+	xcb_send_event(&xConnection(), appContext().xDefaultScreen()->root, );
 	*/
 
 	std::uint32_t data[] = {1, action, 0};
-	xcb_ewmh_send_client_message(xConnection(), xWindow(), appContext().xDefaultScreen()->root,
-		ewmhConnection()->_NET_WM_ALLOWED_ACTIONS, 3, data);
+	xcb_ewmh_send_client_message(&xConnection(), xWindow(), appContext().xDefaultScreen().root,
+		ewmhConnection()._NET_WM_ALLOWED_ACTIONS, 3, data);
 }
 
 void X11WindowContext::removeAllowedAction(xcb_atom_t action)
@@ -688,16 +694,16 @@ void X11WindowContext::removeAllowedAction(xcb_atom_t action)
 	*/
 
 	std::uint32_t data[] = {0, action, 0};
-	xcb_ewmh_send_client_message(xConnection(), xWindow(), appContext().xDefaultScreen()->root,
-		ewmhConnection()->_NET_WM_ALLOWED_ACTIONS, 3, data);
+	xcb_ewmh_send_client_message(&xConnection(), xWindow(), appContext().xDefaultScreen().root,
+		ewmhConnection()._NET_WM_ALLOWED_ACTIONS, 3, data);
 }
 
 std::vector<xcb_atom_t> X11WindowContext::allowedActions() const
 {
-	auto cookie = xcb_ewmh_get_wm_allowed_actions(ewmhConnection(), xWindow());
+	auto cookie = xcb_ewmh_get_wm_allowed_actions(&ewmhConnection(), xWindow());
 
 	xcb_ewmh_get_atoms_reply_t reply;
-	xcb_ewmh_get_wm_allowed_actions_reply(ewmhConnection(), cookie, &reply, nullptr);
+	xcb_ewmh_get_wm_allowed_actions_reply(&ewmhConnection(), cookie, &reply, nullptr);
 
     std::vector<xcb_atom_t> ret;
 	ret.reserve(reply.atoms_len);
@@ -715,13 +721,13 @@ void X11WindowContext::refreshStates()
 
 void X11WindowContext::transientFor(xcb_window_t other)
 {
-	xcb_change_property(xConnection(), XCB_PROP_MODE_REPLACE, xWindow(),
+	xcb_change_property(&xConnection(), XCB_PROP_MODE_REPLACE, xWindow(),
         XCB_ATOM_WM_TRANSIENT_FOR, XCB_ATOM_WINDOW, 32,	1, &other);
 }
 
 void X11WindowContext::xWindowType(xcb_window_t type)
 {
-	xcb_ewmh_set_wm_window_type(ewmhConnection(), xWindow(), 1, &type);
+	xcb_ewmh_set_wm_window_type(&ewmhConnection(), xWindow(), 1, &type);
 }
 
 xcb_atom_t X11WindowContext::xWindowType()
@@ -733,13 +739,13 @@ xcb_atom_t X11WindowContext::xWindowType()
 void X11WindowContext::overrideRedirect(bool redirect)
 {
 	std::uint32_t data = redirect;
-	xcb_change_window_attributes(xConnection(), xWindow(), XCB_CW_OVERRIDE_REDIRECT, &data);
+	xcb_change_window_attributes(&xConnection(), xWindow(), XCB_CW_OVERRIDE_REDIRECT, &data);
 }
 
 nytl::Vec2ui X11WindowContext::size() const
 {
-	auto cookie = xcb_get_geometry(xConnection(), xWindow());
-	auto geometry = xcb_get_geometry_reply(xConnection(), cookie, nullptr);
+	auto cookie = xcb_get_geometry(&xConnection(), xWindow());
+	auto geometry = xcb_get_geometry_reply(&xConnection(), cookie, nullptr);
 	auto ret = nytl::Vec2ui(geometry->width, geometry->height);
 	std::free(geometry);
 	return ret;
@@ -749,7 +755,7 @@ xcb_visualtype_t* X11WindowContext::xVisualType() const
 {
 	if(!visualID_) return nullptr;
 
-	auto depthi = xcb_screen_allowed_depths_iterator(appContext().xDefaultScreen());
+	auto depthi = xcb_screen_allowed_depths_iterator(&appContext().xDefaultScreen());
 	for(; depthi.rem; xcb_depth_next(&depthi))
 	{
 		auto visuali = xcb_depth_visuals_iterator(depthi.data);
@@ -763,37 +769,9 @@ xcb_visualtype_t* X11WindowContext::xVisualType() const
 	return nullptr;
 }
 
-bool X11WindowContext::drawIntegration(X11DrawIntegration* integration)
+Surface X11WindowContext::surface()
 {
-	if(!(bool(drawIntegration_) ^ bool(integration))) return false;
-	drawIntegration_ = integration;
-	return true;
-}
-
-bool X11WindowContext::surface(Surface& surface)
-{
-	if(drawIntegration_) return false;
-
-	try {
-		surface.buffer = std::make_unique<X11BufferSurface>(*this);
-		surface.type = SurfaceType::buffer;
-		return true;
-	} catch(const std::exception& ex) {
-		warning("Failed to create x11 surface (BufferSurface) integration: ", ex.what());
-		return false;
-	}
-}
-
-///Draw integration
-X11DrawIntegration::X11DrawIntegration(X11WindowContext& wc) : windowContext_(wc)
-{
-	if(!wc.drawIntegration(this))
-		throw std::logic_error("X11DrawIntegration: windowContext already has an integration");
-}
-
-X11DrawIntegration::~X11DrawIntegration()
-{
-	windowContext_.drawIntegration(nullptr);
+	return {};
 }
 
 }

@@ -50,7 +50,7 @@ bool builtWithEgl()
 
 bool builtWithVulkan()
 {
-	#ifdef NY_WithEgl
+	#ifdef NY_WithVulkan
 		return true;
 	#else
 		return false;

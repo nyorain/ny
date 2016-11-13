@@ -27,5 +27,7 @@ namespace ny
 		///struct typedef in the original xcb_ewmh header, which should not be included in a
 		///header file.
 		struct EwmhConnection;
+		struct Atoms;
+		struct Property;
 	}
 }

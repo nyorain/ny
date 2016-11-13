@@ -44,7 +44,7 @@ protected:
 
 	struct PendingRequest
 	{
-		std::vector<std::uint8_t> buffer;
+		std::vector<std::uint8_t> buffer; //TODO: not needed here by current impl
 		nytl::Callback<void(const std::any&, DataOffer&, unsigned int)> callback;
 		nytl::ConnectionGuard connection;
 	};

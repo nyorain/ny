@@ -34,7 +34,7 @@ public:
 
 	GLXFBConfig glxConfig(GlConfigId id) const;
 	Display* xDisplay() const { return xDisplay_; }
-	
+
 	bool valid() const { return (xDisplay_); }
 
 protected:
@@ -93,15 +93,10 @@ protected:
 class GlxWindowContext : public X11WindowContext
 {
 public:
-	GlxWindowContext(X11AppContext&, const GlxSetup& setup, const X11WindowSettings&);
+	GlxWindowContext(X11AppContext&, const GlxSetup& setup, const X11WindowSettings& = {});
 
-	bool drawIntegration(X11DrawIntegration*) override { return false; }
-	bool surface(Surface&) override;
-
+	Surface surface() override;
 	GlxSurface& glxSurface() const { return *surface_; }
-
-protected:
-	void initVisual() override {};
 
 protected:
 	std::unique_ptr<GlxSurface> surface_;

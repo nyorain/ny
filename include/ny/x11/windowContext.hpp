@@ -15,18 +15,6 @@ namespace ny
 ///Additional settings for a X11 Window.
 class X11WindowSettings : public WindowSettings {};
 
-///The base class for drawing integrations.
-class X11DrawIntegration
-{
-public:
-	X11DrawIntegration(X11WindowContext&);
-	virtual ~X11DrawIntegration();
-	virtual void resize(const nytl::Vec2ui&) {}
-
-protected:
-	X11WindowContext& windowContext_;
-};
-
 ///The X11 implementation of the WindowContext interface.
 ///Provides some extra functionality for x11.
 ///Tries to use xcb where possible, for some things (e.g. glx context) xlib is needed though.
@@ -52,6 +40,7 @@ public:
 
 	NativeHandle nativeHandle() const override;
 	WindowCapabilities capabilities() const override;
+	Surface surface() override;
 
 	//specific event handlers
 	virtual void reparentEvent();
@@ -78,8 +67,8 @@ public:
 	X11AppContext& appContext() const { return *appContext_; } ///The associated AppContext
 	std::uint32_t xWindow() const { return xWindow_; } ///The underlaying x window handle
 
-	xcb_connection_t* xConnection() const; ///The associated x conntextion
-	x11::EwmhConnection* ewmhConnection() const; ///The associated ewmh connection (helper)
+	xcb_connection_t& xConnection() const; ///The associated x conntextion
+	x11::EwmhConnection& ewmhConnection() const; ///The associated ewmh connection (helper)
 	const X11ErrorCategory& errorCategory() const; ///Shortcut for the AppContexts ErrorCategory
 
 	nytl::Vec2ui size() const; ///Queries the current window size
@@ -155,19 +144,6 @@ public:
 	///visual type (since it also counts the alpha bits).
 	unsigned int visualDepth() const { return depth_; }
 
-	///Sets the integration to the given one.
-	///Will return false if there is already such an integration or this implementation
-	///does not support them (e.g. vulkan/opengl WindowContext).
-	///Calling this function with a nullptr resets the integration.
-	virtual bool drawIntegration(X11DrawIntegration* integration);
-
-	///Creates a surface and stores it in the given parameter.
-	///Returns false and does not change the given parameter if a surface coult not be
-	///created.
-	///This could be the case if the WindowContext already has another integration.
-	virtual bool surface(Surface& surface);
-
-
 protected:
 	///Default Constructor only for derived classes that later call the create function.
 	X11WindowContext() = default;
@@ -201,9 +177,6 @@ protected:
 	std::vector<std::uint32_t> states_;
     unsigned long mwmFuncHints_ {};
     unsigned long mwmDecoHints_ {};
-
-	//The draw integration for this WindowContext.
-	X11DrawIntegration* drawIntegration_ = nullptr;
 };
 
 }

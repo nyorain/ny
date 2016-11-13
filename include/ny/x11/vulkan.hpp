@@ -1,3 +1,7 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #pragma once
 
 #include <ny/x11/include.hpp>
@@ -13,9 +17,7 @@ public:
 	X11VulkanWindowContext(X11AppContext&, const X11WindowSettings&);
 	~X11VulkanWindowContext();
 
-	bool surface(Surface&) override;
-	bool drawIntegration(X11DrawIntegration*) override { return false; }
-
+	Surface surface() override;
 	VkSurfaceKHR vkSurface() const { return vkSurface_; }
 	VkInstance vkInstance() const { return vkInstance_; }
 

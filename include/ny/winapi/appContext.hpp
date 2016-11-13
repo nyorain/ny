@@ -36,10 +36,11 @@ public:
 	DataOffer* clipboard() override;
 	bool startDragDrop(std::unique_ptr<DataSource>&& source) override;
 
-	std::vector<const char*> vulkanExtensions(bool& suppported) const override;
+	std::vector<const char*> vulkanExtensions() const override;
 	GlSetup* glSetup() const override;
 
 	//custom winapi stuff
+	WglSetup* wglSetup() const;
 	LONG_PTR eventProc(HWND, UINT, WPARAM, LPARAM);
 	//INT_PTR dlgEventProc(HWND, UINT, WPARAM, LPARAM); //needed?
 

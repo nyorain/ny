@@ -14,18 +14,6 @@ namespace ny
 ///Extents the WindowSettings class with extra winapi-specific settings.
 class WinapiWindowSettings : public WindowSettings {};
 
-///The base class for drawing integrations.
-class WinapiDrawIntegration
-{
-public:
-	WinapiDrawIntegration(WinapiWindowContext&);
-	virtual ~WinapiDrawIntegration();
-	virtual void resize(const nytl::Vec2ui&) {}
-
-protected:
-	WinapiWindowContext& windowContext_;
-};
-
 ///WindowContext for winapi windows using the winapi backend on a windows OS.
 class WinapiWindowContext : public WindowContext
 {
@@ -54,6 +42,7 @@ public:
 
 	NativeHandle nativeHandle() const override;
 	WindowCapabilities capabilities() const override;
+	Surface surface() override;
 
 	//toplevel
 	void maximize() override;
@@ -84,18 +73,6 @@ public:
 
 	const nytl::Vec2ui minSize() const { return minSize_; }
 	const nytl::Vec2ui maxSize() const { return maxSize_; }
-
-	///Sets the integration to the given one.
-	///Will return false if there is already such an integration or this implementation
-	///does not support them (e.g. vulkan/opengl WindowContext).
-	///Calling this function with a nullptr resets the integration.
-	virtual bool drawIntegration(WinapiDrawIntegration* integration);
-
-	///Creates a surface and stores it in the given parameter.
-	///Returns false and does not change the given parameter if a surface coult not be
-	///created.
-	///This could be the case if the WindowContext already has another integration.
-	virtual bool surface(Surface& surface);
 
 protected:
 	struct State
@@ -139,8 +116,6 @@ protected:
 
 	nytl::Vec2ui minSize_ {};
 	nytl::Vec2ui maxSize_ {9999, 9999};
-
-	WinapiDrawIntegration* drawIntegration_ = nullptr;
 };
 
 

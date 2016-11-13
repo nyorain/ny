@@ -369,19 +369,27 @@ GlxWindowContext::GlxWindowContext(X11AppContext& ac, const GlxSetup& setup,
 	auto config = setup.config(configid);
 	visualID_ = glConfigNumber(configid);
 
+	// find depth for the visual
+	// auto depthi = xcb_screen_allowed_depths_iterator(&appContext().xDefaultScreen());
+	// for(; depthi.rem; xcb_depth_next(&depthi))
+	// {
+	// 	auto visuali = xcb_depth_visuals_iterator(depthi.data);
+	// 	for(; visuali.rem; xcb_visualtype_next(&visuali))
+	// 		if(visuali.data->visual_id == visualID_)
+	// 			depth_ = depthi.data->depth;
+	// }
+
+	// depth_ = 32;
+
 	X11WindowContext::create(ac, settings);
 
 	surface_ = std::make_unique<GlxSurface>(*appContext().xDisplay(), xWindow(), config);
-
-	//store surface if requested
 	if(settings.gl.storeSurface) *settings.gl.storeSurface = surface_.get();
 }
 
-bool GlxWindowContext::surface(Surface& surface)
+Surface GlxWindowContext::surface()
 {
-	surface.type = Surface::Type::gl;
-	surface.gl = surface_.get();
-	return true;
+	return {*surface_};
 }
 
 }

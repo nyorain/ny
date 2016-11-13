@@ -65,9 +65,10 @@ void WaylandBufferSurface::apply(const BufferGuard& buffer) noexcept
 
 //WaylandBufferWindowContext
 WaylandBufferWindowContext::WaylandBufferWindowContext(WaylandAppContext& ac,
-	const WaylandWindowSettings& settings) : WaylandWindowContext(ac, settings)
+	const WaylandWindowSettings& settings) :
+		WaylandWindowContext(ac, settings),
+		bufferSurface_(*this)
 {
-	bufferSurface_ = {*this};
 	if(settings.buffer.storeSurface) *settings.buffer.storeSurface = &bufferSurface_;
 }
 

@@ -62,7 +62,7 @@ DataOfferImpl::DataOfferImpl(IDataObject& object) : data_(object)
 			checkAdd(format, CF_TEXT, TYMED_HGLOBAL, dataType::text);
 			checkAdd(format, CF_UNICODETEXT, TYMED_HGLOBAL, dataType::text);
 			checkAdd(format, CF_DIBV5, TYMED_HGLOBAL, dataType::image);
-			checkAdd(format, CF_HDROP, TYMED_HGLOBAL, dataType::filePaths);
+			checkAdd(format, CF_HDROP, TYMED_HGLOBAL, dataType::uriList);
 			checkAdd(format, customFormat, TYMED_HGLOBAL, dataType::custom);
 		}
 
@@ -425,7 +425,7 @@ unsigned int dataTypeToClipboardFormat(unsigned int dataType, unsigned int &medi
 	switch(dataType)
 	{
 		case dataType::text: return CF_UNICODETEXT;
-		case dataType::filePaths: return CF_HDROP;
+		case dataType::uriList: return CF_HDROP;
 		case dataType::image: medium = TYMED_GDI; return CF_BITMAP;
 		default: return ::RegisterClipboardFormat("ny::customDataType");
 	}
@@ -440,7 +440,7 @@ unsigned int clipboardFormatToDataType(unsigned int cfFormat)
 		case CF_DIB:
 		case CF_DIBV5:
 		case CF_BITMAP: return dataType::image;
-		case CF_HDROP: return dataType::filePaths;
+		case CF_HDROP: return dataType::uriList;
 		default: break;
 	}
 
@@ -471,7 +471,7 @@ std::any comToData(unsigned int cfFormat, void* data, unsigned int& dataType,
 		}
 		case CF_HDROP:
 		{
-			dataType = dataType::filePaths;
+			dataType = dataType::uriList;
 
 			auto ptr = ::GlobalLock(data);
 			if(!ptr) return {};
@@ -588,7 +588,7 @@ void* dataToCom(unsigned int format, const std::any& data, unsigned int& cfForma
 			const auto& size = img.size;
 			return ::CreateBitmap(size.x, size.y, 1, 32, data.get());
 		}
-		case dataType::filePaths:
+		case dataType::uriList:
 		{
 			cfFormat = CF_HDROP;
 			medium = TYMED_HGLOBAL;

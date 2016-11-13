@@ -1,16 +1,24 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #pragma once
 
 #include <ny/include.hpp>
 #include <ny/event.hpp>
 
 #include <nytl/callback.hpp>
+#include <nytl/stringParam.hpp>
 
 #include <vector>
 #include <memory>
+#include <chrono>
 #include <any>
 
 namespace ny
 {
+
+using OwnedImageData = BasicImageData<std::unique_ptr<std::uint8_t[]>>;
 
 namespace eventType
 {
@@ -33,11 +41,11 @@ namespace dataType
 
 	constexpr auto raw = 2u; //std:vector<std::uint8_t>, raw unspecified data buffer
 	constexpr auto text = 3u; //std::string encoded utf8
-	constexpr auto filePaths = 4u; //std::vector<c++17 ? std::path : std::string>
+	constexpr auto uriList = 4u; //std::vector<std::string>
 	constexpr auto image = 5u; //ny::ImageData
 
-	constexpr auto timePoint = 6u; //std::chrono::high_resolution_clock::time_point
-	constexpr auto timeDuration = 7u; //std::chrono::high_resolution_clock::duration
+	constexpr auto timePoint = 6u; //std::chrono::system_clock::time_point
+	constexpr auto timeDuration = 7u; //std::chrono::system_clock::time_point
 
 	//raw, specified file buffers, represented as std::vector<std::uint8_t>, may be encoded
 	//note that it is not in the scope of ny to decode images or movies.
@@ -52,7 +60,6 @@ namespace dataType
 	constexpr auto mp4 = 22u;
 	constexpr auto webm = 23u;
 }
-
 ///Represents multiple data type formats in which certain data can be retrieved.
 ///Used by DataSource and DataOffer to signal in which types the data is available.
 ///The constant types used should be defined as constexpr std::uint8_t in the ny::dataType
@@ -151,15 +158,33 @@ public:
 };
 
 ///Converts the given string to a dataType constant. If the given string is not recognized,
-///0 is returned.
-unsigned int stringToDataType(const std::string& type);
+///0 is returned. Mainly useful for mime types.
+unsigned int stringToDataType(nytl::StringParam type, bool onlyMime = false);
 
 ///Returns a number of string that describe the given data type.
 ///Will return an empty vector if the type is not known.
-std::vector<std::string> dataTypeToString(unsigned int type);
+std::vector<const char*> dataTypeToString(unsigned int type, bool onlyMime = false);
 
-///Gives a number of strings for a given DataTypes object.
-///Will return an empty vector if the DataType holds no known types.
-std::vector<std::string> dataTypesToString(DataTypes types);
+using TimePoint = std::chrono::system_clock::time_point;
+using TimeDuration = std::chrono::system_clock::duration;
+
+std::array<std::uint8_t, 8> serialize(TimePoint tp);
+std::array<std::uint8_t, 8> serialize(TimeDuration tp);
+std::vector<std::uint8_t> serialize(const ImageData&);
+
+TimePoint deserializeTimePoint(const std::array<std::uint8_t, 8>& buffer);
+TimeDuration deserializeTimeDuratoin(const std::array<std::uint8_t, 8>& buffer);
+OwnedImageData deserializeImageData(const std::vector<std::uint8_t>& buffer);
+
+///Encodes a vector of uris to a single string with mime-type text/uri-list encoded in utf8.
+///Will replace special chars with their escape codes and seperate the given uris using
+///newlines.
+///\sa decodeUriList
+std::string encodeUriList(const std::vector<std::string>& uris);
+
+///Decodes a given utf8 encoded strinf of mime-type text/uri-list to a vector of uris.
+///Will replace '%' escape codes in the list with utf8 special chars and ignore comment lines.
+///\sa encodeUriList
+std::vector<std::string> decodeUriList(nytl::StringParam list);
 
 }

@@ -30,6 +30,7 @@ using AppContextPtr = std::unique_ptr<AppContext>;
 //	const char* author;
 // };
 
+//TODO: optional event parameter for dnd/clipboard functions? for wayland/x11
 //TODO: more/better term definitions. Multiple AppContexts allowed?
 //TODO: TouchContext. Other input sources?
 ///Abstract base interface for a backend-specific display conncetion.

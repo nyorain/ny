@@ -177,12 +177,13 @@ void WaylandMouseContext::handleButton(unsigned int serial, unsigned int time,
 void WaylandMouseContext::handleAxis(unsigned int time, unsigned int axis, int value)
 {
 	nytl::unused(time, axis);
-	onWheel(*this, value);
+	auto nvalue = wl_fixed_to_int(value);
+	onWheel(*this, nvalue);
 
 	if(over_)
 	{
 		MouseWheelEvent event(over_->eventHandler());
-		event.value = value;
+		event.value = nvalue;
 		appContext_.dispatch(std::move(event));
 	}
 }

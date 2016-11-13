@@ -22,8 +22,8 @@ namespace ny
 nytl::Vec2ui X11MouseContext::position() const
 {
 	if(!over_) return {};
-	auto cookie = xcb_query_pointer(appContext_.xConnection(), over_->xWindow());
-	auto reply = xcb_query_pointer_reply(appContext_.xConnection(), cookie, nullptr);
+	auto cookie = xcb_query_pointer(&appContext_.xConnection(), over_->xWindow());
+	auto reply = xcb_query_pointer_reply(&appContext_.xConnection(), cookie, nullptr);
 
 	return nytl::Vec2ui(reply->win_x, reply->win_y);
 }
@@ -64,30 +64,30 @@ X11KeyboardContext::X11KeyboardContext(X11AppContext& ac) : appContext_(ac)
 {
 	//TODO: possibility for backend without xkb (if extension not supported?)
 	//more error checking required
-	auto xconn = appContext_.xConnection();
+	auto& xconn = appContext_.xConnection();
 
 	xkbContext_ = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
 	if(!xkbContext_) throw std::runtime_error("ny::X11KC: failed to create xkb_context");
 
 	std::uint16_t major, minor;
-	auto ret = xkb_x11_setup_xkb_extension(xconn, XKB_X11_MIN_MAJOR_XKB_VERSION,
+	auto ret = xkb_x11_setup_xkb_extension(&xconn, XKB_X11_MIN_MAJOR_XKB_VERSION,
         XKB_X11_MIN_MINOR_XKB_VERSION, XKB_X11_SETUP_XKB_EXTENSION_NO_FLAGS,
         &major, &minor, &eventType_, nullptr);
 	if(!ret) throw std::runtime_error("X11KC: Failed to setup xkb extension");
 	log("ny:: xkb version ", major, ".", minor, " supported");
 
-	auto devid = xkb_x11_get_core_keyboard_device_id(xconn);
+	auto devid = xkb_x11_get_core_keyboard_device_id(&xconn);
 	auto flags = XKB_KEYMAP_COMPILE_NO_FLAGS;
-	xkbKeymap_ = xkb_x11_keymap_new_from_device(xkbContext_, xconn, devid, flags);
-	xkbState_ =  xkb_x11_state_new_from_device(xkbKeymap_, xconn, devid);
+	xkbKeymap_ = xkb_x11_keymap_new_from_device(xkbContext_, &xconn, devid, flags);
+	xkbState_ =  xkb_x11_state_new_from_device(xkbKeymap_, &xconn, devid);
 
 	//event mask
-	constexpr auto reqEvents = 
+	constexpr auto reqEvents =
 		XCB_XKB_EVENT_TYPE_NEW_KEYBOARD_NOTIFY |
         XCB_XKB_EVENT_TYPE_MAP_NOTIFY |
         XCB_XKB_EVENT_TYPE_STATE_NOTIFY;
 	constexpr auto reqNknDetails = XCB_XKB_NKN_DETAIL_KEYCODES;
-	constexpr auto reqMapParts = 
+	constexpr auto reqMapParts =
 		XCB_XKB_MAP_PART_KEY_TYPES |
 		XCB_XKB_MAP_PART_KEY_SYMS |
 		XCB_XKB_MAP_PART_MODIFIER_MAP |
@@ -95,7 +95,7 @@ X11KeyboardContext::X11KeyboardContext(X11AppContext& ac) : appContext_(ac)
 		XCB_XKB_MAP_PART_KEY_ACTIONS |
 		XCB_XKB_MAP_PART_VIRTUAL_MODS |
 		XCB_XKB_MAP_PART_VIRTUAL_MOD_MAP;
-	constexpr auto reqStateDetails = 
+	constexpr auto reqStateDetails =
 		XCB_XKB_STATE_PART_MODIFIER_BASE |
 		XCB_XKB_STATE_PART_MODIFIER_LATCH |
 		XCB_XKB_STATE_PART_MODIFIER_LOCK |
@@ -108,12 +108,12 @@ X11KeyboardContext::X11KeyboardContext(X11AppContext& ac) : appContext_(ac)
     details.newKeyboardDetails = reqNknDetails;
     details.affectState = reqStateDetails;
     details.stateDetails = reqStateDetails;
-	
-	auto cookie = xcb_xkb_select_events_aux_checked(xconn, devid, reqEvents, 0, 0, 
-		reqMapParts, reqMapParts, &details);         
 
-    auto error = xcb_request_check(xconn, cookie);
-    if(error) 
+	auto cookie = xcb_xkb_select_events_aux_checked(&xconn, devid, reqEvents, 0, 0,
+		reqMapParts, reqMapParts, &details);
+
+    auto error = xcb_request_check(&xconn, cookie);
+    if(error)
 	{
         free(error);
 		auto msg = "X11KC: failed to select xkb events: " + std::to_string((int) error->error_code);
@@ -138,19 +138,19 @@ WindowContext* X11KeyboardContext::focus() const
 
 void X11KeyboardContext::processXkbEvent(xcb_generic_event_t& ev)
 {
-	union XkbEvent 
+	union XkbEvent
 	{
-		struct 
+		struct
 		{
-			std::uint8_t response_type; 
-			std::uint8_t xkbType; 
-			std::uint16_t sequence; 
-			xcb_timestamp_t time; 
-			uint8_t deviceID; 
-		} any; 
+			std::uint8_t response_type;
+			std::uint8_t xkbType;
+			std::uint16_t sequence;
+			xcb_timestamp_t time;
+			uint8_t deviceID;
+		} any;
 
-		xcb_xkb_new_keyboard_notify_event_t newKeyboard; 
-		xcb_xkb_map_notify_event_t map; 
+		xcb_xkb_new_keyboard_notify_event_t newKeyboard;
+		xcb_xkb_map_notify_event_t map;
 		xcb_xkb_state_notify_event_t state;
 	};
 
@@ -161,12 +161,12 @@ void X11KeyboardContext::processXkbEvent(xcb_generic_event_t& ev)
 		case XCB_XKB_STATE_NOTIFY:
 		{
 			xkb_state_update_mask(xkbState_,
-				xkbev.state.baseMods, 
-				xkbev.state.latchedMods, 
-				xkbev.state.lockedMods, 
-				xkbev.state.baseGroup, 
-				xkbev.state.latchedGroup, 
-				xkbev.state.lockedGroup);	
+				xkbev.state.baseMods,
+				xkbev.state.latchedMods,
+				xkbev.state.lockedMods,
+				xkbev.state.baseGroup,
+				xkbev.state.latchedGroup,
+				xkbev.state.lockedGroup);
 			break;
 		}
 
@@ -186,5 +186,5 @@ void X11KeyboardContext::focus(X11WindowContext* now)
 	onFocus(*this, focus_, now);
 	focus_ = now;
 }
-	
+
 }

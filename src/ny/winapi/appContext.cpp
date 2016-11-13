@@ -2,6 +2,7 @@
 #include <ny/winapi/windowContext.hpp>
 #include <ny/winapi/util.hpp>
 #include <ny/winapi/com.hpp>
+#include <ny/winapi/bufferSurface.hpp>
 
 #include <ny/mouseContext.hpp>
 #include <ny/keyboardContext.hpp>
@@ -12,7 +13,7 @@
 #include <ny/loopControl.hpp>
 #include <ny/eventDispatcher.hpp>
 
-#ifdef NY_WithGL
+#ifdef NY_WithGl
  #include <ny/winapi/wgl.hpp>
 #endif //Gl
 
@@ -60,8 +61,9 @@ public:
 
 struct WinapiAppContext::Impl
 {
-#ifdef NY_WithGL
+#ifdef NY_WithGl
 	WglSetup wglSetup;
+	bool wglFailed;
 #endif //GL
 };
 
@@ -130,24 +132,27 @@ std::unique_ptr<WindowContext> WinapiAppContext::createWindowContext(const Windo
 	if(ws) winapiSettings = *ws;
 	else winapiSettings.WindowSettings::operator=(settings);
 
-	auto contextType = settings.context;
-	if(contextType == ContextType::gl)
+	if(settings.surface == SurfaceType::gl)
 	{
-		#ifdef NY_WithGL
-		 if(!impl_->wglSetup.valid()) impl_->wglSetup = {dummyWindow_};
-		 return std::make_unique<WglWindowContext>(*this, impl_->wglSetup, winapiSettings);
+		#ifdef NY_WithGl
+		 if(!wglSetup()) throw std::runtime_error("ny::WinapiAC::createWC: wgl init failed");
+		 return std::make_unique<WglWindowContext>(*this, *wglSetup(), winapiSettings);
 		#else
 		 throw std::logic_error("ny::WinapiAC::createWC: ny was built without gl support");
 		#endif //gl
 	}
 
-	else if(contextType == ContextType::vulkan)
+	else if(settings.surface == SurfaceType::vulkan)
 	{
 		#ifdef NY_WithVulkan
 		 return std::make_unique<WinapiVulkanWindowContext>(*this, winapiSettings);
 		#else
 		 throw std::logic_error("ny::WinapiAC::createWC: ny was built without vulkan support");
 		#endif //vulkan
+	}
+	else if(settings.surface == SurfaceType::buffer)
+	{
+		return std::make_unique<WinapiBufferWindowContext>(*this, winapiSettings);
 	}
 
 	return std::make_unique<WinapiWindowContext>(*this, winapiSettings);
@@ -735,8 +740,39 @@ std::vector<const char*> WinapiAppContext::vulkanExtensions() const
 
 GlSetup* WinapiAppContext::glSetup() const
 {
-	if(!impl_->wglSetup.valid()) impl_->wglSetup = {dummyWindow_};
-	return &impl_->wglSetup;
+	#ifdef NY_WithGl
+		return wglSetup();
+	#else
+		return nullptr;
+	#endif //Gl
+}
+
+WglSetup* WinapiAppContext::wglSetup() const
+{
+	#ifdef NY_WithGl
+		if(impl_->wglFailed) return nullptr;
+
+		if(!impl_->wglSetup.valid())
+		{
+			try
+			{
+				impl_->wglSetup = {dummyWindow_};
+			}
+			catch(const std::exception& error)
+			{
+				warning("ny::WinapiAppContext::wglSetup: init failed: ", error.what());
+				impl_->wglFailed = true;
+				impl_->wglSetup = {};
+				return nullptr;
+			}
+		}
+
+		return &impl_->wglSetup;
+
+	#else
+		return nullptr;
+
+	#endif //Gl
 }
 
 }

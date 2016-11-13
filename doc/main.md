@@ -419,6 +419,8 @@ your backend implementations into its own codebase.
 Backend-specific - x11
 ----------------------
 
+ftp://www.x.org/pub/X11R7.7/doc/man/man3/xcb-requests.3.xhtml
+
 Sources for implementing x11/data:
 
 https://github.com/edrosten/x_clipboard/blob/master/paste.cc
@@ -426,6 +428,15 @@ https://github.com/edrosten/x_clipboard/blob/master/selection.cc
 https://www.freedesktop.org/wiki/Specifications/XDND
 https://www.x.org/releases/X11R7.6/doc/xorg-docs/specs/ICCCM/icccm.html#use_of_selection_atoms
 https://www.irif.fr/~jch/software/UTF8_STRING/UTF8_STRING.text
+
+#### Atoms:
+
+The ny backend has to load lots of atoms from the x server since they are one of the main
+element of the x spec. There are 3 main sources for x atoms:
+
+	- predefined XCB_ATOM_* atoms (xproto.h)
+	- atoms loaded by xcb-ewmh, directly accesed in the xcb_ewmh_connection_t
+	- atoms loaded manually, stored in a x11::Atoms object by the X11AppContext
 
 
 Backend-specific - Wayland

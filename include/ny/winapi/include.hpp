@@ -8,17 +8,14 @@
 
 namespace ny
 {
-    class WinapiWindowContext;
-    class WinapiAppContext;
-    class WinapiBufferSurface;
-
-	#ifdef NY_WithGL
-     class WglContext;
-	#endif //GL
-
-	#ifdef NY_WithVulkan
-     class WinapiVulkanWindowContext;
-	#endif //GL
+	class WinapiWindowContext;
+	class WinapiAppContext;
+	class WinapiBufferSurface;
+	class WglContext;
+	class WglSetup;
+	class WglSurface;
+	class WinapiVulkanWindowContext;
+	class WinapiBufferWindowContext;
 
 	namespace winapi
 	{

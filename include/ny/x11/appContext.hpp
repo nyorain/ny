@@ -1,3 +1,7 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #pragma once
 
 #include <ny/x11/include.hpp>
@@ -44,10 +48,11 @@ public:
 
 	//custom
     Display* xDisplay() const { return xDisplay_; }
-	xcb_connection_t* xConnection() const { return xConnection_; }
-	x11::EwmhConnection* ewmhConnection() const { return ewmhConnection_.get(); }
+	xcb_connection_t& xConnection() const { return *xConnection_; }
+	x11::EwmhConnection& ewmhConnection() const { return *ewmhConnection_.get(); }
     int xDefaultScreenNumber() const { return xDefaultScreenNumber_; }
-    xcb_screen_t* xDefaultScreen() const { return xDefaultScreen_; }
+    xcb_screen_t& xDefaultScreen() const { return *xDefaultScreen_; }
+	xcb_window_t xDummyWindow() const { return xDummyWindow_; }
 	const X11ErrorCategory& errorCategory() const { return errorCategory_; }
 
 	GlxSetup* glxSetup() const;

@@ -2,12 +2,12 @@
 #include <ny/winapi/util.hpp>
 #include <ny/winapi/appContext.hpp>
 #include <ny/winapi/com.hpp>
-#include <ny/winapi/surface.hpp>
 
 #include <ny/log.hpp>
 #include <ny/cursor.hpp>
 #include <ny/imageData.hpp>
 #include <ny/events.hpp>
+#include <ny/surface.hpp>
 
 #include <nytl/scope.hpp>
 
@@ -283,7 +283,6 @@ void WinapiWindowContext::removeWindowHints(WindowHints hints)
 
 void WinapiWindowContext::sizeEvent(nytl::Vec2ui size)
 {
-	if(drawIntegration_) drawIntegration_->resize(size);
 }
 
 void WinapiWindowContext::size(const Vec2ui& size)
@@ -537,24 +536,9 @@ WindowCapabilities WinapiWindowContext::capabilities() const
 }
 
 //specific
-bool WinapiWindowContext::drawIntegration(WinapiDrawIntegration* integration)
+Surface WinapiWindowContext::surface()
 {
-	if(!(bool(drawIntegration_) ^ bool(integration))) return false;
-	drawIntegration_ = integration;
-	return true;
-}
-
-bool WinapiWindowContext::surface(Surface& surface)
-{
-	if(drawIntegration_) return false;
-
-	try {
-		surface.buffer = std::make_unique<WinapiBufferSurface>(*this);
-		surface.type = SurfaceType::buffer;
-		return true;
-	} catch(const std::exception& ex) {
-		return false;
-	}
+	return {};
 }
 
 Rect2i WinapiWindowContext::extents() const
@@ -569,17 +553,6 @@ Rect2i WinapiWindowContext::clientExtents() const
 	RECT ext;
 	GetClientRect(handle_, &ext);
 	return {ext.left, ext.top, ext.right - ext.left, ext.bottom - ext.top};
-}
-///Draw integration
-WinapiDrawIntegration::WinapiDrawIntegration(WinapiWindowContext& wc) : windowContext_(wc)
-{
-	if(!wc.drawIntegration(this))
-		throw std::runtime_error("WinapiDrawIntegration: failed to set for windowContext.");
-}
-
-WinapiDrawIntegration::~WinapiDrawIntegration()
-{
-	windowContext_.drawIntegration(nullptr);
 }
 
 }

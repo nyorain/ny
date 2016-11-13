@@ -1,5 +1,6 @@
-// Huge parts of this file (and the implementation) are basically just evg/image to keep
-// independence from evg.
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
 #pragma once
 
@@ -35,7 +36,7 @@ enum class ImageDataFormat : unsigned int
 ///Note that this class does explicitly not implement any functions for creating/loading/changing
 ///the image itself, it is only used to hold all information needed to correctly interpret
 ///a raw image data buffer.
-///\tparam T The pointer type to used. Should be a type that can be used as std::uint8_t*.
+///\tparam P The pointer type to used. Should be a type that can be used as std::uint8_t*.
 ///Might be const or a smart pointer.
 ///\sa ImageDataFormat
 ///\sa imageDataFormatSize

@@ -85,8 +85,7 @@ public:
 	WglWindowContext(WinapiAppContext&, WglSetup&, const WinapiWindowSettings& = {});
 	~WglWindowContext();
 
-	bool surface(Surface&) override;
-	bool drawIntegration(WinapiDrawIntegration*) override { return false; }
+	Surface surface() override;
 
 protected:
 	WNDCLASSEX windowClass(const WinapiWindowSettings& settings) override;

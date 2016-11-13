@@ -509,11 +509,9 @@ WNDCLASSEX WglWindowContext::windowClass(const WinapiWindowSettings& settings)
 	return ret;
 }
 
-bool WglWindowContext::surface(Surface& surface)
+Surface WglWindowContext::surface()
 {
-	surface.type = SurfaceType::gl;
-	surface.gl = surface_.get();
-	return true;
+	return {*surface_};
 }
 
 }

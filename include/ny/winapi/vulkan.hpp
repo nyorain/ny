@@ -13,8 +13,7 @@ public:
 	WinapiVulkanWindowContext(WinapiAppContext&, const WinapiWindowSettings&);
 	~WinapiVulkanWindowContext();
 
-	bool surface(Surface&) override;
-	bool drawIntegration(WinapiDrawIntegration*) override { return false; }
+	Surface surface() override;
 
 	VkSurfaceKHR vkSurface() const { return vkSurface_; }
 	VkInstance vkInstance() const { return vkInstance_; }

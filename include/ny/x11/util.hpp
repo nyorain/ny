@@ -1,3 +1,7 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #pragma once
 
 #include <ny/x11/include.hpp>
@@ -72,7 +76,8 @@ protected:
 ImageDataFormat visualToFormat(const xcb_visualtype_t& visual, unsigned int depth);
 
 ///Returns the MouseButton enumeration value for the given x11 button id.
-///Note that default x11 does only support 3 buttons. Note that if the button id
+///Note that default x11 does only support 3 buttons for sure, so custom1 and custom2
+///may not be correctly detected. If the button id
 ///is not known, MouseButton::unknown is returned.
 MouseButton x11ToButton(unsigned int button);
 
@@ -107,13 +112,11 @@ struct Atoms
 	xcb_atom_t xdndProxy;
 	xcb_atom_t xdndAware;
 
-	xcb_atom_t primary;
 	xcb_atom_t clipboard;
-
 	xcb_atom_t targets;
 	xcb_atom_t text;
-	xcb_atom_t string;
 	xcb_atom_t utf8string;
+	xcb_atom_t fileName;
 
 	xcb_atom_t wmDeleteWindow;
 	xcb_atom_t motifWmHints;
@@ -148,13 +151,7 @@ struct Property
 ///Reads the given x11 atom property for the given window.
 ///\param deleteProp Whether the property should be deleted after reading it
 Property readProperty(xcb_connection_t&, xcb_atom_t prop, xcb_window_t,
-	bool deleteProp = false, xcb_generic_error_t* error = nullptr);
-
-///Changes the given x11 atom property for the given window to the given property window.
-///\param mode Controls whether the given property data should be replace the old data or
-///should be appended/prepended.
-xcb_void_cookie_t changeProperty(xcb_connection_t&, xcb_atom_t property, xcb_window_t,
-	const Property&, unsigned int mode = XCB_PROP_MODE_REPLACE);
+	xcb_generic_error_t* error = nullptr, bool deleteProp = false);
 
 ///Returns an error string for an x11 error code.
 std::string errorMessage(Display&, unsigned int error);

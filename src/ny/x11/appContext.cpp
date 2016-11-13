@@ -2,6 +2,7 @@
 #include <ny/x11/windowContext.hpp>
 #include <ny/x11/util.hpp>
 #include <ny/x11/input.hpp>
+#include <ny/x11/bufferSurface.hpp>
 
 #include <ny/common/unix.hpp>
 #include <ny/loopControl.hpp>
@@ -84,18 +85,18 @@ X11AppContext::X11AppContext()
 
     xDisplay_ = XOpenDisplay(nullptr);
     if(!xDisplay_)
-        throw std::runtime_error("ny::x11AC: could not connect to X Server");
+        throw std::runtime_error("ny::X11AppContext: could not connect to X Server");
 
     xDefaultScreenNumber_ = DefaultScreen(xDisplay_);
 
  	xConnection_ = XGetXCBConnection(xDisplay_);
     if(!xConnection_)
-		throw std::runtime_error("ny::x11AC: unable to get xcb connection");
+		throw std::runtime_error("ny::X11AppContext: unable to get xcb connection");
 
 	errorCategory_ = {*xDisplay_, *xConnection_};
 
 	ewmhConnection_ = std::make_unique<x11::EwmhConnection>();
-	auto ewmhCookie = xcb_ewmh_init_atoms(xConnection_, ewmhConnection());
+	auto ewmhCookie = xcb_ewmh_init_atoms(&xConnection(), &ewmhConnection());
 
 	//query screen
 	auto iter = xcb_setup_roots_iterator(xcb_get_setup(xConnection_));
@@ -112,8 +113,10 @@ X11AppContext::X11AppContext()
 	//Generate an x dummy window that can e.g. be used for selections
 	//This window remains invisible, i.e. it is not begin mapped
 	xDummyWindow_ = xcb_generate_id(xConnection_);
-    xcb_create_window(xConnection_, XCB_COPY_FROM_PARENT, xDummyWindow_, xDefaultScreen_->root,
-		0, 0, 50, 50, 10, XCB_WINDOW_CLASS_INPUT_ONLY, xDefaultScreen_->root_visual, 0, nullptr);
+    auto cookie = xcb_create_window_checked(xConnection_, XCB_COPY_FROM_PARENT, xDummyWindow_,
+		xDefaultScreen_->root, 0, 0, 50, 50, 0, XCB_WINDOW_CLASS_INPUT_ONLY,
+		XCB_COPY_FROM_PARENT, 0, nullptr);
+	errorCategory().checkThrow(cookie, "ny::X11AppContext create_window for dummy window failed");
 
 	//Load all required atoms
 	struct
@@ -136,13 +139,11 @@ X11AppContext::X11AppContext()
 		{atoms_.xdndProxy, "XdndProxy"},
 		{atoms_.xdndAware, "XdndAware"},
 
-		{atoms_.primary, "PRIMARY"},
 		{atoms_.clipboard, "CLIPBOARD"},
-
 		{atoms_.targets, "TARGETS"},
 		{atoms_.text, "TEXT"},
-		{atoms_.string, "STRING"},
 		{atoms_.utf8string, "UTF8_STRING"},
+		{atoms_.fileName, "FILE_NAME"},
 
 		{atoms_.wmDeleteWindow, "WM_DELETE_WINDOW"},
 		{atoms_.motifWmHints, "_MOTIF_WM_HINTS"},
@@ -157,35 +158,39 @@ X11AppContext::X11AppContext()
 		{atoms_.mime.imageBmp, "image/bmp"},
 
 		{atoms_.mime.imageData, "image/x-ny-data"},
-		{atoms_.mime.timePoint, "x-special/ny-time-point"},
-		{atoms_.mime.timeDuration, "x-special/ny-time-duration"},
-		{atoms_.mime.raw, "x-special/ny-raw-buffer"},
+		{atoms_.mime.timePoint, "x-application/ny-time-point"},
+		{atoms_.mime.timeDuration, "x-application/ny-time-duration"},
+		{atoms_.mime.raw, "x-application/ny-raw-buffer"},
 	};
 
 	auto length = sizeof(atomNames) / sizeof(atomNames[0]);
+
 	std::vector<xcb_intern_atom_cookie_t> atomCookies;
 	atomCookies.reserve(length);
 
 	for(auto& name : atomNames)
-	{
 		atomCookies.push_back(xcb_intern_atom(xConnection_, 0, std::strlen(name.name), name.name));
-	}
 
 	for(auto i = 0u; i < atomCookies.size(); ++i)
 	{
-		auto reply = xcb_intern_atom_reply(xConnection_, atomCookies[i], 0);
+		xcb_generic_error_t* error {};
+		auto reply = xcb_intern_atom_reply(xConnection_, atomCookies[i], &error);
 		if(reply)
 		{
 			atomNames[i].atom = reply->atom;
 			free(reply);
 			continue;
 		}
-
-		warning("ny::X11AC: Failed to load atom ", atomNames[i].name);
+		else if(error)
+		{
+			int code = error->error_code;
+			free(error);
+			warning("ny::X11AC: Failed to load atom ", atomNames[i].name, ": ", code);
+		}
 	}
 
 	//ewmh
-	xcb_ewmh_init_atoms_replies(ewmhConnection(), ewmhCookie, nullptr);
+	xcb_ewmh_init_atoms_replies(&ewmhConnection(), ewmhCookie, nullptr);
 
 	//input
 	keyboardContext_ = std::make_unique<X11KeyboardContext>(*this);
@@ -197,7 +202,7 @@ X11AppContext::~X11AppContext()
 	impl_.reset();
 
 	if(xDummyWindow_) xcb_destroy_window(xConnection_, xDummyWindow_);
-	if(ewmhConnection_) xcb_ewmh_connection_wipe(ewmhConnection());
+	if(ewmhConnection_) xcb_ewmh_connection_wipe(&ewmhConnection());
 
     if(xDisplay_)
 	{
@@ -462,12 +467,12 @@ bool X11AppContext::processEvent(xcb_generic_event_t& ev, EventDispatcher* dispa
 		return true;
 	}
 
-	case 0:
+	case 0u:
 	{
 		//an error occurred!
-		auto& error = reinterpret_cast<xcb_generic_error_t&>(ev);
-		auto errorMsg = x11::errorMessage(*xDisplay_, error.error_code);
-		warning("ny::X11AC::processEvent: retrieved error code ", error.error_code, ", ", errorMsg);
+		int code = reinterpret_cast<xcb_generic_error_t&>(ev).error_code;
+		auto errorMsg = x11::errorMessage(*xDisplay_, code);
+		warning("ny::X11AC::processEvent: retrieved error code ", code, ", ", errorMsg);
 
 		//check whether connection has critical error
 		auto err = xcb_connection_has_error(xConnection_);
@@ -514,8 +519,7 @@ WindowContextPtr X11AppContext::createWindowContext(const WindowSettings& settin
     else x11Settings.WindowSettings::operator=(settings);
 
 	//type
-	auto contextType = settings.context;
-	if(contextType == ContextType::vulkan)
+	if(settings.surface == SurfaceType::vulkan)
 	{
 		#ifdef NY_WithVulkan
 			return std::make_unique<X11VulkanWindowContext>(*this, x11Settings);
@@ -523,7 +527,7 @@ WindowContextPtr X11AppContext::createWindowContext(const WindowSettings& settin
 			throw std::logic_error("ny::X11AC::createWC: ny built without vulkan support");
 		#endif
 	}
-	else if(contextType == ContextType::gl)
+	else if(settings.surface == SurfaceType::gl)
 	{
 		#ifdef NY_WithGl
 			if(!glxSetup()) throw std::runtime_error("ny::X11AC::createWC: failed to init glx");
@@ -531,6 +535,10 @@ WindowContextPtr X11AppContext::createWindowContext(const WindowSettings& settin
 		#else
 			throw std::logic_error("ny::X11AC::createWC: ny built without GL suppport");
 		#endif
+	}
+	else if(settings.surface == SurfaceType::buffer)
+	{
+		return std::make_unique<X11BufferWindowContext>(*this, x11Settings);
 	}
 
 	return std::make_unique<X11WindowContext>(*this, x11Settings);
@@ -548,14 +556,14 @@ KeyboardContext* X11AppContext::keyboardContext()
 
 bool X11AppContext::dispatchEvents()
 {
-	xcb_flush(xConnection());
+	xcb_flush(&xConnection());
 
 	xcb_generic_event_t* event;
 	while((event = xcb_poll_for_event(xConnection_)))
 	{
 		processEvent(*event);
 		free(event);
-		xcb_flush(xConnection());
+		xcb_flush(&xConnection());
 	}
 
 	auto err = xcb_connection_has_error(xConnection_);
@@ -580,15 +588,13 @@ bool X11AppContext::dispatchLoop(LoopControl& control)
 		if(!event)
 		{
 			auto err = xcb_connection_has_error(xConnection_);
-			if(!err) continue; //strange... try again
-
 			error("ny::X11AC::dispatch: xcb_connection has error ", err);
 			return false;
 		}
 
 		processEvent(*event);
 		free(event);
-		xcb_flush(xConnection());
+		xcb_flush(&xConnection());
 	}
 
 	return true;
@@ -608,8 +614,8 @@ bool X11AppContext::threadedDispatchLoop(EventDispatcher& dispatcher, LoopContro
 		dummyEvent.type = XCB_CLIENT_MESSAGE;
 		dummyEvent.format = 32;
 
-		xcb_send_event(xConnection(), 0, win, 0, reinterpret_cast<const char*>(&dummyEvent));
-		xcb_flush(xConnection());
+		xcb_send_event(&xConnection(), 0, win, 0, reinterpret_cast<const char*>(&dummyEvent));
+		xcb_flush(&xConnection());
 	});
 
 	while(run.load())
@@ -626,7 +632,7 @@ bool X11AppContext::threadedDispatchLoop(EventDispatcher& dispatcher, LoopContro
 
 		processEvent(*event, &dispatcher);
 		free(event);
-		xcb_flush(xConnection());
+		xcb_flush(&xConnection());
 		dispatcher.processEvents();
 	}
 
@@ -636,8 +642,6 @@ bool X11AppContext::threadedDispatchLoop(EventDispatcher& dispatcher, LoopContro
 bool X11AppContext::clipboard(std::unique_ptr<DataSource>&& dataSource)
 {
 	//TODO: error check
-    // xcb_set_selection_owner(xConnection_, xDummyWindow_, atoms().clipboard, XCB_CURRENT_TIME);
-    // clipboardSource_ = std::move(dataSource);
 	return true;
 }
 

@@ -33,11 +33,9 @@ WinapiVulkanWindowContext::~WinapiVulkanWindowContext()
 		vkDestroySurfaceKHR(vkInstance_, vkSurface_, nullptr);
 }
 
-bool WinapiVulkanWindowContext::surface(Surface& surface)
+Surface WinapiVulkanWindowContext::surface()
 {
-	surface.type = SurfaceType::vulkan;
-	surface.vulkan = vkSurface_;
-	return true;
+	return {vkSurface_};
 }
 
 }

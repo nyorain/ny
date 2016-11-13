@@ -1,3 +1,7 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #pragma once
 
 #include <ny/x11/include.hpp>
@@ -9,45 +13,56 @@
 
 #include <memory>
 
-typedef struct xcb_image_t xcb_image_t;
-
 namespace ny
 {
 
 ///X11 BufferSurface implementation.
-class X11BufferSurface : public BufferSurface
+class X11BufferSurface : public nytl::NonMovable, public BufferSurface
 {
 public:
-	X11BufferSurface() = default;
 	X11BufferSurface(X11WindowContext&);
 	~X11BufferSurface();
 
-	X11BufferSurface(X11BufferSurface&&) noexcept;
-	X11BufferSurface& operator=(X11BufferSurface&&) noexcept;
-
 	BufferGuard buffer() override;
+
+	X11WindowContext& windowContext() const { return *windowContext_; }
+	xcb_connection_t& xConnection() const { return windowContext().xConnection(); }
+	ImageDataFormat format() const { return format_; }
+	bool shm() const { return shm_; }
+	bool active() const { return active_; }
+
+protected:
 	void apply(const BufferGuard&) noexcept override;
+	void resize(const nytl::Vec2ui& size);
 
 protected:
 	X11WindowContext* windowContext_ {};
+
 	ImageDataFormat format_ {};
-	nytl::Vec2ui size_;
-	unsigned int byteSize_ {}; //the size in bytes of (shm_) ? shmaddr_ : data_
 	uint32_t gc_ {};
 	bool shm_ {};
 
-	//when using shm
-	unsigned int shmid_ {};
+	bool active_ {};
+	nytl::Vec2ui size_; //size of active
+	unsigned int byteSize_ {}; //the size in bytes of ((shm_) ? shmaddr_ : data_)
+
+	unsigned int shmid_ {}; //when using shm
 	uint32_t shmseg_ {};
 	uint8_t* shmaddr_ {};
 
-	//otherwise hold owned data
-	std::unique_ptr<std::uint8_t[]> data_;
+	std::unique_ptr<std::uint8_t[]> data_; //otherwise when using owned buffer
 };
 
 class X11BufferWindowContext : public X11WindowContext
 {
 public:
+	X11BufferWindowContext(X11AppContext& ac, const X11WindowSettings& settings = {});
+	~X11BufferWindowContext() = default;
+
+	Surface surface() override;
+
+protected:
+	X11BufferSurface bufferSurface_;
 };
 
 }
