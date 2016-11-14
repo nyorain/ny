@@ -36,8 +36,6 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 	settings_ = settings;
 
 	if(!visualID_) initVisual();
-	debug("vi: ", visualID_);
-
 	auto visualtype = xVisualType();
 	if(!visualtype) throw std::runtime_error("ny::X11WC: failed to retrieve the visualtype");
 	auto vid = visualtype->visual_id;
@@ -56,26 +54,27 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 		toplvl = true;
 	}
 
-	//TODO: delete colormap?
-	// auto colormap = xscreen.default_colormap;
-	xcb_colormap_t colormap = xcb_generate_id(&xconn);
+	auto colormap = xcb_generate_id(&xconn);
 	auto cookie = xcb_create_colormap_checked(&xconn, XCB_COLORMAP_ALLOC_NONE, colormap,
 		xscreen.root, vid);
 	errorCategory().checkThrow(cookie, "ny::X11WindowContext create_colormap failed");
+
+	xColormap_ = colormap;
 
 	std::uint32_t eventmask =
 		XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_STRUCTURE_NOTIFY | XCB_EVENT_MASK_KEY_PRESS |
 		XCB_EVENT_MASK_KEY_RELEASE | XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE |
 		XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_LEAVE_WINDOW | XCB_EVENT_MASK_POINTER_MOTION;
 
-	std::uint32_t valuelist[] = {0, 0, eventmask, colormap, 0};
-	std::uint32_t valuemask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK |
-		XCB_CW_COLORMAP;
+	//Setting the background pixel here may introduce flicker but may fix issues
+	//with creating opengl windows.
+	std::uint32_t valuelist[] = {0, eventmask, colormap, 0};
+	std::uint32_t valuemask = XCB_CW_COLORMAP | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
 
 	auto window = xcb_generate_id(&xconn);
 	cookie = xcb_create_window_checked(&xconn, depth_, window, xparent, pos.x, pos.y,
 		size.x, size.y, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT, vid, valuemask, valuelist);
-	errorCategory().checkThrow(cookie, "ny::X11WindowContext: xcb_create_window failed");
+	errorCategory().checkThrow(cookie, "ny::X11WindowContext: create_window failed");
 
 	xWindow_ = window;
     appContext_->registerContext(xWindow_, *this);
@@ -103,6 +102,7 @@ X11WindowContext::~X11WindowContext()
 		xcb_destroy_window(&xConnection(), xWindow_);
 	}
 
+	if(xColormap_) xcb_free_colormap(&xConnection(), xCursor_);
 	if(xCursor_) xcb_free_cursor(&xConnection(), xCursor_);
 	xcb_flush(&xConnection());
 }
@@ -120,10 +120,8 @@ void X11WindowContext::initVisual()
 		if(!avDepth && depth_iter.data->depth == 24) avDepth = 24;
 	}
 
-	avDepth = 24;
-
-	if(avDepth == 0u) throw std::runtime_error("ny::X11WC: no 24 or 32 bit visuals.");
-	else if(avDepth == 24) warning("ny::X11WC: no 32-bit visuals.");
+	if(avDepth == 0u) throw std::runtime_error("ny::X11WC: no 24 or 32 bit visuals");
+	else if(avDepth == 24) warning("ny::X11WC: no 32-bit visuals");
 
 	depth_iter = xcb_screen_allowed_depths_iterator(&screen);
 	for(; depth_iter.rem; xcb_depth_next(&depth_iter))
@@ -155,7 +153,7 @@ void X11WindowContext::initVisual()
 		}
 	}
 
-	if(!visualID_) throw std::runtime_error("X11WC: failed to find a matching visual.");
+	if(!visualID_) throw std::runtime_error("ny::X11WC: failed to find a matching visual");
 	depth_ = avDepth;
 }
 
@@ -732,8 +730,8 @@ void X11WindowContext::xWindowType(xcb_window_t type)
 
 xcb_atom_t X11WindowContext::xWindowType()
 {
-    return 0;
-    //todo
+	//TODO
+    return {};
 }
 
 void X11WindowContext::overrideRedirect(bool redirect)

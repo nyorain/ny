@@ -98,8 +98,8 @@ X11AppContext::X11AppContext()
 	ewmhConnection_ = std::make_unique<x11::EwmhConnection>();
 	auto ewmhCookie = xcb_ewmh_init_atoms(&xConnection(), &ewmhConnection());
 
-	//query screen
-	auto iter = xcb_setup_roots_iterator(xcb_get_setup(xConnection_));
+	//query information
+	auto iter = xcb_setup_roots_iterator(xcb_get_setup(&xConnection()));
 	for(std::size_t i(0); iter.rem; ++i, xcb_screen_next(&iter))
     if(i == std::size_t(xDefaultScreenNumber_))
 	{

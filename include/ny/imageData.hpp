@@ -19,6 +19,9 @@ namespace ny
 /// - data[1] is the g value
 /// - data[2] is the b value
 /// - data[3] is the a value
+///Note that the a value for formats with alpha (e.g. rgba8888) does not automatically
+///guarantee that the image user respects or correctly interprets alpha, it might just
+///be an ignored padding i.e. ny does not explicitly differentiate between xrgb and argb.
 ///\sa imageDataFormatSize
 ///\sa ImageData
 enum class ImageDataFormat : unsigned int
@@ -76,7 +79,7 @@ using BasicAnimatedImageData = std::vector<std::pair<BasicImageData<P>, unsigned
 
 ///Returns the size of the given format in bytes.
 ///E.g. Format::rgba8888 would return 4, since one pixel of this format needs 4 bytes to
-///be stored.
+///be stored. Also known as bpp (bytes per pixel);
 ///\sa ImageDataFormat
 unsigned int imageDataFormatSize(ImageDataFormat f);
 

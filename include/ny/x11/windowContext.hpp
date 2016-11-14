@@ -65,7 +65,7 @@ public:
     //x11-specific
 public:
 	X11AppContext& appContext() const { return *appContext_; } ///The associated AppContext
-	std::uint32_t xWindow() const { return xWindow_; } ///The underlaying x window handle
+	uint32_t xWindow() const { return xWindow_; } ///The underlaying x window handle
 
 	xcb_connection_t& xConnection() const; ///The associated x conntextion
 	x11::EwmhConnection& ewmhConnection() const; ///The associated ewmh connection (helper)
@@ -73,7 +73,7 @@ public:
 
 	nytl::Vec2ui size() const; ///Queries the current window size
     void overrideRedirect(bool redirect); ///Sets the overrideRedirect flag for the window
-    void transientFor(std::uint32_t win); ///Makes the window transient for another x window
+    void transientFor(uint32_t win); ///Makes the window transient for another x window
 
     void raise(); ///tries to raise the window
     void lower(); ///tries to lower the window
@@ -90,21 +90,21 @@ public:
 	///Adds the given state/states to the window.
 	///Look at the ewmh specification for more information and allowed atoms.
 	///The changed property is _NET_WM_STATE.
-    void addStates(std::uint32_t state1, std::uint32_t state2 = 0);
+    void addStates(uint32_t state1, uint32_t state2 = 0);
 
 	///Adds the given state/states to the window.
 	///Look at the ewmh specification for more information and allowed atoms.
 	///The changed property is _NET_WM_STATE.
-    void removeStates(std::uint32_t state1, std::uint32_t state2 = 0);
+    void removeStates(uint32_t state1, uint32_t state2 = 0);
 
 	///Adds the given state/states to the window.
 	///Look at the ewmh specification for more information and allowed atoms.
 	///The changed property is _NET_WM_STATE.
-    void toggleStates(std::uint32_t state1, std::uint32_t state2 = 0);
+    void toggleStates(uint32_t state1, uint32_t state2 = 0);
 
 	///Returns the states associated with this window.
 	///For more information look in the ewmh specification for _NET_WM_STATE.
-	std::vector<std::uint32_t> states() const { return states_; };
+	std::vector<uint32_t> states() const { return states_; };
 
 	///Reloads the stores window states.
 	///XXX: Needed? should they be stored? TODO
@@ -112,23 +112,23 @@ public:
 
 	///Sets the window type.
 	///For more information look in the ewmh specification for _NET_WM_WINDOW_TYPE.
-    void xWindowType(std::uint32_t type);
+    void xWindowType(uint32_t type);
 
 	///Returns the window type assocated with this window.
 	///For more information look in the ewmh specification for _NET_WM_WINDOW_TYPE.
-	std::uint32_t xWindowType();
+	uint32_t xWindowType();
 
 	///Adds an allowed action for the window.
 	///For more information look in the ewmh specification for _NET_WM_ALLOWED_ACTIONS.
-    void addAllowedAction(std::uint32_t action); //only does something when custom handled
+    void addAllowedAction(uint32_t action); //only does something when custom handled
 
 	///Removes an allowed action for the window.
 	///For more information look in the ewmh specification for _NET_WM_ALLOWED_ACTIONS.
-    void removeAllowedAction(std::uint32_t action);
+    void removeAllowedAction(uint32_t action);
 
 	///Returns all allowed actions for the window.
 	///For more information look in the ewmh specification for _NET_WM_ALLOWED_ACTIONS.
-    std::vector<std::uint32_t> allowedActions() const;
+    std::vector<uint32_t> allowedActions() const;
 
 	///Returns the x visual id for this window.
 	///If it has not been set, 0 is retrned.
@@ -163,8 +163,9 @@ protected:
 protected:
 	X11AppContext* appContext_ = nullptr;
 	X11WindowSettings settings_ {};
-	std::uint32_t xWindow_ {};
-	std::uint32_t xCursor_ {};
+	uint32_t xWindow_ {};
+	uint32_t xCursor_ {};
+	uint32_t xColormap_ {};
 
 	//we store the visual id instead of the visualtype since e.g. glx does not
 	//care/deal with the visualtype in any way.
@@ -174,7 +175,7 @@ protected:
 	unsigned int depth_ {};
 
 	//Stored EWMH states can be used to check whether it is fullscreen, maximized etc.
-	std::vector<std::uint32_t> states_;
+	std::vector<uint32_t> states_;
     unsigned long mwmFuncHints_ {};
     unsigned long mwmDecoHints_ {};
 };

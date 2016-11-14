@@ -13,6 +13,8 @@
 
 #include <memory>
 
+struct xcb_image_t;
+
 namespace ny
 {
 
@@ -45,12 +47,14 @@ protected:
 	bool active_ {};
 	nytl::Vec2ui size_; //size of active
 	unsigned int byteSize_ {}; //the size in bytes of ((shm_) ? shmaddr_ : data_)
+	uint8_t* data_ {}; //the actual data (either shmaddr or points so ownedBuffer)
 
-	unsigned int shmid_ {}; //when using shm
+	//when using shm
+	unsigned int shmid_ {};
 	uint32_t shmseg_ {};
-	uint8_t* shmaddr_ {};
 
-	std::unique_ptr<std::uint8_t[]> data_; //otherwise when using owned buffer
+	//otherwise when using owned buffer because shm not available
+	std::unique_ptr<uint8_t[]> ownedBuffer_;
 };
 
 class X11BufferWindowContext : public X11WindowContext
