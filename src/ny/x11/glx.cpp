@@ -24,7 +24,7 @@ namespace
 		char buffer[256];
 		::XGetErrorText(display, event->error_code, buffer, 255);
 
-		log("ny::GlxContex: Error occured during context creation: ",
+		log("ny::GlxContext: Error occured during context creation: ",
 			(int) event->error_code, ", ", buffer);
 
 	    return 0;

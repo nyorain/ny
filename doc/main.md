@@ -438,6 +438,14 @@ element of the x spec. There are 3 main sources for x atoms:
 	- atoms loaded by xcb-ewmh, directly accesed in the xcb_ewmh_connection_t
 	- atoms loaded manually, stored in a x11::Atoms object by the X11AppContext
 
+#### xdnd:
+
+starting a dnd request:
+	- create a preview drag window with type _NET_WM_WINDOW_TYPE_DND
+		- preview the dragged content
+	- grab the x cursor
+	- send enter/position events to windows we hover over
+
 
 Backend-specific - Wayland
 --------------------------
