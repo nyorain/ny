@@ -93,18 +93,18 @@ else()
 		-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
 		-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
 
-	ExternalProject_Add(nytl_ep
-		PREFIX ${CMAKE_CURRENT_BINARY_DIR}/nytl
-		GIT_REPOSITORY https://github.com/nyorain/nytl.git
-		# GIT_TAG dev
-		INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/external/install
-		CMAKE_ARGS ${ExternalProjectCMakeArgs})
+	# ExternalProject_Add(nytl_ep
+	# 	PREFIX ${CMAKE_CURRENT_BINARY_DIR}/nytl
+	# 	GIT_REPOSITORY https://github.com/nyorain/nytl.git
+	# 	# GIT_TAG dev
+	# 	INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/external/install
+	# 	CMAKE_ARGS ${ExternalProjectCMakeArgs})
 
-	ExternalProject_Add_Step(nytl_ep
-		forceinstall
-		DEPENDEES configure
-		DEPENDERS install
-		ALWAYS 1)
+	# ExternalProject_Add_Step(nytl_ep
+	# 	forceinstall
+	# 	DEPENDEES configure
+	# 	DEPENDERS install
+	# 	ALWAYS 1)
 	install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/external/install/." DESTINATION .)
 endif()
 

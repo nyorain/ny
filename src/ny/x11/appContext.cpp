@@ -698,7 +698,7 @@ GlxSetup* X11AppContext::glxSetup() const
 		{
 			try
 			{
-				impl_->glxSetup = {*xDisplay()};
+				impl_->glxSetup = {*this};
 			}
 			catch(const std::exception& error)
 			{

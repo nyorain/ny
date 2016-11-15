@@ -293,8 +293,16 @@ WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 	if(settings.version.api != GlApi::gl)
 		throw GlContextError(GlContextErrc::invalidApi, "ny::WglContext");
 
-	if((settings.version.minor != 0 && settings.version.major == 0) ||
-		settings.version.major > 4 || settings.version.minor > 5)
+	auto major = settings.version.major;
+	auto minor = settings.version.minor;
+
+	if(major == 0 && minor == 0)
+	{
+		major = 4;
+		minor = 5;
+	}
+
+	if(major < 1 || major > 4 || minor > 5)
 		throw GlContextError(GlContextErrc::invalidVersion, "ny::WglContext");
 
 	//we create our own dummyDC that is compatibly to the default dummy dc
@@ -333,13 +341,10 @@ WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 		std::vector<int> attributes;
 		attributes.reserve(20);
 
-		if(settings.version.major != 0 && settings.version.minor != 0)
-		{
-			attributes.push_back(WGL_CONTEXT_MAJOR_VERSION_ARB);
-			attributes.push_back(settings.version.major);
-			attributes.push_back(WGL_CONTEXT_MINOR_VERSION_ARB);
-			attributes.push_back(settings.version.minor);
-		}
+		attributes.push_back(WGL_CONTEXT_MAJOR_VERSION_ARB);
+		attributes.push_back(major);
+		attributes.push_back(WGL_CONTEXT_MINOR_VERSION_ARB);
+		attributes.push_back(minor);
 
 		if(settings.compatibility)
 		{
@@ -363,15 +368,15 @@ WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 		wglContext_ = ::wglCreateContextAttribsARB(dummyDC, share, attributes.data());
 		if(!wglContext_ && ::GetLastError() == ERROR_INVALID_VERSION_ARB && !settings.forceVersion)
 		{
-			//try version pairs
-			constexpr unsigned int versionPairs[][2] = {
-				{4, 5}, {3, 3}, {3, 2}, {3, 1}, {3, 0}, {1, 2}, {1, 1}, {1, 0}
-			};
+			//those versions will be tried to create when the version specified in
+			//the passed settings fails and the passed version should not be forced.
+			constexpr std::pair<unsigned int, unsigned int> versionPairs[] =
+				{{4, 5}, {3, 3}, {3, 2}, {3, 1}, {3, 0}, {1, 2}, {1, 0}};
 
 			for(const auto& p : versionPairs)
 			{
-				attributes[1] = p[0];
-				attributes[3] = p[1];
+				attributes[1] = p.first;
+				attributes[3] = p.second;
 
 				wglContext_ = ::wglCreateContextAttribsARB(dummyDC, share, attributes.data());
 				if(!wglContext_ && ::GetLastError() == ERROR_INVALID_VERSION_ARB) continue;

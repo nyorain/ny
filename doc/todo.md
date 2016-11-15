@@ -16,6 +16,7 @@ current:
 - AppContext settings
 - rewrite/fix cairo/skia examples
 - default windowContext surface to bufferSurface?
+- GlConfigId -> GlConfigID
 
 for later:
 - touch support (TouchContext and touch events)

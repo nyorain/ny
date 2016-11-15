@@ -208,10 +208,8 @@ bool EglSurface::apply(std::error_code& ec) const
 EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 	: setup_(&setup)
 {
-	//test for logical errors
-	if((settings.version.minor != 0 && settings.version.major == 0) ||
-		settings.version.major > 4 || settings.version.minor > 5)
-		throw GlContextError(GlContextErrc::invalidVersion, "ny::EglContext");
+	auto major = settings.version.major;
+	auto minor = settings.version.minor;
 
 	auto eglDisplay = setup.eglDisplay();
 
@@ -244,20 +242,36 @@ EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 
 	std::vector<std::pair<unsigned int, unsigned int>> versionPairs;
 	std::vector<int> contextAttribs;
-	unsigned int major, minor;
 
 	versionPairs.reserve(16);
 	contextAttribs.reserve(16);
 
 	if(settings.version.api == GlApi::gles)
 	{
+		if(major == 0 && minor == 0)
+		{
+			major = 3;
+			minor = 2;
+		}
+
+		if(major < 1 || major > 3 || minor > 2)
+			throw GlContextError(GlContextErrc::invalidVersion, "ny::EglContext");
+
+		versionPairs = {{3, 2}, {3, 1}, {3, 0}, {2, 0}, {1, 1}, {1, 0}};
 		eglBindAPI(EGL_OPENGL_ES_API);
-		versionPairs = {{3, 1}, {3, 0}, {2, 0}, {1, 1}, {1, 0}};
-		major = 3;
-		minor = 2;
 	}
 	else if(settings.version.api == GlApi::gl)
 	{
+		if(major == 0 && minor == 0)
+		{
+			major = 3;
+			minor = 2;
+		}
+
+		if(major < 1 || major > 4 || minor > 5)
+			throw GlContextError(GlContextErrc::invalidVersion, "ny::EglContext");
+
+		versionPairs = {{4, 5}, {3, 3}, {3, 2}, {3, 1}, {3, 0}, {1, 2}, {1, 0}};
 		eglBindAPI(EGL_OPENGL_API);
 
 		//profile
@@ -269,10 +283,6 @@ EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 		contextAttribs.push_back(EGL_CONTEXT_OPENGL_FORWARD_COMPATIBLE);
 		if(settings.forwardCompatible) contextAttribs.push_back(EGL_TRUE);
 		else contextAttribs.push_back(EGL_FALSE);
-
-		versionPairs = {{3, 3}, {3, 2}, {3, 1}, {3, 0}, {1, 2}, {1, 0}};
-		major = 4;
-		minor = 5;
 	}
 	else
 	{

@@ -20,7 +20,7 @@ class GlxSetup : public GlSetup
 {
 public:
 	GlxSetup() = default;
-	GlxSetup(Display& xdpy, unsigned int screenNumber = 0);
+	GlxSetup(const X11AppContext&, unsigned int screenNumber = 0);
 	~GlxSetup() = default;
 
 	GlxSetup(GlxSetup&&) noexcept;
@@ -33,6 +33,7 @@ public:
 	void* procAddr(nytl::StringParam name) const override;
 
 	GLXFBConfig glxConfig(GlConfigId id) const;
+	unsigned int visualID(GlConfigId id) const;
 	Display* xDisplay() const { return xDisplay_; }
 
 	bool valid() const { return (xDisplay_); }

@@ -107,7 +107,7 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 
 		//note that you usually would have to set the viewport correctly
 		//but since we only clear here, it does not matter.
-		gl_clearColor(0.6, 0.3, 0.3, 0.8);
+		gl_clearColor(0.6, 0.5, 0.3, 0.5);
 		gl_clear(GL_COLOR_BUFFER_BIT);
 
 		//Finally, swap the buffers/apply the content

@@ -129,7 +129,7 @@ target_compile_definitions(ny PRIVATE ${ny_defs})
 
 # nytl build dep
 if(nytl_own)
-	add_dependencies(ny nytl_ep)
+	# add_dependencies(ny nytl_ep)
 endif()
 
 #install

@@ -8,8 +8,10 @@
 #include <nytl/misc.hpp>
 #include <nytl/range.hpp>
 
-// #include <dlfcn.h>
 #include <algorithm>
+
+//For glx GlConfig objects, the id member is the GLX_FB_CONFIG_ID of the associated
+//glx fb config.
 
 namespace ny
 {
@@ -22,7 +24,9 @@ namespace
 		char buffer[256];
 		::XGetErrorText(display, event->error_code, buffer, 255);
 
-		warning("GlxContext::GlxContext: Error occured: ", (int) event->error_code, ", ", buffer);
+		log("ny::GlxContex: Error occured during context creation: ",
+			(int) event->error_code, ", ", buffer);
+
 	    return 0;
 	}
 
@@ -35,10 +39,23 @@ namespace
 			loaded = true;
 		}
 	}
+
+	unsigned int findVisualDepth(const X11AppContext& ac, unsigned int visualID)
+	{
+		auto depthi = xcb_screen_allowed_depths_iterator(&ac.xDefaultScreen());
+		for(; depthi.rem; xcb_depth_next(&depthi))
+		{
+			auto visuali = xcb_depth_visuals_iterator(depthi.data);
+			for(; visuali.rem; xcb_visualtype_next(&visuali))
+				if(visuali.data->visual_id == visualID) return depthi.data->depth;
+		}
+
+		return 0u;
+	}
 }
 
 //GlxSetup
-GlxSetup::GlxSetup(Display& xdpy, unsigned int screenNumber) : xDisplay_(&xdpy)
+GlxSetup::GlxSetup(const X11AppContext& ac, unsigned int screenNum) : xDisplay_(ac.xDisplay())
 {
 	assureGlxLoaded(xDisplay_);
     constexpr int attribs[] =
@@ -49,7 +66,7 @@ GlxSetup::GlxSetup(Display& xdpy, unsigned int screenNumber) : xDisplay_(&xdpy)
     };
 
     int fbcount = 0;
-    GLXFBConfig* fbconfigs = ::glXChooseFBConfig(xDisplay_, screenNumber, attribs, &fbcount);
+    GLXFBConfig* fbconfigs = ::glXChooseFBConfig(xDisplay_, screenNum, attribs, &fbcount);
 	if(!fbconfigs || !fbcount)
 		throw std::runtime_error("ny::GlxSetup: could not retrieve any fb configs");
 
@@ -60,7 +77,7 @@ GlxSetup::GlxSetup(Display& xdpy, unsigned int screenNumber) : xDisplay_(&xdpy)
 		GlConfig glconf;
 		int r, g, b, a, id, depth, stencil, doubleBuffer;
 
-		::glXGetFBConfigAttrib(xDisplay_, config, GLX_VISUAL_ID, &id);
+		::glXGetFBConfigAttrib(xDisplay_, config, GLX_FBCONFIG_ID, &id);
 		::glXGetFBConfigAttrib(xDisplay_, config, GLX_STENCIL_SIZE, &stencil);
 		::glXGetFBConfigAttrib(xDisplay_, config, GLX_DEPTH_SIZE, &depth);
 		::glXGetFBConfigAttrib(xDisplay_, config, GLX_DOUBLEBUFFER, &doubleBuffer);
@@ -69,7 +86,6 @@ GlxSetup::GlxSetup(Display& xdpy, unsigned int screenNumber) : xDisplay_(&xdpy)
 		::glXGetFBConfigAttrib(xDisplay_, config, GLX_GREEN_SIZE, &g);
 		::glXGetFBConfigAttrib(xDisplay_, config, GLX_BLUE_SIZE, &b);
 		::glXGetFBConfigAttrib(xDisplay_, config, GLX_ALPHA_SIZE, &a);
-
 
 		glconf.depth = depth;
 		glconf.stencil = stencil;
@@ -81,8 +97,12 @@ GlxSetup::GlxSetup(Display& xdpy, unsigned int screenNumber) : xDisplay_(&xdpy)
 		glconf.doublebuffer = doubleBuffer;
 
 		configs_.push_back(glconf);
+		auto xvDepth = findVisualDepth(ac, id);
 
 		auto rating = rate(configs_.back());
+
+		if(xvDepth == 24) rating *= 2;
+		else if(xvDepth == 32) rating *= 3;
 		if(rating > highestRating)
 		{
 			highestRating = rating;
@@ -133,7 +153,7 @@ void* GlxSetup::procAddr(nytl::StringParam name) const
 GLXFBConfig GlxSetup::glxConfig(GlConfigId id) const
 {
 	int configCount;
-	int configAttribs[] = {GLX_VISUAL_ID, static_cast<int>(glConfigNumber(id)), 0};
+	int configAttribs[] = {GLX_FBCONFIG_ID, static_cast<int>(glConfigNumber(id)), 0};
 
 	//TODO
 	auto screenNumber = 0;
@@ -144,6 +164,17 @@ GLXFBConfig GlxSetup::glxConfig(GlConfigId id) const
 	auto ret = *configs;
 	::XFree(configs);
 	return ret;
+}
+
+unsigned int GlxSetup::visualID(GlConfigId id) const
+{
+	auto glxfbc = glxConfig(id);
+	if(glxfbc) return 0u;
+
+	int visualid;
+	::glXGetFBConfigAttrib(xDisplay_, glxfbc, GLX_VISUAL_ID, &visualid);
+
+	return visualid;
 }
 
 //GlxSurface
@@ -169,9 +200,20 @@ GlxContext::GlxContext(const GlxSetup& setup, GLXContext context, const GlConfig
 GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 	: setup_(&setup)
 {
+	auto major = settings.version.major;
+	auto minor = settings.version.minor;
+
+	if(major == 0 && minor == 0)
+	{
+		major = 4;
+		minor = 5;
+	}
+
 	//test for logical errors
-	if((settings.version.minor != 0 && settings.version.major == 0) ||
-		settings.version.major > 4 || settings.version.minor > 5)
+	if(settings.version.api != GlApi::gl)
+		throw GlContextError(GlContextErrc::invalidApi, "ny::WglContext");
+
+	if(major < 1 || major > 4 || minor > 5)
 		throw GlContextError(GlContextErrc::invalidVersion, "ny::GlxContext");
 
 	//config
@@ -207,9 +249,6 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 
     if(GLAD_GLX_ARB_create_context && glXCreateContextAttribsARB)
     {
-		constexpr std::pair<unsigned int, unsigned int> versionPairs[] =
-			{{3, 3}, {3, 2}, {3, 1}, {3, 0}, {1, 2}, {1, 0}};
-
 		std::vector<int> contextAttribs;
 
 		//profile
@@ -227,9 +266,9 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 
 		//version
 		contextAttribs.push_back(GLX_CONTEXT_MAJOR_VERSION_ARB);
-		contextAttribs.push_back(4);
+		contextAttribs.push_back(major);
 		contextAttribs.push_back(GLX_CONTEXT_MINOR_VERSION_ARB);
-		contextAttribs.push_back(5);
+		contextAttribs.push_back(minor);
 
 		//end
 		contextAttribs.push_back(0);
@@ -239,6 +278,11 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 
 		if(!glxContext_ && !settings.forceVersion)
 		{
+			//those versions will be tried to create when the version specified in
+			//the passed settings fails and the passed version should not be forced.
+			constexpr std::pair<unsigned int, unsigned int> versionPairs[] =
+				{{4, 5}, {3, 3}, {3, 2}, {3, 1}, {3, 0}, {1, 2}, {1, 0}};
+
 			for(const auto& p : versionPairs)
 			{
 				contextAttribs[contextAttribs.size() - 4] = p.first;
@@ -367,19 +411,8 @@ GlxWindowContext::GlxWindowContext(X11AppContext& ac, const GlxSetup& setup,
 	if(!configid) configid = setup.defaultConfig().id;
 
 	auto config = setup.config(configid);
-	visualID_ = glConfigNumber(configid);
-
-	// find depth for the visual
-	// auto depthi = xcb_screen_allowed_depths_iterator(&appContext().xDefaultScreen());
-	// for(; depthi.rem; xcb_depth_next(&depthi))
-	// {
-	// 	auto visuali = xcb_depth_visuals_iterator(depthi.data);
-	// 	for(; visuali.rem; xcb_visualtype_next(&visuali))
-	// 		if(visuali.data->visual_id == visualID_)
-	// 			depth_ = depthi.data->depth;
-	// }
-
-	// depth_ = 32;
+	visualID_ = setup.visualID(configid);
+	depth_ = findVisualDepth(ac, visualID_);
 
 	X11WindowContext::create(ac, settings);
 
