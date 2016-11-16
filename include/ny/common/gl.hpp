@@ -1,3 +1,7 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #pragma once
 
 #include <ny/include.hpp>
@@ -226,14 +230,8 @@ public:
 	///If so and a non-null GlSurface** parameter was given, sets it to the associated surface.
 	virtual bool isCurrentInAnyThread(const GlSurface** currentSurface = nullptr) const;
 
-	///Returns whether this context is shared with the given other GlContext.
-	///The pongBack parameter is only relevant since this function is implemented
-	///recursively and should always set to true for correct behaviour.
-	virtual bool sharedWith(const GlContext& other, bool pongBack = true) const;
-
 	virtual GlApi api() const { return api_; } ///The api of this context
 	virtual GlConfig config() const { return config_; } ///The associated config
-	virtual const GlContext* shared() const { return shared_; } ///The reference shared context
 	virtual NativeHandle nativeHandle() const = 0; ///Native context handle
 
 	///Returns whether this context could theoretically be made current for the given surface.
@@ -257,17 +255,26 @@ public:
 	virtual bool swapInterval(int interval, std::error_code&) const;
 
 protected:
-	virtual void initContext(GlApi, const GlConfig&, const GlContext* shared);
+	virtual void initContext(GlApi, const GlConfig&, GlContext* shared);
 	virtual bool makeCurrentImpl(const GlSurface&, std::error_code&) = 0;
 	virtual bool makeNotCurrentImpl(std::error_code&) = 0;
+
+	virtual void addShared(GlContext& other);
+	virtual bool removeShared(GlContext& other);
+	
+	virtual const std::vector<GlContext*>& shared() const { return shared_; }
+	friend bool shared(GlContext& a, GlContext& b);
 
 protected:
 	GlConfig config_;
 	GlApi api_;
-	const GlContext* shared_ {};
+	std::vector<GlContext*> shared_ {};
 };
 
-//TODO: destructor, make previous context current again
+///Returns whether the both given GlContext objects are shared with each other.
+bool shared(GlContext& a, GlContext& b);
+
+//TODO: destructor, make previous context current again (?)
 ///A guard to make a context current on construction and make it not current on destruction.
 ///Note that GlContext does allow to manually make current/make not current since it may
 ///not be desirable in every case to make the context not current on scope exit.

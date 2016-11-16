@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ny/include.hpp>
+#include <nytl/system.hpp>
 #include <nytl/bits/tmpUtil.inl>
 
 #include <memory>
@@ -87,6 +88,13 @@ std::unique_ptr<LoggerBase>& errorLogger();
 std::unique_ptr<LoggerBase>& debugLogger();
 
 //functions
+///Should be used to output critical errors. Could be e.g. done before throwing an exception
+///to provide additional information.
+///Is usually used by application if exiting the application due to an usage error or if
+///e.g. some critical excpetion is thrown.
+template<typename... Args>
+inline void error(Args&&... args) { errorLogger()->output(std::forward<Args>(args)...); }
+
 ///Outputs a warning with the given arguments.
 ///Warning should be outputted if some operation cannot be done correctly, but this
 ///failure is not considered critical so no exception is thrown.
@@ -98,13 +106,6 @@ inline void warning(Args&&... args) { warningLogger()->output(std::forward<Args>
 ///bug can be easily spotted from the programs log.
 template<typename... Args>
 inline void log(Args&&... args) { logLogger()->output(std::forward<Args>(args)...); }
-
-///Should be used to output critical errors. Could be e.g. done before throwing an exception
-///to provide additional information.
-///Is usually used by application if exiting the application due to an usage error or if
-///e.g. some critical excpetion is thrown.
-template<typename... Args>
-inline void error(Args&&... args) { errorLogger()->output(std::forward<Args>(args)...); }
 
 ///Can be used to output additional information for debug builds.
 ///Is intended as debugging mechanism for developers and should not be used to log
@@ -120,5 +121,7 @@ inline void debug(Args&&... args)
 	debugLogger()->output(std::forward<Args>(args)...); //debug build
 #endif
 }
+
+#define NY_ERROR(...) ::ny::error(NYTL_PRETTY_FUNCTION, ": ", __VA_ARGS__);
 
 }

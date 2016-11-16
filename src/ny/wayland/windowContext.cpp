@@ -157,7 +157,7 @@ void WaylandWindowContext::position(const Vec2i& position)
     }
 	else
 	{
-		warning("ny::WlWC::position: wayland does not support custom positions");
+		warning("ny::WaylandWC::position: wayland does not support custom positions");
 	}
 }
 

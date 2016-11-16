@@ -1,3 +1,7 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #pragma once
 
 #include <cstdint>
@@ -33,7 +37,7 @@ class DefaultEventDispatcher;
 class ThreadedEventDispatcher;
 class Cursor;
 class LoopControl;
-class LoopControlImpl;
+class LoopInterface;
 class DataTypes;
 class DataOffer;
 class DataSource;
@@ -100,6 +104,8 @@ using WindowHints = nytl::Flags<WindowHint>;
 using WindowEdges = nytl::Flags<WindowEdge>;
 using WindowCapabilities = nytl::Flags<WindowCapability>;
 
+//functions
+LoopControl& dummyLoopControl();
 
 }
 

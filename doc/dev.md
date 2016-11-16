@@ -177,7 +177,7 @@ public:
 	///So if for any of the returned file descriptors (pair.first) the associated event is met
 	///(pair.second) the backend has potentially work to do.
 	///Note that this call also returns all registered fds by fdCallback.
-	virtual std::vector<std::pair<int, unsigned int>> fd() const = 0;
+	virtual std::vector<std::pair<int, unsigned int>> fds() const = 0;
 };
 ```
 
@@ -217,3 +217,21 @@ enum class WindowType : unsigned int
 DialogSettings, to enable some kind of native dialogs.
 E.g. on windows native file/color/font picker dialogs. But since they arent even used
 on windows anymore tbh, would this really make sense?
+
+AppContextSettings
+==================
+
+Could be useful for displaying the applications name correctly and automatically parse
+arguments (introduce ny-specific arguments).
+Is this useful, inside of the scope of ny? 
+
+```cpp
+struct AppContextSettings
+{
+	std::string name;
+	bool multithreaded;
+	nytl::Range<const char*> args;
+	std::vector<std::pair<const char*, const char*>> licenses;
+	const char* author;
+};
+```

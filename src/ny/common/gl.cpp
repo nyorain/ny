@@ -7,6 +7,10 @@
 #include <mutex>
 #include <map>
 
+//This is a rather complex construct regarding synchronization, excpetion safety, sharing and
+//making context/surface combinations current. Therefore it should only be altered if the
+//developer knows the critical implementation parts.
+
 namespace ny
 {
 
@@ -62,6 +66,12 @@ GlCurrentMap& contextCurrentMap(std::mutex*& mutex)
 	return smap;
 }
 
+std::mutex& contextShareMutex()
+{
+	static std::mutex smutex;
+	return smutex;
+}
+
 }
 
 //gl version to stirng
@@ -91,8 +101,8 @@ unsigned int rate(const GlConfig& config)
 
 	auto ret = 1u;
 
-	if(config.depth == 32) ret += 20;
-	else if(config.depth == 24) ret += 14;
+	if(config.depth == 24) ret += 20;
+	else if(config.depth == 32) ret += 14;
 	else if(config.depth == 16) ret += 5;
 	else if(config.depth == 0) ret += 1;
 
@@ -100,7 +110,7 @@ unsigned int rate(const GlConfig& config)
 	else if(config.stencil == 16) ret += 3;
 	else if(config.stencil == 0) ret += 1;
 
-	if(config.samples == 0) ret += 5;
+	if(config.samples == 0) ret += 10;
 	else if(config.samples == 2) ret += 4;
 	else if(config.samples == 4) ret += 3;
 	else if(config.samples == 8) ret += 2;
@@ -110,10 +120,10 @@ unsigned int rate(const GlConfig& config)
 	if(config.red == config.green && config.red == config.blue && config.red == 16) ret += 5;
 	else if(config.red + config.green + config.blue == 16) ret += 2;
 
-	if(config.alpha == 8) ret += 12;
+	if(config.alpha == 8) ret = (ret + 5) * 2;
 	else if(config.alpha == 1) ret += 1;
 
-	if(config.doublebuffer) ret += 20;
+	if(config.doublebuffer) ret = (ret + 10) * 2;
 
 	return ret;
 }
@@ -208,7 +218,7 @@ GlContext::~GlContext()
 	//it not current (in which case - if it did not raise an error - we can try to ignore it).
 	if(isCurrent())
 	{
-		warning("ny::~GlContext: current on destruction. Implementation issue.");
+		warning("ny::~GlContext: context is current on destruction");
 
 		std::mutex* mutex;
 		auto& map = contextCurrentMap(mutex);
@@ -218,13 +228,30 @@ GlContext::~GlContext()
 			map[std::this_thread::get_id()] = {nullptr, nullptr};
 		}
 	}
+
+	{
+		std::lock_guard<std::mutex> lock(contextShareMutex());
+		for(auto& c : shared_)
+		{
+			if(!c->removeShared(*this))
+				warning("ny::~GlContext: context->removeShared(*this) failed");
+		}
+	}
 }
 
-void GlContext::initContext(GlApi api, const GlConfig& config, const GlContext* shared)
+void GlContext::initContext(GlApi api, const GlConfig& config, GlContext* shared)
 {
 	api_ = api;
 	config_ = config;
-	shared_ = shared;
+
+	if(shared)
+	{
+		std::lock_guard<std::mutex> lock(contextShareMutex());
+
+		shared_ = shared->shared();
+		shared_.push_back(shared);
+		shared->addShared(*this);
+	}
 }
 
 void GlContext::makeCurrent(const GlSurface& surface)
@@ -271,7 +298,7 @@ bool GlContext::makeCurrent(const GlSurface& surface, std::error_code& error)
 		if(thisThreadIt->second.first == this && thisThreadIt->second.second == &surface)
 		{
 			error = Errc::contextAlreadyCurrent;
-			return true; //return true since this is not critical
+			return true; //return true since this is not critical, but we have nothing to do
 		}
 
 		//check if this context or the given surface is already current in another
@@ -306,14 +333,11 @@ bool GlContext::makeCurrent(const GlSurface& surface, std::error_code& error)
 	//note how we still use thisThreadIt iterator after exiting critical section
 	//map iterators are not invalidated  if they are not deleted (and this operation is
 	//not done by any thread)
-	if(makeCurrentImpl(surface, error))
-	{
-		std::lock_guard<std::mutex> lock(*mutex);
-		thisThreadIt->second = {this, &surface};
-		return true;
-	}
+	if(!makeCurrentImpl(surface, error)) return false;
 
-	return false;
+	std::lock_guard<std::mutex> lock(*mutex);
+	thisThreadIt->second = {this, &surface};
+	return true;
 }
 
 void GlContext::makeNotCurrent()
@@ -344,14 +368,11 @@ bool GlContext::makeNotCurrent(std::error_code& error)
 		}
 	}
 
-	if(makeNotCurrentImpl(error))
-	{
-		std::lock_guard<std::mutex> lock(*mutex);
-		thisThreadIt->second = {nullptr, nullptr};
-		return true;
-	}
+	if(!makeNotCurrentImpl(error)) return false;
 
-	return false;
+	std::lock_guard<std::mutex> lock(*mutex);
+	thisThreadIt->second = {nullptr, nullptr};
+	return true;
 }
 
 bool GlContext::isCurrent(const GlSurface** currentSurface) const
@@ -386,50 +407,6 @@ bool GlContext::isCurrentInAnyThread(const GlSurface** currentSurface) const
 	return false;
 }
 
-bool GlContext::sharedWith(const GlContext& other, bool pongBack) const
-{
-	//recursive; not trivial
-	//note that if the context has no stored shared context is does only mean that it was
-	//created without sharing but other contexts might have been created with sharing to
-	//this context later on.
-
-	//note: we do not explicitly check for compatibility here
-	//should be no problem since this is checked on creation
-
-	//brief:
-	//Tries to find the other context in the single linked list of shared contexts
-	//this context can access. If it does not find it (and still is in the first reursion,
-	//i.e. pongBack == true), the last context checked asks the other context if itself
-	//is part of the single linked list that the other context can access. But it sets
-	//pongBack to false (i.e. signals it that it is now the 2. recursion).
-
-	//first check whether this context has a shared stored context (the context it was
-	//created shared with). If so check if it is the same as other.
-	//If they both are not the same, other may still be "somewhere down the road".
-	//The only condition where this recursion breaks, if the "end of the road" is reached,
-	//i.e. the context that was created without any shared contexts is found.
-	//If none of those contexts "along the road" were the other (searched for) context,
-	//the last context (without any stored shared context) is the first one to
-	//proceed to the next statement. Therefore pongBack is also passed down the road.
-	if(shared() && (shared() == &other || shared()->sharedWith(other, pongBack))) return true;
-
-	//So if other isnt one of the contexts it was created shared with, check whether this was
-	//one of the contexts other was created shared with.
-	//Important is to pass pongBack as false here, otherwise the recursion will infinitely
-	//pong between 2 contexts.
-	//So this call will simply trigger the other context to check all contexts it was created
-	//shared with and if one of them is this context, true is returned.
-	//This will only be called from the last context of the first recursion (i.e. the one
-	//that was not created shared with any context) since if other was or was not created shared
-	//with the last one, it is shared or not shared with all others in the recursion, and
-	//therefore with the original one.
-	if(!shared() && pongBack && other.sharedWith(*this, false)) return true;
-
-	//Otherwise this context was not created shared with other and other was not created shared
-	//with this, therefore the both contexts are not shared.
-	return false;
-}
-
 bool GlContext::compatible(const GlSurface& surf) const
 {
 	return (config().id == surf.config().id);
@@ -445,6 +422,29 @@ bool GlContext::swapInterval(int interval, std::error_code& ec) const
 {
 	nytl::unused(interval);
 	ec = Errc::extensionNotSupported;
+	return false;
+}
+
+void GlContext::addShared(GlContext& other)
+{
+	shared_.push_back(&other);
+}
+
+bool GlContext::removeShared(GlContext& other)
+{
+	auto it = std::remove(shared_.begin(), shared_.end(), &other);
+	if(it == shared_.end()) return false;
+
+	shared_.erase(it, shared_.end());
+	return true;
+}
+
+bool shared(GlContext& a, GlContext& b)
+{
+	std::lock_guard<std::mutex> lock(contextShareMutex());
+	const auto& shared = a.shared();
+
+	for(auto& c : shared) if(c == &b) return true;
 	return false;
 }
 

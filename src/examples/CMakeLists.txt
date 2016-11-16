@@ -1,7 +1,3 @@
-#dev
-add_executable(ny-dev dev.cpp)
-target_link_libraries(ny-dev ny)
-
 #intro
 add_executable(ny-intro intro.cpp)
 target_link_libraries(ny-intro ny)
@@ -30,6 +26,14 @@ if(WithGL)
 	add_executable(ny-gl gl.cpp)
 	target_link_libraries(ny-gl ny)
 endif()
+
+#dev
+add_executable(ny-dev dev.cpp)
+target_link_libraries(ny-dev ny)
+
+#inline
+add_executable(ny-inline inline.cpp)
+target_link_libraries(ny-inline ny)
 
 # The following examples are currently disabled since ny does not have cairo or
 # skia support anymore.

@@ -8,7 +8,6 @@ set(ny_src
 	config.cpp
 	cursor.cpp
 	data.cpp
-	eventDispatcher.cpp
 	imageData.cpp
 	key.cpp
 	mouseButton.cpp

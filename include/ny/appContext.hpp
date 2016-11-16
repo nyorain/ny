@@ -18,21 +18,11 @@ namespace ny
 using WindowContextPtr = std::unique_ptr<WindowContext>;
 using AppContextPtr = std::unique_ptr<AppContext>;
 
-//TODO: use some kind of AppContext settings?
-//bunch of ideas:
-
-// struct AppContextSettings
-// {
-// 	std::string name;
-// 	bool multithreaded;
-// 	nytl::Range<const char*> args;
-//	std::vector<std::pair<const char*, const char*>> licenses;
-//	const char* author;
-// };
-
 //TODO: optional event parameter for dnd/clipboard functions? for wayland/x11
 //TODO: more/better term definitions. Multiple AppContexts allowed?
+//TODO: return type of startDragDrop? AsyncRequest (docs/dev.md)
 //TODO: TouchContext. Other input sources?
+
 ///Abstract base interface for a backend-specific display conncetion.
 ///Defines the interfaces for different (threaded/blocking) event dispatching functions
 ///that have to be implemented by the different backends.
@@ -88,27 +78,12 @@ public:
 	///Blocks and dispatches all incoming display events until the stop function of the loop control
 	///is called or the display conncection is closed by the server (e.g. an error or exit event).
 	///Shall only be called from the ui thread.
-	///\param control A AppContext::LoopControl object that can be used to stop the loop from
+	///\param control A LoopControl object that can be used to control the loop from
 	///inside or from another thread.
 	///\return true if loop was exited because stop() was called by the LoopControl.
 	///\return false if loop was exited because the display conncetion was destroyed or an error
 	///occured. The AppContext should then no longer be used.
-	virtual bool dispatchLoop(LoopControl& control) = 0;
-
-	///Blocks and dispatches all incoming events from the display and queued events inside
-	///the EventDispatcher and AppContext until the stop function of the given loop control is
-	///called or the display connection is closed by the server.
-	///This function itself will take care of dispatching all events, so the dispatcher
-	///loop of the given dispatcher should not be run in different threads.
-	///Shall only be called from the ui thread.
-	///\param control A AppContext::LoopControl object that can be used to stop the loop from
-	///inside or from another thread.
-	///\return true if loop was exited because stop() was called by the LoopControl.
-	///\return false if loop was exited because the display conncetion was destroyed or an error
-	///occured. The AppContext should then no longer be used.
-	///\sa ThreadedEventDispatcher
-	virtual bool threadedDispatchLoop(EventDispatcher& dispatcher, LoopControl& control) = 0;
-
+	virtual bool dispatchLoop(LoopControl& control = dummyLoopControl()) = 0;
 
 	///Sets the clipboard to the data provided by the given DataSource implementation.
 	///\param dataSource a DataSource implementation for the data to copy.

@@ -74,7 +74,7 @@ cmake_dependent_option(WithWinapi "Build ny with a winapi backend" on
 # check for invalid configurations
 # no backend
 if(NOT WithWayland AND NOT WithX11 AND NOT WithWinapi)
-	message(FATAL_ERROR "Could not find any backend to build ny with")
+	message(WARNING "Could not find any backend to build ny with")
 endif()
 
 #test for nytl

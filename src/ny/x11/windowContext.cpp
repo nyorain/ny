@@ -37,7 +37,9 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 
 	if(!visualID_) initVisual();
 	auto visualtype = xVisualType();
-	if(!visualtype) throw std::runtime_error("ny::X11WC: failed to retrieve the visualtype");
+	if(!visualtype)
+		throw std::runtime_error("ny::X11WindowContext: failed to retrieve the visualtype");
+
 	auto vid = visualtype->visual_id;
 
     auto& xconn = appContext_->xConnection();
@@ -57,7 +59,7 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 	auto colormap = xcb_generate_id(&xconn);
 	auto cookie = xcb_create_colormap_checked(&xconn, XCB_COLORMAP_ALLOC_NONE, colormap,
 		xscreen.root, vid);
-	errorCategory().checkThrow(cookie, "ny::X11WindowContext create_colormap failed");
+	errorCategory().checkThrow(cookie, "ny::X11WindowContext: create_colormap failed");
 
 	xColormap_ = colormap;
 
@@ -109,6 +111,10 @@ X11WindowContext::~X11WindowContext()
 
 void X11WindowContext::initVisual()
 {
+	constexpr auto novis = "ny::X11WindowContext::initVisual: there are no 24 or 32 bit visuals";
+	constexpr auto no32vis = "ny::X11WindowContext::initVisual: there are no 32 bit visuals";
+	constexpr auto nofound = "ny::X11WindowContext::initVisual: could not find a matching visual";
+
 	visualID_ = 0u;
     auto& screen = appContext().xDefaultScreen();
 	auto avDepth = 0u;
@@ -120,8 +126,8 @@ void X11WindowContext::initVisual()
 		if(!avDepth && depth_iter.data->depth == 24) avDepth = 24;
 	}
 
-	if(avDepth == 0u) throw std::runtime_error("ny::X11WC: no 24 or 32 bit visuals");
-	else if(avDepth == 24) warning("ny::X11WC: no 32-bit visuals");
+	if(avDepth == 0u) throw std::runtime_error(novis);
+	else if(avDepth == 24) warning(no32vis);
 
 	depth_iter = xcb_screen_allowed_depths_iterator(&screen);
 	for(; depth_iter.rem; xcb_depth_next(&depth_iter))
@@ -153,7 +159,7 @@ void X11WindowContext::initVisual()
 		}
 	}
 
-	if(!visualID_) throw std::runtime_error("ny::X11WC: failed to find a matching visual");
+	if(!visualID_) throw std::runtime_error(nofound);
 	depth_ = avDepth;
 }
 
@@ -231,7 +237,7 @@ void X11WindowContext::cursor(const Cursor& curs)
 		if(!name)
 		{
 			//TODO: serialize cursor type
-			warning("X11WC::cursor: cursor type not supported");
+			warning("ny::X11WindowContext::cursor: native cursor type not supported");
 			return;
 		}
 
