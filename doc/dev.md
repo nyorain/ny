@@ -170,6 +170,7 @@ public:
 	///events. If one of the events is met, calls the given callback function.
 	///If monitoring the fd is no longer needed or the fd is about to get closed, unregister
 	///it by disconnecting the return Connection.
+	///Should only be called from the gui thread.
 	virtual nytl::Connection fdCallback(int fd, unsigned int events, cosnt FdCallback& func) = 0;
 
 	///Returns a number of file descriptors and their associated events that have to be monitored
@@ -177,6 +178,7 @@ public:
 	///So if for any of the returned file descriptors (pair.first) the associated event is met
 	///(pair.second) the backend has potentially work to do.
 	///Note that this call also returns all registered fds by fdCallback.
+	///Should only be called from the gui thread.
 	virtual std::vector<std::pair<int, unsigned int>> fds() const = 0;
 };
 ```
@@ -223,7 +225,7 @@ AppContextSettings
 
 Could be useful for displaying the applications name correctly and automatically parse
 arguments (introduce ny-specific arguments).
-Is this useful, inside of the scope of ny? 
+Is this useful, inside of the scope of ny?
 
 ```cpp
 struct AppContextSettings

@@ -58,12 +58,6 @@ protected:
 class LoopControl
 {
 public:
-	///Dummy object that will be used to default LoopControl parameters.
-	///If a loop detects that a passed LoopControl parameter is this object they don't have
-	///to implement it (LoopInterfaceGuard handles this).
-	static LoopControl& dummy() { static LoopControl instance; return instance; }
-
-public:
 	LoopControl() = default;
 	~LoopControl() { stop(); }
 
@@ -97,25 +91,17 @@ protected:
 class LoopInterfaceGuard : public LoopInterface
 {
 public:
-	LoopInterfaceGuard(LoopControl& loopControl) : loopControl_(loopControl)
-		{ if(&loopControl_ != &LoopControl::dummy()) set(loopControl_, *this); }
-
-	~LoopInterfaceGuard()
-		{ if(&loopControl_ != &LoopControl::dummy()) set(loopControl_, LoopInterface::dummy()); }
+	LoopInterfaceGuard(LoopControl& lc) : lc_(lc) { set(lc_, *this); }
+	~LoopInterfaceGuard() { set(lc_, LoopInterface::dummy()); }
 
 protected:
-	LoopControl& loopControl_;
+	LoopControl& lc_;
 };
 
 //inline implementation
 void LoopInterface::set(LoopControl& loopControl, LoopInterface& impl)
 {
 	loopControl.impl_ = &impl;
-}
-
-LoopControl& dummyLoopControl()
-{
-	return LoopControl::dummy();
 }
 
 }

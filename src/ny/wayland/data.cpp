@@ -318,7 +318,8 @@ void WaylandDataSource::action(unsigned int action)
 	auto hotspot = nytl::Vec2i(img->hotspot_x, img->hotspot_y);
 	auto size = nytl::Vec2i(img->width, img->height);
 
-	appContext_.waylandMouseContext().cursorBuffer(buffer, hotspot, size);
+	if(appContext_.waylandMouseContext())
+		appContext_.waylandMouseContext()->cursorBuffer(buffer, hotspot, size);
 }
 
 void WaylandDataSource::dndPerformed()

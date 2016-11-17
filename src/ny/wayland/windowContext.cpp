@@ -28,7 +28,9 @@ WaylandWindowContext::WaylandWindowContext(WaylandAppContext& ac,
 	const WaylandWindowSettings& settings) : appContext_(&ac)
 {
     wlSurface_ = wl_compositor_create_surface(&ac.wlCompositor());
-    if(!wlSurface_) throw std::runtime_error("WaylandWC: could not create wl_surface");
+    if(!wlSurface_)
+		throw std::runtime_error("ny::WaylandWindowContext: could not create wl_surface");
+
     wl_surface_set_user_data(wlSurface_, this);
 
     //window role
@@ -37,13 +39,11 @@ WaylandWindowContext::WaylandWindowContext(WaylandAppContext& ac,
 		auto& parent = *reinterpret_cast<wl_surface*>(settings.parent.pointer());
 		createSubsurface(parent, settings);
 	}
-	else if(ac.xdgShell())
+	else //toplevel shell surface
 	{
-		createXDGSurface(settings);
-	}
-	else
-	{
-		createShellSurface(settings);
+		if(ac.xdgShell()) createXDGSurface(settings);
+		else if(ac.wlShell()) createShellSurface(settings);
+		else throw std::runtime_error("ny::WaylandWindowContext: compositor has no shell global");
 	}
 
 	size_ = settings.size;
@@ -66,10 +66,9 @@ WaylandWindowContext::~WaylandWindowContext()
 
 void WaylandWindowContext::createShellSurface(const WaylandWindowSettings& ws)
 {
-    if(!appContext_->wlShell()) throw std::runtime_error("WaylandWC: No wl_shell available");
-
     wlShellSurface_ = wl_shell_get_shell_surface(appContext_->wlShell(), wlSurface_);
-    if(!wlShellSurface_) throw std::runtime_error("WaylandWC: failed to create wl_shell_surface");
+    if(!wlShellSurface_)
+		throw std::runtime_error("ny::WaylandWindowContext: failed to create wl_shell_surface");
 
     role_ = WaylandSurfaceRole::shell;
 
@@ -84,10 +83,9 @@ void WaylandWindowContext::createShellSurface(const WaylandWindowSettings& ws)
 
 void WaylandWindowContext::createXDGSurface(const WaylandWindowSettings& ws)
 {
-    if(!appContext_->xdgShell()) throw std::runtime_error("WaylandWC: no xdg_shell available");
-
     xdgSurface_ = xdg_shell_get_xdg_surface(appContext_->xdgShell(), wlSurface_);
-    if(xdgSurface_) throw std::runtime_error("WaylandWC: failed to create xdg_surface");
+    if(!xdgSurface_)
+		throw std::runtime_error("ny::WaylandWindowContext: failed to create xdg_surface");
 
     role_ = WaylandSurfaceRole::xdg;
 
@@ -102,12 +100,13 @@ void WaylandWindowContext::createXDGSurface(const WaylandWindowSettings& ws)
 void WaylandWindowContext::createSubsurface(wl_surface& parent, const WaylandWindowSettings&)
 {
 	auto subcomp = appContext_->wlSubcompositor();
-    if(!subcomp) throw std::runtime_error("WaylandWC: no wl_subcompositor");
+    if(!subcomp) throw std::runtime_error("ny::WaylandWindowContext: no wl_subcompositor");
 
     role_ = WaylandSurfaceRole::sub;
     wlSubsurface_ = wl_subcompositor_get_subsurface(subcomp, wlSurface_, &parent);
 
-    if(!wlSubsurface_) throw std::runtime_error("WaylandWC: failed to create wl_subsurface");
+    if(!wlSubsurface_)
+		throw std::runtime_error("ny::WaylandWindowContext: failed to create wl_subsurface");
 
     wl_subsurface_set_user_data(wlSubsurface_, this);
     wl_subsurface_set_desync(wlSubsurface_);
@@ -157,18 +156,25 @@ void WaylandWindowContext::position(const Vec2i& position)
     }
 	else
 	{
-		warning("ny::WaylandWC::position: wayland does not support custom positions");
+		warning("ny::WaylandWindowContext::position: wayland does not support custom positions");
 	}
 }
 
 void WaylandWindowContext::cursor(const Cursor& cursor)
 {
+	auto wmc = appContext_->waylandMouseContext();
+	if(!wmc)
+	{
+		warning("ny::WaylandWindowContext::cursor: no WaylandMouseContext");
+		return;
+	}
+
 	if(cursor.type() == Cursor::Type::image)
 	{
 		auto* img = cursor.image();
 		if(!img || !img->data)
 		{
-			warning("ny::WlWC::cursor: invalid image cursor");
+			warning("ny::WaylandWindowContext::cursor: invalid image cursor");
 			return;
 		}
 
@@ -200,7 +206,7 @@ void WaylandWindowContext::cursor(const Cursor& cursor)
 		auto* wlCursor = wl_cursor_theme_get_cursor(cursorTheme, cursorName);
 		if(!wlCursor)
 		{
-			warning("ny::WlWC::cursor: failed to retrieve cursor ", cursorName);
+			warning("ny::WaylandWindowContext::cursor: failed to retrieve cursor ", cursorName);
 			return;
 		}
 
@@ -216,28 +222,25 @@ void WaylandWindowContext::cursor(const Cursor& cursor)
 		cursorSize_.y = img->height;
 	}
 
-	//ugly hack... TODO
-	if(!appContext_->mouseContext()) return;
-
 	//update the cursor if needed
-	auto& wmc = appContext_->waylandMouseContext();
-	if(wmc.over() == this)
-		wmc.cursorBuffer(cursorBuffer_, cursorHotspot_, cursorSize_);
+	if(wmc->over() == this)
+		wmc->cursorBuffer(cursorBuffer_, cursorHotspot_, cursorSize_);
 }
 
 void WaylandWindowContext::droppable(const DataTypes&)
 {
 	//TODO
 	//currently all windows are droppabe, store it here and check it in wayland/data.cpp
+	warning("ny::WaylandWindowContext::droppable: not implemented");
 }
 
 void WaylandWindowContext::minSize(const Vec2ui&)
 {
-	warning("WaylandWC::maxSize: wayland has no capability for size limits");
+	warning("ny::WaylandWindowContext::maxSize: wayland has no capability for size limits");
 }
 void WaylandWindowContext::maxSize(const Vec2ui&)
 {
-	warning("WaylandWC::maxSize: wayland has no capability for size limits");
+	warning("ny::WaylandWindowContext::maxSize: wayland has no capability for size limits");
 }
 
 NativeHandle WaylandWindowContext::nativeHandle() const

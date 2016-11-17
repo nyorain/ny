@@ -1,3 +1,7 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #include <ny/cursor.hpp>
 #include <ny/windowSettings.hpp>
 
@@ -36,42 +40,43 @@ CursorType sizeCursorFromEdge(WindowEdge edge)
 	}
 }
 
-//Cursor
-Cursor::Cursor(CursorType type) : type_(type), image_{}
+const char* name(CursorType cursor)
 {
+	switch(cursor)
+	{
+		case CursorType::leftPtr: return "leftPtr";
+		case CursorType::load: return "load";
+		case CursorType::loadPtr: return "loadPtr";
+		case CursorType::rightPtr: return "rightPtr";
+		case CursorType::hand: return "hand";
+		case CursorType::grab: return "grab";
+		case CursorType::crosshair: return "crosshair";
+		case CursorType::help: return "help";
+		case CursorType::size: return "size";
+		case CursorType::sizeLeft: return "sizeLeft";
+		case CursorType::sizeRight: return "sizeRight";
+		case CursorType::sizeTop: return "sizeTop";
+		case CursorType::sizeBottom: return "sizeBottom";
+		case CursorType::sizeBottomRight: return "sizeBottomRight";
+		case CursorType::sizeBottomLeft: return "sizeBottomLeft";
+		case CursorType::sizeTopRight: return "sizeTopRight";
+		case CursorType::sizeTopLeft: return "sizeTopLeft";
+		default: return "";
+	}
 }
 
-Cursor::Cursor(const ImageData& img, const nytl::Vec2i& hotspot)
+//Cursor
+Cursor::Cursor(const ImageData& img, nytl::Vec2i hotspot) noexcept
 	: type_(CursorType::image), hotspot_(hotspot), image_(img)
 {
 }
 
-void Cursor::image(const ImageData& img, const Vec2i& hotspot)
+void Cursor::image(const ImageData& img, Vec2i hotspot) noexcept
 {
 	image_ = img;
 	hotspot_ = hotspot;
 
 	type_ = CursorType::image;
-}
-
-void Cursor::nativeType(CursorType type)
-{
-	type_= type;
-}
-
-const ImageData* Cursor::image() const
-{
-	return (type_ == CursorType::image) ? &image_ : nullptr;
-}
-
-const Vec2i& Cursor::imageHotspot() const
-{
-	return hotspot_;
-}
-
-CursorType Cursor::type() const
-{
-	return type_;
 }
 
 }

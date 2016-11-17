@@ -6,95 +6,33 @@
 
 #include <ny/wayland/include.hpp>
 #include <ny/appContext.hpp>
-#include <nytl/callback.hpp>
+#include <nytl/compFunc.hpp>
 
 #include <vector>
 #include <string>
 #include <memory>
+#include <system_error>
 #include <map>
 
 namespace ny
 {
 
-namespace wayland
-{
-
-///Utility template that allows to associate a numerical value (name) with wayland globals.
-template<typename T>
-struct NamedGlobal
-{
-	T* global = nullptr;
-	unsigned int name = 0;
-
-	operator T*() const { return global; }
-};
-
-}
-
-///Utility template
-///TODO: does not belong here... rather some common util file
-template<typename T>
-class ConnectionList : public nytl::Connectable
-{
-public:
-	class Value : public T
-	{
-	public:
-		using T::T;
-		nytl::ConnectionID clID_;
-	};
-
-	std::vector<Value> items;
-	nytl::ConnectionID highestID;
-
-public:
-	bool disconnect(nytl::ConnectionID id) override
-	{
-		for(auto it = items.begin(); it != items.end(); ++it)
-		{
-			if(it->clID_ == id)
-			{
-				items.erase(it);
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	nytl::Connection add(const T& value)
-	{
-		items.emplace_back();
-		static_cast<T&>(items.back()) = value;
-		items.back().clID_ = nextID();
-		return {*this, items.back().clID_};
-	}
-
-	nytl::ConnectionID nextID()
-	{
-		++reinterpret_cast<std::uintptr_t&>(highestID);
-		return highestID;
-	}
-};
-
 ///Wayland AppContext implementation.
-///Holds a wayland display connection as well as all global resurces.
+///Holds the wayland display connection as well as all global resources.
 class WaylandAppContext : public AppContext
 {
 public:
 	WaylandAppContext();
 	virtual ~WaylandAppContext();
 
-	//AppContext
+	// - AppContext implementation -
 	bool dispatchEvents() override;
 	bool dispatchLoop(LoopControl& control) override;
-	bool threadedDispatchLoop(EventDispatcher& dispatcher, LoopControl& control) override;
 
 	MouseContext* mouseContext() override;
 	KeyboardContext* keyboardContext() override;
 	WindowContextPtr createWindowContext(const WindowSettings& windowSettings) override;
 
-	//TODO. Not implemented at the moment
 	bool clipboard(std::unique_ptr<DataSource>&& dataSource) override;
 	DataOffer* clipboard() override;
 	bool startDragDrop(std::unique_ptr<DataSource>&& dataSource) override;
@@ -102,21 +40,44 @@ public:
 	std::vector<const char*> vulkanExtensions() const override;
 	GlSetup* glSetup() const override;
 
-	//wayland specific
-	///Dispatched the given event as soon as possible. Needed by wayland callbacks.
-	void dispatch(Event&& event);
+	// - wayland specific -
 
-	wl_display& wlDisplay() const { return *wlDisplay_; };
-	wl_compositor& wlCompositor() const { return *wlCompositor_; };
+	///Checks the wayland display for errors.
+	///If the wayland display has an error (i.e. it cannot be used any longer) returns an
+	///error code holding either the posix error code returned, or an interface-specific
+	///error code.
+	std::error_code checkError() const;
+	bool checkErrorWarn() const; ///Outputs warning and returns false on error
 
-	wl_subcompositor* wlSubcompositor() const{ return wlSubcompositor_; };
-	wl_shm* wlShm() const { return wlShm_; };
-	wl_seat* wlSeat() const { return wlSeat_; };
-	wl_shell* wlShell() const { return wlShell_; };
-	xdg_shell* xdgShell() const { return xdgShell_; }
-	wl_cursor_theme* wlCursorTheme() const { return wlCursorTheme_; }
-	wl_data_device_manager* wlDataManager() const { return wlDataManager_; }
+	///Adds a dispatch function that will be called before the function returns when
+	///the AppContext is currently dispatching events, otherwise it will be called
+	///the next time events are dispatched.
+	///Wayland listener callbacks should call this to dispatch events since they
+	///may be triggered somehow outside of a event dispatch function.
+	void dispatch(std::function<void()> func); //param by value since usually moved
+	void dispatch(Event&& ev); //to be removed with event handling rework
 
+	///Can be called to register custom listeners for fds that the dispatch loop will
+	///then poll for.
+	using FdCallbackFunc = nytl::CompFunc<void(nytl::ConnectionRef, int fd, unsigned int events)>;
+	nytl::Connection fdCallback(int fd, unsigned int events, const FdCallbackFunc& func);
+
+	WaylandKeyboardContext* waylandKeyboardContext() const { return keyboardContext_.get(); }
+	WaylandMouseContext* waylandMouseContext() const { return mouseContext_.get(); }
+	WaylandDataDevice* waylandDataDevice() const { return dataDevice_.get(); }
+
+	wl_display& wlDisplay() const;
+	wl_registry& wlRegistry() const;
+	wl_compositor& wlCompositor() const;
+
+	wl_subcompositor* wlSubcompositor() const;
+	wl_shm* wlShm() const;
+	wl_seat* wlSeat() const;
+	wl_shell* wlShell() const;
+	xdg_shell* xdgShell() const;
+	wl_data_device_manager* wlDataManager() const;
+
+	wl_cursor_theme* wlCursorTheme() const;
 	wl_pointer* wlPointer() const;
 	wl_keyboard* wlKeyboard() const;
 
@@ -124,86 +85,45 @@ public:
 	const std::vector<wayland::Output>& outputs() const { return outputs_; }
 	bool shmFormatSupported(unsigned int wlShmFormat);
 
-	///Checks the wayland display for errors.
-	///If the wayland display has an error (i.e. it cannot be used any longer) returns an
-	///error code holding either the posix error code returned, or an interface-specific
-	///error code.
-	std::error_code checkError() const;
-
-	///Can be called to register custom listeners for fds that the dispatch loop will
-	///then poll for.
-	using FdCallback = nytl::CompFunc<void(nytl::ConnectionRef, int fd, unsigned int events)>;
-	nytl::Connection fdCallback(int fd, unsigned int events, const FdCallback& func);
-
-	WaylandKeyboardContext& waylandKeyboardContext() const { return *keyboardContext_; }
-	WaylandMouseContext& waylandMouseContext() const { return *mouseContext_; }
-
 	EglSetup* eglSetup() const;
-
-	//functions called by wayland callbacks
-	void registryAdd(unsigned int id, const char* cinterface, unsigned int version);
-	void registryRemove(unsigned int id);
-	void seatCapabilities(unsigned int caps);
-	void seatName(const char* name);
-	void addShmFormat(unsigned int format);
 
 protected:
 	///Modified version of wl_dispatch_display that performs the same operations but
-	///does stop blocking (no matter at which stage) if eventfd_ is signaled (i.e. set to 1).
-	///Returns 0 if stopped because of eventfd, -1 on error and a value > 0 otherwise.
-	int dispatchDisplay();
+	///does also poll for the registered fds.
+	///Returns false on error.
+	bool dispatchDisplay();
+
+	///Polls for all registered fd callbacks as well as for the wayland display fd
+	///with the given events if they are not 0. Uses the given timeout for poll calls.
+	///Returns the value poll returned.
+	///Will not stop on a signal.
+	int pollFds(short wlDisplayEvents, int timeout);
+
+	//callback handlers
+	void handleRegistryAdd(unsigned int id, const char* cinterface, unsigned int version);
+	void handleRegistryRemove(unsigned int id);
+	void handleSeatCapabilities(unsigned int caps);
+	void handleSeatName(const char* name);
+	void handleShmFormat(unsigned int format);
+	void handleXdgShellPing(unsigned int serial);
 
 protected:
 	wl_display* wlDisplay_;
 	wl_registry* wlRegistry_;
-
-	//wayland global resources
-	//see registryAdd and registryRemove for why the need to be NamedGlobals
-	wayland::NamedGlobal<wl_compositor> wlCompositor_;
-	wayland::NamedGlobal<wl_subcompositor> wlSubcompositor_;
-	wayland::NamedGlobal<wl_shell> wlShell_;
-	wayland::NamedGlobal<wl_shm> wlShm_;
-	wayland::NamedGlobal<wl_data_device_manager> wlDataManager_;
-	wayland::NamedGlobal<wl_seat> wlSeat_;
-	wayland::NamedGlobal<xdg_shell> xdgShell_;
-
 	wl_cursor_theme* wlCursorTheme_ {};
-	wl_surface* wlCursorSurface_ {};
 
-	std::unique_ptr<WaylandDataDevice> dataDevice_; //TODO: move to impl
-
-	//if the current cursor was set from a custom image this will hold an owned pointer
-	//to the buffer.
-	std::unique_ptr<wayland::ShmBuffer> cursorImageBuffer_;
 	unsigned int eventfd_ = 0u;
-
 	std::vector<unsigned int> shmFormats_;
 	std::vector<wayland::Output> outputs_;
-
 	std::string seatName_;
 
-	//TODO: move ot impl
+	std::unique_ptr<WaylandDataDevice> dataDevice_;
 	std::unique_ptr<WaylandKeyboardContext> keyboardContext_;
 	std::unique_ptr<WaylandMouseContext> mouseContext_;
 
-	//stores all pending events (from the dispatch member function) that will should be send
-	//in the next dispatch loop iteration/dispatchEvents call.
-	std::vector<std::unique_ptr<Event>> pendingEvents_;
-
-	//ErrorCategories for wayland interfaces
-	//They will only inserted here if they are needed
-	//Must be unique ptr since std::error_code keep a reference to their Category
-	mutable std::vector<std::unique_ptr<WaylandErrorCategory>> errorCategories_;
-	mutable std::error_code error_; //The cached error code for the display (if any)
-
-	struct ListenerEntry
-	{
-		int fd;
-		unsigned int events;
-		FdCallback callback;
-	};
-
-	ConnectionList<ListenerEntry> fdCallbacks_;
+	bool dispatching_ {false};
+	bool wakeup_ {false};
+	std::vector<std::function<void()>> pendingDispatchers_;
 
 	struct Impl;
 	std::unique_ptr<Impl> impl_;

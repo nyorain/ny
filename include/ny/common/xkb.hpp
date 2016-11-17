@@ -2,6 +2,7 @@
 
 #include <ny/include.hpp>
 #include <ny/keyboardContext.hpp>
+#include <nytl/nonCopyable.hpp>
 #include <bitset>
 
 struct xkb_context;
@@ -23,7 +24,7 @@ xkb_keycode_t keyToXkb(Keycode key);
 //the KeyboardContext and KeyEvent members.
 //TODO: rethink public/protected
 ///Partial KeyboardContext implementation for backends that can be used with xkb.
-class XkbKeyboardContext : public KeyboardContext
+class XkbKeyboardContext : public KeyboardContext, public nytl::NonMovable
 {
 public:
 	std::string utf8(Keycode) const override;

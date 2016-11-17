@@ -136,6 +136,16 @@ protected:
 	void scale(int);
 };
 
+///Utility template that allows to associate a numerical value (name) with wayland globals.
+template<typename T>
+struct NamedGlobal
+{
+	T* global = nullptr;
+	unsigned int name = 0;
+
+	operator T*() const { return global; }
+};
+
 }//wayland
 
 //The following could also be moved to some general util file since many c libraries use
@@ -195,6 +205,53 @@ auto constexpr memberCallback = &detail::MemberCallback<std::decay_t<F>, f, S>::
 //C++17
 // template<auto f>
 // constexpr auto memberCallback = &detail::MemberCallback<std::decay_t<decltype(f)>, f>::call;
+
+///TODO: does not belong here... rather some common util file
+///Utility template that allows a generic list of connectable objects.
+///Used by WaylandAppContext for its fd listeners.
+template<typename T>
+class ConnectionList : public nytl::Connectable
+{
+public:
+	class Value : public T
+	{
+	public:
+		using T::T;
+		nytl::ConnectionID clID_;
+	};
+
+	std::vector<Value> items;
+	nytl::ConnectionID highestID;
+
+public:
+	bool disconnect(nytl::ConnectionID id) override
+	{
+		for(auto it = items.begin(); it != items.end(); ++it)
+		{
+			if(it->clID_ == id)
+			{
+				items.erase(it);
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	nytl::Connection add(const T& value)
+	{
+		items.emplace_back();
+		static_cast<T&>(items.back()) = value;
+		items.back().clID_ = nextID();
+		return {*this, items.back().clID_};
+	}
+
+	nytl::ConnectionID nextID()
+	{
+		++reinterpret_cast<std::uintptr_t&>(highestID);
+		return highestID;
+	}
+};
 
 ///Used for e.g. move/resize requests where the serial of the trigger can be given
 ///All wayland event callbacks that retrieve a serial value should create a WaylandEventData

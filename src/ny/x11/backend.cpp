@@ -1,8 +1,10 @@
-#include <ny/x11/backend.hpp>
-#include <ny/x11/windowContext.hpp>
-#include <ny/x11/appContext.hpp>
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
-#include <X11/Xlib.h>
+#include <ny/x11/backend.hpp>
+#include <ny/x11/appContext.hpp>
+#include <xcb/xcb.h>
 
 namespace ny
 {
@@ -15,12 +17,12 @@ X11Backend::X11Backend()
 
 bool X11Backend::available() const
 {
-    // ::XInitThreads(); //todo, make this optional
-    Display* dpy = ::XOpenDisplay(nullptr);
-    if(!dpy) return false;
-    ::XCloseDisplay(dpy);
+    // ::XInitThreads(); //TODO
 
-    return true;
+	auto connection = xcb_connect(nullptr, nullptr);
+	bool ret = xcb_connection_has_error(connection);
+	xcb_disconnect(connection);
+    return ret;
 }
 
 std::unique_ptr<AppContext> X11Backend::createAppContext()

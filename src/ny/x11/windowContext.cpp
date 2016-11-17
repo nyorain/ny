@@ -111,9 +111,9 @@ X11WindowContext::~X11WindowContext()
 
 void X11WindowContext::initVisual()
 {
-	constexpr auto novis = "ny::X11WindowContext::initVisual: there are no 24 or 32 bit visuals";
-	constexpr auto no32vis = "ny::X11WindowContext::initVisual: there are no 32 bit visuals";
-	constexpr auto nofound = "ny::X11WindowContext::initVisual: could not find a matching visual";
+	static constexpr auto novis = "ny::X11WindowContext::initVisual: no 24 or 32 bit visuals";
+	static constexpr auto no32vis = "ny::X11WindowContext::initVisual: no 32 bit visuals";
+	static constexpr auto nofound = "ny::X11WindowContext::initVisual: no matching visuals";
 
 	visualID_ = 0u;
     auto& screen = appContext().xDefaultScreen();

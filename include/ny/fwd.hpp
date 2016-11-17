@@ -32,9 +32,6 @@ using std::int64_t;
 //base
 class Event;
 class EventHandler;
-class EventDispatcher;
-class DefaultEventDispatcher;
-class ThreadedEventDispatcher;
 class Cursor;
 class LoopControl;
 class LoopInterface;
@@ -103,9 +100,6 @@ enum class ImageDataFormat : unsigned int;
 using WindowHints = nytl::Flags<WindowHint>;
 using WindowEdges = nytl::Flags<WindowEdge>;
 using WindowCapabilities = nytl::Flags<WindowCapability>;
-
-//functions
-LoopControl& dummyLoopControl();
 
 }
 

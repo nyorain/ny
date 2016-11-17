@@ -1,5 +1,8 @@
-#include <ny/wayland/util.hpp>
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
+#include <ny/wayland/util.hpp>
 #include <ny/wayland/appContext.hpp>
 #include <ny/wayland/windowContext.hpp>
 
@@ -19,6 +22,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <iostream>
+#include <cstring>
 
 namespace ny
 {
@@ -45,7 +49,7 @@ err1:
     close(fd);
 
 err2:
-	warning("ny::wayland::setCloexecOrClose: fctnl failed");
+	warning("ny::wayland::setCloexecOrClose: fctnl failed: ", std::strerror(errno));
     return -1;
 }
 

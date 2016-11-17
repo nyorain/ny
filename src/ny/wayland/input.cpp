@@ -28,32 +28,23 @@ WaylandMouseContext::WaylandMouseContext(WaylandAppContext& ac, wl_seat& seat)
 	: appContext_(ac)
 {
 	using WMC = WaylandMouseContext;
-	constexpr static wl_pointer_listener listener =
-	{
+	constexpr static wl_pointer_listener listener = {
 		memberCallback<decltype(&WMC::handleEnter), &WMC::handleEnter,
 			void(wl_pointer*, uint32_t, wl_surface*, wl_fixed_t, wl_fixed_t)>,
-
 		memberCallback<decltype(&WMC::handleLeave), &WMC::handleLeave,
 			void(wl_pointer*, uint32_t, wl_surface*)>,
-
 		memberCallback<decltype(&WMC::handleMotion), &WMC::handleMotion,
 			void(wl_pointer*, uint32_t, wl_fixed_t, wl_fixed_t)>,
-
 		memberCallback<decltype(&WMC::handleButton), &WMC::handleButton,
 			void(wl_pointer*, uint32_t, uint32_t, uint32_t, uint32_t)>,
-
 		memberCallback<decltype(&WMC::handleAxis), &WMC::handleAxis,
 			void(wl_pointer*, uint32_t, uint32_t, wl_fixed_t)>,
-
 		memberCallback<decltype(&WMC::handleFrame), &WMC::handleFrame,
 			void(wl_pointer*)>,
-
 		memberCallback<decltype(&WMC::handleAxisSource), &WMC::handleAxisSource,
 			void(wl_pointer*, uint32_t)>,
-
 		memberCallback<decltype(&WMC::handleAxisStop), &WMC::handleAxisStop,
 			void(wl_pointer*, uint32_t, uint32_t)>,
-
 		memberCallback<decltype(&WMC::handleAxisDiscrete), &WMC::handleAxisDiscrete,
 			void(wl_pointer*, uint32_t, int32_t)>,
 	};
@@ -223,23 +214,17 @@ WaylandKeyboardContext::WaylandKeyboardContext(WaylandAppContext& ac, wl_seat& s
 	: appContext_(ac)
 {
 	using WKC = WaylandKeyboardContext;
-	constexpr static wl_keyboard_listener listener =
-	{
+	constexpr static wl_keyboard_listener listener = {
 		memberCallback<decltype(&WKC::handleKeymap), &WKC::handleKeymap,
 			void(wl_keyboard*, uint32_t, int32_t, uint32_t)>,
-
 		memberCallback<decltype(&WKC::handleEnter), &WKC::handleEnter,
 			void(wl_keyboard*, uint32_t, wl_surface*, wl_array*)>,
-
 		memberCallback<decltype(&WKC::handleLeave), &WKC::handleLeave,
 			void(wl_keyboard*, uint32_t, wl_surface*)>,
-
 		memberCallback<decltype(&WKC::handleKey), &WKC::handleKey,
 			void(wl_keyboard*, uint32_t, uint32_t, uint32_t, uint32_t)>,
-
 		memberCallback<decltype(&WKC::handleModifiers), &WKC::handleModifiers,
 			void(wl_keyboard*, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t)>,
-
 		memberCallback<decltype(&WKC::handleRepeatInfo), &WKC::handleRepeatInfo,
 			void(wl_keyboard*, int32_t, int32_t)>,
 	};

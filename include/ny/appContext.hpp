@@ -83,7 +83,7 @@ public:
 	///\return true if loop was exited because stop() was called by the LoopControl.
 	///\return false if loop was exited because the display conncetion was destroyed or an error
 	///occured. The AppContext should then no longer be used.
-	virtual bool dispatchLoop(LoopControl& control = dummyLoopControl()) = 0;
+	virtual bool dispatchLoop(LoopControl& control) = 0;
 
 	///Sets the clipboard to the data provided by the given DataSource implementation.
 	///\param dataSource a DataSource implementation for the data to copy.
