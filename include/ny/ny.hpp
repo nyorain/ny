@@ -12,7 +12,6 @@
 #include <ny/data.hpp>
 #include <ny/cursor.hpp>
 #include <ny/eventHandler.hpp>
-#include <ny/eventDispatcher.hpp>
 #include <ny/event.hpp>
 #include <ny/events.hpp>
 #include <ny/loopControl.hpp>

@@ -5,7 +5,6 @@
 #include <ny/wayland/appContext.hpp>
 
 #include <ny/wayland/util.hpp>
-#include <ny/wayland/interfaces.hpp>
 #include <ny/wayland/windowContext.hpp>
 #include <ny/wayland/input.hpp>
 #include <ny/wayland/data.hpp>
@@ -71,31 +70,35 @@ public:
 
 	bool stop() override
 	{
-		run.store(0);
-		std::int64_t v = 1;
-		::write(eventfd, &v, 8);
+		run.store(false);
+		wakeup();
 		return true;
 	};
 
-	bool call(const std::function<void()>& function) override
+	bool call(std::function<void()> function) override
 	{
 		if(!function) return false;
 
 		{
 			std::lock_guard<std::mutex> lock(mutex);
-			functions.push(function);
+			functions.push(std::move(function));
 		}
 
+		wakeup();
+		return true;
+	}
+
+	void wakeup()
+	{
 		std::int64_t v = 1;
 		::write(eventfd, &v, 8);
-		return true;
 	}
 
 	std::function<void()> popFunction()
 	{
 		std::lock_guard<std::mutex> lock(mutex);
 		if(functions.empty()) return {};
-		auto ret = functions.front();
+		auto ret = std::move(functions.front());
 		functions.pop();
 		return ret;
 	}
@@ -104,10 +107,9 @@ public:
 ///Like poll but does not return on signals.
 int noSigPoll(pollfd& fds, nfds_t nfds, int timeout = -1)
 {
-	int ret = 0;
 	while(true)
 	{
-		ret = poll(&fds, nfds, timeout);
+		auto ret = poll(&fds, nfds, timeout);
 		if(ret != -1 || errno != EINTR) return ret;
 	}
 }
@@ -159,23 +161,6 @@ WaylandAppContext::WaylandAppContext()
 			void(wl_registry*, uint32_t)>,
 	};
 
-	constexpr static wl_shm_listener shmListener = {
-		memberCallback<decltype(&WAC::handleShmFormat), &WAC::handleShmFormat,
-			void(wl_shm*, uint32_t)>
-	};
-
-	constexpr static wl_seat_listener seatListener = {
-		memberCallback<decltype(&WAC::handleSeatCapabilities), &WAC::handleSeatCapabilities,
-			void(wl_seat*, uint32_t)>,
-		memberCallback<decltype(&WAC::handleSeatName), &WAC::handleSeatName,
-			void(wl_seat*, const char*)>
-	};
-
-	constexpr static xdg_shell_listener xdgShellListener = {
-		memberCallback<decltype(&WAC::handleXdgShellPing), &WAC::handleXdgShellPing,
-			void(xdg_shell*, uint32_t)>
-	};
-
 	//connect to the wayland displa and retrieve the needed objects
 	impl_ = std::make_unique<Impl>();
 	wlDisplay_ = wl_display_connect(nullptr);
@@ -218,22 +203,11 @@ WaylandAppContext::WaylandAppContext()
 	if(!wlDataManager()) warning("ny::WaylandAppContext: no wl_data_manager received");
 
 	//init secondary resources
-	if(wlSeat())
-	{
-		wl_seat_add_listener(wlSeat(), &seatListener, this);
-		if(wlDataManager()) dataDevice_ = std::make_unique<WaylandDataDevice>(*this);
-	}
-
-	if(wlShm())
-	{
-		wl_shm_add_listener(wlShm(), &shmListener, this);
-		wlCursorTheme_ = wl_cursor_theme_load("default", 32, wlShm());
-	}
-
-	if(xdgShell()) xdg_shell_add_listener(xdgShell(), &xdgShellListener, this);
+	if(wlSeat() && wlDataManager()) dataDevice_ = std::make_unique<WaylandDataDevice>(*this);
+	if(wlShm()) wlCursorTheme_ = wl_cursor_theme_load("default", 32, wlShm());
 
 	//again roundtrip and dispatch pending events to finish all setup
-	wl_display_dispatch(wlDisplay_);
+	wl_display_flush(wlDisplay_);
 	wl_display_roundtrip(wlDisplay_);
 	wl_display_dispatch_pending(wlDisplay_);
 }
@@ -244,15 +218,12 @@ WaylandAppContext::~WaylandAppContext()
 	//note that additional (even RAII) members might have to be reset here too if there
 	//destructor require the wayland display (or anything else) to be valid
 	//therefor, we e.g. explicitly reset the egl unique ptrs
-	outputs_.clear();
-	impl_.reset();
-
 	if(eventfd_) close(eventfd_);
 	if(wlCursorTheme_) wl_cursor_theme_destroy(wlCursorTheme_);
 
-	if(dataDevice_) dataDevice_.reset();
-	if(keyboardContext_) keyboardContext_.reset();
-	if(mouseContext_) mouseContext_.reset();
+	dataDevice_.reset();
+	keyboardContext_.reset();
+	mouseContext_.reset();
 
 	if(xdgShell()) xdg_shell_destroy(xdgShell());
 	if(wlShell()) wl_shell_destroy(wlShell());
@@ -261,6 +232,9 @@ WaylandAppContext::~WaylandAppContext()
 	if(wlShm()) wl_shm_destroy(wlShm());
 	if(wlSubcompositor()) wl_subcompositor_destroy(wlSubcompositor());
 	if(impl_->wlCompositor) wl_compositor_destroy(&wlCompositor());
+
+	outputs_.clear();
+	impl_.reset();
 
 	if(wlRegistry_) wl_registry_destroy(wlRegistry_);
 	if(wlDisplay_) wl_display_disconnect(wlDisplay_);
@@ -327,7 +301,7 @@ bool WaylandAppContext::dispatchLoop(LoopControl& control)
 		while(auto func = loopImpl.popFunction()) func();
 
 		if(dispatchDisplay()) continue;
-		if(checkErrorWarn()) return false;
+		if(!checkErrorWarn()) return false;
 	}
 
 	return checkErrorWarn();
@@ -446,7 +420,7 @@ EglSetup* WaylandAppContext::eglSetup() const
 			try { impl_->eglSetup = {static_cast<void*>(&wlDisplay())}; }
 			catch(const std::exception& error)
 			{
-				warning("ny::WaylandAppContext::eglSetup: init failed: ", error.what());
+				warning("ny::WaylandAppContext::eglSetup: initialization failed: ", error.what());
 				impl_->eglFailed = true;
 				impl_->eglSetup = {};
 				return nullptr;
@@ -524,7 +498,7 @@ void WaylandAppContext::dispatch(Event&& event)
 	//But since this function is a hack anyways and will be removed with the event handling
 	//rework, it's ok like this for now...
 	auto sharedEvent = std::shared_ptr<Event>(nytl::cloneMove(event));
-	pendingDispatchers_.push_back([=]{ sharedEvent->handler->handleEvent(*sharedEvent); });
+	dispatch([=]{ sharedEvent->handler->handleEvent(*sharedEvent); });
 }
 
 nytl::Connection WaylandAppContext::fdCallback(int fd, unsigned int events,
@@ -535,33 +509,6 @@ nytl::Connection WaylandAppContext::fdCallback(int fd, unsigned int events,
 
 bool WaylandAppContext::dispatchDisplay()
 {
-	//In parts taken from wayland-client.c and modified to poll for the wayland fd as well as an
-	//additional events. The wayland license when the source code was taken:
-	//
-	// Copyright © 2008-2012 Kristian Høgsberg
-	// Copyright © 2010-2012 Intel Corporation
-	//
-	// Permission is hereby granted, free of charge, to any person obtaining
-	// a copy of this software and associated documentation files (the
-	// "Software"), to deal in the Software without restriction, including
-	// without limitation the rights to use, copy, modify, merge, publish,
-	// distribute, sublicense, and/or sell copies of the Software, and to
-	// permit persons to whom the Software is furnished to do so, subject to
-	// the following conditions:
-	//
-	// The above copyright notice and this permission notice (including the
-	// next paragraph) shall be included in all copies or substantial
-	// portions of the Software.
-	//
-	// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-	// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-	// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-	// NONINFRINGEMENT.  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
-	// BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
-	// ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-	// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-	// SOFTWARE.
-
 	wakeup_ = false;
 	int ret;
 
@@ -587,55 +534,52 @@ bool WaylandAppContext::dispatchDisplay()
 		}
 	}
 
-	//Don't stop if flushing hits an EPIPE; continue so we can read any
-	//protocol error that may have triggered it.
+	//needed for protocol error to be queried (EPIPE)
 	if(ret < 0 && errno != EPIPE) {
 		wl_display_cancel_read(wlDisplay_);
-		return -1;
+		return true;
 	}
 
 	//poll for server events (and since this might block for fd callbacks)
 	if(pollFds(POLLIN, -1) == -1) {
 		wl_display_cancel_read(wlDisplay_);
-		return -1;
+		return false;
 	}
 
 	//if dpypoll stopped due to the eventfd, cancel the wayland read
 	if(wakeup_) {
 		wl_display_cancel_read(wlDisplay_);
-		return 0;
+		return true;
 	}
 
-	if(wl_display_read_events(wlDisplay_) == -1) return -1;
+	if(wl_display_read_events(wlDisplay_) == -1) return false;
 	return wl_display_dispatch_pending(wlDisplay_);
 }
 
 int WaylandAppContext::pollFds(short wlDisplayEvents, int timeout)
 {
-	//We first create a vector in which we tie a pfdindex with a connection id.
-	//Then we poll for all file descriptors and iterate through the pfds/ties and try
-	//to find the matching callback function for a connection id.
-	//This has to be done this complex since the callback functions may actually disconnect
-	//itself or other connections, i.e. fdCallbacks_ may change.
-	auto& fdCallbacks = impl_->fdCallbacks;
-	struct Tie
-	{
-		unsigned int pfdIndex;
-		nytl::ConnectionID id;
-	};
+	//This function simply polls for all fd callbacks (and the wayland display fd if
+	//wlDisplayEvents != 0) with the given timeout and triggers the activated fd callbacks.
 
+	//This has to be done this complex since the callback functions may actually disconnect
+	//itself or other connections, i.e. impl_->fdCallbacks may change.
+	//We cannot use the fd as id, since there might be multiple callbacks on the same fd.
+	//ids holds the connectionID of the associated callback in fds (i.e. the pollfd with the
+	//same index)
+
+	std::vector<nytl::ConnectionID> ids;
 	std::vector<pollfd> fds;
-	std::vector<Tie> ties;
-	fds.reserve(fdCallbacks.items.size() + 1);
-	ties.reserve(fdCallbacks.items.size());
-	for(auto i = 0u; i < fdCallbacks.items.size(); ++i)
+	ids.reserve(impl_->fdCallbacks.items.size());
+	fds.reserve(impl_->fdCallbacks.items.size() + 1);
+
+	for(auto& fdc : impl_->fdCallbacks.items)
 	{
-		auto& fdc = fdCallbacks.items[i];
 		fds.push_back({fdc.fd, static_cast<short>(fdc.events)});
-		ties.push_back({i, fdc.clID_});
+		ids.push_back({fdc.clID_});
 	}
 
-	if(wlDisplayEvents) fds.push_back({wl_display_get_fd(wlDisplay_), wlDisplayEvents});
+	//add the wayland display fd to the pollfds
+	if(wlDisplayEvents) fds.push_back({wl_display_get_fd(&wlDisplay()), wlDisplayEvents});
 
 	auto ret = noSigPoll(*fds.data(), fds.size(), timeout);
 	if(ret < 0)
@@ -644,14 +588,16 @@ int WaylandAppContext::pollFds(short wlDisplayEvents, int timeout)
 		return ret;
 	}
 
-	for(auto pfdsi = 0u; pfdsi < fds.size(); ++pfdsi)
+	//check which fd callbacks have revents, find and trigger them
+	//fds.size() > ids.size() always true
+	for(auto i = 0u; i < ids.size(); ++i)
 	{
-		if(!fds[pfdsi].revents) continue;
-		for(auto& callback : fdCallbacks.items)
+		if(!fds[i].revents) continue;
+		for(auto& callback : impl_->fdCallbacks.items)
 		{
-			if(callback.clID_ != ties[pfdsi].id) continue;
-			nytl::ConnectionRef connref(fdCallbacks, callback.clID_);
-			callback.callback(connref, fds[pfdsi].fd, fds[pfdsi].revents);
+			if(callback.clID_ != ids[i]) continue;
+			nytl::ConnectionRef connref(impl_->fdCallbacks, callback.clID_);
+			callback.callback(connref, fds[i].fd, fds[i].revents);
 			break;
 		}
 	}
@@ -662,6 +608,26 @@ int WaylandAppContext::pollFds(short wlDisplayEvents, int timeout)
 void WaylandAppContext::handleRegistryAdd(unsigned int id, const char* cinterface,
 	unsigned int version)
 {
+	//listeners
+	//they must be added instantly, otherwise we will miss initial events
+	using WAC = WaylandAppContext;
+	constexpr static wl_shm_listener shmListener = {
+		memberCallback<decltype(&WAC::handleShmFormat), &WAC::handleShmFormat,
+			void(wl_shm*, uint32_t)>
+	};
+
+	constexpr static wl_seat_listener seatListener = {
+		memberCallback<decltype(&WAC::handleSeatCapabilities), &WAC::handleSeatCapabilities,
+			void(wl_seat*, uint32_t)>,
+		memberCallback<decltype(&WAC::handleSeatName), &WAC::handleSeatName,
+			void(wl_seat*, const char*)>
+	};
+
+	constexpr static xdg_shell_listener xdgShellListener = {
+		memberCallback<decltype(&WAC::handleXdgShellPing), &WAC::handleXdgShellPing,
+			void(xdg_shell*, uint32_t)>
+	};
+
 	nytl::unused(version); //TODO
 	const nytl::StringParam interface = cinterface; //easier comparison
 
@@ -679,6 +645,7 @@ void WaylandAppContext::handleRegistryAdd(unsigned int id, const char* cinterfac
 	{
 		auto ptr = wl_registry_bind(&wlRegistry(), id, &wl_shm_interface, 1);
 		impl_->wlShm = {static_cast<wl_shm*>(ptr), id};
+		wl_shm_add_listener(wlShm(), &shmListener, this);
 	}
 	else if(interface == "wl_subcompositor" && !impl_->wlSubcompositor)
 	{
@@ -699,11 +666,13 @@ void WaylandAppContext::handleRegistryAdd(unsigned int id, const char* cinterfac
 	{
 		auto ptr = wl_registry_bind(&wlRegistry(), id, &wl_seat_interface, 5);
 		impl_->wlSeat = {static_cast<wl_seat*>(ptr), id};
+		wl_seat_add_listener(wlSeat(), &seatListener, this);
 	}
 	else if(interface == "xdg_shell" && !impl_->xdgShell)
 	{
 		auto ptr = wl_registry_bind(&wlRegistry(), id, &xdg_shell_interface, 5);
 		impl_->xdgShell = {static_cast<xdg_shell*>(ptr), id};
+		xdg_shell_add_listener(xdgShell(), &xdgShellListener, this);
 	}
 }
 

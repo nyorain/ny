@@ -8,6 +8,7 @@
 #include <nytl/misc.hpp>
 #include <nytl/range.hpp>
 
+#include <xcb/xcb.h>
 #include <algorithm>
 
 //For glx GlConfig objects, the id member is the GLX_FB_CONFIG_ID of the associated
@@ -55,7 +56,7 @@ namespace
 }
 
 //GlxSetup
-GlxSetup::GlxSetup(const X11AppContext& ac, unsigned int screenNum) : xDisplay_(ac.xDisplay())
+GlxSetup::GlxSetup(const X11AppContext& ac, unsigned int screenNum) : xDisplay_(&ac.xDisplay())
 {
 	assureGlxLoaded(xDisplay_);
     constexpr int attribs[] =
@@ -416,7 +417,7 @@ GlxWindowContext::GlxWindowContext(X11AppContext& ac, const GlxSetup& setup,
 
 	X11WindowContext::create(ac, settings);
 
-	surface_ = std::make_unique<GlxSurface>(*appContext().xDisplay(), xWindow(), config);
+	surface_ = std::make_unique<GlxSurface>(appContext().xDisplay(), xWindow(), config);
 	if(settings.gl.storeSurface) *settings.gl.storeSurface = surface_.get();
 }
 

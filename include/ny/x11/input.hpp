@@ -25,7 +25,7 @@ public:
 	//custom
 	//TODO: something about over change and relative move delta...
 	//also pass enter position when over changes?
-	
+
 	//Updates the current mouseOver WindowContext and calls the onFocus callback.
 	void over(X11WindowContext* ctx);
 
@@ -57,10 +57,10 @@ public:
 	//custom
 	///Returns the xkb even type id. Events with this id should be passed to
 	///processXkbEvent.
-	std::uint8_t xkbEventType() const { return eventType_; }	
+	std::uint8_t xkbEventType() const { return eventType_; }
 
 	///Processed xkb server events to e.g. update the keymap
-	void processXkbEvent(xcb_generic_event_t& ev);
+	void processXkbEvent(const xcb_generic_event_t& ev);
 
 	///Updates the current focused WindowContext and calls the onFocus callback.
 	void focus(X11WindowContext* now);
@@ -73,4 +73,3 @@ protected:
 };
 
 }
-

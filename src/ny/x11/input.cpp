@@ -140,7 +140,7 @@ WindowContext* X11KeyboardContext::focus() const
 	return focus_;
 }
 
-void X11KeyboardContext::processXkbEvent(xcb_generic_event_t& ev)
+void X11KeyboardContext::processXkbEvent(const xcb_generic_event_t& ev)
 {
 	union XkbEvent
 	{
@@ -158,8 +158,7 @@ void X11KeyboardContext::processXkbEvent(xcb_generic_event_t& ev)
 		xcb_xkb_state_notify_event_t state;
 	};
 
-	XkbEvent& xkbev = reinterpret_cast<XkbEvent&>(ev);
-
+	auto& xkbev = reinterpret_cast<const XkbEvent&>(ev);
 	switch(xkbev.any.xkbType)
 	{
 		case XCB_XKB_STATE_NOTIFY:

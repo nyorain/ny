@@ -165,7 +165,7 @@ nytl::Connection WaylandDataOffer::data(unsigned int fmt, const DataOffer::DataF
 
 		auto callback = [wlOffer = wlDataOffer_, ac = appContext_, fmt](int fd, unsigned int re)
 		{
-			// debug("callback, ", re);
+			debug("callback, ", re);
 			constexpr auto readCount = 1000;
 			auto self = static_cast<WaylandDataOffer*>(wl_data_offer_get_user_data(wlOffer));
 			auto& buffer = self->requests_[fmt].buffer;
@@ -190,7 +190,7 @@ nytl::Connection WaylandDataOffer::data(unsigned int fmt, const DataOffer::DataF
 			close(fd);
 		};
 
-		conn = appContext_->fdCallback(fds[0], POLLIN | POLLHUP, callback);
+		conn = appContext_->fdCallback(fds[0], POLLIN, callback);
 	}
 
 	return requests_[fmt].callback.add(func);

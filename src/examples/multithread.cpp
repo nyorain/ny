@@ -1,6 +1,7 @@
 #include <ny/ny.hpp>
-#include <nytl/time.hpp>
 #include <thread>
+
+//XXX: this example shows some basic useful multithread features of ny
 
 class MyEventHandler : public ny::EventHandler
 {
@@ -34,48 +35,58 @@ int main()
 	wc->eventHandler(handler);
 	wc->refresh();
 
-	//XXX: The interesting part.
-	//First we create a ny::EventDispatcher object.
-	//This can be used to sent events manually to the event/backend/ui-thread
-	ny::EventDispatcher evdispatcher;
-
-	//Here we create a second thread that will sleep 5 seconds and after that send a pressed
-	//escape KeyEvent to our event handler. This will trigger the application to exit.
-	//Note that this is not undefined behaviour or a data race since the EventDispatcher assures
-	//us synchronization.
-	//We also use an atomic flag here to check if the thread has finished execution
-	std::atomic<bool> threadFinished {false};
+	//Here we create a second thread that will sleep 2 seconds, execute a function from the main
+	//thread, sleeps again 5 seconds and after that stops the dispatch loop in the gui thread.
+	//We also use a flag to signal the main thread when the thread finished (only used to
+	//check if joining it might take a longer time);
+	std::atomic<bool> finished {false};
 	auto t = std::thread([&]{
-		std::this_thread::sleep_for(nytl::Seconds(5));
-		auto e = ny::KeyEvent(&handler);
-		e.keycode = ny::Keycode::escape;
-		e.pressed = true;
-		evdispatcher.dispatch(std::move(e));
-		threadFinished = true;
+		std::this_thread::sleep_for(std::chrono::seconds(2));
+
+		//Execute the function in the main thread.
+		//Useful for synchronization.
+		//See below when this might return false.
+		if(!control.call([]{ ny::log("Hello from the main thread"); }))
+			ny::log("calling from the main thread failed (has the loop already finished?)");
+
+		std::this_thread::sleep_for(std::chrono::seconds(5));
+
+		//Stop the dispatch loop in the main thread.
+		//This might return false e.g. if the loop was already stopped.
+		//Try to quit the window before this thread triggers the stop call (i.e. in the first
+		//seconds) and the application should output the message.
+		if(!control.stop()) ny::log("stopping the main loop failed (has it already finished?)");
+
+		//Signal the main thread that we finished
+		finished.store(true);
 	});
 
-	ny::debug("Entering main loop");
+	ny::log("Entering main dispatch loop");
 
-	//Here we run a threaded dispatch loop instead of the normal one and pass the EventDispatcher.
-	//The backend will then simply mix its own events with the events the EventDispatcher receives
-	//from other threads.
-	ac->threadedDispatchLoop(evdispatcher, control);
+	//We just normally run the main dispatch loop.
+	//Note that we here pass a reference to control that allows the AppCotnext to implement it.
+	ac->dispatchLoop(control);
+	ny::log("Finished main dispatch loop");
+
+	//We call this to make sure there is no unresponsive window when we wait for
+	//the second thread to join.
+	wc.reset();
+	ac.reset();
 
 	//This must be called to avoid std::terminate to be called from the threads destructor.
-	//If the application is exited before the thread has finished sleeping (i.e. by a real
-	//keypress or by closing the window) this will keep the application (and potentially the
-	//unresponsive window) alive.
-	if(!threadFinished) ny::debug("Waiting for the second thread to finish...");
+	//If the dispatch loop is exited before the thread has finished (i.e. if the window was
+	//manually closed) this will keep the application alive.
+	if(!finished.load()) ny::log("Waiting for the second thread to finish...");
 	if(t.joinable()) t.join();
 }
 
 bool MyEventHandler::handleEvent(const ny::Event& ev)
 {
-	ny::debug("Received event with type ", ev.type());
+	ny::log("Received event with type ", ev.type());
 
 	if(ev.type() == ny::eventType::close)
 	{
-		ny::debug("Window closed from server side. Exiting.");
+		ny::log("Window closed from server side. Exiting.");
 		lc_.stop();
 		return true;
 	}
@@ -86,7 +97,7 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 
 		if(kev.keycode == ny::Keycode::escape)
 		{
-			ny::debug("Esc key pressed. Exiting.");
+			ny::log("Esc key pressed. Exiting.");
 			lc_.stop();
 			return true;
 		}

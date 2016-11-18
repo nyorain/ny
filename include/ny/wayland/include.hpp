@@ -1,3 +1,7 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #pragma once
 
 #include <ny/fwd.hpp>
@@ -5,7 +9,7 @@
 
 #ifndef NY_WithWayland
 	#error ny was built without wayland. Do not include this header file!
-#endif //WithX11
+#endif //WithWayland
 
 //wayland forward decls
 struct xdg_surface;

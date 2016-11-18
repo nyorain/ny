@@ -12,6 +12,7 @@
 #include <ny/event.hpp>
 #include <ny/log.hpp>
 #include <ny/cursor.hpp>
+#include <ny/mouseContext.hpp>
 
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
@@ -220,8 +221,8 @@ void X11WindowContext::position(const Vec2i& position)
 
 void X11WindowContext::cursor(const Cursor& curs)
 {
-	//TODO: xcursor optinal
-	//use xcb_render instead to create a cursor (no need to use Xlib)
+	//TODO: make xcursor optinal
+	//use xcb_render instead to create a cursor (no need to use Xlib)?
 
 	//without xcursor:
     // if(curs.type() != CursorType::image && curs.type() != CursorType::none)
@@ -230,9 +231,9 @@ void X11WindowContext::cursor(const Cursor& curs)
     //     if(num != -1) cursor(num);
     // }
 
+	auto& xdpy = appContext().xDisplay();
     if(curs.type() != CursorType::image && curs.type() != CursorType::none)
 	{
-		auto xdpy = appContext().xDisplay();
 		auto name = cursorToXName(curs.type());
 		if(!name)
 		{
@@ -243,14 +244,13 @@ void X11WindowContext::cursor(const Cursor& curs)
 
 		if(xCursor_) xcb_free_cursor(&xConnection(), xCursor_);
 
-		xCursor_ = XcursorLibraryLoadCursor(xdpy, name);
+		xCursor_ = XcursorLibraryLoadCursor(&xdpy, name);
 		xcb_change_window_attributes(&xConnection(), xWindow(), XCB_CW_CURSOR, &xCursor_);
 	}
 	else if(curs.type() == CursorType::image)
 	{
 		constexpr static auto reqFormat = ImageDataFormat::bgra8888; //TODO: endianess?
 
-		auto xdpy = appContext().xDisplay();
 		auto& imgdata = *curs.image();
 
 		auto xcimage = XcursorImageCreate(imgdata.size.x, imgdata.size.y);
@@ -270,7 +270,7 @@ void X11WindowContext::cursor(const Cursor& curs)
 
 		if(xCursor_) xcb_free_cursor(&xConnection(), xCursor_);
 
-		xCursor_ = XcursorImageLoadCursor(xdpy, xcimage);
+		xCursor_ = XcursorImageLoadCursor(&xdpy, xcimage);
 		XcursorImageDestroy(xcimage);
 		xcb_change_window_attributes(&xConnection(), xWindow(), XCB_CW_CURSOR, &xCursor_);
 	}
@@ -311,8 +311,8 @@ void X11WindowContext::minimize()
 	// xcb_icccm_wm_hints_set_withdrawn(&hints);
     // xcb_icccm_set_wm_hints(&xConnection(), xWindow_, &hints);
 
-	XIconifyWindow(appContext().xDisplay(), xWindow_, appContext().xDefaultScreenNumber());
-	XSync(appContext().xDisplay(), 1);
+	::XIconifyWindow(&appContext().xDisplay(), xWindow_, appContext().xDefaultScreenNumber());
+	::XSync(&appContext().xDisplay(), 1);
 }
 
 void X11WindowContext::fullscreen()

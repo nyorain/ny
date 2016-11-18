@@ -4,8 +4,8 @@
 //It tries to cover the most important parts a ny application has or might use.
 //In the following examples only the new parts will be documented so make sure to (roughly)
 //understand the documented code here.
-//If you have questions, just ask them on github (github.com/nyorain/ny, post an issue) and 
-//we will document unclear aspects.
+//If you have questions, just ask them on github (post an issue on github.com/nyorain/ny) and
+//we will try to document unclear aspects.
 
 ///Custom event handler for the low-level backend api.
 ///See intro-app for a higher level example if you think this is too complex.
@@ -41,7 +41,7 @@ int main()
 	//This represents the connection to the display, our method of creating windows and
 	//receiving events.
 	auto ac = backend.createAppContext(); //decltype(ac): std::unique_ptr<ny::AppContext>
-	
+
 	//Now we let the AppContext create a WindowContext implementation.
 	//Just use the defaulted WindowSettings.
 	//This can later be used to change various aspects of the created window.
@@ -62,20 +62,21 @@ int main()
 	wc->eventHandler(handler);
 	wc->refresh();
 
-	//ny::debug can be used to easily output debug information.
+	//ny::log can be used to easily output application information.
+	//There are also other output methods, see ny/log.hpp.
 	//The call will have no cost/effect when not compiled in debug mode.
-	ny::debug("Entering main loop");
+	ny::log("Entering main loop");
 	ac->dispatchLoop(control);
 }
 
 bool MyEventHandler::handleEvent(const ny::Event& ev)
 {
-	ny::debug("Received event with type ", ev.type());
+	ny::log("Received event with type ", ev.type());
 
 	//We want to application to exit when the window is closed.
 	if(ev.type() == ny::eventType::close)
 	{
-		ny::debug("Window closed. Exiting.");
+		ny::log("Window closed. Exiting.");
 		lc_.stop();
 		return true;
 	}
@@ -88,7 +89,7 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 		//If it was sent because it was released, dont handle the event.
 		if(!static_cast<const ny::KeyEvent&>(ev).pressed) return false;
 
-		ny::debug("Key pressed. Exiting.");
+		ny::log("Key pressed. Exiting.");
 		lc_.stop();
 		return true;
 	}

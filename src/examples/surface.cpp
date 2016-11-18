@@ -47,6 +47,7 @@ int main()
 	handler.surface = bufferSurface;
 
 	ny::debug("Entering main loop");
+
 	ac->dispatchLoop(control);
 }
 

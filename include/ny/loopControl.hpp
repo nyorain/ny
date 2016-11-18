@@ -39,10 +39,10 @@ public:
 
 	///Should call the given function in the next loop iteration from the loop thread.
 	///Must be implemented threadsafe, and work if called from within the loop.
-	virtual bool call(const std::function<void()>& func) { return false; }
+	virtual bool call(std::function<void()> func) { return false; }
 
 protected:
-	static void set(LoopControl& lc, LoopInterface& impl);
+	static inline void set(LoopControl& lc, LoopInterface& impl);
 };
 
 
@@ -70,7 +70,7 @@ public:
 	///as sonn as possible, but as soon as the next loop iteration is done.
 	///Functions are guaranteed to be called in the order they are queued here.
 	///Returns false if this LoopControl object is invalid or queueing the function failed.
-	bool call(const std::function<void()>& func) { return impl_.load()->call(func); }
+	bool call(std::function<void()> func) { return impl_.load()->call(std::move(func)); }
 
 	///Returns whether this object is valied, i.e. whether it member functions can
 	///be be called. If this returns false all member functions are guaranteed to return false.

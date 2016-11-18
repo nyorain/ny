@@ -4,6 +4,9 @@
 
 #include <ny/x11/util.hpp>
 #include <ny/log.hpp>
+#include <ny/mouseContext.hpp>
+#include <ny/imageData.hpp>
+
 #include <X11/Xlib.h>
 
 namespace ny

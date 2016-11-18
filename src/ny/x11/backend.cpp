@@ -22,7 +22,7 @@ bool X11Backend::available() const
 	auto connection = xcb_connect(nullptr, nullptr);
 	bool ret = xcb_connection_has_error(connection);
 	xcb_disconnect(connection);
-    return ret;
+	return !ret;
 }
 
 std::unique_ptr<AppContext> X11Backend::createAppContext()

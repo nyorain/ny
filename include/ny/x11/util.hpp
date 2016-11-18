@@ -5,14 +5,15 @@
 #pragma once
 
 #include <ny/x11/include.hpp>
-
-#include <ny/keyboardContext.hpp>
-#include <ny/mouseContext.hpp>
-#include <ny/cursor.hpp>
+#include <ny/event.hpp>
 #include <nytl/stringParam.hpp>
 
 #include <xcb/xcb.h>
 #include <xcb/xcb_ewmh.h>
+
+#include <system_error>
+#include <vector>
+#include <string>
 
 namespace ny
 {
@@ -88,10 +89,10 @@ unsigned int buttonToX11(MouseButton);
 namespace x11
 {
 
-///Used as xcb_ewmh_connection_t dummy since xcb_ewmh_connection_t cannot be forward
-///declared (anonymous struct typedef) and xcb_ewmh should not be included in the
-///x11 interface implementation header files.
+///Forward declaration dummys, since some xcb types are anonymous typedefs and
+///we don't want to pull all xcb headers everwhere.
 struct EwmhConnection : public xcb_ewmh_connection_t {};
+struct GenericEvent : public xcb_generic_event_t {};
 
 ///All non-predefined atoms that will be used by some backend component.
 ///X11AppContext contains an Atoms object and tries to load each of these atoms in

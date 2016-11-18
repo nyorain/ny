@@ -1,13 +1,14 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #pragma once
 
 #include <ny/x11/include.hpp>
 #include <ny/windowContext.hpp>
 #include <ny/windowSettings.hpp>
 
-#include <cstdint>
 #include <vector>
-
-typedef struct xcb_visualtype_t xcb_visualtype_t;
 
 namespace ny
 {
@@ -24,6 +25,7 @@ public:
     X11WindowContext(X11AppContext& ctx, const X11WindowSettings& settings = {});
     ~X11WindowContext();
 
+	// - WindowContext implementation -
     void refresh() override;
     void show() override;
     void hide() override;
@@ -42,10 +44,6 @@ public:
 	WindowCapabilities capabilities() const override;
 	Surface surface() override;
 
-	//specific event handlers
-	virtual void reparentEvent();
-	virtual void sizeEvent(nytl::Vec2ui size);
-
     //toplevel window
     void maximize() override;
     void minimize() override;
@@ -62,8 +60,11 @@ public:
 	void addWindowHints(WindowHints hints) override;
 	void removeWindowHints(WindowHints hints) override;
 
-    //x11-specific
-public:
+    // - x11-specific -
+	//specific event handlers
+	virtual void reparentEvent();
+	virtual void sizeEvent(nytl::Vec2ui size);
+
 	X11AppContext& appContext() const { return *appContext_; } ///The associated AppContext
 	uint32_t xWindow() const { return xWindow_; } ///The underlaying x window handle
 
