@@ -1,3 +1,7 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #include <ny/config.hpp>
 
 namespace ny
@@ -30,6 +34,15 @@ bool builtWithX11()
 	#endif
 }
 
+bool builtWithXkbCommon()
+{
+	#ifdef NY_WithXkbCommon
+		return true;
+	#else
+		return false;
+	#endif
+}
+
 bool builtWithGl()
 {
 	#ifdef NY_WithGl
@@ -56,5 +69,10 @@ bool builtWithVulkan()
 		return false;
 	#endif
 }
+
+unsigned int majorVersion() { return NY_VMajor; }
+unsigned int minorVersion() { return NY_VMinor; }
+unsigned int patchVersion() { return NY_VPatch; }
+unsigned int version() { return NY_Version; }
 
 }

@@ -39,6 +39,8 @@ int main()
 	ny::BufferSurface* bufferSurface {};
 
 	ny::WindowSettings settings;
+	settings.initState = ny::ToplevelState::maximized;
+	settings.title = "Ayy sick shit";
 	settings.surface = ny::SurfaceType::buffer;
 	settings.buffer.storeSurface = &bufferSurface;
 	auto wc = ac->createWindowContext(settings);

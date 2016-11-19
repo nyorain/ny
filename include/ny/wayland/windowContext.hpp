@@ -72,10 +72,6 @@ public:
 	void addWindowHints(WindowHints hints) override;
 	void removeWindowHints(WindowHints hints) override;
 
-	//callbacks - may be override by derived implementations
-	virtual void configureEvent(nytl::Vec2ui size, WindowEdges);
-	virtual void frameEvent();
-
     //wayland specific functions
     wl_surface& wlSurface() const { return *wlSurface_; };
 	wl_callback* frameCallback() const { return frameCallback_; }
@@ -103,10 +99,20 @@ public:
 	wl_display& wlDisplay() const;
 
 protected:
+	//helpers
     void createShellSurface(const WaylandWindowSettings& ws);
     void createXDGSurface(const WaylandWindowSettings& ws);
     void createXDGPopup(const WaylandWindowSettings& ws);
     void createSubsurface(wl_surface& parent, const WaylandWindowSettings& ws);
+
+	//listeners
+	void handleFrameCallback();
+	void handleShellSurfacePing(unsigned int serial);
+	void handleShellSurfaceConfigure(unsigned int edges, int width, int height);
+	void handleShellSurfacePopupDone();
+	void handleXdgSurfaceConfigure(int width, int height, wl_array* states, unsigned int serial);
+	void handleXdgSurfaceClose();
+	void handleXdgPopupDone();
 
 protected:
 	WaylandAppContext* appContext_ {};

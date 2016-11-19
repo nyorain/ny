@@ -1,6 +1,12 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #pragma once
 
-#include <ny/include.hpp>
+#include <ny/fwd.hpp>
+#include <ny/config.hpp>
+
 #include <ny/keyboardContext.hpp>
 #include <nytl/nonCopyable.hpp>
 #include <bitset>
@@ -22,7 +28,7 @@ xkb_keycode_t keyToXkb(Keycode key);
 //TODO: unicode currently also writes for control keys like esc or ^C
 //either filter this in this implementation or change the specification of
 //the KeyboardContext and KeyEvent members.
-//TODO: rethink public/protected
+//TODO: rethink public/protected?
 ///Partial KeyboardContext implementation for backends that can be used with xkb.
 class XkbKeyboardContext : public KeyboardContext, public nytl::NonMovable
 {
@@ -61,11 +67,6 @@ protected:
 	///the window system.
 	void updateKey(unsigned int keycode, bool pressed);
 
-	///Feeds the keysym to the compose state machine.
-	///Returns false if the keysym cancelled the current sequence.
-	[[deprecated("Should not be needed if keyEvent is always used correctly")]]
-	bool feedComposeKey(unsigned int keysym);
-
 	///Updates the modifier state from backend events.
 	void updateState(const Vec3ui& mods, const Vec3ui& layouts);
 
@@ -79,5 +80,9 @@ protected:
 
 	std::bitset<256> keyStates_;
 };
+
+#ifndef NY_WithXkbCommon
+	#error ny was built without xkbcommon. Do not include this header.
+#endif
 
 }

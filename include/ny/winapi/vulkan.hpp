@@ -1,3 +1,7 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #pragma once
 
 #include <ny/winapi/include.hpp>
@@ -15,12 +19,13 @@ public:
 
 	Surface surface() override;
 
-	VkSurfaceKHR vkSurface() const { return vkSurface_; }
 	VkInstance vkInstance() const { return vkInstance_; }
+	std::uintptr_t vkSurface() const { return vkSurface_; }
 
 protected:
-	VkSurfaceKHR vkSurface_ {};
 	VkInstance vkInstance_ {};
+	std::uintptr_t vkSurface_ {};
+	std::unique_ptr<VkAllocationCallbacks> allocationCallbacks_ {};
 };
 
 }

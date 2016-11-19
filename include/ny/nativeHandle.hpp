@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include <ny/fwd.hpp>
 #include <cstdint>
 
 namespace ny

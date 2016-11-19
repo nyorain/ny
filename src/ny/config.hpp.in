@@ -1,16 +1,21 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #pragma once
 
 //ny version
-#define NY_VMAJOR @vmajor@
-#define NY_VMINOR @vminor@
-#define NY_VPATCH @vpatch@
-#define NY_VERSION NY_VMAJOR * 100 + NY_VMINOR * 10 + NY_VPATCH
+#define NY_VMajor @vmajor@
+#define NY_VMinor @vminor@
+#define NY_VPatch @vpatch@
+#define NY_Version NY_VMajor * 1000000 + NY_VMinor * 1000 + NY_VPatch
 
 //these macros can be used to check which parts are built in to ny.
 //all ny header files include the parsed config.hpp
 #cmakedefine NY_WithGl
 #cmakedefine NY_WithEgl
 #cmakedefine NY_WithVulkan
+#cmakedefine NY_WithXkbCommon
 
 #cmakedefine NY_WithX11
 #cmakedefine NY_WithWayland
@@ -25,9 +30,15 @@ namespace ny
 bool builtWithX11();
 bool builtWithWayland();
 bool builtWithWinapi();
+bool builtWithXkbCommon();
 
 bool builtWithEgl();
 bool builtWithGl();
 bool builtWithVulkan();
+
+unsigned int majorVersion();
+unsigned int minorVersion();
+unsigned int patchVersion();
+unsigned int version();
 
 }

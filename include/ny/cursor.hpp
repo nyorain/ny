@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <ny/include.hpp>
+#include <ny/fwd.hpp>
 #include <ny/imageData.hpp>
 #include <nytl/vec.hpp>
 

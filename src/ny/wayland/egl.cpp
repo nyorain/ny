@@ -63,10 +63,4 @@ Surface WaylandEglWindowContext::surface()
 	return {*surface_};
 }
 
-void WaylandEglWindowContext::configureEvent(nytl::Vec2ui size, WindowEdges edges)
-{
-	WaylandWindowContext::configureEvent(size, edges);
-	wl_egl_window_resize(wlEglWindow_, size.x, size.y, 0, 0);
-}
-
 }

@@ -377,7 +377,7 @@ DataOffer* WaylandAppContext::clipboard()
 
 bool WaylandAppContext::startDragDrop(std::unique_ptr<DataSource>&& dataSource)
 {
-	if(!waylandMouseContext() || waylandDataDevice()) return false;
+	if(!waylandMouseContext() || !waylandDataDevice()) return false;
 
 	auto over = mouseContext_->over();
 	if(!over) return false;
@@ -574,12 +574,12 @@ int WaylandAppContext::pollFds(short wlDisplayEvents, int timeout)
 
 	for(auto& fdc : impl_->fdCallbacks.items)
 	{
-		fds.push_back({fdc.fd, static_cast<short>(fdc.events)});
+		fds.push_back({fdc.fd, static_cast<short>(fdc.events), 0u});
 		ids.push_back({fdc.clID_});
 	}
 
 	//add the wayland display fd to the pollfds
-	if(wlDisplayEvents) fds.push_back({wl_display_get_fd(&wlDisplay()), wlDisplayEvents});
+	if(wlDisplayEvents) fds.push_back({wl_display_get_fd(&wlDisplay()), wlDisplayEvents, 0u});
 
 	auto ret = noSigPoll(*fds.data(), fds.size(), timeout);
 	if(ret < 0)
@@ -757,13 +757,13 @@ wl_keyboard* WaylandAppContext::wlKeyboard() const
 	return waylandKeyboardContext()->wlKeyboard();
 }
 
-wl_display& WaylandAppContext::wlDisplay() const { return *wlDisplay_; };
-wl_registry& WaylandAppContext::wlRegistry() const { return *wlRegistry_; };
-wl_compositor& WaylandAppContext::wlCompositor() const { return *impl_->wlCompositor; };
-wl_subcompositor* WaylandAppContext::wlSubcompositor() const{ return impl_->wlSubcompositor; };
-wl_shm* WaylandAppContext::wlShm() const { return impl_->wlShm; };
-wl_seat* WaylandAppContext::wlSeat() const { return impl_->wlSeat; };
-wl_shell* WaylandAppContext::wlShell() const { return impl_->wlShell; };
+wl_display& WaylandAppContext::wlDisplay() const { return *wlDisplay_; }
+wl_registry& WaylandAppContext::wlRegistry() const { return *wlRegistry_; }
+wl_compositor& WaylandAppContext::wlCompositor() const { return *impl_->wlCompositor; }
+wl_subcompositor* WaylandAppContext::wlSubcompositor() const{ return impl_->wlSubcompositor; }
+wl_shm* WaylandAppContext::wlShm() const { return impl_->wlShm; }
+wl_seat* WaylandAppContext::wlSeat() const { return impl_->wlSeat; }
+wl_shell* WaylandAppContext::wlShell() const { return impl_->wlShell; }
 xdg_shell* WaylandAppContext::xdgShell() const { return impl_->xdgShell; }
 wl_data_device_manager* WaylandAppContext::wlDataManager() const { return impl_->wlDataManager; }
 wl_cursor_theme* WaylandAppContext::wlCursorTheme() const { return wlCursorTheme_; }

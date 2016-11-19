@@ -41,8 +41,8 @@ class DataSource;
 class DataObject;
 
 template<typename P> struct BasicImageData;
-using ImageData = BasicImageData<const std::uint8_t*>;
-using MutableImageData = BasicImageData<std::uint8_t*>;
+using ImageData = BasicImageData<const uint8_t*>;
+using MutableImageData = BasicImageData<uint8_t*>;
 
 //backend
 class Backend;
@@ -72,7 +72,7 @@ class Surface;
 class BufferSurface;
 class BufferGuard;
 
-using GlConfigId = struct GlConfigIdType*; //opaque
+using GlConfigID = struct GlConfigIDType*; //opaque, see common/gl.hpp
 class GlSetup;
 class GlContext;
 class GlSurface;
@@ -103,24 +103,5 @@ using WindowCapabilities = nytl::Flags<WindowCapability>;
 
 }
 
-//XXX: duh... please just make this go away...
-#define DEFINE_HANDLE(object) typedef struct object##_T* object;
-
-#if defined(__LP64__) || \
-	defined(_WIN64) || \
-	(defined(__x86_64__) && !defined(__ILP32__)) || \
-	defined(_M_X64) || \
-	defined(__ia64) || \
-	defined (_M_IA64) || \
-	defined(__aarch64__) || \
-	defined(__powerpc64__)
-	#define DEFINE_NON_DISPATCHABLE_HANDLE(object) typedef struct object##_T *object;
-#else
-	#define DEFINE_NON_DISPATCHABLE_HANDLE(object) typedef std::uint64_t object;
-#endif
-
-DEFINE_HANDLE(VkInstance);
-DEFINE_NON_DISPATCHABLE_HANDLE(VkSurfaceKHR);
-
-#undef DEFINE_NON_DISPATCHABLE_HANDLE
-#undef DEFINE_HANDLE
+using VkAllocationCallbacks = struct VkAllocationCallbacks;
+using VkInstance = struct VkInstance_T*;

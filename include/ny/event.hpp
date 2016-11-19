@@ -1,6 +1,10 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #pragma once
 
-#include <ny/include.hpp>
+#include <ny/fwd.hpp>
 #include <nytl/clone.hpp>
 #include <memory>
 
@@ -15,7 +19,7 @@ namespace ny
 /// - 1000 - 1100 backend wayland
 /// - 1100 - 1200 backend x11
 /// - 1200 - 1300 backend winapi
-namespace eventType {};
+namespace eventType {}
 
 ///Classes derived from the EventData class are used by backends to put their custom
 ///information (like e.g. native event objects) in Event objects, since every Event stores

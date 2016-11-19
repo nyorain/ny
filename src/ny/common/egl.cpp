@@ -39,7 +39,7 @@ EglSetup::EglSetup(void* nativeDisplay)
 	//will treat it as void* anyways.
 	eglDisplay_ = ::eglGetDisplay((EGLNativeDisplayType) nativeDisplay);
     if(eglDisplay_ == EGL_NO_DISPLAY)
-        throw std::runtime_error("ny::EglSetup: eglGetDisplay failed");
+		throw std::runtime_error("ny::EglSetup: eglGetDisplay failed");
 
 	int major, minor;
 	if(!::eglInitialize(eglDisplay_, &major, &minor))
@@ -91,7 +91,7 @@ EglSetup::EglSetup(void* nativeDisplay)
 		glconf.green = g;
 		glconf.blue = b;
 		glconf.alpha = a;
-		glconf.id = glConfigId(id);
+		glconf.id = glConfigID(id);
 		glconf.doublebuffer = true; //cannot be queried by config, but should always be possible
 
 		if(sampleBuffers) glconf.samples = samples;
@@ -159,7 +159,7 @@ void* EglSetup::procAddr(nytl::StringParam name) const
 	return ret;
 }
 
-EGLConfig EglSetup::eglConfig(GlConfigId id) const
+EGLConfig EglSetup::eglConfig(GlConfigID id) const
 {
 	EGLConfig eglConfig {};
 	int configCount;
@@ -172,7 +172,7 @@ EGLConfig EglSetup::eglConfig(GlConfigId id) const
 }
 
 //EglSurface
-EglSurface::EglSurface(EGLDisplay dpy, void* nw, GlConfigId configid, const EglSetup& setup)
+EglSurface::EglSurface(EGLDisplay dpy, void* nw, GlConfigID configid, const EglSetup& setup)
 	: EglSurface(dpy, nw, configid ? setup.config(configid) : setup.defaultConfig(),
 		configid ? setup.eglConfig(configid) : setup.eglConfig(setup.defaultConfig().id))
 {
@@ -198,6 +198,7 @@ EglSurface::~EglSurface()
 
 bool EglSurface::apply(std::error_code& ec) const
 {
+	ec.clear();
 	if(!::eglSwapBuffers(eglDisplay_, eglSurface_))
 	{
 		ec = EglErrorCategory::errorCode();
@@ -343,6 +344,8 @@ EglContext::~EglContext()
 
 bool EglContext::makeCurrentImpl(const GlSurface& surface, std::error_code& ec)
 {
+	ec.clear();
+
 	auto eglSurface = dynamic_cast<const EglSurface*>(&surface)->eglSurface();
 	if(!eglMakeCurrent(eglDisplay(), eglSurface, eglSurface, eglContext()))
 	{
@@ -356,6 +359,8 @@ bool EglContext::makeCurrentImpl(const GlSurface& surface, std::error_code& ec)
 
 bool EglContext::makeNotCurrentImpl(std::error_code& ec)
 {
+	ec.clear();
+	
 	if(!::eglMakeCurrent(eglDisplay(), nullptr, nullptr, nullptr))
 	{
 		ec = EglErrorCategory::errorCode();

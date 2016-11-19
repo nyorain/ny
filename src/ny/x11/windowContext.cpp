@@ -427,6 +427,12 @@ void X11WindowContext::reparentEvent()
 
 void X11WindowContext::sizeEvent(nytl::Vec2ui size)
 {
+	if(eventHandler())
+	{
+		auto event = SizeEvent(eventHandler());
+		event.size = size;
+		eventHandler()->handleEvent(event);
+	}
 }
 
 bool X11WindowContext::customDecorated() const
@@ -446,9 +452,11 @@ WindowCapabilities X11WindowContext::capabilities() const
 
 void X11WindowContext::addWindowHints(WindowHints hints)
 {
-    unsigned long motifDeco = 0;
-    unsigned long motifFunc = 0;
-	bool customDecorated = 0;
+	nytl::unused(hints);
+
+    // unsigned long motifDeco = 0;
+    // unsigned long motifFunc = 0;
+	// bool customDecorated = 0;
 
 	/*
 	if(window().windowHints() & windowHints::customDecorated)
@@ -521,8 +529,10 @@ void X11WindowContext::addWindowHints(WindowHints hints)
 }
 void X11WindowContext::removeWindowHints(WindowHints hints)
 {
-    unsigned long motifDeco = 0;
-    unsigned long motifFunc = 0;
+	nytl::unused(hints);
+	
+    // unsigned long motifDeco = 0;
+    // unsigned long motifFunc = 0;
 
 	/*
     if(hints & windowHints::close)

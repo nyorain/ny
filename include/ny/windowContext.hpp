@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <ny/include.hpp>
+#include <ny/fwd.hpp>
 #include <ny/eventHandler.hpp>
 #include <ny/nativeHandle.hpp>
 

@@ -44,13 +44,13 @@ int main()
 	ny::WindowSettings settings;
 	settings.surface = ny::SurfaceType::vulkan;
 	settings.vulkan.instance = vkInstance;
-	settings.vulkan.storeSurface = &vkSurface;
+	settings.vulkan.storeSurface = reinterpret_cast<std::uintptr_t*>(&vkSurface);
 	auto wc = ac->createWindowContext(settings);
 
 	//here, vkSurface could now be used to create a swapchain and render into it.
 	//This is really much to write so^W^W^W^W^W^W^WThis was left out here intentionally as an
 	//exercise for the reader.
-	ny::debug("The created vulkan surface: ", vkSurface);
+	ny::log("The created vulkan surface: ", vkSurface);
 
 	ny::LoopControl control;
 	MyEventHandler handler(control, *wc);
@@ -58,7 +58,7 @@ int main()
 	wc->eventHandler(handler);
 	wc->refresh();
 
-	ny::debug("Entering main loop");
+	ny::log("Entering main loop");
 	ac->dispatchLoop(control);
 }
 
@@ -86,11 +86,11 @@ VkInstance createInstance(ny::AppContext& ac)
 
 bool MyEventHandler::handleEvent(const ny::Event& ev)
 {
-	ny::debug("Received event with type ", ev.type());
+	ny::log("Received event with type ", ev.type());
 
 	if(ev.type() == ny::eventType::close)
 	{
-		ny::debug("Window closed. Exiting.");
+		ny::log("Window closed. Exiting.");
 		lc_.stop();
 		return true;
 	}
@@ -98,7 +98,7 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 	{
 		if(!static_cast<const ny::KeyEvent&>(ev).pressed) return false;
 
-		ny::debug("Key pressed. Exiting.");
+		ny::log("Key pressed. Exiting.");
 		lc_.stop();
 		return true;
 	}

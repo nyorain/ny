@@ -1,7 +1,10 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #pragma once
 
-#include <ny/include.hpp>
-#include <nytl/system.hpp>
+#include <ny/fwd.hpp>
 #include <nytl/bits/tmpUtil.inl>
 
 #include <memory>
@@ -121,7 +124,5 @@ inline void debug(Args&&... args)
 	debugLogger()->output(std::forward<Args>(args)...); //debug build
 #endif
 }
-
-#define NY_ERROR(...) ::ny::error(NYTL_PRETTY_FUNCTION, ": ", __VA_ARGS__);
 
 }

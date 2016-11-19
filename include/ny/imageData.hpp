@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include <ny/include.hpp>
 #include <nytl/vec.hpp>
 
 #include <memory>

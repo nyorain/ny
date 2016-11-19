@@ -1,3 +1,7 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #include <ny/x11/glx.hpp>
 #include <ny/x11/windowContext.hpp>
 #include <ny/x11/appContext.hpp>
@@ -94,7 +98,7 @@ GlxSetup::GlxSetup(const X11AppContext& ac, unsigned int screenNum) : xDisplay_(
 		glconf.green = g;
 		glconf.blue = b;
 		glconf.alpha = a;
-		glconf.id = glConfigId(id);
+		glconf.id = glConfigID(id);
 		glconf.doublebuffer = doubleBuffer;
 
 		configs_.push_back(glconf);
@@ -151,7 +155,7 @@ void* GlxSetup::procAddr(nytl::StringParam name) const
 	return ret;
 }
 
-GLXFBConfig GlxSetup::glxConfig(GlConfigId id) const
+GLXFBConfig GlxSetup::glxConfig(GlConfigID id) const
 {
 	int configCount;
 	int configAttribs[] = {GLX_FBCONFIG_ID, static_cast<int>(glConfigNumber(id)), 0};
@@ -167,7 +171,7 @@ GLXFBConfig GlxSetup::glxConfig(GlConfigId id) const
 	return ret;
 }
 
-unsigned int GlxSetup::visualID(GlConfigId id) const
+unsigned int GlxSetup::visualID(GlConfigID id) const
 {
 	auto glxfbc = glxConfig(id);
 	if(glxfbc) return 0u;
@@ -186,8 +190,8 @@ GlxSurface::GlxSurface(Display& xdpy, unsigned int xDrawable, const GlConfig& co
 
 bool GlxSurface::apply(std::error_code& ec) const
 {
+	ec.clear();
 	::glXSwapBuffers(xDisplay_, xDrawable_);
-	ec = {};
 	return true;
 }
 
@@ -313,8 +317,8 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 	::XSync(xDisplay(), false);
     ::XSetErrorHandler(oldErrorHandler);
 
-    if(!glxContext_)
-        throw std::runtime_error("ny::GlxContext: failed to create glx Context in any way.");
+	if(!glxContext_)
+		throw std::runtime_error("ny::GlxContext: failed to create glx Context in any way.");
 
 	if(!::glXIsDirect(xDisplay(), glxContext_))
 		warning("ny::GlxContext: could only create indirect gl context -> worse performance");
@@ -353,6 +357,7 @@ GlContextExtensions GlxContext::contextExtensions() const
 bool GlxContext::swapInterval(int interval, std::error_code& ec) const
 {
 	//TODO: check for interval < 0 and tear extensions not supported.
+	ec.clear();
 
 	if(!GLAD_GLX_EXT_swap_control || !glXSwapIntervalEXT)
 	{
@@ -379,6 +384,8 @@ bool GlxContext::swapInterval(int interval, std::error_code& ec) const
 
 bool GlxContext::makeCurrentImpl(const GlSurface& surface, std::error_code& ec)
 {
+	ec.clear();
+
 	auto drawable = dynamic_cast<const GlxSurface*>(&surface)->xDrawable();
     if(!::glXMakeCurrent(xDisplay(), drawable, glxContext_))
     {
@@ -392,6 +399,8 @@ bool GlxContext::makeCurrentImpl(const GlSurface& surface, std::error_code& ec)
 
 bool GlxContext::makeNotCurrentImpl(std::error_code& ec)
 {
+	ec.clear();
+
     if(!::glXMakeCurrent(xDisplay(), 0, nullptr))
     {
 		//TODO: handle error into ec

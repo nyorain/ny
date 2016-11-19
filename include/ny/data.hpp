@@ -4,8 +4,9 @@
 
 #pragma once
 
-#include <ny/include.hpp>
+#include <ny/fwd.hpp>
 #include <ny/event.hpp>
+#include <ny/imageData.hpp>
 
 #include <nytl/callback.hpp>
 #include <nytl/stringParam.hpp>
@@ -93,6 +94,12 @@ public:
 	///The std::any must contain a object of the type specified at the dataType constant
 	///declaration.
 	virtual std::any data(unsigned int format) const = 0;
+
+	///Returns an image representing the data. This image could e.g. used
+	///when this DataSource is used for a drag and drop opertation.
+	///If the data cannot be represented using an image, return a default-constructed
+	///ImageData object (or just don't override it.)
+	virtual ImageData image() const { return {}; };
 };
 
 ///Class that allows app to retrieve data from other apps
@@ -168,12 +175,7 @@ std::vector<const char*> dataTypeToString(unsigned int type, bool onlyMime = fal
 using TimePoint = std::chrono::system_clock::time_point;
 using TimeDuration = std::chrono::system_clock::duration;
 
-std::array<std::uint8_t, 8> serialize(TimePoint tp);
-std::array<std::uint8_t, 8> serialize(TimeDuration tp);
 std::vector<std::uint8_t> serialize(const ImageData&);
-
-TimePoint deserializeTimePoint(const std::array<std::uint8_t, 8>& buffer);
-TimeDuration deserializeTimeDuratoin(const std::array<std::uint8_t, 8>& buffer);
 OwnedImageData deserializeImageData(const std::vector<std::uint8_t>& buffer);
 
 ///Encodes a vector of uris to a single string with mime-type text/uri-list encoded in utf8.

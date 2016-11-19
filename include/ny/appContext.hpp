@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <ny/include.hpp>
+#include <ny/fwd.hpp>
 #include <nytl/nonCopyable.hpp>
 
 #include <memory>
@@ -18,7 +18,7 @@ namespace ny
 using WindowContextPtr = std::unique_ptr<WindowContext>;
 using AppContextPtr = std::unique_ptr<AppContext>;
 
-//TODO: optional event parameter for dnd/clipboard functions? for wayland/x11
+//TODO: optional (mouse)event parameter for dnd/clipboard functions?
 //TODO: more/better term definitions. Multiple AppContexts allowed?
 //TODO: return type of startDragDrop? AsyncRequest (docs/dev.md)
 //TODO: TouchContext. Other input sources?
@@ -26,7 +26,7 @@ using AppContextPtr = std::unique_ptr<AppContext>;
 ///Abstract base interface for a backend-specific display conncetion.
 ///Defines the interfaces for different (threaded/blocking) event dispatching functions
 ///that have to be implemented by the different backends.
-class AppContext : public NonCopyable
+class AppContext : public nytl::NonCopyable
 {
 public:
 	AppContext() = default;

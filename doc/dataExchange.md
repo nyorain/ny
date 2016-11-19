@@ -199,13 +199,18 @@ In the table below, Range means nytl::Range.
 
 
 ```cpp
-///Custom future-like object that allows for single-threaded async requests.
+///Allows to deal with single-threaded asynchronous requests.
 ///Usually wait() will not just wait but instead keep the internal event loop running.
 ///It also allows to register a callback to be called on request completion.
-///It can also easily be used for synchronous requests. Since several operations are
-///implemented sync or async by different backends, this abstraction is needed.
-///This object should always only be used from the main gui thread it was retrieved from.
-///The registered callback function must always be called from the gui thread.
+///It can also easily be used for synchronous requests, since it could be ready from the
+///beginning. Since several operations are implemented sync or async by different backends,
+///this abstraction is needed.
+///The registered callback function will always be called from the gui thread during wait
+///or some other event dispatching functions.
+///The member functions of AsyncRequest objects should always only be used from the main gui
+///thread that it was retrieved from. It cannot be directly used from other threads like
+///e.g. std::future), but the flexible callback design can be easily used to achieve something
+///similiar.
 template <typename R>
 class AsyncRequest
 {
@@ -216,7 +221,7 @@ public:
 	///When this call returns, the registered callback function was triggered or (if there
 	///is none) this request will be ready and the return object can be retrieved with get.
 	///While waiting, the internal gui thread event loop will be run.
-	virtual void wait(LoopControl& lc = LoopControl::dummy()) = 0;
+	virtual void wait(LoopControl* lc = nullptr) = 0;
 
 	///Returns whether the AsyncRequest is valid.
 	///If this is false, calling other member functions results in undefined behaviour.
@@ -239,131 +244,11 @@ public:
 	///instantly. Note that there is already a callback function for this request, it is
 	///cleared and set to the given one.
 	///If this is called by the request is ready, the callback will be instanly triggered.
-	///The callback is only once called since after it is called the Request is set to
+	///The callback is only once called since after it is called the AsyncRequest is set to
 	///an invalid state.
 	virtual void callback(CallbackFunc) = 0;
 };
 
-///Abstract base interface for LoopControl implementations.
-///Implemented by functions running loops that can be stopped or for which can additional
-///functions be queued even from other threads.
-///Note that loops should usually not implement this interface directly, but rather use
-///the LoopInterfaceGuard base class which does not implement any of the pure virtual
-///functions but takes care of correct settings/resetting of the associated LoopControl object.
-///\sa LoopControl
-class LoopInterface
-{
-public:
-	static LoopInterface& dummy();
-
-public:
-	virtual ~LoopInterface() = default;
-	virtual bool stop() = 0;
-	virtual bool call(const std::funcion<void()>& func) = 0;
-
-protected:
-	static void set(Loop& loop, LoopInterface& interface) { loop.impl_ = interface; }
-};
-
-///Object used for obselete LoopControls.
-///Enables a lockfree threadsafe LoopControl/LoopInterface implementation.
-///Since a LoopControl object can be used to control a loop running in another thread,
-///there must be some kind of synchronization to ensure that a nullptr LoopInterface
-///member (i.e. after the loop finished) is not accessed by the other thread.
-///Since this cannot be assured without a atomic, loops that can be controlled with a LoopControl
-///object set the pointer to the loopInterfaceDummy object that just returns false on
-///all requests and also makes the LoopControl object invalid, but calling it will
-///not result in a memory error (as calling a nullptr object would).
-///Therefore a Loop object that once has a non-nullptr interface will/should never have
-///a null interface since this would make calling its member functions from another
-///thread unsafe.
-///\sa LoopControl
-class DummyLoopInterface : public LoopInterface
-{
-public:
-	static DummyLoopInterface& instance();
-
-public:
-	bool stop() override { return false; }
-	bool call(const std::funcion<void()>&) override { return false; }
-
-private:
-	DummyLoopInterface() = default;
-	~DummyLoopInterface() = default;
-};
-
-///Can be used to control loops.
-///Since this object is passed to a loop function and implemented by it, it
-///can be used to control the loop from the same thread (i.e. callback functions called
-///from within the loop) or from another thread.
-///It is threadsafe, i.e. calling any of its function in any thread will never result
-///in undefined behaviour (required that the loop function implements it correctly).
-///Only lifetime synchronization has to managed by the application.
-///If the loop is currently waiting/blocking for events calling member functions of the
-///associated LoopControl object will wake up the loop.
-class LoopControl
-{
-public:
-	///Dummy object that will be used to default LoopControl parameters.
-	///If a loop detects that a passed LoopControl parameter is this object they don't have
-	///to implement it (LoopInterfaceGuard handles this).
-	static LoopControl& dummy();
-
-public:
-	LoopControl() = defualt;
-	~LoopControl() { stop(); }
-
-	///Stops the loop, i.e. returns as soon as possible.
-	///Returns false if this loop object is invalid or stopping it failed somehow.
-	bool stop()
-	{
-		if(!valid()) return false;
-		return impl_->stop();
-	}
-
-	///Asks the loop to run the given function from within.
-	///Especially useful for synchronization. The function is not guaranteed to be called
-	///as sonn as possible, but as soon as the next loop iteration is done.
-	///Functions are guaranteed to be called in the order they are queued here.
-	///Returns false if this LoopControl object is invalid or queueing the function failed.
-	bool call(const std::function<void()>& func)
-	{
-		if(!valid()) return false;
-		return impl_->call(func);
-	}
-
-	///Returns whether this object is valied, i.e. whether it member functions can
-	///be be called. If this returns false all member functions are guaranteed to return false.
-	bool valid() const { return impl_ && impl_ != &loopInterfaceDummy; }
-	operator bool() const { return valid(); }
-
-protected:
-	friend class LoopInterface;
-	std::atomic<LoopControlImpl*> impl_ {nullptr};
-};
-
-////Manages correct assocating/resetting of a LoopInterface implementation with a Loop
-///object. Should be preferred over implementing the raw LoopInterface object since
-///it assures that the Loop object will not be put in an state that results in undefined
-///behaviour.
-class LoopInterfaceGuard : public LoopInterface
-{
-public:
-	LoopInterfaceGuard(Loop& loop) : loop_(loop)
-	{
-		if(&loop_ != &LoopControl::dummy()) LoopInterface::set(loop_, *this);
-	}
-	~LoopInterfaceGuard()
-	{
-		if(&loop_ != &LoopControl::dummy()) LoopInterface::set(loop_, loopIntefaceDummy);
-	}
-
-protected:
-	Loop& loop_;
-};
-```
-
-```cpp
 class DataSource
 {
 public:

@@ -18,12 +18,14 @@ public:
 	~X11VulkanWindowContext();
 
 	Surface surface() override;
-	VkSurfaceKHR vkSurface() const { return vkSurface_; }
+
 	VkInstance vkInstance() const { return vkInstance_; }
+	std::uintptr_t vkSurface() const { return vkSurface_; }
 
 protected:
-	VkSurfaceKHR vkSurface_ {};
 	VkInstance vkInstance_ {};
+	std::uintptr_t vkSurface_ {};
+	std::unique_ptr<VkAllocationCallbacks> allocationCallbacks_ {};
 };
 
 }

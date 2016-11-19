@@ -78,7 +78,6 @@ if(WithWayland)
 		wayland/util.cpp
 		wayland/bufferSurface.cpp
 		wayland/windowContext.cpp
-		wayland/interfaces.cpp
 		wayland/data.cpp
 		wayland/xdg-shell-protocol.c)
 

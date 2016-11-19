@@ -39,7 +39,7 @@ public:
 
 	///Should call the given function in the next loop iteration from the loop thread.
 	///Must be implemented threadsafe, and work if called from within the loop.
-	virtual bool call(std::function<void()> func) { return false; }
+	virtual bool call(std::function<void()>) { return false; }
 
 protected:
 	static inline void set(LoopControl& lc, LoopInterface& impl);

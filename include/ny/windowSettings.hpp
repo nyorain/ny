@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <ny/include.hpp>
+#include <ny/fwd.hpp>
 #include <ny/cursor.hpp>
 #include <ny/nativeHandle.hpp>
 #include <ny/surface.hpp>
@@ -71,35 +71,46 @@ enum class ToplevelState : unsigned int
 ///Settings for creating a GlSurface for a WindowContext.
 struct GlSurfaceSettings
 {
-	///A pointer to store a pointer to the create GlSurface.
-	///Another way for retrieving the surface is to construct a surface integration
-	///object (see surface.hpp).
-	GlSurface** storeSurface {};
-
 	///The config id that the surface should be created with.
 	///Can be retrieved from the GlSetup implementation which can be retrieved
 	///from the AppContext implementation.
 	///Note that if this value is not set (i.e. the default value is used), the surface
 	///will be created using the default config (should be enough for most usages).
-	GlConfigId config {};
+	GlConfigID config {};
+
+	///A pointer to store a pointer to the create GlSurface.
+	///Another way for retrieving the surface later on is to construct a surface
+	///object (see surface.hpp).
+	///Can be nullptr.
+	GlSurface** storeSurface {};
 };
 
 ///Settings for creating a Vulkan Surface for a WindowContext.
 struct VulkanSurfaceSettings
 {
-	///The vulkan instance which should be used to create the surface.
+	///The VkInstance object which should be used to create the surface.
 	///Note that this instance must have the needed extensions enabled, those can be
 	///queried using ny::AppContext::vulkanExtensions
-	VkInstance instance {};
+ 	VkInstance instance {};
 
-	///A pointer to the variable in which the created surface should be stored.
-	VkSurfaceKHR* storeSurface {};
+	///The allocation callbacks for creating and destroying the surface.
+	///They only have to be valid until the surface is created.
+	VkAllocationCallbacks* allocationCallbacks {};
+
+	///A pointer to the variable in which the created VkSurfaceKHR should be stored.
+	///Another way for retrieving the surface later on is to construct a surface
+	///object (see surface.hpp).
+	///Can be nullptr.
+	std::uintptr_t* storeSurface {};
 };
 
 ///Settings for creating a BufferSurface for a WindowContext.
 struct BufferSurfaceSettings
 {
 	///A pointer to a variable in which the created BufferSurface should be stored.
+	///Another way for retrieving the surface later on is to construct a surface
+	///object (see surface.hpp).
+	///Can be nullptr.
 	BufferSurface** storeSurface {};
 };
 

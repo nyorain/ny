@@ -1,6 +1,11 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #pragma once
 
-#include <ny/include.hpp>
+#include <ny/fwd.hpp>
+#include <ny/config.hpp>
 #include <ny/library.hpp>
 #include <ny/common/gl.hpp>
 
@@ -35,7 +40,7 @@ public:
 
 	///Returns the EGLConfig for the given GlConfigId.
 	///If the given id is invalid returns nullptr.
-	EGLConfig eglConfig(GlConfigId id) const;
+	EGLConfig eglConfig(GlConfigID id) const;
 	EGLDisplay eglDisplay() const { return eglDisplay_; }
 
 	bool valid() const { return (eglDisplay_); }
@@ -56,7 +61,7 @@ protected:
 class EglSurface : public GlSurface
 {
 public:
-	EglSurface(EGLDisplay, void* nativeWindow, GlConfigId, const EglSetup&);
+	EglSurface(EGLDisplay, void* nativeWindow, GlConfigID, const EglSetup&);
 	EglSurface(EGLDisplay, void* nativeWindow, const GlConfig&, EGLConfig eglConfig);
 	virtual ~EglSurface();
 

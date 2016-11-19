@@ -1,8 +1,11 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #pragma once
 
-#include <ny/include.hpp>
+#include <ny/fwd.hpp>
 #include <ny/event.hpp>
-#include <ny/mouseButton.hpp>
 
 #include <nytl/vec.hpp>
 #include <nytl/callback.hpp>
@@ -17,7 +20,7 @@ public:
 	///Returns the newest mouse position that can be queried for the current window under
 	///the pointer.
 	///Note that if the pointer is not over a window, the result of this function is undefined.
-	virtual Vec2ui position() const = 0;
+	virtual nytl::Vec2ui position() const = 0;
 
 	///Returns whether the given button is pressed.
 	///This functions may be async to any received events and callbacks.
@@ -31,7 +34,7 @@ public:
 	nytl::Callback<void(MouseContext&, MouseButton, bool pressed)> onButton;
 
 	///Will be called everytime the mouse moves.
-	nytl::Callback<void(MouseContext&, const nytl::Vec2ui& pos, const nytl::Vec2ui& delta)> onMove;
+	nytl::Callback<void(MouseContext&, nytl::Vec2ui pos, nytl::Vec2ui delta)> onMove;
 
 	///Will be called everytime the pointer focus changes.
 	///Note that both parameters might be a nullptr

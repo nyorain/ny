@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <ny/include.hpp>
+#include <ny/fwd.hpp>
 #include <nytl/nonCopyable.hpp>
 
 #include <vector>

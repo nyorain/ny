@@ -1,8 +1,10 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #pragma once
 
-#include <ny/include.hpp>
 #include <nytl/stringParam.hpp>
-
 #include <system_error>
 
 namespace ny
@@ -10,7 +12,7 @@ namespace ny
 
 //The constructor of Library does not throw an excpetion since Library allows an invalid
 //state (since it is movable) and loading libraries might be done using trial and error.
-//It is pretty common that a library is not found or cannot be loaded.
+//It is pretty usual that a library is not found or cannot be loaded.
 //The invalid state of the library does furthermore not cause any problems since the only
 //operation it has (symbol) does simply return a nullptr if the Library object is invalid.
 
@@ -28,8 +30,7 @@ public:
 
 	///Tries to load the library with the given name.
 	///On failure the library handle is invalid (i.e. handle() == nullptr).
-	///\param error Can be used to receive the error if the constructor fails.
-	Library(nytl::StringParam name, std::error_code* error = nullptr);
+	Library(nytl::StringParam name);
 	~Library();
 
 	Library(Library&& other) noexcept;

@@ -59,7 +59,7 @@ VkSurfaceKHR vkSurface {};
 auto windowSettings = ny::WindowSettings {};
 windowSettings.surface = ny::SurfaceType::vulkan;
 windowSettings.vulkan.instance = vkInstance;
-windowSettings.vulkan.storeSurface = &vkSurface;
+windowSettings.vulkan.storeSurface = reinterpret_cast<std::uintptr_t*>(&vkSurface);
 
 auto windowContext = appContext.createWindowContext(windowSettings);
 
@@ -67,6 +67,11 @@ auto windowContext = appContext.createWindowContext(windowSettings);
 //vkSurface is guaranteed to be valid until windowContext is destroyed
 //note that the application should NOT destroy vkSurface manually.
 ```
+
+Note: the explicit reintrpret_cast<std::uintptr_t*>(&vkSurface) is needed because ny does not
+forward-declare the rather non-trivial type definition of VkSurfaceKHR (which is dependent on
+whehter the compiler is 32 or 64 bit). Every occurrence of VkSurfaceKHR in ny is represented
+by a std::uintptr_t since this is big enough to store its value on any platform.
 
 OpenGL (ES)
 -----------

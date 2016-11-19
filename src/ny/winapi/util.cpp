@@ -1,3 +1,7 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #include <ny/winapi/util.hpp>
 #include <ny/winapi/windows.hpp>
 #include <ny/mouseContext.hpp>
@@ -202,7 +206,7 @@ std::string errorMessage(unsigned int code, const char* msg)
 	std::string ret;
 	if(msg) ret += msg;
 
-	char buffer[256] = {};
+	char buffer[512] = {};
 	auto size = ::FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, nullptr, code, 0, buffer,
 		sizeof(buffer), nullptr);
 

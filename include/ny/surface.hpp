@@ -61,14 +61,14 @@ public:
 	union
 	{
 		GlSurface* gl {};
-		VkSurfaceKHR vulkan;
+		std::uintptr_t vulkan; //a VkSurfaceKHR
 		BufferSurface* buffer;
 	};
 
 public:
 	Surface() = default;
 	Surface(GlSurface& xgl) : type(Type::gl), gl(&xgl) {}
-	Surface(VkSurfaceKHR vk) : type(Type::vulkan), vulkan(vk) {}
+	Surface(std::uintptr_t vk) : type(Type::vulkan), vulkan(vk) {}
 	Surface(BufferSurface& bs) : type(Type::buffer), buffer(&bs) {}
 	~Surface() = default;
 

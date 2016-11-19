@@ -5,6 +5,7 @@
 #include <ny/x11/util.hpp>
 #include <ny/log.hpp>
 #include <ny/mouseContext.hpp>
+#include <ny/mouseButton.hpp>
 #include <ny/imageData.hpp>
 
 #include <X11/Xlib.h>
@@ -98,7 +99,7 @@ X11ErrorCategory& X11ErrorCategory::operator=(X11ErrorCategory&& other)
 	other.xConnection_ = {};
 
 	return *this;
-};
+}
 
 std::string X11ErrorCategory::message(int code) const
 {

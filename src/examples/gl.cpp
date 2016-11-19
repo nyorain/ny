@@ -153,4 +153,4 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 	}
 
 	return false;
-};
+}

@@ -4,7 +4,8 @@
 
 #pragma once
 
-#include <ny/include.hpp>
+#include <ny/fwd.hpp>
+#include <ny/config.hpp>
 #include <ny/nativeHandle.hpp>
 
 #include <nytl/nonCopyable.hpp>
@@ -24,7 +25,7 @@ namespace ny
 enum class GlApi : unsigned int { gl, gles, };
 
 ///Opaque GlConfig id. Is used by backends as pointer or unsigned int.
-using GlConfigId = struct GlConfigIdType*;
+using GlConfigID = struct GlConfigIDType*;
 
 ///Represents a general gl or glsl version.
 ///Note that e.g. glsl version 330 is represented by major=3, minor=3
@@ -49,7 +50,7 @@ struct GlConfig
 
 	bool doublebuffer {};
 
-	GlConfigId id {};
+	GlConfigID id {};
 };
 
 ///Rates the given GlConfig.
@@ -73,7 +74,7 @@ unsigned int rate(const GlConfig& config);
 ///If the config id is not changed, the default config will be used.
 struct GlContextSettings
 {
-	GlConfigId config;
+	GlConfigID config;
 	GlVersion version;
 	bool compatibility {};
 	bool forwardCompatible {};
@@ -138,7 +139,7 @@ public:
 
 	virtual GlConfig defaultConfig() const = 0; ///Retunrns the default config
 	virtual std::vector<GlConfig> configs() const = 0; ///Returns all available configs
-	virtual GlConfig config(GlConfigId id) const; ///Returns the config for the given id
+	virtual GlConfig config(GlConfigID id) const; ///Returns the config for the given id
 
 	///Constructs and returns a new opengl implementation object. Implementations
 	///should always return a valid unique_ptr and throw an excpetion on error.
@@ -261,7 +262,7 @@ protected:
 
 	virtual void addShared(GlContext& other);
 	virtual bool removeShared(GlContext& other);
-	
+
 	virtual const std::vector<GlContext*>& shared() const { return shared_; }
 	friend bool shared(GlContext& a, GlContext& b);
 
@@ -274,26 +275,27 @@ protected:
 ///Returns whether the both given GlContext objects are shared with each other.
 bool shared(GlContext& a, GlContext& b);
 
-//TODO: destructor, make previous context current again (?)
 ///A guard to make a context current on construction and make it not current on destruction.
 ///Note that GlContext does allow to manually make current/make not current since it may
-///not be desirable in every case to make the context not current on scope exit.
-class GlCurrentGuard
+///not be desirable in every case to make the context not current on scope exit, e.g. sometimes
+///application want one context to be current all the time and not only when used.
+class GlCurrentGuard : public nytl::NonMovable
 {
 public:
-	GlCurrentGuard(GlContext& ctx, const GlSurface& surf) : ctx(ctx) { ctx.makeCurrent(surf); }
-	~GlCurrentGuard() { try { ctx.makeNotCurrent(); } catch(...){ } } //TODO!
+	GlContext& context;
 
-	GlContext& ctx;
+public:
+	GlCurrentGuard(GlContext&, const GlSurface&);
+	~GlCurrentGuard();
 };
 
 //small conversion helpers for GlConfigId
 //mainly used by implementations
-std::uintptr_t& glConfigNumber(GlConfigId& id);
-GlConfigId& glConfigId(std::uintptr_t& number);
+std::uintptr_t& glConfigNumber(GlConfigID& id);
+GlConfigID& glConfigID(std::uintptr_t& number);
 
-std::uintptr_t glConfigNumber(const GlConfigId& id);
-GlConfigId glConfigId(const std::uintptr_t& number);
+std::uintptr_t glConfigNumber(const GlConfigID& id);
+GlConfigID glConfigID(const std::uintptr_t& number);
 
 ///Returns a std::error_code for the given GlContextErrorCode.
 ///Note that this also enables constructing std::error_code objects directly

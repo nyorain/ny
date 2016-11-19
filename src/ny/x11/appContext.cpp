@@ -143,7 +143,7 @@ X11AppContext::X11AppContext()
 
 	//query information
 	auto iter = xcb_setup_roots_iterator(xcb_get_setup(&xConnection()));
-	for(auto i = 0u; iter.rem; ++i, xcb_screen_next(&iter))
+	for(auto i = 0; iter.rem; ++i, xcb_screen_next(&iter))
 	{
 	    if(i == xDefaultScreenNumber_)
 		{
@@ -353,6 +353,7 @@ bool X11AppContext::dispatchLoop(LoopControl& control)
 
 bool X11AppContext::clipboard(std::unique_ptr<DataSource>&& dataSource)
 {
+	nytl::unused(dataSource);
 	return false;
 }
 
@@ -363,7 +364,7 @@ DataOffer* X11AppContext::clipboard()
 
 bool X11AppContext::startDragDrop(std::unique_ptr<DataSource>&& dataSource)
 {
-	unused(dataSource);
+	nytl::unused(dataSource);
 	return false;
 }
 

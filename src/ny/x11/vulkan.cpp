@@ -17,24 +17,29 @@ X11VulkanWindowContext::X11VulkanWindowContext(X11AppContext& ac,
 {
 	vkInstance_ = ws.vulkan.instance;
 	if(!vkInstance_)
-		throw std::logic_error("VulkanWinapiWC: setttings.vulkan.instance is a nullptr");
+		throw std::logic_error("ny::X11VulkanWindowContext: given VkInstance is invalid");
 
 	VkXcbSurfaceCreateInfoKHR info {};
 	info.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
 	info.connection = &xConnection();
 	info.window = xWindow();
 
-	auto result = vkCreateXcbSurfaceKHR(vkInstance_, &info, nullptr, &vkSurface_);
-	if(result != VK_SUCCESS)
-		throw std::runtime_error("VulkanWinapiWC: failed to create vulkan surface");
+	auto* allocCbs = ws.vulkan.allocationCallbacks;
+	if(allocCbs) allocationCallbacks_ = std::make_unique<VkAllocationCallbacks>(*allocCbs);
+
+	auto surface = reinterpret_cast<VkSurfaceKHR>(vkSurface_);
+	auto res = vkCreateXcbSurfaceKHR(vkInstance_, &info, allocationCallbacks_.get(), &surface);
+	if(res != VK_SUCCESS)
+		throw std::runtime_error("ny::X11VulkanWindowContext: failed to create vulkan surface");
 
 	if(ws.vulkan.storeSurface) *ws.vulkan.storeSurface = vkSurface_;
 }
 
 X11VulkanWindowContext::~X11VulkanWindowContext()
 {
-	if(vkInstance_ && vkSurface_)
-		vkDestroySurfaceKHR(vkInstance_, vkSurface_, nullptr);
+	auto surface = reinterpret_cast<VkSurfaceKHR>(vkSurface_);
+	if(vkInstance_ && surface)
+		vkDestroySurfaceKHR(vkInstance_, surface, allocationCallbacks_.get());
 }
 
 Surface X11VulkanWindowContext::surface()

@@ -36,8 +36,8 @@ public:
 	std::unique_ptr<GlContext> createContext(const GlContextSettings& = {}) const override;
 	void* procAddr(nytl::StringParam name) const override;
 
-	GLXFBConfig glxConfig(GlConfigId id) const;
-	unsigned int visualID(GlConfigId id) const;
+	GLXFBConfig glxConfig(GlConfigID id) const;
+	unsigned int visualID(GlConfigID id) const;
 	Display* xDisplay() const { return xDisplay_; }
 
 	bool valid() const { return (xDisplay_); }

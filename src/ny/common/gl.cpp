@@ -1,3 +1,7 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #include <ny/common/gl.hpp>
 #include <ny/log.hpp>
 #include <nytl/misc.hpp>
@@ -82,17 +86,17 @@ std::string name(const GlVersion& v)
 	return ret;
 }
 
-std::uintptr_t& glConfigNumber(GlConfigId& id)
+std::uintptr_t& glConfigNumber(GlConfigID& id)
 	{ return reinterpret_cast<std::uintptr_t&>(id); }
 
-GlConfigId& glConfigId(std::uintptr_t& number)
-	{ return reinterpret_cast<GlConfigId&>(number); }
+GlConfigID& glConfigID(std::uintptr_t& number)
+	{ return reinterpret_cast<GlConfigID&>(number); }
 
-std::uintptr_t glConfigNumber(const GlConfigId& id)
+std::uintptr_t glConfigNumber(const GlConfigID& id)
 	{ return reinterpret_cast<const std::uintmax_t&>(id); }
 
-GlConfigId glConfigId(const std::uintmax_t& number)
-	{ return reinterpret_cast<const GlConfigId&>(number); }
+GlConfigID glConfigID(const std::uintmax_t& number)
+	{ return reinterpret_cast<const GlConfigID&>(number); }
 
 unsigned int rate(const GlConfig& config)
 {
@@ -149,7 +153,7 @@ GlContextError::GlContextError(std::error_code code, const char* msg) : logic_er
 }
 
 //GlSetup
-GlConfig GlSetup::config(GlConfigId id) const
+GlConfig GlSetup::config(GlConfigID id) const
 {
 	auto cfgs = configs();
 	for(auto& cfg : cfgs) if(cfg.id == id) return cfg;
@@ -266,17 +270,19 @@ void GlContext::makeCurrent(const GlSurface& surface)
 	}
 }
 
-bool GlContext::makeCurrent(const GlSurface& surface, std::error_code& error)
+bool GlContext::makeCurrent(const GlSurface& surface, std::error_code& ec)
 {
+	ec.clear();
+
 	if(!surface.nativeHandle())
 	{
-		error = Errc::invalidSurface;
+		ec = Errc::invalidSurface;
 		return false;
 	}
 
 	if(!compatible(surface))
 	{
-		error = Errc::incompatibleSurface;
+		ec = Errc::incompatibleSurface;
 		return false;
 	}
 
@@ -285,7 +291,7 @@ bool GlContext::makeCurrent(const GlSurface& surface, std::error_code& error)
 	auto threadid = std::this_thread::get_id();
 	auto& map = contextCurrentMap(mutex);
 	decltype(map.begin()) thisThreadIt {};
-	error.clear();
+	ec.clear();
 
 	//prepare everything
 	//check if this exact combination is already current
@@ -297,7 +303,7 @@ bool GlContext::makeCurrent(const GlSurface& surface, std::error_code& error)
 
 		if(thisThreadIt->second.first == this && thisThreadIt->second.second == &surface)
 		{
-			error = Errc::contextAlreadyCurrent;
+			ec = Errc::contextAlreadyCurrent;
 			return true; //return true since this is not critical, but we have nothing to do
 		}
 
@@ -309,13 +315,13 @@ bool GlContext::makeCurrent(const GlSurface& surface, std::error_code& error)
 
 			if(entry.second.first == this)
 			{
-				error = Errc::contextCurrentInAnotherThread;
+				ec = Errc::contextCurrentInAnotherThread;
 				return false;
 			}
 
 			if(entry.second.second == &surface)
 			{
-				error = Errc::surfaceAlreadyCurrent;
+				ec = Errc::surfaceAlreadyCurrent;
 				return false;
 			}
 		}
@@ -324,7 +330,7 @@ bool GlContext::makeCurrent(const GlSurface& surface, std::error_code& error)
 		//dont just call makeNotCurrent here, since this would result in a deadlock
 		if(thisThreadIt->second.first)
 		{
-			if(!thisThreadIt->second.first->makeNotCurrentImpl(error)) return false;
+			if(!thisThreadIt->second.first->makeNotCurrentImpl(ec)) return false;
 			thisThreadIt->second = {nullptr, nullptr};
 		}
 	}
@@ -333,7 +339,7 @@ bool GlContext::makeCurrent(const GlSurface& surface, std::error_code& error)
 	//note how we still use thisThreadIt iterator after exiting critical section
 	//map iterators are not invalidated  if they are not deleted (and this operation is
 	//not done by any thread)
-	if(!makeCurrentImpl(surface, error)) return false;
+	if(!makeCurrentImpl(surface, ec)) return false;
 
 	std::lock_guard<std::mutex> lock(*mutex);
 	thisThreadIt->second = {this, &surface};
@@ -346,13 +352,14 @@ void GlContext::makeNotCurrent()
 	if(!makeNotCurrent(error)) throw std::system_error(error);
 }
 
-bool GlContext::makeNotCurrent(std::error_code& error)
+bool GlContext::makeNotCurrent(std::error_code& ec)
 {
+	ec.clear();
+
 	std::mutex* mutex;
 	auto threadid = std::this_thread::get_id();
 	auto& map = contextCurrentMap(mutex);
 	decltype(map.begin()) thisThreadIt {};
-	error.clear();
 
 	//check if it is already not current
 	{
@@ -363,12 +370,12 @@ bool GlContext::makeNotCurrent(std::error_code& error)
 
 		if(thisThreadIt->second.first != this)
 		{
-			error = Errc::contextAlreadyNotCurrent;
+			ec = Errc::contextAlreadyNotCurrent;
 			return true;
 		}
 	}
 
-	if(!makeNotCurrentImpl(error)) return false;
+	if(!makeNotCurrentImpl(ec)) return false;
 
 	std::lock_guard<std::mutex> lock(*mutex);
 	thisThreadIt->second = {nullptr, nullptr};
@@ -446,6 +453,18 @@ bool shared(GlContext& a, GlContext& b)
 
 	for(auto& c : shared) if(c == &b) return true;
 	return false;
+}
+
+//GlCurrentGuard
+GlCurrentGuard::GlCurrentGuard(GlContext& ctx, const GlSurface& surface) : context(ctx)
+{
+	context.makeCurrent(surface);
+}
+
+GlCurrentGuard::~GlCurrentGuard()
+{
+	try{ context.makeNotCurrent(); }
+	catch(const std::exception& exception) { warning("ny::~GlCurrentGuard: ", exception.what()); }
 }
 
 }

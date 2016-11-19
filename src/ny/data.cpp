@@ -1,3 +1,7 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #include <ny/data.hpp>
 #include <ny/imageData.hpp>
 
@@ -89,40 +93,28 @@ std::vector<const char*> dataTypeToString(unsigned int type, bool onlyMime)
 	return {};
 }
 
-std::array<std::uint8_t, 8> serialize(TimePoint tp)
+std::vector<std::uint8_t> serialize(const ImageData& image)
 {
-
-}
-std::array<std::uint8_t, 8> serialize(TimeDuration tp)
-{
-
-}
-std::vector<std::uint8_t> serialize(const ImageData&)
-{
-
+	nytl::unused(image);
+	return {};
 }
 
-TimePoint deserializeTimePoint(const std::array<std::uint8_t, 8>& buffer)
-{
-
-}
-TimeDuration deserializeTimeDuratoin(const std::array<std::uint8_t, 8>& buffer)
-{
-
-}
 OwnedImageData deserializeImageData(const std::vector<std::uint8_t>& buffer)
 {
-
+	nytl::unused(buffer);
+	return {};
 }
 
 std::string encodeUriList(const std::vector<std::string>& uris)
 {
-
+	nytl::unused(uris);
+	return {};
 }
 
 std::vector<std::string> decodeUriList(nytl::StringParam list)
 {
-	
+	nytl::unused(list);
+	return {};
 }
 
 }

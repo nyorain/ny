@@ -1,4 +1,9 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #include <ny/library.hpp>
+#include <ny/log.hpp>
 
 #ifdef _WIN32
 	#include <windows.h>
@@ -13,52 +18,63 @@ namespace detail
 {
 
 #ifdef WIN32
-	void* dlopen(const char* name, std::error_code* error)
+	void* dlopen(const char* name)
 	{
-		return ::LoadLibrary(name);
+		auto ret = ::LoadLibrary(name);
+		if(!ret)
+		{
+			char buffer[512] = {};
+			auto code = ::GetLastError();
+			auto size = ::FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, nullptr, code,
+				0, buffer, sizeof(buffer), nullptr);
+
+			log("ny::Library: failed to open ", name, "with error ", code, ": ", buffer);
+		}
+
+		return ret;
 	}
 
 	void dlclose(void* handle)
 	{
-		if(!handle) return;
 		::FreeLibrary(static_cast<HMODULE>(handle));
 	}
 
 	void* dlsym(void* handle, const char* name)
 	{
-		if(!handle) return nullptr;
 		return reinterpret_cast<void*>(::GetProcAddress(static_cast<HMODULE>(handle), name));
 	}
 
 #else
-	void* dlopen(const char* name, std::error_code* error)
+	void* dlopen(const char* name)
 	{
-		return ::dlopen(name, 0);
+		::dlerror(); //reset any error
+		auto ret = ::dlopen(name, 0);
+		if(!ret) log("ny::Library: failed to open ", name, ": ", dlerror());
+
+		return ret;
 	}
 
 	void dlclose(void* handle)
 	{
-		if(!handle) return;
 		::dlclose(handle);
 	}
 
 	void* dlsym(void* handle, const char* name)
 	{
-		if(!handle) return nullptr;
-		return dlsym(handle, name);
+		return ::dlsym(handle, name);
 	}
 #endif
 
 }
 
-Library::Library(nytl::StringParam name, std::error_code* error)
+Library::Library(nytl::StringParam name)
 {
-	handle_ = detail::dlopen(name, error);
+	handle_ = detail::dlopen(name);
 }
 
 Library::~Library()
 {
-	detail::dlclose(handle_);
+	if(handle_) detail::dlclose(handle_);
 }
 
 Library::Library(Library&& other) noexcept : handle_(other.handle_)
@@ -68,13 +84,15 @@ Library::Library(Library&& other) noexcept : handle_(other.handle_)
 
 Library& Library::operator=(Library&& other) noexcept
 {
-	detail::dlclose(handle_);
+	if(handle_) detail::dlclose(handle_);
 	handle_ = other.handle_;
 	other.handle_ = nullptr;
+	return *this;
 }
 
 void* Library::symbol(nytl::StringParam name) const
 {
+	if(!handle_) return nullptr;
 	return detail::dlsym(handle_, name);
 }
 

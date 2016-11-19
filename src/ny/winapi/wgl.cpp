@@ -1,3 +1,7 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #include <ny/winapi/wgl.hpp>
 #include <ny/winapi/windowContext.hpp>
 #include <ny/winapi/appContext.hpp>
@@ -118,7 +122,7 @@ WglSetup::WglSetup(HWND dummy) : dummyWindow_(dummy)
 				}
 
 				configs_.emplace_back();
-				configs_.back().id = reinterpret_cast<GlConfigId>(format);
+				configs_.back().id = reinterpret_cast<GlConfigID>(format);
 				configs_.back().red = values[1];
 				configs_.back().green = values[2];
 				configs_.back().blue = values[3];
@@ -272,6 +276,7 @@ void* WglSetup::procAddr(nytl::StringParam name) const
 //WglSurface
 bool WglSurface::apply(std::error_code& ec) const
 {
+	ec.clear();
 	::SetLastError(0);
 	if(!::SwapBuffers(hdc_))
 	{
@@ -416,6 +421,8 @@ WglContext::~WglContext()
 
 bool WglContext::makeCurrentImpl(const GlSurface& surf, std::error_code& ec)
 {
+	ec.clear();
+
 	::SetLastError(0);
 	auto wglSurface = dynamic_cast<const WglSurface*>(&surf);
 	if(!::wglMakeCurrent(wglSurface->hdc(), wglContext_))
@@ -430,6 +437,8 @@ bool WglContext::makeCurrentImpl(const GlSurface& surf, std::error_code& ec)
 
 bool WglContext::makeNotCurrentImpl(std::error_code& ec)
 {
+	ec.clear();
+	
 	::SetLastError(0);
 	if(!::wglMakeCurrent(nullptr, nullptr))
 	{
@@ -497,7 +506,7 @@ WglWindowContext::WglWindowContext(WinapiAppContext& ac, WglSetup& setup,
 	if(!::SetPixelFormat(hdc_, pixelformat, &pfd))
 		throw winapi::EC::exception("ny::WglWC: failed to set pixel format");
 
-	surface_.reset(new WglSurface(hdc_, setup.config(glConfigId(pixelformat))));
+	surface_.reset(new WglSurface(hdc_, setup.config(glConfigID(pixelformat))));
 	if(settings.gl.storeSurface) *settings.gl.storeSurface = surface_.get();
 }
 

@@ -26,8 +26,6 @@ public:
 	void size(const Vec2ui& newSize) override;
 	Surface surface() override;
 
-	void configureEvent(nytl::Vec2ui size, WindowEdges) override;
-
     wl_egl_window& wlEglWindow() const { return *wlEglWindow_; };
 	EglSurface& surface() const { return *surface_; }
 

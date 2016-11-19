@@ -1,3 +1,7 @@
+// Copyright (c) 2016 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #include <ny/common/xkb.hpp>
 
 #include <nytl/vec.hpp>
@@ -12,16 +16,8 @@ namespace ny
 {
 
 //utility
-Keycode xkbToKey(xkb_keycode_t keycode)
-{
-	return static_cast<Keycode>(keycode - 8);
-}
-
-xkb_keycode_t keyToXkb(Keycode keycode)
-{
-	return static_cast<unsigned int>(keycode) + 8;
-}
-
+Keycode xkbToKey(xkb_keycode_t keycode) { return static_cast<Keycode>(keycode - 8); }
+xkb_keycode_t keyToXkb(Keycode keycode) { return static_cast<unsigned int>(keycode) + 8; }
 
 //Keyboardcontext
 XkbKeyboardContext::XkbKeyboardContext()
@@ -40,9 +36,12 @@ XkbKeyboardContext::~XkbKeyboardContext()
 
 void XkbKeyboardContext::createDefault()
 {
+	static constexpr auto contextFailed = "ny::XkbKeyboardContext: failed to create xkb_context";
+	static constexpr auto keymapFailed = "ny::XkbKeyboardContext: failed to create xkb_keymap";
+	static constexpr auto stateFailed = "ny::XkbKeyboardContext: failed to create xkb_state";
+
 	xkbContext_ = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-	if(!xkbContext_)
-		throw std::runtime_error("ny::XKBKeyboardContext: failed to create xkb_context");
+	if(!xkbContext_) throw std::runtime_error(contextFailed);
 
 	struct xkb_rule_names rules {};
 
@@ -53,28 +52,30 @@ void XkbKeyboardContext::createDefault()
 	rules.options = getenv("XKB_DEFAULT_OPTIONS");
 
 	xkbKeymap_ = xkb_map_new_from_names(xkbContext_, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
-	if(!xkbKeymap_)
-		throw std::runtime_error("ny::XKBKeyboardContext: failed to create xkb_keymap");
+	if(!xkbKeymap_) throw std::runtime_error(keymapFailed);
 
 	xkbState_ = xkb_state_new(xkbKeymap_);
-	if(!xkbState_)
-		throw std::runtime_error("ny::XKBKeyboardContext: failed to create xkb_state");
+	if(!xkbState_) throw std::runtime_error(stateFailed);
 }
 
 void XkbKeyboardContext::setupCompose()
 {
+	static constexpr auto localeFailed = "ny::XkbKeyboardContext::setupCompose: "
+		"failed to retrieve locale using setlocale";
+	static constexpr auto tableFailed = "ny::XkbKeyboardContext::setupCompose: "
+		"failed to setup xkb compose table";
+	static constexpr auto stateFailed = "ny::XkbKeyboardContext::setupCompose: "
+		"failed to setup xkb compose state";
+
 	auto locale = setlocale(LC_CTYPE, nullptr);
-	if(!locale)
-		throw std::runtime_error("XkbKC::setupCompose: failed to retrieve locale");
+	if(!locale) throw std::runtime_error(localeFailed);
 
 	xkbComposeTable_ = xkb_compose_table_new_from_locale(xkbContext_, locale,
 		XKB_COMPOSE_COMPILE_NO_FLAGS);
-	if(!xkbComposeTable_)
-		throw std::runtime_error("XkbKC::setupCompose: failed to setup compose table");
+	if(!xkbComposeTable_) throw std::runtime_error(tableFailed);
 
 	xkbComposeState_ = xkb_compose_state_new(xkbComposeTable_, XKB_COMPOSE_STATE_NO_FLAGS);
-	if(!xkbComposeTable_)
-		throw std::runtime_error("XkbKC::setupCompose: failed to setup compose state");
+	if(!xkbComposeTable_) throw std::runtime_error(stateFailed);
 }
 
 void XkbKeyboardContext::updateKey(unsigned int code, bool pressed)
@@ -85,12 +86,6 @@ void XkbKeyboardContext::updateKey(unsigned int code, bool pressed)
 void XkbKeyboardContext::updateState(const Vec3ui& mods, const Vec3ui& layouts)
 {
 	xkb_state_update_mask(xkbState_, mods.x, mods.y, mods.z, layouts.x, layouts.y, layouts.z);
-}
-
-bool XkbKeyboardContext::feedComposeKey(unsigned int keysym)
-{
-	if(xkb_compose_state_feed(xkbComposeState_, keysym) == XKB_COMPOSE_FEED_IGNORED) return true;
-	return (xkb_compose_state_get_status(xkbComposeState_) != XKB_COMPOSE_CANCELLED);
 }
 
 std::string XkbKeyboardContext::utf8(Keycode key) const
@@ -113,7 +108,7 @@ bool XkbKeyboardContext::keyEvent(std::uint8_t keycode, KeyEvent& ev)
 {
 	ev.keycode = xkbToKey(keycode);
 	auto keyuint = static_cast<unsigned int>(ev.keycode);
-	if(keyuint > 255) throw std::logic_error("XkbKC::keyEvent: keycode > 255");
+	if(keyuint > 255) throw std::logic_error("ny::XkbKeyboardContext::keyEvent: keycode > 255");
 
 	keyStates_[keyuint] = ev.pressed;
 

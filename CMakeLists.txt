@@ -32,6 +32,18 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/src/cmake")
 # set(CMAKE_BUILD_WITH_INSTALL_RPATH true)
 
+#enable warnings
+#for msvc we first check if some level is set by default and replace it
+if(MSVC)
+  if(CMAKE_CXX_FLAGS MATCHES "/W[0-4]")
+    string(REGEX REPLACE "/W[0-4]" "/W4" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+  else()
+	  list(APPEND CMAKE_CXX_FLAGS "/W4")
+  endif()
+elseif(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
+	list(APPEND CMAKE_CXX_FLAGS "-Wall -Wno-long-long -Wextra -Wpedantic")
+endif()
+
 #build type
 if(Debug)
 	set(CMAKE_BUILD_TYPE Debug)
@@ -55,29 +67,28 @@ endif()
 # dependent options
 include(CMakeDependentOption)
 
-# integration/context support
 cmake_dependent_option(WithGl "Build ny with gl support" on
 	"OPENGL_FOUND" off)
 cmake_dependent_option(WithEgl "Built ny with egl support" on
 	"WithGL;EGL_FOUND" off)
 cmake_dependent_option(WithVulkan "Build ny with vulkan support" on
 	"VULKAN_FOUND" off)
-# backends
 
+cmake_dependent_option(WithXkbCommon "Build with xkbcommon support" on
+	"XKBCOMMON_FOUND" off)
 cmake_dependent_option(WithX11 "Build ny with a x11 backend" on
-	"XKBCOMMON_FOUND;X11_FOUND;XCB_FOUND" off)
+	"WithXkbCommon;X11_FOUND;XCB_FOUND" off)
 cmake_dependent_option(WithWayland "Build ny with a wayland backend" on
-	"XKBCOMMON_FOUND;WAYLAND_FOUND" off)
+	"WithXkbCommon;WAYLAND_FOUND" off)
 cmake_dependent_option(WithWinapi "Build ny with a winapi backend" on
 	"WIN32" off)
 
-# check for invalid configurations
-# no backend
+# warn if no built-in backends can be compiled
 if(NOT WithWayland AND NOT WithX11 AND NOT WithWinapi)
 	message(WARNING "Could not find any backend to build ny with")
 endif()
 
-#test for nytl
+# test for nytl
 find_package(nytl 0.3.0)
 if(nytl_FOUND AND nytl_INCLUDE_DIRS EQUAL CMAKE_INSTALL_PREFIX)
 	set(nytl_location ${nytl_INCLUDE_DIRS})
@@ -108,11 +119,12 @@ else()
 	install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/external/install/." DESTINATION .)
 endif()
 
-#config file
-#first set all macros (they have NY_ prefix since they are macros)
+# config file
+# first set all macros (they have NY_ prefix since they are macros)
 set(NY_WithGl ${WithGl})
 set(NY_WithEgl ${WithEgl})
 set(NY_WithVulkan ${WithVulkan})
+set(NY_WithXkbCommon ${WithXkbCommon})
 
 set(NY_WithWinapi ${WithWinapi})
 set(NY_WithX11 ${WithX11})
@@ -166,6 +178,7 @@ normalize(WithVulkan)
 normalize(WithWinapi)
 normalize(WithX11)
 normalize(WithWayland)
+normalize(WithXkbCommon)
 
 #output
 message("\t\nFinal Configuration:\n")
@@ -176,10 +189,11 @@ message("\tWithX11:\t\t" ${WithX11})
 message("\tWithGl:\t\t\t" ${WithGl})
 message("\tWithEgl:\t\t" ${WithEgl})
 message("\tWithVulkan:\t\t" ${WithVulkan})
+message("\tWithXkbCommon:\t\t" ${WithXkbCommon})
 message("\n")
 
-message("\tnytl build:\t\t" ${nytl_location})
-message("\texamples:\t\t" ${BuildExamples})
+message("\tUsed nytl:\t\t" ${nytl_location})
+message("\tExamples:\t\t" ${BuildExamples})
 
-message("\n\tny version:\t\t" ${vmajor} "." ${vminor} "." ${vpatch})
+message("\n\tVersion:\t\t" ${vmajor} "." ${vminor} "." ${vpatch})
 message("\n")
