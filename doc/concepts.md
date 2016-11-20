@@ -1,8 +1,7 @@
-Developement documentation
+Developement concepts
 ==========================
 
-This includes developement concepts, future ideas and interfaces or documentation for the
-implementation stuff behind the scenes that is mainly interesting for ny devs.
+*__This includes developement concepts, or future ideas and interfaces.__*
 
 EventTypeRegister
 =================

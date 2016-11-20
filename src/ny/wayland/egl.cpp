@@ -52,10 +52,10 @@ WaylandEglWindowContext::~WaylandEglWindowContext()
 	if(wlEglWindow_) wl_egl_window_destroy(wlEglWindow_);
 }
 
-void WaylandEglWindowContext::size(const nytl::Vec2ui& newSize)
+void WaylandEglWindowContext::size(nytl::Vec2ui size)
 {
-	WaylandWindowContext::size(newSize);
-    wl_egl_window_resize(wlEglWindow_, newSize.x, newSize.y, 0, 0);
+	WaylandWindowContext::size(size);
+    wl_egl_window_resize(wlEglWindow_, size.x, size.y, 0, 0);
 }
 
 Surface WaylandEglWindowContext::surface()

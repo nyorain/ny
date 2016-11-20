@@ -496,7 +496,7 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev)
 
 		EventHandlerEvent(MouseMoveEvent, motion.event);
         event.position = pos;
-        event.screenPosition = Vec2i(motion.root_x, motion.root_y);
+        event.screenPosition = nytl::Vec2i(motion.root_x, motion.root_y);
 
 		dispatch(event);
 		break;
@@ -665,8 +665,8 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev)
 		auto& configure = reinterpret_cast<const xcb_configure_notify_event_t&>(ev);
 
         //todo: something about window state
-        auto nsize = Vec2ui(configure.width, configure.height);
-        // auto npos = Vec2i(configure.x, configure.y); //positionEvent
+        auto nsize = nytl::Vec2ui(configure.width, configure.height);
+        // auto npos = nytl::Vec2i(configure.x, configure.y); //positionEvent
 
 		auto wc = windowContext(configure.window);
 		if(wc) wc->sizeEvent(nsize);

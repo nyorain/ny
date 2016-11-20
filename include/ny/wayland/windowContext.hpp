@@ -44,11 +44,11 @@ public:
 
     // void droppable(const DataTypes&) override;
 
-    void minSize(const nytl::Vec2ui&) override;
-    void maxSize(const nytl::Vec2ui&) override;
+    void minSize(nytl::Vec2ui minSize) override;
+    void maxSize(nytl::Vec2ui maxSize) override;
 
-    void size(const nytl::Vec2ui& size) override;
-    void position(const nytl::Vec2i& position) override;
+    void size(nytl::Vec2ui minSize) override;
+    void position(nytl::Vec2i position) override;
 
     void cursor(const Cursor& c) override;
 	NativeHandle nativeHandle() const override;
@@ -65,7 +65,7 @@ public:
     void beginMove(const MouseButtonEvent* ev) override;
     void beginResize(const MouseButtonEvent* event, WindowEdges edges) override;
 
-    void title(const std::string& name) override;
+    void title(nytl::StringParam name) override;
 	void icon(const ImageData&) override {}
 
 	bool customDecorated() const override { return true; }

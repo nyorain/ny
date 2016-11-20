@@ -68,7 +68,7 @@ auto windowContext = appContext.createWindowContext(windowSettings);
 //note that the application should NOT destroy vkSurface manually.
 ```
 
-Note: the explicit reintrpret_cast<std::uintptr_t*>(&vkSurface) is needed because ny does not
+*__Note__*: the explicit reintrpret_cast<std::uintptr_t*>(&vkSurface) is needed because ny does not
 forward-declare the rather non-trivial type definition of VkSurfaceKHR (which is dependent on
 whehter the compiler is 32 or 64 bit). Every occurrence of VkSurfaceKHR in ny is represented
 by a std::uintptr_t since this is big enough to store its value on any platform.

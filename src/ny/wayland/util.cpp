@@ -110,7 +110,7 @@ int osCreateAnonymousFile(off_t size)
 }
 
 //shmBuffer
-ShmBuffer::ShmBuffer(WaylandAppContext& ac, Vec2ui size, unsigned int stride)
+ShmBuffer::ShmBuffer(WaylandAppContext& ac, nytl::Vec2ui size, unsigned int stride)
 	: appContext_(&ac), size_(size), stride_(stride)
 {
 	format_ = WL_SHM_FORMAT_ARGB8888;
@@ -216,7 +216,7 @@ void ShmBuffer::destroy()
     if(data_) munmap(data_, shmSize_);
 }
 
-bool ShmBuffer::size(const Vec2ui& size, unsigned int stride)
+bool ShmBuffer::size(const nytl::Vec2ui& size, unsigned int stride)
 {
     size_ = size;
 	stride_ = stride;
@@ -299,14 +299,14 @@ void Output::geometry(int x, int y, int phwidth, int phheight, int subpixel,
 	information_.model = model;
 	information_.transform = transform;
 	information_.position = {x, y};
-	information_.physicalSize = Vec2ui(phwidth, phheight);
+	information_.physicalSize = nytl::Vec2ui(phwidth, phheight);
 	information_.subpixel = subpixel;
 }
 
 void Output::mode(unsigned int flags, int width, int height, int refresh)
 {
 	unsigned int urefresh = refresh;
-	information_.modes.push_back({Vec2ui(width, height), flags, urefresh});
+	information_.modes.push_back({nytl::Vec2ui(width, height), flags, urefresh});
 }
 
 void Output::done()

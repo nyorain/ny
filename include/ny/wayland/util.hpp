@@ -28,13 +28,13 @@ class ShmBuffer
 {
 public:
 	ShmBuffer() = default;
-    ShmBuffer(WaylandAppContext& ac, Vec2ui size, unsigned int stride = 0);
+    ShmBuffer(WaylandAppContext& ac, nytl::Vec2ui size, unsigned int stride = 0);
     ~ShmBuffer();
 
 	ShmBuffer(ShmBuffer&& other);
 	ShmBuffer& operator=(ShmBuffer&& other);
 
-    Vec2ui size() const { return size_; }
+    nytl::Vec2ui size() const { return size_; }
     unsigned int dataSize() const { return stride_ * size_.y; }
 	unsigned int format() const { return format_; }
 	unsigned int stride() const { return stride_; }
@@ -57,18 +57,18 @@ public:
 	///(e.g. more than 1000x1000px with 32bit color).
 	///\return true if the data pointer changed, false if it stayed the same, i.e.
 	///returns whether a new shm pool had to be created
-    bool size(const Vec2ui& size, unsigned int stride = 0);
+    bool size(const nytl::Vec2ui& size, unsigned int stride = 0);
 
 protected:
 	WaylandAppContext* appContext_ {};
 
-    Vec2ui size_;
+    nytl::Vec2ui size_;
 	unsigned int stride_ {};
     unsigned int shmSize_ = 1024 * 1024 * 5; //5MB at the beginning
 
     wl_buffer* buffer_ {};
     wl_shm_pool* pool_ {};
-	std::uint8_t* data_ {};
+	uint8_t* data_ {};
 	unsigned int format_ {}; //wayland format; argb > bgra > rgba > abgr > xrgb (all 32 bits)
     bool used_ {0}; //whether the compositor owns the buffer atm
 

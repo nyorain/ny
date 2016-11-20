@@ -169,13 +169,13 @@ void WaylandWindowContext::removeWindowHints(WindowHints hints)
 	nytl::unused(hints);
 }
 
-void WaylandWindowContext::size(const nytl::Vec2ui& size)
+void WaylandWindowContext::size(nytl::Vec2ui size)
 {
 	size_ = size;
 	refresh();
 }
 
-void WaylandWindowContext::position(const nytl::Vec2i& position)
+void WaylandWindowContext::position(nytl::Vec2i position)
 {
     if(wlSubsurface())
     {
@@ -261,11 +261,11 @@ void WaylandWindowContext::cursor(const Cursor& cursor)
 // 	warning("ny::WaylandWindowContext::droppable: not implemented");
 // }
 
-void WaylandWindowContext::minSize(const Vec2ui&)
+void WaylandWindowContext::minSize(nytl::Vec2ui)
 {
 	warning("ny::WaylandWindowContext::maxSize: wayland has no capability for size limits");
 }
-void WaylandWindowContext::maxSize(const Vec2ui&)
+void WaylandWindowContext::maxSize(nytl::Vec2ui)
 {
 	warning("ny::WaylandWindowContext::maxSize: wayland has no capability for size limits");
 }
@@ -341,10 +341,10 @@ void WaylandWindowContext::beginResize(const MouseButtonEvent* ev, WindowEdges e
     wl_shell_surface_resize(wlShellSurface_, appContext_->wlSeat(), data->serial, wlEdge);
 }
 
-void WaylandWindowContext::title(const std::string& titlestring)
+void WaylandWindowContext::title(nytl::StringParam titlestring)
 {
-	if(wlShellSurface_) wl_shell_surface_set_title(wlShellSurface_, titlestring.c_str());
-	else if(xdgSurface_) xdg_surface_set_title(xdgSurface_, titlestring.c_str());
+	if(wlShellSurface_) wl_shell_surface_set_title(wlShellSurface_, titlestring);
+	else if(xdgSurface_) xdg_surface_set_title(xdgSurface_, titlestring);
 }
 
 wl_shell_surface* WaylandWindowContext::wlShellSurface() const

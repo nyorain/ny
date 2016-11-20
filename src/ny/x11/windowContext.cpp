@@ -201,14 +201,14 @@ void X11WindowContext::hide()
     xcb_unmap_window(&xConnection(), xWindow_);
 }
 
-void X11WindowContext::size(const Vec2ui& size)
+void X11WindowContext::size(nytl::Vec2ui size)
 {
 	xcb_configure_window(&xConnection(), xWindow_,
 		XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT, size.data());
     refresh();
 }
 
-void X11WindowContext::position(const Vec2i& position)
+void X11WindowContext::position(nytl::Vec2i position)
 {
 	std::uint32_t data[2];
 	data[0] = position.x;
@@ -402,7 +402,7 @@ NativeHandle X11WindowContext::nativeHandle() const
 	return NativeHandle(xWindow_);
 }
 
-void X11WindowContext::minSize(const Vec2ui& size)
+void X11WindowContext::minSize(nytl::Vec2ui size)
 {
 	xcb_size_hints_t hints {};
 	hints.min_width = size.x;
@@ -411,7 +411,7 @@ void X11WindowContext::minSize(const Vec2ui& size)
 	xcb_icccm_set_wm_normal_hints(&xConnection(), xWindow(), &hints);
 }
 
-void X11WindowContext::maxSize(const Vec2ui& size)
+void X11WindowContext::maxSize(nytl::Vec2ui size)
 {
 	xcb_size_hints_t hints {};
 	hints.max_width = size.x;
@@ -530,7 +530,7 @@ void X11WindowContext::addWindowHints(WindowHints hints)
 void X11WindowContext::removeWindowHints(WindowHints hints)
 {
 	nytl::unused(hints);
-	
+
     // unsigned long motifDeco = 0;
     // unsigned long motifFunc = 0;
 

@@ -132,44 +132,21 @@ or can check for custom data formats when receiving data.
 The definition of the DataFormat class with an example custom object.
 
 ```cpp
-///Description of a data format by mime and non-mime strings.
-///Every DataFormat object should have at least one mime or nonMime name entry, otherwise
-///it is considered empty/invalid.
-///Mime-types should be preferred and don't have to be standardized. Standardized mime-types
-///should be preffered (i.e. add a "image/png" mime entry instead of "image/x-png").
-///More significant names/better descriptions should be first in the vectors and the worse
-///last.
-///For equality comparison between 2 DataFormat objects, their first mime entries (or if
-///not existent for neither of them, their first nonMime entries) will be compared using strcmp.
-class DataFormat
-{
-public:
-	std::vector<const char*> mime;
-	std::vector<const char*> nonMime;
+///Create a custom DataFormat for mp3 data.
+ny::DataFormat mp3Format;
 
-public:
-	static const DataFormat none {}; //empty object, used for invalid formats
-	static const DataFormat raw;
-	static const DataFormat text;
-	static const DataFormat uriList;
-	static const DataFormat image;
-};
+///The name of the format should be a mime-type describing it the best.
+///This will be used for comparing DataFormats and will be name mainly given to it
+///when data with this format is presented to other applications.
+mp3Format.name = "audio/mp3";
 
-bool operator==(const DataFormat& a, const DataFormat& b)
-{
-	if(a.mime.empty() && b.mime.empty())
-		return !std::strcmp(a.nonMime.front(), b.nonMime.front());
+///One can also store additional names that could help other applications figure it out.
+///Note that here should only be listed names that are only used desribed to describe the exact
+///same type, otherwise other applications may expect some other data.
+mp3Format.additionalNames = {"audio/mpeg", "mp3", "mp3-audio", "mpeg3", "mpeg"};
 
-	if(!a.mime.empty() && !b.mime.empty())
-		return !std::strcmp(a.mime.front(), b.mime.front());
-
-	return false;
-}
-
-bool operator!=(const DataFormat& a, const DataFormat& b) { return !(a == b); }
-
-///Simply create a custom DataFormat.
-ny::DataFormat mp3Format({"audio/mp3", "audio/mpeg"}, {"mp3", "mp3-audio", "mpeg3", "mpeg"});
+///We could now e.g. return this DataFormat from our own DataSource implementation when
+///we can provide mp3 data.
 ```
 
 For custom data formats, DataOffers/DataSources must always wrap a
@@ -186,91 +163,12 @@ In the table below, Range means nytl::Range.
 
 <center>
 
-| Format 	| Source type 			| Offer type 			| example mime-type 			|
-|-----------|-----------------------|-----------------------|-------------------------------|
-| raw		| Range\<uint8_t>		| vector\<uint8_t>		| "application/octet-stream"	|
-| text		| Range\<char>			| string				| "text/plain"					|
-| uriList	| Range\<const char*> 	| vector\<string> 		| "text/uri-list"				|
-| image		| ImageData				| OwnedImageData		| "image/x-ny-data"				|
+| Format 	| std::any wrapped type 	| mime-type name				|
+|-----------|---------------------------|-------------------------------|
+| raw		| std::vector<uint8_t>		| "application/octet-stream"	|
+| text		| std::string				| "text/plain"					|
+| uriList	| std::vector<string> 		| "text/uri-list"				|
+| image		| ny::OwnedImageData		| "image/x-ny-data"				|
+| <custom>  | std::vector<uint8_t>		| custom						|
 
 </center>
-
-
-
-
-```cpp
-///Allows to deal with single-threaded asynchronous requests.
-///Usually wait() will not just wait but instead keep the internal event loop running.
-///It also allows to register a callback to be called on request completion.
-///It can also easily be used for synchronous requests, since it could be ready from the
-///beginning. Since several operations are implemented sync or async by different backends,
-///this abstraction is needed.
-///The registered callback function will always be called from the gui thread during wait
-///or some other event dispatching functions.
-///The member functions of AsyncRequest objects should always only be used from the main gui
-///thread that it was retrieved from. It cannot be directly used from other threads like
-///e.g. std::future), but the flexible callback design can be easily used to achieve something
-///similiar.
-template <typename R>
-class AsyncRequest
-{
-public:
-	virtual ~AsyncRequest() = default;
-
-	///Waits until the request is finished.
-	///When this call returns, the registered callback function was triggered or (if there
-	///is none) this request will be ready and the return object can be retrieved with get.
-	///While waiting, the internal gui thread event loop will be run.
-	virtual void wait(LoopControl* lc = nullptr) = 0;
-
-	///Returns whether the AsyncRequest is valid.
-	///If this is false, calling other member functions results in undefined behaviour.
-	///Requests which return objects where retrieved (by get or callback) are invalid.
-	virtual bool valid() const = 0;
-
-	///Returns whether the AsyncRequest is ready, i.e. if an object of type R can
-	///be retrieved with get. Calling get if this returns false results in an
-	///exception.
-	virtual bool ready() const = 0;
-
-	///Returns the retrieved object if it is available.
-	///Otherwise (i.e. if this function was called while ready() returns false) this
-	///will throw a std::logic_error.
-	virtual R get() = 0;
-
-	///Sets the callback that retrieves the data to the given function.
-	///Note that if a wait function is called (or the requests finished in some othe way)
-	///this function is called immedietly and therefore the requests gets non-ready and invalid
-	///instantly. Note that there is already a callback function for this request, it is
-	///cleared and set to the given one.
-	///If this is called by the request is ready, the callback will be instanly triggered.
-	///The callback is only once called since after it is called the AsyncRequest is set to
-	///an invalid state.
-	virtual void callback(CallbackFunc) = 0;
-};
-
-class DataSource
-{
-public:
-	virtual ~DataSource() = default;
-
-	virtual std::vector<DataFormats> formats() const = 0;
-	virtual std::any data(const DataFormat& format) const = 0;
-
-	///Returns an image preview of the data being dragged.
-	virtual ImageData preview() const { return {}; };
-};
-
-class DataOffer
-{
-public:
-	using FormatsRequest = std::unique_ptr<AsyncRequest<std::vector<Formats>>>;
-	using DataRequest = std::unique_ptr<AsyncReqeuest<std::any>>;
-
-public:
-	DataOffer() = default;
-	virtual ~DataOffer() = default;
-
-	virtual FormatsRequest formats() const = 0;
-	virtual DataRequest data(const DataFormat& fmt) = 0;
-```

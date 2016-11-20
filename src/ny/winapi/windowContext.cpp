@@ -289,11 +289,11 @@ void WinapiWindowContext::sizeEvent(nytl::Vec2ui size)
 {
 }
 
-void WinapiWindowContext::size(const Vec2ui& size)
+void WinapiWindowContext::size(nytl::Vec2ui size)
 {
 	::SetWindowPos(handle_, HWND_TOP, 0, 0, size.x, size.y, SWP_NOMOVE | SWP_ASYNCWINDOWPOS);
 }
-void WinapiWindowContext::position(const Vec2i& position)
+void WinapiWindowContext::position(nytl::Vec2i position)
 {
 	::SetWindowPos(handle_, HWND_TOP, position.x, position.y, 0, 0, SWP_NOSIZE | SWP_ASYNCWINDOWPOS);
 }
@@ -452,12 +452,12 @@ void WinapiWindowContext::normalState()
 	::ShowWindowAsync(handle_, SW_RESTORE);
 }
 
-void WinapiWindowContext::minSize(const nytl::Vec2ui& size)
+void WinapiWindowContext::minSize(nytl::Vec2ui size)
 {
 	minSize_ = size;
 }
 
-void WinapiWindowContext::maxSize(const nytl::Vec2ui& size)
+void WinapiWindowContext::maxSize(nytl::Vec2ui size)
 {
 	maxSize_ = size;
 }

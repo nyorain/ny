@@ -1,8 +1,9 @@
 current:
 
 - update backends for new LoopControl
-- rework data (see dataExchange.md)
-	- async request, event dispatching (nested?)
+- update backends for new data
+- ny::DataFormat comparsion
+- some fixes/rethinking to AsyncRequest
 
 - normalize wheel input values in some way across backends
 - event type register, see doc/concepts/events
@@ -15,6 +16,10 @@ current:
 - use pass-by-value for nytl::Vec2 params
 - touch support (TouchContext and touch events)
 - test image and uri serialize/deserialize
+
+- documentation
+	- operation
+	- dataExchange fix
 
 low prio, for later:
 
@@ -38,10 +43,10 @@ x11 backend:
 - egl support instead of glx?
 
 wayland backend:
+- min/max size
 - animated cursor (low prio)
 - support xdg popup (and version 6), other protocols (low prio)
 - ShmBuffer shm_pool shared (not one per buffer...)
-- remove wayland/interfaces (instead use direct object callbacks for window)
 
 winapi backend:
 - wgl api reparse [loader, swap control tear]

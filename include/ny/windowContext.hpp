@@ -63,20 +63,20 @@ public:
 
 	///Sets the minimal size of the window.
 	///Might have no effect on certain backends.
-	virtual void minSize(const nytl::Vec2ui&) = 0;
+	virtual void minSize(nytl::Vec2ui minSize) = 0;
 
 	///Sets the maximal size of the window.
 	///Might have no effect on certain backends.
-	virtual void maxSize(const nytl::Vec2ui&) = 0;
+	virtual void maxSize(nytl::Vec2ui maxSize) = 0;
 
 	///Resizes the window.
 	///Will usually trigger a DrawEvent.
-	virtual void size(const nytl::Vec2ui& size) = 0;
+	virtual void size(nytl::Vec2ui size) = 0;
 
 	///Sets the position of the window.
 	///Note that on some backends or if the window is in a fullscreen/maximized state, this
 	///might have no effect.
-	virtual void position(const nytl::Vec2i& position) = 0;
+	virtual void position(nytl::Vec2i position) = 0;
 
 	///Sets the mouse cursor of the window. The mouse cursor will only be changed to the given
 	///cursor when the pointer is oven this window.
@@ -134,7 +134,7 @@ public:
 
 	///Sets the title for the native window.
 	///\warning Shall have only an effect for toplevel windows.
-	virtual void title(const std::string& name) = 0;
+	virtual void title(nytl::StringParam name) = 0;
 
 	///Sets the icon of the native window.
 	///If the given icon pointer variable is an empty image, the icon will be reset/unset.

@@ -71,7 +71,7 @@ Cursor::Cursor(const ImageData& img, nytl::Vec2i hotspot) noexcept
 {
 }
 
-void Cursor::image(const ImageData& img, Vec2i hotspot) noexcept
+void Cursor::image(const ImageData& img, nytl::Vec2i hotspot) noexcept
 {
 	image_ = img;
 	hotspot_ = hotspot;

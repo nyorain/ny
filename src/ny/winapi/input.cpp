@@ -20,7 +20,7 @@ Vec2ui WinapiMouseContext::position() const
 	if(!::GetCursorPos(&p)) return {};
 	if(!::ScreenToClient(over_->handle(), &p)) return {};
 
-	return Vec2i(p.x, p.y);
+	return nytl::Vec2i(p.x, p.y);
 }
 bool WinapiMouseContext::pressed(MouseButton button) const
 {

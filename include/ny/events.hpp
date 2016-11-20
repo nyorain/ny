@@ -25,7 +25,7 @@ class SizeEvent : public EventBase<eventType::size, SizeEvent>
 {
 public:
 	using EvBase::EvBase;
-    Vec2ui size {0, 0};
+    nytl::Vec2ui size {0, 0};
 };
 
 ///Signals that a widow was shown/hidden or its show state was changed by the window manager.
@@ -43,7 +43,7 @@ class PositionEvent : public EventBase<eventType::position, PositionEvent, 1>
 {
 public:
 	using EvBase::EvBase;
-    Vec2i position {0, 0};
+    nytl::Vec2i position {0, 0};
 };
 
 ///Signals that a window should be redrawn.

@@ -39,8 +39,8 @@ public:
 	void addWindowHints(WindowHints hints) override;
 	void removeWindowHints(WindowHints hints) override;
 
-	void size(const Vec2ui& size) override;
-	void position(const Vec2i& position) override;
+	void size(nytl::Vec2ui size) override;
+	void position(nytl::Vec2i position) override;
 
 	void cursor(const Cursor& c) override;
 
@@ -54,8 +54,8 @@ public:
 	void fullscreen() override;
 	void normalState() override;
 
-	void minSize(const Vec2ui& size) override;
-	void maxSize(const Vec2ui& size) override;
+	void minSize(nytl::Vec2ui size) override;
+	void maxSize(nytl::Vec2ui size) override;
 
 	void beginMove(const MouseButtonEvent* ev) override;
 	void beginResize(const MouseButtonEvent* ev, WindowEdges edges) override;
@@ -72,8 +72,7 @@ public:
 	HINSTANCE hinstance() const; ///The associated HINSTANCE
 	HWND handle() const { return handle_; } ///The managed window handle
 
-	Rect2i extents() const; ///Current (async) window extents with server decorations
-	Rect2i clientExtents() const; ///Current (async) client area window extents
+	Rect2i extents() const; ///Current (async) window extents with server decorations Rect2i clientExtents() const; ///Current (async) client area window extents
 
 	const nytl::Vec2ui minSize() const { return minSize_; }
 	const nytl::Vec2ui maxSize() const { return maxSize_; }

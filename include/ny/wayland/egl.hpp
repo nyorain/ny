@@ -23,7 +23,7 @@ public:
     WaylandEglWindowContext(WaylandAppContext&, const EglSetup&, const WaylandWindowSettings&);
     virtual ~WaylandEglWindowContext();
 
-	void size(const Vec2ui& newSize) override;
+	void size(nytl::Vec2ui size) override;
 	Surface surface() override;
 
     wl_egl_window& wlEglWindow() const { return *wlEglWindow_; };

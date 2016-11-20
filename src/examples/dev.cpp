@@ -27,6 +27,7 @@ public:
 protected:
 	ny::LoopControl& lc_;
 	ny::WindowContext& wc_;
+	bool clipboardPending_ = false;
 };
 
 
@@ -133,11 +134,16 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 			return true;
 		}
 
+		if(clipboardPending_) return true;
+		clipboardPending_ = true;
+
 		//retrieving the clipboard DataOffer and listing all formats
 		ny::debug("checking clipboard...");
 		auto dataOffer = ac->clipboard();
+
 		if(!dataOffer) ny::warning("Backend does not support clipboard operations...");
 		else handleDataOffer(*dataOffer);
+		clipboardPending_ = false;
 
 		return true;
 	}

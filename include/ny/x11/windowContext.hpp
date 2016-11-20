@@ -30,13 +30,13 @@ public:
     void show() override;
     void hide() override;
 
-	void droppable(const DataTypes&) override {};
+	// void droppable(const DataTypes&) override {};
 
-    void minSize(const nytl::Vec2ui& size) override;
-    void maxSize(const nytl::Vec2ui& size) override;
+    void minSize(nytl::Vec2ui size) override;
+    void maxSize(nytl::Vec2ui size) override;
 
-    void size(const nytl::Vec2ui& size) override;
-    void position(const nytl::Vec2i& position) override;
+    void size(nytl::Vec2ui size) override;
+    void position(nytl::Vec2i position) override;
 
     void cursor(const Cursor& c) override;
 
@@ -53,7 +53,7 @@ public:
     void beginMove(const MouseButtonEvent* ev) override;
     void beginResize(const MouseButtonEvent* ev, WindowEdges edges) override;
 
-    void title(const std::string& title) override;
+    void title(nytl::StringParam title) override;
 	void icon(const ImageData& img) override;
 	bool customDecorated() const override;
 
