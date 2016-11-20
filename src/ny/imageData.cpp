@@ -4,6 +4,7 @@
 
 #include <ny/imageData.hpp>
 #include <ny/log.hpp>
+#include <cstring>
 
 namespace ny
 {
@@ -119,6 +120,27 @@ std::unique_ptr<std::uint8_t[]> convertFormat(const ImageData& img, ImageDataFor
 	auto ret = std::make_unique<std::uint8_t[]>(newStride * img.size.y);
 	convertFormat(img, to, *ret.get(), alignNewStride);
 	return ret;
+}
+
+OwnedImageData::BasicImageData(const OwnedImageData& other)
+	: size(other.size), format(other.format), stride(other.stride)
+{
+	auto size = dataSize(other);
+	data = std::make_unique<uint8_t[]>(size);
+	std::memcpy(data.get(), other.data.get(), size);
+}
+
+OwnedImageData& OwnedImageData::operator=(const OwnedImageData& other)
+{
+	size = other.size;
+	format = other.format;
+	stride = other.stride;
+
+	auto size = dataSize(other);
+	data = std::make_unique<uint8_t[]>(size);
+	std::memcpy(data.get(), other.data.get(), size);
+
+	return *this;
 }
 
 }

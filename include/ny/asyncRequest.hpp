@@ -6,8 +6,8 @@
 
 #include <ny/fwd.hpp>
 #include <nytl/compFunc.hpp>
+#include <nytl/nonCopyable.hpp>
 
-//TODO
 #include <ny/appContext.hpp>
 #include <ny/loopControl.hpp>
 #include <functional>
@@ -68,10 +68,15 @@ public:
 	virtual void callback(nytl::CompFunc<void(AsyncRequest&)>) = 0;
 };
 
+///Default AsyncRequest implementation that behaves as specified and just waits to
+///be completed by the associated AppContext.
 template <typename R>
-class DefaultAsyncRequest : public AsyncRequest<R>
+class DefaultAsyncRequest : public AsyncRequest<R>, public nytl::NonMovable
 {
 public:
+	DefaultAsyncRequest(AppContext& ac) : appContext_(&ac) {}
+	DefaultAsyncRequest(R value) : ready_(true), value_(value) {}
+
 	void wait(LoopControl* lc = nullptr) override
 	{
 		LoopControl localControl;
@@ -90,13 +95,13 @@ public:
 
 	R get() override { ready_ = false; appContext_ = {}; return std::move(value_); }
 	bool ready() override { return ready_; }
-	bool valid() override { return (appContext_); }
+	bool valid() override { return (appContext_) || (ready_); }
 
 	///This function has to be called by the AppContext event dispatching system
 	///when the request completes.
 	///It will store the passed value, end a potential wait call and trigger the registered
 	///callback function (if any).
-	void trigger(R value)
+	void complete(R value)
 	{
 		ready_ = true;
 		value_ = std::move(value);

@@ -35,10 +35,10 @@ class EventHandler;
 class Cursor;
 class LoopControl;
 class LoopInterface;
-class DataTypes;
+class DataFormat;
 class DataOffer;
 class DataSource;
-class DataObject;
+struct DataObject;
 
 template<typename P> struct BasicImageData;
 using ImageData = BasicImageData<const uint8_t*>;

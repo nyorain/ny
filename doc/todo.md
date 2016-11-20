@@ -14,6 +14,7 @@ current:
 - remove using namespace nytl from fwd
 - use pass-by-value for nytl::Vec2 params
 - touch support (TouchContext and touch events)
+- test image and uri serialize/deserialize
 
 low prio, for later:
 

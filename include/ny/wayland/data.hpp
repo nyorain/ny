@@ -25,8 +25,8 @@ public:
 	WaylandDataOffer(WaylandDataOffer&& other) noexcept;
 	WaylandDataOffer& operator=(WaylandDataOffer&& other) noexcept;
 
-	DataTypes types() const override { return dataTypes_; }
-	nytl::Connection data(unsigned int fmt, const DataOffer::DataFunction& func) override;
+	FormatsRequest formats() const override;
+	DataRequest data(const DataFormat& format) override;
 
 	wl_data_offer& wlDataOffer() const { return *wlDataOffer_; }
 	WaylandAppContext& appContext() const { return *appContext_; }
@@ -39,7 +39,8 @@ public:
 protected:
 	WaylandAppContext* appContext_ {};
 	wl_data_offer* wlDataOffer_ {};
-	DataTypes dataTypes_ {};
+	std::vector<DataFormat> formats_ {};
+	std::vector<std::string> waylandFormats_ {};
 	bool dnd_ {};
 
 	struct PendingRequest
@@ -49,7 +50,7 @@ protected:
 		nytl::ConnectionGuard connection;
 	};
 
-	std::map<unsigned int, PendingRequest> requests_;
+	std::map<std::string, PendingRequest> requests_;
 
 protected:
 	///Wayland callback that is called everytime a new mimeType is announced.

@@ -7,13 +7,13 @@
 #include <ny/fwd.hpp>
 #include <ny/event.hpp>
 #include <ny/imageData.hpp>
+#include <ny/asyncRequest.hpp>
 
 #include <nytl/callback.hpp>
 #include <nytl/stringParam.hpp>
 
 #include <vector>
 #include <memory>
-#include <chrono>
 #include <any>
 
 namespace ny
@@ -26,56 +26,69 @@ namespace eventType
 	constexpr auto dataOffer = 31u;
 }
 
-//For image it should be like this, but since the object is wrapped in an any, it cant
-//be OwnedImageData since it is not copyable.
-//When used by an DataOffer, must be a ny::OwnedImageData object.
-//When used by an DataSource, must be a ny::ImageData object.
-
-///This namespace holds constants for all data formats in which data from a DataSource/DataOffer
-///may be represented.
-///Applications or libraries using ny may specify their own dataTypes. Custom dataTypes
-///are always represented with a std:vector<std::uint8_t> holding the serialized data.
-namespace dataType
-{
-	constexpr auto none = 0u; //meta symbolic constant, should not be manually used
-	constexpr auto custom = 1u; //meta symbolic constant, should not be manually used
-
-	constexpr auto raw = 2u; //std:vector<std::uint8_t>, raw unspecified data buffer
-	constexpr auto text = 3u; //std::string encoded utf8
-	constexpr auto uriList = 4u; //std::vector<std::string>
-	constexpr auto image = 5u; //ny::ImageData
-
-	constexpr auto timePoint = 6u; //std::chrono::system_clock::time_point
-	constexpr auto timeDuration = 7u; //std::chrono::system_clock::time_point
-
-	//raw, specified file buffers, represented as std::vector<std::uint8_t>, may be encoded
-	//note that it is not in the scope of ny to decode images or movies.
-	//some backends might have built-in functionality, they will try to decode it and if
-	//they can they will send dataType::image with the decoded data.
-	constexpr auto bmp = 11u;
-	constexpr auto png = 12u;
-	constexpr auto jpeg = 13u;
-	constexpr auto gif = 14u;
-
-	constexpr auto mp3 = 21u;
-	constexpr auto mp4 = 22u;
-	constexpr auto webm = 23u;
-}
-///Represents multiple data type formats in which certain data can be retrieved.
-///Used by DataSource and DataOffer to signal in which types the data is available.
-///The constant types used should be defined as constexpr std::uint8_t in the ny::dataType
-///namespace. ny already provides the most common datatypes, applications can extent them with
-///their own definitions starting with number 100.
-///\sa dataTypes
-class DataTypes
+///Description of a data format by mime and non-mime strings.
+///There are a few standard formats in which data is passed around (i.e. wrapped
+///into the returnd std::any object form DataSource or DataOffer) using special types.
+///Data in custom DataFormats are passed around using a raw buffer.
+///The names of the standard formats should not be used for custom formats.
+///Formats, their mime-type names and the types they should be stored in:
+///
+/// | Format 	| Non-Owned type 		| Owned type 			| mime-type name				|
+/// |-----------|-----------------------|-----------------------|-------------------------------|
+/// | raw		| Range<uint8_t>		| vector<uint8_t>		| "application/octet-stream"	|
+/// | text		| Range<char>			| string				| "text/plain"					|
+/// | uriList	| Range<const char*> 	| vector<string> 		| "text/uri-list"				|
+/// | image		| ImageData				| OwnedImageData		| "image/x-ny-data"				|
+/// | <custom>  | Range<uint8_t> 		| vector<uint8_t>		|								|
+class DataFormat
 {
 public:
-	std::vector<unsigned int> types;
+	///The primary default name of the DataFormat.
+	///This will be used to compare multiple DataFormats and must not be empty, otherwise
+	///the DataFormat is invalid.
+	///This should be a mime-type, but does not have to be a standardized one if there is none.
+	std::string name;
+
+	///Additional names that this format might be recognized under. Basically a help for
+	///other applications that might know it the same format under a different name.
+	///More significant names/descriptions should come first. Can also contains none mime-type
+	///names, but should be avoided.
+	std::vector<std::string> names;
 
 public:
-	void add(unsigned int type);
-	void remove(unsigned int type);
-	bool contains(unsigned int type) const;
+	static const DataFormat none; //empty object, used for invalid formats
+	static const DataFormat raw; //raw, not further specified data buffer
+	static const DataFormat text; //textual data
+	static const DataFormat uriList; //a list of uri objects
+	static const DataFormat imageData; //raw image data
+};
+
+bool operator==(const DataFormat& a, const DataFormat& b) { return a.name == b.name; }
+bool operator!=(const DataFormat& a, const DataFormat& b) { return !(a == b); }
+
+///DataObject that holds a type-erased data object and a description of the type
+///and format this data has.
+struct DataObject
+{
+	///The data wrapped into an any object.
+	///The other DataObject members specify its type.
+	///See the DataFormat type table for more information.
+	///If this is empty the DataObject is invalid.
+	std::any data {};
+
+	///The format of the data. This can either be one of the standard DataFormats that
+	///have a special type associated with them or a custom format.
+	DataFormat format {};
+
+	///Specifies whether the data any contains owned or not-owned data.
+	///There are usually two different data types for a DataFormat depending on
+	///whether the data is owned or not.
+	///This can be used to prevent unneeded copies of huge data.
+	bool owned {};
+
+	///Default invalid DataObject.
+	///Usually used to signal that retrieving data failed or a request was invalid.
+	const static DataObject none;
 };
 
 ///The DataSource class is an interface implemented by the application to start drag and drop
@@ -88,12 +101,12 @@ public:
 	virtual ~DataSource() = default;
 
 	///Returns all supported dataTypes format constants as a DataTypes object.
-	virtual DataTypes types() const = 0;
+	virtual std::vector<DataFormat> types() const = 0;
 
-	///Returns a std::any holding the data in the given format.
+	///Returns data in the given format and specifies whehter it is the owned type.
 	///The std::any must contain a object of the type specified at the dataType constant
 	///declaration.
-	virtual std::any data(unsigned int format) const = 0;
+	virtual DataObject data(const DataFormat& format) const = 0;
 
 	///Returns an image representing the data. This image could e.g. used
 	///when this DataSource is used for a drag and drop opertation.
@@ -115,10 +128,13 @@ class DataOffer
 public:
 	using DataFunction = nytl::CompFunc<void(const std::any&, DataOffer&, unsigned int)>;
 
+	using FormatsRequest = std::unique_ptr<AsyncRequest<std::vector<DataFormat>>>;
+	using DataRequest = std::unique_ptr<AsyncRequest<DataObject>>;
+
 public:
-	//TODO: make this a function that registers a function (to make sense on e.g. winapi)
 	///Will be called everytime a new format is signaled.
-	Callback<bool(DataOffer& off, unsigned int fmt)> onFormat;
+	// [[deprecated("Use the new AsyncRequest api")]]
+	Callback<bool(DataOffer& offer, const DataFormat& format)> onFormat;
 
 public:
 	DataOffer() = default;
@@ -128,7 +144,9 @@ public:
 	///Note that on some backends the supported types are queried async, therefore
 	///this list might grow over time, add a function to the onFormat callback to
 	///retrieve new supported types.
-	virtual DataTypes types() const = 0;
+	// [[deprecated("Use the new AsyncRequest api")]]
+	virtual std::vector<DataFormat> types() const { return {}; };
+	virtual FormatsRequest formats() const { throw 0; };
 
 	///Requests conversion of the data into the given format and registers a function
 	///that should be asynchronous called when the data arrives.
@@ -141,7 +159,9 @@ public:
 	///empty any object.
 	///Note that on some backends this function might not return (running an internal event loop)
 	///until the data is retrieved.
-	virtual nytl::Connection data(unsigned int fmt, const DataFunction& func) = 0;
+	// [[deprecated("Use the new AsyncRequest api")]]
+	virtual nytl::Connection data(const DataFormat&, const DataFunction&) { return {}; }
+	virtual DataRequest data(const DataFormat&) { throw 0; }
 };
 
 ///Event which will be sent when the application recieves data from another application.
@@ -157,26 +177,14 @@ public:
 	DataOfferEvent(DataOfferEvent&&) noexcept = default;
 	DataOfferEvent& operator=(DataOfferEvent&&) noexcept = default;
 
-	//XXX: should this be mutable?
 	//events are usually passed around as const (EventHandler::handleEvent) but the
 	//handler receiving this might wanna take ownership of the DataOffer implementation
 	//which is not possible with a const event.
 	mutable std::unique_ptr<DataOffer> offer;
 };
 
-///Converts the given string to a dataType constant. If the given string is not recognized,
-///0 is returned. Mainly useful for mime types.
-unsigned int stringToDataType(nytl::StringParam type, bool onlyMime = false);
-
-///Returns a number of string that describe the given data type.
-///Will return an empty vector if the type is not known.
-std::vector<const char*> dataTypeToString(unsigned int type, bool onlyMime = false);
-
-using TimePoint = std::chrono::system_clock::time_point;
-using TimeDuration = std::chrono::system_clock::duration;
-
-std::vector<std::uint8_t> serialize(const ImageData&);
-OwnedImageData deserializeImageData(const std::vector<std::uint8_t>& buffer);
+std::vector<uint8_t> serialize(const ImageData&);
+OwnedImageData deserializeImageData(nytl::Range<uint8_t> buffer);
 
 ///Encodes a vector of uris to a single string with mime-type text/uri-list encoded in utf8.
 ///Will replace special chars with their escape codes and seperate the given uris using
@@ -184,9 +192,23 @@ OwnedImageData deserializeImageData(const std::vector<std::uint8_t>& buffer);
 ///\sa decodeUriList
 std::string encodeUriList(const std::vector<std::string>& uris);
 
-///Decodes a given utf8 encoded strinf of mime-type text/uri-list to a vector of uris.
+///Decodes a given utf8 encoded string of mime-type text/uri-list to a vector of uris.
 ///Will replace '%' escape codes in the list with utf8 special chars and ignore comment lines.
+///\param removeComments removes uri lines that start with a '#'
 ///\sa encodeUriList
-std::vector<std::string> decodeUriList(nytl::StringParam list);
+std::vector<std::string> decodeUriList(const std::string& list, bool removeComments = true);
+
+///Returns an DataObject that wraps the data of a raw buffer in the correct format
+///for the given parameters. Does basically check for standard formats and wrap the
+///raw buffer otherwise.
+DataObject wrap(nytl::Range<uint8_t> rawBuffer, const DataFormat& format, bool owned);
+
+///Returns a raw buffer for the given DataObject and the DataFormat for the data the any wraps.
+nytl::Range<uint8_t> unwrap(const DataObject& dataObject, std::vector<uint8_t>& owned);
+std::vector<uint8_t> unwrapOwned(const DataObject& dataObject);
+
+// TODO: for additional parameter (e.g. charset) parsing?
+// std::any wrap(nytl::Range<uint8_t> rawBuffer, nytl::StringParam formatName);
+// std::vector<uint8_t> unwrap(const std::any& any, nytl::StringParam formatName);
 
 }

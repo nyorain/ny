@@ -135,17 +135,23 @@ void WaylandDataOffer::destroy()
 	}
 }
 
-nytl::Connection WaylandDataOffer::data(unsigned int fmt, const DataOffer::DataFunction& func)
+WaylandDataOffer::DataRequest WaylandDataOffer::data(const DataFormat& format)
 {
-	auto mimeType = formatToMimeType(fmt);
-	if(!mimeType)
+	//find the corresponding wayland format string
+	const char* waylandFormat {};
+	for(auto& mime : format.mime)
+		for(auto wlfmt : waylandFormats_) if(wlfmt == mime) waylandFormat = wlfmt.c_str();
+
+	for(auto& nonMime : format.nonMime)
+		for(auto wlfmt : waylandFormats_) if(wlfmt == nonMime) waylandFormat = wlfmt.c_str();
+
+	if(!waylandFormat)
 	{
-		warning("WaylandDataOffer::data: unsupported format.");
-		func({}, *this, fmt);
+		warning("ny::WaylandDataOffer::data: unsupported format.");
 		return {};
 	}
 
-	auto& conn = requests_[fmt].connection;
+	auto& conn = requests_[waylandFormat].connection;
 
 	//we check if there is already a pending request for the given format.
 	//if so, we skip all request and appContext fd callback registering
@@ -155,20 +161,20 @@ nytl::Connection WaylandDataOffer::data(unsigned int fmt, const DataOffer::DataF
 		auto ret = pipe2(fds, O_CLOEXEC);
 		if(ret < 0)
 		{
-			warning("WaylandDataOffer::data: pipe2 failed.");
-			func({}, *this, fmt);
+			warning("ny::WaylandDataOffer::data: pipe2 failed: ", std::strerror(errno));
 			return {};
 		}
 
-		wl_data_offer_receive(wlDataOffer_, "text/plain;charset=utf-8", fds[1]);
+		wl_data_offer_receive(wlDataOffer_, waylandFormat, fds[1]);
 		// debug("receive callled...");
 
-		auto callback = [wlOffer = wlDataOffer_, ac = appContext_, fmt](int fd, unsigned int re)
+		auto callback = [wlOffer = wlDataOffer_,
+			ac = appContext_, format, waylandFormat] (int fd)
 		{
-			debug("callback, ", re);
+			// debug("callback, ", re);
 			constexpr auto readCount = 1000;
 			auto self = static_cast<WaylandDataOffer*>(wl_data_offer_get_user_data(wlOffer));
-			auto& buffer = self->requests_[fmt].buffer;
+			auto& buffer = self->requests_[waylandFormat].buffer;
 
 			auto ret = 0;
 			do
@@ -182,8 +188,8 @@ nytl::Connection WaylandDataOffer::data(unsigned int fmt, const DataOffer::DataF
 			//the data source side might write multiple data segments and not be
 			//finished here...
 			std::any any;
-			if(fmt == dataType::text) any = std::string(buffer.begin(), buffer.end());
-			else any = buffer;
+			if(format == &DataFormat::text) any = std::string(buffer.begin(), buffer.end());
+			if(format)
 
 			self->requests_[fmt].callback(any, *self, fmt);
 			self->requests_.erase(self->requests_.find(fmt));
@@ -193,20 +199,14 @@ nytl::Connection WaylandDataOffer::data(unsigned int fmt, const DataOffer::DataF
 		conn = appContext_->fdCallback(fds[0], POLLIN, callback);
 	}
 
-	return requests_[fmt].callback.add(func);
+	auto ret = std::make_unique<DefaultAsyncRequest<std::any>>(appContext());
+	return ret;
 }
 
-void WaylandDataOffer::offer(const char* mimeType)
+void WaylandDataOffer::offer(const char* format)
 {
-	auto fmt = mimeTypeToFormat(mimeType);
-	// log("ny::WaylandDataOffer::offer: ", mimeType);
-	// log("ny::WaylandDataOffer::offer format: ", fmt);
-
-	if(fmt != dataType::none)
-	{
-		dataTypes_.add(fmt);
-		wl_data_offer_accept(wlDataOffer_, 0, mimeType);
-	}
+	waylandFormats_.push_back(format);
+	// wl_data_offer_accept(wlDataOffer_, 0, mimeType);
 }
 
 void WaylandDataOffer::sourceActions(unsigned int actions)

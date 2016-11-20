@@ -61,10 +61,27 @@ struct BasicImageData
 	unsigned int stride {};
 };
 
-using ImageData = BasicImageData<const std::uint8_t*>;
-using MutableImageData = BasicImageData<std::uint8_t*>;
-using OwnedImageData = BasicImageData<std::unique_ptr<std::uint8_t[]>>;
-using SharedImageData = BasicImageData<std::shared_ptr<std::uint8_t[]>>;
+///BasicImageData specialization for owned image data that makes it copyable.
+template<>
+struct BasicImageData<std::unique_ptr<std::uint8_t[]>>
+{
+public:
+	std::unique_ptr<std::uint8_t[]> data {};
+	nytl::Vec2ui size {};
+	ImageDataFormat format {};
+	unsigned int stride {};
+
+public:
+	BasicImageData() = default;
+	~BasicImageData() = default;
+
+	BasicImageData(const BasicImageData& other);
+	BasicImageData& operator=(const BasicImageData& other);
+};
+
+using ImageData = BasicImageData<const uint8_t*>;
+using MutableImageData = BasicImageData<uint8_t*>;
+using OwnedImageData = BasicImageData<std::unique_ptr<uint8_t[]>>;
 
 ///Represents an animated image, i.e. a collection of imageDatas with a stored delay between each
 ///other. Usually all stored images in the collection should have the same format, size and stride.
@@ -76,24 +93,36 @@ using SharedImageData = BasicImageData<std::shared_ptr<std::uint8_t[]>>;
 template<typename P>
 using BasicAnimatedImageData = std::vector<std::pair<BasicImageData<P>, unsigned int>>;
 
+
 ///Returns the size of the given format in bytes.
 ///E.g. Format::rgba8888 would return 4, since one pixel of this format needs 4 bytes to
 ///be stored. Also known as bpp (bytes per pixel);
 ///\sa ImageDataFormat
 unsigned int imageDataFormatSize(ImageDataFormat f);
 
-///\{
+
 ///Can be used to convert image data to another format.
 ///\param stride The stride of the given image data. Defaulted to 0, in which case
 ///the given size * the size of the given format will be used as stride.
 ///The returned data will be tightly packed (no row paddings).
-///\sa ImageData
+///\sa BasicImageData
 ///\sa ImageDataFormat
 std::unique_ptr<std::uint8_t[]> convertFormat(const ImageData& img, ImageDataFormat to,
 	unsigned int alignNewStride = 0);
 
 void convertFormat(const ImageData& img, ImageDataFormat to, std::uint8_t& toData,
 	unsigned int alignNewStride = 0);
-///\}
+
+
+///Returns the size in bytes of the given BasicImageData.
+///\sa BasicImageData
+template<typename P>
+unsigned int dataSize(const BasicImageData<P>& imageData)
+{
+	auto stride = imageData.stride;
+	if(!stride) stride = imageDataFormatSize(imageData.format) * imageData.size.x;
+	return stride * imageData.size.y;
+};
+
 
 }

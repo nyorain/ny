@@ -4,117 +4,204 @@
 
 #include <ny/data.hpp>
 #include <ny/imageData.hpp>
+#include <nytl/utf.hpp>
+#include <sstream>
 
 namespace ny
 {
 
-namespace
-{
-	//TODO: make this extenable for custom data types
+// standard data formats
+const DataFormat DataFormat::none {};
+const DataFormat DataFormat::raw {"application/octet-stream",
+	{"application/binary", "applicatoin/unknown", "raw", "binary", "buffer", "unknown"}};
+const DataFormat DataFormat::text {"text/plain", {"text/plain;charset=utf8", "text", "string",
+	"unicode", "utf8", "STRING", "TEXT", "UTF8_STRING", "UNICODETEXT"}};
+const DataFormat DataFormat::uriList {"text/uri-list", {"uriList"}};
+const DataFormat DataFormat::imageData {"image/x-ny-data", {"imageData", "ny::ImageData"}};
 
-	const struct
-	{
-		unsigned int dataType;
-		std::vector<const char*> mimes;
-		std::vector<const char*> nonMimes;
-	} mimeMappings[] =
-	{
-		{dataType::raw, {"x-application/ny-raw-buffer"}, {"buffer", "raw"}},
-		{dataType::text,
-			{ "text/plain", "text/plain;charset=utf8" },
-			{ "string", "text", "STRING", "TEXT", "UTF8_STRING", "UNICODETEXT"}},
-		{dataType::uriList, {"text/uri-list"}, {}},
-		{dataType::image, {"image/x-ny-data"}, {"ny::ImageData"}},
-		{dataType::timePoint,
-			{"x-application/ny-time-point"},
-			{"nytl::Timepoint", "std::chrono::high_resolution_clock::time_point"}},
-		{dataType::timeDuration,
-			{"x-applicatoin/ny-time-duration"},
-			{"nytl::TimeDuration", "std::chrono::high_resolution_clock::duration"}},
-		{dataType::bmp, {"image/bmp"}, {}},
-		{dataType::png, {"image/png"}, {}},
-		{dataType::jpeg, {"image/jpeg"}, {}},
-		{dataType::gif, {"image/gif"}, {}},
-		{dataType::mp3, {"image/mp3"}, {}},
-		{dataType::mp4, {"image/mp4"}, {}},
-		{dataType::webm, {"image/webm"}, {}}
-	};
+//invalid DataObject
+const DataObject DataObject::none {};
+
+std::vector<uint8_t> serialize(const ImageData& image)
+{
+	std::vector<uint8_t> ret;
+
+	//store real stride
+	auto stride = image.stride;
+	if(!stride) stride = image.size.x * imageDataFormatSize(image.format);
+
+	//width, height, format, stride stored as uint32_t
+	ret.resize(4 * 4);
+	reinterpret_cast<uint32_t&>(ret[0]) = image.size.x;
+	reinterpret_cast<uint32_t&>(ret[4]) = image.size.y;
+	reinterpret_cast<uint32_t&>(ret[8]) = static_cast<uint32_t>(image.format);
+	reinterpret_cast<uint32_t&>(ret[12]) = stride;
+
+	//total size of data
+	auto dataSize = stride * image.size.y;
+	ret.resize(ret.size() + dataSize);
+	std::memcpy(&ret[16], image.data, dataSize);
+
+	return ret;
 }
 
-void DataTypes::add(unsigned int type)
+OwnedImageData deserializeImageData(nytl::Range<uint8_t> buffer)
 {
-	if(contains(type)) return;
-	types.push_back(type);
+	OwnedImageData image;
+	if(buffer.size() < 16) return {}; //invalid header
+
+	image.size.x = reinterpret_cast<const uint32_t&>(buffer[0]);
+	image.size.y = reinterpret_cast<const uint32_t&>(buffer[4]);
+	image.format = static_cast<ImageDataFormat>(reinterpret_cast<const uint32_t&>(buffer[8]));
+	image.stride = reinterpret_cast<const uint32_t&>(buffer[12]);
+
+	//real stride
+	auto stride = image.stride;
+	if(!stride) stride = image.size.x * imageDataFormatSize(image.format);
+
+	auto dataSize = stride * image.size.y;
+	if(buffer.size() - 16 < dataSize) return {}; //invalid data size
+
+	image.data = std::make_unique<uint8_t[]>(dataSize);
+	std::memcpy(image.data.get(), &buffer[16], dataSize);
+
+	return image;
 }
 
-void DataTypes::remove(unsigned int type)
-{
-    auto it = types.begin();
-    while(it != types.end())
-    {
-        if(*it == type)
-        {
-           types.erase(it);
-           return;
-        }
-        ++it;
-    }
-}
-
-bool DataTypes::contains(unsigned int type) const
-{
-	for(auto t : types) if(t == type) return true;
-    return false;
-}
-
-unsigned int stringToDataType(nytl::StringParam type, bool onlyMime)
-{
-	for(auto& mapping : mimeMappings)
-	{
-		for(auto mime : mapping.mimes) if(type == mime) return mapping.dataType;
-		if(!onlyMime) for(auto nmime : mapping.nonMimes) if(type == nmime) return mapping.dataType;
-	}
-
-	return dataType::none;
-}
-
-std::vector<const char*> dataTypeToString(unsigned int type, bool onlyMime)
-{
-	for(auto& mapping : mimeMappings)
-	{
-		if(mapping.dataType == type)
-		{
-			std::vector<const char*> ret {mapping.mimes.begin(), mapping.mimes.end()};
-			if(!onlyMime) ret.insert(ret.end(), mapping.nonMimes.begin(), mapping.nonMimes.end());
-			return ret;
-		}
-	}
-
-	return {};
-}
-
-std::vector<std::uint8_t> serialize(const ImageData& image)
-{
-	nytl::unused(image);
-	return {};
-}
-
-OwnedImageData deserializeImageData(const std::vector<std::uint8_t>& buffer)
-{
-	nytl::unused(buffer);
-	return {};
-}
+//see roughly: https://tools.ietf.org/html/rfc3986
 
 std::string encodeUriList(const std::vector<std::string>& uris)
 {
-	nytl::unused(uris);
-	return {};
+	std::string ret;
+	ret.reserve(uris.size() * 10);
+
+	//first put the uris together and escape special chars
+	for(auto& uri : uris)
+	{
+		//correct utf8 parsing
+		for(auto i = 0u; i < nytl::charCount(uri); ++i)
+		{
+			auto chars = nytl::nth(uri, i);
+			auto cint = reinterpret_cast<uint32_t&>(*chars.data());
+
+			//the chars that should not be encoded in uris (besides alphanum values)
+			std::string special = ":/?#[]@!$&'()*+,;=-_~.";
+			if(cint <= 255 && (std::isalnum(cint) || special.find(cint) != std::string::npos))
+			{
+				ret.append(chars.data());
+			}
+			else
+			{
+				auto last = 0u;
+				for(auto i = 0u; i < chars.size(); ++i) if(chars[i]) last = i;
+				for(auto i = 0u; i <= last; ++i)
+				{
+					unsigned int ci = static_cast<unsigned char>(chars[i]);
+					std::stringstream sstream;
+					sstream << std::hex << ci;
+					ret.append("%");
+					ret.append(sstream.str());
+				}
+			}
+		}
+
+		//note that the uri spec sperates lines with "\r\n"
+		ret.append("\r\n");
+	}
+
+	return ret;
 }
 
-std::vector<std::string> decodeUriList(nytl::StringParam list)
+std::vector<std::string> decodeUriList(const std::string& escaped, bool removeComments)
 {
-	nytl::unused(list);
-	return {};
+	std::string uris;
+	uris.reserve(escaped.size());
+
+	//copy <escaped> into (non-const) <uris> into this loop, but replace
+	//the escape codes on the run
+	for(auto i = 0u; i < escaped.size(); ++i)
+	{
+		if(escaped[i] != '%')
+		{
+			uris.insert(uris.end(), escaped[i]);
+			continue;
+		}
+
+		//invalid escape
+		if(i + 2 >= escaped.size()) break;
+
+		//% is always followed by 2 hexadecimal numbers
+		char number[3] = {escaped[i + 1], escaped[i + 2], 0};
+		auto num = std::strtol(number, nullptr, 16);
+
+		//if we receive some invalid escape like "%yy" we will simply ignore it
+		if(num) uris.insert(uris.end(), num);
+		i += 2;
+	}
+
+	std::vector<std::string> ret;
+
+	//split the list and check for comments if they should be removed
+	//note that the uri spec sperates lines with "\r\n"
+	while(true)
+	{
+		auto pos = uris.find("\r\n");
+		if(pos == std::string::npos) break;
+
+		auto uri = uris.substr(0, pos);
+		if(!uri.empty() && ((uris[0] != '#') || !removeComments)) ret.push_back(std::move(uri));
+		uris.erase(0, pos + 2);
+	}
+
+	return ret;
+}
+
+//wrap
+DataObject wrap(nytl::Range<uint8_t> rawBuffer, const DataFormat& format, bool owned)
+{
+	DataObject ret;
+	ret.owned = owned;
+	ret.format = format;
+
+	if(format == DataFormat::text)
+	{
+		if(owned) ret.data = {std::string(rawBuffer.begin(), rawBuffer.end())};
+		else ret.data = {nytl::Range<char>(*rawBuffer.data(), rawBuffer.size())};
+	}
+	else if(format == DataFormat::uriList)
+	{
+		std::string list(rawBuffer.begin(), rawBuffer.end());
+		ret.data = decodeUriList(list);
+		ret.owned = true;
+	}
+	else if(format == DataFormat::imageData)
+	{
+		ret.data = deserializeImageData(rawBuffer);
+		ret.owned = true;
+	}
+	else
+	{
+		if(owned) ret.data = {std::vector<uint8_t>(rawBuffer.begin(), rawBuffer.end())};
+		else ret.data = rawBuffer;
+	}
+
+	return ret;
+}
+
+std::vector<uint8_t> unwrapOwned(const DataObject& dataObject)
+{
+	if(dataObject.format == DataFormat::text)
+	{
+		auto string = std::any_cast<const std::string&>(dataObject.data);
+		return {string.begin(), string.end()};
+	}
+	if(dataObject.format == DataFormat::uriList)
+	{
+		// std::vector<std::string> list = std::any_cast<std::vector<
+	}
+
+	if(dataObject.owned) return std::any_cast<const std::vector<uint8_t>>(dataObject.data);
+	else return std::any_cast<nytl::Range<uint8_t>>(dataObject.data).as<std::vector>();
 }
 
 }
