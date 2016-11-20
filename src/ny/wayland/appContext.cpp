@@ -286,8 +286,11 @@ bool WaylandAppContext::dispatchLoop(LoopControl& control)
 	if(!checkErrorWarn()) return false;
 	WaylandLoopImpl loopImpl(control, eventfd_);
 
+	//make sure to reset it to the previous value instead of just false since
+	//calls to this function might be nested.
+	auto dispatchBackup = dispatching_;
 	dispatching_ = true;
-	auto dispatchingGuard = nytl::makeScopeGuard([&]{ dispatching_ = false; });
+	auto dispatchingGuard = nytl::makeScopeGuard([&]{ dispatching_ = dispatchBackup; });
 
 	//first execute all pending dispatchers
 	//we don't have to do this inside the loop because we set dispatching_
@@ -301,6 +304,7 @@ bool WaylandAppContext::dispatchLoop(LoopControl& control)
 		while(auto func = loopImpl.popFunction()) func();
 
 		if(dispatchDisplay()) continue;
+		log("ny::WaylandAppContext::dispatchLoop: dispatchDisplay failed");
 		if(!checkErrorWarn()) return false;
 	}
 
@@ -553,7 +557,9 @@ bool WaylandAppContext::dispatchDisplay()
 	}
 
 	if(wl_display_read_events(wlDisplay_) == -1) return false;
-	return wl_display_dispatch_pending(wlDisplay_);
+	auto dispatched = wl_display_dispatch_pending(wlDisplay_);
+	debug("dispatched: ", dispatched);
+	return dispatched >= 0;
 }
 
 int WaylandAppContext::pollFds(short wlDisplayEvents, int timeout)
@@ -581,7 +587,9 @@ int WaylandAppContext::pollFds(short wlDisplayEvents, int timeout)
 	//add the wayland display fd to the pollfds
 	if(wlDisplayEvents) fds.push_back({wl_display_get_fd(&wlDisplay()), wlDisplayEvents, 0u});
 
+	debug("Poll begin");
 	auto ret = noSigPoll(*fds.data(), fds.size(), timeout);
+	debug("poll end");
 	if(ret < 0)
 	{
 		log("ny::WaylandAppContext::pollFds: poll failed: ", std::strerror(errno));

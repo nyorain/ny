@@ -10,6 +10,7 @@
 #include <ny/log.hpp>
 
 #include <nytl/stringParam.hpp>
+#include <nytl/scope.hpp>
 
 #include <wayland-client-protocol.h>
 #include <wayland-cursor.h>
@@ -26,43 +27,15 @@ namespace ny
 
 namespace
 {
-	bool comp(const char* mimeType, const char* received)
-	{
-		return strncmp(mimeType, received, strlen(mimeType)) == 0;
-	}
 
-	//TODO: could be part of the public interface
-	//TODO: still many missing
-	//NOTE: this is total bullshit and does not really make sense for correct impl...
-	unsigned int mimeTypeToFormat(nytl::StringParam param)
-	{
-		if(comp("text/plain", param)) return dataType::text;
-
-		if(param == "image/png") return dataType::png;
-		if(param == "image/bmp") return dataType::bmp;
-		if(param == "image/jpeg") return dataType::jpeg;
-		if(param == "image/gif") return dataType::gif;
-
-		if(param == "audio/mpeg") return dataType::mp3;
-		if(param == "audio/mpeg3") return dataType::mp3;
-
-		return dataType::none;
-	}
-
-	const char* formatToMimeType(unsigned int fmt)
-	{
-		switch(fmt)
-		{
-			case dataType::text: return "text/plain;charset=utf-8";
-			case dataType::png: return "image/png";
-			case dataType::bmp: return "image/bmp";
-			case dataType::jpeg: return "image/jpeg";
-			case dataType::gif: return "image/gif";
-			case dataType::mp3: return "image/mpeg";
-		}
-
-		return nullptr;
-	}
+///Small DefaultAsyncRequest addition that allow more to store a nytl::ConnectionGuard
+///in the Request objects.
+class WaylandDataOfferDataRequest : public DefaultAsyncRequest<std::any>
+{
+public:
+	using DefaultAsyncRequest::DefaultAsyncRequest;
+	nytl::ConnectionGuard connection;
+};
 
 }
 
@@ -88,7 +61,7 @@ WaylandDataOffer::WaylandDataOffer(WaylandAppContext& ac, wl_data_offer& wlDataO
 WaylandDataOffer::WaylandDataOffer(WaylandDataOffer&& other) noexcept :
 	appContext_(other.appContext_),
 	wlDataOffer_(other.wlDataOffer_),
-	dataTypes_(std::move(other.dataTypes_)),
+	formats_(std::move(other.formats_)),
 	dnd_(other.dnd_),
 	requests_(std::move(other.requests_))
 {
@@ -104,7 +77,7 @@ WaylandDataOffer& WaylandDataOffer::operator=(WaylandDataOffer&& other) noexcept
 
 	appContext_ = other.appContext_;
 	wlDataOffer_ = other.wlDataOffer_;
-	dataTypes_ = std::move(other.dataTypes_);
+	formats_ = std::move(other.formats_);
 	requests_ = std::move(other.requests_);
 	dnd_ = other.dnd_;
 
@@ -123,10 +96,7 @@ WaylandDataOffer::~WaylandDataOffer()
 
 void WaylandDataOffer::destroy()
 {
-	for(auto& r : requests_)
-	{
-		r.second.callback({}, *this, r.first);
-	}
+	for(auto& r : requests_) r.second.callback({});
 
 	if(wlDataOffer_)
 	{
@@ -135,26 +105,30 @@ void WaylandDataOffer::destroy()
 	}
 }
 
+WaylandDataOffer::FormatsRequest WaylandDataOffer::formats() const
+{
+	//Since we don't have to query the supported formats but already have them
+	//stored, we can return a synchronous (i.e. already set) request object.
+	std::vector<DataFormat> formats;
+	formats.reserve(formats_.size());
+	for(auto& supported : formats_) formats.push_back(supported.first);
+	return std::make_unique<DefaultAsyncRequest<std::vector<DataFormat>>>(formats);
+}
+
 WaylandDataOffer::DataRequest WaylandDataOffer::data(const DataFormat& format)
 {
-	//find the corresponding wayland format string
-	const char* waylandFormat {};
-	for(auto& mime : format.mime)
-		for(auto wlfmt : waylandFormats_) if(wlfmt == mime) waylandFormat = wlfmt.c_str();
-
-	for(auto& nonMime : format.nonMime)
-		for(auto wlfmt : waylandFormats_) if(wlfmt == nonMime) waylandFormat = wlfmt.c_str();
-
-	if(!waylandFormat)
+	//find the associated wayland format string
+	std::pair<DataFormat, std::string> reqfmt {};
+	for(auto& supported : formats_) if(format == supported.first) reqfmt = supported;
+	if(reqfmt.second.empty())
 	{
-		warning("ny::WaylandDataOffer::data: unsupported format.");
+		warning("ny::WaylandDataOffer::data: unsupported format ", format.name);
 		return {};
 	}
 
-	auto& conn = requests_[waylandFormat].connection;
-
 	//we check if there is already a pending request for the given format.
 	//if so, we skip all request and appContext fd callback registering
+	auto& conn = requests_[reqfmt.second].fdConnection;
 	if(!conn.connected())
 	{
 		int fds[2];
@@ -165,47 +139,57 @@ WaylandDataOffer::DataRequest WaylandDataOffer::data(const DataFormat& format)
 			return {};
 		}
 
-		wl_data_offer_receive(wlDataOffer_, waylandFormat, fds[1]);
-		// debug("receive callled...");
+		wl_data_offer_receive(wlDataOffer_, reqfmt.second.c_str(), fds[1]);
 
 		auto callback = [wlOffer = wlDataOffer_,
-			ac = appContext_, format, waylandFormat] (int fd)
+			ac = appContext_, format, reqfmt] (int fd)
 		{
-			// debug("callback, ", re);
+			//close the fd no matter if we actually fail here
+			auto fdGuard = nytl::makeScopeGuard([=]{ close(fd); });
+
 			constexpr auto readCount = 1000;
 			auto self = static_cast<WaylandDataOffer*>(wl_data_offer_get_user_data(wlOffer));
-			auto& buffer = self->requests_[waylandFormat].buffer;
+			std::vector<uint8_t> buffer;
 
-			auto ret = 0;
-			do
+			auto ret = readCount;
+			while(ret == readCount)
 			{
 				buffer.resize(buffer.size() + readCount);
 				ret = read(fd, buffer.data(), buffer.size());
 			}
-			while(ret == readCount);
 
+			buffer.resize(buffer.size() - (readCount - ret)); //remove the unneeded bytes
 			//is eof really assured here?
 			//the data source side might write multiple data segments and not be
 			//finished here...
-			std::any any;
-			if(format == &DataFormat::text) any = std::string(buffer.begin(), buffer.end());
-			if(format)
 
-			self->requests_[fmt].callback(any, *self, fmt);
-			self->requests_.erase(self->requests_.find(fmt));
-			close(fd);
+			auto any = wrap(buffer, reqfmt.first);
+
+			self->requests_[reqfmt.second].callback(any);
+			self->requests_.erase(self->requests_.find(reqfmt.second));
 		};
 
 		conn = appContext_->fdCallback(fds[0], POLLIN, callback);
 	}
 
-	auto ret = std::make_unique<DefaultAsyncRequest<std::any>>(appContext());
+	//create an asynchronous request object that keeps a connection to the
+	//callback that will be triggered from within the fd callback, i.e. when
+	//the data is received.
+	auto ret = std::make_unique<WaylandDataOfferDataRequest>(appContext());
+	auto completeFunc = [ptr = ret.get()](const std::any& any) { ptr->complete(any); };
+	// ret->connection = requests_[reqfmt.second].callback.add(completeFunc);
+	requests_[reqfmt.second].callback.add(completeFunc);
 	return ret;
 }
 
 void WaylandDataOffer::offer(const char* format)
 {
-	waylandFormats_.push_back(format);
+	if(match(DataFormat::raw, format)) formats_.push_back({DataFormat::raw, format});
+	if(match(DataFormat::text, format)) formats_.push_back({DataFormat::text, format});
+	if(match(DataFormat::uriList, format)) formats_.push_back({DataFormat::uriList, format});
+	if(match(DataFormat::imageData, format)) formats_.push_back({DataFormat::imageData, format});
+
+	formats_.push_back({{format, {}}, format,});
 	// wl_data_offer_accept(wlDataOffer_, 0, mimeType);
 }
 
@@ -226,35 +210,25 @@ WaylandDataSource::WaylandDataSource(WaylandAppContext& ac, std::unique_ptr<Data
 {
 	wlDataSource_ = wl_data_device_manager_create_data_source(ac.wlDataManager());
 
+	using WDS = WaylandDataSource;
 	static constexpr wl_data_source_listener listener =
 	{
-		memberCallback<decltype(&WaylandDataSource::target),
-			&WaylandDataSource::target, void(wl_data_source*, const char*)>,
-
-		memberCallback<decltype(&WaylandDataSource::send),
-			&WaylandDataSource::send, void(wl_data_source*, const char*, int)>,
-
-		memberCallback<decltype(&WaylandDataSource::cancelled),
-			&WaylandDataSource::cancelled, void(wl_data_source*)>,
-
-		memberCallback<decltype(&WaylandDataSource::dndPerformed),
-			&WaylandDataSource::dndPerformed, void(wl_data_source*)>,
-
-		memberCallback<decltype(&WaylandDataSource::dndFinished),
-			&WaylandDataSource::dndFinished, void(wl_data_source*)>,
-
-		memberCallback<decltype(&WaylandDataSource::action),
-			&WaylandDataSource::action, void(wl_data_source*, unsigned int)>,
+		memberCallback<decltype(&WDS::target), &WDS::target, void(wl_data_source*, const char*)>,
+		memberCallback<decltype(&WDS::send), &WDS::send, void(wl_data_source*, const char*, int)>,
+		memberCallback<decltype(&WDS::cancelled), &WDS::cancelled, void(wl_data_source*)>,
+		memberCallback<decltype(&WDS::dndPerformed), &WDS::dndPerformed, void(wl_data_source*)>,
+		memberCallback<decltype(&WDS::dndFinished), &WDS::dndFinished, void(wl_data_source*)>,
+		memberCallback<decltype(&WDS::action), &WDS::action, void(wl_data_source*, unsigned int)>,
 	};
 
 	wl_data_source_add_listener(wlDataSource_, &listener, this);
 
-	auto types = source_->types();
-	for(auto& t : types.types)
+	auto formats = source_->formats();
+	for(auto& format : formats)
 	{
-		auto mimeType = formatToMimeType(t);
-		if(!mimeType) continue;
-		wl_data_source_offer(wlDataSource_, mimeType);
+		wl_data_source_offer(&wlDataSource(), format.name.c_str());
+		for(auto& name : format.additionalNames)
+			wl_data_source_offer(&wlDataSource(), name.c_str());
 	}
 
 	if(dnd_) wl_data_source_set_actions(wlDataSource_, WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY);
@@ -273,30 +247,29 @@ void WaylandDataSource::target(const char* mimeType)
 }
 void WaylandDataSource::send(const char* mimeType, int fd)
 {
-	auto fmt = mimeTypeToFormat(mimeType);
-	auto data = source_->data(fmt);
-	if(data.has_value())
-	{
-		std::vector<std::uint8_t> buffer;
-		if(fmt == dataType::text)
-		{
-			auto text = std::any_cast<std::string&>(data);
-			buffer = {text.begin(), text.end()};
-		}
-		else
-		{
-			buffer = std::move(std::any_cast<std::vector<std::uint8_t>&>(data));
-		}
+	//close the fd no matter what
+	auto fdGuard = nytl::makeScopeGuard([=]{ close(fd); });
 
-		write(fd, buffer.data(), buffer.size());
-	}
-	else
+	//find the associated DataFormat
+	auto formats = source_->formats();
+	DataFormat* dataFormat = nullptr;
+	for(auto& format : formats) if(match(format, mimeType)) dataFormat = &format;
+
+	if(!dataFormat)
 	{
-		warning("WaylandDataSource::send: failed to retrieve data object.");
+		log("ny::WaylandDataSource::send: invalid/unsupported mimeType: ", mimeType);
+		return;
 	}
 
-	close(fd);
-	// debug("send ", mimeType, " fd: ", fd);
+	auto data = source_->data(*dataFormat);
+	if(!data.has_value())
+	{
+		warning("ny::WaylandDataSource::send: failed to retrieve data object via DataSource::data");
+		return;
+	}
+
+	auto buffer = unwrap(data, *dataFormat);
+	write(fd, buffer.data(), buffer.size());
 }
 
 void WaylandDataSource::action(unsigned int action)
@@ -349,26 +322,18 @@ WaylandDataDevice::WaylandDataDevice(WaylandAppContext& ac) : appContext_(&ac)
 	auto wldm = ac.wlDataManager();
 	wlDataDevice_ = wl_data_device_manager_get_data_device(wldm, ac.wlSeat());
 
+	using WDD = WaylandDataDevice;
 	static constexpr wl_data_device_listener listener =
 	{
-		memberCallback<decltype(&WaylandDataDevice::offer),
-			&WaylandDataDevice::offer, void(wl_data_device*, wl_data_offer*)>,
-
-		memberCallback<decltype(&WaylandDataDevice::enter),
-			&WaylandDataDevice::enter, void(wl_data_device*, unsigned int, wl_surface*,
-			wl_fixed_t, wl_fixed_t, wl_data_offer*)>,
-
-		memberCallback<decltype(&WaylandDataDevice::leave),
-			&WaylandDataDevice::leave, void(wl_data_device*)>,
-
-		memberCallback<decltype(&WaylandDataDevice::motion), &WaylandDataDevice::motion,
-			void(wl_data_device*, unsigned int, wl_fixed_t, wl_fixed_t)>,
-
-		memberCallback<decltype(&WaylandDataDevice::drop),
-			&WaylandDataDevice::drop, void(wl_data_device*)>,
-
-		memberCallback<decltype(&WaylandDataDevice::selection),
-			&WaylandDataDevice::selection, void(wl_data_device*, wl_data_offer*)>,
+		memberCallback<decltype(&WDD::offer), &WDD::offer, void(wl_data_device*, wl_data_offer*)>,
+		memberCallback<decltype(&WDD::enter), &WDD::enter,
+			void(wl_data_device*, uint32_t, wl_surface*, wl_fixed_t, wl_fixed_t, wl_data_offer*)>,
+		memberCallback<decltype(&WDD::leave), &WDD::leave, void(wl_data_device*)>,
+		memberCallback<decltype(&WDD::motion), &WDD::motion,
+			void(wl_data_device*, uint32_t, wl_fixed_t, wl_fixed_t)>,
+		memberCallback<decltype(&WDD::drop), &WDD::drop, void(wl_data_device*)>,
+		memberCallback<decltype(&WDD::selection),
+			&WDD::selection, void(wl_data_device*, wl_data_offer*)>,
 	};
 
 	wl_data_device_add_listener(wlDataDevice_, &listener, this);
@@ -428,7 +393,7 @@ void WaylandDataDevice::drop()
 	// debug("drop");
 	if(!dndOffer_)
 	{
-		warning("ny::WaylandDataDevice::drop: invalid current dnd session.");
+		log("ny::WaylandDataDevice::drop: invalid current dnd session.");
 		return;
 	}
 

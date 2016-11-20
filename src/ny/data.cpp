@@ -19,9 +19,6 @@ const DataFormat DataFormat::text {"text/plain", {"text/plain;charset=utf8", "te
 const DataFormat DataFormat::uriList {"text/uri-list", {"uriList"}};
 const DataFormat DataFormat::imageData {"image/x-ny-data", {"imageData", "ny::ImageData"}};
 
-//invalid DataObject
-const DataObject DataObject::none {};
-
 std::vector<uint8_t> serialize(const ImageData& image)
 {
 	std::vector<uint8_t> ret;
@@ -156,52 +153,43 @@ std::vector<std::string> decodeUriList(const std::string& escaped, bool removeCo
 	return ret;
 }
 
-//wrap
-DataObject wrap(nytl::Range<uint8_t> rawBuffer, const DataFormat& format, bool owned)
+bool match(const DataFormat& dataFormat, nytl::StringParam formatName)
 {
-	DataObject ret;
-	ret.owned = owned;
-	ret.format = format;
-
-	if(format == DataFormat::text)
-	{
-		if(owned) ret.data = {std::string(rawBuffer.begin(), rawBuffer.end())};
-		else ret.data = {nytl::Range<char>(*rawBuffer.data(), rawBuffer.size())};
-	}
-	else if(format == DataFormat::uriList)
-	{
-		std::string list(rawBuffer.begin(), rawBuffer.end());
-		ret.data = decodeUriList(list);
-		ret.owned = true;
-	}
-	else if(format == DataFormat::imageData)
-	{
-		ret.data = deserializeImageData(rawBuffer);
-		ret.owned = true;
-	}
-	else
-	{
-		if(owned) ret.data = {std::vector<uint8_t>(rawBuffer.begin(), rawBuffer.end())};
-		else ret.data = rawBuffer;
-	}
-
-	return ret;
+	if(dataFormat.name == formatName) return true;
+	for(auto name : dataFormat.additionalNames) if(name == formatName) return true;
+	return false;
 }
 
-std::vector<uint8_t> unwrapOwned(const DataObject& dataObject)
+//wrap
+std::any wrap(std::vector<uint8_t> buffer, const DataFormat& fmt)
 {
-	if(dataObject.format == DataFormat::text)
+	if(fmt == DataFormat::text) return std::string(buffer.begin(), buffer.end());
+	if(fmt == DataFormat::uriList) return decodeUriList({buffer.begin(), buffer.end()});
+	if(fmt == DataFormat::imageData) return  deserializeImageData({buffer.data(), buffer.size()});
+
+	return {std::move(buffer)};
+}
+
+std::vector<uint8_t> unwrap(std::any any, const DataFormat& format)
+{
+	if(format == DataFormat::text)
 	{
-		auto string = std::any_cast<const std::string&>(dataObject.data);
+		auto string = std::any_cast<const std::string&>(any);
 		return {string.begin(), string.end()};
 	}
-	if(dataObject.format == DataFormat::uriList)
+	if(format == DataFormat::uriList)
 	{
-		// std::vector<std::string> list = std::any_cast<std::vector<
+		auto uris = std::any_cast<const std::vector<std::string>&>(any);
+		auto string = encodeUriList(uris);
+		return {string.begin(), string.end()};
+	}
+	if(format == DataFormat::imageData)
+	{
+		auto id = std::any_cast<const OwnedImageData&>(any);
+		return serialize({id.data.get(), id.size, id.format, id.stride});
 	}
 
-	if(dataObject.owned) return std::any_cast<const std::vector<uint8_t>>(dataObject.data);
-	else return std::any_cast<nytl::Range<uint8_t>>(dataObject.data).as<std::vector>();
+	return std::move(std::any_cast<std::vector<uint8_t>&>(any));
 }
 
 }

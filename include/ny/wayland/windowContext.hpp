@@ -42,7 +42,7 @@ public:
     void show() override;
     void hide() override;
 
-    void droppable(const DataTypes&) override;
+    // void droppable(const DataTypes&) override;
 
     void minSize(const nytl::Vec2ui&) override;
     void maxSize(const nytl::Vec2ui&) override;

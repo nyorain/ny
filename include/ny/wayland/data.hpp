@@ -39,15 +39,13 @@ public:
 protected:
 	WaylandAppContext* appContext_ {};
 	wl_data_offer* wlDataOffer_ {};
-	std::vector<DataFormat> formats_ {};
-	std::vector<std::string> waylandFormats_ {};
+	std::vector<std::pair<DataFormat, std::string>> formats_ {};
 	bool dnd_ {};
 
 	struct PendingRequest
 	{
-		std::vector<std::uint8_t> buffer; //TODO: not needed here by current impl
-		nytl::Callback<void(const std::any&, DataOffer&, unsigned int)> callback;
-		nytl::ConnectionGuard connection;
+		nytl::Callback<void(const std::any&)> callback;
+		nytl::ConnectionGuard fdConnection;
 	};
 
 	std::map<std::string, PendingRequest> requests_;

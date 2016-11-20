@@ -11,10 +11,9 @@
 //types to the backend, e.g. for the clipboard or dnd (drag-and-drop) operations.
 class CustomDataSource : public ny::DataSource
 {
-	ny::DataTypes types() const override { return {{ny::dataType::text}}; }
-	std::any data(unsigned int format) const override;
+	std::vector<ny::DataFormat> formats() const override { return {ny::DataFormat::text}; }
+	std::any data(const ny::DataFormat& format) const override;
 };
-
 
 class MyEventHandler : public ny::EventHandler
 {
@@ -39,7 +38,7 @@ int main()
 	ny::BufferSurface* bufferSurface {};
 
 	ny::WindowSettings settings;
-	settings.initState = ny::ToplevelState::maximized;
+	// settings.initState = ny::ToplevelState::maximized;
 	settings.title = "Ayy sick shit";
 	settings.surface = ny::SurfaceType::buffer;
 	settings.buffer.storeSurface = &bufferSurface;
@@ -59,8 +58,30 @@ int main()
 	ac->dispatchLoop(control);
 }
 
+void handleDataOffer(ny::DataOffer& dataOffer)
+{
+	auto formatsRequest = dataOffer.formats();
+	formatsRequest->wait();
+
+	for(auto& fmt : formatsRequest->get()) ny::debug("clipboard type ", fmt.name);
+
+	// trying to retrieve the data in text form and outputting it if successful
+	auto dataRequest = dataOffer.data(ny::DataFormat::text);
+	dataRequest->wait();
+
+	auto text = dataRequest->get();
+	if(!text.has_value())
+	{
+		ny::warning("invalid text clipboard data offer");
+		return;
+	}
+
+	ny::debug("Received clipboard text data: ", std::any_cast<std::string>(text));
+}
+
 bool MyEventHandler::handleEvent(const ny::Event& ev)
 {
+	ny::debug("event: ", ev.type());
 	static std::unique_ptr<ny::DataOffer> offer;
 
 	if(ev.type() == ny::eventType::close)
@@ -77,18 +98,7 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 	else if(ev.type() == ny::eventType::dataOffer)
 	{
 		ny::debug("offer event received");
-		offer = std::move(reinterpret_cast<const ny::DataOfferEvent&>(ev).offer);
-		offer->data(ny::dataType::text,
-			[] (const std::any& text, const ny::DataOffer&, int) {
-				if(!text.has_value())
-				{
-					ny::debug("invalid dnd text data");
-					return;
-				}
-
-				ny::debug("Received dnd text data: ", std::any_cast<std::string>(text));
-			});
-
+		handleDataOffer(*reinterpret_cast<const ny::DataOfferEvent&>(ev).offer);
 		return true;
 	}
 	else if(ev.type() == ny::eventType::mouseButton)
@@ -126,35 +136,17 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 		//retrieving the clipboard DataOffer and listing all formats
 		ny::debug("checking clipboard...");
 		auto dataOffer = ac->clipboard();
-		if(!dataOffer)
-		{
-			ny::warning("Backend does not support clipboard operations...");
-		}
-		else
-		{
-			for(auto& t : dataOffer->types().types) ny::debug("clipboard type ", t);
+		if(!dataOffer) ny::warning("Backend does not support clipboard operations...");
+		else handleDataOffer(*dataOffer);
 
-			// trying to retrieve the data in text form and outputting it if successful
-			dataOffer->data(ny::dataType::text,
-				[](const std::any& text, const ny::DataOffer&) {
-					if(!text.has_value())
-					{
-						ny::warning("invalid text clipboard data offer");
-						return;
-					}
-
-					ny::debug("Received clipboard text data: ", std::any_cast<std::string>(text));
-				});
-		}
-
-		// ny::debug("ayy result: ", ac->clipboard(std::make_unique<CustomDataSource>()));
+		return true;
 	}
 
 	return false;
 }
 
-std::any CustomDataSource::data(unsigned int format) const
+std::any CustomDataSource::data(const ny::DataFormat& format) const
 {
-	if(format != ny::dataType::text) return {};
+	if(format != ny::DataFormat::text) return {};
 	return std::string("ayyy got em");
 }

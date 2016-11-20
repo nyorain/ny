@@ -31,15 +31,15 @@ namespace eventType
 ///into the returnd std::any object form DataSource or DataOffer) using special types.
 ///Data in custom DataFormats are passed around using a raw buffer.
 ///The names of the standard formats should not be used for custom formats.
-///Formats, their mime-type names and the types they should be stored in:
+///Formats, their mime-type names and the type they should be stored in:
 ///
-/// | Format 	| Non-Owned type 		| Owned type 			| mime-type name				|
-/// |-----------|-----------------------|-----------------------|-------------------------------|
-/// | raw		| Range<uint8_t>		| vector<uint8_t>		| "application/octet-stream"	|
-/// | text		| Range<char>			| string				| "text/plain"					|
-/// | uriList	| Range<const char*> 	| vector<string> 		| "text/uri-list"				|
-/// | image		| ImageData				| OwnedImageData		| "image/x-ny-data"				|
-/// | <custom>  | Range<uint8_t> 		| vector<uint8_t>		|								|
+/// | Format 	| std::any wrapped type | mime-type name				|
+/// |-----------|-----------------------|-------------------------------|
+/// | raw		| vector<uint8_t>		| "application/octet-stream"	|
+/// | text		| string				| "text/plain"					|
+/// | uriList	| vector<string> 		| "text/uri-list"				|
+/// | image		| OwnedImageData		| "image/x-ny-data"				|
+/// | <custom>  | vector<uint8_t>		| custom						|
 class DataFormat
 {
 public:
@@ -53,7 +53,7 @@ public:
 	///other applications that might know it the same format under a different name.
 	///More significant names/descriptions should come first. Can also contains none mime-type
 	///names, but should be avoided.
-	std::vector<std::string> names;
+	std::vector<std::string> additionalNames;
 
 public:
 	static const DataFormat none; //empty object, used for invalid formats
@@ -63,33 +63,8 @@ public:
 	static const DataFormat imageData; //raw image data
 };
 
-bool operator==(const DataFormat& a, const DataFormat& b) { return a.name == b.name; }
-bool operator!=(const DataFormat& a, const DataFormat& b) { return !(a == b); }
-
-///DataObject that holds a type-erased data object and a description of the type
-///and format this data has.
-struct DataObject
-{
-	///The data wrapped into an any object.
-	///The other DataObject members specify its type.
-	///See the DataFormat type table for more information.
-	///If this is empty the DataObject is invalid.
-	std::any data {};
-
-	///The format of the data. This can either be one of the standard DataFormats that
-	///have a special type associated with them or a custom format.
-	DataFormat format {};
-
-	///Specifies whether the data any contains owned or not-owned data.
-	///There are usually two different data types for a DataFormat depending on
-	///whether the data is owned or not.
-	///This can be used to prevent unneeded copies of huge data.
-	bool owned {};
-
-	///Default invalid DataObject.
-	///Usually used to signal that retrieving data failed or a request was invalid.
-	const static DataObject none;
-};
+inline bool operator==(const DataFormat& a, const DataFormat& b) { return a.name == b.name; }
+inline bool operator!=(const DataFormat& a, const DataFormat& b) { return !(a == b); }
 
 ///The DataSource class is an interface implemented by the application to start drag and drop
 ///actions or copy data into the clipboard.
@@ -101,12 +76,13 @@ public:
 	virtual ~DataSource() = default;
 
 	///Returns all supported dataTypes format constants as a DataTypes object.
-	virtual std::vector<DataFormat> types() const = 0;
+	virtual std::vector<DataFormat> formats() const = 0;
 
-	///Returns data in the given format and specifies whehter it is the owned type.
-	///The std::any must contain a object of the type specified at the dataType constant
-	///declaration.
-	virtual DataObject data(const DataFormat& format) const = 0;
+	///Returns data in the given format.
+	///The std::any must contain a object of the type specified for the requested DataFormat.
+	///If retrieving data fails (because e.g. the requestes format is invalid) an
+	///empty std::any object should be returned.
+	virtual std::any data(const DataFormat& format) const = 0;
 
 	///Returns an image representing the data. This image could e.g. used
 	///when this DataSource is used for a drag and drop opertation.
@@ -129,7 +105,7 @@ public:
 	using DataFunction = nytl::CompFunc<void(const std::any&, DataOffer&, unsigned int)>;
 
 	using FormatsRequest = std::unique_ptr<AsyncRequest<std::vector<DataFormat>>>;
-	using DataRequest = std::unique_ptr<AsyncRequest<DataObject>>;
+	using DataRequest = std::unique_ptr<AsyncRequest<std::any>>;
 
 public:
 	///Will be called everytime a new format is signaled.
@@ -146,6 +122,7 @@ public:
 	///retrieve new supported types.
 	// [[deprecated("Use the new AsyncRequest api")]]
 	virtual std::vector<DataFormat> types() const { return {}; };
+
 	virtual FormatsRequest formats() const { throw 0; };
 
 	///Requests conversion of the data into the given format and registers a function
@@ -161,6 +138,7 @@ public:
 	///until the data is retrieved.
 	// [[deprecated("Use the new AsyncRequest api")]]
 	virtual nytl::Connection data(const DataFormat&, const DataFunction&) { return {}; }
+
 	virtual DataRequest data(const DataFormat&) { throw 0; }
 };
 
@@ -201,11 +179,14 @@ std::vector<std::string> decodeUriList(const std::string& list, bool removeComme
 ///Returns an DataObject that wraps the data of a raw buffer in the correct format
 ///for the given parameters. Does basically check for standard formats and wrap the
 ///raw buffer otherwise.
-DataObject wrap(nytl::Range<uint8_t> rawBuffer, const DataFormat& format, bool owned);
+std::any wrap(std::vector<uint8_t> rawBuffer, const DataFormat& format);
 
 ///Returns a raw buffer for the given DataObject and the DataFormat for the data the any wraps.
-nytl::Range<uint8_t> unwrap(const DataObject& dataObject, std::vector<uint8_t>& owned);
-std::vector<uint8_t> unwrapOwned(const DataObject& dataObject);
+std::vector<uint8_t> unwrap(std::any any, const DataFormat& format);
+
+///Checks whether the given format string matches the given DataFormat, i.e. if it one
+///of the descriptions/names of dataFormat.
+bool match(const DataFormat& dataFormat, nytl::StringParam formatName);
 
 // TODO: for additional parameter (e.g. charset) parsing?
 // std::any wrap(nytl::Range<uint8_t> rawBuffer, nytl::StringParam formatName);

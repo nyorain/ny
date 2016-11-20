@@ -56,7 +56,7 @@ public:
 	///should be removed from the window.
 	///When the WindowContext receives a drop request for a matching type, it will send
 	///a DataOfferEvent to the registered EventHandler.
-	virtual void droppable(const DataTypes&) = 0;
+	// virtual void droppable(const DataTypes&) = 0;
 
 	//TODO? XXX: make these functions bool to signal if they had any effect?
 	//Should they output a warning if not? it can be queried using capabilites

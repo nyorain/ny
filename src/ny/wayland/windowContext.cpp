@@ -254,12 +254,12 @@ void WaylandWindowContext::cursor(const Cursor& cursor)
 		wmc->cursorBuffer(cursorBuffer_, cursorHotspot_, cursorSize_);
 }
 
-void WaylandWindowContext::droppable(const DataTypes&)
-{
-	//TODO
-	//currently all windows are droppabe, store it here and check it in wayland/data.cpp
-	warning("ny::WaylandWindowContext::droppable: not implemented");
-}
+// void WaylandWindowContext::droppable(const DataTypes&)
+// {
+// 	//TODO
+// 	//currently all windows are droppabe, store it here and check it in wayland/data.cpp
+// 	warning("ny::WaylandWindowContext::droppable: not implemented");
+// }
 
 void WaylandWindowContext::minSize(const Vec2ui&)
 {

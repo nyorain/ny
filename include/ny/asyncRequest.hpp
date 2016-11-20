@@ -79,6 +79,8 @@ public:
 
 	void wait(LoopControl* lc = nullptr) override
 	{
+		if(ready_) return;
+
 		LoopControl localControl;
 		if(!lc) lc = &localControl;
 		topControl_ = lc;
@@ -94,8 +96,8 @@ public:
 	}
 
 	R get() override { ready_ = false; appContext_ = {}; return std::move(value_); }
-	bool ready() override { return ready_; }
-	bool valid() override { return (appContext_) || (ready_); }
+	bool ready() const override { return ready_; }
+	bool valid() const override { return (appContext_) || (ready_); }
 
 	///This function has to be called by the AppContext event dispatching system
 	///when the request completes.

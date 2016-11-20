@@ -122,7 +122,7 @@ unsigned int dataSize(const BasicImageData<P>& imageData)
 	auto stride = imageData.stride;
 	if(!stride) stride = imageDataFormatSize(imageData.format) * imageData.size.x;
 	return stride * imageData.size.y;
-};
+}
 
 
 }
