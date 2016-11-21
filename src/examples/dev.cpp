@@ -3,10 +3,6 @@
 
 //used in the moment to test data sources and data offers, dragndrop and clipboard stuff
 
-//TODO:
-// - wayland & x11: atm no clipboard and dnd support
-// - winapi: does not work with std::any due to incorrect mingw/gcc linking of inline stuff
-
 //Our CustomDataSource implementation that will be used if we want to provide data of different
 //types to the backend, e.g. for the clipboard or dnd (drag-and-drop) operations.
 class CustomDataSource : public ny::DataSource
@@ -27,9 +23,7 @@ public:
 protected:
 	ny::LoopControl& lc_;
 	ny::WindowContext& wc_;
-	bool clipboardPending_ = false;
 };
-
 
 int main()
 {
@@ -55,19 +49,31 @@ int main()
 	wc->eventHandler(handler);
 	wc->refresh();
 
-	ny::debug("Entering main loop");
+	ny::log("Entering main loop");
 	ac->dispatchLoop(control);
 }
 
 void handleDataOffer(ny::DataOffer& dataOffer)
 {
 	auto formatsRequest = dataOffer.formats();
+	if(!formatsRequest)
+	{
+		ny::warning("could not retrieve formats request");
+		return;
+	}
+
 	formatsRequest->wait();
 
-	for(auto& fmt : formatsRequest->get()) ny::debug("clipboard type ", fmt.name);
+	for(auto& fmt : formatsRequest->get()) ny::log("clipboard type ", fmt.name);
 
 	// trying to retrieve the data in text form and outputting it if successful
 	auto dataRequest = dataOffer.data(ny::DataFormat::text);
+	if(!dataRequest)
+	{
+		ny::warning("could not retrieve data request");
+		return;
+	}
+
 	dataRequest->wait();
 
 	auto text = dataRequest->get();
@@ -77,28 +83,28 @@ void handleDataOffer(ny::DataOffer& dataOffer)
 		return;
 	}
 
-	ny::debug("Received clipboard text data: ", std::any_cast<std::string>(text));
+	ny::log("Received offer text data: ", std::any_cast<std::string>(text));
 }
 
 bool MyEventHandler::handleEvent(const ny::Event& ev)
 {
-	ny::debug("event: ", ev.type());
+	ny::log("event: ", ev.type());
 	static std::unique_ptr<ny::DataOffer> offer;
 
 	if(ev.type() == ny::eventType::close)
 	{
-		ny::debug("Window closed. Exiting.");
+		ny::log("Window closed. Exiting.");
 		lc_.stop();
 		return true;
 	}
 	else if(ev.type() == ny::eventType::mouseWheel)
 	{
-		ny::debug("Mouse wheel: ", static_cast<const ny::MouseWheelEvent&>(ev).value);
+		ny::log("Mouse wheel: ", static_cast<const ny::MouseWheelEvent&>(ev).value);
 		return true;
 	}
 	else if(ev.type() == ny::eventType::dataOffer)
 	{
-		ny::debug("offer event received");
+		ny::log("offer event received");
 		handleDataOffer(*reinterpret_cast<const ny::DataOfferEvent&>(ev).offer);
 		return true;
 	}
@@ -109,7 +115,7 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 			return false;
 
 		auto ret = ac->startDragDrop(std::make_unique<CustomDataSource>());
-		ny::debug("Starting a dnd operation: ", ret);
+		ny::log("Starting a dnd operation: ", ret);
 		return true;
 	}
 	else if(ev.type() == ny::eventType::draw)
@@ -129,21 +135,17 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 
 		if(kev.keycode == ny::Keycode::escape)
 		{
-			ny::debug("Escape pressed, exiting");
+			ny::log("Escape pressed, exiting");
 			lc_.stop();
 			return true;
 		}
 
-		if(clipboardPending_) return true;
-		clipboardPending_ = true;
-
 		//retrieving the clipboard DataOffer and listing all formats
-		ny::debug("checking clipboard...");
+		ny::log("checking clipboard...");
 		auto dataOffer = ac->clipboard();
 
 		if(!dataOffer) ny::warning("Backend does not support clipboard operations...");
 		else handleDataOffer(*dataOffer);
-		clipboardPending_ = false;
 
 		return true;
 	}

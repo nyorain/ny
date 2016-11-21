@@ -444,6 +444,7 @@ void WaylandWindowContext::handleShellSurfacePopupDone()
 void WaylandWindowContext::handleXdgSurfaceConfigure(int width, int height, wl_array* states,
 	unsigned int serial)
 {
+	if(!width || !height) return; //TODO
 	nytl::unused(states);
 
 	auto newSize = nytl::Vec2ui(width, height);

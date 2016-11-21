@@ -33,8 +33,8 @@ public:
 	X11DataOffer(X11DataOffer&&) = default;
 	X11DataOffer& operator=(X11DataOffer&&) = default;
 
-	DataTypes types() const override;
-	nytl::Connection data(unsigned int fmt, const DataFunction& func) override;
+	FormatsRequest formats() const override;
+	DataRequest data(const DataFormat& format) override;
 
 	//x11 specific
 	///Handle a recevied xcb_selection_notify_event.

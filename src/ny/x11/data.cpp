@@ -142,7 +142,12 @@ void X11DataOffer::notify(const xcb_selection_notify_event_t& notify)
 	}
 }
 
-nytl::Connection X11DataOffer::data(unsigned int fmt, const DataFunction& func)
+X11DataOffer::FormatsRequest X11DataOffer::formats() const
+{
+
+}
+
+X11DataOffer::DataRequest X11DataOffer::data(unsigned int fmt, const DataFunction& func)
 {
 	xcb_atom_t target = 0u;
 	for(auto& mapping : dataTypes_)

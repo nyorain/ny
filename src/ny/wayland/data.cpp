@@ -19,25 +19,42 @@
 #include <fcntl.h>
 #include <poll.h>
 #include <sys/ioctl.h>
+#include <signal.h>
 
 #include <algorithm>
 
 namespace ny
 {
 
-namespace
+///Represents a pending wayland to another request for a specific format.
+///Will be associated with a format using a std::map.
+class WaylandDataOffer::PendingRequest
 {
+public:
+	std::vector<WaylandDataOffer::DataRequestImpl*> requests;
+	nytl::ConnectionGuard fdConnection;
+};
 
-///Small DefaultAsyncRequest addition that allow more to store a nytl::ConnectionGuard
-///in the Request objects.
-class WaylandDataOfferDataRequest : public DefaultAsyncRequest<std::any>
+///Small DefaultAsyncRequest addition that allows to unregister itself on desctruction.
+class WaylandDataOffer::DataRequestImpl : public DefaultAsyncRequest<std::any>
 {
 public:
 	using DefaultAsyncRequest::DefaultAsyncRequest;
-	nytl::ConnectionGuard connection;
-};
 
-}
+	WaylandDataOffer* dataOffer_;
+	std::string format_;
+
+	~DataRequestImpl()
+	{
+		if(dataOffer_) dataOffer_->removeDataRequest(format_, *this);
+	}
+
+	void complete(const std::any& any)
+	{
+		DefaultAsyncRequest::complete(any);
+		dataOffer_ = nullptr;
+	}
+};
 
 //WaylandDataOffer
 WaylandDataOffer::WaylandDataOffer(WaylandAppContext& ac, wl_data_offer& wlDataOffer, bool dnd)
@@ -62,8 +79,9 @@ WaylandDataOffer::WaylandDataOffer(WaylandDataOffer&& other) noexcept :
 	appContext_(other.appContext_),
 	wlDataOffer_(other.wlDataOffer_),
 	formats_(std::move(other.formats_)),
-	dnd_(other.dnd_),
-	requests_(std::move(other.requests_))
+	requests_(std::move(other.requests_)),
+	serial_(other.serial_),
+	dnd_(other.dnd_)
 {
 	if(wlDataOffer_) wl_data_offer_set_user_data(wlDataOffer_, this);
 
@@ -79,6 +97,7 @@ WaylandDataOffer& WaylandDataOffer::operator=(WaylandDataOffer&& other) noexcept
 	wlDataOffer_ = other.wlDataOffer_;
 	formats_ = std::move(other.formats_);
 	requests_ = std::move(other.requests_);
+	serial_ = other.serial_;
 	dnd_ = other.dnd_;
 
 	if(wlDataOffer_) wl_data_offer_set_user_data(wlDataOffer_, this);
@@ -96,11 +115,12 @@ WaylandDataOffer::~WaylandDataOffer()
 
 void WaylandDataOffer::destroy()
 {
-	for(auto& r : requests_) r.second.callback({});
+	//signal all pending requests that they have failed
+	for(auto& r : requests_) for(auto& req : r.second.requests) req->complete({});
 
 	if(wlDataOffer_)
 	{
-		if(dnd_) wl_data_offer_finish(wlDataOffer_);
+		// if(dnd_) wl_data_offer_finish(wlDataOffer_);
 		wl_data_offer_destroy(wlDataOffer_);
 	}
 }
@@ -165,32 +185,34 @@ WaylandDataOffer::DataRequest WaylandDataOffer::data(const DataFormat& format)
 
 			auto any = wrap(buffer, reqfmt.first);
 
-			self->requests_[reqfmt.second].callback(any);
+			//complete all pending requests and remove the request entry
+			for(auto& req : self->requests_[reqfmt.second].requests) req->complete(any);
 			self->requests_.erase(self->requests_.find(reqfmt.second));
 		};
 
 		conn = appContext_->fdCallback(fds[0], POLLIN, callback);
+		// wl_data_offer_accept(wlDataOffer_, serial_, reqfmt.second.c_str());
 	}
 
-	//create an asynchronous request object that keeps a connection to the
-	//callback that will be triggered from within the fd callback, i.e. when
-	//the data is received.
-	auto ret = std::make_unique<WaylandDataOfferDataRequest>(appContext());
-	auto completeFunc = [ptr = ret.get()](const std::any& any) { ptr->complete(any); };
-	// ret->connection = requests_[reqfmt.second].callback.add(completeFunc);
-	requests_[reqfmt.second].callback.add(completeFunc);
+	//create an asynchronous request object that unregisters itself on destruction so
+	//we won't call complete on invalid objects. The application has ownership over the
+	//AsyncRequest
+	auto ret = std::make_unique<DataRequestImpl>(appContext());
+	ret->format_ = reqfmt.second;
+	ret->dataOffer_ = this;
+	requests_[reqfmt.second].requests.push_back(ret.get());
 	return ret;
 }
 
-void WaylandDataOffer::offer(const char* format)
+void WaylandDataOffer::offer(const char* fmt)
 {
-	if(match(DataFormat::raw, format)) formats_.push_back({DataFormat::raw, format});
-	if(match(DataFormat::text, format)) formats_.push_back({DataFormat::text, format});
-	if(match(DataFormat::uriList, format)) formats_.push_back({DataFormat::uriList, format});
-	if(match(DataFormat::imageData, format)) formats_.push_back({DataFormat::imageData, format});
+	if(match(DataFormat::raw, fmt)) formats_.push_back({DataFormat::raw, fmt});
+	else if(match(DataFormat::text, fmt)) formats_.push_back({DataFormat::text, fmt});
+	else if(match(DataFormat::uriList, fmt)) formats_.push_back({DataFormat::uriList, fmt});
+	else if(match(DataFormat::imageData, fmt)) formats_.push_back({DataFormat::imageData, fmt});
+	else formats_.push_back({{fmt, {}}, fmt,});
 
-	formats_.push_back({{format, {}}, format,});
-	// wl_data_offer_accept(wlDataOffer_, 0, mimeType);
+	wl_data_offer_accept(wlDataOffer_, 0, fmt);
 }
 
 void WaylandDataOffer::sourceActions(unsigned int actions)
@@ -202,6 +224,25 @@ void WaylandDataOffer::action(unsigned int action)
 {
 	nytl::unused(action);
 	// debug("action: ", action);
+}
+
+void WaylandDataOffer::removeDataRequest(const std::string& format, DataRequestImpl& request)
+{
+	auto it = requests_.find(format);
+	if(it == requests_.end())
+	{
+		warning("ny::WaylandDataOffer::removeDataRequest: invalid format");
+		return;
+	}
+
+	auto it2 = std::find(it->second.requests.begin(), it->second.requests.end(), &request);
+	if(it2 == it->second.requests.end())
+	{
+		warning("ny::WaylandDataOffer::removeDataRequest: invalid request");
+		return;
+	}
+
+	it->second.requests.erase(it2);
 }
 
 //WaylandDataSource
@@ -247,7 +288,7 @@ void WaylandDataSource::target(const char* mimeType)
 }
 void WaylandDataSource::send(const char* mimeType, int fd)
 {
-	//close the fd no matter what
+	//close the fd no matter what happens here
 	auto fdGuard = nytl::makeScopeGuard([=]{ close(fd); });
 
 	//find the associated DataFormat
@@ -269,7 +310,15 @@ void WaylandDataSource::send(const char* mimeType, int fd)
 	}
 
 	auto buffer = unwrap(data, *dataFormat);
-	write(fd, buffer.data(), buffer.size());
+
+	//if the given fd is invalid, no signal should be generated
+	//we simply set the sigpipe error handler to ignore and restore it when this
+	//function exits
+	auto prev = signal(SIGPIPE, SIG_IGN);
+	auto sigpipeGuard = nytl::makeScopeGuard([=] { signal(SIGPIPE, prev); });
+
+	auto ret = write(fd, buffer.data(), buffer.size());
+	if(ret < 0) warning("ny::WaylandDataSource::send: write failed: ", std::strerror(errno));
 }
 
 void WaylandDataSource::action(unsigned int action)
@@ -353,7 +402,7 @@ void WaylandDataDevice::offer(wl_data_offer* offer)
 void WaylandDataDevice::enter(unsigned int serial, wl_surface* surface, wl_fixed_t x, wl_fixed_t y,
 	wl_data_offer* offer)
 {
-	nytl::unused(serial,x, y);
+	nytl::unused(x, y);
 	dndWC_ = appContext_->windowContext(*surface);
 
 	for(auto& o : offers_)
@@ -362,6 +411,7 @@ void WaylandDataDevice::enter(unsigned int serial, wl_surface* surface, wl_fixed
 		{
 			dndOffer_ = o.get();
 			dndOffer_->dnd(true);
+			dndOffer_->serial(serial);
 			break;
 		}
 	}
@@ -369,7 +419,9 @@ void WaylandDataDevice::enter(unsigned int serial, wl_surface* surface, wl_fixed
 
 void WaylandDataDevice::leave()
 {
-	// debug("leave");
+	debug("leave");
+	// return;
+
 	if(dndOffer_)
 	{
 		offers_.erase(std::remove_if(offers_.begin(), offers_.end(),
@@ -384,13 +436,15 @@ void WaylandDataDevice::motion(unsigned int time, wl_fixed_t x, wl_fixed_t y)
 	// debug("motion");
 	nytl::unused(time, x, y);
 
-	wl_data_offer_set_actions(&dndOffer_->wlDataOffer(), WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE,
-		WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE);
+	wl_data_offer_set_actions(&dndOffer_->wlDataOffer(), WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY,
+		WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY);
 }
 
 void WaylandDataDevice::drop()
 {
-	// debug("drop");
+	debug("drop");
+	// return;
+
 	if(!dndOffer_)
 	{
 		log("ny::WaylandDataDevice::drop: invalid current dnd session.");
@@ -410,7 +464,7 @@ void WaylandDataDevice::drop()
 
 	if(dndWC_ && dndWC_->eventHandler())
 	{
-		// debug("drop drop");
+		debug("drop drop");
 		DataOfferEvent event(dndWC_->eventHandler());
 		event.offer = std::move(ownedDndOffer);
 		appContext_->dispatch(std::move(event));
@@ -426,6 +480,7 @@ void WaylandDataDevice::selection(wl_data_offer* offer)
 	{
 		offers_.erase(std::remove_if(offers_.begin(), offers_.end(),
 			[=](auto& v) { return v.get() == clipboardOffer_; }), offers_.end());
+		clipboardOffer_ = nullptr;
 	}
 
 	if(!offer) return;

@@ -13,10 +13,13 @@
 namespace ny
 {
 
-
 ///DataOffer implementation for the wayland backend and wrapper around wl_data_offer.
 class WaylandDataOffer : public DataOffer
 {
+public:
+	class PendingRequest;
+	class DataRequestImpl;
+
 public:
 	WaylandDataOffer() = default;
 	WaylandDataOffer(WaylandAppContext& ac, wl_data_offer& wlDataOffer, bool dnd = false);
@@ -36,19 +39,15 @@ public:
 
 	bool valid() const { return (wlDataOffer_); }
 
+	void serial(unsigned int s) { serial_ = s; }
+
 protected:
 	WaylandAppContext* appContext_ {};
 	wl_data_offer* wlDataOffer_ {};
 	std::vector<std::pair<DataFormat, std::string>> formats_ {};
-	bool dnd_ {};
-
-	struct PendingRequest
-	{
-		nytl::Callback<void(const std::any&)> callback;
-		nytl::ConnectionGuard fdConnection;
-	};
-
 	std::map<std::string, PendingRequest> requests_;
+	unsigned int serial_ {};
+	bool dnd_ {};
 
 protected:
 	///Wayland callback that is called everytime a new mimeType is announced.
@@ -67,6 +66,10 @@ protected:
 
 	///Called by destructor and move assignment operator
 	void destroy();
+
+	///Called by the WaylandDataOfferRequest when it is destructed so it can be
+	///removed from the request list.
+	void removeDataRequest(const std::string& format, DataRequestImpl& request);
 };
 
 ///Free wrapper class around wl_data_source objects.

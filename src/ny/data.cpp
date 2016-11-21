@@ -10,11 +10,21 @@
 namespace ny
 {
 
+namespace
+{
+
+bool sameBeginning(nytl::SizedStringParam a, nytl::SizedStringParam b)
+{
+	return !std::strncmp(a, b, std::min(a.size(), b.size()));
+}
+
+}
+
 // standard data formats
 const DataFormat DataFormat::none {};
 const DataFormat DataFormat::raw {"application/octet-stream",
 	{"application/binary", "applicatoin/unknown", "raw", "binary", "buffer", "unknown"}};
-const DataFormat DataFormat::text {"text/plain", {"text/plain;charset=utf8", "text", "string",
+const DataFormat DataFormat::text {"text/plain", {"text", "string",
 	"unicode", "utf8", "STRING", "TEXT", "UTF8_STRING", "UNICODETEXT"}};
 const DataFormat DataFormat::uriList {"text/uri-list", {"uriList"}};
 const DataFormat DataFormat::imageData {"image/x-ny-data", {"imageData", "ny::ImageData"}};
@@ -155,8 +165,10 @@ std::vector<std::string> decodeUriList(const std::string& escaped, bool removeCo
 
 bool match(const DataFormat& dataFormat, nytl::StringParam formatName)
 {
-	if(dataFormat.name == formatName) return true;
-	for(auto name : dataFormat.additionalNames) if(name == formatName) return true;
+	if(sameBeginning(dataFormat.name, formatName.data())) return true;
+	for(auto name : dataFormat.additionalNames)
+		if(sameBeginning(name, formatName.data())) return true;
+		
 	return false;
 }
 

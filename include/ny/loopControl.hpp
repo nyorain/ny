@@ -5,6 +5,7 @@
 #pragma once
 
 #include <ny/fwd.hpp>
+#include <nytl/nonCopyable.hpp>
 #include <functional>
 #include <atomic>
 
@@ -55,7 +56,7 @@ protected:
 ///Only lifetime synchronization has to managed by the application.
 ///If the loop is currently waiting/blocking for events calling member functions of the
 ///associated LoopControl object will wake up the loop.
-class LoopControl
+class LoopControl : public nytl::NonCopyable
 {
 public:
 	LoopControl() = default;

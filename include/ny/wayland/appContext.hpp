@@ -99,6 +99,9 @@ protected:
 	///Will not stop on a signal.
 	int pollFds(short wlDisplayEvents, int timeout);
 
+	///Dispatches all pending events correctly
+	void dispatchPending();
+
 	//callback handlers
 	void handleRegistryAdd(unsigned int id, const char* cinterface, unsigned int version);
 	void handleRegistryRemove(unsigned int id);

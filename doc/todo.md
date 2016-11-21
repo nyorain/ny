@@ -5,6 +5,8 @@ current:
 - ny::DataFormat comparsion
 - some fixes/rethinking to AsyncRequest
 
+- nytl: SizedStringParma constreuctor from StringParam
+
 - normalize wheel input values in some way across backends
 - event type register, see doc/concepts/events
 - rework events (concepts/events.md, concepts/window.md), eventDispatcher async funcions

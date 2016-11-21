@@ -40,6 +40,13 @@
 #include <queue>
 #include <cstring>
 
+//TODO: wayland dispay error log handler
+//cache it and store it output it in errorCheckWarn
+
+///Implementation notes:
+///It is possible to call wl_dispatch functions nested since before wayland calls
+///an event listener, the display mutex is unlocked (wayland client.c dispatch_event)
+
 namespace ny
 {
 
@@ -88,12 +95,14 @@ public:
 		return true;
 	}
 
+	///Write to the eventfd to wake a potential loop polling up.
 	void wakeup()
 	{
 		std::int64_t v = 1;
 		::write(eventfd, &v, 8);
 	}
 
+	///Returns the first queued function to be called or an empty object.
 	std::function<void()> popFunction()
 	{
 		std::lock_guard<std::mutex> lock(mutex);
@@ -140,15 +149,14 @@ struct WaylandAppContext::Impl
 
 	//here because changed is const functions (more like cache vars)
 	std::vector<std::unique_ptr<WaylandErrorCategory>> errorCategories; //see WaylandEC for info
-	std::error_code error; //The cached error code for the display (if any)
+	std::error_code error {}; //The cached error code for the display (if any)
+	bool errorOutputted {}; //Whether the critical error was already outputted
 
 	#ifdef NY_WithEgl
 		EglSetup eglSetup;
 		bool eglFailed {}; //set to true if egl init failed, will not be tried again
 	#endif //WithEGL
 };
-
-using namespace wayland;
 
 WaylandAppContext::WaylandAppContext()
 {
@@ -205,6 +213,7 @@ WaylandAppContext::WaylandAppContext()
 	//init secondary resources
 	if(wlSeat() && wlDataManager()) dataDevice_ = std::make_unique<WaylandDataDevice>(*this);
 	if(wlShm()) wlCursorTheme_ = wl_cursor_theme_load("default", 32, wlShm());
+	if(xdgShell()) xdg_shell_use_unstable_version(xdgShell(), 5);
 
 	//again roundtrip and dispatch pending events to finish all setup
 	wl_display_flush(wlDisplay_);
@@ -248,11 +257,10 @@ bool WaylandAppContext::dispatchEvents()
 	auto dispatchingGuard = nytl::makeScopeGuard([&]{ dispatching_ = false; });
 
 	//first execute all pending dispatchers
-	for(auto& dispatcher : pendingDispatchers_) dispatcher();
-	pendingDispatchers_.clear();
+	dispatchPending();
 
-	//read all registered file descriptors without any blocking and without blocking
-	//for the display
+	//read all registered file descriptors without any blocking and without polling
+	//for the display file descriptor, since we dispatch everything availabel anyways
 	pollFds(0, 0);
 
 	//dispatch all pending wayland events
@@ -295,8 +303,7 @@ bool WaylandAppContext::dispatchLoop(LoopControl& control)
 	//first execute all pending dispatchers
 	//we don't have to do this inside the loop because we set dispatching_
 	//to true and therefore they will be dispatched directly
-	for(auto& dispatcher : pendingDispatchers_) dispatcher();
-	pendingDispatchers_.clear();
+	dispatchPending();
 
 	while(loopImpl.run.load())
 	{
@@ -304,8 +311,8 @@ bool WaylandAppContext::dispatchLoop(LoopControl& control)
 		while(auto func = loopImpl.popFunction()) func();
 
 		if(dispatchDisplay()) continue;
-		log("ny::WaylandAppContext::dispatchLoop: dispatchDisplay failed");
 		if(!checkErrorWarn()) return false;
+		debug("ny::WaylandAppContext::dispatchLoop: dispatchDisplay failed without error");
 	}
 
 	return checkErrorWarn();
@@ -367,6 +374,8 @@ bool WaylandAppContext::clipboard(std::unique_ptr<DataSource>&& dataSource)
 {
 	if(!waylandDataDevice()) return false;
 
+	//see wayland/data.hpp WaylandDataSource documentation for a reason why <new> is used here.
+	//this is not a leak, WaylandDataSource self-manages its lifetime
 	auto src = new WaylandDataSource(*this, std::move(dataSource), false);
 	wl_data_device_set_selection(&dataDevice_->wlDataDevice(), &src->wlDataSource(),
 		keyboardContext_->lastSerial());
@@ -454,7 +463,7 @@ std::error_code WaylandAppContext::checkError() const
 	{
 		const wl_interface* interface;
 		uint32_t id;
-		int code = wl_display_get_protocol_error(wlDisplay_, &interface, &id);
+		int code = wl_display_get_protocol_error(wlDisplay_, &interface, &id) + 1;
 
 		//find or insert the matching category
 		//see wayland/util.hpp WaylandErrorCategory for more information
@@ -463,6 +472,7 @@ std::error_code WaylandAppContext::checkError() const
 
 		impl_->errorCategories.push_back(std::make_unique<WaylandErrorCategory>(*interface));
 		impl_->error = {code, *impl_->errorCategories.back()};
+		debug("name: ", interface->name);
 	}
 	else if(err)
 	{
@@ -476,9 +486,21 @@ bool WaylandAppContext::checkErrorWarn() const
 {
 	auto ec = checkError();
 	if(!ec) return true;
+	if(impl_->errorOutputted) return false;
 
 	auto msg = ec.message();
-	error("ny::WaylandAppContext: display has error ", msg, " and should no longer be used");
+	auto* wlCategory = dynamic_cast<const WaylandErrorCategory*>(&ec.category());
+	if(wlCategory)
+	{
+		error("ny::WaylandAppContext: display has protocol error <", msg, "> in interface <",
+			wlCategory->interface().name, ">. The dispay should not longer be used.");
+	}
+	else
+	{
+		error("ny::WaylandAppContext: display has error <", msg, "> and should no longer be used");
+	}
+
+	impl_->errorOutputted = true;
 	return false;
 }
 
@@ -496,13 +518,19 @@ void WaylandAppContext::dispatch(Event&& event)
 		return;
 	}
 
+	if(dispatching_)
+	{
+		event.handler->handleEvent(event);
+		return;
+	}
+
 	//this is ugly af!
 	//problem: std::function is pendingDispatchers_ must be copyable, Event (and therefore
 	//the lambda) is not.
 	//But since this function is a hack anyways and will be removed with the event handling
 	//rework, it's ok like this for now...
 	auto sharedEvent = std::shared_ptr<Event>(nytl::cloneMove(event));
-	dispatch([=]{ sharedEvent->handler->handleEvent(*sharedEvent); });
+	dispatch([ev = sharedEvent] { ev->handler->handleEvent(*ev); });
 }
 
 nytl::Connection WaylandAppContext::fdCallback(int fd, unsigned int events,
@@ -558,7 +586,6 @@ bool WaylandAppContext::dispatchDisplay()
 
 	if(wl_display_read_events(wlDisplay_) == -1) return false;
 	auto dispatched = wl_display_dispatch_pending(wlDisplay_);
-	debug("dispatched: ", dispatched);
 	return dispatched >= 0;
 }
 
@@ -587,9 +614,7 @@ int WaylandAppContext::pollFds(short wlDisplayEvents, int timeout)
 	//add the wayland display fd to the pollfds
 	if(wlDisplayEvents) fds.push_back({wl_display_get_fd(&wlDisplay()), wlDisplayEvents, 0u});
 
-	debug("Poll begin");
 	auto ret = noSigPoll(*fds.data(), fds.size(), timeout);
-	debug("poll end");
 	if(ret < 0)
 	{
 		log("ny::WaylandAppContext::pollFds: poll failed: ", std::strerror(errno));
@@ -611,6 +636,23 @@ int WaylandAppContext::pollFds(short wlDisplayEvents, int timeout)
 	}
 
 	return ret;
+}
+
+void WaylandAppContext::dispatchPending()
+{
+	debug("ny::WaylandAppContext::dispatchPending: size ", pendingDispatchers_.size());
+
+	//Its important to check for empty dispatchers and to move them to a
+	//copy before calling them since they somehow might end up calling this function again
+	//and this would result in an infinite loop otherwise.
+	for(auto& dispatcher : pendingDispatchers_)
+	{
+		if(!dispatcher) continue;
+		auto copy = std::move(dispatcher);
+		copy();
+	}
+
+	pendingDispatchers_.clear();
 }
 
 void WaylandAppContext::handleRegistryAdd(unsigned int id, const char* cinterface,
@@ -636,7 +678,6 @@ void WaylandAppContext::handleRegistryAdd(unsigned int id, const char* cinterfac
 			void(xdg_shell*, uint32_t)>
 	};
 
-	nytl::unused(version); //TODO
 	const nytl::StringParam interface = cinterface; //easier comparison
 
 	if(interface == "wl_compositor" && !impl_->wlCompositor)
@@ -678,7 +719,7 @@ void WaylandAppContext::handleRegistryAdd(unsigned int id, const char* cinterfac
 	}
 	else if(interface == "xdg_shell" && !impl_->xdgShell)
 	{
-		auto ptr = wl_registry_bind(&wlRegistry(), id, &xdg_shell_interface, 5);
+		auto ptr = wl_registry_bind(&wlRegistry(), id, &xdg_shell_interface, std::min(6u, version));
 		impl_->xdgShell = {static_cast<xdg_shell*>(ptr), id};
 		xdg_shell_add_listener(xdgShell(), &xdgShellListener, this);
 	}
@@ -696,7 +737,7 @@ void WaylandAppContext::handleRegistryRemove(unsigned int id)
 	else
 	{
 		outputs_.erase(std::remove_if(outputs_.begin(), outputs_.end(),
-			[=](const Output& output){ return output.name() == id; }), outputs_.end());
+			[=](const wayland::Output& output){ return output.name() == id; }), outputs_.end());
 	}
 }
 

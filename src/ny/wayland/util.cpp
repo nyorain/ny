@@ -433,7 +433,7 @@ std::string WaylandErrorCategory::message(int code) const
 	{
 		if(&i.interface != &interface_) continue;
 
-		for(auto& e : i.errors) if(e.code == code) return e.msg;
+		for(auto& e : i.errors) if(e.code - 1 == code) return e.msg;
 		break;
 	}
 

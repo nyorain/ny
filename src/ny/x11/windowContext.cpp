@@ -392,9 +392,9 @@ void X11WindowContext::icon(const ImageData& img)
 	}
 }
 
-void X11WindowContext::title(const std::string& str)
+void X11WindowContext::title(nytl::StringParam title)
 {
-	xcb_ewmh_set_wm_name(&ewmhConnection(), xWindow(), str.size(), str.c_str());
+	xcb_ewmh_set_wm_name(&ewmhConnection(), xWindow(), std::strlen(title), title);
 }
 
 NativeHandle X11WindowContext::nativeHandle() const
