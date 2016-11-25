@@ -6,7 +6,6 @@
 #include <ny/wayland/appContext.hpp>
 #include <ny/wayland/windowContext.hpp>
 
-#include <ny/event.hpp>
 #include <ny/log.hpp>
 #include <ny/cursor.hpp>
 #include <ny/imageData.hpp>

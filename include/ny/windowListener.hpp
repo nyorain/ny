@@ -8,8 +8,6 @@
 #include <nytl/clone.hpp>
 #include <nytl/vec.hpp>
 
-//This header and its functionality can be used without linking to ny.
-
 namespace ny
 {
 
@@ -71,10 +69,10 @@ public:
 	virtual void resize(nytl::Vec2ui size, const EventData*) {}; ///Window was resized
 	virtual void state(bool shown, ToplevelState, const EventData*) {}; ///Window state changed
 
-	virtual void key(bool pressed, Keycode, std::string utf8, const EventData*);
-	virtual void focus(bool shown, ToplevelState state, const EventData*);
+	virtual void key(bool pressed, Keycode, const std::string& utf8, const EventData*) {};
+	virtual void focus(bool shown,const EventData*) {};
 
-	virtual void mouseButton(bool pressed, MouseButton button, EventData*);
+	virtual void mouseButton(bool pressed, MouseButton button, const EventData*) {};
 	virtual void mouseMove(nytl::Vec2i position, const EventData*) {}; ///Mouse moves over window
 	virtual void mouseWheel(float value, const EventData*) {}; ///Mouse wheel rotated over window
 	virtual void mouseCross(bool focused, const EventData*) {}; ///Mouse entered/left window

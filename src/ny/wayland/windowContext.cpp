@@ -149,14 +149,16 @@ void WaylandWindowContext::createSubsurface(wl_surface& parent, const WaylandWin
 
 void WaylandWindowContext::refresh()
 {
+	//if there is an active frameCallback just set the flag that we want to refresh
+	//as soon as possible
     if(frameCallback_)
     {
         refreshFlag_ = true;
         return;
     }
 
-	appContext().dispatch(&listener(),
-		[](WindowListener* listener){ listener->draw(nullptr); });
+	//otherwise send a draw event.
+	listener().draw(nullptr);
 }
 
 void WaylandWindowContext::show()
@@ -422,8 +424,7 @@ void WaylandWindowContext::handleFrameCallback()
 	if(refreshFlag_)
 	{
 		refreshFlag_ = false;
-		appContext().dispatch(&listener(),
-			[](WindowListener* listener) { listener->draw(nullptr); });
+		listener().draw(nullptr);
 	}
 }
 
@@ -437,8 +438,7 @@ void WaylandWindowContext::handleShellSurfaceConfigure(unsigned int edges, int w
 	nytl::unused(edges);
 
 	auto newSize = nytl::Vec2ui(width, height);
-	appContext().dispatch(&listener(),
-		[=](WindowListener* listener) { listener->resize(newSize, nullptr); });
+	listener().resize(newSize, nullptr);
 
 	size(newSize);
 }
@@ -456,8 +456,7 @@ void WaylandWindowContext::handleXdgSurfaceConfigure(int width, int height, wl_a
 	nytl::unused(states);
 
 	auto newSize = nytl::Vec2ui(width, height);
-	appContext().dispatch(&listener(),
-		[=](WindowListener* listener) { listener->resize(newSize, nullptr); });
+	listener().resize(newSize, nullptr);
 
 	xdg_surface_ack_configure(xdgSurface(), serial);
 	size(newSize);
@@ -465,8 +464,7 @@ void WaylandWindowContext::handleXdgSurfaceConfigure(int width, int height, wl_a
 
 void WaylandWindowContext::handleXdgSurfaceClose()
 {
-	appContext().dispatch(&listener(),
-		[=](WindowListener* listener) { listener->close(nullptr); });
+	listener().close(nullptr);
 }
 
 void WaylandWindowContext::handleXdgPopupDone()

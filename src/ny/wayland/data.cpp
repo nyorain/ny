@@ -465,13 +465,8 @@ void WaylandDataDevice::drop()
 		}
 	}
 
-	if(dndWC_ && dndWC_->eventHandler())
-	{
-		debug("drop drop");
-		DataOfferEvent event(dndWC_->eventHandler());
-		event.offer = std::move(ownedDndOffer);
-		appContext_->dispatch(std::move(event));
-	}
+	debug("drop drop");
+	if(dndWC_) dndWC_->listener().dndDrop({}, std::move(ownedDndOffer), nullptr);
 
 	dndOffer_ = nullptr;
 }

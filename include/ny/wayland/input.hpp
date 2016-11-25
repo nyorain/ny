@@ -81,12 +81,18 @@ public:
 	wl_keyboard* wlKeyboard() const { return wlKeyboard_; }
 	unsigned int lastSerial() const { return lastSerial_; }
 
+	int repeatRate() const { return repeatRate_; }
+	int repeatDelay() const { return repeatDelay_; }
+
 protected:
 	WaylandAppContext& appContext_;
 	WindowContext* focus_ {};
 	wl_keyboard* wlKeyboard_ {};
 	bool keymap_ {};
 	unsigned int lastSerial_ {};
+
+	int repeatRate_ {};
+	int repeatDelay_ {};
 
 protected:
     void handleKeymap(unsigned int format, int fd, unsigned int size);

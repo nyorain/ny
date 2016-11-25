@@ -76,21 +76,9 @@ void WaylandMouseContext::handleMotion(unsigned int time, wl_fixed_t x, wl_fixed
 
 	auto oldPos = position_;
 	position_ = {wl_fixed_to_int(x), wl_fixed_to_int(y)};
+	onMove(*this, position_, position_ - oldPos);
 
-	if(over_)
-	{
-		appContext().dispatch(&over_->listener(),
-			[](void* listener) { static_cast<WindowListener*>(listener)->draw(nullptr); });
-
-		appContext().dispatch(this, [=](void* mc){ onMove(mc, newPos, delta); });
-
-		MouseMoveEvent event(over_->eventHandler());
-		event.position = pos;
-		event.delta = position_ - pos;
-		appContext_.dispatch(std::move(event));
-	}
-
-	position_ = pos;
+	if(over_) over_->listener().mouseMove(position_, nullptr);
 }
 void WaylandMouseContext::handleEnter(unsigned int serial, wl_surface* surface,
 	wl_fixed_t x, wl_fixed_t y)
@@ -102,32 +90,19 @@ void WaylandMouseContext::handleEnter(unsigned int serial, wl_surface* surface,
 	cursorSerial_ = serial;
 
 	auto wc = appContext_.windowContext(*surface);
+	WaylandEventData eventData(serial);
 
 	if(wc != over_)
 	{
 		onFocus(*this, over_, wc);
 
 		//send leave event
-		if(over_ && over_->eventHandler())
-		{
-			MouseCrossEvent event(over_->eventHandler());
-			event.data = std::make_unique<WaylandEventData>(serial);
-			event.entered = false;
-			appContext_.dispatch(std::move(event));
-		}
+		if(over_) over_->listener().mouseCross(false, &eventData);
 
-		//if still in a ny window, send enter event
-		//and update cursor
+		//if still in a ny window, send enter event and update cursor
 		if(wc)
 		{
-			if(wc->eventHandler())
-			{
-				MouseCrossEvent event(wc->eventHandler());
-				event.data = std::make_unique<WaylandEventData>(serial);
-				event.entered = true;
-				appContext_.dispatch(std::move(event));
-			}
-
+			wc->listener().mouseCross(true, &eventData);
 			cursorBuffer(wc->wlCursorBuffer(), wc->cursorHotspot(), wc->cursorSize());
 		}
 
@@ -137,18 +112,13 @@ void WaylandMouseContext::handleEnter(unsigned int serial, wl_surface* surface,
 void WaylandMouseContext::handleLeave(unsigned int serial, wl_surface* surface)
 {
 	lastSerial_ = serial;
+	WaylandEventData eventData(serial);
 
 	auto wc = appContext_.windowContext(*surface);
-	if(wc != over_) warning("WlMouseContext::handleLeave: over_ and wc not matching");
+	if(wc != over_) warning("ny::WaylandMouseContext::handleLeave: over inconsistency");
 
-	if(over_ != nullptr) onFocus(*this, over_, nullptr);
-	if(wc && wc->eventHandler())
-	{
-		MouseCrossEvent event(wc->eventHandler());
-		event.data = std::make_unique<WaylandEventData>(serial);
-		event.entered = false;
-		appContext_.dispatch(std::move(event));
-	}
+	if(over_) onFocus(*this, over_, nullptr);
+	if(wc) wc->listener().mouseCross(false, &eventData);
 
 	over_ = nullptr;
 }
@@ -156,33 +126,23 @@ void WaylandMouseContext::handleButton(unsigned int serial, unsigned int time,
 	unsigned int button, bool pressed)
 {
 	nytl::unused(time);
+
 	lastSerial_ = serial;
+	WaylandEventData eventData(serial);
 
 	auto nybutton = linuxToButton(button);
 	onButton(*this, nybutton, pressed);
 
-	if(over_)
-	{
-		MouseButtonEvent event(over_->eventHandler());
-		event.button = nybutton;
-		event.position = position_;
-		event.data = std::make_unique<WaylandEventData>(serial);
-		appContext_.dispatch(std::move(event));
-	}
+	if(over_) over_->listener().mouseButton(pressed, nybutton, &eventData);
 }
 
-void WaylandMouseContext::handleAxis(unsigned int time, unsigned int axis, int value)
+void WaylandMouseContext::handleAxis(unsigned int time, unsigned int axis, wl_fixed_t value)
 {
 	nytl::unused(time, axis);
 	auto nvalue = wl_fixed_to_int(value);
 	onWheel(*this, nvalue);
 
-	if(over_)
-	{
-		MouseWheelEvent event(over_->eventHandler());
-		event.value = nvalue;
-		appContext_.dispatch(std::move(event));
-	}
+	if(over_) over_->listener().mouseWheel(nvalue, nullptr);
 }
 
 //Those events could be handled if more complex axis events are supported.
@@ -305,6 +265,7 @@ void WaylandKeyboardContext::handleKeymap(unsigned int format, int fd, unsigned 
 void WaylandKeyboardContext::handleEnter(unsigned int serial, wl_surface* surface, wl_array* keys)
 {
 	lastSerial_ = serial;
+	WaylandEventData eventData(serial);
 
 	keyStates_.reset();
 	for(auto i = 0u; i < keys->size / sizeof(std::uint32_t); ++i)
@@ -318,20 +279,8 @@ void WaylandKeyboardContext::handleEnter(unsigned int serial, wl_surface* surfac
 	{
 		onFocus(*this, focus_, wc);
 
-		if(focus_ && focus_->eventHandler())
-		{
-			FocusEvent event(focus_->eventHandler());
-			event.data = std::make_unique<WaylandEventData>(serial);
-			event.focus = false;
-			appContext_.dispatch(std::move(event));
-		}
-		if(wc && wc->eventHandler())
-		{
-			FocusEvent event(wc->eventHandler());
-			event.data = std::make_unique<WaylandEventData>(serial);
-			event.focus = true;
-			appContext_.dispatch(std::move(event));
-		}
+		if(focus_) focus_->listener().focus(false, &eventData);
+		if(wc) wc->listener().focus(true, &eventData);
 
 		focus_ = wc;
 	}
@@ -340,22 +289,15 @@ void WaylandKeyboardContext::handleEnter(unsigned int serial, wl_surface* surfac
 void WaylandKeyboardContext::handleLeave(unsigned int serial, wl_surface* surface)
 {
 	lastSerial_ = serial;
+	WaylandEventData eventData(serial);
 
 	auto* wc = appContext_.windowContext(*surface);
-	if(wc != focus_) warning("WlKeyboardContext::handleLeave: focus_ and wc not matching");
+	if(wc != focus_) warning("ny::WaylandKeyboardContext::handleLeave: focus inconsistency");
 
 	if(wc)
 	{
 		onFocus(*this, wc, nullptr);
-
-		if(wc->eventHandler())
-		{
-			FocusEvent event(wc->eventHandler());
-			event.data = std::make_unique<WaylandEventData>(serial);
-			event.focus = false;
-
-			appContext_.dispatch(std::move(event));
-		}
+		wc->listener().focus(false, &eventData);
 	}
 
 	keyStates_.reset();
@@ -365,19 +307,16 @@ void WaylandKeyboardContext::handleKey(unsigned int serial, unsigned int time,
 	unsigned int key, bool pressed)
 {
 	nytl::unused(time);
+
 	lastSerial_ = serial;
+	WaylandEventData eventData(serial);
 
-	if(focus_ && focus_->eventHandler())
-	{
-		KeyEvent event(focus_->eventHandler());
-		event.data = std::make_unique<WaylandEventData>(serial);
-		event.pressed = pressed;
+	Keycode keycode;
+	std::string utf8;
 
-		XkbKeyboardContext::keyEvent(key + 8, event);
-		onKey(*this, keycodeOut, utf8, pressed);
-
-		appContext_.dispatch(std::move(event));
-	}
+	XkbKeyboardContext::handleKey(key + 8, pressed, keycode, utf8);
+	if(focus_) focus_->listener().key(pressed, keycode, utf8, &eventData);
+	onKey(*this, keycode, utf8, pressed);
 }
 
 void WaylandKeyboardContext::handleModifiers(unsigned int serial, unsigned int mdepressed,
@@ -390,6 +329,9 @@ void WaylandKeyboardContext::handleModifiers(unsigned int serial, unsigned int m
 void WaylandKeyboardContext::handleRepeatInfo(int rate, int delay)
 {
 	nytl::unused(rate, delay);
+
+	repeatRate_ = rate;
+	repeatDelay_ = delay;
 }
 
 }

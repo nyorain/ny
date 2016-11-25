@@ -41,6 +41,8 @@
 #include <cstring>
 #include <sstream>
 
+//TODO: is the wakeup_ flag really needed? see dispatchDisplay
+
 //Implementation notes:
 //It is possible to call wl_dispatch functions nested since before wayland calls
 //an event listener, the display mutex is unlocked (wayland client.c dispatch_event)
@@ -209,11 +211,19 @@ WaylandAppContext::WaylandAppContext()
         wl_log_set_handler_client(logHandler);
     });
 
+	//create the queue on which we do roundtrips.
+	//note that we create an extra queue for roundtrips because they should not
+	//dispatch any other events
+	wlRoundtripQueue_ = wl_display_create_queue(&wlDisplay());
+
     //create registry with listener and retrieve globals
 	wlRegistry_ = wl_display_get_registry(wlDisplay_);
 	wl_registry_add_listener(wlRegistry_, &registryListener, this);
 
-	//roundtrip to assure that we receive all advertised globals
+	//first dispatch to receive the registry events
+	//then roundtrip to make sure binding them does not create an error
+	//only here we can call the plain dispatch and roundtrip functions since there
+	//aren't any applications callbacks yet
 	wl_display_dispatch(wlDisplay_);
 	wl_display_roundtrip(wlDisplay_);
 
@@ -246,8 +256,8 @@ WaylandAppContext::WaylandAppContext()
 	if(wlShm()) wlCursorTheme_ = wl_cursor_theme_load("default", 32, wlShm());
 	if(xdgShell()) xdg_shell_use_unstable_version(xdgShell(), 5);
 
-	//again roundtrip and dispatch pending events to finish all setup
-	wl_display_flush(wlDisplay_);
+	//again roundtrip and dispatch pending events to finish all setup and make
+	//sure no errors occurred
 	wl_display_roundtrip(wlDisplay_);
 	wl_display_dispatch_pending(wlDisplay_);
 }
@@ -527,37 +537,6 @@ bool WaylandAppContext::checkErrorWarn() const
 	return false;
 }
 
-void WaylandAppContext::dispatch(void* data,
-    std::function<void(void*)> func)
-{
-	if(dispatching_)
-    {
-        dispatching_ = false;
-        auto dispatchingGuard = nytl::makeScopeGuard([&]{ dispatching_ = true; });
-        func(data);
-    }
-    else
-    {
-		impl_->pendingDispatchers.push_back({data, std::move(func)});
-    }
-}
-
-void WaylandAppContext::moveDispatcher(const void* current, void* newOne)
-{
-	auto& pd = impl_->pendingDispatchers;
-	if(!newOne)
-	{
-		//remove all dispatchers with the given listener
-		pd.erase(std::remove_if(pd.begin(), pd.end(),
-			[=](Dispatcher& d){ return d.data == current; }), pd.end());
-		return;
-	}
-
-	//change the listener of all dispatchers with the given listener
-    for(auto& dispatcher : pd)
-		if(dispatcher.data == current) dispatcher.data = newOne;
-}
-
 nytl::Connection WaylandAppContext::fdCallback(int fd, unsigned int events,
 	const FdCallbackFunc& func)
 {
@@ -663,21 +642,9 @@ int WaylandAppContext::pollFds(short wlDisplayEvents, int timeout)
 	return ret;
 }
 
-void WaylandAppContext::dispatchPending()
+void WaylandAppContext::roundtrip()
 {
-	//Its important to erase them before calling since a dispatcher somehow might end up calling
-    //this function again and this would result in an infinite loop otherwise.
-    for(auto it = impl_->pendingDispatchers.begin(); it != impl_->pendingDispatchers.end();)
-    {
-        auto dispatcher = std::move(*it);
-        it = impl_->pendingDispatchers.erase(it);
-
-        {
-            dispatching_ = false;
-            auto dispatchingGuard = nytl::makeScopeGuard([&]{ dispatching_ = true; });
-            dispatcher.function(dispatcher.data);
-        }
-    }
+	wl_display_roundtrip_queue(&wlDisplay(), wlRoundtripQueue_);
 }
 
 void WaylandAppContext::handleRegistryAdd(unsigned int id, const char* cinterface,
@@ -704,6 +671,7 @@ void WaylandAppContext::handleRegistryAdd(unsigned int id, const char* cinterfac
 	};
 
 	const nytl::StringParam interface = cinterface; //easier comparison
+	debug("ny::WaylandAppContext::handleRegistryAdd: interface ", interface);
 
 	if(interface == "wl_compositor" && !impl_->wlCompositor)
 	{

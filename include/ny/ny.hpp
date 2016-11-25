@@ -12,12 +12,10 @@
 #include <ny/windowContext.hpp>
 
 #include <ny/windowSettings.hpp>
+#include <ny/windowListener.hpp>
 #include <ny/imageData.hpp>
 #include <ny/data.hpp>
 #include <ny/cursor.hpp>
-#include <ny/eventHandler.hpp>
-#include <ny/event.hpp>
-#include <ny/events.hpp>
 #include <ny/loopControl.hpp>
 #include <ny/log.hpp>
 #include <ny/library.hpp>

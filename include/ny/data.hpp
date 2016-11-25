@@ -136,6 +136,8 @@ public:
 	virtual DataRequest data(const DataFormat&) { throw 0; }
 };
 
+using DataOfferPtr = std::unique_ptr<DataOffer>;
+
 std::vector<uint8_t> serialize(const ImageData&);
 OwnedImageData deserializeImageData(nytl::Range<uint8_t> buffer);
 

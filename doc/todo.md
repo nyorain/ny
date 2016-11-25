@@ -57,6 +57,7 @@ wayland backend:
 - animated cursor (low prio)
 - support xdg popup (and version 6), other protocols (low prio)
 - ShmBuffer shm_pool shared (not one per buffer...)
+- support zxdg version 6
 
 winapi backend:
 - wgl api reparse [loader, swap control tear]

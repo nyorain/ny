@@ -11,48 +11,6 @@ class CustomDataSource : public ny::DataSource
 	std::any data(const ny::DataFormat& format) const override;
 };
 
-class MyEventHandler : public ny::EventHandler
-{
-public:
-	MyEventHandler(ny::LoopControl& mainLoop, ny::WindowContext& wc) : lc_(mainLoop), wc_(wc) {}
-	bool handleEvent(const ny::Event& ev) override;
-
-	ny::AppContext* ac;
-	ny::BufferSurface* surface;
-
-protected:
-	ny::LoopControl& lc_;
-	ny::WindowContext& wc_;
-};
-
-int main()
-{
-	auto& backend = ny::Backend::choose();
-	auto ac = backend.createAppContext();
-
-	ny::BufferSurface* bufferSurface {};
-
-	ny::WindowSettings settings;
-	// settings.initState = ny::ToplevelState::maximized;
-	settings.title = "Ayy sick shit";
-	settings.surface = ny::SurfaceType::buffer;
-	settings.buffer.storeSurface = &bufferSurface;
-	auto wc = ac->createWindowContext(settings);
-
-	ny::LoopControl control;
-
-	MyEventHandler handler(control, *wc);
-	handler.ac = ac.get();
-	handler.surface = bufferSurface;
-
-	// wc->droppable({{ny::dataType::text, ny::dataType::filePaths}});
-	wc->eventHandler(handler);
-	wc->refresh();
-
-	ny::log("Entering main loop");
-	ac->dispatchLoop(control);
-}
-
 void handleDataOffer(ny::DataOffer& dataOffer)
 {
 	auto formatsRequest = dataOffer.formats();
@@ -86,58 +44,56 @@ void handleDataOffer(ny::DataOffer& dataOffer)
 	ny::log("Received offer text data: ", std::any_cast<std::string>(text));
 }
 
-bool MyEventHandler::handleEvent(const ny::Event& ev)
+class MyWindowListener : public ny::WindowListener
 {
-	ny::log("event: ", ev.type());
-	static std::unique_ptr<ny::DataOffer> offer;
+public:
+	ny::AppContext* ac;
+	ny::WindowContext* wc;
+	ny::LoopControl* lc;
+	ny::BufferSurface* surface;
 
-	if(ev.type() == ny::eventType::close)
+public:
+	void close(const ny::EventData*) override
 	{
-		ny::log("Window closed. Exiting.");
-		lc_.stop();
-		return true;
+		ny::log("Recevied closed event. Exiting");
+		lc->stop();
 	}
-	else if(ev.type() == ny::eventType::mouseWheel)
-	{
-		ny::log("Mouse wheel: ", static_cast<const ny::MouseWheelEvent&>(ev).value);
-		return true;
-	}
-	else if(ev.type() == ny::eventType::dataOffer)
-	{
-		ny::log("offer event received");
-		handleDataOffer(*reinterpret_cast<const ny::DataOfferEvent&>(ev).offer);
-		return true;
-	}
-	else if(ev.type() == ny::eventType::mouseButton)
-	{
-		// initiate a dnd operation with the CustomDataSource
-		if(nytl::anyOf(static_cast<const ny::MouseButtonEvent&>(ev).position > 100))
-			return false;
 
-		auto ret = ac->startDragDrop(std::make_unique<CustomDataSource>());
-		ny::log("Starting a dnd operation: ", ret);
-		return true;
-	}
-	else if(ev.type() == ny::eventType::draw)
+	void draw(const ny::EventData*) override
 	{
 		auto bufferGuard = surface->buffer();
 		auto buffer = bufferGuard.get();
-
 		auto size = buffer.stride * buffer.size.y;
 		std::memset(buffer.data, 0xCC, size);
-
-		return true;
 	}
-	else if(ev.type() == ny::eventType::key)
-	{
-		auto& kev = static_cast<const ny::KeyEvent&>(ev);
-		if(!kev.pressed) return false;
 
-		if(kev.keycode == ny::Keycode::escape)
+	void mouseButton(bool pressed, ny::MouseButton button, const ny::EventData*) override
+	{
+		// initiate a dnd operation with the CustomDataSource
+		if(nytl::anyOf(ac->mouseContext()->position() > 100)) return;
+		auto ret = ac->startDragDrop(std::make_unique<CustomDataSource>());
+		ny::log("Starting a dnd operation: ", ret);
+	}
+
+	void mouseWheel(float value, const ny::EventData*) override
+	{
+		ny::log("Mouse Wheel rotated: value=", value);
+	}
+
+	void dndDrop(nytl::Vec2i pos, ny::DataOfferPtr offer, const ny::EventData*) override
+	{
+		ny::log("offer event received");
+		handleDataOffer(*offer);
+	}
+
+	void key(bool pressed, ny::Keycode keycode, const std::string& utf8,
+		const ny::EventData*) override
+	{
+		if(keycode == ny::Keycode::escape)
 		{
 			ny::log("Escape pressed, exiting");
-			lc_.stop();
-			return true;
+			lc->stop();
+			return;
 		}
 
 		//retrieving the clipboard DataOffer and listing all formats
@@ -146,11 +102,35 @@ bool MyEventHandler::handleEvent(const ny::Event& ev)
 
 		if(!dataOffer) ny::warning("Backend does not support clipboard operations...");
 		else handleDataOffer(*dataOffer);
-
-		return true;
 	}
+};
 
-	return false;
+int main()
+{
+	auto& backend = ny::Backend::choose();
+	auto ac = backend.createAppContext();
+
+	ny::BufferSurface* bufferSurface {};
+	MyWindowListener listener;
+
+	ny::WindowSettings settings;
+	settings.title = "Ayy sick shit";
+	settings.listener = &listener;
+	settings.surface = ny::SurfaceType::buffer;
+	settings.buffer.storeSurface = &bufferSurface;
+	auto wc = ac->createWindowContext(settings);
+
+	ny::LoopControl control;
+
+	listener.lc = &control;
+	listener.ac = ac.get();
+	listener.wc = wc.get();
+	listener.surface = bufferSurface;
+
+	wc->refresh();
+
+	ny::log("Entering main loop");
+	ac->dispatchLoop(control);
 }
 
 std::any CustomDataSource::data(const ny::DataFormat& format) const
