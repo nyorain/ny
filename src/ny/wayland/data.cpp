@@ -191,7 +191,7 @@ WaylandDataOffer::DataRequest WaylandDataOffer::data(const DataFormat& format)
 		};
 
 		conn = appContext_->fdCallback(fds[0], POLLIN, callback);
-		// wl_data_offer_accept(wlDataOffer_, serial_, reqfmt.second.c_str());
+		wl_data_offer_accept(wlDataOffer_, serial_, reqfmt.second.c_str());
 	}
 
 	//create an asynchronous request object that unregisters itself on destruction so
@@ -212,7 +212,6 @@ void WaylandDataOffer::offer(const char* fmt)
 	else if(match(DataFormat::imageData, fmt)) formats_.push_back({DataFormat::imageData, fmt});
 	else formats_.push_back({{fmt, {}}, fmt,});
 
-	wl_data_offer_accept(wlDataOffer_, 0, fmt);
 }
 
 void WaylandDataOffer::sourceActions(unsigned int actions)
@@ -434,10 +433,14 @@ void WaylandDataDevice::leave()
 void WaylandDataDevice::motion(unsigned int time, wl_fixed_t x, wl_fixed_t y)
 {
 	// debug("motion");
-	nytl::unused(time, x, y);
+	nytl::unused(time);
+    nytl::Vec2i pos(wl_fixed_to_int(x), wl_fixed_to_int(y));
 
 	wl_data_offer_set_actions(&dndOffer_->wlDataOffer(), WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY,
 		WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY);
+
+    if(pos.x > 200) wl_data_offer_accept(&dndOffer_->wlDataOffer(), 0, nullptr);
+	else wl_data_offer_accept(&dndOffer_->wlDataOffer(), 0, "text/plain");
 }
 
 void WaylandDataDevice::drop()

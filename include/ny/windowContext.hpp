@@ -5,8 +5,8 @@
 #pragma once
 
 #include <ny/fwd.hpp>
-#include <ny/eventHandler.hpp>
 #include <ny/nativeHandle.hpp>
+#include <ny/windowListener.hpp>
 
 #include <nytl/flags.hpp>
 
@@ -18,48 +18,36 @@
 namespace ny
 {
 
-///\brief Abstract interface for a window context in the underlaying window system.
-///The term "window" used in the documentation for this class is used for the underlaying native
-///window, ny::WindowContext is totally independent from ny::Window and can be used without it.
-///Note that all WindowContext functions should just be called from just one thread, normally the
-///thread which processes events.
-///
-///The WindowContext will send the registered Eventhandler (if any) a DrawEvent when it should
-///redraw the window. Alternatively the client may wish to redraw the window because of some
-///content changes. Then it can call the refresh function.
-///Redrawing the window at a random time without receiving a DrawEvent might lead to artefacts
-///such as flickering.
+///Abstract interface for a window context in the underlaying window system.
 class WindowContext
 {
 public:
 	WindowContext() = default;
 	virtual ~WindowContext() = default;
 
-	///Sets the EventHandler that should receive the events associated with this windowContext.
-	///The event handler will receive information about window state changes and input.
-	virtual void eventHandler(EventHandler& handler) { eventHandler_ = &handler; }
+    ///Changes the registered WindowListener that will be called when events occurr.
+    ///Note that there is always an associated WindowListener, the default is
+    ///WindowListener::defaultInstance (i.e. use this to reset a registered listener).
+    ///The passed listener must remain valid until the WindowContext is destructed or it is
+    ///replaced by another listener.
+	virtual void listener(WindowListener& listener) { listener_ = listener; }
 
-	///Returns the associated EventHandler of this windowContext, nullptr if there is none.
-	virtual EventHandler* eventHandler() const { return eventHandler_; }
+    ///Returns the WindowListener this WindowContext has.
+    ///Note that there is always an associated WindowListener, the default is
+    ///WindowListener::defaultInstance.
+	virtual WindowListener& listener() const { return listener_.get(); }
+
+	///Returns the capabilities this WindowContext has.
+	///This makes it possible for implementations like e.g. linux drm to
+	///at least signal the application somehow that it is barely able to implement any of
+	///the default window functions.
+	virtual WindowCapabilities capabilities() const = 0;
 
 	///Makes the window visible.
 	virtual void show() = 0;
 
 	///Hides the window.
 	virtual void hide() = 0;
-
-	//TODO: allow to specify regions (or a predicate) in which different types may
-	//be dropped in some way.
-
-	///Signals that the window accepts drag-and-drops of the given DataTypes.
-	///If this function is called with an emtpy DataTypes object drag-and-drop support
-	///should be removed from the window.
-	///When the WindowContext receives a drop request for a matching type, it will send
-	///a DataOfferEvent to the registered EventHandler.
-	// virtual void droppable(const DataTypes&) = 0;
-
-	//TODO? XXX: make these functions bool to signal if they had any effect?
-	//Should they output a warning if not? it can be queried using capabilites
 
 	///Sets the minimal size of the window.
 	///Might have no effect on certain backends.
@@ -121,25 +109,24 @@ public:
 	virtual void normalState() = 0; //or reset()?
 
 	///Asks the window manager to start an interactive move for the window.
-	///\param event A pointer to a MouseButtonEvent. Only required for some implementations, so
-	///may also be a nullptr (does work then only on some backends!)
+	///\param event A pointer to an EventData object [optional]. Might fail if nullptr is given.
 	///\warning Shall have only an effect for toplevel windows.
-	virtual void beginMove(const MouseButtonEvent* ev) = 0;
+	virtual void beginMove(const EventData* event) = 0;
 
 	///Asks the window manager to start an interactive resizing for the window.
-	///\param event A pointer to a MouseButtonEvent. Only required for some implementations, so
-	///may also be a nullptr (does work then only on some backends!)
+	///\param event A pointer to an EventData object [optional]. Might fail if nullptr is given.
 	///\warning Shall have only an effect for toplevel windows.
-	virtual void beginResize(const MouseButtonEvent* event, WindowEdges edges) = 0;
+	virtual void beginResize(const EventData* event, WindowEdges edges) = 0;
 
-	///Sets the title for the native window.
+	///Sets the title for the native window. The title is what is displayed for the
+    ///window in a potential titlebar or taskbar.
 	///\warning Shall have only an effect for toplevel windows.
 	virtual void title(nytl::StringParam name) = 0;
 
-	///Sets the icon of the native window.
+	///Sets the icon of the native window. Used e.g. in a titlebar or taskbar.
 	///If the given icon pointer variable is an empty image, the icon will be reset/unset.
 	///\warning Shall have only an effect for toplevel windows.
-	virtual void icon(const ImageData& newicon) = 0; //may be only important for client decoration
+	virtual void icon(const ImageData& newicon) = 0;
 
 	///Returns whether the window should be custom decorated.
 	///Custom decoration can either be manually triggered by setting the custom decorated
@@ -157,14 +144,8 @@ public:
 	///\sa WindowHints
 	virtual void removeWindowHints(WindowHints hints) = 0;
 
-	///Returns the capabilities this WindowContext has.
-	///This makes it possible for implementations like e.g. linux drm to
-	///at least signal the application somehow that it is barely able to implement any of
-	///the default window functions.
-	virtual WindowCapabilities capabilities() const = 0;
-
 protected:
-	EventHandler* eventHandler_ {nullptr};
+	std::reference_wrapper<WindowListener> listener_ {WindowListener::defaultInstance()};
 };
 
 }

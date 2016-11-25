@@ -5,7 +5,7 @@
 #pragma once
 
 #include <ny/wayland/include.hpp>
-#include <ny/wayland/util.hpp> //for wayland::ShmBuffer. Problem?
+#include <ny/wayland/util.hpp>
 
 #include <ny/windowContext.hpp>
 #include <ny/windowSettings.hpp>
@@ -42,8 +42,6 @@ public:
     void show() override;
     void hide() override;
 
-    // void droppable(const DataTypes&) override;
-
     void minSize(nytl::Vec2ui minSize) override;
     void maxSize(nytl::Vec2ui maxSize) override;
 
@@ -62,8 +60,8 @@ public:
     void fullscreen() override;
     void normalState() override;
 
-    void beginMove(const MouseButtonEvent* ev) override;
-    void beginResize(const MouseButtonEvent* event, WindowEdges edges) override;
+    void beginMove(const EventData* ev) override;
+    void beginResize(const EventData* event, WindowEdges edges) override;
 
     void title(nytl::StringParam name) override;
 	void icon(const ImageData&) override {}

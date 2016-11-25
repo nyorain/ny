@@ -29,22 +29,13 @@ using std::int16_t;
 using std::int32_t;
 using std::int64_t;
 
-//base
-class Event;
-class EventHandler;
 class Cursor;
 class LoopControl;
 class LoopInterface;
 class DataFormat;
 class DataOffer;
 class DataSource;
-struct DataObject;
 
-template<typename P> struct BasicImageData;
-using ImageData = BasicImageData<const uint8_t*>;
-using MutableImageData = BasicImageData<uint8_t*>;
-
-//backend
 class Backend;
 class WindowContext;
 class AppContext;
@@ -52,21 +43,11 @@ class DialogContext;
 class MouseContext;
 class KeyboardContext;
 class WindowSettings;
+class WindowListener;
+class EventData;
 class NativeHandle;
 class Keyboard;
 class Mouse;
-
-//events
-class FocusEvent;
-class MouseMoveEvent;
-class MouseButtonEvent;
-class MouseCrossEvent;
-class MouseWheelEvent;
-class SizeEvent;
-class PositionEvent;
-class KeyEvent;
-class RefreshEvent;
-class ShowEvent;
 
 class Surface;
 class BufferSurface;
@@ -83,6 +64,10 @@ struct GlConfig;
 class EglSetup;
 class EglSurface;
 class EglContext;
+
+template<typename P> struct BasicImageData;
+using ImageData = BasicImageData<const uint8_t*>;
+using MutableImageData = BasicImageData<uint8_t*>;
 
 //enums
 enum class ToplevelState : unsigned int;

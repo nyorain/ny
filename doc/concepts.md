@@ -40,72 +40,98 @@ event dispatching mechanisms. The backend implementations just call directly tho
 functions if a WindowContext has a registered WindowListener.
 
 ```cpp
+///Classes derived from the EventData class are used by backends to put their custom
+///information (like e.g. native event objects) in Event objects, since every Event stores
+///an owned EventData pointer.
+///Has a virtual destructor which makes RTTI possible (i.e. checking for backend-specific types
+///using a dynamic_cast). EventData objects can be cloned, i.e. they can be duplicated without
+///having to know their exact (derived, backend-specific) type.
+///This may be used later by the backend to retrieve which event triggered a specific call
+///the application made (event-context sensitive functions like WindowConetxt::beginMove or
+///AppContext::startDragDrop take a EventData parameter).
+class EventData : public nytl::Cloneable<EventData>
+{
+public:
+	virtual ~EventData() = default;
+};
+
 ///Abstract base class for handling WindowContext events.
 ///This is usually implemented by applications and associated with all window-relevant
 ///state such as drawing contexts or widget logic.
 class WindowListener
 {
 public:
-	enum class Hit
-	{
-		none,
-		resize,
-		move,
-		close,
-		max,
-		min
-	};
-
-	struct HitResult
-	{
-		Hit hit;
-		WindowEdges resize;
-	};
-
-	enum class OfferResult
-	{
-		none,
-		copy,
-		move,
-		ask
-	};
-
 	///Returns a default WindowImpl object.
+    ///WindowContexts without explicitly set WindowListener have this object set.
+    ///This is done so it hasn't to be checked everytime whether a WindowContext has a valid
+    ///WindowListener.
 	static constexpr WindowListener& defaultInstance();
 
 public:
-	///Custom implement this function for client side decorations
-	virtual HitResult click(nytl::Vec2i pos) { return Hit::none; }
+    ///This function is called when a dnd action enters the window.
+    ///The window could use this to e.g. redraw itself in a special way.
+    ///Remember that after calling a dispatch function in this function, the given
+    ///DataOffer might not be valid anymore (then a dndLeave or dndDrop event occurred).
+    virtual void dndEnter(const DataOffer&, const EventData*) {};
 
-	///Override this function to make the Window accept offered data objects (e.g. dragndrop).
-	///Only if this function returns something other than none a DataOfferEvent can
-	///be generated.
-	virtual OfferResult offer(nytl::Vec2i pos, const DataTypes&) { return OfferResult::none; }
+    ///Called when a previously entered dnd offer is moved around in the window.
+    ///Many applications use this to enable e.g. scrolling while a dnd session is active.
+    ///Should return whether the given DataOffer could be accepted at the given position.
+    ///Remember that after calling a dispatch function in this function, the given
+    ///DataOffer might not be valid anymore (then a dndLeave or dndDrop event occurred).
+    virtual bool dndMove(nytl::Vec2i pos, const DataOffer&, const EventData*) { return false; }
 
-	virtual void draw() {}; ///Redraw the window
-	virtual void close() {}; ///Close the window at destroy the WindowContext
+    ///This function is called when a DataOffer that entered the window leaves it.
+    ///The DataOffer object should then actually not be used anymore and is just passed here
+    ///for comparison. This function is only called if no drop occurs.
+    virtual void dndLeave(const DataOffer&, const EventData*) {};
 
-	virtual void position(const PositionEvent&) {}; ///Window was repositioned
-	vritual void resize(const SizeEvent&) {}; ///Window was resized
-	virtual void state(const ShowEvent&) {}; ///The Windows state was changed
+    ///Called when a dnd DataOffer is dropped over the window.
+    ///The application gains ownership about the DataOffer object.
+    ///This event is only received when the previous dndMove handler returned true.
+	virtual void dndDrop(nytl::Vec2i pos, std::unique_ptr<DataOffer>, const EventData*) {}
 
-	virtual void key(const KeyEvent&) {}; ///Key event occurred while the window had focus
-	virtual void focus(const FocusEvent&) {}; ///Window lost/gained focus
+	virtual void draw(const EventData*) {}; ///Redraw the window
+	virtual void close(const EventData*) {}; ///Close the window at destroy the WindowContext
 
-	virtual void mouseButton(const MouseButtonEvent&) {}; ///MouseButton was clicked on window
-	virtual void mouseMove(const MouseMoveEvent&) {}; ///Mouse moves over window
-	virtual void mouseWheel(const MouseWheelEvent&) {}; ///Mouse wheel rotated over window
-	virtual void mouseCross(const MouseCrossEvent&) {}; ///Mouse entered/left window
+	virtual void position(nytl::Vec2i position, const EventData*) {}; ///Window was repositioned
+	virtual void resize(nytl::Vec2ui size, const EventData*) {}; ///Window was resized
+	virtual void state(bool shown, ToplevelState, const EventData*) {}; ///Window state changed
 
-	virtual void dataOffer(const DataOfferEvent&) {}; ///Window received a DataOffer
+	virtual void key(bool pressed, Key key, std::string utf8, const EventData*);
+	virtual void focus(bool shown, ToplevelState state, const EventData*);
 
-	///This callback is called for backend-specific events that might be interesting for
-	///the applications.
-	///Use this function to check for different events are only sent one backend if they
-	///should be handled by the application.
-	virtual void backendEvent(const Event&) {};
+	virtual void mouseButton(bool pressed, MouseButton button, EventData*);
+	virtual void mouseMove(nytl::Vec2i position, const EventData*) {}; ///Mouse moves over window
+	virtual void mouseWheel(int value, const EventData*) {}; ///Mouse wheel rotated over window
+	virtual void mouseCross(bool focused, const EventData*) {}; ///Mouse entered/left window
 };
 
+```
+
+### BackendEvent
+
+```cpp
+///Part of WindowListener
+class WindowListener
+{
+    ...
+
+	///This callback is called for backend-specific events that might be interesting for
+	///the applications. This function should only be used by applications that want to offer
+    ///platform-specific features.
+    ///It can then check whether a certain backend is used and cast the received BackendEvent ///to the derived BackendEvent types of the specific backend.
+	virtual void backendEvent(const BackendEvent&) {};
+};
+
+///Backend-specific event that may be handled by the application.
+///Contains usually events that may have an effect on the application but are only
+///emitted by the one backend like e.g. x11 reparent events, wayland registry events.
+class BackendEvent
+{
+public:
+    virtual ~BackendEvent() = default;
+};
 ```
 
 Stub functions
@@ -235,4 +261,32 @@ struct AppContextSettings
 	std::vector<std::pair<const char*, const char*>> licenses;
 	const char* author;
 };
+```
+
+DataActions
+-----------
+
+Give DataOffer and DataSource the possiblity for providing/chosing DataActions.
+Also give the possibilty for accepting a data format, inspecting it and give a feedback
+before the data is dropped (connect with WindowImpl).
+
+```cpp
+enum class DataAction
+{
+	none,
+	move,
+	copy,
+	ask
+};
+```
+
+Special position/size values
+============================
+
+```cpp
+///Used as magical signal value for no postion.
+constexpr nytl::Vec2i noPosition = {INT_MAX, INT_MAX};
+
+///Used as magical signal value for no size.
+constexpr nytl::Vec2ui noSize = {UINT_MAX, UINT_MAX};
 ```

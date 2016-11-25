@@ -5,7 +5,10 @@ current:
 - ny::DataFormat comparsion
 - some fixes/rethinking to AsyncRequest
 
-- nytl: SizedStringParma constreuctor from StringParam
+- some common util file/dir for ConnectionList and LoopInterfaceGuard
+    (both not really public include where they are atm, both not really src)
+
+- nytl: SizedStringParma constructor from StringParam
 
 - normalize wheel input values in some way across backends
 - event type register, see doc/concepts/events
@@ -18,6 +21,11 @@ current:
 - use pass-by-value for nytl::Vec2 params
 - touch support (TouchContext and touch events)
 - test image and uri serialize/deserialize
+
+- implement less processing optimization
+	- on all backends (where possible): first process all available events, then send them.
+	- prevents that e.g. a size event is sent although the next size event is already known
+	- some general event dispatching utiliy helpers for AppContext implementations?
 
 - documentation
 	- operation

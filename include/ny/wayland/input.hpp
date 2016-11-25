@@ -27,6 +27,8 @@ public:
 	WindowContext* over() const override;
 
 	//specific
+	WaylandAppContext& appContext() const { return appContext_;}
+
 	wl_pointer* wlPointer() const { return wlPointer_; }
 	unsigned int lastSerial() const { return lastSerial_; }
 
@@ -41,7 +43,7 @@ public:
 protected:
 	WaylandAppContext& appContext_;
 	WaylandWindowContext* over_ {};
-	Vec2ui position_;
+	Vec2i position_;
 	wl_pointer* wlPointer_ {};
 	std::bitset<8> buttonStates_;
 

@@ -46,10 +46,10 @@ public:
 	const std::bitset<256>& keyStates() const { return keyStates_; }
 
 	///Fills the given KeyEvent depending on the KeyEvent::pressed member and the given
-	///xkbcommon keycode. Does also trigger the onKey callback.
+	///xkbcommon keycode. Does not trigger the onKey callback.
 	///Returns false when the given keycode cancelled the current compose state, i.e.
 	///if it does not generate any valid keysym.
-	bool keyEvent(std::uint8_t keycode, KeyEvent& ev);
+	bool handleKey(std::uint8_t keycode, bool pressed, Keycode&, std::string& utf8);
 
 protected:
 	XkbKeyboardContext();

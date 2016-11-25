@@ -49,18 +49,16 @@ public:
 	std::error_code checkError() const;
 	bool checkErrorWarn() const; ///Outputs warning and returns false on error
 
-	///Adds a dispatch function that will be called before the function returns when
-	///the AppContext is currently dispatching events, otherwise it will be called
-	///the next time events are dispatched.
-	///Wayland listener callbacks should call this to dispatch events since they
-	///may be triggered somehow outside of a event dispatch function.
-	void dispatch(std::function<void()> func); //param by value since usually moved
-	void dispatch(Event&& ev); //to be removed with event handling rework
-
 	///Can be called to register custom listeners for fds that the dispatch loop will
 	///then poll for.
 	using FdCallbackFunc = nytl::CompFunc<void(nytl::ConnectionRef, int fd, unsigned int events)>;
 	nytl::Connection fdCallback(int fd, unsigned int events, const FdCallbackFunc& func);
+
+	///Roundtrips, i.e. waits until all requests are sent and the server has processed
+	///all of them.
+	///This function should be used instead of wl_display_roundtrip since it takes care of
+	///not dispatching any other events by using an extra event queue.
+	void roundtrip();
 
 	WaylandKeyboardContext* waylandKeyboardContext() const { return keyboardContext_.get(); }
 	WaylandMouseContext* waylandMouseContext() const { return mouseContext_.get(); }
@@ -99,9 +97,6 @@ protected:
 	///Will not stop on a signal.
 	int pollFds(short wlDisplayEvents, int timeout);
 
-	///Dispatches all pending events correctly
-	void dispatchPending();
-
 	//callback handlers
 	void handleRegistryAdd(unsigned int id, const char* cinterface, unsigned int version);
 	void handleRegistryRemove(unsigned int id);
@@ -113,6 +108,7 @@ protected:
 protected:
 	wl_display* wlDisplay_;
 	wl_registry* wlRegistry_;
+	wl_event_queue* wlRoundtripQueue_;
 	wl_cursor_theme* wlCursorTheme_ {};
 
 	unsigned int eventfd_ = 0u;
@@ -124,9 +120,7 @@ protected:
 	std::unique_ptr<WaylandKeyboardContext> keyboardContext_;
 	std::unique_ptr<WaylandMouseContext> mouseContext_;
 
-	bool dispatching_ {false};
-	bool wakeup_ {false};
-	std::vector<std::function<void()>> pendingDispatchers_;
+	bool wakeup_ {false}; //Set to true from the eventfd callback, causes dispatchDisplay to return
 
 	struct Impl;
 	std::unique_ptr<Impl> impl_;

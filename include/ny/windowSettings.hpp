@@ -12,6 +12,8 @@
 #include <nytl/flags.hpp>
 #include <nytl/vec.hpp>
 
+#include <limits>
+
 namespace ny
 {
 
@@ -53,9 +55,14 @@ enum class WindowCapability : unsigned int
 	minimize = (1L << 3),
 	maximize = (1L << 4),
 	position = (1L << 5),
-	sizeLimits = (1L << 6)
+	sizeLimits = (1L << 6),
+    icon = (1L << 7),
+    cursor = (1L << 8),
+    title = (1L << 9),
+    beginMove = (1L << 10),
+    beginResize = (1L << 11),
+    visibility = (1L << 12),
 };
-
 NYTL_FLAG_OPS(WindowCapability)
 
 ///Typesafe enum for the current state of a toplevel window.
@@ -114,20 +121,38 @@ struct BufferSurfaceSettings
 	BufferSurface** storeSurface {};
 };
 
+///Used as magical signal value for no postion.
+///For WindowSettings::position this means to use the default value.
+constexpr nytl::Vec2i defaultPosition =
+    {std::numeric_limits<int>::max(), std::numeric_limits<int>::max()};
+
+///Default position if there are no backend-specific defaults and WindowSettings::position
+///was set to defaultPosition.
+constexpr nytl::Vec2i fallbackPosition = {100, 100};
+
+///Used as magical signal value for no size.
+///For WindowSettings::size this means to use the default size.
+constexpr nytl::Vec2ui defaultSize =
+    {std::numeric_limits<unsigned int>::max(), std::numeric_limits<unsigned int>::max()};
+
+///Defualt size if there are no backend-specific defaults and WindowSettings::size
+///was set to defaultSize.
+constexpr nytl::Vec2ui fallbackSize = {800, 500};
 
 ///Settings for a Window.
 ///Backends usually have their own WindowSettings class derived from this one.
 class WindowSettings
 {
 public:
-	NativeHandle nativeHandle; ///< May specify an already existent native handle
-	NativeHandle parent; ///< May specify the windows native parent
+	NativeHandle nativeHandle {}; ///< May specify an already existent native handle
+	NativeHandle parent {}; ///< May specify the windows native parent
 	ToplevelState initState = ToplevelState::normal; ///< Window state after initialization
-	Vec2ui size = {800, 500}; ///< Beginning window size
-	Vec2i position = {~0, ~0}; ///< Beginngin window position
+	Vec2ui size = defaultSize; ///< Beginning window size
+	Vec2i position = defaultPosition; ///< Beginngin window position
 	std::string title = "Some Random Window Title"; ///< The title of the window
 	bool show = true; ///< Show the window direclty after initialization?
-	Cursor cursor; ///< Default cursor for the whole window
+	Cursor cursor {}; ///< Default cursor for the whole window
+    WindowListener* listener {}; ///< First listener after initialization
 
 	///Can be used to specify if and which context should be created for the window.
 	///Specifies which union member is active.
@@ -143,7 +168,7 @@ public:
 	//Constructor Needed because of the union.
 	//Destructor is virtual to allow backends to dynamic_cast the Settings to detect
 	//their own derivates
-	WindowSettings() : vulkan() {}
+	WindowSettings() : gl() {}
 	virtual ~WindowSettings() = default;
 };
 

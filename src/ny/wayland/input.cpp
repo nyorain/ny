@@ -73,11 +73,17 @@ WindowContext* WaylandMouseContext::over() const
 void WaylandMouseContext::handleMotion(unsigned int time, wl_fixed_t x, wl_fixed_t y)
 {
 	nytl::unused(time);
-	nytl::Vec2i pos(wl_fixed_to_int(x), wl_fixed_to_int(y));
 
-	onMove(*this, position_, pos - position_);
-	if(over_ && over_->eventHandler())
+	auto oldPos = position_;
+	position_ = {wl_fixed_to_int(x), wl_fixed_to_int(y)};
+
+	if(over_)
 	{
+		appContext().dispatch(&over_->listener(),
+			[](void* listener) { static_cast<WindowListener*>(listener)->draw(nullptr); });
+
+		appContext().dispatch(this, [=](void* mc){ onMove(mc, newPos, delta); });
+
 		MouseMoveEvent event(over_->eventHandler());
 		event.position = pos;
 		event.delta = position_ - pos;
@@ -366,7 +372,9 @@ void WaylandKeyboardContext::handleKey(unsigned int serial, unsigned int time,
 		KeyEvent event(focus_->eventHandler());
 		event.data = std::make_unique<WaylandEventData>(serial);
 		event.pressed = pressed;
+
 		XkbKeyboardContext::keyEvent(key + 8, event);
+		onKey(*this, keycodeOut, utf8, pressed);
 
 		appContext_.dispatch(std::move(event));
 	}

@@ -5,7 +5,6 @@
 #pragma once
 
 #include <ny/fwd.hpp>
-#include <ny/event.hpp>
 #include <ny/imageData.hpp>
 #include <ny/asyncRequest.hpp>
 
@@ -20,11 +19,6 @@ namespace ny
 {
 
 using OwnedImageData = BasicImageData<std::unique_ptr<std::uint8_t[]>>;
-
-namespace eventType
-{
-	constexpr auto dataOffer = 31u;
-}
 
 ///Description of a data format by mime and non-mime strings.
 ///There are a few standard formats in which data is passed around (i.e. wrapped
@@ -140,25 +134,6 @@ public:
 	virtual nytl::Connection data(const DataFormat&, const DataFunction&) { return {}; }
 
 	virtual DataRequest data(const DataFormat&) { throw 0; }
-};
-
-///Event which will be sent when the application recieves data from another application.
-///If the event is sent as effect from a drag and drop action, the event will be sent
-///to the window on which the data was dropped.
-class DataOfferEvent : public EventBase<eventType::dataOffer, DataOfferEvent>
-{
-public:
-	DataOfferEvent(EventHandler* handler = {}, std::unique_ptr<DataOffer> xoffer = {})
-		: EvBase(handler), offer(std::move(xoffer)) {}
-	~DataOfferEvent() = default;
-
-	DataOfferEvent(DataOfferEvent&&) noexcept = default;
-	DataOfferEvent& operator=(DataOfferEvent&&) noexcept = default;
-
-	//events are usually passed around as const (EventHandler::handleEvent) but the
-	//handler receiving this might wanna take ownership of the DataOffer implementation
-	//which is not possible with a const event.
-	mutable std::unique_ptr<DataOffer> offer;
 };
 
 std::vector<uint8_t> serialize(const ImageData&);

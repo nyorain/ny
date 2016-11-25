@@ -5,7 +5,6 @@
 #pragma once
 
 #include <ny/fwd.hpp>
-#include <ny/event.hpp>
 #include <nytl/callback.hpp>
 
 namespace ny
@@ -53,31 +52,5 @@ public:
 	///It is guaranteed that both parameters will have different values.
 	nytl::Callback<void(const KeyboardContext&, WindowContext* prev, WindowContext* now)> onFocus;
 };
-
-namespace eventType
-{
-	constexpr auto key = 25u;
-	constexpr auto focus = 26u;
-}
-
-///Event that will be sent everytime a key is pressed or released.
-class KeyEvent : public EventBase<eventType::key, KeyEvent>
-{
-public:
-	using EvBase::EvBase;
-
-	bool pressed; //whether it was pressed or released
-	Keycode keycode; //the raw keycode of the pressed key
-	std::string unicode; //utf-8 encoded, keyboard state dependent
-};
-
-///Event that will be sent everytime a WindowContext gains or loses focus.
-class FocusEvent : public EventBase<eventType::focus, FocusEvent>
-{
-public:
-	using EvBase::EvBase;
-	bool focus; //whether it gained focus
-};
-
 
 }

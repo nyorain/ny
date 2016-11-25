@@ -39,13 +39,19 @@
 #include <mutex>
 #include <queue>
 #include <cstring>
+#include <sstream>
 
-//TODO: wayland dispay error log handler
-//cache it and store it output it in errorCheckWarn
-
-///Implementation notes:
-///It is possible to call wl_dispatch functions nested since before wayland calls
-///an event listener, the display mutex is unlocked (wayland client.c dispatch_event)
+//Implementation notes:
+//It is possible to call wl_dispatch functions nested since before wayland calls
+//an event listener, the display mutex is unlocked (wayland client.c dispatch_event)
+//
+//Wayland proxy listener do not directly call the applications callback, but rather
+//use WaylandAppContext::dispatch which checks whether the AppContext is currently
+//dispatching (WaylandAppContext::dispatching_).
+//If it is not the dispatch function is stored and executed the next time the AppContext
+//is dispatching. This assured that events are not dispatched outside of a dispatch
+//function because the application did e.g. call a function that triggers
+//a display roundtrip (which might call wayland listeners).
 
 namespace ny
 {
@@ -123,6 +129,19 @@ int noSigPoll(pollfd& fds, nfds_t nfds, int timeout = -1)
 	}
 }
 
+///wl_log handler function
+///Just outputs the log to ny::log and caches the last message in a threadlocal variable for an
+///AppContext to be outputted in case a critical wayland error occurrs.
+thread_local std::string lastLogMessage = "<none>";
+void logHandler(const char* format, va_list vlist)
+{
+    auto size = std::vsnprintf(nullptr, 0, format, vlist);
+    lastLogMessage.resize(size);
+    std::vsnprintf(&lastLogMessage[0], lastLogMessage.size(), format, vlist);
+
+    log("ny::wayland::logHandler: ", lastLogMessage);
+}
+
 ///Listener entry to implement custom fd polling callbacks in WaylandAppContext.
 struct ListenerEntry
 {
@@ -180,6 +199,17 @@ WaylandAppContext::WaylandAppContext()
 		throw std::runtime_error(msg);
 	}
 
+    //set the wayland display log listener
+    //we output the logged output to ny::log and additionally cache the last message
+    //to add it to an error message if an error occurs.
+    //since the log handler is not bound to a display we simply set it once and then just use
+    //a threadlocal variable to cache the last message
+    static std::once_flag onceFlag;
+    std::call_once(onceFlag, []{
+        wl_log_set_handler_client(logHandler);
+    });
+
+    //create registry with listener and retrieve globals
 	wlRegistry_ = wl_display_get_registry(wlDisplay_);
 	wl_registry_add_listener(wlRegistry_, &registryListener, this);
 
@@ -198,9 +228,10 @@ WaylandAppContext::WaylandAppContext()
 	//to true which will cause no further polling, but running the next loop
 	//iteration in dispatchLoop
 	eventfd_ = eventfd(0, EFD_NONBLOCK);
-	fdCallback(eventfd_, POLLIN, [](int fd){
+	fdCallback(eventfd_, POLLIN, [&](){
 		int64_t v;
-		read(fd, &v, 8);
+		read(eventfd_, &v, 8);
+        wakeup_ = true;
 	});
 
 	//warn if features are missing
@@ -253,12 +284,6 @@ bool WaylandAppContext::dispatchEvents()
 {
 	if(!checkErrorWarn()) return false;
 
-	dispatching_ = true;
-	auto dispatchingGuard = nytl::makeScopeGuard([&]{ dispatching_ = false; });
-
-	//first execute all pending dispatchers
-	dispatchPending();
-
 	//read all registered file descriptors without any blocking and without polling
 	//for the display file descriptor, since we dispatch everything availabel anyways
 	pollFds(0, 0);
@@ -293,17 +318,6 @@ bool WaylandAppContext::dispatchLoop(LoopControl& control)
 {
 	if(!checkErrorWarn()) return false;
 	WaylandLoopImpl loopImpl(control, eventfd_);
-
-	//make sure to reset it to the previous value instead of just false since
-	//calls to this function might be nested.
-	auto dispatchBackup = dispatching_;
-	dispatching_ = true;
-	auto dispatchingGuard = nytl::makeScopeGuard([&]{ dispatching_ = dispatchBackup; });
-
-	//first execute all pending dispatchers
-	//we don't have to do this inside the loop because we set dispatching_
-	//to true and therefore they will be dispatched directly
-	dispatchPending();
 
 	while(loopImpl.run.load())
 	{
@@ -472,7 +486,6 @@ std::error_code WaylandAppContext::checkError() const
 
 		impl_->errorCategories.push_back(std::make_unique<WaylandErrorCategory>(*interface));
 		impl_->error = {code, *impl_->errorCategories.back()};
-		debug("name: ", interface->name);
 	}
 	else if(err)
 	{
@@ -492,45 +505,57 @@ bool WaylandAppContext::checkErrorWarn() const
 	auto* wlCategory = dynamic_cast<const WaylandErrorCategory*>(&ec.category());
 	if(wlCategory)
 	{
-		error("ny::WaylandAppContext: display has protocol error <", msg, "> in interface <",
-			wlCategory->interface().name, ">. The dispay should not longer be used.");
+        std::stringstream message;
+        message << "ny::WaylandAppContext: display has protocol error <" << msg;
+        message << "> in interface <" << wlCategory->interface().name << ">.\n\t";
+        message << "Last log output in this thread: " << lastLogMessage << "\n\t";
+        message << "The display and WaylandAppContext should not longer be used.";
+
+		error(message.str());
 	}
 	else
 	{
-		error("ny::WaylandAppContext: display has error <", msg, "> and should no longer be used");
+        std::stringstream message;
+        message << "ny::WaylandAppContext: display has non-protocol error <" << msg << ">\n\t";
+        message << "Last log output in this thread: " << lastLogMessage << "\n\t";
+        message << "The display and WaylandAppContext should not longer be used.";
+
+		error(message.str());
 	}
 
 	impl_->errorOutputted = true;
 	return false;
 }
 
-void WaylandAppContext::dispatch(std::function<void()> func)
+void WaylandAppContext::dispatch(void* data,
+    std::function<void(void*)> func)
 {
-	if(dispatching_) func();
-	pendingDispatchers_.push_back(std::move(func));
+	if(dispatching_)
+    {
+        dispatching_ = false;
+        auto dispatchingGuard = nytl::makeScopeGuard([&]{ dispatching_ = true; });
+        func(data);
+    }
+    else
+    {
+		impl_->pendingDispatchers.push_back({data, std::move(func)});
+    }
 }
 
-void WaylandAppContext::dispatch(Event&& event)
+void WaylandAppContext::moveDispatcher(const void* current, void* newOne)
 {
-	if(!event.handler)
+	auto& pd = impl_->pendingDispatchers;
+	if(!newOne)
 	{
-		warning("ny::WaylandAppContext::dispatch(Event): invalid event handler");
+		//remove all dispatchers with the given listener
+		pd.erase(std::remove_if(pd.begin(), pd.end(),
+			[=](Dispatcher& d){ return d.data == current; }), pd.end());
 		return;
 	}
 
-	if(dispatching_)
-	{
-		event.handler->handleEvent(event);
-		return;
-	}
-
-	//this is ugly af!
-	//problem: std::function is pendingDispatchers_ must be copyable, Event (and therefore
-	//the lambda) is not.
-	//But since this function is a hack anyways and will be removed with the event handling
-	//rework, it's ok like this for now...
-	auto sharedEvent = std::shared_ptr<Event>(nytl::cloneMove(event));
-	dispatch([ev = sharedEvent] { ev->handler->handleEvent(*ev); });
+	//change the listener of all dispatchers with the given listener
+    for(auto& dispatcher : pd)
+		if(dispatcher.data == current) dispatcher.data = newOne;
 }
 
 nytl::Connection WaylandAppContext::fdCallback(int fd, unsigned int events,
@@ -640,19 +665,19 @@ int WaylandAppContext::pollFds(short wlDisplayEvents, int timeout)
 
 void WaylandAppContext::dispatchPending()
 {
-	debug("ny::WaylandAppContext::dispatchPending: size ", pendingDispatchers_.size());
+	//Its important to erase them before calling since a dispatcher somehow might end up calling
+    //this function again and this would result in an infinite loop otherwise.
+    for(auto it = impl_->pendingDispatchers.begin(); it != impl_->pendingDispatchers.end();)
+    {
+        auto dispatcher = std::move(*it);
+        it = impl_->pendingDispatchers.erase(it);
 
-	//Its important to check for empty dispatchers and to move them to a
-	//copy before calling them since they somehow might end up calling this function again
-	//and this would result in an infinite loop otherwise.
-	for(auto& dispatcher : pendingDispatchers_)
-	{
-		if(!dispatcher) continue;
-		auto copy = std::move(dispatcher);
-		copy();
-	}
-
-	pendingDispatchers_.clear();
+        {
+            dispatching_ = false;
+            auto dispatchingGuard = nytl::makeScopeGuard([&]{ dispatching_ = true; });
+            dispatcher.function(dispatcher.data);
+        }
+    }
 }
 
 void WaylandAppContext::handleRegistryAdd(unsigned int id, const char* cinterface,

@@ -5,7 +5,7 @@
 #pragma once
 
 #include <ny/wayland/include.hpp>
-#include <ny/event.hpp>
+#include <ny/windowListener.hpp>
 
 #include <nytl/vec.hpp>
 #include <nytl/callback.hpp>

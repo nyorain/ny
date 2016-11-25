@@ -94,6 +94,9 @@ like a stack overflow.
 This pattern is especially useful for the data exchange functionality, e.g. for DataOffers.
 See the [dataExchange](dataExchange.md) documentation for more information.
 
+This gives a whole new category of guarantees certain functions must fulfill: They must
+be call-context agnostic and be able to be called in a nested way.
+
 Behind the Scenes
 -----------------
 

@@ -18,6 +18,7 @@ struct xdg_shell;
 
 struct wl_display;
 struct wl_interface;
+struct wl_event_queue;
 
 struct wl_buffer;
 struct wl_callback;

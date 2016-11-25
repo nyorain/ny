@@ -104,18 +104,19 @@ std::string XkbKeyboardContext::utf8(Keycode key) const
 	return ret;
 }
 
-bool XkbKeyboardContext::keyEvent(std::uint8_t keycode, KeyEvent& ev)
+bool XkbKeyboardContext::handleKey(std::uint8_t keycode, bool pressed, Keycode& keycodeOut,
+	std::string& utf8)
 {
-	ev.keycode = xkbToKey(keycode);
-	auto keyuint = static_cast<unsigned int>(ev.keycode);
+	keycodeOut = xkbToKey(keycode);
+	auto keyuint = static_cast<unsigned int>(keycodeOut);
 	if(keyuint > 255) throw std::logic_error("ny::XkbKeyboardContext::keyEvent: keycode > 255");
 
-	keyStates_[keyuint] = ev.pressed;
+	keyStates_[keyuint] = pressed;
 
 	auto keysym = xkb_state_key_get_one_sym(xkbState_, keycode);
 	auto ret = true;
 	auto composed = false;
-	if(ev.pressed)
+	if(pressed)
 	{
 		xkb_compose_state_feed(xkbComposeState_, keysym);
 		auto status = xkb_compose_state_get_status(xkbComposeState_);
@@ -127,8 +128,8 @@ bool XkbKeyboardContext::keyEvent(std::uint8_t keycode, KeyEvent& ev)
 		else if(status == XKB_COMPOSE_COMPOSED)
 		{
 			auto needed = xkb_compose_state_get_utf8(xkbComposeState_, nullptr, 0) + 1;
-			ev.unicode.resize(needed);
-			xkb_compose_state_get_utf8(xkbComposeState_, &ev.unicode[0], needed);
+			utf8.resize(needed);
+			xkb_compose_state_get_utf8(xkbComposeState_, &utf8[0], needed);
 			xkb_compose_state_reset(xkbComposeState_);
 			composed = true;
 		}
@@ -137,11 +138,10 @@ bool XkbKeyboardContext::keyEvent(std::uint8_t keycode, KeyEvent& ev)
 	if(!composed)
 	{
 		auto needed = xkb_state_key_get_utf8(xkbState_, keycode, nullptr, 0) + 1;
-		ev.unicode.resize(needed);
-		xkb_state_key_get_utf8(xkbState_, keycode, &ev.unicode[0], needed);
+		utf8.resize(needed);
+		xkb_state_key_get_utf8(xkbState_, keycode, &utf8[0], needed);
 	}
 
-	onKey(*this, ev.keycode, ev.unicode, ev.pressed);
 	return ret;
 }
 
