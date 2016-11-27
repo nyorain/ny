@@ -13,7 +13,8 @@
 #include <nytl/scope.hpp>
 
 #include <wayland-client-protocol.h>
-#include <ny/wayland/xdg-shell-client-protocol.h>
+#include <ny/wayland/protocols/xdg-shell-v5.h>
+#include <ny/wayland/protocols/xdg-shell-v6.h>
 
 #include <fcntl.h>
 #include <sys/mman.h>

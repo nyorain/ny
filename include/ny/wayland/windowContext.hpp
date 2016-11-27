@@ -20,8 +20,10 @@ enum class WaylandSurfaceRole : unsigned int
     none,
     shell,
     sub,
-    xdg,
-    xdgPopup
+    xdgSurfaceV5,
+    xdgPopupV5,
+	xdgToplevelV6,
+	xdgPopupV6
 };
 
 ///WindowSettings class for wayland WindowContexts.
@@ -77,10 +79,15 @@ public:
 	nytl::Vec2ui size() const { return size_; }
 	bool shown() const { return shown_; }
 
+	//return nullptr if this object has another role
     wl_shell_surface* wlShellSurface() const;
     wl_subsurface* wlSubsurface() const;
-    xdg_surface* xdgSurface() const;
-    xdg_popup* xdgPopup() const;
+    xdg_surface* xdgSurfaceV5() const;
+    xdg_popup* xdgPopupV5() const;
+
+	zxdg_surface_v6* xdgSurfaceV6() const;
+	zxdg_popup_v6* xdgPopupV6() const;
+	zxdg_toplevel_v6* xdgToplevelV6() const;
 
 	wl_buffer* wlCursorBuffer() const { return cursorBuffer_; }
 	nytl::Vec2i cursorHotspot() const { return cursorHotspot_; }
@@ -99,8 +106,8 @@ public:
 protected:
 	//helpers
     void createShellSurface(const WaylandWindowSettings& ws);
-    void createXDGSurface(const WaylandWindowSettings& ws);
-    void createXDGPopup(const WaylandWindowSettings& ws);
+    void createXdgSurfaceV5(const WaylandWindowSettings& ws);
+    void createXdgSurfaceV6(const WaylandWindowSettings& ws);
     void createSubsurface(wl_surface& parent, const WaylandWindowSettings& ws);
 
 	//listeners
@@ -108,9 +115,16 @@ protected:
 	void handleShellSurfacePing(unsigned int serial);
 	void handleShellSurfaceConfigure(unsigned int edges, int width, int height);
 	void handleShellSurfacePopupDone();
-	void handleXdgSurfaceConfigure(int width, int height, wl_array* states, unsigned int serial);
-	void handleXdgSurfaceClose();
-	void handleXdgPopupDone();
+
+	void handleXdgSurfaceV5Configure(int width, int height, wl_array* states, unsigned int serial);
+	void handleXdgSurfaceV5Close();
+	void handleXdgPopupV5Done();
+
+	void handleXdgSurfaceV6Configure(unsigned int serial);
+	void handleXdgToplevelV6Configure(int width, int height, wl_array* states);
+	void handleXdgToplevelV6Close();
+	void handleXdgPopupV6Configure(int x, int y, int width, int height);
+	void handleXdgPopupV6Done();
 
 protected:
 	WaylandAppContext* appContext_ {};
@@ -135,9 +149,21 @@ protected:
     union
     {
         wl_shell_surface* wlShellSurface_ = nullptr;
-        xdg_surface* xdgSurface_;
-        xdg_popup* xdgPopup_;
         wl_subsurface* wlSubsurface_;
+        xdg_surface* xdgSurfaceV5_;
+        xdg_popup* xdgPopupV5_;
+
+		struct
+		{
+			zxdg_surface_v6* xdgSurfaceV6_;
+			bool xdgV6Configured_;
+
+			union
+			{
+				zxdg_toplevel_v6* xdgToplevelV6_;
+				zxdg_popup_v6* xdgPopupV6_;
+			};
+		};
     };
 
 	bool shown_ {}; //Whether the WindowContext should be shown or hidden

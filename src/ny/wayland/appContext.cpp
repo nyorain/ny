@@ -9,7 +9,9 @@
 #include <ny/wayland/input.hpp>
 #include <ny/wayland/data.hpp>
 #include <ny/wayland/bufferSurface.hpp>
-#include <ny/wayland/xdg-shell-client-protocol.h>
+
+#include <ny/wayland/protocols/xdg-shell-v5.h>
+#include <ny/wayland/protocols/xdg-shell-v6.h>
 
 #include <ny/loopControl.hpp>
 #include <ny/log.hpp>
@@ -46,7 +48,7 @@
 //Implementation notes:
 //It is possible to call wl_dispatch functions nested since before wayland calls
 //an event listener, the display mutex is unlocked (wayland client.c dispatch_event)
-//
+
 //Wayland proxy listener do not directly call the applications callback, but rather
 //use WaylandAppContext::dispatch which checks whether the AppContext is currently
 //dispatching (WaylandAppContext::dispatching_).
@@ -54,6 +56,10 @@
 //is dispatching. This assured that events are not dispatched outside of a dispatch
 //function because the application did e.g. call a function that triggers
 //a display roundtrip (which might call wayland listeners).
+
+//At the moment, we implement xdg_shell versions 5 and 6 since some compositors only
+//support one of them. WaylandWindowContext will use version 6 is available.
+//Later on, all support for version 5 might be dropped
 
 namespace ny
 {
@@ -163,7 +169,8 @@ struct WaylandAppContext::Impl
 	wayland::NamedGlobal<wl_shm> wlShm;
 	wayland::NamedGlobal<wl_data_device_manager> wlDataManager;
 	wayland::NamedGlobal<wl_seat> wlSeat;
-	wayland::NamedGlobal<xdg_shell> xdgShell;
+	wayland::NamedGlobal<xdg_shell> xdgShellV5;
+	wayland::NamedGlobal<zxdg_shell_v6> xdgShellV6;
 
 	//here because ConnectionList is in wayland/util.hpp
 	ConnectionList<ListenerEntry> fdCallbacks;
@@ -245,16 +252,16 @@ WaylandAppContext::WaylandAppContext()
 	});
 
 	//warn if features are missing
-	if(!wlSeat()) warning("ny::WaylandAppContext: no wl_seat received, therefore no input events");
-	if(!wlSubcompositor()) warning("ny::WaylandAppContext: no wl_subcomposirot recevied");
-	if(!wlShell() && !xdgShell()) warning("ny::WaylandAppContext: no xdg or wl_shell received");
-	if(!wlShm()) warning("ny::WaylandAppContext: no wl_shm recevied");
-	if(!wlDataManager()) warning("ny::WaylandAppContext: no wl_data_manager received");
+	if(!wlSeat()) warning("ny::WaylandAppContext: wl_seat not available, no input events");
+	if(!wlSubcompositor()) warning("ny::WaylandAppContext: wl_subcomposirot not available");
+	if(!wlShm()) warning("ny::WaylandAppContext: wl_shm not available");
+	if(!wlDataManager()) warning("ny::WaylandAppContext: wl_data_manager not available");
+	if(!wlShell() && !xdgShellV5() && !xdgShellV6())
+		warning("ny::WaylandAppContext: no supported shell available");
 
 	//init secondary resources
 	if(wlSeat() && wlDataManager()) dataDevice_ = std::make_unique<WaylandDataDevice>(*this);
 	if(wlShm()) wlCursorTheme_ = wl_cursor_theme_load("default", 32, wlShm());
-	if(xdgShell()) xdg_shell_use_unstable_version(xdgShell(), 5);
 
 	//again roundtrip and dispatch pending events to finish all setup and make
 	//sure no errors occurred
@@ -275,7 +282,9 @@ WaylandAppContext::~WaylandAppContext()
 	keyboardContext_.reset();
 	mouseContext_.reset();
 
-	if(xdgShell()) xdg_shell_destroy(xdgShell());
+	if(xdgShellV5()) xdg_shell_destroy(xdgShellV5());
+	if(xdgShellV6()) zxdg_shell_v6_destroy(xdgShellV6());
+
 	if(wlShell()) wl_shell_destroy(wlShell());
 	if(wlSeat()) wl_seat_destroy(wlSeat());
 	if(wlDataManager()) wl_data_device_manager_destroy(wlDataManager());
@@ -665,56 +674,94 @@ void WaylandAppContext::handleRegistryAdd(unsigned int id, const char* cinterfac
 			void(wl_seat*, const char*)>
 	};
 
-	constexpr static xdg_shell_listener xdgShellListener = {
-		memberCallback<decltype(&WAC::handleXdgShellPing), &WAC::handleXdgShellPing,
+	constexpr static xdg_shell_listener xdgShellV5Listener = {
+		memberCallback<decltype(&WAC::handleXdgShellV5Ping), &WAC::handleXdgShellV5Ping,
 			void(xdg_shell*, uint32_t)>
 	};
+
+	constexpr static zxdg_shell_v6_listener xdgShellV6Listener = {
+		memberCallback<decltype(&WAC::handleXdgShellV6Ping), &WAC::handleXdgShellV6Ping,
+			void(zxdg_shell_v6*, uint32_t)>
+	};
+
+	//the supported interface versions by ny (for stable protocols)
+	//we always select the minimum between version supported by ny and version
+	//supported by the compositor
+	static constexpr auto compositorVersion = 1u;
+	static constexpr auto shellVersion = 1u;
+	static constexpr auto shmVersion = 1u;
+	static constexpr auto subcompositorVersion = 1u;
+	static constexpr auto outputVersion = 2u;
+	static constexpr auto dataDeviceManagerVersion = 3u;
+	static constexpr auto seatVersion = 5u;
 
 	const nytl::StringParam interface = cinterface; //easier comparison
 	debug("ny::WaylandAppContext::handleRegistryAdd: interface ", interface);
 
+	//check for the various supported interfaces/protocols
 	if(interface == "wl_compositor" && !impl_->wlCompositor)
 	{
-		auto ptr = wl_registry_bind(&wlRegistry(), id, &wl_compositor_interface, 1);
+		auto usedVersion = std::min(version, compositorVersion);
+		auto ptr = wl_registry_bind(&wlRegistry(), id, &wl_compositor_interface, usedVersion);
 		impl_->wlCompositor = {static_cast<wl_compositor*>(ptr), id};
 	}
 	else if(interface == "wl_shell" && !wlShell())
 	{
-		auto ptr = wl_registry_bind(&wlRegistry(), id, &wl_shell_interface, 1);
+		auto usedVersion = std::min(version, shellVersion);
+		auto ptr = wl_registry_bind(&wlRegistry(), id, &wl_shell_interface, usedVersion);
 		impl_->wlShell = {static_cast<wl_shell*>(ptr), id};
 	}
 	else if(interface == "wl_shm" && !wlShm())
 	{
-		auto ptr = wl_registry_bind(&wlRegistry(), id, &wl_shm_interface, 1);
+		auto usedVersion = std::min(version, shmVersion);
+		auto ptr = wl_registry_bind(&wlRegistry(), id, &wl_shm_interface, usedVersion);
 		impl_->wlShm = {static_cast<wl_shm*>(ptr), id};
 		wl_shm_add_listener(wlShm(), &shmListener, this);
 	}
 	else if(interface == "wl_subcompositor" && !impl_->wlSubcompositor)
 	{
-		auto ptr = wl_registry_bind(&wlRegistry(), id, &wl_subcompositor_interface, 1);
+		auto usedVersion = std::min(version, subcompositorVersion);
+		auto ptr = wl_registry_bind(&wlRegistry(), id, &wl_subcompositor_interface, usedVersion);
 		impl_->wlSubcompositor = {static_cast<wl_subcompositor*>(ptr), id};
 	}
 	else if(interface == "wl_output")
 	{
-		auto ptr = wl_registry_bind(&wlRegistry(), id, &wl_output_interface, 2);
+		auto usedVersion = std::min(version, outputVersion);
+		auto ptr = wl_registry_bind(&wlRegistry(), id, &wl_output_interface, usedVersion);
 		outputs_.emplace_back(*this, *static_cast<wl_output*>(ptr), id);
 	}
 	else if(interface == "wl_data_device_manager" && !impl_->wlDataManager)
 	{
-		auto ptr = wl_registry_bind(&wlRegistry(), id, &wl_data_device_manager_interface, 3);
+		auto usedVersion = std::min(version, dataDeviceManagerVersion);
+		auto ptr = wl_registry_bind(&wlRegistry(), id, &wl_data_device_manager_interface,
+			usedVersion);
 		impl_->wlDataManager = {static_cast<wl_data_device_manager*>(ptr), id};
 	}
 	else if(interface == "wl_seat" && !impl_->wlSeat)
 	{
-		auto ptr = wl_registry_bind(&wlRegistry(), id, &wl_seat_interface, 5);
+		auto usedVersion = std::min(version, seatVersion);
+		auto ptr = wl_registry_bind(&wlRegistry(), id, &wl_seat_interface, usedVersion);
 		impl_->wlSeat = {static_cast<wl_seat*>(ptr), id};
 		wl_seat_add_listener(wlSeat(), &seatListener, this);
 	}
-	else if(interface == "xdg_shell" && !impl_->xdgShell)
+
+	//for unstable protocols, we only bind for the ny-implemented version
+	else if(interface == "xdg_shell" && !impl_->xdgShellV5)
 	{
-		auto ptr = wl_registry_bind(&wlRegistry(), id, &xdg_shell_interface, std::min(6u, version));
-		impl_->xdgShell = {static_cast<xdg_shell*>(ptr), id};
-		xdg_shell_add_listener(xdgShell(), &xdgShellListener, this);
+		if(version != 1) return;
+
+		auto ptr = wl_registry_bind(&wlRegistry(), id, &xdg_shell_interface, 1);
+		impl_->xdgShellV5 = {static_cast<xdg_shell*>(ptr), id};
+		xdg_shell_add_listener(xdgShellV5(), &xdgShellV5Listener, this);
+		xdg_shell_use_unstable_version(xdgShellV5(), 5); //use version 5
+	}
+	else if(interface == "zxdg_shell_v6" && !impl_->xdgShellV6)
+	{
+		if(version != 1) return;
+
+		auto ptr = wl_registry_bind(&wlRegistry(), id, &zxdg_shell_v6_interface, 1);
+		impl_->xdgShellV6 = {static_cast<zxdg_shell_v6*>(ptr), id};
+		zxdg_shell_v6_add_listener(xdgShellV6(), &xdgShellV6Listener, this);
 	}
 }
 
@@ -769,10 +816,16 @@ void WaylandAppContext::handleShmFormat(unsigned int format)
 	shmFormats_.push_back(format);
 }
 
-void WaylandAppContext::handleXdgShellPing(unsigned int serial)
+void WaylandAppContext::handleXdgShellV5Ping(unsigned int serial)
 {
-	if(!xdgShell()) return;
-	xdg_shell_pong(xdgShell(), serial);
+	if(!xdgShellV5()) return;
+	xdg_shell_pong(xdgShellV5(), serial);
+}
+
+void WaylandAppContext::handleXdgShellV6Ping(unsigned int serial)
+{
+	if(!xdgShellV6()) return;
+	zxdg_shell_v6_pong(xdgShellV6(), serial);
 }
 
 bool WaylandAppContext::shmFormatSupported(unsigned int wlShmFormat)
@@ -806,7 +859,8 @@ wl_subcompositor* WaylandAppContext::wlSubcompositor() const{ return impl_->wlSu
 wl_shm* WaylandAppContext::wlShm() const { return impl_->wlShm; }
 wl_seat* WaylandAppContext::wlSeat() const { return impl_->wlSeat; }
 wl_shell* WaylandAppContext::wlShell() const { return impl_->wlShell; }
-xdg_shell* WaylandAppContext::xdgShell() const { return impl_->xdgShell; }
+xdg_shell* WaylandAppContext::xdgShellV5() const { return impl_->xdgShellV5; }
+zxdg_shell_v6* WaylandAppContext::xdgShellV6() const { return impl_->xdgShellV6; }
 wl_data_device_manager* WaylandAppContext::wlDataManager() const { return impl_->wlDataManager; }
 wl_cursor_theme* WaylandAppContext::wlCursorTheme() const { return wlCursorTheme_; }
 

@@ -16,6 +16,12 @@ struct xdg_surface;
 struct xdg_popup;
 struct xdg_shell;
 
+struct zxdg_popup_v6;
+struct zxdg_positioner_v6;
+struct zxdg_shell_v6;
+struct zxdg_surface_v6;
+struct zxdg_toplevel_v6;
+
 struct wl_display;
 struct wl_interface;
 struct wl_event_queue;

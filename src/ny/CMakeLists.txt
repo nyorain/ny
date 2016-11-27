@@ -79,7 +79,9 @@ if(WithWayland)
 		wayland/bufferSurface.cpp
 		wayland/windowContext.cpp
 		wayland/data.cpp
-		wayland/xdg-shell-protocol.c)
+
+		wayland/protocols/xdg-shell-v5.c
+		wayland/protocols/xdg-shell-v6.c)
 
 	list(APPEND ny_libs ${WAYLAND_LIBRARIES})
 	list(APPEND ny_include ${WAYLAND_INCLUDE_DIRS})

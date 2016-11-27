@@ -72,7 +72,8 @@ public:
 	wl_shm* wlShm() const;
 	wl_seat* wlSeat() const;
 	wl_shell* wlShell() const;
-	xdg_shell* xdgShell() const;
+	xdg_shell* xdgShellV5() const;
+	zxdg_shell_v6* xdgShellV6() const;
 	wl_data_device_manager* wlDataManager() const;
 
 	wl_cursor_theme* wlCursorTheme() const;
@@ -103,7 +104,9 @@ protected:
 	void handleSeatCapabilities(unsigned int caps);
 	void handleSeatName(const char* name);
 	void handleShmFormat(unsigned int format);
-	void handleXdgShellPing(unsigned int serial);
+
+	void handleXdgShellV5Ping(unsigned int serial);
+	void handleXdgShellV6Ping(unsigned int serial);
 
 protected:
 	wl_display* wlDisplay_;
