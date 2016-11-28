@@ -11,8 +11,7 @@
 #include <ny/common/unix.hpp>
 #include <ny/loopControl.hpp>
 #include <ny/log.hpp>
-#include <ny/events.hpp>
-#include <ny/data.hpp>
+#include <ny/dataExchange.hpp>
 
 #ifdef NY_WithVulkan
  #define VK_USE_PLATFORM_XCB_KHR
@@ -49,6 +48,7 @@ namespace
 {
 
 //TODO: reimplement this using eventfd and allow X11AppContext to handle fd callbacks
+
 ///X11 LoopInterface implementation.
 ///Wakes up a blocking xcb_connection by simply sending a client message to
 ///a dummy window.
@@ -258,12 +258,6 @@ X11AppContext::~X11AppContext()
 	xDefaultScreen_ = nullptr;
 }
 
-EventHandler* X11AppContext::eventHandler(xcb_window_t w)
-{
-    auto* wc = windowContext(w);
-    return wc ? wc->eventHandler() : nullptr;
-}
-
 WindowContextPtr X11AppContext::createWindowContext(const WindowSettings& settings)
 {
     X11WindowSettings x11Settings;
@@ -396,7 +390,7 @@ GlxSetup* X11AppContext::glxSetup() const
 			try { impl_->glxSetup = {*this}; }
 			catch(const std::exception& error)
 			{
-				warning("ny::X11Setup::glxSetup: initialization failed: ", error.what());
+				warning("ny::X11AppContext::glxSetup: initialization failed: ", error.what());
 				impl_->glxFailed = true;
 				impl_->glxSetup = {};
 				return nullptr;
@@ -407,6 +401,7 @@ GlxSetup* X11AppContext::glxSetup() const
 
 	#else
 		return nullptr;
+
 	#endif
 }
 
@@ -451,7 +446,7 @@ xcb_atom_t X11AppContext::atom(const std::string& name)
 		if(error)
 		{
 			auto msg = x11::errorMessage(xDisplay(), error->error_code);
-			warning("ny::X11AppContext::atom: failed to retrieve ", name, ": ", msg);
+			warning("ny::X11AppContext::atom: failed to retrieve atom ", name, ": ", msg);
 			free(error);
 			return 0u;
 		}
@@ -474,279 +469,81 @@ const x11::Atoms& X11AppContext::atoms() const { return impl_->atoms; }
 
 void X11AppContext::processEvent(const x11::GenericEvent& ev)
 {
-	//macro for easier event creation for registered EventHandler
-	#define EventHandlerEvent(T, W) \
-		auto handler = eventHandler(W); \
-		if(!handler) return; \
-		auto event = T(handler);
-
-	auto dispatch = [&](Event& event){
-		if(event.handler) event.handler->handleEvent(event);
-	};
+	X11EventData eventData {ev};
 
 	auto responseType = ev.response_type & ~0x80;
     switch(responseType)
     {
+	    case XCB_EXPOSE:
+	    {
+			auto& expose = reinterpret_cast<const xcb_expose_event_t&>(ev);
+			auto wc = windowContext(expose.window);
+	        if(expose.count == 0 && wc) wc->listener().draw(&eventData);
+			break;
+	    }
 
-    case XCB_MOTION_NOTIFY:
-    {
-		auto& motion = reinterpret_cast<const xcb_motion_notify_event_t&>(ev);
-		auto pos = nytl::Vec2i(motion.event_x, motion.event_y);
-		mouseContext_->move(pos);
+	    case XCB_MAP_NOTIFY:
+	    {
+			//TODO: something about state/shown?
+			auto& map = reinterpret_cast<const xcb_map_notify_event_t&>(ev);
+			auto wc = windowContext(map.event);
+			if(wc) wc->listener().draw(&eventData);
+			break;
+	    }
 
-		EventHandlerEvent(MouseMoveEvent, motion.event);
-        event.position = pos;
-        event.screenPosition = nytl::Vec2i(motion.root_x, motion.root_y);
-
-		dispatch(event);
-		break;
-    }
-
-    case XCB_EXPOSE:
-    {
-		auto& expose = reinterpret_cast<const xcb_expose_event_t&>(ev);
-        if(expose.count == 0)
+		case XCB_REPARENT_NOTIFY:
 		{
-			EventHandlerEvent(DrawEvent, expose.window);
-			dispatch(event);
+			auto& reparent = reinterpret_cast<const xcb_reparent_notify_event_t&>(ev);
+			auto wc = windowContext(reparent.window);
+			if(wc) wc->reparentEvent();
+			break;
 		}
 
-		break;
-    }
-
-    case XCB_MAP_NOTIFY:
-    {
-		auto& map = reinterpret_cast<const xcb_map_notify_event_t&>(ev);
-		EventHandlerEvent(DrawEvent, map.window);
-		dispatch(event);
-		break;
-    }
-
-    case XCB_BUTTON_PRESS:
-    {
-		auto& button = reinterpret_cast<const xcb_button_press_event_t&>(ev);
-
-		int scroll = 0;
-		if(button.detail == 4) scroll = 1;
-		else if(button.detail == 5) scroll = -1;
-
-		if(scroll)
+	    case XCB_CONFIGURE_NOTIFY:
 		{
-			EventHandlerEvent(MouseWheelEvent, button.event);
-			event.data = std::make_unique<X11EventData>(ev);
-			event.value = scroll;
+			auto& configure = reinterpret_cast<const xcb_configure_notify_event_t&>(ev);
 
-			mouseContext_->onWheel(*mouseContext_, scroll);
-			dispatch(event);
+	        //todo: something about window state
+	        auto nsize = nytl::Vec2ui(configure.width, configure.height);
+	        auto npos = nytl::Vec2i(configure.x, configure.y); //positionEvent
+
+			auto wc = windowContext(configure.window);
+			if(wc)
+			{
+				wc->listener().resize(nsize, &eventData);
+				wc->listener().position(npos, &eventData);
+			}
+
+			break;
+	    }
+
+	    case XCB_CLIENT_MESSAGE:
+	    {
+			auto& client = reinterpret_cast<const xcb_client_message_event_t&>(ev);
+			auto protocol = static_cast<unsigned int>(client.data.data32[0]);
+
+			auto wc = windowContext(client.window);
+	        if(protocol == atoms().wmDeleteWindow && wc) wc->listener().close(&eventData);
 
 			break;
 		}
 
-		auto b = x11ToButton(button.detail);
-		mouseContext_->mouseButton(b, true);
-
-		EventHandlerEvent(MouseButtonEvent, button.event);
-		event.data = std::make_unique<X11EventData>(ev);
-        event.button = b;
-        event.position = nytl::Vec2i(button.event_x, button.event_y);
-		event.pressed = true;
-
-		dispatch(event);
-		break;
-    }
-
-    case XCB_BUTTON_RELEASE:
-    {
-		auto& button = reinterpret_cast<const xcb_button_release_event_t&>(ev);
-		if(button.detail == 4 || button.detail == 5) break;
-
-		auto b = x11ToButton(button.detail);
-		mouseContext_->mouseButton(b, false);
-
-		EventHandlerEvent(MouseButtonEvent, button.event);
-		event.data = std::make_unique<X11EventData>(ev);
-        event.button = b;
-        event.position = nytl::Vec2i(button.event_x, button.event_y);
-		event.pressed = false;
-
-		dispatch(event);
-		break;
-    }
-
-    case XCB_ENTER_NOTIFY:
-    {
-		auto& enter = reinterpret_cast<const xcb_enter_notify_event_t&>(ev);
-		auto wc = windowContext(enter.event);
-		mouseContext_->over(wc);
-
-		EventHandlerEvent(MouseCrossEvent, enter.event);
-        event.position = nytl::Vec2i(enter.event_x, enter.event_y);
-		event.entered = true;
-		dispatch(event);
-
-		break;
-    }
-
-    case XCB_LEAVE_NOTIFY:
-    {
-		auto& leave = reinterpret_cast<const xcb_enter_notify_event_t&>(ev);
-		auto wc = windowContext(leave.event);
-		if(mouseContext_->over() == wc) mouseContext_->over(nullptr);
-
-		EventHandlerEvent(MouseCrossEvent, leave.event);
-        event.position = nytl::Vec2i(leave.event_x, leave.event_y);
-		event.entered = false;
-		dispatch(event);
-
-		break;
-    }
-
-    case XCB_FOCUS_IN:
-    {
-		auto& focus = reinterpret_cast<const xcb_focus_in_event_t&>(ev);
-		auto wc = windowContext(focus.event);
-		keyboardContext_->focus(wc);
-
-		EventHandlerEvent(FocusEvent, focus.event);
-		event.focus = true;
-		dispatch(event);
-
-		break;
-    }
-
-    case XCB_FOCUS_OUT:
-    {
-		auto& focus = reinterpret_cast<const xcb_focus_in_event_t&>(ev);
-		auto wc = windowContext(focus.event);
-		if(keyboardContext_->focus() == wc)keyboardContext_->focus(nullptr);
-
-		EventHandlerEvent(FocusEvent, focus.event);
-		event.focus = false;
-		dispatch(event);
-
-		break;
-    }
-
-    case XCB_KEY_PRESS:
-    {
-		auto& key = reinterpret_cast<const xcb_key_press_event_t&>(ev);
-
-		EventHandlerEvent(KeyEvent, key.event);
-		event.pressed = true;
-		if(!keyboardContext_->keyEvent(key.detail, event)) bell();
-		dispatch(event);
-
-		break;
-    }
-
-    case XCB_KEY_RELEASE:
-    {
-		auto& key = reinterpret_cast<const xcb_key_press_event_t&>(ev);
-
-		EventHandlerEvent(KeyEvent, key.event);
-		event.pressed = false;
-		if(!keyboardContext_->keyEvent(key.detail, event)) bell();
-		dispatch(event);
-
-		break;
-    }
-
-	case XCB_REPARENT_NOTIFY:
-	{
-		auto& reparent = reinterpret_cast<const xcb_reparent_notify_event_t&>(ev);
-		auto wc = windowContext(reparent.window);
-		if(wc) wc->reparentEvent();
-
-		break;
-	}
-
-    case XCB_CONFIGURE_NOTIFY:
-	{
-		auto& configure = reinterpret_cast<const xcb_configure_notify_event_t&>(ev);
-
-        //todo: something about window state
-        auto nsize = nytl::Vec2ui(configure.width, configure.height);
-        // auto npos = nytl::Vec2i(configure.x, configure.y); //positionEvent
-
-		auto wc = windowContext(configure.window);
-		if(wc) wc->sizeEvent(nsize);
-
-        if(!eventHandler(configure.window)) break;
-
-		/* TODO XXX !important
-        if(any(windowContext(configure.window)->window().size() != nsize)) //sizeEvent
+		case 0u:
 		{
-			EventHandlerEvent(SizeEvent, configure.window);
-			event->size = nsize;
-			event->change = 0;
-			dispatcher.dispatch(std::move(event));
+			//an error occurred!
+			int code = reinterpret_cast<const xcb_generic_error_t&>(ev).error_code;
+			auto errorMsg = x11::errorMessage(xDisplay(), code);
+			warning("ny::X11AppContext::processEvent: retrieved error code ", code, ": ", errorMsg);
 
-			auto wc = windowContext(configure.window);
-			if(!wc) return true;
-			auto wevent = std::make_unique<SizeEvent>(wc);
-			wevent->size = nsize;
-			wevent->change = 0;
-			dispatcher.dispatch(std::move(wevent));
+			break;
 		}
 
-        if(any(windowContext(configure.window)->window().position() != npos))
+		default:
 		{
-			EventHandlerEvent(PositionEvent, configure.window);
-			event->position = npos;
-			event->change = 0;
-			dispatcher.dispatch(std::move(event));
+			//check for xkb event
+			if(keyboardContext_->processEvent(ev)) break;
+			if(mouseContext_->processEvent(ev)) break;
 		}
-		*/
-
-		break;
-    }
-
-    case XCB_CLIENT_MESSAGE:
-    {
-		auto& client = reinterpret_cast<const xcb_client_message_event_t&>(ev);
-		auto protocol = static_cast<unsigned int>(client.data.data32[0]);
-        if(protocol == atoms().wmDeleteWindow)
-        {
-			EventHandlerEvent(CloseEvent, client.window);
-			dispatch(event);
-        }
-
-		break;
-	}
-
-	case 0u:
-	{
-		//an error occurred!
-		int code = reinterpret_cast<const xcb_generic_error_t&>(ev).error_code;
-		auto errorMsg = x11::errorMessage(xDisplay(), code);
-		warning("ny::X11AppContext::processEvent: retrieved error code ", code, ", ", errorMsg);
-
-		break;
-	}
-
-	default:
-	{
-		//check for xkb event
-		if(ev.response_type == keyboardContext_->xkbEventType())
-			keyboardContext_->processXkbEvent(ev);
-
-		// May be needed for gl to work correctly... (TODO: test)
-		// XLockDisplay(xDisplay_);
-	    // auto proc = XESetWireToEvent(xDisplay_, ev.response_type & ~0x80, nullptr);
-	    // if(proc)
-		// {
-	    //     XESetWireToEvent(xDisplay_, ev.response_type & ~0x80, proc);
-	    //     XEvent dummy;
-	    //     ev.sequence = LastKnownRequestProcessed(xDisplay_);
-	    //     if(proc(xDisplay_, &dummy, (xEvent*) &ev)) //not handled
-		// 	{
-		// 		//TODO
-		// 	}
-	    // }
-		//
-		// XUnlockDisplay(xDisplay_);
-	}
-
 	}
 
 	#undef EventHandlerEvent

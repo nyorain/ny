@@ -14,7 +14,7 @@
 #include <ny/windowSettings.hpp>
 #include <ny/windowListener.hpp>
 #include <ny/imageData.hpp>
-#include <ny/data.hpp>
+#include <ny/dataExchange.hpp>
 #include <ny/cursor.hpp>
 #include <ny/loopControl.hpp>
 #include <ny/log.hpp>

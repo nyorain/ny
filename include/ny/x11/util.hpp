@@ -5,7 +5,7 @@
 #pragma once
 
 #include <ny/x11/include.hpp>
-#include <ny/event.hpp>
+#include <ny/windowListener.hpp>
 #include <nytl/stringParam.hpp>
 
 #include <xcb/xcb.h>

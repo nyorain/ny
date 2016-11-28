@@ -2,7 +2,7 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
-#include <ny/data.hpp>
+#include <ny/dataExchange.hpp>
 #include <ny/imageData.hpp>
 #include <nytl/utf.hpp>
 #include <sstream>
@@ -168,7 +168,7 @@ bool match(const DataFormat& dataFormat, nytl::StringParam formatName)
 	if(sameBeginning(dataFormat.name, formatName.data())) return true;
 	for(auto name : dataFormat.additionalNames)
 		if(sameBeginning(name, formatName.data())) return true;
-		
+
 	return false;
 }
 

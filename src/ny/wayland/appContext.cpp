@@ -7,7 +7,7 @@
 #include <ny/wayland/util.hpp>
 #include <ny/wayland/windowContext.hpp>
 #include <ny/wayland/input.hpp>
-#include <ny/wayland/data.hpp>
+#include <ny/wayland/dataExchange.hpp>
 #include <ny/wayland/bufferSurface.hpp>
 
 #include <ny/wayland/protocols/xdg-shell-v5.h>
@@ -430,10 +430,21 @@ bool WaylandAppContext::startDragDrop(std::unique_ptr<DataSource>&& dataSource)
 
 	//see wayland/data.hpp WaylandDataSource documentation for a reason why <new> is used here.
 	//this is not a leak, WaylandDataSource self-manages its lifetime
-	auto src = new WaylandDataSource(*this, std::move(dataSource), true);
+	WaylandDataSource* src {};
+	try { src = new WaylandDataSource(*this, std::move(dataSource), true); }
+	catch(const std::exception& error)
+	{
+		warning("ny::WaylandAppContext::startDragDrop: WaylandDataSource threw: ", error.what());
+		return false;
+	}
+
 	auto surf = &static_cast<WaylandWindowContext*>(over)->wlSurface();
-	wl_data_device_start_drag(&dataDevice_->wlDataDevice(), &src->wlDataSource(), surf, nullptr,
-		mouseContext_->lastSerial());
+	wl_data_device_start_drag(&dataDevice_->wlDataDevice(), &src->wlDataSource(), surf,
+		src->dragSurface(), mouseContext_->lastSerial());
+
+	//only now we can attach a buffer to the surface since now it has the
+	//dnd surface role.
+	src->drawSurface();
 
 	return true;
 }

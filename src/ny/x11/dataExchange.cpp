@@ -2,7 +2,7 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
-#include <ny/x11/data.hpp>
+#include <ny/x11/dataExchange.hpp>
 #include <ny/x11/appContext.hpp>
 #include <ny/x11/windowContext.hpp>
 #include <ny/log.hpp>

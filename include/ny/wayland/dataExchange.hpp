@@ -5,7 +5,8 @@
 #pragma once
 
 #include <ny/wayland/include.hpp>
-#include <ny/data.hpp>
+#include <ny/wayland/util.hpp>
+#include <ny/dataExchange.hpp>
 
 #include <nytl/callback.hpp>
 #include <map>
@@ -22,7 +23,7 @@ public:
 
 public:
 	WaylandDataOffer() = default;
-	WaylandDataOffer(WaylandAppContext& ac, wl_data_offer& wlDataOffer, bool dnd = false);
+	WaylandDataOffer(WaylandAppContext& ac, wl_data_offer& wlDataOffer);
 	~WaylandDataOffer();
 
 	WaylandDataOffer(WaylandDataOffer&& other) noexcept;
@@ -34,20 +35,17 @@ public:
 	wl_data_offer& wlDataOffer() const { return *wlDataOffer_; }
 	WaylandAppContext& appContext() const { return *appContext_; }
 
-	bool dnd() const { return dnd_; }
-	void dnd(bool x) { dnd_ = x; }
+	bool finish() const { return finish_; }
+	void finish(bool x) { finish_ = x; }
 
 	bool valid() const { return (wlDataOffer_); }
-
-	void serial(unsigned int s) { serial_ = s; }
 
 protected:
 	WaylandAppContext* appContext_ {};
 	wl_data_offer* wlDataOffer_ {};
 	std::vector<std::pair<DataFormat, std::string>> formats_ {};
 	std::map<std::string, PendingRequest> requests_;
-	unsigned int serial_ {};
-	bool dnd_ {};
+	bool finish_ {}; //whether it should be finished on destruction
 
 protected:
 	///Wayland callback that is called everytime a new mimeType is announced.
@@ -83,17 +81,27 @@ protected:
 class WaylandDataSource
 {
 public:
-	WaylandDataSource(WaylandAppContext&, std::unique_ptr<DataSource>, bool dnd);
+	WaylandDataSource(WaylandAppContext&, std::unique_ptr<DataSource>&&, bool dnd);
 
 	wl_data_source& wlDataSource() const { return *wlDataSource_; }
 	DataSource& dataSource() const { return *source_; }
+
 	bool dnd() const { return dnd_; }
+	wl_surface* dragSurface() const { return dragSurface_; }
+
+	///Draws onto the dragSurface, i.e. attaches and commits a buffer.
+	///This extra function is needed since this can only be done after the
+	///dnd operation was started because before it the surface has no role.
+	void drawSurface();
 
 protected:
 	WaylandAppContext& appContext_;
 	std::unique_ptr<DataSource> source_;
 	wl_data_source* wlDataSource_ {};
 	bool dnd_ {};
+
+	wl_surface* dragSurface_ {};
+	wayland::ShmBuffer dragBuffer_ {};
 
 protected:
 	~WaylandDataSource();
@@ -132,6 +140,7 @@ protected:
 	WaylandDataOffer* dndOffer_ {};
 
 	WaylandWindowContext* dndWC_;
+	unsigned int dndSerial_ {};
 
 protected:
 	///Introduces and creates a new WaylandDataOffer object.

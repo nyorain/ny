@@ -2,13 +2,16 @@ current:
 
 - update backends for new LoopControl
 - update backends for new data
-- ny::DataFormat comparsion
+- ny::DataFormat comparsion (should there be a "==" operator?)
 - some fixes/rethinking to AsyncRequest
+	- dispatchLoop error handling? exception safety? implement in source!
 
-- some common util file/dir for ConnectionList and LoopInterfaceGuard
+- MouseContext callbacks delta value might go crazy when changing over (mouseCross)
+
+- some common util file/dir for e.g. ConnectionList and LoopInterfaceGuard
     (both not really public include where they are atm, both not really src)
 
-- nytl: SizedStringParma constructor from StringParam
+- nytl: SizedStringParam constructor from StringParam
 
 - normalize wheel input values in some way across backends
 - event type register, see doc/concepts/events
@@ -16,13 +19,19 @@ current:
 - general keydown/keyup unicode value specificiation (cross-platform, differents atm)
 	- which event should contain the utf8 member set?
 - AppContext settings
+	- esp. useful wayland/x11 for app name
 - default windowContext surface to bufferSurface?
 - remove using namespace nytl from fwd
+	- rethink general nytl use
 - use pass-by-value for nytl::Vec2 params
-- touch support (TouchContext and touch events)
 - test image and uri serialize/deserialize
+- popups and dialogs -> different window types (especially modal ones!)
+- some kind of dnd offer succesful feedback
+	- also some kind of feedback for dataSources on whether another application received it?
+	- which format was chosen in the end? none?
+	- also: dndEnter event really needed? just send dndMove to introduce it?
 
-- implement less processing optimization
+- implement the "less event processing optimization"
 	- on all backends (where possible): first process all available events, then send them.
 	- prevents that e.g. a size event is sent although the next size event is already known
 	- some general event dispatching utiliy helpers for AppContext implementations?
@@ -33,6 +42,7 @@ current:
 
 low prio, for later:
 
+- touch support (TouchContext and touch events)
 - BufferSurfaceSettings, things like preferred strideAlign or format
 	- cairo/skia integration mockups
 	- rewrite/fix cairo/skia examples
@@ -53,11 +63,11 @@ x11 backend:
 - egl support instead of glx?
 
 wayland backend:
-- min/max size
 - animated cursor (low prio)
 - support xdg popup (and version 6), other protocols (low prio)
 - ShmBuffer shm_pool shared (not one per buffer...)
-- support zxdg version 6
+- improve xdg shell v6 support (position, better configure events, popups)
+	- min/max size (also implement this for other surface roles)
 
 winapi backend:
 - wgl api reparse [loader, swap control tear]

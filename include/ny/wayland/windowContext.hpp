@@ -72,7 +72,7 @@ public:
 	void addWindowHints(WindowHints hints) override;
 	void removeWindowHints(WindowHints hints) override;
 
-    //wayland specific functions
+    // - wayland specific -
     wl_surface& wlSurface() const { return *wlSurface_; };
 	wl_callback* frameCallback() const { return frameCallback_; }
 	WaylandSurfaceRole surfaceRole() const { return role_; }
@@ -96,8 +96,8 @@ public:
 	///Attaches the given buffer, damages the surface and commits it.
 	///Does also add a frameCallback to the surface.
 	///If called with a nullptr, no framecallback will be attached and the surface will
-	///be unmapped. Note that if the WindowContext is hidden, no buffer will be
-	///attached.
+	///be unmapped. Note that if the WindowContext is currently hidden or not mapped,
+	///no buffer will be attached.
 	void attachCommit(wl_buffer* buffer);
 
 	WaylandAppContext& appContext() const { return *appContext_; }
@@ -108,6 +108,8 @@ protected:
     void createShellSurface(const WaylandWindowSettings& ws);
     void createXdgSurfaceV5(const WaylandWindowSettings& ws);
     void createXdgSurfaceV6(const WaylandWindowSettings& ws);
+	void createXdgPopupV5(const WaylandWindowSettings& ws);
+	void createXdgPopupV6(const WaylandWindowSettings& ws);
     void createSubsurface(wl_surface& parent, const WaylandWindowSettings& ws);
 
 	//listeners
@@ -143,6 +145,20 @@ protected:
     //stores which kinds of surface this context holds
 	WaylandSurfaceRole role_ = WaylandSurfaceRole::none;
 
+	//when the wl_surface has a xdg_surface role, we can give this xdg_surface its
+	//own role, therefore we have to store surface and xdg role.
+	//which union member is active is controlled by the role_ member as well
+	struct XdgSurfaceV6
+	{
+		zxdg_surface_v6* surface;
+		bool configured;
+		union
+		{
+			zxdg_toplevel_v6* toplevel;
+			zxdg_popup_v6* popup;
+		};
+	};
+
 	//the different surface roles this surface can have.
 	//the union will be activated depending on role_
 	//xdg roles are preferred over the plain wl ones if available
@@ -150,20 +166,11 @@ protected:
     {
         wl_shell_surface* wlShellSurface_ = nullptr;
         wl_subsurface* wlSubsurface_;
+
         xdg_surface* xdgSurfaceV5_;
         xdg_popup* xdgPopupV5_;
 
-		struct
-		{
-			zxdg_surface_v6* xdgSurfaceV6_;
-			bool xdgV6Configured_;
-
-			union
-			{
-				zxdg_toplevel_v6* xdgToplevelV6_;
-				zxdg_popup_v6* xdgPopupV6_;
-			};
-		};
+		XdgSurfaceV6 xdgSurfaceV6_;
     };
 
 	bool shown_ {}; //Whether the WindowContext should be shown or hidden

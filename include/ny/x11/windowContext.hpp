@@ -50,8 +50,8 @@ public:
     void fullscreen() override;
     void normalState() override;
 
-    void beginMove(const MouseButtonEvent* ev) override;
-    void beginResize(const MouseButtonEvent* ev, WindowEdges edges) override;
+    void beginMove(const EventData*) override;
+    void beginResize(const EventData* ev, WindowEdges edges) override;
 
     void title(nytl::StringParam title) override;
 	void icon(const ImageData& img) override;
@@ -63,7 +63,6 @@ public:
     // - x11-specific -
 	//specific event handlers
 	virtual void reparentEvent();
-	virtual void sizeEvent(nytl::Vec2ui size);
 
 	X11AppContext& appContext() const { return *appContext_; } ///The associated AppContext
 	uint32_t xWindow() const { return xWindow_; } ///The underlaying x window handle

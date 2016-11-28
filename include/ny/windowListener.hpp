@@ -36,46 +36,51 @@ public:
     ///WindowContexts without explicitly set WindowListener have this object set.
     ///This is done so it hasn't to be checked everytime whether a WindowContext has a valid
     ///WindowListener.
-	static WindowListener& defaultInstance() { static WindowListener instance; return instance; }
+	static WindowListener& defaultInstance();
 
 public:
     ///This function is called when a dnd action enters the window.
     ///The window could use this to e.g. redraw itself in a special way.
     ///Remember that after calling a dispatch function in this function, the given
     ///DataOffer might not be valid anymore (then a dndLeave or dndDrop event occurred).
-    virtual void dndEnter(const DataOffer&, const EventData*) {};
+    virtual void dndEnter(const DataOffer&, const EventData*);
 
     ///Called when a previously entered dnd offer is moved around in the window.
     ///Many applications use this to enable e.g. scrolling while a dnd session is active.
     ///Should return whether the given DataOffer could be accepted at the given position.
     ///Remember that after calling a dispatch function in this function, the given
     ///DataOffer might not be valid anymore (then a dndLeave or dndDrop event occurred).
-    virtual bool dndMove(nytl::Vec2i pos, const DataOffer&, const EventData*) { return false; }
+    virtual DataFormat dndMove(nytl::Vec2i pos, const DataOffer&, const EventData*);
 
     ///This function is called when a DataOffer that entered the window leaves it.
     ///The DataOffer object should then actually not be used anymore and is just passed here
     ///for comparison. This function is only called if no drop occurs.
-    virtual void dndLeave(const DataOffer&, const EventData*) {};
+    virtual void dndLeave(const DataOffer&, const EventData*);
 
     ///Called when a dnd DataOffer is dropped over the window.
     ///The application gains ownership about the DataOffer object.
     ///This event is only received when the previous dndMove handler returned true.
-	virtual void dndDrop(nytl::Vec2i pos, std::unique_ptr<DataOffer>, const EventData*) {}
+	virtual void dndDrop(nytl::Vec2i pos, std::unique_ptr<DataOffer>, const EventData*);
 
-	virtual void draw(const EventData*) {}; ///Redraw the window
-	virtual void close(const EventData*) {}; ///Close the window at destroy the WindowContext
+	virtual void draw(const EventData*); ///Redraw the window
+	virtual void close(const EventData*); ///Close the window at destroy the WindowContext
 
-	virtual void position(nytl::Vec2i position, const EventData*) {}; ///Window was repositioned
-	virtual void resize(nytl::Vec2ui size, const EventData*) {}; ///Window was resized
-	virtual void state(bool shown, ToplevelState, const EventData*) {}; ///Window state changed
+	virtual void position(nytl::Vec2i position, const EventData*); ///Window was repositioned
+	virtual void resize(nytl::Vec2ui size, const EventData*); ///Window was resized
+	virtual void state(bool shown, ToplevelState, const EventData*); ///Window state changed
 
-	virtual void key(bool pressed, Keycode, const std::string& utf8, const EventData*) {};
-	virtual void focus(bool shown,const EventData*) {};
+	virtual void key(bool pressed, Keycode, const std::string& utf8, const EventData*);
+	virtual void focus(bool shown,const EventData*);
 
-	virtual void mouseButton(bool pressed, MouseButton button, const EventData*) {};
-	virtual void mouseMove(nytl::Vec2i position, const EventData*) {}; ///Mouse moves over window
-	virtual void mouseWheel(float value, const EventData*) {}; ///Mouse wheel rotated over window
-	virtual void mouseCross(bool focused, const EventData*) {}; ///Mouse entered/left window
+	virtual void mouseButton(bool pressed, MouseButton, const EventData*); ///Mouse button
+	virtual void mouseMove(nytl::Vec2i position, const EventData*); ///Mouse moves over window
+	virtual void mouseWheel(float value, const EventData*); ///Mouse wheel rotated over window
+	virtual void mouseCross(bool focused, const EventData*); ///Mouse entered/left window
+
+protected:
+	WindowListener() = default;
+	WindowListener(WindowContext&);
+	virtual ~WindowListener() = default;
 };
 
 }

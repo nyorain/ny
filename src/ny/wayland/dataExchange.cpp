@@ -2,7 +2,7 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
-#include <ny/wayland/data.hpp>
+#include <ny/wayland/dataExchange.hpp>
 #include <ny/wayland/util.hpp>
 #include <ny/wayland/appContext.hpp>
 #include <ny/wayland/windowContext.hpp>
@@ -57,8 +57,8 @@ public:
 };
 
 //WaylandDataOffer
-WaylandDataOffer::WaylandDataOffer(WaylandAppContext& ac, wl_data_offer& wlDataOffer, bool dnd)
-	: appContext_(&ac), wlDataOffer_(&wlDataOffer), dnd_(dnd)
+WaylandDataOffer::WaylandDataOffer(WaylandAppContext& ac, wl_data_offer& wlDataOffer)
+	: appContext_(&ac), wlDataOffer_(&wlDataOffer)
 {
 	static constexpr wl_data_offer_listener listener =
 	{
@@ -80,8 +80,7 @@ WaylandDataOffer::WaylandDataOffer(WaylandDataOffer&& other) noexcept :
 	wlDataOffer_(other.wlDataOffer_),
 	formats_(std::move(other.formats_)),
 	requests_(std::move(other.requests_)),
-	serial_(other.serial_),
-	dnd_(other.dnd_)
+	finish_(other.finish_)
 {
 	if(wlDataOffer_) wl_data_offer_set_user_data(wlDataOffer_, this);
 
@@ -97,8 +96,7 @@ WaylandDataOffer& WaylandDataOffer::operator=(WaylandDataOffer&& other) noexcept
 	wlDataOffer_ = other.wlDataOffer_;
 	formats_ = std::move(other.formats_);
 	requests_ = std::move(other.requests_);
-	serial_ = other.serial_;
-	dnd_ = other.dnd_;
+	finish_ = other.finish_;
 
 	if(wlDataOffer_) wl_data_offer_set_user_data(wlDataOffer_, this);
 
@@ -120,7 +118,7 @@ void WaylandDataOffer::destroy()
 
 	if(wlDataOffer_)
 	{
-		// if(dnd_) wl_data_offer_finish(wlDataOffer_);
+		if(finish_) wl_data_offer_finish(wlDataOffer_);
 		wl_data_offer_destroy(wlDataOffer_);
 	}
 }
@@ -191,7 +189,6 @@ WaylandDataOffer::DataRequest WaylandDataOffer::data(const DataFormat& format)
 		};
 
 		conn = appContext_->fdCallback(fds[0], POLLIN, callback);
-		wl_data_offer_accept(wlDataOffer_, serial_, reqfmt.second.c_str());
 	}
 
 	//create an asynchronous request object that unregisters itself on destruction so
@@ -211,7 +208,6 @@ void WaylandDataOffer::offer(const char* fmt)
 	else if(match(DataFormat::uriList, fmt)) formats_.push_back({DataFormat::uriList, fmt});
 	else if(match(DataFormat::imageData, fmt)) formats_.push_back({DataFormat::imageData, fmt});
 	else formats_.push_back({{fmt, {}}, fmt,});
-
 }
 
 void WaylandDataOffer::sourceActions(unsigned int actions)
@@ -222,7 +218,6 @@ void WaylandDataOffer::sourceActions(unsigned int actions)
 void WaylandDataOffer::action(unsigned int action)
 {
 	nytl::unused(action);
-	// debug("action: ", action);
 }
 
 void WaylandDataOffer::removeDataRequest(const std::string& format, DataRequestImpl& request)
@@ -245,10 +240,12 @@ void WaylandDataOffer::removeDataRequest(const std::string& format, DataRequestI
 }
 
 //WaylandDataSource
-WaylandDataSource::WaylandDataSource(WaylandAppContext& ac, std::unique_ptr<DataSource> src,
+WaylandDataSource::WaylandDataSource(WaylandAppContext& ac, std::unique_ptr<DataSource>&& src,
 	bool dnd) : appContext_(ac), source_(std::move(src)), dnd_(dnd)
 {
 	wlDataSource_ = wl_data_device_manager_create_data_source(ac.wlDataManager());
+	if(!wlDataSource_)
+		throw std::runtime_error("ny::WaylandDataSource: faield to create wl_data_source");
 
 	using WDS = WaylandDataSource;
 	static constexpr wl_data_source_listener listener =
@@ -271,7 +268,19 @@ WaylandDataSource::WaylandDataSource(WaylandAppContext& ac, std::unique_ptr<Data
 			wl_data_source_offer(&wlDataSource(), name.c_str());
 	}
 
-	if(dnd_) wl_data_source_set_actions(wlDataSource_, WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY);
+	//if this is a dnd source, set the actions and create dnd surface and buffer
+	if(dnd_)
+	{
+		wl_data_source_set_actions(wlDataSource_, WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY);
+
+		auto img = source_->image();
+		if(img.data)
+		{
+			dragSurface_ = wl_compositor_create_surface(&appContext_.wlCompositor());
+			dragBuffer_ = {appContext_, img.size};
+			convertFormat(img, waylandToImageFormat(dragBuffer_.format()), dragBuffer_.data());
+		}
+	}
 }
 
 WaylandDataSource::~WaylandDataSource()
@@ -279,11 +288,18 @@ WaylandDataSource::~WaylandDataSource()
 	if(wlDataSource_) wl_data_source_destroy(wlDataSource_);
 }
 
+void WaylandDataSource::drawSurface()
+{
+	auto img = source_->image();
+	wl_surface_attach(dragSurface_, &dragBuffer_.wlBuffer(), 0, 0);
+	wl_surface_damage(dragSurface_, 0, 0, img.size.x, img.size.y);
+	wl_surface_commit(dragSurface_);
+}
+
 void WaylandDataSource::target(const char* mimeType)
 {
-	//we dont care about this information
+	//we dont care about this information at all
 	nytl::unused(mimeType);
-	// debug("target ", mimeType);
 }
 void WaylandDataSource::send(const char* mimeType, int fd)
 {
@@ -322,7 +338,8 @@ void WaylandDataSource::send(const char* mimeType, int fd)
 
 void WaylandDataSource::action(unsigned int action)
 {
-	// debug("action ", action);
+	//change the cursor in response to the action if there is a mouseContext
+	if(!appContext_.waylandMouseContext()) return;
 
 	const char* cursorName = nullptr;
 	switch(action)
@@ -339,28 +356,28 @@ void WaylandDataSource::action(unsigned int action)
 	auto hotspot = nytl::Vec2i(img->hotspot_x, img->hotspot_y);
 	auto size = nytl::Vec2i(img->width, img->height);
 
-	if(appContext_.waylandMouseContext())
-		appContext_.waylandMouseContext()->cursorBuffer(buffer, hotspot, size);
+	appContext_.waylandMouseContext()->cursorBuffer(buffer, hotspot, size);
 }
 
 void WaylandDataSource::dndPerformed()
 {
 	//we dont care about this information
 	//important: do not destroy the source here, only in cancelled/finished
-	// debug("performed");
 }
 
 void WaylandDataSource::cancelled()
 {
-	//destroy self here
-	// debug("cancelled");
+	//destroy self here since this object is no longer needed
+	//for dnd sources this means the dnd session ended unsuccesfully
+	//for clipboard source this means that it was replaced
 	delete this;
 }
 
 void WaylandDataSource::dndFinished()
 {
-	//destroy self here
-	// debug("finished");
+	//destroy self here since this object is no longer needed
+	//the dnd session ended succesful and this object will no longer be
+	//accessed
 	delete this;
 }
 
@@ -394,61 +411,88 @@ WaylandDataDevice::~WaylandDataDevice()
 
 void WaylandDataDevice::offer(wl_data_offer* offer)
 {
-	// debug("offer");
 	offers_.push_back(std::make_unique<WaylandDataOffer>(*appContext_, *offer));
 }
 
 void WaylandDataDevice::enter(unsigned int serial, wl_surface* surface, wl_fixed_t x, wl_fixed_t y,
 	wl_data_offer* offer)
 {
-	nytl::unused(x, y);
-	dndWC_ = appContext_->windowContext(*surface);
+	WaylandEventData eventData(serial);
+	nytl::Vec2i pos(wl_fixed_to_int(x), wl_fixed_to_int(y));
 
+	//find the associated dataOffer and cache it as dndOffer_
 	for(auto& o : offers_)
 	{
 		if(&o->wlDataOffer() == offer)
 		{
 			dndOffer_ = o.get();
-			dndOffer_->dnd(true);
-			dndOffer_->serial(serial);
 			break;
 		}
 	}
+
+	if(!dndOffer_)
+	{
+		log("ny::WaylandDataDevice::enter: invalid wl_data_offer given");
+		return;
+	}
+
+	dndWC_ = appContext_->windowContext(*surface);
+	if(!dndWC_)
+	{
+		log("ny::WaylandDataDevice::enter: invalid wl_surface given");
+		dndOffer_ = {};
+		return;
+	}
+
+	dndSerial_ = serial;
+	dndWC_->listener().dndEnter(*dndOffer_, &eventData);
+	dndWC_->listener().dndMove(pos, *dndOffer_, &eventData);
 }
 
 void WaylandDataDevice::leave()
 {
-	debug("leave");
-	// return;
-
 	if(dndOffer_)
 	{
-		offers_.erase(std::remove_if(offers_.begin(), offers_.end(),
-			[=](auto& v) { return v.get() == dndOffer_; }), offers_.end());
 
-		dndOffer_ = nullptr;
+		auto it = std::find_if(offers_.begin(), offers_.end(),
+			[=](auto& v) { return v.get() == dndOffer_; });
+
+		if(it != offers_.end())
+		{
+			if(dndWC_) dndWC_->listener().dndLeave(*it->get(), nullptr);
+			offers_.erase(it);
+		}
 	}
+
+	dndOffer_ = {};
+	dndSerial_ = {};
+	dndWC_ = {};
 }
 
 void WaylandDataDevice::motion(unsigned int time, wl_fixed_t x, wl_fixed_t y)
 {
 	// debug("motion");
-	nytl::unused(time);
+	nytl::unused(time); //time param needed for CompFunc since it would be stored in x otherwise
     nytl::Vec2i pos(wl_fixed_to_int(x), wl_fixed_to_int(y));
 
+	auto fmt = dndWC_->listener().dndMove(pos, *dndOffer_, nullptr);
+	if(fmt == DataFormat::none)
+	{
+		wl_data_offer_accept(&dndOffer_->wlDataOffer(), dndSerial_, nullptr);
+		wl_data_offer_set_actions(&dndOffer_->wlDataOffer(), WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE,
+			WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE);
+		return;
+	}
+
+    wl_data_offer_accept(&dndOffer_->wlDataOffer(), dndSerial_, fmt.name.c_str());
 	wl_data_offer_set_actions(&dndOffer_->wlDataOffer(), WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY,
 		WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY);
-
-    if(pos.x > 200) wl_data_offer_accept(&dndOffer_->wlDataOffer(), 0, nullptr);
-	else wl_data_offer_accept(&dndOffer_->wlDataOffer(), 0, "text/plain");
 }
 
 void WaylandDataDevice::drop()
 {
-	debug("drop");
-	// return;
-
-	if(!dndOffer_)
+	// debug("drop");
+	if(!dndOffer_ || !dndWC_)
 	{
 		log("ny::WaylandDataDevice::drop: invalid current dnd session.");
 		return;
@@ -465,15 +509,23 @@ void WaylandDataDevice::drop()
 		}
 	}
 
-	debug("drop drop");
-	if(dndWC_) dndWC_->listener().dndDrop({}, std::move(ownedDndOffer), nullptr);
+	if(ownedDndOffer)
+	{
+		// debug("drop drop");
+		ownedDndOffer->finish(true);
+		if(dndWC_) dndWC_->listener().dndDrop({}, std::move(ownedDndOffer), nullptr);
+		else warning("ny::WaylandDataDevice::drop: no current dnd WindowContext");
+	}
+	else warning("ny::WaylandDataDevice::drop: invalid current cached dnd offer");
 
-	dndOffer_ = nullptr;
+	dndOffer_ = {};
+	dndSerial_ = {};
+	dndWC_ = {};
 }
 
 void WaylandDataDevice::selection(wl_data_offer* offer)
 {
-	// debug("selection");
+	//erase the previous clipboard offer
 	if(clipboardOffer_)
 	{
 		offers_.erase(std::remove_if(offers_.begin(), offers_.end(),
@@ -487,7 +539,6 @@ void WaylandDataDevice::selection(wl_data_offer* offer)
 		if(&o->wlDataOffer() == offer)
 		{
 			clipboardOffer_ = o.get();
-			clipboardOffer_->dnd(false);
 			return;
 		}
 	}

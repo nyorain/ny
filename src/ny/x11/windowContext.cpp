@@ -8,11 +8,11 @@
 #include <ny/x11/appContext.hpp>
 
 #include <ny/common/unix.hpp>
-#include <ny/events.hpp>
-#include <ny/event.hpp>
 #include <ny/log.hpp>
 #include <ny/cursor.hpp>
 #include <ny/mouseContext.hpp>
+
+#include <nytl/vecOps.hpp>
 
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
@@ -36,6 +36,8 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 	appContext_ = &ctx;
 	settings_ = settings;
 
+    if(settings.listener) listener(*settings.listener);
+
 	if(!visualID_) initVisual();
 	auto visualtype = xVisualType();
 	if(!visualtype)
@@ -47,8 +49,12 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 	auto& xscreen = appContext_->xDefaultScreen();
 
 	bool toplvl = false;
+
 	auto pos = settings.position;
+	if(nytl::allEqual(pos, defaultPosition)) pos = fallbackPosition;
+
 	auto size = settings.size;
+	if(nytl::allEqual(size, defaultSize)) size = fallbackSize;
 
     xcb_window_t xparent = settings.parent.uint64();
 	if(!xparent)
@@ -328,22 +334,24 @@ void X11WindowContext::normalState()
     xcb_icccm_set_wm_hints(&xConnection(), xWindow_, &hints);
 }
 
-void X11WindowContext::beginMove(const MouseButtonEvent* ev)
+void X11WindowContext::beginMove(const EventData* ev)
 {
-	auto* xbev = dynamic_cast<X11EventData*>(ev->data.get());
+	auto* xbev = dynamic_cast<const X11EventData*>(ev);
     if(!xbev) return;
-    auto& xev = reinterpret_cast<xcb_button_press_event_t&>(xbev->event);
+
+    auto& xev = reinterpret_cast<const xcb_button_press_event_t&>(xbev->event);
 
 	//XXX TODO: correct mouse button (index)!
 	xcb_ewmh_request_wm_moveresize(&ewmhConnection(), 0, xWindow(), xev.root_x, xev.root_y,
 		XCB_EWMH_WM_MOVERESIZE_MOVE, XCB_BUTTON_INDEX_1, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
 }
 
-void X11WindowContext::beginResize(const MouseButtonEvent* ev, WindowEdges edge)
+void X11WindowContext::beginResize(const EventData* ev, WindowEdges edge)
 {
-	auto* xbev = dynamic_cast<X11EventData*>(ev->data.get());
+	auto* xbev = dynamic_cast<const X11EventData*>(ev);
     if(!xbev) return;
-    auto& xev = reinterpret_cast<xcb_button_press_event_t&>(xbev->event);
+
+    auto& xev = reinterpret_cast<const xcb_button_press_event_t&>(xbev->event);
 
 	xcb_ewmh_moveresize_direction_t x11Edge;
 	switch(static_cast<WindowEdge>(edge.value()))
@@ -359,7 +367,7 @@ void X11WindowContext::beginResize(const MouseButtonEvent* ev, WindowEdges edge)
         default: return;
     }
 
-	//XXX: correct mouse button!
+	//XXX TODO: correct mouse button (index)!
 	xcb_ewmh_request_wm_moveresize(&ewmhConnection(), 0, xWindow(), xev.root_x, xev.root_y,
 		x11Edge, XCB_BUTTON_INDEX_1, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
 }
@@ -423,16 +431,6 @@ void X11WindowContext::maxSize(nytl::Vec2ui size)
 void X11WindowContext::reparentEvent()
 {
 	position(settings_.position);
-}
-
-void X11WindowContext::sizeEvent(nytl::Vec2ui size)
-{
-	if(eventHandler())
-	{
-		auto event = SizeEvent(eventHandler());
-		event.size = size;
-		eventHandler()->handleEvent(event);
-	}
 }
 
 bool X11WindowContext::customDecorated() const

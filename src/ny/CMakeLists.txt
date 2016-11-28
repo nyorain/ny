@@ -7,12 +7,13 @@ set(ny_src
 	log.cpp
 	config.cpp
 	cursor.cpp
-	data.cpp
+	dataExchange.cpp
 	imageData.cpp
 	key.cpp
 	mouseButton.cpp
 	backend.cpp
-	library.cpp)
+	library.cpp
+	windowListener.cpp)
 
 # =======================================================================================
 # Winapi backend
@@ -78,7 +79,7 @@ if(WithWayland)
 		wayland/util.cpp
 		wayland/bufferSurface.cpp
 		wayland/windowContext.cpp
-		wayland/data.cpp
+		wayland/dataExchange.cpp
 
 		wayland/protocols/xdg-shell-v5.c
 		wayland/protocols/xdg-shell-v6.c)

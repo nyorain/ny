@@ -5,10 +5,12 @@
 #include <ny/mouseContext.hpp>
 
 //argh...
-#include <xcb/xcb.h>
 
 namespace ny
 {
+
+//TODO: something about over change and relative move delta...
+//also pass enter position when over changes?
 
 ///X11 MouseContext implementation
 class X11MouseContext : public MouseContext
@@ -22,24 +24,20 @@ public:
 	bool pressed(MouseButton button) const override;
 	WindowContext* over() const override; //defined in src because X11WC inheritance
 
-	//custom
-	//TODO: something about over change and relative move delta...
-	//also pass enter position when over changes?
+	// - x11 specific -
+	///Processes the given event, i.e. checks if it is an mouse related event and if so,
+	///calls out the appropriate listeners and callbacks.
+	///Returns whether the given event was processed.
+	bool processEvent(const x11::GenericEvent& ev);
 
-	//Updates the current mouseOver WindowContext and calls the onFocus callback.
-	void over(X11WindowContext* ctx);
-
-	//Updates the given MouseButton state.
-	void mouseButton(MouseButton, bool pressed);
-
-	//Updates the synced position and calls the onMove callback.
-	void move(const nytl::Vec2ui& pos);
+	X11AppContext& appContext() const { return appContext_; }
+	X11WindowContext* x11Over() const { return over_; }
 
 protected:
 	X11AppContext& appContext_;
 	X11WindowContext* over_ = nullptr;
 	std::bitset<8> buttonStates_;
-	Vec2ui lastPosition_; //synced position
+	Vec2i lastPosition_; //synced position
 };
 
 
@@ -50,21 +48,24 @@ public:
 	X11KeyboardContext(X11AppContext& ac);
 	~X11KeyboardContext() = default;
 
-	//KeyboardContext impl
+	//KeyboardContext
 	bool pressed(Keycode key) const override;
 	WindowContext* focus() const override; //defined in src because X11WC return inheritance
 
-	//custom
+	// - x11 specific -
 	///Returns the xkb even type id. Events with this id should be passed to
 	///processXkbEvent.
 	std::uint8_t xkbEventType() const { return eventType_; }
 
-	///Processed xkb server events to e.g. update the keymap
-	void processXkbEvent(const xcb_generic_event_t& ev);
+	///Processes the given xcb event and checks if it is keyboard related and if so,
+	///calls the appropriate listeners and callbacks.
+	///Also handles xkb specific events.
+	///Returns whether the given event was processed.
+	bool processEvent(const x11::GenericEvent& ev);
 
-	///Updates the current focused WindowContext and calls the onFocus callback.
-	void focus(X11WindowContext* now);
 	bool updateKeymap();
+
+	X11AppContext& appContext() const { return appContext_; }
 
 protected:
 	X11AppContext& appContext_;

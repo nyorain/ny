@@ -79,9 +79,19 @@ void someEventListener()
 	///is pressed before we exit this function.
 	ny::LoopControl lc;
 	nytl::ConnectionGuard conn = appContext.keyboardContext()->onKey.add([&]{ lc.stop(); });
-	appContext.dispatchLoop(lc);
 
-	///Here we would then probably do something with the keypress...
+	///We wait until the callback is triggered.
+	///Note that calling such a function might significantly state the AppContexts state, i.e.
+	///the keyboardContext might no longer be valid
+	if(!appContext.dispatchLoop(lc))
+	{
+		///Here we would still have to somehow handle the fact that we should no longer
+		///use the appContext. We will usually want to exit the application here.
+		///In this case we throw to assure cleanup of local variables
+		throw std::runtime_error("ny::AppContext has an error and cannot be used anymore");
+	}
+
+	///Here we would then probably do something with the knowledge that a key was pressed.
 }
 ```
 

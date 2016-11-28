@@ -22,7 +22,8 @@
 #include <iostream>
 #include <cstring>
 
-//TODO: xdg popups, better subsurface support
+//TODO: correct xdg surface configure/ sizing, better subsurface support
+//TODO: better show handling? i.e. don't refresh when the WindowContext is not shown
 
 namespace ny
 {
@@ -86,9 +87,9 @@ WaylandWindowContext::~WaylandWindowContext()
     else if(xdgPopupV5()) xdg_popup_destroy(xdgPopupV5_);
 	else if(xdgSurfaceV6())
 	{
-		if(xdgPopupV6()) zxdg_popup_v6_destroy(xdgPopupV6_);
-		else if(xdgToplevelV6()) zxdg_toplevel_v6_destroy(xdgToplevelV6_);
-		zxdg_surface_v6_destroy(xdgSurfaceV6_);
+		if(xdgPopupV6()) zxdg_popup_v6_destroy(xdgSurfaceV6_.popup);
+		else if(xdgToplevelV6()) zxdg_toplevel_v6_destroy(xdgSurfaceV6_.toplevel);
+		zxdg_surface_v6_destroy(xdgSurfaceV6_.surface);
 	}
 
     if(wlSurface_) wl_surface_destroy(wlSurface_);
@@ -164,27 +165,97 @@ void WaylandWindowContext::createXdgSurfaceV6(const WaylandWindowSettings& ws)
 	};
 
 	//create the xdg surface
-    xdgSurfaceV6_ = zxdg_shell_v6_get_xdg_surface(appContext().xdgShellV6(), wlSurface_);
-    if(!xdgSurfaceV6_)
+    xdgSurfaceV6_.surface = zxdg_shell_v6_get_xdg_surface(appContext().xdgShellV6(), wlSurface_);
+    if(!xdgSurfaceV6_.surface)
 		throw std::runtime_error("ny::WaylandWindowContext: failed to create xdg_surface v6");
 
 	//create the xdg toplevel for the surface
-	xdgToplevelV6_ = zxdg_surface_v6_get_toplevel(xdgSurfaceV6_);
-    if(!xdgToplevelV6_)
+	xdgSurfaceV6_.toplevel = zxdg_surface_v6_get_toplevel(xdgSurfaceV6_.surface);
+    if(!xdgSurfaceV6_.toplevel)
 		throw std::runtime_error("ny::WaylandWindowContext: failed to create xdg_toplevel v6");
 
 	//commit to apply the role
 	wl_surface_commit(wlSurface_);
 
     role_ = WaylandSurfaceRole::xdgToplevelV6;
-	xdgV6Configured_ = false;
+	xdgSurfaceV6_.configured = false;
 
-	zxdg_surface_v6_set_window_geometry(xdgSurfaceV6_, 0, 0, size_.x, size_.y);
-    zxdg_surface_v6_add_listener(xdgSurfaceV6_, &xdgSurfaceListener, this);
-    zxdg_toplevel_v6_add_listener(xdgToplevelV6_, &xdgToplevelListener, this);
+	//TODO: when we use this here we override the size our WindowContext would get i.e. on
+	//a tiling window manager which is not what we want. But otherwise if the compositor
+	//wants the application to choose the size we need this call to actually choose it.
+	//how to handle this? somehow parse the configure events we get and react to it
+	zxdg_surface_v6_set_window_geometry(xdgSurfaceV6_.surface, 0, 0, size_.x, size_.y);
+    zxdg_surface_v6_add_listener(xdgSurfaceV6_.surface, &xdgSurfaceListener, this);
+    zxdg_toplevel_v6_add_listener(xdgSurfaceV6_.toplevel, &xdgToplevelListener, this);
 
-	zxdg_toplevel_v6_set_title(xdgToplevelV6_, ws.title.c_str());
-	zxdg_toplevel_v6_set_app_id(xdgToplevelV6_, "ny::application-xdgv6"); //TODO: AppContextSettings
+	zxdg_toplevel_v6_set_title(xdgSurfaceV6_.toplevel, ws.title.c_str());
+	zxdg_toplevel_v6_set_app_id(xdgSurfaceV6_.toplevel, "ny::application-xdgv6"); //TODO: AppContextSettings
+}
+
+void WaylandWindowContext::createXdgPopupV5(const WaylandWindowSettings& ws)
+{
+	//TODO! - cannot be used yet
+
+	using WWC = WaylandWindowContext;
+	constexpr static xdg_popup_listener xdgPopupListener = {
+		memberCallback<decltype(&WWC::handleXdgPopupV5Done), &WWC::handleXdgPopupV5Done,
+			void(xdg_popup*)>
+	};
+
+	wl_surface* parent {};
+	Vec2i position = ws.position;
+	unsigned int serial {};
+	if(nytl::allEqual(position, defaultPosition)) position = fallbackPosition;
+	xdgPopupV5_ = xdg_shell_get_xdg_popup(appContext().xdgShellV5(), &wlSurface(), parent,
+		appContext().wlSeat(), serial, position.x, position.y);
+
+	if(!xdgPopupV5_)
+		throw std::runtime_error("ny::WaylandWindowContext: failed to create xdg_popup v5");
+
+	role_ = WaylandSurfaceRole::xdgPopupV5;
+
+	xdg_popup_add_listener(xdgPopupV5_, &xdgPopupListener, this);
+}
+
+void WaylandWindowContext::createXdgPopupV6(const WaylandWindowSettings& ws)
+{
+	//TODO! - cannot be used yet
+
+	using WWC = WaylandWindowContext;
+	constexpr static zxdg_surface_v6_listener xdgSurfaceListener = {
+		memberCallback<decltype(&WWC::handleXdgSurfaceV6Configure),
+			&WWC::handleXdgSurfaceV6Configure,
+			void(zxdg_surface_v6*, uint32_t)>,
+	};
+
+	constexpr static zxdg_popup_v6_listener xdgPopupListener = {
+		memberCallback<decltype(&WWC::handleXdgPopupV6Configure), &WWC::handleXdgPopupV6Configure,
+			void(zxdg_popup_v6*, int32_t, int32_t, int32_t, int32_t)>,
+		memberCallback<decltype(&WWC::handleXdgPopupV6Done), &WWC::handleXdgPopupV6Done,
+			void(zxdg_popup_v6*)>
+	};
+
+	//create the xdg surface
+    xdgSurfaceV6_.surface = zxdg_shell_v6_get_xdg_surface(appContext().xdgShellV6(), wlSurface_);
+    if(!xdgSurfaceV6_.surface)
+		throw std::runtime_error("ny::WaylandWindowContext: failed to create xdg_surface v6");
+
+	//create the popup role
+	wl_surface* parent {};
+	Vec2i position = ws.position;
+	if(nytl::allEqual(position, defaultPosition)) position = fallbackPosition;
+	unsigned int serial {};
+
+	xdgPopupV5_ = xdg_shell_get_xdg_popup(appContext().xdgShellV5(), &wlSurface(), parent,
+		appContext().wlSeat(), serial, position.x, position.y);
+
+	if(!xdgSurfaceV6_.popup)
+		throw std::runtime_error("ny::WaylandWindowContext: failed to create xdg_popup v5");
+
+	role_ = WaylandSurfaceRole::xdgPopupV6;
+
+	zxdg_surface_v6_add_listener(xdgSurfaceV6_.surface, &xdgSurfaceListener, this);
+	zxdg_popup_v6_add_listener(xdgSurfaceV6_.popup, &xdgPopupListener, this);
 }
 
 void WaylandWindowContext::createSubsurface(wl_surface& parent, const WaylandWindowSettings&)
@@ -206,7 +277,7 @@ void WaylandWindowContext::refresh()
 {
 	//if there is an active frameCallback just set the flag that we want to refresh
 	//as soon as possible
-    if(frameCallback_ || !xdgV6Configured_)
+    if(frameCallback_ || !xdgSurfaceV6_.configured)
     {
         refreshFlag_ = true;
         return;
@@ -219,6 +290,7 @@ void WaylandWindowContext::refresh()
 void WaylandWindowContext::show()
 {
 	shown_ = true;
+	refresh(); //call this here?
 }
 
 void WaylandWindowContext::hide()
@@ -321,13 +393,6 @@ void WaylandWindowContext::cursor(const Cursor& cursor)
 		wmc->cursorBuffer(cursorBuffer_, cursorHotspot_, cursorSize_);
 }
 
-// void WaylandWindowContext::droppable(const DataTypes&)
-// {
-// 	//TODO
-// 	//currently all windows are droppabe, store it here and check it in wayland/data.cpp
-// 	warning("ny::WaylandWindowContext::droppable: not implemented");
-// }
-
 void WaylandWindowContext::minSize(nytl::Vec2ui)
 {
 	warning("ny::WaylandWindowContext::maxSize: wayland has no capability for size limits");
@@ -356,7 +421,7 @@ void WaylandWindowContext::maximize()
 {
     if(wlShellSurface()) wl_shell_surface_set_maximized(wlShellSurface_, nullptr);
 	else if(xdgSurfaceV5()) xdg_surface_set_maximized(xdgSurfaceV5_);
-	else if(xdgToplevelV6()) zxdg_toplevel_v6_set_maximized(xdgToplevelV6_);
+	else if(xdgToplevelV6()) zxdg_toplevel_v6_set_maximized(xdgSurfaceV6_.toplevel);
 }
 
 void WaylandWindowContext::fullscreen()
@@ -369,13 +434,13 @@ void WaylandWindowContext::fullscreen()
 			WL_SHELL_SURFACE_FULLSCREEN_METHOD_DEFAULT, 0, nullptr);
 	}
 	else if(xdgSurfaceV5()) xdg_surface_set_fullscreen(xdgSurfaceV5_, nullptr);
-	else if(xdgToplevelV6()) zxdg_toplevel_v6_set_fullscreen(xdgToplevelV6_, nullptr);
+	else if(xdgToplevelV6()) zxdg_toplevel_v6_set_fullscreen(xdgSurfaceV6_.toplevel, nullptr);
 }
 
 void WaylandWindowContext::minimize()
 {
 	if(xdgSurfaceV5()) xdg_surface_set_minimized(xdgSurfaceV5_);
-	if(xdgToplevelV6()) zxdg_toplevel_v6_set_minimized(xdgToplevelV6_);
+	if(xdgToplevelV6()) zxdg_toplevel_v6_set_minimized(xdgSurfaceV6_.toplevel);
 }
 void WaylandWindowContext::normalState()
 {
@@ -390,8 +455,8 @@ void WaylandWindowContext::normalState()
 	}
 	else if(xdgToplevelV6())
 	{
-		zxdg_toplevel_v6_unset_fullscreen(xdgToplevelV6_);
-		zxdg_toplevel_v6_unset_maximized(xdgToplevelV6_);
+		zxdg_toplevel_v6_unset_fullscreen(xdgSurfaceV6_.toplevel);
+		zxdg_toplevel_v6_unset_maximized(xdgSurfaceV6_.toplevel);
 	}
 }
 void WaylandWindowContext::beginMove(const EventData* ev)
@@ -404,7 +469,7 @@ void WaylandWindowContext::beginMove(const EventData* ev)
 	else if(xdgSurfaceV5())
 		xdg_surface_move(xdgSurfaceV5_, appContext().wlSeat(), data->serial);
 	else if(xdgToplevelV6())
-		zxdg_toplevel_v6_move(xdgToplevelV6_, appContext().wlSeat(), data->serial);
+		zxdg_toplevel_v6_move(xdgSurfaceV6_.toplevel, appContext().wlSeat(), data->serial);
 }
 
 void WaylandWindowContext::beginResize(const EventData* ev, WindowEdges edge)
@@ -422,7 +487,7 @@ void WaylandWindowContext::title(nytl::StringParam titlestring)
 {
 	if(wlShellSurface()) wl_shell_surface_set_title(wlShellSurface_, titlestring);
 	else if(xdgSurfaceV5()) xdg_surface_set_title(xdgSurfaceV5_, titlestring);
-	else if(xdgToplevelV6()) zxdg_toplevel_v6_set_title(xdgToplevelV6_, titlestring);
+	else if(xdgToplevelV6()) zxdg_toplevel_v6_set_title(xdgSurfaceV6_.toplevel, titlestring);
 }
 
 wl_shell_surface* WaylandWindowContext::wlShellSurface() const
@@ -448,17 +513,17 @@ xdg_popup* WaylandWindowContext::xdgPopupV5() const
 zxdg_surface_v6* WaylandWindowContext::xdgSurfaceV6() const
 {
 	using WSR = WaylandSurfaceRole;
-	return (role_ == WSR::xdgToplevelV6 || role_ == WSR::xdgPopupV6) ? xdgSurfaceV6_ : nullptr;
+	return (role_ == WSR::xdgToplevelV6 || role_ == WSR::xdgPopupV6) ? xdgSurfaceV6_.surface : nullptr;
 }
 
 zxdg_popup_v6* WaylandWindowContext::xdgPopupV6() const
 {
-	return (role_ == WaylandSurfaceRole::xdgPopupV6) ? xdgPopupV6_ : nullptr;
+	return (role_ == WaylandSurfaceRole::xdgPopupV6) ? xdgSurfaceV6_.popup : nullptr;
 }
 
 zxdg_toplevel_v6* WaylandWindowContext::xdgToplevelV6() const
 {
-	return (role_ == WaylandSurfaceRole::xdgToplevelV6) ? xdgToplevelV6_ : nullptr;
+	return (role_ == WaylandSurfaceRole::xdgToplevelV6) ? xdgSurfaceV6_.toplevel : nullptr;
 }
 
 wl_display& WaylandWindowContext::wlDisplay() const
@@ -556,8 +621,7 @@ void WaylandWindowContext::handleXdgPopupV5Done()
 
 void WaylandWindowContext::handleXdgSurfaceV6Configure(unsigned int serial)
 {
-	debug("configure!");
-	xdgV6Configured_ = true;
+	xdgSurfaceV6_.configured = true;
 	zxdg_surface_v6_ack_configure(xdgSurfaceV6(), serial);
 
 	if(refreshFlag_) listener().draw(nullptr);
@@ -585,6 +649,7 @@ void WaylandWindowContext::handleXdgPopupV6Configure(int x, int y, int width, in
 {
 	//TODO
 	if(!width || !height) return;
+	nytl::unused(x, y);
 
 	auto newSize = nytl::Vec2ui(width, height);
 	listener().resize(newSize, nullptr);

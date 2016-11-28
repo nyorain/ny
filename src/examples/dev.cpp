@@ -7,8 +7,15 @@
 //types to the backend, e.g. for the clipboard or dnd (drag-and-drop) operations.
 class CustomDataSource : public ny::DataSource
 {
+public:
+	CustomDataSource();
+
 	std::vector<ny::DataFormat> formats() const override { return {ny::DataFormat::text}; }
 	std::any data(const ny::DataFormat& format) const override;
+	ny::ImageData image() const override;
+
+private:
+	ny::OwnedImageData image_;
 };
 
 void handleDataOffer(ny::DataOffer& dataOffer)
@@ -69,8 +76,11 @@ public:
 
 	void mouseButton(bool pressed, ny::MouseButton button, const ny::EventData*) override
 	{
+		nytl::unused(button);
+		if(!pressed) return;
+
 		// initiate a dnd operation with the CustomDataSource
-		if(nytl::anyOf(ac->mouseContext()->position() > 100)) return;
+		if(nytl::anyOf(ac->mouseContext()->position() > 100u)) return;
 		auto ret = ac->startDragDrop(std::make_unique<CustomDataSource>());
 		ny::log("Starting a dnd operation: ", ret);
 	}
@@ -80,8 +90,33 @@ public:
 		ny::log("Mouse Wheel rotated: value=", value);
 	}
 
+	ny::DataFormat dndMove(nytl::Vec2i pos, const ny::DataOffer& offer,
+		const ny::EventData*) override
+	{
+		if(nytl::allOf(pos > nytl::Vec2i(100, 100)) && nytl::allOf(pos < nytl::Vec2i(700, 400)))
+		{
+			auto formatsReq = offer.formats();
+			formatsReq->wait();
+
+			//XXX: soon
+			// if(!formatsReq->wait())
+			// {
+			// 	ny::warning("AppContext broken!");
+			// 	lc_.stop();
+			// 	return;
+			// }
+
+			auto result = formatsReq->get();
+			for(const auto& fmt : result) if(fmt == ny::DataFormat::text) return fmt;
+		}
+
+		return ny::DataFormat::none;
+	}
+
 	void dndDrop(nytl::Vec2i pos, ny::DataOfferPtr offer, const ny::EventData*) override
 	{
+		nytl::unused(pos);
+
 		ny::log("offer event received");
 		handleDataOffer(*offer);
 	}
@@ -89,6 +124,9 @@ public:
 	void key(bool pressed, ny::Keycode keycode, const std::string& utf8,
 		const ny::EventData*) override
 	{
+		nytl::unused(utf8);
+		if(!pressed) return;
+
 		if(keycode == ny::Keycode::escape)
 		{
 			ny::log("Escape pressed, exiting");
@@ -127,14 +165,26 @@ int main()
 	listener.wc = wc.get();
 	listener.surface = bufferSurface;
 
-	wc->refresh();
-
 	ny::log("Entering main loop");
 	ac->dispatchLoop(control);
+}
+
+CustomDataSource::CustomDataSource()
+{
+	image_.data = std::make_unique<std::uint8_t[]>(32 * 32 * 4);
+	image_.format = ny::ImageDataFormat::rgba8888;
+	image_.size = {32u, 32u};
+
+	std::memset(image_.data.get(), 0xCC, 32 * 32 * 4);
 }
 
 std::any CustomDataSource::data(const ny::DataFormat& format) const
 {
 	if(format != ny::DataFormat::text) return {};
 	return std::string("ayyy got em");
+}
+
+ny::ImageData CustomDataSource::image() const
+{
+	return {image_.data.get(), image_.size, image_.format, image_.stride};
 }

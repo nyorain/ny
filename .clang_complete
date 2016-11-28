@@ -4,3 +4,5 @@
 -I./build/linux/external/install/include
 -Wno-pragma-once-outside-header
 -std=c++14
+-Wextra
+-Wpedantic
