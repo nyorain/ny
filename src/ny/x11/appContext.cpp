@@ -60,7 +60,7 @@ public:
 
 	std::atomic<bool> run {true};
 	std::queue<std::function<void()>> functions;
-	std::mutex mutex {};
+	std::mutex mutex;
 
 public:
 	X11LoopImpl(LoopControl& control, xcb_connection_t& conn, xcb_window_t win)
@@ -125,17 +125,17 @@ struct X11AppContext::Impl
 //appContext
 X11AppContext::X11AppContext()
 {
-    //XInitThreads(); //todo, make this optional
+	//XInitThreads(); //todo, make this optional
 	impl_ = std::make_unique<Impl>();
 
-    xDisplay_ = ::XOpenDisplay(nullptr);
-    if(!xDisplay_)
-        throw std::runtime_error("ny::X11AppContext: could not connect to X Server");
+	xDisplay_ = ::XOpenDisplay(nullptr);
+	if(!xDisplay_)
+		throw std::runtime_error("ny::X11AppContext: could not connect to X Server");
 
-    xDefaultScreenNumber_ = ::XDefaultScreen(xDisplay_);
+	xDefaultScreenNumber_ = ::XDefaultScreen(xDisplay_);
 
- 	xConnection_ = ::XGetXCBConnection(xDisplay_);
-    if(!xConnection_ || xcb_connection_has_error(xConnection_))
+	 xConnection_ = ::XGetXCBConnection(xDisplay_);
+	if(!xConnection_ || xcb_connection_has_error(xConnection_))
 		throw std::runtime_error("ny::X11AppContext: unable to get xcb connection");
 
 	impl_->errorCategory = {*xDisplay_, *xConnection_};
@@ -145,20 +145,20 @@ X11AppContext::X11AppContext()
 	auto iter = xcb_setup_roots_iterator(xcb_get_setup(&xConnection()));
 	for(auto i = 0; iter.rem; ++i, xcb_screen_next(&iter))
 	{
-	    if(i == xDefaultScreenNumber_)
+		if(i == xDefaultScreenNumber_)
 		{
 			xDefaultScreen_ = iter.data;
 			break;
-	    }
+		}
 	}
 
 	//This must be called because xcb is used to access the event queue
-    ::XSetEventQueueOwner(xDisplay_, XCBOwnsEventQueue);
+	::XSetEventQueueOwner(xDisplay_, XCBOwnsEventQueue);
 
 	//Generate an x dummy window that can e.g. be used for selections
 	//This window remains invisible, i.e. it is not begin mapped
 	xDummyWindow_ = xcb_generate_id(xConnection_);
-    auto cookie = xcb_create_window_checked(xConnection_, XCB_COPY_FROM_PARENT, xDummyWindow_,
+	auto cookie = xcb_create_window_checked(xConnection_, XCB_COPY_FROM_PARENT, xDummyWindow_,
 		xDefaultScreen_->root, 0, 0, 50, 50, 0, XCB_WINDOW_CLASS_INPUT_ONLY,
 		XCB_COPY_FROM_PARENT, 0, nullptr);
 	errorCategory().checkThrow(cookie, "ny::X11AppContext: create_window for dummy window failed");
@@ -245,13 +245,13 @@ X11AppContext::X11AppContext()
 
 X11AppContext::~X11AppContext()
 {
-    if(xDisplay_) ::XFlush(&xDisplay());
+	if(xDisplay_) ::XFlush(&xDisplay());
 
 	xcb_ewmh_connection_wipe(&ewmhConnection());
 	impl_.reset();
 
 	if(xDummyWindow_) xcb_destroy_window(xConnection_, xDummyWindow_);
-    if(xDisplay_) ::XCloseDisplay(&xDisplay());
+	if(xDisplay_) ::XCloseDisplay(&xDisplay());
 
 	xDisplay_ = nullptr;
 	xConnection_ = nullptr;
@@ -260,11 +260,11 @@ X11AppContext::~X11AppContext()
 
 WindowContextPtr X11AppContext::createWindowContext(const WindowSettings& settings)
 {
-    X11WindowSettings x11Settings;
-    const auto* ws = dynamic_cast<const X11WindowSettings*>(&settings);
+	X11WindowSettings x11Settings;
+	const auto* ws = dynamic_cast<const X11WindowSettings*>(&settings);
 
-    if(ws) x11Settings = *ws;
-    else x11Settings.WindowSettings::operator=(settings);
+	if(ws) x11Settings = *ws;
+	else x11Settings.WindowSettings::operator=(settings);
 
 	//type
 	if(settings.surface == SurfaceType::vulkan)
@@ -407,20 +407,20 @@ GlxSetup* X11AppContext::glxSetup() const
 
 void X11AppContext::registerContext(xcb_window_t w, X11WindowContext& c)
 {
-    contexts_[w] = &c;
+	contexts_[w] = &c;
 }
 
 void X11AppContext::unregisterContext(xcb_window_t w)
 {
-    contexts_.erase(w);
+	contexts_.erase(w);
 }
 
 X11WindowContext* X11AppContext::windowContext(xcb_window_t win)
 {
-    if(contexts_.find(win) != contexts_.end())
-        return contexts_[win];
+	if(contexts_.find(win) != contexts_.end())
+		return contexts_[win];
 
-    return nullptr;
+	return nullptr;
 }
 
 bool X11AppContext::checkErrorWarn()
@@ -472,24 +472,24 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev)
 	X11EventData eventData {ev};
 
 	auto responseType = ev.response_type & ~0x80;
-    switch(responseType)
-    {
-	    case XCB_EXPOSE:
-	    {
+	switch(responseType)
+	{
+		case XCB_EXPOSE:
+		{
 			auto& expose = reinterpret_cast<const xcb_expose_event_t&>(ev);
 			auto wc = windowContext(expose.window);
-	        if(expose.count == 0 && wc) wc->listener().draw(&eventData);
+			if(expose.count == 0 && wc) wc->listener().draw(&eventData);
 			break;
-	    }
+		}
 
-	    case XCB_MAP_NOTIFY:
-	    {
+		case XCB_MAP_NOTIFY:
+		{
 			//TODO: something about state/shown?
 			auto& map = reinterpret_cast<const xcb_map_notify_event_t&>(ev);
 			auto wc = windowContext(map.event);
 			if(wc) wc->listener().draw(&eventData);
 			break;
-	    }
+		}
 
 		case XCB_REPARENT_NOTIFY:
 		{
@@ -499,13 +499,13 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev)
 			break;
 		}
 
-	    case XCB_CONFIGURE_NOTIFY:
+		case XCB_CONFIGURE_NOTIFY:
 		{
 			auto& configure = reinterpret_cast<const xcb_configure_notify_event_t&>(ev);
 
-	        //todo: something about window state
-	        auto nsize = nytl::Vec2ui(configure.width, configure.height);
-	        auto npos = nytl::Vec2i(configure.x, configure.y); //positionEvent
+			//todo: something about window state
+			auto nsize = nytl::Vec2ui(configure.width, configure.height);
+			auto npos = nytl::Vec2i(configure.x, configure.y); //positionEvent
 
 			auto wc = windowContext(configure.window);
 			if(wc)
@@ -515,15 +515,15 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev)
 			}
 
 			break;
-	    }
+		}
 
-	    case XCB_CLIENT_MESSAGE:
-	    {
+		case XCB_CLIENT_MESSAGE:
+		{
 			auto& client = reinterpret_cast<const xcb_client_message_event_t&>(ev);
 			auto protocol = static_cast<unsigned int>(client.data.data32[0]);
 
 			auto wc = windowContext(client.window);
-	        if(protocol == atoms().wmDeleteWindow && wc) wc->listener().close(&eventData);
+			if(protocol == atoms().wmDeleteWindow && wc) wc->listener().close(&eventData);
 
 			break;
 		}

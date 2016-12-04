@@ -13,6 +13,7 @@
 
 #include <vector>
 #include <memory>
+#include <functional>
 #include <any>
 
 namespace ny
@@ -33,7 +34,7 @@ using OwnedImageData = BasicImageData<std::unique_ptr<std::uint8_t[]>>;
 /// | text		| string				| "text/plain"					|
 /// | uriList	| vector<string> 		| "text/uri-list"				|
 /// | image		| OwnedImageData		| "image/x-ny-data"				|
-/// | <custom>  | vector<uint8_t>		| custom						|
+/// | <custom>  | vector<uint8_t>		| <custom>						|
 class DataFormat
 {
 public:
@@ -41,13 +42,13 @@ public:
 	///This will be used to compare multiple DataFormats and must not be empty, otherwise
 	///the DataFormat is invalid.
 	///This should be a mime-type, but does not have to be a standardized one if there is none.
-	std::string name;
+	std::string name {};
 
 	///Additional names that this format might be recognized under. Basically a help for
 	///other applications that might know it the same format under a different name.
 	///More significant names/descriptions should come first. Can also contains none mime-type
 	///names, but should be avoided.
-	std::vector<std::string> additionalNames;
+	std::vector<std::string> additionalNames {}; 
 
 public:
 	static const DataFormat none; //empty object, used for invalid formats
@@ -133,6 +134,7 @@ public:
 	// [[deprecated("Use the new AsyncRequest api")]]
 	virtual nytl::Connection data(const DataFormat&, const DataFunction&) { return {}; }
 
+	///
 	virtual DataRequest data(const DataFormat&) { throw 0; }
 };
 
@@ -153,20 +155,34 @@ std::string encodeUriList(const std::vector<std::string>& uris);
 ///\sa encodeUriList
 std::vector<std::string> decodeUriList(const std::string& list, bool removeComments = true);
 
-///Returns an DataObject that wraps the data of a raw buffer in the correct format
+///Returns a std::any that wraps the data of a raw buffer in the correct format
 ///for the given parameters. Does basically check for standard formats and wrap the
 ///raw buffer otherwise.
 std::any wrap(std::vector<uint8_t> rawBuffer, const DataFormat& format);
 
-///Returns a raw buffer for the given DataObject and the DataFormat for the data the any wraps.
+///Returns a raw buffer for the given std::any and the DataFormat for the data the any wraps.
 std::vector<uint8_t> unwrap(std::any any, const DataFormat& format);
 
 ///Checks whether the given format string matches the given DataFormat, i.e. if it one
 ///of the descriptions/names of dataFormat.
 bool match(const DataFormat& dataFormat, nytl::StringParam formatName);
+bool match(const DataFormat& a, const DataFormat& b);
 
 // TODO: for additional parameter (e.g. charset) parsing?
 // std::any wrap(nytl::Range<uint8_t> rawBuffer, nytl::StringParam formatName);
 // std::vector<uint8_t> unwrap(const std::any& any, nytl::StringParam formatName);
 
+}
+
+namespace std
+{
+	template<>
+	struct hash<ny::DataFormat>
+	{
+		auto operator()(const ny::DataFormat& format) const noexcept
+		{
+			std::hash<std::string> hasher;
+			return hasher(format.name);
+		}
+	};
 }

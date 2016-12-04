@@ -74,8 +74,8 @@ X11BufferSurface::X11BufferSurface(X11WindowContext& wc) : windowContext_(&wc)
 
 	//check if the server has shm suport
 	//it is also implemented without shm but the performance might be worse
-    auto cookie = xcb_shm_query_version(&xConnection());
-    auto reply = xcb_shm_query_version_reply(&xConnection(), cookie, nullptr);
+	auto cookie = xcb_shm_query_version(&xConnection());
+	auto reply = xcb_shm_query_version_reply(&xConnection(), cookie, nullptr);
 
 	shm_ = reply;
 	if(reply) free(reply);

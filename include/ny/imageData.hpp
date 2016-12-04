@@ -63,10 +63,10 @@ struct BasicImageData
 
 ///BasicImageData specialization for owned image data that makes it copyable.
 template<>
-struct BasicImageData<std::unique_ptr<std::uint8_t[]>>
+struct BasicImageData<std::unique_ptr<uint8_t[]>>
 {
 public:
-	std::unique_ptr<std::uint8_t[]> data {};
+	std::unique_ptr<uint8_t[]> data {};
 	nytl::Vec2ui size {};
 	ImageDataFormat format {};
 	unsigned int stride {};

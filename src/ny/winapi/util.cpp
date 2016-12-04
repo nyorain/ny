@@ -7,6 +7,8 @@
 #include <ny/mouseContext.hpp>
 #include <ny/cursor.hpp>
 #include <ny/key.hpp>
+#include <ny/mouseButton.hpp>
+#include <nytl/utf.hpp>
 
 namespace ny
 {
@@ -206,13 +208,13 @@ std::string errorMessage(unsigned int code, const char* msg)
 	std::string ret;
 	if(msg) ret += msg;
 
-	char buffer[512] = {};
+	wchar_t buffer[512] = {};
 	auto size = ::FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, nullptr, code, 0, buffer,
 		sizeof(buffer), nullptr);
 
 	if(msg) ret += ": ";
 
-	if(size > 0) ret += buffer;
+	if(size > 0) ret += nytl::toUtf8(buffer);
 	else ret += "<unkown winapi error>";
 
 	return ret;
@@ -223,7 +225,7 @@ std::string errorMessage(const char* msg)
 	return errorMessage(::GetLastError(), msg);
 }
 
-const char* cursorToWinapi(CursorType type)
+const wchar_t* cursorToWinapi(CursorType type)
 {
 	switch(type)
 	{

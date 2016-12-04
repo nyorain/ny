@@ -4,6 +4,8 @@
 
 #pragma once
 
+#define UNICODE
+
 #include <windows.h>
 #include <winuser.h>
 #include <windowsx.h>
@@ -13,3 +15,4 @@
 #undef near
 #undef far
 #undef ERROR
+#undef UNICODE

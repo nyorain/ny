@@ -10,10 +10,10 @@
 #include <ny/log.hpp>
 #include <ny/cursor.hpp>
 #include <ny/imageData.hpp>
-#include <ny/events.hpp>
 #include <ny/surface.hpp>
 
 #include <nytl/scope.hpp>
+#include <nytl/utf.hpp>
 
 #include <Dwmapi.h>
 #include <tchar.h>
@@ -21,20 +21,6 @@
 
 namespace ny
 {
-
-//static
-const char* WinapiWindowContext::nativeWidgetClassName(NativeWidgetType type)
-{
-	// switch(type)
-	// {
-	// 	case NativeWidgetType::button: return "Button";
-	// 	case NativeWidgetType::textfield: return "Edit";
-	// 	case NativeWidgetType::checkbox: return "Combobox";
-	// 	default: return nullptr;
-	// }
-
-	return nullptr;
-}
 
 //windowContext
 WinapiWindowContext::WinapiWindowContext(WinapiAppContext& appContext,
@@ -83,33 +69,22 @@ WinapiWindowContext::~WinapiWindowContext()
 
 void WinapiWindowContext::initWindowClass(const WinapiWindowSettings& settings)
 {
-	// if(settings.nativeWidgetType != NativeWidgetType::none)
-	// {
-	// 	if(settings.nativeWidgetType == NativeWidgetType::dialog) return;
-	//
-	// 	auto name = nativeWidgetClassName(settings.nativeWidgetType);
-	// 	if(!name) throw std::logic_error("ny::WinapiWC: invalid native widget type");
-	// 	wndClassName_ = name;
-	//
-	// 	return;
-	// }
-
 	auto wndClass = windowClass(settings);
 	if(!::RegisterClassEx(&wndClass))
 		throw winapi::EC::exception("ny::WinapiWC: RegisterClassEx failed");
 }
 
-WNDCLASSEX WinapiWindowContext::windowClass(const WinapiWindowSettings& settings)
+WNDCLASSEX WinapiWindowContext::windowClass(const WinapiWindowSettings&)
 {
 	//TODO: does every window needs it own class (sa setCursor function)?
 	static unsigned int highestID = 0;
 	highestID++;
 
-	wndClassName_ = "ny::WinapiWindowClass" + std::to_string(highestID);
+	wndClassName_ = nytl::toWide("ny::WinapiWindowClass" + std::to_string(highestID));
 
 	WNDCLASSEX ret;
 	ret.hInstance = appContext().hinstance();
-	ret.lpszClassName = _T(wndClassName_.c_str());
+	ret.lpszClassName = wndClassName_.c_str();
 	ret.lpfnWndProc = &WinapiAppContext::wndProcCallback;
 	ret.style = CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW;
 	ret.cbSize = sizeof(WNDCLASSEX);
@@ -124,7 +99,7 @@ WNDCLASSEX WinapiWindowContext::windowClass(const WinapiWindowSettings& settings
 	return ret;
 }
 
-void WinapiWindowContext::setStyle(const WinapiWindowSettings& settings)
+void WinapiWindowContext::setStyle(const WinapiWindowSettings&)
 {
 	style_ = WS_OVERLAPPEDWINDOW | WS_OVERLAPPED | WS_VISIBLE | WS_CLIPSIBLINGS;
 }
@@ -133,48 +108,45 @@ void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 {
 	auto parent = static_cast<HWND>(settings.parent.pointer());
 	auto hinstance = appContext().hinstance();
+	auto titleW = nytl::toWide(settings.title);
 
 	auto size = settings.size;
 	auto position = settings.position;
 
-	if(position.x == -1) position.x = CW_USEDEFAULT;
-	if(position.y == -1) position.y = CW_USEDEFAULT;
+	if(nytl::allEqual(position, defaultPosition)) position.fill(CW_USEDEFAULT);
+	if(nytl::allEqual(size, defaultSize)) size.fill(CW_USEDEFAULT);
 
-	if(size.x == -1) size.x = CW_USEDEFAULT;
-	if(size.y == -1) size.y = CW_USEDEFAULT;
+	//NOTE on transparency and layered windows
+	//The window has to be layered to enable transparent drawing on it
+	//On newer windows versions it is not enough to call DwmEnableBlueBehinWindow, only
+	//layered windows are considered really transparent and contents beneath it
+	//are rerendered.
 
-	// if(settings.nativeWidgetType == NativeWidgetType::dialog)
-	// {
-	// 	initDialog(settings);
-	// }
-	// else
-	// {
-		//NOTE
-		//The window has to be layered to enable transparent drawing on it
-		//On newer windows versions it is not enough to call DwmEnableBlueBehinWindow, only
-		//layered windows are considered really transparent and contents beneath it
-		//are rerendered.
-		//
-		//Note that we even set this flag here for e.g. opengl windows which have CS_OWNDC set
-		//which is not allowed per msdn. But windows applications do it themselves, it
-		//is the only way to get the possibility for transparent windows and it works.
-		//
-		//Settings this flag can also really hit performance (e.g. resizing can lag) so
-		//this should probably only be set if really needed
-		//TODO: make this optional using WinapiWindowSettings
-		auto exstyle = WS_EX_APPWINDOW | WS_EX_LAYERED | WS_EX_OVERLAPPEDWINDOW;
-		handle_ = ::CreateWindowEx(exstyle, _T(wndClassName_.c_str()), _T(settings.title.c_str()),
-			style_, position.x, position.y, size.x, size.y, parent, nullptr, hinstance, this);
+	//Note that we even set this flag here for e.g. opengl windows which have CS_OWNDC set
+	//which is not allowed per msdn. But windows applications do it themselves, it
+	//is the only way to get the possibility for transparent windows and it works.
 
-		if(!handle_) throw winapi::EC::exception("ny::WinapiWC: CreateWindowEx failed");
-	// }
+	//Setting this flag can also really hit performance (e.g. resizing can lag) so
+	//this should probably only be set if really needed
+	//TODO: make this optional using WinapiWindowSettings
+	auto exstyle = WS_EX_APPWINDOW | WS_EX_LAYERED | WS_EX_OVERLAPPEDWINDOW;
+	handle_ = ::CreateWindowEx(
+		exstyle,
+		wndClassName_.c_str(),
+		titleW.c_str(),
+		style_,
+		position.x, position.y,
+		size.x, size.y,
+		parent, nullptr, hinstance, this);
+
+	if(!handle_) throw winapi::EC::exception("ny::WinapiWC: CreateWindowEx failed");
 
 	{
 		//TODO: check for windows version > xp here.
 		//Otherwise ny will no compile/run on xp
 		//This will simply cause windows to respect the alpha bits in the content of the window
 		//and not actually blur anything. Windows is stupid af.
-		DWM_BLURBEHIND bb = { 0 };
+		DWM_BLURBEHIND bb {};
 		bb.dwFlags = DWM_BB_ENABLE | DWM_BB_BLURREGION;
 		bb.hRgnBlur = CreateRectRgn(0, 0, -1, -1);  // makes the window transparent
 		bb.fEnable = TRUE;
@@ -190,6 +162,11 @@ void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 	//Set the userdata
 	std::uintptr_t ptr = reinterpret_cast<std::uintptr_t>(this);
 	::SetWindowLongPtr(handle_, GWLP_USERDATA, ptr);
+
+	//always register a drop target
+	dropTarget_ = new winapi::com::DropTargetImpl(*this);
+	dropTarget_->AddRef();
+	::RegisterDragDrop(handle(), dropTarget_);
 }
 
 void WinapiWindowContext::initDialog(const WinapiWindowSettings& settings)
@@ -235,29 +212,6 @@ void WinapiWindowContext::hide()
 	::ShowWindowAsync(handle_, SW_HIDE);
 }
 
-void WinapiWindowContext::droppable(const DataTypes& types)
-{
-	if(dropTarget_)
-	{
-		if(types.types.empty())
-		{
-			dropTarget_->Release();
-			::RevokeDragDrop(handle());
-			dropTarget_ = nullptr;
-		}
-		else
-		{
-			dropTarget_->dataTypes = types;
-		}
-	}
-	else if(!types.types.empty())
-	{
-		dropTarget_ = new winapi::com::DropTargetImpl(*this, types);
-		dropTarget_->AddRef();
-		::RegisterDragDrop(handle(), dropTarget_);
-	}
-}
-
 void WinapiWindowContext::addWindowHints(WindowHints hints)
 {
 	if(hints & WindowHint::customDecorated)
@@ -283,10 +237,6 @@ void WinapiWindowContext::removeWindowHints(WindowHints hints)
 		exStyle |= (WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
 		::SetWindowLong(handle(), GWL_EXSTYLE, exStyle);
 	}
-}
-
-void WinapiWindowContext::sizeEvent(nytl::Vec2ui size)
-{
 }
 
 void WinapiWindowContext::size(nytl::Vec2ui size)
@@ -462,20 +412,23 @@ void WinapiWindowContext::maxSize(nytl::Vec2ui size)
 	maxSize_ = size;
 }
 
-void WinapiWindowContext::beginMove(const MouseButtonEvent*)
+//TODO: cursor!
+void WinapiWindowContext::beginMove(const EventData*)
 {
 	// auto currentCursor = ::GetClassLongPtr(handle_, -12);
 	// this->cursor(CursorType::crosshair);
 	// ::PostMessage(handle_, WM_SYSCOMMAND, SC_MOVE, 0);
+
 	constexpr auto SC_DRAGMOVE = 0xf012; //or: 0xf009. Difference?
 	::PostMessage(handle_, WM_SYSCOMMAND, SC_DRAGMOVE, 0);
+
 	// ::SetClassLongPtr(handle_, -12, currentCursor);
 }
 
-void WinapiWindowContext::beginResize(const MouseButtonEvent*, WindowEdges edges)
+void WinapiWindowContext::beginResize(const EventData*, WindowEdges edges)
 {
 	auto cursor = sizeCursorFromEdge(static_cast<WindowEdge>(edges.value()));
-	auto currentCursor = ::GetClassLongPtr(handle_, -12);
+	// auto currentCursor = ::GetClassLongPtr(handle_, -12);
 	this->cursor(cursor);
 
 	auto winapiEdges = edgesToWinapi(edges);
@@ -519,9 +472,9 @@ void WinapiWindowContext::icon(const ImageData& imgdata)
 	PostMessage(handle(), WM_SETICON, ICON_SMALL, (LPARAM) icon_);
 }
 
-void WinapiWindowContext::title(const std::string& title)
+void WinapiWindowContext::title(nytl::StringParam title)
 {
-	SetWindowText(handle(), _T(title.c_str()));
+	SetWindowText(handle(), nytl::toWide(title.data()).c_str());
 }
 
 NativeHandle WinapiWindowContext::nativeHandle() const
@@ -560,14 +513,3 @@ Rect2i WinapiWindowContext::clientExtents() const
 }
 
 }
-
-// COLORREF custcolors[16];
-//
-// ::CHOOSECOLOR cc {};
-// cc.hwndOwner = static_cast<ny::WinapiWindowContext&>(*wc).handle();
-// cc.lStructSize = sizeof(cc);
-// cc.lpCustColors = custcolors;
-// cc.Flags = CC_ANYCOLOR | CC_FULLOPEN;
-// // cc.Flags = CC_ANYCOLOR | CC_FULLOPEN | CC_ENABLEHOOK;
-// // cc.lpfnHook = reinterpret_cast<LPCCHOOKPROC>(&::DefWindowProc);
-// ::ChooseColor(&cc);

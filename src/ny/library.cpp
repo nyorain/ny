@@ -25,7 +25,7 @@ namespace detail
 		{
 			char buffer[512] = {};
 			auto code = ::GetLastError();
-			auto size = ::FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, nullptr, code,
+			::FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, nullptr, code,
 				0, buffer, sizeof(buffer), nullptr);
 
 			log("ny::Library: failed to open ", name, "with error ", code, ": ", buffer);

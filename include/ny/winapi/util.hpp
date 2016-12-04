@@ -4,8 +4,10 @@
 
 #pragma once
 
-#include <ny/include.hpp>
+#include <ny/winapi/include.hpp>
+#include <ny/winapi/windows.hpp>
 #include <ny/windowSettings.hpp>
+#include <ny/windowListener.hpp>
 #include <nytl/stringParam.hpp>
 
 #include <string>
@@ -25,9 +27,22 @@ std::string errorMessage(const char* msg = nullptr);
 
 //Note: there isnt a string literal returned here. Just a (char?) pointer to some windows
 //resource. Better return void pointer or sth...
-const char* cursorToWinapi(CursorType type);
-
+const wchar_t* cursorToWinapi(CursorType type);
 unsigned int edgesToWinapi(WindowEdges edges);
+
+///Winapi EventData. Carries the winapi message.
+class WinapiEventData : public EventData
+{
+public:
+	WinapiEventData() = default;
+	~WinapiEventData() = default;
+
+	WinapiWindowContext* windowContext;
+	HWND window;
+	UINT message;
+	WPARAM wparam;
+	LPARAM lparam;
+};
 
 ///Winapi std::error_category
 class WinapiErrorCategory : public std::error_category

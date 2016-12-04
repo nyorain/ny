@@ -8,7 +8,9 @@
 #include <ny/winapi/windowContext.hpp>
 #include <ny/mouseContext.hpp>
 #include <ny/keyboardContext.hpp>
+
 #include <map>
+#include <string>
 
 namespace ny
 {
@@ -24,9 +26,10 @@ public:
 	bool pressed(MouseButton button) const override;
 	WinapiWindowContext* over() const override { return over_; }
 
-	//winapi specific
-	void over(WinapiWindowContext* wc);
-	nytl::Vec2i move(nytl::Vec2i pos); //returns the movement delta
+	// - winapi specific -
+	///Handles the given event if it is mouse related. Returns false otherwise.
+	///If it could be handled sets the result value.
+	bool processEvent(const WinapiEventData&, LRESULT& result);
 
 protected:
 	WinapiAppContext& context_;
@@ -45,9 +48,10 @@ public:
 	std::string utf8(Keycode) const override;
 	WinapiWindowContext* focus() const override { return focus_; }
 
-	//winapi specific
-	void focus(WinapiWindowContext* wc);
-	void keyEvent(WinapiWindowContext* wc, unsigned int vkcode, unsigned int lparam);
+	// - winapi specific -
+	///Handles the given event if it is keyboard related. Returns false otherwise.
+	///If it could be handled sets the result value.
+	bool processEvent(const WinapiEventData&, LRESULT& result);
 
 protected:
 	WinapiAppContext& context_;

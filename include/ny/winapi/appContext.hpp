@@ -9,19 +9,19 @@
 #include <ny/winapi/input.hpp>
 #include <ny/appContext.hpp>
 
-#include <gdiplus.h>
-
 #include <map>
 #include <thread>
 
 namespace ny
 {
 
+///Winapi AppContext implementation.
+///Implements the main event loop and callbacks and deals with com/ole implementations.
 class WinapiAppContext : public AppContext
 {
 public:
-	static LONG_PTR CALLBACK wndProcCallback(HWND a, UINT b, WPARAM c, LPARAM d);
-	static INT_PTR CALLBACK dlgProcCallback(HWND a, UINT b, WPARAM c, LPARAM d);
+	static LONG_PTR CALLBACK wndProcCallback(HWND, UINT, WPARAM, LPARAM);
+	static INT_PTR CALLBACK dlgProcCallback(HWND, UINT, WPARAM, LPARAM);
 
 public:
 	WinapiAppContext();
@@ -34,7 +34,6 @@ public:
 
 	bool dispatchEvents() override;
 	bool dispatchLoop(LoopControl& control) override;
-	bool threadedDispatchLoop(EventDispatcher& disp, LoopControl& ctrl) override;
 
 	bool clipboard(std::unique_ptr<DataSource>&& source) override;
 	DataOffer* clipboard() override;
@@ -48,7 +47,6 @@ public:
 	LONG_PTR eventProc(HWND, UINT, WPARAM, LPARAM);
 	//INT_PTR dlgEventProc(HWND, UINT, WPARAM, LPARAM); //needed?
 
-	void dispatch(Event&& event);
 	WinapiWindowContext* windowContext(HWND win);
 
 	HINSTANCE hinstance() const { return instance_; };
@@ -58,18 +56,13 @@ protected:
 	HINSTANCE instance_ = nullptr;
 	STARTUPINFO startupInfo_;
 
-	Gdiplus::GdiplusStartupInput gdiplusStartupInput_;
-	ULONG_PTR gdiplusToken_;
-
 	std::map<HWND, WinapiWindowContext*> contexts_;
-	std::vector<std::unique_ptr<Event>> pendingEvents_;
 
 	std::unique_ptr<DataOffer> clipboardOffer_;
 	unsigned int clipboardSequenceNumber_ {};
-	HWND dummyWindow_ {};
 
-	LoopControl* dispatcherLoopControl_ = nullptr;
-	EventDispatcher* eventDispatcher_ = nullptr;
+	HWND dummyWindow_ {};
+	MSG lastMsg_ {};
 	bool receivedQuit_ = false;
 
 	WinapiMouseContext mouseContext_;

@@ -10,12 +10,9 @@
 
 #include <ny/mouseContext.hpp>
 #include <ny/keyboardContext.hpp>
-#include <ny/events.hpp>
 
 #include <ny/log.hpp>
-#include <ny/event.hpp>
 #include <ny/loopControl.hpp>
-#include <ny/eventDispatcher.hpp>
 
 #ifdef NY_WithGl
  #include <ny/winapi/wgl.hpp>
@@ -34,6 +31,8 @@
 
 #include <stdexcept>
 #include <cstring>
+#include <mutex>
+#include <queue>
 
 namespace ny
 {
@@ -42,23 +41,53 @@ namespace
 {
 
 //LoopControl
-class WinapiLoopControlImpl : public ny::LoopControlImpl
+class WinapiLoopImpl : public ny::LoopInterfaceGuard
 {
 public:
 	DWORD threadHandle;
-	std::atomic<bool>* run;
+
+	std::atomic<bool> run {true};
+	std::queue<std::function<void()>> functions;
+	std::mutex mutex;
 
 public:
-	WinapiLoopControlImpl(std::atomic<bool>& prun) : run(&prun)
+	WinapiLoopImpl(LoopControl& lc) : LoopInterfaceGuard(lc)
 	{
 		threadHandle = ::GetCurrentThreadId();
 	}
 
-	virtual void stop() override
+	bool stop() override
 	{
-		run->store(0);
-		::PostThreadMessage(threadHandle, WM_USER, 0, 0);
+		run.store(0);
+		return true;
 	};
+
+	bool call(std::function<void()> function) override
+	{
+		if(!function) return false;
+
+		{
+			std::lock_guard<std::mutex> lock(mutex);
+			functions.push(std::move(function));
+		}
+
+		wakeup();
+		return true;
+	}
+
+	void wakeup()
+	{
+		::PostThreadMessage(threadHandle, WM_USER, 0, 0);
+	}
+
+	std::function<void()> popFunction()
+	{
+		std::lock_guard<std::mutex> lock(mutex);
+		if(functions.empty()) return {};
+		auto ret = std::move(functions.front());
+		functions.pop();
+		return ret;
+	}
 };
 
 }
@@ -92,26 +121,22 @@ WinapiAppContext::WinapiAppContext() : mouseContext_(*this), keyboardContext_(*t
 	impl_ = std::make_unique<Impl>();
 	instance_ = ::GetModuleHandle(nullptr);
 
-	//start gdiplus since some GdiDrawContext functions need it
-	GetStartupInfo(&startupInfo_);
-	GdiplusStartup(&gdiplusToken_, &gdiplusStartupInput_, nullptr);
-
 	//needed for dnd and clipboard
 	auto res = ::OleInitialize(nullptr);
-	if(res != S_OK) warning("WinapiWC: OleInitialize failed with code ", res);
+	if(res != S_OK) warning("ny::WinapiAppContext: OleInitialize failed with code ", res);
 
 	//init dummy window (needed as clipboard viewer)
-	//TODO: use this window also for dummy wgl context init (see wgl.cpp)
-	dummyWindow_ = ::CreateWindow("STATIC", "", WS_DISABLED, 0, 0, 10, 10, nullptr, nullptr,
+	dummyWindow_ = ::CreateWindow(L"STATIC", L"", WS_DISABLED, 0, 0, 10, 10, nullptr, nullptr,
 		hinstance(), nullptr);
 
+	//TODO:
 	//we must load AddClipboardFormatListener dynamically since it does not link correctly
 	//with mingw and is not supported for windows versions before vista
 	//It is not really needed to call this function since we check for new clipboard content
 	//anyways everytime clipboard() is called.
 	//But this can free the old clipboard DataOffer object as soon as the clipboard
 	//changes and create the new one.
-	auto lib = ::LoadLibrary("User32.dll");
+	auto lib = ::LoadLibrary(L"User32.dll");
 	if(lib)
 	{
 		auto func = ::GetProcAddress(lib, "AddClipboardFormatListener");
@@ -124,7 +149,6 @@ WinapiAppContext::WinapiAppContext() : mouseContext_(*this), keyboardContext_(*t
 WinapiAppContext::~WinapiAppContext()
 {
 	if(dummyWindow_) ::DestroyWindow(dummyWindow_);
-	if(gdiplusToken_) Gdiplus::GdiplusShutdown(gdiplusToken_);
 	::OleUninitialize();
 }
 
@@ -172,112 +196,38 @@ KeyboardContext* WinapiAppContext::keyboardContext()
 	return &keyboardContext_;
 }
 
+//NOTE: we never actually call TranslateMessage since we care about translating ourselves
+//and calling this function will interfer with our ToUnicode calls.
+
 bool WinapiAppContext::dispatchEvents()
 {
-	for(auto& e : pendingEvents_) if(e->handler) e->handler->handleEvent(*e);
-	pendingEvents_.clear();
-
 	receivedQuit_ = false;
 	MSG msg;
 
-	while(::PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
-	{
-		// ::TranslateMessage(&msg);
-		::DispatchMessage(&msg);
-	}
-
+	while(::PeekMessage(&msg, 0, 0, 0, PM_REMOVE)) ::DispatchMessage(&msg);
 	return !receivedQuit_;
 }
 
 bool WinapiAppContext::dispatchLoop(LoopControl& control)
 {
-	//TODO: we have to be really careful of exceptions inside this high functions
-	//if everything during event handling throws, the end of this function will
-	//not be reached
 	receivedQuit_ = false;
-	std::atomic<bool> run {1};
-	control.impl_ = std::make_unique<WinapiLoopControlImpl>(run);
-	dispatcherLoopControl_ = &control;
-
-	auto scopeGuard = nytl::makeScopeGuard([&]{
-		dispatcherLoopControl_ = nullptr;
-		control.impl_.reset();
-	});
+	WinapiLoopImpl loopImpl(control);
 
 	MSG msg;
-	while(!receivedQuit_ && run.load())
+	while(!receivedQuit_ && loopImpl.run.load())
 	{
-		for(auto& e : pendingEvents_) if(e->handler) e->handler->handleEvent(*e);
-		pendingEvents_.clear();
+		while(auto func = loopImpl.popFunction()) func();
 
 		auto ret = ::GetMessage(&msg, nullptr, 0, 0);
 		if(ret == -1)
 		{
-			warning(errorMessage("WinapiAC::dispatchLoop"));
+			warning(errorMessage("ny::WinapiAppContext::dispatchLoop: GetMessage error"));
 			return false;
 		}
 		else
 		{
-			// ::TranslateMessage(&msg);
 			::DispatchMessage(&msg);
 		}
-	}
-
-	return !receivedQuit_;
-}
-
-bool WinapiAppContext::threadedDispatchLoop(EventDispatcher& dispatcher,
-	LoopControl& control)
-{
-	receivedQuit_ = false;
-	std::atomic<bool> run {1};
-	control.impl_ = std::make_unique<WinapiLoopControlImpl>(run);
-	receivedQuit_ = false;
-
-	auto threadid = std::this_thread::get_id();
-	auto threadHandle = ::GetCurrentThreadId();
-	eventDispatcher_ = &dispatcher;
-
-	//register a callback that is called everytime the dispatcher gets an event
-	//if the event comes from this thread, this thread is not waiting, otherwise
-	//wait this thread with a message.
-	auto conn = dispatcher.onDispatch.add([&] {
-		if(std::this_thread::get_id() != threadid)
-			PostThreadMessage(threadHandle, WM_USER, 0, 0);
-	});
-
-	//exception safety
-	auto scopeGuard = nytl::makeScopeGuard([&]{
-		eventDispatcher_ = nullptr;
-		dispatcherLoopControl_ = nullptr;
-		control.impl_.reset();
-	});
-
-	MSG msg;
-	while(!receivedQuit_ && run.load())
-	{
-		for(auto& e : pendingEvents_) if(e->handler) e->handler->handleEvent(*e);
-		pendingEvents_.clear();
-
-		auto ret = ::GetMessage(&msg, nullptr, 0, 0);
-		if(ret == -1)
-		{
-			warning(errorMessage("WinapiAC::dispatchLoop"));
-			return false;
-		}
-		else
-		{
-			// if(::TranslateMessage(&msg))
-			// {
-			// 	MSG charMsg;
-			// 	if(::PeekMessage(&charMsg, 0, 0, 0, PM_REMOVE))
-			// 		::DispatchMessage(&charMsg);
-			// }
-
-			::DispatchMessage(&msg);
-		}
-
-		dispatcher.processEvents();
 	}
 
 	return !receivedQuit_;
@@ -287,8 +237,19 @@ bool WinapiAppContext::threadedDispatchLoop(EventDispatcher& dispatcher,
 bool WinapiAppContext::clipboard(std::unique_ptr<DataSource>&& source)
 {
 	//OleSetClipboard
-	auto dataObj = new winapi::com::DataObjectImpl(std::move(source));
-	return(::OleSetClipboard(dataObj) == S_OK);
+	winapi::com::DataObjectImpl* dataObj {};
+	try { dataObj = new winapi::com::DataObjectImpl(std::move(source)); }
+	catch(const std::exception& err)
+	{
+		warning("ny::WinapiAppContext::clipboard(set): DataObject failed: ", err.what());
+		return false;
+	}
+
+	auto ret = ::OleSetClipboard(dataObj);
+	if(ret == S_OK) return true;
+
+	warning("ny::WinapiAppContext::clipboard(set): OleSetClipboard failed with code ", ret);
+	return false;
 }
 
 DataOffer* WinapiAppContext::clipboard()
@@ -309,6 +270,8 @@ DataOffer* WinapiAppContext::clipboard()
 
 bool WinapiAppContext::startDragDrop(std::unique_ptr<DataSource>&& source)
 {
+	//TODO: make non-blocking
+
 	// modalThreads_.emplace_back([source = std::move(source)]() mutable {
 	// 	::OleInitialize(nullptr);
 	// 	// auto res = ::CoInitializeEx(nullptr, COINIT_MULTITHREADED);
@@ -336,349 +299,62 @@ WinapiWindowContext* WinapiAppContext::windowContext(HWND w)
 	return ptr ? reinterpret_cast<WinapiWindowContext*>(ptr) : nullptr;
 }
 
-void WinapiAppContext::dispatch(Event&& event)
-{
-	pendingEvents_.push_back(nytl::cloneMove(event));
-}
-
 //wndProc
 LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LPARAM lparam)
 {
-	//todo: implement all events correctly, look em up
-	auto context = windowContext(window);
-	auto handler = context ? context->eventHandler() : nullptr;
+	auto wc = windowContext(window);
 
-	//utilty function used to dispatch event
-	auto dispatch = [&](Event& ev) {
-		if(eventDispatcher_) eventDispatcher_->dispatch(std::move(ev));
-		else if(ev.handler) ev.handler->handleEvent(ev);
-	};
+	WinapiEventData eventData;
+	eventData.window = window;
+	eventData.message = message;
+	eventData.wparam = wparam;
+	eventData.lparam = lparam;
 
-	//to be returned
 	LRESULT result = 0;
 
 	static std::string last;
 
 	switch(message)
 	{
-		case WM_CREATE:
-		{
-			result = ::DefWindowProc(window, message, wparam, lparam);
-			break;
-		}
-
-		case WM_MOUSEMOVE:
-		{
-			Vec2i pos(GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
-			POINT point {pos.x, pos.y};
-			::ClientToScreen(window, &point);
-			auto delta = mouseContext_.move(pos);
-
-			if(!mouseContext_.over() || mouseContext_.over()->handle() != window)
-			{
-				if(handler)
-				{
-					MouseCrossEvent ev(handler);
-					ev.entered = true;
-					ev.position = pos;
-					dispatch(ev);
-
-					//Request wm_mouseleave events
-					TRACKMOUSEEVENT trackMouse {};
-					trackMouse.cbSize = sizeof(trackMouse);
-					trackMouse.dwFlags = TME_LEAVE;
-					trackMouse.hwndTrack = window;
-					::TrackMouseEvent(&trackMouse);
-				}
-
-				if(context) mouseContext_.over(context);
-				else mouseContext_.over(nullptr);
-			}
-
-			if(handler)
-			{
-				MouseMoveEvent ev(handler);
-				ev.position = pos;
-				ev.screenPosition = nytl::Vec2i(point.x, point.y);
-				ev.delta = delta;
-				dispatch(ev);
-			}
-
-			break;
-		}
-
-		case WM_MOUSELEAVE:
-		{
-			mouseContext_.over(nullptr);
-
-			if(handler)
-			{
-				MouseCrossEvent ev(handler);
-				ev.entered = false;
-				dispatch(ev);
-			}
-
-			break;
-		}
-
-		case WM_LBUTTONDOWN:
-		{
-			mouseContext_.onButton(mouseContext_, MouseButton::left, true);
-
-			if(handler)
-			{
-				MouseButtonEvent ev(handler);
-				ev.position = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
-				ev.pressed = true;
-				ev.button = MouseButton::left;
-				dispatch(ev);
-			}
-
-			break;
-		}
-
-		case WM_LBUTTONUP:
-		{
-			mouseContext_.onButton(mouseContext_, MouseButton::left, false);
-
-			if(handler)
-			{
-				MouseButtonEvent ev(handler);
-				ev.position = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
-				ev.pressed = false;
-				ev.button = MouseButton::left;
-				dispatch(ev);
-			}
-
-			break;
-		}
-
-		case WM_RBUTTONDOWN:
-		{
-			mouseContext_.onButton(mouseContext_, MouseButton::right, true);
-
-			if(handler)
-			{
-				MouseButtonEvent ev(handler);
-				ev.position = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
-				ev.pressed = true;
-				ev.button = MouseButton::right;
-				dispatch(ev);
-			}
-
-			break;
-		}
-
-		case WM_RBUTTONUP:
-		{
-			mouseContext_.onButton(mouseContext_, MouseButton::right, false);
-
-			if(handler)
-			{
-				MouseButtonEvent ev(handler);
-				ev.position = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
-				ev.pressed = false;
-				ev.button = MouseButton::right;
-				dispatch(ev);
-			}
-
-			break;
-		}
-
-		case WM_MBUTTONDOWN:
-		{
-			mouseContext_.onButton(mouseContext_, MouseButton::middle, true);
-
-			if(handler)
-			{
-				MouseButtonEvent ev(handler);
-				ev.position = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
-				ev.pressed = true;
-				ev.button = MouseButton::middle;
-				dispatch(ev);
-			}
-
-			break;
-		}
-
-		case WM_MBUTTONUP:
-		{
-			mouseContext_.onButton(mouseContext_, MouseButton::middle, false);
-
-			if(handler)
-			{
-				MouseButtonEvent ev(handler);
-				ev.position = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
-				ev.pressed = false;
-				ev.button = MouseButton::middle;
-				dispatch(ev);
-			}
-
-			break;
-		}
-
-		case WM_XBUTTONDOWN:
-		{
-			auto button = (HIWORD(wparam) == 1) ? MouseButton::custom1 : MouseButton::custom2;
-			mouseContext_.onButton(mouseContext_, button, true);
-
-			if(handler)
-			{
-				MouseButtonEvent ev(handler);
-				ev.position = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
-				ev.pressed = true;
-				ev.button = button;
-				dispatch(ev);
-			}
-
-			break;
-		}
-
-		case WM_XBUTTONUP:
-		{
-			auto button = (HIWORD(wparam) == 1) ? MouseButton::custom1 : MouseButton::custom2;
-			mouseContext_.onButton(mouseContext_, button, false);
-
-			if(handler)
-			{
-				MouseButtonEvent ev(handler);
-				ev.position = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
-				ev.pressed = false;
-				ev.button = button;
-				dispatch(ev);
-			}
-
-			break;
-		}
-
-		case WM_MOUSEWHEEL:
-		{
-			float value = GET_WHEEL_DELTA_WPARAM(wparam);
-			mouseContext_.onWheel(mouseContext_, value);
-
-			if(handler)
-			{
-				MouseWheelEvent ev(handler);
-				ev.value = value;
-				dispatch(ev);
-			}
-
-			break;
-		}
-
-		case WM_SETFOCUS:
-		{
-			keyboardContext_.focus(context);
-
-			if(handler)
-			{
-				FocusEvent ev(handler);
-				ev.focus = true;
-				dispatch(ev);
-			}
-
-			break;
-		}
-
-		case WM_KILLFOCUS:
-		{
-			if(keyboardContext_.focus() == context) keyboardContext_.focus(nullptr);
-
-			if(handler)
-			{
-				FocusEvent ev(handler);
-				ev.focus = false;
-				dispatch(ev);
-			}
-
-			break;
-		}
-
-		case WM_KEYDOWN:
-		{
-			keyboardContext_.keyEvent(context, wparam, lparam);
-			break;
-		}
-
-		case WM_KEYUP:
-		{
-			keyboardContext_.keyEvent(context, wparam, lparam);
-			break;
-		}
-
 		case WM_PAINT:
 		{
-			if(handler)
-			{
-				DrawEvent ev(handler);
-				dispatch(ev);
-			}
-
+			if(wc) wc->listener().draw(&eventData);
 			result = ::DefWindowProc(window, message, wparam, lparam); //to validate the window
 			break;
 		}
 
 		case WM_DESTROY:
 		{
-			if(handler)
-			{
-				CloseEvent ev(handler);
-				dispatch(ev);
-			}
-
+			if(wc) wc->listener().close(&eventData);
 			break;
 		}
 
 		case WM_SIZE:
 		{
 			nytl::Vec2ui size(LOWORD(lparam), HIWORD(lparam));
-			if(context) context->sizeEvent(size);
-
-			if(handler)
-			{
-				SizeEvent ev(handler);
-				ev.size = size;
-				dispatch(ev);
-			}
-
+			if(wc) wc->listener().resize(size, &eventData);
 			break;
 		}
 
 		case WM_MOVE:
 		{
-			if(handler)
-			{
-				PositionEvent ev(handler);
-				ev.position.x = LOWORD(lparam);
-				ev.position.y = HIWORD(lparam);
-				dispatch(ev);
-			}
-
+			nytl::Vec2i position(LOWORD(lparam), HIWORD(lparam));
+			if(wc) wc->listener().position(position, &eventData);
 			break;
 		}
 
 		case WM_SYSCOMMAND:
 		{
-			if(handler)
+			if(wc)
 			{
-				ShowEvent ev(handler);
-				ev.show = true;
+				ToplevelState state;
 
-				if(wparam == SC_MAXIMIZE)
-				{
-					ev.state = ToplevelState::maximized;
-					dispatch(ev);
-				}
-				else if(wparam == SC_MINIMIZE)
-				{
-					ev.state = ToplevelState::minimized;
-					dispatch(ev);
-				}
-				else if(wparam == SC_RESTORE)
-				{
-					ev.state = ToplevelState::normal;
-					dispatch(ev);
-				}
+				if(wparam == SC_MAXIMIZE) state = ToplevelState::maximized;
+				else if(wparam == SC_MINIMIZE) state = ToplevelState::minimized;
+				else if(wparam == SC_RESTORE) state = ToplevelState::normal;
+
+				//XXX: shown parameter? check WS_VISIBLE?
+				wc->listener().state(true, state, &eventData);
 			}
 
 			result = ::DefWindowProc(window, message, wparam, lparam);
@@ -687,13 +363,13 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 
 		case WM_GETMINMAXINFO:
 		{
-			if(context)
+			if(wc)
 			{
 				::MINMAXINFO* mmi = reinterpret_cast<MINMAXINFO*>(lparam);
-				mmi->ptMaxTrackSize.x = context->maxSize().x;
-				mmi->ptMaxTrackSize.y = context->maxSize().y;
-				mmi->ptMinTrackSize.x = context->minSize().x;
-				mmi->ptMinTrackSize.y = context->minSize().y;
+				mmi->ptMaxTrackSize.x = wc->maxSize().x;
+				mmi->ptMaxTrackSize.y = wc->maxSize().y;
+				mmi->ptMinTrackSize.x = wc->minSize().x;
+				mmi->ptMinTrackSize.y = wc->minSize().y;
 			}
 
 			break;
@@ -701,10 +377,12 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 
 		case WM_ERASEBKGND:
 		{
+			//prevent the background erase
 			result = 1;
 			break;
 		}
 
+		//XXX: needed?
 		case WM_CLIPBOARDUPDATE:
 		{
 			clipboardSequenceNumber_ = ::GetClipboardSequenceNumber();
@@ -719,12 +397,15 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 		case WM_QUIT:
 		{
 			receivedQuit_ = 1;
-			if(dispatcherLoopControl_) dispatcherLoopControl_->stop();
 			break;
 		}
 
 		default:
 		{
+			//process mouse/keyboard events
+			if(keyboardContext_.processEvent(eventData, result)) break;
+			if(mouseContext_.processEvent(eventData, result)) break;
+
 			result = ::DefWindowProc(window, message, wparam, lparam);
 			break;
 		}
@@ -758,10 +439,7 @@ WglSetup* WinapiAppContext::wglSetup() const
 
 		if(!impl_->wglSetup.valid())
 		{
-			try
-			{
-				impl_->wglSetup = {dummyWindow_};
-			}
+			try { impl_->wglSetup = {dummyWindow_}; }
 			catch(const std::exception& error)
 			{
 				warning("ny::WinapiAppContext::wglSetup: init failed: ", error.what());

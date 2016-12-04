@@ -15,6 +15,7 @@ namespace
 
 bool sameBeginning(nytl::SizedStringParam a, nytl::SizedStringParam b)
 {
+	if(a.size() == 0 || b.size() == 0) return false;
 	return !std::strncmp(a, b, std::min(a.size(), b.size()));
 }
 
@@ -168,6 +169,17 @@ bool match(const DataFormat& dataFormat, nytl::StringParam formatName)
 	if(sameBeginning(dataFormat.name, formatName.data())) return true;
 	for(auto name : dataFormat.additionalNames)
 		if(sameBeginning(name, formatName.data())) return true;
+
+	return false;
+}
+
+bool match(const DataFormat& a, const DataFormat& b)
+{
+	if(sameBeginning(a.name, b.name)) return true;
+
+	for(auto aname : a.additionalNames)
+		for(auto bname : b.additionalNames)
+			if(sameBeginning(aname, bname)) return true;
 
 	return false;
 }

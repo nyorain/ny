@@ -4,9 +4,9 @@
 
 #pragma once
 
-#include <ny/include.hpp>
-#include <ny/data.hpp>
+#include <ny/winapi/include.hpp>
 #include <ny/winapi/windows.hpp>
+#include <ny/dataExchange.hpp>
 
 #include <ole2.h>
 
@@ -32,37 +32,27 @@ void replaceLF(std::string& string);
 void replaceCRLF(std::string& string);
 
 ///Creates a global memory object for the given string.
-HGLOBAL stringToGlobal(const std::string& string);
 HGLOBAL stringToGlobalUnicode(const std::u16string& string);
 
 ///Copies the data from a global memory object to a string.
 std::u16string globalToStringUnicode(HGLOBAL global);
-std::string globalToString(HGLOBAL global);
 
 ///Converts between a raw buffer and a global
 HGLOBAL bufferToGlobal(const nytl::Range<std::uint8_t>& buffer);
 std::vector<std::uint8_t> globalToBuffer(HGLOBAL global);
 
-///Converts between dataType format and native winapi clipboard format
-//returns cfFormat
-unsigned int dataTypeToClipboardFormat(unsigned int dataType, unsigned int& medium);
+///Converts from a native winapi data medium to an any with the specified format.
+///Empty any on failure.
+std::any fromStgMedium(const FORMATETC& from, const DataFormat& to, const STGMEDIUM& medium);
 
-//returns member of dataType
-unsigned int clipboardFormatToDataType(unsigned int cfFormat);
-
-///Converts between std::any holding the dataType data and the native winapi representation.
-///\param buffer May hold created owned data that is referenced by the returned object.
-std::any comToData(unsigned int cfFormat, void* data, unsigned int& dataFormat,
-	std::unique_ptr<std::uint8_t>& buffer);
-
-///Converts between std::any holding the dataType data and the native winapi representation.
-///\param
-void* dataToCom(unsigned int dataFormat, const std::any& data, unsigned int& cfFormat,
-	unsigned int& medium);
+///Converts between an any object and its DataFormat to the native winapi data medium.
+///Returns STGMEDIUM with tymed == 0 on failure.
+STGMEDIUM toStgMedium(const DataFormat& from, const FORMATETC& to, const std::any& data);
 
 namespace com
 {
 
+//TODO: move constructor/operator (more efficient than copy)
 ///Smart pointer wrapper for shared com objects.
 ///Automatically adds a reference on construction and removes it on destruction.
 template<typename T>
@@ -72,8 +62,17 @@ public:
 	ComObject(T& obj)	: obj_(&obj) { obj_->AddRef(); }
 	~ComObject() { if(obj_) obj_->Release(); }
 
-	T& get() { return *obj_; };
-	const T& get() const { return *obj_; }
+	ComObject(const ComObject& other) : obj_(other.obj_) { if(obj_) obj_->AddRef(); }
+	ComObject operator=(const ComObject& other)
+	{
+		if(obj_) obj_->Release();
+		obj_ = other.obj_;
+		if(obj_) obj_->AddRef();
+		return *this;
+	}
+
+	T* get() { return obj_; };
+	const T* get() const { return obj_; }
 
 	T& operator*() { return get(); }
 	const T& operator*() const { return get(); }
@@ -98,9 +97,11 @@ template<typename T, const GUID&... ids>
 class UnknownImplementation : public T
 {
 public:
-	 __stdcall HRESULT QueryInterface(REFIID riid, void** ppv) override;
-	  __stdcall ULONG AddRef() override;
-	  __stdcall ULONG Release() override;
+	virtual ~UnknownImplementation() = default;
+
+	__stdcall HRESULT QueryInterface(REFIID riid, void** ppv) override;
+	__stdcall ULONG AddRef() override;
+	__stdcall ULONG Release() override;
 
 protected:
 	volatile std::atomic<unsigned int> refCount_ {0};
@@ -110,8 +111,7 @@ protected:
 class DropTargetImpl : public UnknownImplementation<IDropTarget, IID_IDropTarget>
 {
 public:
-	DropTargetImpl(WinapiWindowContext& ctx, const DataTypes& types)
-		: windowContext_(&ctx), dataTypes(types) {}
+	DropTargetImpl(WinapiWindowContext& ctx) : windowContext_(&ctx) {}
 
 	__stdcall HRESULT DragEnter(IDataObject*, DWORD, POINTL pos, DWORD* effect) override;
 	__stdcall HRESULT DragOver(DWORD keys, POINTL pos, DWORD* effect) override;
@@ -120,12 +120,14 @@ public:
 
 	///Returns whether one of the formats the DataObject advertises is supported by dataTypes.
 	bool supported(IDataObject& data);
-
-	DataTypes dataTypes;
+	WinapiWindowContext& windowContext() const { return *windowContext_; }
 
 protected:
-	WinapiWindowContext* windowContext_;
-	unsigned int currentEffect_ = 0;
+	WinapiWindowContext* windowContext_ {};
+	DataOfferImpl* current_ {};
+
+	//XXX: need multiple offers? one should be enough...
+	std::unordered_map<IDataObject*, std::unique_ptr<DataOfferImpl>> offers_;
 };
 
 ///IDropSource implementation class.
@@ -152,21 +154,11 @@ public:
 	__stdcall HRESULT EnumDAdvise(IEnumSTATDATA**) override;
 
 protected:
-	///Returns the dataType id of the supported types that matches the given format.
-	///Returns dataType::none if it could not match a known dataType.
-	unsigned int lookupFormat(const FORMATETC& format) const;
-
-	///Returns a FORMATETC struct for the given supported dataType id.
-	FORMATETC format(unsigned int dataType) const;
-	bool format(unsigned int dataType, FORMATETC& format) const;
-
-	///Returns a STGMEDIUM struct for the given dataType id holding the data.
-	STGMEDIUM medium(unsigned int id) const;
-	bool medium(unsigned int id, STGMEDIUM& med) const;
+	void addFormat(const DataFormat& format);
 
 protected:
 	std::unique_ptr<DataSource> source_;
-	std::vector<FORMATETC> formats_;
+	std::vector<std::pair<FORMATETC, DataFormat>> formats_;
 };
 
 
@@ -209,14 +201,19 @@ class DataOfferImpl : public DataOffer
 public:
 	DataOfferImpl(IDataObject& object);
 
-	DataTypes types() const override { return types_; }
-	nytl::Connection data(unsigned int fmt, const DataFunction& func) override;
+	DataOfferImpl(DataOfferImpl&&) noexcept = default;
+	DataOfferImpl& operator=(DataOfferImpl&&) noexcept = default;
+
+	FormatsRequest formats() const override;
+	DataRequest data(const DataFormat& format) override;
+
+	// - winapi specific -
+	com::DataComObject& dataObject() { return data_; }
+	const com::DataComObject& dataObject() const { return data_; }
 
 protected:
-	DataTypes types_;
 	com::DataComObject data_;
-	std::unordered_map<unsigned int, FORMATETC> typeFormats_;
-	std::vector<std::unique_ptr<std::uint8_t>> buffers_;
+	std::unordered_map<DataFormat, FORMATETC> formats_;
 };
 
 } //namespace winapi

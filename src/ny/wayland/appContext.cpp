@@ -345,7 +345,7 @@ bool WaylandAppContext::dispatchLoop(LoopControl& control)
 
 		if(dispatchDisplay()) continue;
 		if(!checkErrorWarn()) return false;
-		debug("ny::WaylandAppContext::dispatchLoop: dispatchDisplay failed without error");
+		// debug("ny::WaylandAppContext::dispatchLoop: dispatchDisplay failed without error");
 	}
 
 	return checkErrorWarn();
@@ -707,7 +707,7 @@ void WaylandAppContext::handleRegistryAdd(unsigned int id, const char* cinterfac
 	static constexpr auto seatVersion = 5u;
 
 	const nytl::StringParam interface = cinterface; //easier comparison
-	debug("ny::WaylandAppContext::handleRegistryAdd: interface ", interface);
+	// debug("ny::WaylandAppContext::handleRegistryAdd: interface ", interface);
 
 	//check for the various supported interfaces/protocols
 	if(interface == "wl_compositor" && !impl_->wlCompositor)
@@ -780,7 +780,7 @@ void WaylandAppContext::handleRegistryRemove(unsigned int id)
 {
 	//TODO: stop the application/main loop when removing needed global? at least handle it somehow.
 	//TODO: check other globals here?
-	if(id == impl_->wlCompositor.name)
+	if(id == impl_->wlCompositor.name) //more like a dummy that shows how handling it would be done
 	{
 		wl_compositor_destroy(&wlCompositor());
 		impl_->wlCompositor = {};

@@ -1,30 +1,30 @@
 #intro
-add_executable(ny-intro intro.cpp)
-target_link_libraries(ny-intro ny)
+# add_executable(ny-intro intro.cpp)
+# target_link_libraries(ny-intro ny)
 
 #multithread
-add_executable(ny-multithread multithread.cpp)
-target_link_libraries(ny-multithread ny pthread)
+# add_executable(ny-multithread multithread.cpp)
+# target_link_libraries(ny-multithread ny pthread)
 
 #surface
-add_executable(ny-surface surface.cpp)
-target_link_libraries(ny-surface ny)
+# add_executable(ny-surface surface.cpp)
+# target_link_libraries(ny-surface ny)
 
 #callbacks
-add_executable(ny-callbacks callbacks.cpp)
-target_link_libraries(ny-callbacks ny)
+# add_executable(ny-callbacks callbacks.cpp)
+# target_link_libraries(ny-callbacks ny)
 
 #vulkan
 if(WithVulkan)
-	add_executable(ny-vulkan vulkan.cpp)
-	target_include_directories(ny-vulkan PUBLIC ${Vulkan_INCLUDE_DIR})
-	target_link_libraries(ny-vulkan ny ${Vulkan_LIBRARY})
+	# add_executable(ny-vulkan vulkan.cpp)
+	# target_include_directories(ny-vulkan PUBLIC ${Vulkan_INCLUDE_DIR})
+	# target_link_libraries(ny-vulkan ny ${Vulkan_LIBRARY})
 endif()
 
 #gl
 if(WithGL)
-	add_executable(ny-gl gl.cpp)
-	target_link_libraries(ny-gl ny)
+	# add_executable(ny-gl gl.cpp)
+	# target_link_libraries(ny-gl ny)
 endif()
 
 #dev
@@ -32,8 +32,8 @@ add_executable(ny-dev dev.cpp)
 target_link_libraries(ny-dev ny)
 
 #inline
-add_executable(ny-inline inline.cpp)
-target_link_libraries(ny-inline ny)
+# add_executable(ny-inline inline.cpp)
+# target_link_libraries(ny-inline ny)
 
 # The following examples are currently disabled since ny does not have cairo or
 # skia support anymore.

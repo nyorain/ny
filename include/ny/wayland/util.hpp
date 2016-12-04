@@ -156,12 +156,13 @@ namespace detail
 {
 	template<typename F, F f,
 		typename Signature = typename nytl::FunctionTraits<F>::Signaure,
+		bool Last = false,
 		typename R = typename nytl::FunctionTraits<Signature>::ReturnType,
 		typename ArgsTuple = typename nytl::FunctionTraits<Signature>::ArgTuple>
 	struct MemberCallback;
 
 	template<typename F, F f, typename Signature, typename R, typename... Args>
-	struct MemberCallback<F, f, Signature, R, std::tuple<Args...>>
+	struct MemberCallback<F, f, Signature, false, R, std::tuple<Args...>>
 	{
 		using Class = typename nytl::FunctionTraits<F>::Class;
 		static auto call(void* self, Args... args)
@@ -173,10 +174,34 @@ namespace detail
 	};
 
 	template<typename F, F f, typename Signature, typename... Args>
-	struct MemberCallback<F, f, Signature, void, std::tuple<Args...>>
+	struct MemberCallback<F, f, Signature, false, void, std::tuple<Args...>>
 	{
 		using Class = typename nytl::FunctionTraits<F>::Class;
 		static void call(void* self, Args... args)
+		{
+			using Func = nytl::CompatibleFunction<Signature>;
+			auto func = Func(nytl::memberCallback(f, static_cast<Class*>(self)));
+			func(std::forward<Args>(args)...);
+		}
+	};
+
+	template<typename F, F f, typename Signature, typename R, typename... Args>
+	struct MemberCallback<F, f, Signature, true, R, std::tuple<Args...>>
+	{
+		using Class = typename nytl::FunctionTraits<F>::Class;
+		static auto call(Args... args, void* self)
+		{
+			using Func = nytl::CompatibleFunction<Signature>;
+			auto func = Func(nytl::memberCallback(f, static_cast<Class*>(self)));
+			return func(std::forward<Args>(args)...);
+		}
+	};
+
+	template<typename F, F f, typename Signature, typename... Args>
+	struct MemberCallback<F, f, Signature, true, void, std::tuple<Args...>>
+	{
+		using Class = typename nytl::FunctionTraits<F>::Class;
+		static void call(Args... args, void* self)
 		{
 			using Func = nytl::CompatibleFunction<Signature>;
 			auto func = Func(nytl::memberCallback(f, static_cast<Class*>(self)));
@@ -199,8 +224,9 @@ namespace detail
 ///used to achieve parameter mapping at compile time) this parameter should be the
 ///Signature the raw listener function (i.e. the function returnd by this expression) should
 ///have.
-template<typename F, F f, typename S = typename nytl::FunctionTraits<F>::Signature>
-auto constexpr memberCallback = &detail::MemberCallback<std::decay_t<F>, f, S>::call;
+///|tparam L Whether the object void pointer is the last parameter instead of the first.
+template<typename F, F f, typename S = typename nytl::FunctionTraits<F>::Signature, bool L = false>
+auto constexpr memberCallback = &detail::MemberCallback<std::decay_t<F>, f, S, L>::call;
 
 //C++17
 // template<auto f>

@@ -21,6 +21,7 @@ namespace ny
 	class WglSurface;
 	class WinapiVulkanWindowContext;
 	class WinapiBufferWindowContext;
+	class WinapiEventData;
 
 	namespace winapi
 	{

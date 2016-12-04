@@ -22,19 +22,12 @@ class WinapiWindowSettings : public WindowSettings {};
 class WinapiWindowContext : public WindowContext
 {
 public:
-	///Returns the class name of the native widget, that can be used to create a window of
-	///e.g. type button or checkbox.
-	static const char* nativeWidgetClassName(NativeWidgetType);
-
-public:
 	WinapiWindowContext(WinapiAppContext& ctx, const WinapiWindowSettings& settings = {});
 	~WinapiWindowContext();
 
 	void refresh() override;
 	void show() override;
 	void hide() override;
-
-	void droppable(const DataTypes&) override;
 
 	void addWindowHints(WindowHints hints) override;
 	void removeWindowHints(WindowHints hints) override;
@@ -57,22 +50,20 @@ public:
 	void minSize(nytl::Vec2ui size) override;
 	void maxSize(nytl::Vec2ui size) override;
 
-	void beginMove(const MouseButtonEvent* ev) override;
-	void beginResize(const MouseButtonEvent* ev, WindowEdges edges) override;
+	void beginMove(const EventData* ev) override;
+	void beginResize(const EventData* ev, WindowEdges edges) override;
 
 	bool customDecorated() const override { return false; };
 
 	void icon(const ImageData& img) override;
-	void title(const std::string& title) override;
-
-	//winapi specific
-	void sizeEvent(nytl::Vec2ui size);
+	void title(nytl::StringParam title) override;
 
 	WinapiAppContext& appContext() const { return *appContext_; } ///The associated AppContext
 	HINSTANCE hinstance() const; ///The associated HINSTANCE
 	HWND handle() const { return handle_; } ///The managed window handle
 
-	Rect2i extents() const; ///Current (async) window extents with server decorations Rect2i clientExtents() const; ///Current (async) client area window extents
+	Rect2i extents() const; ///Current (async) window extents with server decorations
+	Rect2i clientExtents() const; ///Current (async) client area window extents
 
 	const nytl::Vec2ui minSize() const { return minSize_; }
 	const nytl::Vec2ui maxSize() const { return maxSize_; }
@@ -102,7 +93,7 @@ protected:
 
 protected:
 	WinapiAppContext* appContext_ = nullptr;
-	std::string wndClassName_;
+	std::wstring wndClassName_;
 
 	HWND handle_ = nullptr;
 	winapi::com::DropTargetImpl* dropTarget_ = nullptr; //referenced-counted (shared owned here)
