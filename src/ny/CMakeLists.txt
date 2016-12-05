@@ -27,7 +27,7 @@ if(WithWinapi)
 		winapi/bufferSurface.cpp
 		winapi/windowContext.cpp)
 
-	list(APPEND ny_libs gdi32 gdiplus Dwmapi)
+	list(APPEND ny_libs gdi32 gdiplus Dwmapi Shlwapi)
 
 	if(WithGl)
 		list(APPEND ny_src winapi/wgl.cpp winapi/wglApi.c)

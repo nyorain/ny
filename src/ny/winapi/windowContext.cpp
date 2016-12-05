@@ -28,7 +28,6 @@ WinapiWindowContext::WinapiWindowContext(WinapiAppContext& appContext,
 {
 	//init check
 	appContext_ = &appContext;
-	if(!hinstance()) throw std::runtime_error("ny::WinapiWC::create: uninitialized appContext");
 
 	initWindowClass(settings);
 	setStyle(settings);
@@ -71,7 +70,7 @@ void WinapiWindowContext::initWindowClass(const WinapiWindowSettings& settings)
 {
 	auto wndClass = windowClass(settings);
 	if(!::RegisterClassEx(&wndClass))
-		throw winapi::EC::exception("ny::WinapiWC: RegisterClassEx failed");
+		throw winapi::EC::exception("ny::WinapiWindowContext: RegisterClassEx failed");
 }
 
 WNDCLASSEX WinapiWindowContext::windowClass(const WinapiWindowSettings&)
@@ -80,7 +79,7 @@ WNDCLASSEX WinapiWindowContext::windowClass(const WinapiWindowSettings&)
 	static unsigned int highestID = 0;
 	highestID++;
 
-	wndClassName_ = nytl::toWide("ny::WinapiWindowClass" + std::to_string(highestID));
+	wndClassName_ = widen("ny::WinapiWindowClass" + std::to_string(highestID));
 
 	WNDCLASSEX ret;
 	ret.hInstance = appContext().hinstance();
@@ -108,13 +107,17 @@ void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 {
 	auto parent = static_cast<HWND>(settings.parent.pointer());
 	auto hinstance = appContext().hinstance();
-	auto titleW = nytl::toWide(settings.title);
+	auto titleW = widen(settings.title);
 
+	//parse position and size
 	auto size = settings.size;
 	auto position = settings.position;
 
 	if(nytl::allEqual(position, defaultPosition)) position.fill(CW_USEDEFAULT);
 	if(nytl::allEqual(size, defaultSize)) size.fill(CW_USEDEFAULT);
+
+	//set the listener
+	if(settings.listener) listener(*settings.listener);
 
 	//NOTE on transparency and layered windows
 	//The window has to be layered to enable transparent drawing on it
@@ -130,6 +133,7 @@ void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 	//this should probably only be set if really needed
 	//TODO: make this optional using WinapiWindowSettings
 	auto exstyle = WS_EX_APPWINDOW | WS_EX_LAYERED | WS_EX_OVERLAPPEDWINDOW;
+	// exstyle = WS_EX_APPWINDOW | WS_EX_OVERLAPPEDWINDOW;
 	handle_ = ::CreateWindowEx(
 		exstyle,
 		wndClassName_.c_str(),
@@ -139,8 +143,9 @@ void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 		size.x, size.y,
 		parent, nullptr, hinstance, this);
 
-	if(!handle_) throw winapi::EC::exception("ny::WinapiWC: CreateWindowEx failed");
+	if(!handle_) throw winapi::EC::exception("ny::WinapiWindowContext: CreateWindowEx failed");
 
+	// if(false)
 	{
 		//TODO: check for windows version > xp here.
 		//Otherwise ny will no compile/run on xp
@@ -277,7 +282,7 @@ void WinapiWindowContext::cursor(const Cursor& c)
 
 		if(!bitmap || !dummyBitmap)
 		{
-			warning(errorMessage("ny::WinapiWC::cursor: failed to create bitmap"));
+			warning(errorMessage("ny::WinapiWindowContext::cursor: failed to create bitmap"));
 			return;
 		}
 
@@ -292,7 +297,7 @@ void WinapiWindowContext::cursor(const Cursor& c)
 		cursor_ = reinterpret_cast<HCURSOR>(::CreateIconIndirect(&iconinfo));
 		if(!cursor_)
 		{
-			warning(errorMessage("ny::WinapiWC::cursor: failed to create icon"));
+			warning(errorMessage("ny::WinapiWindowContext::cursor: failed to create icon"));
 			return;
 		}
 
@@ -308,7 +313,7 @@ void WinapiWindowContext::cursor(const Cursor& c)
 		auto cursorName = cursorToWinapi(c.type());
 		if(!cursorName)
 		{
-			warning("WinapiWC::cursor: invalid native cursor type");
+			warning("WinapiWindowContext::cursor: invalid native cursor type");
 			return;
 		}
 
@@ -317,7 +322,7 @@ void WinapiWindowContext::cursor(const Cursor& c)
 
 		if(!cursor_)
 		{
-			warning(errorMessage("WinapiWC::cursor: failed to load native cursor"));
+			warning(errorMessage("WinapiWindowContext::cursor: failed to load native cursor"));
 			return;
 		}
 	}
@@ -474,7 +479,7 @@ void WinapiWindowContext::icon(const ImageData& imgdata)
 
 void WinapiWindowContext::title(nytl::StringParam title)
 {
-	SetWindowText(handle(), nytl::toWide(title.data()).c_str());
+	SetWindowText(handle(), widen(title.data()).c_str());
 }
 
 NativeHandle WinapiWindowContext::nativeHandle() const

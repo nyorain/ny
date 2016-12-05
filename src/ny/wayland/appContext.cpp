@@ -143,11 +143,11 @@ int noSigPoll(pollfd& fds, nfds_t nfds, int timeout = -1)
 thread_local std::string lastLogMessage = "<none>";
 void logHandler(const char* format, va_list vlist)
 {
-    auto size = std::vsnprintf(nullptr, 0, format, vlist);
-    lastLogMessage.resize(size);
-    std::vsnprintf(&lastLogMessage[0], lastLogMessage.size(), format, vlist);
+	auto size = std::vsnprintf(nullptr, 0, format, vlist);
+	lastLogMessage.resize(size);
+	std::vsnprintf(&lastLogMessage[0], lastLogMessage.size(), format, vlist);
 
-    log("ny::wayland::logHandler: ", lastLogMessage);
+	log("ny::wayland::logHandler: ", lastLogMessage);
 }
 
 ///Listener entry to implement custom fd polling callbacks in WaylandAppContext.
@@ -208,22 +208,22 @@ WaylandAppContext::WaylandAppContext()
 		throw std::runtime_error(msg);
 	}
 
-    //set the wayland display log listener
-    //we output the logged output to ny::log and additionally cache the last message
-    //to add it to an error message if an error occurs.
-    //since the log handler is not bound to a display we simply set it once and then just use
-    //a threadlocal variable to cache the last message
-    static std::once_flag onceFlag;
-    std::call_once(onceFlag, []{
-        wl_log_set_handler_client(logHandler);
-    });
+	//set the wayland display log listener
+	//we output the logged output to ny::log and additionally cache the last message
+	//to add it to an error message if an error occurs.
+	//since the log handler is not bound to a display we simply set it once and then just use
+	//a threadlocal variable to cache the last message
+	static std::once_flag onceFlag;
+	std::call_once(onceFlag, []{
+		wl_log_set_handler_client(logHandler);
+	});
 
 	//create the queue on which we do roundtrips.
 	//note that we create an extra queue for roundtrips because they should not
 	//dispatch any other events
 	wlRoundtripQueue_ = wl_display_create_queue(&wlDisplay());
 
-    //create registry with listener and retrieve globals
+	//create registry with listener and retrieve globals
 	wlRegistry_ = wl_display_get_registry(wlDisplay_);
 	wl_registry_add_listener(wlRegistry_, &registryListener, this);
 
@@ -248,7 +248,7 @@ WaylandAppContext::WaylandAppContext()
 	fdCallback(eventfd_, POLLIN, [&](){
 		int64_t v;
 		read(eventfd_, &v, 8);
-        wakeup_ = true;
+		wakeup_ = true;
 	});
 
 	//warn if features are missing
@@ -390,7 +390,7 @@ WindowContextPtr WaylandAppContext::createWindowContext(const WindowSettings& se
 			return std::make_unique<WaylandEglWindowContext>(*this, *eglSetup(), waylandSettings);
 		#else
 			static constexpr auto noEgl = "ny::WaylandAppContext::createWindowContext: "
-				"ny was built without gl/egl support and can therefore not create a Gl Surface";
+				"ny was built without gl/egl support and can therefore not create a gl Surface";
 
 			throw std::logic_error(noEgl);
 		#endif
@@ -535,20 +535,20 @@ bool WaylandAppContext::checkErrorWarn() const
 	auto* wlCategory = dynamic_cast<const WaylandErrorCategory*>(&ec.category());
 	if(wlCategory)
 	{
-        std::stringstream message;
-        message << "ny::WaylandAppContext: display has protocol error <" << msg;
-        message << "> in interface <" << wlCategory->interface().name << ">.\n\t";
-        message << "Last log output in this thread: " << lastLogMessage << "\n\t";
-        message << "The display and WaylandAppContext should not longer be used.";
+		std::stringstream message;
+		message << "ny::WaylandAppContext: display has protocol error <" << msg;
+		message << "> in interface <" << wlCategory->interface().name << ">.\n\t";
+		message << "Last log output in this thread: " << lastLogMessage << "\n\t";
+		message << "The display and WaylandAppContext should not longer be used.";
 
 		error(message.str());
 	}
 	else
 	{
-        std::stringstream message;
-        message << "ny::WaylandAppContext: display has non-protocol error <" << msg << ">\n\t";
-        message << "Last log output in this thread: " << lastLogMessage << "\n\t";
-        message << "The display and WaylandAppContext should not longer be used.";
+		std::stringstream message;
+		message << "ny::WaylandAppContext: display has non-protocol error <" << msg << ">\n\t";
+		message << "Last log output in this thread: " << lastLogMessage << "\n\t";
+		message << "The display and WaylandAppContext should not longer be used.";
 
 		error(message.str());
 	}

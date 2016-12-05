@@ -7,8 +7,11 @@
 #include <ny/mouseContext.hpp>
 #include <ny/cursor.hpp>
 #include <ny/key.hpp>
+#include <ny/log.hpp>
 #include <ny/mouseButton.hpp>
+
 #include <nytl/utf.hpp>
+#include <nytl/scope.hpp>
 
 namespace ny
 {
@@ -214,7 +217,7 @@ std::string errorMessage(unsigned int code, const char* msg)
 
 	if(msg) ret += ": ";
 
-	if(size > 0) ret += nytl::toUtf8(buffer);
+	if(size > 0) ret += narrow(buffer);
 	else ret += "<unkown winapi error>";
 
 	return ret;
@@ -299,12 +302,122 @@ std::string WinapiErrorCategory::message(int code) const
 	return errorMessage(code);
 }
 
+//The ugly hack our all lives depend on. You have found it. Congratulations!
+//Srsly, this is done this way because we rely on windows treating wchar_t strings
+//as utf16 strings. Strangely u16string is not the same as wstring.
+std::wstring widen(const std::string& string)
+{
+	auto str16 = nytl::toUtf16(string);
+	return reinterpret_cast<const wchar_t*>(str16.c_str());
+}
+
+std::string narrow(const std::wstring& string)
+{
+	auto str16 = reinterpret_cast<const char16_t*>(string.c_str());
+	return nytl::toUtf8(str16);
+}
+
 namespace winapi
 {
-	std::error_code lastErrorCode()
+
+std::error_code lastErrorCode()
+{
+	return {static_cast<int>(::GetLastError()), EC::instance()};
+}
+
+HBITMAP toBitmap(const ImageData& img)
+{
+	auto stride = img.stride;
+	if(!stride) stride = img.size.x * 4;
+
+	auto hdc = ::GetDC(nullptr);
+	auto hdcGuard = nytl::makeScopeGuard([&]{ ::ReleaseDC(nullptr, hdc); });
+
+	using BIH = BITMAPINFOHEADER;
+	static constexpr auto size = sizeof(BIH) + 3 * sizeof(DWORD);
+	std::aligned_storage<1, alignof(BIH)>::type header[size];
+
+	auto& info = reinterpret_cast<BITMAPINFO&>(header);
+	info.bmiHeader = toBitmapHeader(img);
+
+	//rgba[a]
+	// auto* table = reinterpret_cast<DWORD*>(header + sizeof(BIH));
+	// table[0] = 0xFF000000;
+	// table[1] = 0x00FF0000;
+	// table[2] = 0x0000FF00;
+
+	void* bitmapData {};
+	auto bitmap = ::CreateDIBSection(hdc, &info, DIB_RGB_COLORS, &bitmapData, nullptr, 0);
+
+	auto data = img.data;
+	std::unique_ptr<uint8_t[]> ownedBuffer;
+	if(img.format != ImageDataFormat::bgra8888)
 	{
-		return {static_cast<int>(::GetLastError()), EC::instance()};
+		ownedBuffer = convertFormat(img, ImageDataFormat::bgra8888);
+		data = ownedBuffer.get();
+		stride = img.size.x * 4;
 	}
+
+	std::memcpy(bitmapData, data, img.size.y * stride);
+	return bitmap;
+}
+
+BITMAPINFOHEADER toBitmapHeader(const ImageData& img)
+{
+	BITMAPINFOHEADER header {};
+	header.biSize = sizeof(header);
+	header.biWidth = img.size.x;
+	header.biHeight = -img.size.y;
+	header.biSizeImage = img.size.y * img.stride;
+	header.biPlanes = 1;
+	header.biBitCount = 32;
+	header.biCompression = BI_RGB;
+	header.biXPelsPerMeter = 1;
+	header.biYPelsPerMeter = 1;
+	// header.biClrUsed = 3;
+
+	return header;
+}
+
+OwnedImageData toImageData(HBITMAP hbitmap)
+{
+	auto hdc = ::GetDC(nullptr);
+	auto hdcGuard = nytl::makeScopeGuard([&]{ ::ReleaseDC(nullptr, hdc); });
+
+	::BITMAPINFO bminfo {};
+	bminfo.bmiHeader.biSize = sizeof(bminfo.bmiHeader);
+
+	if(!::GetDIBits(hdc, hbitmap, 0, 0, nullptr, &bminfo, DIB_RGB_COLORS))
+	{
+		warning("ny::winapi::toImageData(HBITMAP): GetDiBits:1 failed");
+		return {};
+	}
+
+	unsigned int width = bminfo.bmiHeader.biWidth;
+	unsigned int height = std::abs(bminfo.bmiHeader.biHeight);
+	unsigned int stride = width * 4;
+
+	auto buffer = std::make_unique<uint8_t[]>(height * width * 4);
+
+	bminfo.bmiHeader.biBitCount = 32;
+	bminfo.bmiHeader.biCompression = BI_RGB;
+	bminfo.bmiHeader.biHeight = height;
+
+	if(!::GetDIBits(hdc, hbitmap, 0, height, buffer.get(), &bminfo, DIB_RGB_COLORS))
+	{
+		warning("ny::winapi::toImageData(HBITMAP): GetDiBits:2 failed");
+		return {};
+	}
+
+	OwnedImageData ret;
+	ret.data = std::move(buffer);
+	ret.size = {width, height};
+	ret.format = ImageDataFormat::rgba8888;
+	ret.stride = stride;
+
+	return ret;
+}
+
 }
 
 }

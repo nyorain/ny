@@ -7,8 +7,10 @@
 #include <ny/winapi/include.hpp>
 #include <ny/winapi/windows.hpp>
 #include <ny/dataExchange.hpp>
+#include <nytl/nonCopyable.hpp>
 
 #include <ole2.h>
+#include <Shobjidl.h>
 
 #include <atomic>
 #include <memory>
@@ -49,6 +51,10 @@ std::any fromStgMedium(const FORMATETC& from, const DataFormat& to, const STGMED
 ///Returns STGMEDIUM with tymed == 0 on failure.
 STGMEDIUM toStgMedium(const DataFormat& from, const FORMATETC& to, const std::any& data);
 
+///Duplicates (i.e. deep copies) a given StgMedium.
+///A StgMedium returned by this must be correctly freed (i.e. using ReleaseStgMedium).
+void duplicate(STGMEDIUM& dst, const STGMEDIUM& src, unsigned int cfFormat);
+
 namespace com
 {
 
@@ -59,7 +65,8 @@ template<typename T>
 class ComObject
 {
 public:
-	ComObject(T& obj)	: obj_(&obj) { obj_->AddRef(); }
+	ComObject() = default;
+	ComObject(T& obj) : obj_(&obj) { obj_->AddRef(); }
 	~ComObject() { if(obj_) obj_->Release(); }
 
 	ComObject(const ComObject& other) : obj_(other.obj_) { if(obj_) obj_->AddRef(); }
@@ -89,6 +96,25 @@ protected:
 using UnknownComObject = ComObject<IUnknown>;
 using DataComObject = ComObject<IDataObject>;
 
+class StgMediumGuard : public nytl::NonCopyable
+{
+public:
+	STGMEDIUM medium {};
+
+public:
+	StgMediumGuard() = default;
+	~StgMediumGuard() { ::ReleaseStgMedium(&medium); }
+
+	StgMediumGuard(StgMediumGuard&& other) : medium(other.medium) { other.medium = {}; }
+	StgMediumGuard& operator=(StgMediumGuard&& other)
+	{
+		::ReleaseStgMedium(&medium);
+		medium = other.medium;
+		other.medium = {};
+		return *this;
+	}
+};
+
 ///Implementation for the IUnkown com interface.
 ///Classes deriving from this class must pass themself (CRTP) and the GUIDs to implement.
 ///\tparam T The com interface (deriving IUnkown) to implement.
@@ -111,7 +137,8 @@ protected:
 class DropTargetImpl : public UnknownImplementation<IDropTarget, IID_IDropTarget>
 {
 public:
-	DropTargetImpl(WinapiWindowContext& ctx) : windowContext_(&ctx) {}
+	DropTargetImpl(WinapiWindowContext& ctx);
+	~DropTargetImpl();
 
 	__stdcall HRESULT DragEnter(IDataObject*, DWORD, POINTL pos, DWORD* effect) override;
 	__stdcall HRESULT DragOver(DWORD keys, POINTL pos, DWORD* effect) override;
@@ -125,6 +152,7 @@ public:
 protected:
 	WinapiWindowContext* windowContext_ {};
 	DataOfferImpl* current_ {};
+	IDropTargetHelper* helper_ {};
 
 	//XXX: need multiple offers? one should be enough...
 	std::unordered_map<IDataObject*, std::unique_ptr<DataOfferImpl>> offers_;
@@ -142,6 +170,7 @@ class DataObjectImpl : public UnknownImplementation<IDataObject, IID_IDataObject
 {
 public:
 	DataObjectImpl(std::unique_ptr<DataSource> src);
+	~DataObjectImpl();
 
 	__stdcall HRESULT GetData(FORMATETC*, STGMEDIUM*) override;
 	__stdcall HRESULT GetDataHere(FORMATETC*, STGMEDIUM*) override;
@@ -159,6 +188,12 @@ protected:
 protected:
 	std::unique_ptr<DataSource> source_;
 	std::vector<std::pair<FORMATETC, DataFormat>> formats_;
+
+	//The DragSourceHelper allows us to correctly handle dnd images.
+	//But since it needs SetData to be correctly implemented we need to store
+	//the data retrieved from SetData in additionalData (and return if from GetData)
+	std::vector<std::pair<FORMATETC, StgMediumGuard>> additionalData_;
+	IDragSourceHelper* helper_ {};
 };
 
 

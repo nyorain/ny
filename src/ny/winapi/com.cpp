@@ -15,10 +15,18 @@
 #include <nytl/range.hpp>
 
 #include <Shlobj.h>
+#include <Shlwapi.h>
 
 #include <unordered_map>
 #include <cstring>
 #include <cmath>
+
+//the few useful sources:
+//https://chromium.googlesource.com/chromium/chromium/+/master/ui/base/dragdrop/
+//https://msdn.microsoft.com/en-us/library/windows/desktop/bb762034(v=vs.85).aspx
+//https://github.com/WebKit/webkit/blob/c595dc9b3993d095e25311b0ec1797bd665447e8/Tools/DumpRenderTree/win/DRTDataObject.cpp
+
+//TODO: error handling! especially CoCreateInstance
 
 namespace ny
 {
@@ -86,8 +94,7 @@ DataOfferImpl::DataOfferImpl(IDataObject& object) : data_(object)
 				auto bytes = ::GetClipboardFormatName(format.cfFormat, buffer, 255);
 				if(!bytes) continue;
 				buffer[bytes] = '\0';
-
-				auto name = nytl::toUtf8(buffer);
+				auto name = narrow(buffer);
 
 				//check for uri-names of standard formats (etc. handle "text/plain" as text)
 				//otherwise just insert the name as data format
@@ -148,14 +155,35 @@ namespace com
 {
 
 //DropTargetImpl
-HRESULT DropTargetImpl::DragEnter(IDataObject* data, DWORD keyState, POINTL pos, DWORD* effect)
+DropTargetImpl::DropTargetImpl(WinapiWindowContext& ctx) : windowContext_(&ctx)
+{
+	::CoCreateInstance(CLSID_DragDropHelper, nullptr, CLSCTX_INPROC_SERVER,
+		IID_IDropTargetHelper, reinterpret_cast<void**>(&helper_));
+	helper_->Show(true);
+}
+
+DropTargetImpl::~DropTargetImpl()
+{
+	if(helper_) helper_->Release();
+}
+
+HRESULT DropTargetImpl::DragEnter(IDataObject* data, DWORD keyState, POINTL screenPos,
+	DWORD* effect)
 {
 	nytl::unused(keyState);
+
+	POINT windowPos;
+	windowPos.x = screenPos.x;
+	windowPos.y = screenPos.y;
+
+	helper_->DragEnter(windowContext().handle(), data, &windowPos, *effect);
 
 	auto it = offers_.emplace(data, std::make_unique<DataOfferImpl>(*data)).first;
 	current_ = it->second.get();
 
-	auto position = nytl::Vec2ui(pos.x, pos.y);
+	::ScreenToClient(windowContext().handle(), &windowPos);
+
+	auto position = nytl::Vec2ui(windowPos.x, windowPos.y);
 	auto format = windowContext().listener().dndMove(position, *it->second, nullptr);
 
 	if(format != DataFormat::none) *effect = DROPEFFECT_COPY;
@@ -164,9 +192,15 @@ HRESULT DropTargetImpl::DragEnter(IDataObject* data, DWORD keyState, POINTL pos,
 	return S_OK;
 }
 
-HRESULT DropTargetImpl::DragOver(DWORD keyState, POINTL pos, DWORD* effect)
+HRESULT DropTargetImpl::DragOver(DWORD keyState, POINTL screenPos, DWORD* effect)
 {
 	nytl::unused(keyState);
+
+	POINT windowPos;
+	windowPos.x = screenPos.x;
+	windowPos.y = screenPos.y;
+
+	helper_->DragOver(&windowPos, *effect);
 
 	if(!current_)
 	{
@@ -174,7 +208,9 @@ HRESULT DropTargetImpl::DragOver(DWORD keyState, POINTL pos, DWORD* effect)
 		return E_UNEXPECTED;
 	}
 
-	auto position = nytl::Vec2ui(pos.x, pos.y);
+	::ScreenToClient(windowContext().handle(), &windowPos);
+
+	auto position = nytl::Vec2ui(windowPos.x, windowPos.y);
 	auto format = windowContext().listener().dndMove(position, *current_, nullptr);
 
 	if(format != DataFormat::none) *effect = DROPEFFECT_COPY;
@@ -185,6 +221,8 @@ HRESULT DropTargetImpl::DragOver(DWORD keyState, POINTL pos, DWORD* effect)
 
 HRESULT DropTargetImpl::DragLeave()
 {
+	helper_->DragLeave();
+
 	if(!current_)
 	{
 		warning("ny::winapi::DropTargetImpl::DragLeave: no current drag data object");
@@ -200,9 +238,15 @@ HRESULT DropTargetImpl::DragLeave()
 	return S_OK;
 }
 
-HRESULT DropTargetImpl::Drop(IDataObject* data, DWORD keyState, POINTL pos, DWORD* effect)
+HRESULT DropTargetImpl::Drop(IDataObject* data, DWORD keyState, POINTL screenPos, DWORD* effect)
 {
 	nytl::unused(keyState);
+
+	POINT windowPos;
+	windowPos.x = screenPos.x;
+	windowPos.y = screenPos.y;
+
+	helper_->Drop(data, &windowPos, *effect);
 
 	if(!current_ || current_->dataObject().get() != data)
 	{
@@ -210,7 +254,9 @@ HRESULT DropTargetImpl::Drop(IDataObject* data, DWORD keyState, POINTL pos, DWOR
 		return E_UNEXPECTED;
 	}
 
-	auto position = nytl::Vec2ui(pos.x, pos.y);
+	::ScreenToClient(windowContext().handle(), &windowPos);
+
+	auto position = nytl::Vec2ui(windowPos.x, windowPos.y);
 	auto format = windowContext().listener().dndMove(position, *current_, nullptr);
 
 	if(format == DataFormat::none)
@@ -234,10 +280,10 @@ HRESULT DropTargetImpl::Drop(IDataObject* data, DWORD keyState, POINTL pos, DWOR
 }
 
 //DropSourceImpl
-HRESULT DropSourceImpl::QueryContinueDrag(BOOL fEscapePressed, DWORD grfKeyState)
+HRESULT DropSourceImpl::QueryContinueDrag(BOOL fEscapePressed, DWORD keyState)
 {
 	if(fEscapePressed) return DRAGDROP_S_CANCEL;
-	if(!(grfKeyState & MK_LBUTTON)) return DRAGDROP_S_DROP;
+	if(!(keyState & MK_LBUTTON)) return DRAGDROP_S_DROP;
 	return S_OK;
 }
 HRESULT DropSourceImpl::GiveFeedback(DWORD dwEffect)
@@ -254,6 +300,30 @@ DataObjectImpl::DataObjectImpl(std::unique_ptr<DataSource> source) : source_(std
 	formats_.emplace_back();
 
 	for(auto format : source_->formats()) addFormat(format);
+
+	auto img = source_->image();
+	if(img.data)
+	{
+		helper_ = nullptr;
+		::CoCreateInstance(CLSID_DragDropHelper, nullptr, CLSCTX_INPROC_SERVER,
+			IID_IDragSourceHelper, reinterpret_cast<void**>(&helper_));
+
+		auto bitmap = winapi::toBitmap(img);
+
+		SHDRAGIMAGE sdi {};
+		sdi.sizeDragImage.cx = img.size.x;
+		sdi.sizeDragImage.cy = img.size.y;
+		sdi.hbmpDragImage = bitmap;
+		sdi.crColorKey = 0xFFFFFFFF;
+		sdi.ptOffset = {};
+
+		helper_->InitializeFromBitmap(&sdi, this);
+	}
+}
+
+DataObjectImpl::~DataObjectImpl()
+{
+	if(helper_) helper_->Release();
 }
 
 HRESULT DataObjectImpl::GetData(FORMATETC* format, STGMEDIUM* stgmed)
@@ -279,6 +349,18 @@ HRESULT DataObjectImpl::GetData(FORMATETC* format, STGMEDIUM* stgmed)
 		}
 	}
 
+	//check private formats add with SetData
+	//needed for DragSourceHelper to work correctly
+	for(auto& f : additionalData_)
+	{
+		if(f.first.cfFormat == format->cfFormat && f.first.tymed == format->tymed
+			&& f.first.dwAspect == format->dwAspect)
+		{
+			duplicate(*stgmed, f.second.medium, f.first.cfFormat);
+			return S_OK;
+		}
+	}
+
 	return DV_E_FORMATETC;
 }
 HRESULT DataObjectImpl::GetDataHere(FORMATETC* format, STGMEDIUM* medium)
@@ -297,6 +379,12 @@ HRESULT DataObjectImpl::QueryGetData(FORMATETC* format)
 			&& f.first.dwAspect == format->dwAspect) return S_OK;
 	}
 
+	for(auto& f : additionalData_)
+	{
+		if(f.first.cfFormat == format->cfFormat && f.first.tymed == format->tymed
+			&& f.first.dwAspect == format->dwAspect) return S_OK;
+	}
+
 	return DV_E_FORMATETC;
 }
 HRESULT DataObjectImpl::GetCanonicalFormatEtc(FORMATETC*, FORMATETC* formatOut)
@@ -304,9 +392,16 @@ HRESULT DataObjectImpl::GetCanonicalFormatEtc(FORMATETC*, FORMATETC* formatOut)
 	formatOut->ptd = nullptr;
 	return E_NOTIMPL;
 }
-HRESULT DataObjectImpl::SetData(FORMATETC*, STGMEDIUM*, BOOL)
+HRESULT DataObjectImpl::SetData(FORMATETC* format, STGMEDIUM* medium, BOOL owned)
 {
-	return E_NOTIMPL;
+	//needed for DragSourceHelper to work correctly
+	additionalData_.emplace_back();
+	additionalData_.back().first = *format;
+
+	if(owned) additionalData_.back().second.medium = *medium;
+	else duplicate(additionalData_.back().second.medium, *medium, format->cfFormat);
+
+	return S_OK;
 }
 HRESULT DataObjectImpl::EnumFormatEtc(DWORD direction, IEnumFORMATETC** formatOut)
 {
@@ -359,7 +454,7 @@ void DataObjectImpl::addFormat(const DataFormat& format)
 	{
 		if(match(mapping.format, format.name))
 		{
-			formatetc.cfFormat = ::RegisterClipboardFormat(nytl::toWide(format.name).c_str());
+			formatetc.cfFormat = ::RegisterClipboardFormat(widen(format.name).c_str());
 			formats_.push_back({formatetc, format});
 
 			formatetc.cfFormat = mapping.cf;
@@ -398,7 +493,7 @@ void DataObjectImpl::addFormat(const DataFormat& format)
 	}
 
 	//custom clipboard format
-	auto cf = ::RegisterClipboardFormat(nytl::toWide(format.name).c_str());
+	auto cf = ::RegisterClipboardFormat(widen(format.name).c_str());
 	formatetc.cfFormat = cf;
 	formatetc.tymed = TYMED_HGLOBAL;
 	formats_.push_back({formatetc, format});
@@ -436,13 +531,6 @@ HGLOBAL stringToGlobalUnicode(const std::u16string& string)
 	return bufferToGlobal({ptr, (string.size() + 1) * 2});
 }
 
-HGLOBAL stringToGlobal(const std::string& string)
-{
-	auto cpy = std::string(string.c_str()); //remove nullterminator
-	auto ptr = reinterpret_cast<const std::uint8_t*>(cpy.data());
-	return bufferToGlobal({ptr, string.size() + 1});
-}
-
 std::u16string globalToStringUnicode(HGLOBAL global)
 {
 	auto len = ::GlobalSize(global);
@@ -453,20 +541,6 @@ std::u16string globalToStringUnicode(HGLOBAL global)
 	//but to go safe, we round len / 2 up and then later remove the trailing
 	//nullterminator
 	std::u16string str(std::ceil(len / 2), '\0');
-	std::memcpy(&str[0], ptr, len);
-	::GlobalUnlock(global);
-	str = str.c_str(); //get rid of terminators
-
-	return str;
-}
-
-std::string globalToString(HGLOBAL global)
-{
-	auto len = ::GlobalSize(global);
-	auto ptr = ::GlobalLock(global);
-	if(!ptr) return {};
-
-	std::string str(len, '\0');
 	std::memcpy(&str[0], ptr, len);
 	::GlobalUnlock(global);
 	str = str.c_str(); //get rid of terminators
@@ -534,10 +608,16 @@ std::any fromStgMedium(const FORMATETC& from, const DataFormat& to, const STGMED
 			if(!size) continue;
 
 			std::wstring path;
-			path.resize(size);
+			path.resize(size + 1);
 
-			if(!DragQueryFile(hdrop, i, &path[0], size)) continue;
-			paths.push_back("file://" + nytl::toUtf8(path));
+			if(!DragQueryFile(hdrop, i, &path[0], size + 1)) continue;
+
+			std::wstring uri;
+			DWORD bufferSize = 10 + size * 2;
+			uri.resize(bufferSize);
+			::UrlCreateFromPath(path.c_str(), &uri[0], &bufferSize, 0);
+
+			paths.push_back(narrow(uri));
 		}
 
 		::GlobalUnlock(medium.hGlobal);
@@ -548,38 +628,9 @@ std::any fromStgMedium(const FORMATETC& from, const DataFormat& to, const STGMED
 		if(medium.tymed != TYMED_GDI) return {};
 
 		auto hbitmap = reinterpret_cast<HBITMAP>(medium.hGlobal);
-		auto hdc = ::GetDC(nullptr);
-
-		::BITMAPINFO bminfo {};
-		bminfo.bmiHeader.biSize = sizeof(bminfo.bmiHeader);
-
-		if(!::GetDIBits(hdc, hbitmap, 0, 0, nullptr, &bminfo, DIB_RGB_COLORS))
-		{
-			warning("ny::winapi::fromStgMedium(dataExchange): GetDiBits:1 failed");
-			return {};
-		}
-
-		unsigned int width = bminfo.bmiHeader.biWidth;
-		unsigned int height = std::abs(bminfo.bmiHeader.biHeight);
-		unsigned int stride = width * 4;
-
-		auto buffer = std::make_unique<uint8_t[]>(height * width * 4);
-
-		bminfo.bmiHeader.biBitCount = 32;
-		bminfo.bmiHeader.biCompression = BI_RGB;
-		bminfo.bmiHeader.biHeight = height;
-
-		if(::GetDIBits(hdc, hbitmap, 0, height, buffer.get(), &bminfo, DIB_RGB_COLORS) == 0)
-		{
-			warning("ny::winapi::fromStgMedium(dataExchange): GetDiBits:2 failed");
-			return {};
-		}
-
-		OwnedImageData ret;
-		ret.data = std::move(buffer);
-		ret.size = {width, height};
-		ret.format = ImageDataFormat::rgba8888;
-		ret.stride = stride;
+		auto ret = winapi::toImageData(hbitmap);
+		if(!ret.data) return {};
+		return ret;
 
 		return ret;
 	}
@@ -610,29 +661,25 @@ STGMEDIUM toStgMedium(const DataFormat& from, const FORMATETC& to, const std::an
 	{
 		if(to.tymed != TYMED_GDI) return {};
 
-		//winapi requires the image data to have this format
-		static constexpr auto reqFormat = ImageDataFormat::bgra8888;
-
 		const auto& img = std::any_cast<const ImageData&>(data);
-		auto data = convertFormat(img, reqFormat);
-		const auto& size = img.size;
-
 		ret.tymed = TYMED_HGLOBAL;
-		ret.hGlobal = ::CreateBitmap(size.x, size.y, 1, 32, data.get());
+		ret.hGlobal = toBitmap(img);
 	}
 	else if(from == DataFormat::uriList && to.cfFormat == CF_HDROP)
 	{
 		if(to.tymed != TYMED_HGLOBAL) return {};
 
 		//https://msdn.microsoft.com/en-us/library/windows/desktop/bb776902(v=vs.85).aspx
-		std::u16string filesstring;
-		auto filenames = std::any_cast<const std::vector<std::string>&>(data);
-		for(auto& name : filenames)
+		std::string filesstring;
+		auto uriList = std::any_cast<const std::vector<std::string>&>(data);
+		for(auto& uri : uriList)
 		{
-			if(name.find("file://") != 0) continue;
-			name.erase(0, 7);
-			std::replace(name.begin(), name.end(), '\\', '/');
-			filesstring.append(toUtf16(name + "\0"));
+			auto uriW = widen(uri);
+			DWORD bufferSize = MAX_PATH;
+			std::wstring path;
+			path.resize(bufferSize);
+			::PathCreateFromUrl(uriW.c_str(), &path[0], &bufferSize, 0);
+			filesstring.append(narrow(path));
 		}
 
 		filesstring.append('\0'); //double null terminated
@@ -660,8 +707,9 @@ STGMEDIUM toStgMedium(const DataFormat& from, const FORMATETC& to, const std::an
 			return {};
 		}
 
+		auto filesstringW = widen(filesstring);
 		std::memcpy(bufferPtr, &dropfiles, sizeof(dropfiles));
-		std::memcpy(bufferPtr + sizeof(dropfiles), filesstring.data(), filesstring.size() * 2);
+		std::memcpy(bufferPtr + sizeof(dropfiles), filesstringW.data(), filesstringW.size() * 2);
 		::GlobalUnlock(bufferPtr);
 
 		ret.tymed = TYMED_HGLOBAL;
@@ -678,6 +726,48 @@ STGMEDIUM toStgMedium(const DataFormat& from, const FORMATETC& to, const std::an
 	}
 
 	return ret;
+}
+
+void duplicate(STGMEDIUM& dst, const STGMEDIUM& src, unsigned int cfFormat)
+{
+	dst = {};
+
+	switch (src.tymed)
+	{
+		case TYMED_HGLOBAL:
+			dst.hGlobal = static_cast<HGLOBAL>(OleDuplicateData(src.hGlobal, cfFormat, 0));
+			break;
+		case TYMED_FILE:
+			dst.lpszFileName = static_cast<LPOLESTR>(OleDuplicateData(src.lpszFileName,
+				cfFormat, 0));
+			break;
+		case TYMED_ISTREAM:
+			dst.pstm = src.pstm;
+			dst.pstm->AddRef();
+			break;
+		case TYMED_ISTORAGE:
+			dst.pstg = src.pstg;
+			dst.pstg->AddRef();
+			break;
+		case TYMED_GDI:
+			dst.hBitmap = static_cast<HBITMAP>(OleDuplicateData(src.hBitmap, cfFormat, 0));
+			break;
+		case TYMED_MFPICT:
+			dst.hMetaFilePict = static_cast<HMETAFILEPICT>(OleDuplicateData(src.hMetaFilePict,
+				cfFormat, 0));
+			break;
+		case TYMED_ENHMF:
+			dst.hEnhMetaFile = static_cast<HENHMETAFILE>(OleDuplicateData(src.hEnhMetaFile,
+				cfFormat, 0));
+			break;
+		default:
+			break;
+	}
+
+	dst.tymed = src.tymed;
+	dst.pUnkForRelease = src.pUnkForRelease;
+
+	if(dst.pUnkForRelease) dst.pUnkForRelease->AddRef();
 }
 
 } //namespace winapi

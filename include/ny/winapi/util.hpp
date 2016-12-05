@@ -30,6 +30,10 @@ std::string errorMessage(const char* msg = nullptr);
 const wchar_t* cursorToWinapi(CursorType type);
 unsigned int edgesToWinapi(WindowEdges edges);
 
+///Converts between (ny,application space) utf8-string and (winapi space) utf16-wstring.
+std::wstring widen(const std::string&);
+std::string narrow(const std::wstring&);
+
 ///Winapi EventData. Carries the winapi message.
 class WinapiEventData : public EventData
 {
@@ -58,8 +62,19 @@ public:
 
 namespace winapi
 {
-	using EC = WinapiErrorCategory;
-	std::error_code lastErrorCode();
+
+using EC = WinapiErrorCategory;
+std::error_code lastErrorCode();
+
+///Converts a given ImageData to a winapi Bitmap header.
+///Can be used e.g. to create a dib bitmap.
+BITMAPINFOHEADER toBitmapHeader(const ImageData&);
+
+///Converts between a ny::ImageData object and a native winapi bitmap.
+///The returned HBITMAP is owned and must be freed.
+HBITMAP toBitmap(const ImageData&);
+OwnedImageData toImageData(HBITMAP bitmap);
+
 }
 
 }

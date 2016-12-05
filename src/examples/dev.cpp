@@ -28,11 +28,33 @@ void handleDataOffer(ny::DataOffer& dataOffer)
 	}
 
 	formatsRequest->wait();
+	auto formats = formatsRequest->get();
 
-	for(auto& fmt : formatsRequest->get()) ny::log("clipboard type ", fmt.name);
+	ny::DataFormat dataFormat {};
+	for(const auto& fmt : formats)
+	{
+		ny::log("clipboard type ", fmt.name);
+
+		if(fmt == ny::DataFormat::text)
+		{
+			dataFormat = fmt;
+			break;
+		}
+
+		if(fmt == ny::DataFormat::uriList && dataFormat == ny::DataFormat::none)
+		{
+			dataFormat = fmt;
+		}
+	}
+
+	if(dataFormat == ny::DataFormat::none)
+	{
+		ny::log("no supported clipboard format!");
+		return;
+	}
 
 	// trying to retrieve the data in text form and outputting it if successful
-	auto dataRequest = dataOffer.data(ny::DataFormat::text);
+	auto dataRequest = dataOffer.data(dataFormat);
 	if(!dataRequest)
 	{
 		ny::warning("could not retrieve data request");
@@ -41,14 +63,22 @@ void handleDataOffer(ny::DataOffer& dataOffer)
 
 	dataRequest->wait();
 
-	auto text = dataRequest->get();
-	if(!text.has_value())
+	auto data = dataRequest->get();
+	if(!data.has_value())
 	{
 		ny::warning("invalid text clipboard data offer");
 		return;
 	}
 
-	ny::log("Received offer text data: ", std::any_cast<std::string>(text));
+	if(dataFormat == ny::DataFormat::text)
+	{
+		ny::log("Received offer text data: ", std::any_cast<const std::string&>(data));
+	}
+	else if(dataFormat == ny::DataFormat::uriList)
+	{
+		auto uriList = std::any_cast<const std::vector<std::string>&>(data);
+		for(auto& uri : uriList) ny::log("Received offer uri: ", uri);
+	}
 }
 
 class MyWindowListener : public ny::WindowListener
@@ -57,7 +87,7 @@ public:
 	ny::AppContext* ac;
 	ny::WindowContext* wc;
 	ny::LoopControl* lc;
-	ny::BufferSurface* surface;
+	ny::BufferSurface* surface {};
 
 public:
 	void close(const ny::EventData*) override
@@ -68,6 +98,8 @@ public:
 
 	void draw(const ny::EventData*) override
 	{
+		if(!surface) return;
+
 		auto bufferGuard = surface->buffer();
 		auto buffer = bufferGuard.get();
 		auto size = buffer.stride * buffer.size.y;
@@ -93,8 +125,10 @@ public:
 	ny::DataFormat dndMove(nytl::Vec2i pos, const ny::DataOffer& offer,
 		const ny::EventData*) override
 	{
+		// ny::log("dnd pos: ", pos);
 		if(nytl::allOf(pos > nytl::Vec2i(100, 100)) && nytl::allOf(pos < nytl::Vec2i(700, 400)))
 		{
+			// ny::log("dnd pos match");
 			auto formatsReq = offer.formats();
 			formatsReq->wait();
 
@@ -107,7 +141,11 @@ public:
 			// }
 
 			auto result = formatsReq->get();
-			for(const auto& fmt : result) if(fmt == ny::DataFormat::text) return fmt;
+			for(const auto& fmt : result)
+			{
+				// ny::log("format offer: ", fmt.name);
+				if(fmt == ny::DataFormat::text || fmt == ny::DataFormat::uriList) return fmt;
+			}
 		}
 
 		return ny::DataFormat::none;
@@ -175,7 +213,14 @@ CustomDataSource::CustomDataSource()
 	image_.format = ny::ImageDataFormat::rgba8888;
 	image_.size = {32u, 32u};
 
-	std::memset(image_.data.get(), 0xCC, 32 * 32 * 4);
+	//light transparent red
+	// auto color = 0xFF9999CC;
+	auto color = 0xFF000000;
+
+	auto it = reinterpret_cast<std::uint32_t*>(image_.data.get());
+	std::fill(it, it + (32 * 32), color);
+
+	// std::memset(image_.data.get(), 0xCC, 32 * 32 * 4);
 }
 
 std::any CustomDataSource::data(const ny::DataFormat& format) const

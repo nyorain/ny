@@ -174,7 +174,6 @@ bool WinapiKeyboardContext::processEvent(const WinapiEventData& eventData, LRESU
 {
 	auto message = eventData.message;
 	auto wc = eventData.windowContext;
-	auto window = eventData.window;
 	auto lparam = eventData.lparam;
 	auto wparam = eventData.wparam;
 

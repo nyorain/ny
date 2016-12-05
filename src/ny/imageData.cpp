@@ -9,70 +9,121 @@
 namespace ny
 {
 
-namespace
+// namespace
+// {
+
+//LittleEndian: least significant byte first.
+constexpr bool littleEndian()
 {
-	void convert(std::uint8_t& writeData, ImageDataFormat newformat, const nytl::Vec4u8& color)
+	constexpr uint32_t dummyEndianTest = 0x1;
+	return (((std::uint8_t*)&dummyEndianTest)[0] == 1);
+}
+
+void convert(std::uint8_t& writeData, ImageDataFormat newformat, const nytl::Vec4u8& color)
+{
+	// using Format = ImageDataFormat;
+	// std::uint32_t logicalValue {};
+	//
+	// switch(newformat)
+	// {
+	// 	case Format::bgra8888:
+	// 		logicalValue = (color.w << 0);
+	// 	case Format::bgr888:
+	// 		logicalValue |= (color.x << 8);
+	// 		logicalValue |= (color.y << 16);
+	// 		logicalValue |= (color.z << 24);
+	// 		break;
+	//
+	// 	case Format::rgba8888:
+	// 		logicalValue = (color.w << 0);
+	// 	case Format::rgb888:
+	// 		logicalValue |= (color.x << 24);
+	// 		logicalValue |= (color.y << 16);
+	// 		logicalValue |= (color.z << 8);
+	// 		break;
+	//
+	// 	case Format::argb8888:
+	// 		logicalValue |= (color.w << 24);
+	// 		logicalValue |= (color.x << 16);
+	// 		logicalValue |= (color.y << 8);
+	// 		logicalValue |= (color.z << 0);
+	// 		break;
+	//
+	// 	case Format::a8:
+	// 		logicalValue |= (color.w << 24);
+	// 		break;
+	//
+	// 	default:
+	// 		break;
+	// }
+	//
+	// auto size = imageDataFormatSize(newformat);
+	// std::memcpy(&writeData, &logicalValue,
+}
+
+nytl::Vec4u8 formatDataColor(const std::uint8_t& pixel, ImageDataFormat format)
+{
+	using Format = ImageDataFormat;
+	auto pixelSize = imageDataFormatSize(format);
+	if(!pixelSize) return {};
+
+
+	//logical 32-bit color value
+	//i.e. 0xFF00FFFF for rgba(FF, 0, FF, FF). or 0xFF for a(FF)
+	//rgba: 0xRRGGBBAA
+	//rgb: 0xRRGGBB = 0x00RRGGBB
+	//a: 0xAA = 0x000000AA
+	uint32_t logical {};
+	auto* logical8 = reinterpret_cast<uint8_t*>(&logical);
+
+	//load the logical value depending on the size we can read into memory
+	//problem is that we cannot simply read a 32 bit value since the color memory size
+	//might be e.g. 8 or 24 bit. Therefore we load it byte-per-byte as far as we can.
+	// if(littleEndian())
+	// {
+	// 	if(pixelSize > 0) std::memcpy(logical8 + 0, &pixel + 3, 1);
+	// 	if(pixelSize > 1) std::memcpy(logical8 + 1, &pixel + 2, 1);
+	// 	if(pixelSize > 2) std::memcpy(logical8 + 2, &pixel + 1, 1);
+	// 	if(pixelSize > 3) std::memcpy(logical8 + 3, &pixel + 0, 1);
+	// }
+	// else
+	// {
+		if(pixelSize > 0) std::memcpy(logical8 + 0, &pixel + 0, 1);
+		if(pixelSize > 1) std::memcpy(logical8 + 1, &pixel + 1, 1);
+		if(pixelSize > 2) std::memcpy(logical8 + 2, &pixel + 2, 1);
+		if(pixelSize > 3) std::memcpy(logical8 + 3, &pixel + 3, 1);
+	// }
+
+	// example for rgba8888:
+	// 0x RR GG BB AA  <-- logical number
+	//    l1 l2 l3 l4
+
+	// example for a8:
+	// 0xAA = 0x 00 00 00 AA  <-- logical number
+	//           l1 l2 l3 l4
+
+	//the logical values, l4 is always the least significant byte read
+	//depending on the format size is one of the bytes before it the most significant
+	uint8_t l1 = (logical >> 24) & 0x000000FF;
+	uint8_t l2 = (logical >> 16) & 0x000000FF;
+	uint8_t l3 = (logical >> 8) & 0x000000FF;
+	uint8_t l4 = (logical >> 0) & 0x000000FF;
+
+	debug(std::hex, logical);
+
+	switch(format)
 	{
-		using Format = ImageDataFormat;
-		auto* newdata =  &writeData;
-
-		switch(newformat)
-		{
-			case Format::bgra8888:
-				newdata[3] = color.w;
-			case Format::bgr888:
-				newdata[0] = color.z;
-				newdata[1] = color.y;
-				newdata[2] = color.x;
-				break;
-
-			case Format::rgba8888:
-				newdata[3] = color.w;
-			case Format::rgb888:
-				newdata[0] = color.x;
-				newdata[1] = color.y;
-				newdata[2] = color.z;
-				break;
-
-			case Format::argb8888:
-				newdata[0] = color.w;
-				newdata[1] = color.x;
-				newdata[2] = color.y;
-				newdata[3] = color.z;
-				break;
-
-			case Format::a8:
-				newdata[0] = color.w;
-				break;
-
-			default:
-				break;
-		}
-	}
-
-	nytl::Vec4u8 formatDataColor(const std::uint8_t& pixel, ImageDataFormat format)
-	{
-		using Format = ImageDataFormat;
-		auto pixelSize = imageDataFormatSize(format);
-		std::uint8_t d1, d2, d3, d4;
-
-		if(pixelSize > 0) d1 = *(&pixel + 0);
-		if(pixelSize > 1) d2 = *(&pixel + 1);
-		if(pixelSize > 2) d3 = *(&pixel + 2);
-		if(pixelSize > 3) d4 = *(&pixel + 3);
-
-		switch(format)
-		{
-			case Format::bgra8888: return {d3, d2, d1, d4};
-			case Format::argb8888: return {d4, d1, d2, d3};
-			case Format::rgba8888: return {d1, d2, d3, d4};
-			case Format::rgb888: return {d1, d2, d3, 0};
-			case Format::bgr888: return {d3, d2, d1, 0};
-			case Format::a8: return {0, 0, 0, d1};
-			default: return {};
-		}
+		case Format::bgra8888: return {l3, l2, l1, l4};
+		case Format::argb8888: return {l2, l3, l4, l1};
+		case Format::rgba8888: return {l1, l2, l3, l4};
+		case Format::rgb888: return {l2, l3, l4, 0};
+		case Format::bgr888: return {l4, l3, l2, 0};
+		case Format::a8: return {0, 0, 0, l4};
+		default: return {};
 	}
 }
+
+// } //anonymous namespace
 
 unsigned int imageDataFormatSize(ImageDataFormat f)
 {

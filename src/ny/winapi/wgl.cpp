@@ -177,8 +177,9 @@ WglSetup::WglSetup(HWND dummy) : dummyWindow_(dummy)
 			if(!pixelformat) return; //dont error here - its ok
 
 			//first check that we dont already have this format
+			auto pixelformatu = static_cast<unsigned int>(pixelformat);
 			for(auto& fmt : configs_)
-				if(glConfigNumber(fmt.id) == pixelformat) return;
+				if(glConfigNumber(fmt.id) == pixelformatu) return;
 
 			//check the actual values since ChoosePixelFormat returns only the closest format
 			PIXELFORMATDESCRIPTOR realPfd {};
@@ -438,7 +439,7 @@ bool WglContext::makeCurrentImpl(const GlSurface& surf, std::error_code& ec)
 bool WglContext::makeNotCurrentImpl(std::error_code& ec)
 {
 	ec.clear();
-	
+
 	::SetLastError(0);
 	if(!::wglMakeCurrent(nullptr, nullptr))
 	{

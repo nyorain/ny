@@ -32,8 +32,8 @@ add_executable(ny-dev dev.cpp)
 target_link_libraries(ny-dev ny)
 
 #inline
-# add_executable(ny-inline inline.cpp)
-# target_link_libraries(ny-inline ny)
+add_executable(ny-inline inline.cpp)
+target_link_libraries(ny-inline ny)
 
 # The following examples are currently disabled since ny does not have cairo or
 # skia support anymore.

@@ -27,7 +27,7 @@ public:
 	WinapiAppContext();
 	~WinapiAppContext();
 
-	//interface implementation
+	//AppContext interface implementation
 	KeyboardContext* keyboardContext() override;
 	MouseContext* mouseContext() override;
 	WindowContextPtr createWindowContext(const WindowSettings& settings) override;
@@ -42,27 +42,22 @@ public:
 	std::vector<const char*> vulkanExtensions() const override;
 	GlSetup* glSetup() const override;
 
-	//custom winapi stuff
+	//- winapi specific -
 	WglSetup* wglSetup() const;
 	LONG_PTR eventProc(HWND, UINT, WPARAM, LPARAM);
 	//INT_PTR dlgEventProc(HWND, UINT, WPARAM, LPARAM); //needed?
 
 	WinapiWindowContext* windowContext(HWND win);
-
 	HINSTANCE hinstance() const { return instance_; };
-	const STARTUPINFO& startupInfo() const { return startupInfo_; };
 
 protected:
 	HINSTANCE instance_ = nullptr;
-	STARTUPINFO startupInfo_;
-
 	std::map<HWND, WinapiWindowContext*> contexts_;
 
 	std::unique_ptr<DataOffer> clipboardOffer_;
 	unsigned int clipboardSequenceNumber_ {};
 
 	HWND dummyWindow_ {};
-	MSG lastMsg_ {};
 	bool receivedQuit_ = false;
 
 	WinapiMouseContext mouseContext_;

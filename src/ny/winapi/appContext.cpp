@@ -58,7 +58,8 @@ public:
 
 	bool stop() override
 	{
-		run.store(0);
+		run.store(false);
+		wakeup();
 		return true;
 	};
 
@@ -140,7 +141,7 @@ WinapiAppContext::WinapiAppContext() : mouseContext_(*this), keyboardContext_(*t
 	if(lib)
 	{
 		auto func = ::GetProcAddress(lib, "AddClipboardFormatListener");
-		if(!func) warning("ny::WinapiAC: Failed to retrieve AddClipboardFormatListener");
+		if(!func) warning("ny::WinapiAppContext: Failed to retrieve AddClipboardFormatListener");
 		else (reinterpret_cast<BOOL(*)(HWND)>(func))(dummyWindow_);
 		::FreeLibrary(lib);
 	}
@@ -160,23 +161,31 @@ std::unique_ptr<WindowContext> WinapiAppContext::createWindowContext(const Windo
 	if(ws) winapiSettings = *ws;
 	else winapiSettings.WindowSettings::operator=(settings);
 
-	if(settings.surface == SurfaceType::gl)
-	{
-		#ifdef NY_WithGl
-		 if(!wglSetup()) throw std::runtime_error("ny::WinapiAC::createWC: wgl init failed");
-		 return std::make_unique<WglWindowContext>(*this, *wglSetup(), winapiSettings);
-		#else
-		 throw std::logic_error("ny::WinapiAC::createWC: ny was built without gl support");
-		#endif //gl
-	}
-
-	else if(settings.surface == SurfaceType::vulkan)
+	if(settings.surface == SurfaceType::vulkan)
 	{
 		#ifdef NY_WithVulkan
-		 return std::make_unique<WinapiVulkanWindowContext>(*this, winapiSettings);
+			return std::make_unique<WinapiVulkanWindowContext>(*this, winapiSettings);
 		#else
-		 throw std::logic_error("ny::WinapiAC::createWC: ny was built without vulkan support");
+			static constexpr auto noVulkan = "ny::WinapiAppContext::createWindowContext: "
+				"ny was built without vulkan support and can not create a Vulkan surface";
+
+			 throw std::logic_error(noVulkan);
 		#endif //vulkan
+	}
+	else if(settings.surface == SurfaceType::gl)
+	{
+		#ifdef NY_WithGl
+			static constexpr auto wglFailed = "ny::WinapiAppContext::createWindowContext: "
+				"initializing wgl failed, therefore no gl surfaces can be created";
+
+			 if(!wglSetup()) throw std::runtime_error(wglFailed);
+			 return std::make_unique<WglWindowContext>(*this, *wglSetup(), winapiSettings);
+		#else
+			static constexpr auto noWgl = "ny::WinapiAppContext::createWindowContext: "
+				"ny was built without gl/wgl support and can therefore not create a gl Surface";
+
+			throw std::logic_error(noWgl);
+		#endif //gl
 	}
 	else if(settings.surface == SurfaceType::buffer)
 	{
@@ -290,7 +299,8 @@ bool WinapiAppContext::startDragDrop(std::unique_ptr<DataSource>&& source)
 	auto dropSource = new winapi::com::DropSourceImpl();
 
 	DWORD effect;
-	return(::DoDragDrop(dataObj, dropSource, DROPEFFECT_COPY, &effect) == S_OK);
+	auto ret = ::DoDragDrop(dataObj, dropSource, DROPEFFECT_COPY, &effect);
+	return (ret == S_OK || ret == DRAGDROP_S_DROP || ret == DRAGDROP_S_CANCEL);
 }
 
 WinapiWindowContext* WinapiAppContext::windowContext(HWND w)
@@ -305,14 +315,13 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 	auto wc = windowContext(window);
 
 	WinapiEventData eventData;
+	eventData.windowContext = wc;
 	eventData.window = window;
 	eventData.message = message;
 	eventData.wparam = wparam;
 	eventData.lparam = lparam;
 
 	LRESULT result = 0;
-
-	static std::string last;
 
 	switch(message)
 	{
