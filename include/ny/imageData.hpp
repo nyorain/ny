@@ -9,29 +9,38 @@
 #include <memory>
 #include <vector>
 
+//Be careful with formats and byte ordering!
+//A good read, from which we use some terminology:
+//https://en.wikipedia.org/wiki/RGBA_color_space
+
+//TODO: document formats, ordering inside ny more clearly
+//TODO: more ImageDataFormats needed? e.g. rgb565 or rgba4444 or rgba16161616?
+//TODO: rename ImageData -> Image (ImageDataFormat -> ImageFormat or PixelFormat)
+
 namespace ny
 {
 
 ///The differents formats in which image data can be represented.
-///For example, rgba8888 describes the following layout for std::uint8_t* data:
-/// - data[0] is the r value
-/// - data[1] is the g value
-/// - data[2] is the b value
-/// - data[3] is the a value
-///Note that the a value for formats with alpha (e.g. rgba8888) does not automatically
-///guarantee that the image user respects or correctly interprets alpha, it might just
-///be an ignored padding i.e. ny does not explicitly differentiate between xrgb and argb.
+///If one needs a 32-bit rgb color format (i.e. with 8 bits unused), just use a
+///rgba/argb format and ensure that all alpha values are set to 255.
 ///\sa imageDataFormatSize
 ///\sa ImageData
 enum class ImageDataFormat : unsigned int
 {
 	none,
+
 	rgba8888,
-	bgra8888,
 	argb8888,
 	rgb888,
-	bgr888,
-	a8
+
+	abgr8888, //reverse rgba
+	bgra8888, //reverse argb
+	bgr888, //reverse rgb
+
+	r8,
+	g8,
+	b8,
+	a8,
 };
 
 ///Used to pass loaded or created images to functions.
@@ -43,27 +52,31 @@ enum class ImageDataFormat : unsigned int
 ///\sa ImageDataFormat
 ///\sa imageDataFormatSize
 template<typename P>
-struct BasicImageData
+class BasicImageData
 {
+public:
 	///The raw data of the image. Must be a pointer-like object to at least stride * size.y bytes.
+	///The format of the data is specified by format. The data is layed out in endian-native
+	///i.e. word order. This means that e.g. on a x86 (little-endian) machine, the first
+	///byte of a pixel with rgba format would be the alpha (not the red!) byte.
 	P data {};
 
 	///The size of the represented image.
 	nytl::Vec2ui size {};
 
-	///The format of the raw image data.
+	///The format of the raw image data in native-endian order.
 	ImageDataFormat format {};
 
 	///The size in bytes of one image data row.
-	///Note that this might be different from the packed size (size.x * imageDataFormatSize(format))
-	///due to row alignment requirements.
+	///Might be different from the packed size (size.x * imageDataFormatSize(format))
+	///due to row alignment requirements (i.e. align the stride to 32 bit for SSE operatoins).
 	///If the stride is 0, it should always be treated as the packed size.
 	unsigned int stride {};
 };
 
 ///BasicImageData specialization for owned image data that makes it copyable.
 template<>
-struct BasicImageData<std::unique_ptr<uint8_t[]>>
+class BasicImageData<std::unique_ptr<uint8_t[]>>
 {
 public:
 	std::unique_ptr<uint8_t[]> data {};
@@ -98,19 +111,26 @@ using BasicAnimatedImageData = std::vector<std::pair<BasicImageData<P>, unsigned
 ///E.g. Format::rgba8888 would return 4, since one pixel of this format needs 4 bytes to
 ///be stored. Also known as bpp (bytes per pixel);
 ///\sa ImageDataFormat
-unsigned int imageDataFormatSize(ImageDataFormat f);
+unsigned int imageDataFormatSize(ImageDataFormat);
 
 
-///Can be used to convert image data to another format.
-///\param stride The stride of the given image data. Defaulted to 0, in which case
-///the given size * the size of the given format will be used as stride.
-///The returned data will be tightly packed (no row paddings).
+///Converts between byte order (i.e. endian-independent) and word-order (endian-dependent)
+///and vice versa. On a big-endian machine this function will simply return a format, but
+///on a little-endian machine it will reverse the order of the format.
+///Note that ImageData objects always hold data in word order, so if one works with a library
+///that uses byte-order (as some e.g. image libraries do) they have to either convert the
+///imageData data or the imageData format when passing/receiving from/to this library.
+ImageDataFormat toggleWordByte(ImageDataFormat);
+
+///Can be used to convert image data to another format or to change its stride alignment.
+///\param alignNewStride Can be used to pass a alignment requirement for the stride of the
+///new (converted) data. Defaulted to 0, in which case the packed size will be used as stride.
 ///\sa BasicImageData
 ///\sa ImageDataFormat
-std::unique_ptr<std::uint8_t[]> convertFormat(const ImageData& img, ImageDataFormat to,
+OwnedImageData convertFormat(const ImageData& fromImg, ImageDataFormat to,
 	unsigned int alignNewStride = 0);
 
-void convertFormat(const ImageData& img, ImageDataFormat to, std::uint8_t& toData,
+void convertFormat(const ImageData& fromImg, ImageDataFormat to, std::uint8_t& toData,
 	unsigned int alignNewStride = 0);
 
 
@@ -124,5 +144,9 @@ unsigned int dataSize(const BasicImageData<P>& imageData)
 	return stride * imageData.size.y;
 }
 
+//Returns whether an ImageData object satisfied the given requirements.
+//Returns false if the stride of the given ImageData satisfies the given align but
+//is not as small as possible.
+bool satisfiesRequirements(const ImageData&, ImageDataFormat format, unsigned int strideAlign = 0);
 
 }

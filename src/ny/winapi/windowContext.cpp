@@ -255,25 +255,22 @@ void WinapiWindowContext::position(nytl::Vec2i position)
 
 void WinapiWindowContext::cursor(const Cursor& c)
 {
-	//TODO: here and icon: system metrics
 	if(c.type() == CursorType::image)
 	{
-		constexpr static auto reqFormat = ImageDataFormat::bgra8888; //TODO: endianess?
+		constexpr static auto reqFormat = ImageDataFormat::argb8888;
 
 		const auto& imgdata = *c.image();
-		std::unique_ptr<std::uint8_t[]> ownedData;
-		auto packedStride = imgdata.size.x * imageDataFormatSize(imgdata.format);
 		auto* pixelsData = imgdata.data;
+		OwnedImageData ownedImage;
 
-		//usually an extra conversion/copy is required
-		if((imgdata.stride != packedStride && imgdata.stride != 0) || imgdata.format != reqFormat)
+		if(!satisfiesRequirements(imgdata, reqFormat))
 		{
-			ownedData = convertFormat(imgdata, reqFormat);
-			pixelsData = ownedData.get();
+			ownedImage = convertFormat(imgdata, reqFormat);
+			pixelsData = ownedImage.data.get();
 		}
 
 		auto bitmap = ::CreateBitmap(imgdata.size.x, imgdata.size.y, 1, 32, pixelsData);
-		auto dummyBitmap = ::CreateBitmap(imgdata.size.x, imgdata.size.y, 1, 1, NULL);
+		auto dummyBitmap = ::CreateBitmap(imgdata.size.x, imgdata.size.y, 1, 1, nullptr);
 
 		auto bitmapGuard = nytl::makeScopeGuard([&]{
 			if(bitmap) ::DeleteObject(bitmap);
@@ -313,7 +310,7 @@ void WinapiWindowContext::cursor(const Cursor& c)
 		auto cursorName = cursorToWinapi(c.type());
 		if(!cursorName)
 		{
-			warning("WinapiWindowContext::cursor: invalid native cursor type");
+			warning("ny::WinapiWindowContext::cursor: invalid native cursor type");
 			return;
 		}
 
@@ -322,7 +319,7 @@ void WinapiWindowContext::cursor(const Cursor& c)
 
 		if(!cursor_)
 		{
-			warning(errorMessage("WinapiWindowContext::cursor: failed to load native cursor"));
+			warning(errorMessage("ny::WinapiWindowContext::cursor: failed to load native cursor"));
 			return;
 		}
 	}
@@ -452,24 +449,21 @@ void WinapiWindowContext::icon(const ImageData& imgdata)
 		return;
 	}
 
-	//windows wants the data in bgra format
-	constexpr static auto reqFormat = ImageDataFormat::bgra8888; //TODO: endianess?
+	constexpr static auto reqFormat = ImageDataFormat::argb8888;
 
-	std::unique_ptr<std::uint8_t[]> ownedData;
-	auto packedStride = imgdata.size.x * imageDataFormatSize(imgdata.format);
 	auto* pixelsData = imgdata.data;
+	OwnedImageData ownedImage;
 
-	//usually an extra conversion/copy is required
-	if((imgdata.stride != packedStride && imgdata.stride != 0) || imgdata.format != reqFormat)
+	if(!satisfiesRequirements(imgdata, reqFormat))
 	{
-		ownedData = convertFormat(imgdata, reqFormat);
-		pixelsData = ownedData.get();
+		ownedImage = convertFormat(imgdata, reqFormat);
+		pixelsData = ownedImage.data.get();
 	}
 
 	icon_ = ::CreateIcon(hinstance(), imgdata.size.x, imgdata.size.y, 1, 32, nullptr, pixelsData);
 	   if(!icon_)
 	{
-		warning("WinapiWindowContext::icon: Failed to create winapi icon handle");
+		warning("ny::WinapiWindowContext::icon: Failed to create winapi icon handle");
 		return;
 	}
 

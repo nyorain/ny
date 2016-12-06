@@ -23,10 +23,11 @@ int main()
 	// for(auto d : decoded) ny::log(d);
 
 	// std::uint8_t pixel1[4] = {0xAA, 0xBB, 0xCC, 0xDD};
-	std::uint32_t pixel2 = 0xAABBCCDD;
+	// std::uint32_t pixel2 = 0xAABBCCDD;
+	std::uint8_t pixel2 = 0xAA;
 
 	// std::cout << std::hex << (nytl::Vec4u32) ny::formatDataColor(*pixel1, ny::ImageDataFormat::rgba8888) << "\n";
-	std::cout << std::hex << (nytl::Vec4u32) ny::formatDataColor((uint8_t&)pixel2, ny::ImageDataFormat::rgba8888) << "\n";
+	std::cout << std::hex << (nytl::Vec4u32) ny::formatDataColor((uint8_t&)pixel2, ny::ImageDataFormat::a8) << "\n";
 
 	return 1;
 }

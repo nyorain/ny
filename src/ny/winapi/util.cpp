@@ -325,36 +325,83 @@ std::error_code lastErrorCode()
 	return {static_cast<int>(::GetLastError()), EC::instance()};
 }
 
+//TODO!
+// HBITMAP toBitmap(const ImageData& img)
+// {
+// 	auto stride = img.stride;
+// 	if(!stride) stride = img.size.x * 4;
+//
+// 	auto hdc = ::GetDC(nullptr);
+// 	auto hdcGuard = nytl::makeScopeGuard([&]{ ::ReleaseDC(nullptr, hdc); });
+//
+// 	using BIH = BITMAPINFOHEADER;
+// 	static constexpr auto size = sizeof(BIH) + 4 * sizeof(DWORD);
+// 	std::aligned_storage<1, alignof(BIH)>::type header[size];
+//
+// 	auto& info = reinterpret_cast<BITMAPINFO&>(header);
+// 	info.bmiHeader = toBitmapHeader(img);
+//
+// 	//rgba[a]
+// 	auto* table = reinterpret_cast<DWORD*>(header + sizeof(BIH));
+// 	table[0] = 0xFF000000;
+// 	table[1] = 0x00FF0000;
+// 	table[2] = 0x0000FF00;
+// 	table[3] = 0x000000FF;
+//
+// 	void* bitmapData {};
+// 	// auto bitmap = ::CreateDIBSection(hdc, &info, DIB_RGB_COLORS, &bitmapData, nullptr, 0);
+//
+// 	auto data = img.data;
+// 	OwnedImageData ownedImage;
+// 	if(img.format != ImageDataFormat::argb8888)
+// 	{
+// 		ownedImage = convertFormat(img, ImageDataFormat::argb8888);
+// 		data = ownedImage.data.get();
+// 		stride = img.size.x * 4;
+// 	}
+//
+// 	// std::memcpy(bitmapData, data, img.size.y * stride);
+// 	auto bitmap = ::CreateBitmap(img.size.x, img.size.y, 1, 32, img.data);
+// 	return bitmap;
+// }
+
 HBITMAP toBitmap(const ImageData& img)
 {
-	auto stride = img.stride;
-	if(!stride) stride = img.size.x * 4;
+	BITMAPV5HEADER header {};
+	header.bV5Size = sizeof(header);
+	header.bV5Width = img.size.x;
+	header.bV5Height = -img.size.y;
+	header.bV5SizeImage = img.size.y * img.stride;
+	header.bV5Planes = 1;
+	header.bV5BitCount = 32;
+	header.bV5Compression = BI_BITFIELDS;
+
+	header.bV5RedMask = 0x00FF0000;
+	header.bV5GreenMask = 0x0000FF00;
+	header.bV5BlueMask = 0x000000FF;
+	header.bV5AlphaMask = 0xFF000000;
+
+	// header.bV5CSType = 0x57696e20; // LCS_WINDOWS_COLOR_SPACE
+	// header.bV5Intent = LCS_GM_BUSINESS;
 
 	auto hdc = ::GetDC(nullptr);
 	auto hdcGuard = nytl::makeScopeGuard([&]{ ::ReleaseDC(nullptr, hdc); });
 
-	using BIH = BITMAPINFOHEADER;
-	static constexpr auto size = sizeof(BIH) + 3 * sizeof(DWORD);
-	std::aligned_storage<1, alignof(BIH)>::type header[size];
-
-	auto& info = reinterpret_cast<BITMAPINFO&>(header);
-	info.bmiHeader = toBitmapHeader(img);
-
-	//rgba[a]
-	// auto* table = reinterpret_cast<DWORD*>(header + sizeof(BIH));
-	// table[0] = 0xFF000000;
-	// table[1] = 0x00FF0000;
-	// table[2] = 0x0000FF00;
-
 	void* bitmapData {};
+	auto& info = reinterpret_cast<BITMAPINFO&>(header);
 	auto bitmap = ::CreateDIBSection(hdc, &info, DIB_RGB_COLORS, &bitmapData, nullptr, 0);
 
+	auto stride = img.stride;
+	if(!stride) stride = img.size.x * 4;
+
+	//TODO: premultiply
+
 	auto data = img.data;
-	std::unique_ptr<uint8_t[]> ownedBuffer;
-	if(img.format != ImageDataFormat::bgra8888)
+	OwnedImageData ownedImage;
+	if(img.format != ImageDataFormat::argb8888)
 	{
-		ownedBuffer = convertFormat(img, ImageDataFormat::bgra8888);
-		data = ownedBuffer.get();
+		ownedImage = convertFormat(img, ImageDataFormat::argb8888);
+		data = ownedImage.data.get();
 		stride = img.size.x * 4;
 	}
 
@@ -372,6 +419,7 @@ BITMAPINFOHEADER toBitmapHeader(const ImageData& img)
 	header.biPlanes = 1;
 	header.biBitCount = 32;
 	header.biCompression = BI_RGB;
+	// header.biCompression = BI_BITFIELDS;
 	header.biXPelsPerMeter = 1;
 	header.biYPelsPerMeter = 1;
 	// header.biClrUsed = 3;

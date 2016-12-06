@@ -65,7 +65,7 @@ class EglSetup;
 class EglSurface;
 class EglContext;
 
-template<typename P> struct BasicImageData;
+template<typename P> class BasicImageData;
 using ImageData = BasicImageData<const uint8_t*>;
 using MutableImageData = BasicImageData<uint8_t*>;
 

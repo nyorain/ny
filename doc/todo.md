@@ -1,6 +1,7 @@
 Current todo:
 =============
 
+- improve imageData with additional functions/interface (for winapi::toBitmap)
 - clean up the namespace/prefix mess (e.g. wayland::EventData vs WaylandEventData)
 	- should be uniform across backends
 - deferred events (i.e. DONT dispatch outside dispatch functions)
@@ -120,3 +121,6 @@ winapi backend:
 	- cannot differentiate to windows created not by ny
 - com: correct refadd/release? check with destructor log!
 - com: only need one DropSource/Target helper?
+
+- WC: cursor and icon: system metrics
+- WC: cursor: use winapi::toBitmap function, improve it with required format (?)
