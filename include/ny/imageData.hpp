@@ -107,9 +107,10 @@ template<typename P>
 using BasicAnimatedImageData = std::vector<std::pair<BasicImageData<P>, unsigned int>>;
 
 
+//TODO: use bits!
 ///Returns the size of the given format in bytes.
 ///E.g. Format::rgba8888 would return 4, since one pixel of this format needs 4 bytes to
-///be stored. Also known as bpp (bytes per pixel);
+///be stored. The size will always be rounded up to bytes, e.g. Format::a8 returns 1.
 ///\sa ImageDataFormat
 unsigned int imageDataFormatSize(ImageDataFormat);
 
@@ -148,5 +149,15 @@ unsigned int dataSize(const BasicImageData<P>& imageData)
 //Returns false if the stride of the given ImageData satisfies the given align but
 //is not as small as possible.
 bool satisfiesRequirements(const ImageData&, ImageDataFormat format, unsigned int strideAlign = 0);
+
+///Returns the color of the image at at the given position.
+///Does not perform any range checking, i.e. if position lies outside of the size
+///of the passed ImageData object, this call will result in undefined behavior.
+nytl::Vec4u8 readPixel(const ImageData&, nytl::Vec2ui position);
+
+///Sets the color of the pixel at the given position.
+///Does not perform any range checking, i.e. if position lies outside of the size
+///of the passed ImageData object, this call will result in undefined behavior.
+void writePixel(const MutableImageData&, nytl::Vec2ui position, nytl::Vec4u8 color);
 
 }

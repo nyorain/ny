@@ -249,6 +249,18 @@ bool satisfiesRequirements(const ImageData& img, ImageDataFormat format, unsigne
 	return (img.format == format && stride(img) == smallestStride);
 }
 
+nytl::Vec4u8 readPixel(const ImageData& img, nytl::Vec2ui position)
+{
+	auto pixel = img.data + position.y * img.stride + position.x * imageDataFormatSize(img.format);
+	return readPixel(*pixel, img.format);
+}
+
+void writePixel(const MutableImageData& img, nytl::Vec2ui position, nytl::Vec4u8 color)
+{
+	auto pixel = img.data + position.y * img.stride + position.x * imageDataFormatSize(img.format);
+	writePixel(*pixel, img.format, color);
+}
+
 OwnedImageData::BasicImageData(const OwnedImageData& other)
 	: size(other.size), format(other.format), stride(other.stride)
 {
