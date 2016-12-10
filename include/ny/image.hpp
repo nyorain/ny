@@ -82,7 +82,7 @@ constexpr bool littleEndian();
 ///Can be used to 'align' a value e.g. align(27, 8) returns 32.
 template<typename A, typename B>
 constexpr auto align(A value, B alignment)
-	{ return std::ceil(value / double(alignment)) * alignment; }
+	{ return alignment ? std::ceil(value / double(alignment)) * alignment : value; }
 
 ///Returns the number of bits needed to store one pixel in the given format.
 unsigned int bitSize(const ImageFormat& format);
@@ -102,11 +102,14 @@ ImageFormat toggleByteWordOrder(const ImageFormat& format);
 
 namespace detail
 {
-	template<typename P>
-	void copy(P& to, uint8_t* from, unsigned int) { to = from; }
+	template<typename T, typename F>
+	void copy(T& to, F from, unsigned int) { to = from; }
+
+	template<typename T, typename PF>
+	void copy(T& to, const std::unique_ptr<PF[]>& from, unsigned int) { to = from.get(); }
 
 	template<typename PT>
-	void copy(std::unique_ptr<PT[]> to, uint8_t* from, unsigned int size)
+	void copy(std::unique_ptr<PT[]>& to, const uint8_t* from, unsigned int size)
 	{
 		if(!from)
 		{
@@ -117,7 +120,26 @@ namespace detail
 		to = std::make_unique<PT[]>(size);
 		std::memcpy(to.get(), from, size);
 	}
+
+	template<typename PT, typename PF>
+	void copy(std::unique_ptr<PT>& to, const std::unique_ptr<PF[]>& from, unsigned int size)
+	{
+		if(!from)
+		{
+			to = {};
+			return;
+		}
+
+		to = std::make_unique<PT[]>(size);
+		std::memcpy(to.get(), from.get(), size);
+	}
 }
+
+template<typename P> class BasicImage;
+template<typename P> const uint8_t* data(const BasicImage<P>& img);
+template<typename P> const uint8_t* data(const BasicImage<std::unique_ptr<P>>& img);
+template<typename P> unsigned int dataSize(const BasicImage<P>& img);
+template<typename P> unsigned int bitStride(const BasicImage<P>& img);
 
 ///Used to pass loaded or created images to functions.
 ///Note that this class does explicitly not implement any functions for creating/loading/changing
@@ -144,12 +166,12 @@ public:
 
 	BasicImage(P xdata, nytl::Vec2ui xsize, const ImageFormat& fmt, unsigned int strd = 0u)
 		: data(std::move(xdata)), size(xsize), format(fmt), stride(strd)
-		{ if(!stride) stride = std::ceil(size.x * bitSize(format) / 8) * 8; }
+		{ if(!stride) stride = size.x * bitSize(format); }
 
 	template<typename O>
 	BasicImage(const BasicImage<O>& lhs)
-		: size(lhs.size()), format(lhs.format()), stride(lhs.stride())
-		{ detail::copy(data, lhs.data(), lhs.dataSize()); }
+		: size(lhs.size), format(lhs.format), stride(::image::bitStride(lhs))
+		{ detail::copy(data, lhs.data, ::image::dataSize(lhs)); }
 
 	template<typename O>
 	BasicImage& operator=(const BasicImage<O>& lhs)
@@ -157,7 +179,7 @@ public:
 		size = lhs.size;
 		format = lhs.format;
 		stride = lhs.sitrde;
-		detail::copy(data, lhs.data(), lhs.dataSize());
+		detail::copy(data, lhs.data, dataSize(lhs));
 		return *this;
 	}
 
@@ -203,6 +225,9 @@ template<typename P>
 unsigned int dataSize(const BasicImage<P>& img)
 	{ return std::ceil(bitStride(img) * img.size.y / 8.0); }
 
+///Returns the bit of the given Image at which the pixel for the given position begins.
+unsigned int pixelBit(const Image&, nytl::Vec2ui position);
+
 ///Returns the color of the image at at the given position.
 ///Does not perform any range checking, i.e. if position lies outside of the size
 ///of the passed ImageData object, this call will result in undefined behavior.
@@ -211,27 +236,53 @@ nytl::Vec4u64 readPixel(const Image&, nytl::Vec2ui position);
 ///Returns the color of the given pixel value for the given ImageFormat.
 ///Results in undefined behaviour if the given format is invalid or the data referenced
 ///by pixel does not have enough bytes to read.
-///\param bitOffset The bit position at which reading should start.
+///\param bitOffset The bit position at which reading should start in signifance.
+///E.g. if bitOffset is 5, we should start reading the 5th most significant bit,
+///and then getting more significant by continuing with the 6th.
 nytl::Vec4u64 readPixel(const uint8_t& pixel, const ImageFormat&, unsigned int bitOffset = 0u);
 
 ///Sets the color of the pixel at the given position.
 ///Does not perform any range checking, i.e. if position lies outside of the size
 ///of the passed ImageData object, this call will result in undefined behavior.
-void writePixel(const MutableImage&, nytl::Vec2ui position, nytl::Vec4u8 color);
+void writePixel(const MutableImage&, nytl::Vec2ui position, nytl::Vec4u64 color);
 
 ///Sets the color of the given pixel.
 ///Results in undefined behaviour if the given format is invalid or the data referenced
 ///by pixel does not have enough bytes to read.
-///\param bitOffset The bit position at which reading should start.
+///\param bitOffset The bit position at which reading should start in significance.
 void writePixel(uint8_t& pixel, const ImageFormat&, nytl::Vec4u64 color,
 	unsigned int bitOffset = 0u);
 
+///Normalizes the given color values for the given format (color channel sizes).
+///Example: norm({255, 128, 511, 0}, rgba8888) returns {1.0, 0.5, 2.0, 0.0}
+nytl::Vec4f norm(nytl::Vec4u64 color, const ImageFormat& format);
+
+///Makes sure that all color values can be represented by the number of bits their
+///channel has in the given format while keeping the color as original as possible.
+nytl::Vec4u64 downscale(nytl::Vec4u64 color, const ImageFormat& format);
+
+//Returns whether an ImageData object satisfied the given requirements.
+//Returns false if the stride of the given ImageData satisfies the given align but
+//is not as small as possible.
+///\param strideAlign The required alignment of the stride in bits
+bool satisfiesRequirements(const Image&, const ImageFormat&, unsigned int strideAlign = 0);
+
+///Can be used to convert image data to another format or to change its stride alignment.
+///\param alignNewStride Can be used to pass a alignment requirement for the stride of the
+///new (converted) data. Defaulted to 0, in which case the packed size will be used as stride.
+///\sa BasicImageData
+///\sa ImageDataFormat
+OwnedImage convertFormat(const Image&, ImageFormat to, unsigned int alignNewStride = 0);
+void convertFormat(const Image&, ImageFormat to, uint8_t& into, unsigned int alignNewStride = 0);
+
+///Premutliplies the alpha values for the given image.
+void premultiply(const MutableImage& img);
 
 /// - implementation -
 constexpr bool littleEndian()
 {
 	constexpr uint32_t dummy = 1u;
-	return (((std::uint8_t*)&dummy)[0] == 1);
+	return (((uint8_t*)&dummy)[0] == 1);
 }
 
 unsigned int bitSize(const ImageFormat& format)
@@ -264,7 +315,13 @@ ImageFormat toggleByteWordOrder(const ImageFormat& format)
 	return copy;
 }
 
-nytl::Vec4u64 readPixel(const uint8_t& pixel, const ImageFormat& format, unsigned int bitOffset = 0)
+unsigned int pixelBit(const Image& image, nytl::Vec2ui pos)
+{
+	return image.stride * pos.y + bitSize(image.format) * pos.x;
+}
+
+//TODO: find an actual big endian machine to test this on
+nytl::Vec4u64 readPixel(const uint8_t& pixel, const ImageFormat& format, unsigned int bitOffset)
 {
 	const uint8_t* iter = &pixel;
 	nytl::Vec4u64 rgba {};
@@ -285,7 +342,7 @@ nytl::Vec4u64 readPixel(const uint8_t& pixel, const ImageFormat& format, unsigne
 			case ColorChannel::green: val = &rgba[1]; break;
 			case ColorChannel::blue: val = &rgba[2]; break;
 			case ColorChannel::alpha: val = &rgba[3]; break;
-			case ColorChannel::none: iter += byteCount; continue;
+			case ColorChannel::none: iter += byteCount; continue; //TODO: handle bitOffset
 		}
 
 		//reset the color value
@@ -320,27 +377,31 @@ nytl::Vec4u64 readPixel(const uint8_t& pixel, const ImageFormat& format, unsigne
 		else
 		{
 			//for big endian we have to swap the order in which we read bytes
-			//but if we would simply inverse it, we would inverse all significance.
-			//For e.g. a channel with 8 bits and value 0xFF, we want 0xFF and not 0x00...00FF
-			//therefore we start at bitset position ((byteCount - 1) * 8), i.e. the least
-			//significant byte that has data.
-			//During the loop we always get more significant bit-wise and less significant
-			//byte-wise.
-			auto currentBit = (byteCount - 1) * 8;
-			for(auto i = 0u; i < channel.second; ++i)
+			//we start at the most significant byte we have data for (since 0xFF should
+			//result in 0xFF and not 0x000...00FF) and from there go backwards, i.e.
+			//less significant byte-wise.
+			//Bit-wise we still get more significant during each byte inside the loop.
+			//The extra check (i == chanell.second) for the next byte is needed because
+			//we only want to write the first (8 - bitOffset (from beginnig)) bits of
+			//the first byte.
+			//
+			//Example for channel.second=14, bitOffset=3.
+			//the resulting bitset and the iteration i that set the bitset value:
+			//<6 7 8 9 10 11 12 13 | 0 1 2 3 4 5 - - | (here are 48 untouched bits)>
+			//note how i=5 is the most significant bit for the color channel here.
+
+			auto bit = channel.second - (channel.second % 8);
+			for(auto i = 0; i < channel.second; ++i)
 			{
-				//note that we still want to store less significant data first and since
-				//bitOffset (and currentBit) are (inside of one byte) only increasing we
-				//we always extract only bits that are more significant than the ones before
-				bitset[currentBit] = (*iter & (1 << bitOffset));
+				// const auto bit = channel.second - (currentByte * 8) + (8 - bitOffset);
+				bitset[bit] = (*iter & (1 << bitOffset));
 
 				++bitOffset;
-				++currentBit;
-				if(bitOffset >= 8)
+				++bit;
+				if(bitOffset >= 8 || i == (channel.second % 8) - 1)
 				{
 					++iter;
-					++byteCount;
-					currentBit -= 8; //jump back exactly one byte
+					bit -= 8;
 					bitOffset = 0;
 				}
 			}
@@ -353,6 +414,79 @@ nytl::Vec4u64 readPixel(const uint8_t& pixel, const ImageFormat& format, unsigne
 	}
 
 	return rgba;
+}
+
+void writePixel(uint8_t& pixel, const ImageFormat& format, nytl::Vec4u64 color,
+	unsigned int bitOffset)
+{
+	uint8_t* iter = &pixel;
+
+	for(auto i = 0u; i < format.size(); ++i)
+	{
+		//for little endian channel order is inversed
+		auto channel = (littleEndian()) ? format[format.size() - (i + 1)] : format[i];
+		if(!channel.second) continue;
+
+		//calculate the byte count we have to load at all for this channel
+		unsigned int byteCount = std::ceil(channel.second / 8.0);
+		std::bitset<64> bitset;
+
+		switch(channel.first)
+		{
+			case ColorChannel::red: bitset = color[0]; break;
+			case ColorChannel::green: bitset = color[1]; break;
+			case ColorChannel::blue: bitset = color[2]; break;
+			case ColorChannel::alpha: bitset = color[3]; break;
+			case ColorChannel::none: iter += byteCount; continue; //TODO: handle bitOffset
+		}
+
+		//this is exactly like readPixel but in the opposite direction
+		if(littleEndian())
+		{
+			for(auto i = 0u; i < channel.second; ++i)
+			{
+				if(bitset[i]) *iter |= (1 << bitOffset);
+				else *iter &= ~(1 << bitOffset);
+
+				++bitOffset;
+				if(bitOffset >= 8u)
+				{
+					bitOffset = 0u;
+					++iter;
+				}
+			}
+		}
+		else
+		{
+			auto bit = channel.second - (channel.second % 8);
+			for(auto i = 0; i < channel.second; i++)
+			{
+				if(bitset[channel.second - i]) *iter |= (1 << bitOffset);
+				else *iter &= ~(1 << bitOffset);
+
+				++bitOffset;
+				++bit;
+				if(bitOffset >= 8u || i == (channel.second % 8) - 1)
+				{
+					bitOffset = 0u;
+					bit -= 8;
+					++iter;
+				}
+			}
+		}
+	}
+}
+
+nytl::Vec4u64 readPixel(const Image& img, nytl::Vec2ui pos)
+{
+	auto bit = pixelBit(img, pos);
+	return readPixel(*(img.data + bit / 8), img.format, bit % 8);
+}
+
+void writePixel(const MutableImage& img, nytl::Vec2ui pos, nytl::Vec4u64 color)
+{
+	auto bit = pixelBit(img, pos);
+	return writePixel(*(img.data + bit / 8), img.format, color, bit % 8);
 }
 
 nytl::Vec4f norm(nytl::Vec4u64 color, const ImageFormat& format)
@@ -376,10 +510,89 @@ nytl::Vec4f norm(nytl::Vec4u64 color, const ImageFormat& format)
 	return ret;
 }
 
-void writePixel(uint8_t& pixel, const ImageFormat& format, nytl::Vec4u8 color,
-	unsigned int bitOffset)
+nytl::Vec4u64 downscale(nytl::Vec4u64 color, const ImageFormat& format)
 {
-	auto pixelSize = byteSize(format);
+	//find the smallest factor, i.e. the one we have to divide with
+	auto factor = 1.0;
+	for(auto channel : format)
+	{
+		auto value = 0u;
+		switch(channel.first)
+		{
+			case ColorChannel::red: value = color[0]; break;
+			case ColorChannel::green: value = color[1]; break;
+			case ColorChannel::blue: value = color[2]; break;
+			case ColorChannel::alpha: value = color[3]; break;
+			case ColorChannel::none: continue;
+		}
+
+		if(!value) continue;
+		auto highest = std::exp2(channel.second) - 1;
+		factor = std::min(highest / value, factor);
+	}
+
+	return color * factor;
+}
+
+bool satisfiesRequirements(const Image& img, const ImageFormat& format,
+	unsigned int strideAlign)
+{
+	auto smallestStride = img.size.x * bitSize(format);
+	if(strideAlign) smallestStride = align(smallestStride, strideAlign);
+	return (img.format == format && bitStride(img) == smallestStride);
+}
+
+OwnedImage convertFormat(const Image& img, ImageFormat to, unsigned int alignNewStride)
+{
+	auto newStride = img.size.x * bitSize(to);
+	if(alignNewStride) newStride = align(newStride, alignNewStride);
+
+	OwnedImage ret;
+	ret.data = std::make_unique<std::uint8_t[]>(std::ceil((newStride * img.size.y) / 8.0));
+	ret.size = img.size;
+	ret.format = to;
+	ret.stride = newStride;
+	convertFormat(img, to, *ret.data.get(), alignNewStride);
+
+	return ret;
+}
+
+void convertFormat(const Image& img, ImageFormat to, uint8_t& into, unsigned int alignNewStride)
+{
+	if(satisfiesRequirements(img, to, alignNewStride))
+	{
+		std::memcpy(&into, img.data, dataSize(img));
+		return;
+	}
+
+	auto newStride = img.size.x * bitSize(to);
+	if(alignNewStride) newStride = align(newStride, alignNewStride);
+
+	for(auto y = 0u; y < img.size.y; ++y)
+	{
+		for(auto x = 0u; x < img.size.x; ++x)
+		{
+			auto color = downscale(readPixel(img, {x, y}), to);
+			auto bit = y * newStride + x * bitSize(to);
+			writePixel(*(&into + bit / 8), to, color, bit % 8);
+		}
+	}
+}
+
+void premultiply(const MutableImage& img)
+{
+	for(auto y = 0u; y < img.size.y; ++y)
+	{
+		for(auto x = 0u; x < img.size.x; ++x)
+		{
+			auto color = readPixel(img, {x, y});
+			auto alpha = norm(color, img.format).w;
+			color[0] *= alpha;
+			color[1] *= alpha;
+			color[2] *= alpha;
+			writePixel(img, {x, y}, color);
+		}
+	}
 }
 
 }
