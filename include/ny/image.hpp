@@ -29,6 +29,11 @@
 #include <nytl/vec.hpp>
 #include <memory>
 #include <cstring>
+#include <bitset>
+
+//TODO: c++17 make ImageFormat pod struct derived from std::array and
+//  the default formats constexpr members (i.e. ImageFormat::rgba8888)
+//  make also the utility functions constexpr
 
 namespace image
 {
@@ -43,22 +48,14 @@ enum class ColorChannel
 	alpha
 };
 
+///An ImageFormat specifies the way the colors of an Image pixel is interpreted.
+///It specifies the different used color channels and their size in bits.
+///For offsets ColorChannel::none can be used. All other ColorChannels are allowed
+///to appear only once per format (e.g. there can't be 8 red bits then 8 green bits and
+///then 8 red bits again for one pixel).
 using ImageFormat = std::array<std::pair<ColorChannel, uint8_t>, 9>;
 
-///Returns the number of bits needed to store one pixel in the given format.
-unsigned int bitSize(const ImageFormat& format)
-{
-	auto ret = 0u;
-	for(auto& channel : format) ret += channel.second;
-	return ret;
-}
-unsigned int byteSize(const ImageFormat& format)
-{
-	return std::ceil(bitSize(format) / 8.0);
-}
-
-ImageFormat toggleByteWordOrder(const ImageFormat& format);
-
+// - Default formats -
 constexpr ImageFormat rgba8888 {{
 	{ColorChannel::red, 8},
 	{ColorChannel::green, 8},
@@ -74,9 +71,34 @@ constexpr ImageFormat argb8888 {{
 }};
 
 constexpr ImageFormat a8 {{{ColorChannel::alpha, 8}}};
+constexpr ImageFormat a4 {{{ColorChannel::alpha, 4}}};
 constexpr ImageFormat a1 {{{ColorChannel::alpha, 1}}};
 
-template<typename P> class BasicImage;
+///Returns whether the current machine is little endian.
+///If this returns false it is assumed to be big endian (other types are ignored).
+constexpr bool littleEndian();
+
+///Returns the next multiple of alignment that is greater or equal than value.
+///Can be used to 'align' a value e.g. align(27, 8) returns 32.
+template<typename A, typename B>
+constexpr auto align(A value, B alignment)
+	{ return std::ceil(value / double(alignment)) * alignment; }
+
+///Returns the number of bits needed to store one pixel in the given format.
+unsigned int bitSize(const ImageFormat& format);
+
+///Returns the number of bytes needed to store one pixel in the given format.
+///Sine the exact value might not be a multiple of one byte, this value is rouneded up.
+///Example: byteSize(ImageFormat::)
+unsigned int byteSize(const ImageFormat& format);
+
+///Converts between byte order (i.e. endian-independent) and word-order (endian-dependent)
+///and vice versa. On a big-endian machine this function will simply return the given format, but
+///on a little-endian machine it will reverse the order of the color channels..
+///Note that BasicImage objects always hold data in word order, so if one works with a library
+///that uses byte-order (as some e.g. image libraries do) they have to either convert the
+///data or the format when passing/receiving from/to this library.
+ImageFormat toggleByteWordOrder(const ImageFormat& format);
 
 namespace detail
 {
@@ -96,12 +118,6 @@ namespace detail
 		std::memcpy(to.get(), from, size);
 	}
 }
-
-///Returns the next multiple of alignment that is greater or equal than value.
-///Can be used to 'align' a value e.g. align(27, 8) returns 32.
-template<typename A, typename B>
-constexpr auto align(A value, B alignment)
-	{ return std::ceil(value / double(alignment)) * alignment; }
 
 ///Used to pass loaded or created images to functions.
 ///Note that this class does explicitly not implement any functions for creating/loading/changing
@@ -210,15 +226,42 @@ void writePixel(const MutableImage&, nytl::Vec2ui position, nytl::Vec4u8 color);
 void writePixel(uint8_t& pixel, const ImageFormat&, nytl::Vec4u64 color,
 	unsigned int bitOffset = 0u);
 
-///Returns whether the current machine is little endian.
-///If this returns false it is assumed to be big endian (other types are ignored).
-constexpr bool littleEndian();
 
 /// - implementation -
 constexpr bool littleEndian()
 {
 	constexpr uint32_t dummy = 1u;
 	return (((std::uint8_t*)&dummy)[0] == 1);
+}
+
+unsigned int bitSize(const ImageFormat& format)
+{
+	auto ret = 0u;
+	for(auto& channel : format) ret += channel.second;
+	return ret;
+}
+
+unsigned int byteSize(const ImageFormat& format)
+{
+	return std::ceil(bitSize(format) / 8.0);
+}
+
+ImageFormat toggleByteWordOrder(const ImageFormat& format)
+{
+	if(!littleEndian()) return format;
+
+	auto copy = format;
+	auto begin = copy.begin();
+	auto end = copy.end();
+
+	//ignore "empty" channels (channels with size of 0)
+	//otherwise toggles formats would maybe begin with x empty channels
+	//which would be valid but really ugly
+	while((begin != end) && (!begin->second)) ++begin;
+	while((end != (begin + 1) && (!(end - 1)->second))) --end;
+
+	std::reverse(begin, end);
+	return copy;
 }
 
 nytl::Vec4u64 readPixel(const uint8_t& pixel, const ImageFormat& format, unsigned int bitOffset)
@@ -230,9 +273,10 @@ nytl::Vec4u64 readPixel(const uint8_t& pixel, const ImageFormat& format, unsigne
 	{
 		//for little endian channel order is inversed
 		auto channel = (littleEndian()) ? format[format.size() - (i + 1)] : format[i];
+		if(!channel.second) continue;
 
 		//calculate the byte count we have to load at all for this channel
-		unsigned int byteCount = std::ceil((channel.second + bitOffset) / 8.0);
+		unsigned int byteCount = std::ceil(channel.second / 8.0);
 
 		uint64_t* val {};
 		switch(channel.first)
@@ -244,30 +288,214 @@ nytl::Vec4u64 readPixel(const uint8_t& pixel, const ImageFormat& format, unsigne
 			case ColorChannel::none: iter += byteCount; continue;
 		}
 
-		//load the first byteCount bytes as least significant bytes into *val
-		//for big endian we have to reverse it because we want to load the first bytes of *iter
-		//into the least signigicant (i.e. the last) bytes of *val
-		if(littleEndian()) for(auto b = 0u; b < byteCount; ++b) val[b] = *(iter++);
-		else for(auto b = 0u; b < byteCount; ++b) val[byteCount - (b + 1)] = *(iter++);
+		//reset the color value
+		*val = {};
+
+		//we want to read from &pixel:bitOffset to &pixel:channel.second+bitOffset, i.e.
+		//&pixel+byteCount:bitOffset
+
+		auto startByte = &pixel;
+		auto startBit = bitOffset;
+		auto endByte = &pixel + (channel.second + bitOffset) / 8;
+		auto endBit = (channel.second + bitOffset) % 8;
+
+		//we load the bytes read from pixel into the return value for the current color channel
+		//note than we want to achieve the smallest significance overall while preserving
+		//byte significance between bytes of one color channel
+		//we do this because we may load less than 8 bytes and e.g. 0xFF should result in
+		//a color value of 0xFF and not 0xFF00000000000000
+		//Furthermore should 0xAABB result in 0xAABB.
+		auto bytes = reinterpret_cast<uint8_t*>(val);
+		if(littleEndian()) for(auto b = 0u; b < byteCount; ++b) bytes[b] = *(iter + b);
+		else for(auto b = 0u; b < byteCount; ++b) bytes[8 - byteCount + b] = *(iter + b);
+
+		//shift the bits
+		//i.e. shift away the least signifance bitOffset bytes
+		//note than >> does NOT mean a right shift on little endian
+		if(littleEndian() && bitOffset) *val >>= bitOffset;
+		else if(!littleEndian() && (channel.second % 8u)) *val >>= (8 - channel.second % 8);
+
+		//if bitOffset was great enough another byte has to be loaded.
+		//done this complex since sometimes we e.g. might have to load 9 bytes
+		if(std::ceil((channel.second + bitOffset) / 8.0) > byteCount)
+		{
+			std::uint64_t tmp {};
+			auto tmpBytes = reinterpret_cast<uint8_t*>(val);
+
+			if(littleEndian()) bytes[byteCount - 1] = *(iter + byteCount);
+			else
+			{
+				tmpBytes[7] = *(iter + byteCount);
+				*val <<= bitOffset;
+				*val |= (tmp >> (8 - (channel.second + bitOffset) % 8));
+			}
+		}
 
 		//create a bitmask with the least significant channel.second bites set to 1
-		uint64_t bitmask = 0u;
-		for(auto m = 0u; m < channel.second && m < 64; ++m) bitmask |= (1 << m);
-
-		//discard all bits from *val that are not in the range of the current channel
-		*val = (*val >> bitOffset) & bitmask;
+		//and then discard all bits from *val that are not in the range of the current channel
+		if(channel.second != 64)
+		{
+			uint64_t bitmask = 0u;
+			for(auto m = 0u; m < channel.second && m < 64; ++m) bitmask |= (1 << m);
+			*val &= bitmask;
+		}
 
 		//advance the bitOffset by the bits we read into the next byte.
-		bitOffset = channel.second % 8;
+		auto newOffset = (bitOffset + channel.second) % 8u;
+		iter += static_cast<unsigned int>(std::floor(channel.second / 8) + (newOffset < bitOffset));
+		bitOffset = newOffset;
 	}
 
 	return rgba;
+}
+
+nytl::Vec4f norm(nytl::Vec4u64 color, const ImageFormat& format)
+{
+	nytl::Vec4f ret = color;
+
+	for(auto& channel : format)
+	{
+		if(!channel.second) continue;
+
+		switch(channel.first)
+		{
+			case ColorChannel::red: ret[0] /= std::exp2(channel.second) - 1; break;
+			case ColorChannel::green: ret[1] /= std::exp2(channel.second) - 1; break;
+			case ColorChannel::blue: ret[2] /= std::exp2(channel.second) - 1; break;
+			case ColorChannel::alpha: ret[3] /= std::exp2(channel.second) - 1; break;
+			case ColorChannel::none: continue;
+		}
+	}
+
+	return ret;
 }
 
 void writePixel(uint8_t& pixel, const ImageFormat& format, nytl::Vec4u8 color,
 	unsigned int bitOffset)
 {
 	auto pixelSize = byteSize(format);
+}
+
+nytl::Vec4u64 readPixel2(const uint8_t& pixel, const ImageFormat& format, unsigned int bitOffset = 0)
+{
+	const uint8_t* iter = &pixel;
+	nytl::Vec4u64 rgba {};
+
+	for(auto i = 0u; i < format.size(); ++i)
+	{
+		//for little endian channel order is inversed
+		auto channel = (littleEndian()) ? format[format.size() - (i + 1)] : format[i];
+		if(!channel.second) continue;
+
+		//calculate the byte count we have to load at all for this channel
+		unsigned int byteCount = std::ceil(channel.second / 8.0);
+
+		uint64_t* val {};
+		switch(channel.first)
+		{
+			case ColorChannel::red: val = &rgba[0]; break;
+			case ColorChannel::green: val = &rgba[1]; break;
+			case ColorChannel::blue: val = &rgba[2]; break;
+			case ColorChannel::alpha: val = &rgba[3]; break;
+			case ColorChannel::none: iter += byteCount; continue;
+		}
+
+		//reset the color value
+		*val = {};
+
+		//we want to read from &pixel:bitOffset to &pixel:channel.second+bitOffset, i.e.
+		//&pixel+byteCount:bitOffset
+		//
+		// auto startByte = &pixel;
+		// auto startBit = bitOffset;
+		// auto endByte = &pixel + (channel.second + bitOffset) / 8;
+		// auto endBit = (channel.second + bitOffset) % 8;
+
+		//least significant bits/bytes (with data) first
+		std::bitset<64> bitset {};
+
+		if(littleEndian())
+		{
+			for(auto i = 0u; i < channel.second; ++i)
+			{
+				bitset[i] = (*iter & (1 << bitOffset));
+
+				++bitOffset;
+				if(bitOffset >= 8)
+				{
+					++iter;
+					bitOffset = 0;
+				}
+			}
+		}
+		else
+		{
+			for(auto i = 0u; i < channel.second; ++i)
+			{
+				bitset[56 - (i / 8) + bitOffset] = (*iter & (1 << bitOffset));
+
+				++bitOffset;
+				if(bitOffset >= 8)
+				{
+					++iter;
+					++byteCount;
+					bitOffset = 0;
+				}
+			}
+		}
+
+		auto ullong = bitset.to_ullong();
+		*val = ullong;
+		continue;
+
+		//we load the bytes read from pixel into the return value for the current color channel
+		//note than we want to achieve the smallest significance overall while preserving
+		//byte significance between bytes of one color channel
+		//we do this because we may load less than 8 bytes and e.g. 0xFF should result in
+		//a color value of 0xFF and not 0xFF00000000000000
+		//Furthermore should 0xAABB result in 0xAABB.
+		auto bytes = reinterpret_cast<uint8_t*>(val);
+		if(littleEndian()) for(auto b = 0u; b < byteCount; ++b) bytes[b] = *(iter + b);
+		else for(auto b = 0u; b < byteCount; ++b) bytes[8 - byteCount + b] = *(iter + b);
+
+		//shift the bits
+		//i.e. shift away the least signifance bitOffset bytes
+		//note than >> does NOT mean a right shift on little endian
+		if(littleEndian() && bitOffset) *val >>= bitOffset;
+		else if(!littleEndian() && (channel.second % 8u)) *val >>= (8 - channel.second % 8);
+
+		//if bitOffset was great enough another byte has to be loaded.
+		//done this complex since sometimes we e.g. might have to load 9 bytes
+		if(std::ceil((channel.second + bitOffset) / 8.0) > byteCount)
+		{
+			std::uint64_t tmp {};
+			auto tmpBytes = reinterpret_cast<uint8_t*>(val);
+
+			if(littleEndian()) bytes[byteCount - 1] = *(iter + byteCount);
+			else
+			{
+				tmpBytes[7] = *(iter + byteCount);
+				*val <<= bitOffset;
+				*val |= (tmp >> (8 - (channel.second + bitOffset) % 8));
+			}
+		}
+
+		//create a bitmask with the least significant channel.second bites set to 1
+		//and then discard all bits from *val that are not in the range of the current channel
+		if(channel.second != 64)
+		{
+			uint64_t bitmask = 0u;
+			for(auto m = 0u; m < channel.second && m < 64; ++m) bitmask |= (1 << m);
+			*val &= bitmask;
+		}
+
+		//advance the bitOffset by the bits we read into the next byte.
+		auto newOffset = (bitOffset + channel.second) % 8u;
+		iter += static_cast<unsigned int>(std::floor(channel.second / 8) + (newOffset < bitOffset));
+		bitOffset = newOffset;
+	}
+
+	return rgba;
 }
 
 }

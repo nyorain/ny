@@ -40,14 +40,17 @@ public:
 	template<typename... Args>
 	void output(Args&&... args)
 	{
-		std::stringstream sstream;
-		(void) Expand{(sstream << args, 0)...};
-		write(sstream.str());
+		(void) Expand{(sstream_ << args, 0)...};
+		write(sstream_.str());
+		sstream_.str("");
 	}
 
 	template<typename... Args>
 	void operator()(Args&&... args)
 		{ output(std::forward<Args>(args)...); }
+
+protected:
+	std::ostringstream sstream_;
 };
 
 ///LoggerBase implementation for some Stream object.
