@@ -83,7 +83,7 @@ void XkbKeyboardContext::updateKey(unsigned int code, bool pressed)
 	xkb_state_update_key(xkbState_, code, pressed ? XKB_KEY_DOWN : XKB_KEY_UP);
 }
 
-void XkbKeyboardContext::updateState(const Vec3ui& mods, const Vec3ui& layouts)
+void XkbKeyboardContext::updateState(nytl::Vec3ui mods, nytl::Vec3ui layouts)
 {
 	xkb_state_update_mask(xkbState_, mods.x, mods.y, mods.z, layouts.x, layouts.y, layouts.z);
 }

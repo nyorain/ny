@@ -3,7 +3,7 @@
 // See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
 #include <ny/dataExchange.hpp>
-#include <ny/imageData.hpp>
+#include <ny/image.hpp>
 #include <nytl/utf.hpp>
 #include <sstream>
 
@@ -28,50 +28,59 @@ const DataFormat DataFormat::raw {"application/octet-stream",
 const DataFormat DataFormat::text {"text/plain", {"text", "string",
 	"unicode", "utf8", "STRING", "TEXT", "UTF8_STRING", "UNICODETEXT"}};
 const DataFormat DataFormat::uriList {"text/uri-list", {"uriList"}};
-const DataFormat DataFormat::imageData {"image/x-ny-data", {"imageData", "ny::ImageData"}};
+const DataFormat DataFormat::imageData {"image/x-ny-data", {"ny::Image"}};
 
-std::vector<uint8_t> serialize(const ImageData& image)
+std::vector<uint8_t> serialize(const Image& image)
 {
 	std::vector<uint8_t> ret;
+	auto stride = bitStride(image);
 
-	//store real stride
-	auto stride = image.stride;
-	if(!stride) stride = image.size.x * imageDataFormatSize(image.format);
-
-	//width, height, format, stride stored as uint32_t
-	ret.resize(4 * 4);
+	//width, height, stride stored as uint32_t
+	//format: for each channel: colorchannel 8 bits, bit size 8 bits
+	ret.resize((3 * 4) + image.format.size() * 2);
 	reinterpret_cast<uint32_t&>(ret[0]) = image.size.x;
 	reinterpret_cast<uint32_t&>(ret[4]) = image.size.y;
-	reinterpret_cast<uint32_t&>(ret[8]) = static_cast<uint32_t>(image.format);
-	reinterpret_cast<uint32_t&>(ret[12]) = stride;
+	reinterpret_cast<uint32_t&>(ret[8]) = stride;
+
+	auto it = &ret[12];
+	for(auto& channel : image.format)
+	{
+		*(it++) = static_cast<uint8_t>(channel.first);
+		*(it++) = channel.second;
+	}
 
 	//total size of data
-	auto dataSize = stride * image.size.y;
-	ret.resize(ret.size() + dataSize);
-	std::memcpy(&ret[16], image.data, dataSize);
+	auto start = ret.size();
+	auto dsize = dataSize(image);
+	ret.resize(ret.size() + dsize);
+	std::memcpy(&ret[start], image.data, dsize);
 
 	return ret;
 }
 
-OwnedImageData deserializeImageData(nytl::Range<uint8_t> buffer)
+UniqueImage deserializeImage(nytl::Range<uint8_t> buffer)
 {
-	OwnedImageData image;
-	if(buffer.size() < 16) return {}; //invalid header
+	UniqueImage image;
+
+	auto headerSize = 9 + image.format.size() * 2;
+	if(buffer.size() < headerSize) return {}; //invalid header
 
 	image.size.x = reinterpret_cast<const uint32_t&>(buffer[0]);
 	image.size.y = reinterpret_cast<const uint32_t&>(buffer[4]);
-	image.format = static_cast<ImageDataFormat>(reinterpret_cast<const uint32_t&>(buffer[8]));
-	image.stride = reinterpret_cast<const uint32_t&>(buffer[12]);
+	image.stride = reinterpret_cast<const uint32_t&>(buffer[8]);
 
-	//real stride
-	auto stride = image.stride;
-	if(!stride) stride = image.size.x * imageDataFormatSize(image.format);
+	auto it = &buffer[12];
+	for(auto& channel : image.format)
+	{
+		channel.first = static_cast<ColorChannel>(*(it++));
+		channel.second = *(it++);
+	}
 
-	auto dataSize = stride * image.size.y;
-	if(buffer.size() - 16 < dataSize) return {}; //invalid data size
+	auto dSize = dataSize(image);
+	if(buffer.size() < dSize + headerSize) return {}; //invalid data size
 
-	image.data = std::make_unique<uint8_t[]>(dataSize);
-	std::memcpy(image.data.get(), &buffer[16], dataSize);
+	image.data = std::make_unique<uint8_t[]>(dSize);
+	std::memcpy(image.data.get(), &buffer[headerSize], dSize);
 
 	return image;
 }
@@ -189,7 +198,7 @@ std::any wrap(std::vector<uint8_t> buffer, const DataFormat& fmt)
 {
 	if(fmt == DataFormat::text) return std::string(buffer.begin(), buffer.end());
 	if(fmt == DataFormat::uriList) return decodeUriList({buffer.begin(), buffer.end()});
-	if(fmt == DataFormat::imageData) return  deserializeImageData({buffer.data(), buffer.size()});
+	if(fmt == DataFormat::imageData) return  deserializeImage({buffer.data(), buffer.size()});
 
 	return {std::move(buffer)};
 }
@@ -209,8 +218,8 @@ std::vector<uint8_t> unwrap(std::any any, const DataFormat& format)
 	}
 	if(format == DataFormat::imageData)
 	{
-		auto id = std::any_cast<const OwnedImageData&>(any);
-		return serialize({id.data.get(), id.size, id.format, id.stride});
+		auto img = std::any_cast<const UniqueImage&>(any);
+		return serialize(img);
 	}
 
 	return std::move(std::any_cast<std::vector<uint8_t>&>(any));

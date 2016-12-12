@@ -7,8 +7,8 @@ set(ny_src
 	log.cpp
 	config.cpp
 	cursor.cpp
+	image.cpp
 	dataExchange.cpp
-	imageData.cpp
 	key.cpp
 	mouseButton.cpp
 	backend.cpp

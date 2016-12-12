@@ -65,9 +65,9 @@ class EglSetup;
 class EglSurface;
 class EglContext;
 
-template<typename P> class BasicImageData;
-using ImageData = BasicImageData<const uint8_t*>;
-using MutableImageData = BasicImageData<uint8_t*>;
+template<typename P> class BasicImage;
+using Image = BasicImage<const uint8_t*>;
+using MutableImage = BasicImage<uint8_t*>;
 
 //enums
 enum class ToplevelState : unsigned int;

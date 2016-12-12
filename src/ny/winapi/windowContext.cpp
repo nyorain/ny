@@ -9,7 +9,7 @@
 
 #include <ny/log.hpp>
 #include <ny/cursor.hpp>
-#include <ny/imageData.hpp>
+#include <ny/image.hpp>
 #include <ny/surface.hpp>
 
 #include <nytl/scope.hpp>
@@ -132,6 +132,7 @@ void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 	//Setting this flag can also really hit performance (e.g. resizing can lag) so
 	//this should probably only be set if really needed
 	//TODO: make this optional using WinapiWindowSettings
+	
 	auto exstyle = WS_EX_APPWINDOW | WS_EX_LAYERED | WS_EX_OVERLAPPEDWINDOW;
 	// exstyle = WS_EX_APPWINDOW | WS_EX_OVERLAPPEDWINDOW;
 	handle_ = ::CreateWindowEx(
@@ -145,10 +146,10 @@ void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 
 	if(!handle_) throw winapi::EC::exception("ny::WinapiWindowContext: CreateWindowEx failed");
 
-	// if(false)
 	{
 		//TODO: check for windows version > xp here.
 		//Otherwise ny will no compile/run on xp
+
 		//This will simply cause windows to respect the alpha bits in the content of the window
 		//and not actually blur anything. Windows is stupid af.
 		DWM_BLURBEHIND bb {};
@@ -253,42 +254,31 @@ void WinapiWindowContext::position(nytl::Vec2i position)
 	::SetWindowPos(handle_, HWND_TOP, position.x, position.y, 0, 0, SWP_NOSIZE | SWP_ASYNCWINDOWPOS);
 }
 
-void WinapiWindowContext::cursor(const Cursor& c)
+void WinapiWindowContext::cursor(const Cursor& cursor)
 {
-	if(c.type() == CursorType::image)
+	if(cursor.type() == CursorType::image)
 	{
-		constexpr static auto reqFormat = ImageDataFormat::argb8888;
+		auto img = cursor.image();
+		auto bitmap = winapi::toBitmap(img);
+		auto mask = ::CreateBitmap(img.size.x, img.size.y, 1, 1, nullptr);
 
-		const auto& imgdata = *c.image();
-		auto* pixelsData = imgdata.data;
-		OwnedImageData ownedImage;
-
-		if(!satisfiesRequirements(imgdata, reqFormat))
-		{
-			ownedImage = convertFormat(imgdata, reqFormat);
-			pixelsData = ownedImage.data.get();
-		}
-
-		auto bitmap = ::CreateBitmap(imgdata.size.x, imgdata.size.y, 1, 32, pixelsData);
-		auto dummyBitmap = ::CreateBitmap(imgdata.size.x, imgdata.size.y, 1, 1, nullptr);
-
-		auto bitmapGuard = nytl::makeScopeGuard([&]{
+		auto bitmapsGuard = nytl::makeScopeGuard([&]{
 			if(bitmap) ::DeleteObject(bitmap);
-			if(dummyBitmap) ::DeleteObject(dummyBitmap);
+			if(mask) ::DeleteObject(mask);
 		});
 
-		if(!bitmap || !dummyBitmap)
+		if(!bitmap || !mask)
 		{
-			warning(errorMessage("ny::WinapiWindowContext::cursor: failed to create bitmap"));
+			warning(errorMessage("ny::WinapiWindowContext::cursor: failed to create bitmaps"));
 			return;
 		}
 
-		const auto& hs = c.imageHotspot();
+		const auto& hs = cursor.imageHotspot();
 		ICONINFO iconinfo;
 		iconinfo.fIcon = false;
 		iconinfo.xHotspot = hs.x;
 		iconinfo.yHotspot = hs.y;
-		iconinfo.hbmMask = dummyBitmap;
+		iconinfo.hbmMask = mask;
 		iconinfo.hbmColor = bitmap;
 
 		cursor_ = reinterpret_cast<HCURSOR>(::CreateIconIndirect(&iconinfo));
@@ -300,14 +290,14 @@ void WinapiWindowContext::cursor(const Cursor& c)
 
 		ownedCursor_ = true;
 	}
-	else if(c.type() == CursorType::none)
+	else if(cursor.type() == CursorType::none)
 	{
 		cursor_ = nullptr;
 		ownedCursor_ = false;
 	}
 	else
 	{
-		auto cursorName = cursorToWinapi(c.type());
+		auto cursorName = cursorToWinapi(cursor.type());
 		if(!cursorName)
 		{
 			warning("ny::WinapiWindowContext::cursor: invalid native cursor type");
@@ -331,7 +321,8 @@ void WinapiWindowContext::cursor(const Cursor& c)
 
 	//-12 == GCL_HCURSOR
 	//number used since it is not defined in windows.h sometimes (tested with MinGW headers)
-	::SetClassLongPtr(handle(), -12, (LONG_PTR)cursor_);
+	::SetClassLongPtr(handle(), -12, reinterpret_cast<LONG_PTR>(cursor_));
+	// ::SetClassLongPtr(handle(), -12, (LONG_PTR) nullptr);
 }
 
 void WinapiWindowContext::fullscreen()
@@ -414,56 +405,42 @@ void WinapiWindowContext::maxSize(nytl::Vec2ui size)
 	maxSize_ = size;
 }
 
-//TODO: cursor!
 void WinapiWindowContext::beginMove(const EventData*)
 {
-	// auto currentCursor = ::GetClassLongPtr(handle_, -12);
-	// this->cursor(CursorType::crosshair);
-	// ::PostMessage(handle_, WM_SYSCOMMAND, SC_MOVE, 0);
-
-	constexpr auto SC_DRAGMOVE = 0xf012; //or: 0xf009. Difference?
+	constexpr auto SC_DRAGMOVE = 0xf012;
 	::PostMessage(handle_, WM_SYSCOMMAND, SC_DRAGMOVE, 0);
-
-	// ::SetClassLongPtr(handle_, -12, currentCursor);
 }
 
 void WinapiWindowContext::beginResize(const EventData*, WindowEdges edges)
 {
-	auto cursor = sizeCursorFromEdge(static_cast<WindowEdge>(edges.value()));
-	// auto currentCursor = ::GetClassLongPtr(handle_, -12);
-	this->cursor(cursor);
-
+	//note that WinapiAppContext does explicitly handle this message and sets
+	//the cursor.
 	auto winapiEdges = edgesToWinapi(edges);
 	::PostMessage(handle_, WM_SYSCOMMAND, SC_SIZE + winapiEdges, 0);
-
-	// ::SetClassLongPtr(handle_, -12, currentCursor);
 }
 
-void WinapiWindowContext::icon(const ImageData& imgdata)
+void WinapiWindowContext::icon(const Image& img)
 {
 	//if nullptr passed set no icon
-	if(!imgdata.data)
+	if(!img.data)
 	{
 		::PostMessage(handle(), WM_SETICON, ICON_BIG, (LPARAM) nullptr);
 		::PostMessage(handle(), WM_SETICON, ICON_SMALL, (LPARAM) nullptr);
 		return;
 	}
 
-	constexpr static auto reqFormat = ImageDataFormat::argb8888;
+	constexpr static auto reqFormat = imageFormats::argb8888;
+	auto uniqueImage = convertFormat(img, reqFormat);
 
-	auto* pixelsData = imgdata.data;
-	OwnedImageData ownedImage;
+	bool alpha = false;
+	for(auto& channel : img.format) if(channel.first == ColorChannel::alpha) alpha = true;
+	if(alpha) premultiply(uniqueImage);
 
-	if(!satisfiesRequirements(imgdata, reqFormat))
+	auto pixelsData = data(uniqueImage);
+	icon_ = ::CreateIcon(hinstance(), img.size.x, img.size.y, 1, 32, nullptr, pixelsData);
+	if(!icon_)
 	{
-		ownedImage = convertFormat(imgdata, reqFormat);
-		pixelsData = ownedImage.data.get();
-	}
-
-	icon_ = ::CreateIcon(hinstance(), imgdata.size.x, imgdata.size.y, 1, 32, nullptr, pixelsData);
-	   if(!icon_)
-	{
-		warning("ny::WinapiWindowContext::icon: Failed to create winapi icon handle");
+		warning(errorMessage("ny::WinapiWindowContext::icon: CreateIcon failed"));
 		return;
 	}
 

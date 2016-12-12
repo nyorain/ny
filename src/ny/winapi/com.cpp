@@ -8,7 +8,7 @@
 #include <ny/winapi/util.hpp>
 #include <ny/dataExchange.hpp>
 #include <ny/log.hpp>
-#include <ny/imageData.hpp>
+#include <ny/image.hpp>
 
 #include <nytl/utf.hpp>
 #include <nytl/scope.hpp>
@@ -628,7 +628,7 @@ std::any fromStgMedium(const FORMATETC& from, const DataFormat& to, const STGMED
 		if(medium.tymed != TYMED_GDI) return {};
 
 		auto hbitmap = reinterpret_cast<HBITMAP>(medium.hGlobal);
-		auto ret = winapi::toImageData(hbitmap);
+		auto ret = winapi::toImage(hbitmap);
 		if(!ret.data) return {};
 		return ret;
 
@@ -661,7 +661,7 @@ STGMEDIUM toStgMedium(const DataFormat& from, const FORMATETC& to, const std::an
 	{
 		if(to.tymed != TYMED_GDI) return {};
 
-		const auto& img = std::any_cast<const ImageData&>(data);
+		const auto& img = std::any_cast<const UniqueImage&>(data);
 		ret.tymed = TYMED_HGLOBAL;
 		ret.hGlobal = toBitmap(img);
 	}

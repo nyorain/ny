@@ -5,16 +5,16 @@
 #pragma once
 
 #include <ny/fwd.hpp>
-#include <ny/imageData.hpp>
+#include <ny/image.hpp>
 #include <nytl/vec.hpp>
 
-#include <memory>
+//TODO: make Cursor constexpr when Image is constexpr (C++17)
 
 namespace ny
 {
 
-///Represents the different native cursor types.
-///Note that not all types are available on all backends.
+/// Represents the different native cursor types.
+/// Note that not all types are available on all backends.
 enum class CursorType : unsigned int
 {
 	unknown = 0,
@@ -43,62 +43,67 @@ enum class CursorType : unsigned int
 	//fobidden/no
 };
 
-///Returns the associated WindowEdge for a cursorType. If the cursor type is not
-///an edge sizing cursor, returns WindowEdge::none;
+/// Returns the associated WindowEdge for a cursorType. If the cursor type is not
+/// an edge sizing cursor, returns WindowEdge::none;
+/// Example: edgeFromSizeCursor(CursorType::sizeLeft) returns WindowEdge::left
 WindowEdge edgeFromSizeCursor(CursorType);
 
-///Returns the edge sizing cursor type for the given WindowEdge. If the given WindowEdge
-///is invalid or none, returns CursorType::none.
+/// Returns the edge sizing cursor type for the given WindowEdge. If the given WindowEdge
+/// is invalid or none, returns CursorType::none.
+/// Example: sizeCursorFromEdge(WindowEdge::topRight) return CursorType::sizeTopRight
 CursorType sizeCursorFromEdge(WindowEdge);
 
-///Returns the name of a CursorType enum value. Returns "" if the cursorType is invalid.
+/// Returns the name of a CursorType enum value. Returns "" if the cursorType is invalid.
+/// Example: name(CursorType::loadPtr) return "loadPtr".
 const char* name(CursorType);
 
-//TODO: cursor themes for all applications. loaded with styles
-
-///The Cursor class represents either a native cursor image or a custom loaded image.
-///\warning The cursor does never own any image data so always check that images remain
-///valid until the cursor object is not further used (the cursor object might be destroyed
-///while it is in use from the backend though).
+/// The Cursor class represents either a native cursor image or a custom loaded image.
+/// \warning The cursor does never own any image data so always check that images remain
+/// valid until the cursor object is not further used. Functions taking a Cursor
+/// should copy its data though.
 class Cursor
 {
 public:
 	using Type = CursorType;
 
 public:
-	///Default-constructs the Cursor with the leftPtr native type.
+	/// Default-constructs the Cursor with the leftPtr native type.
 	Cursor() noexcept = default;
 
-	///Constructs the Cursor with a native cursor type.
+	/// Constructs the Cursor with a native cursor type.
 	Cursor(CursorType type) noexcept : type_(type) {}
 
-	///Constructs the Cursor from an image.
-	///Note that the given ImageData must therefore remain valid while the cursor object
-	///is used.
-	Cursor(const ImageData& img, nytl::Vec2i hotspot = {0, 0}) noexcept;
+	/// Constructs the Cursor from an image.
+	/// Note that the given ImageData must therefore remain valid while the cursor object
+	/// is used.
+	Cursor(const Image& img, nytl::Vec2i hotspot = {0, 0}) noexcept
+		: type_(CursorType::image), image_(img), hotspot_(hotspot) {}
 
-	///Sets the cursor to image type and stores the given image.
-	///Note that the given ImageData must therefore remain valid while the cursor object
-	///is used.
-	void image(const ImageData& image, nytl::Vec2i hotspot = {0, 0}) noexcept;
+	/// Sets the cursor to image type and stores the given image.
+	/// Note that the given ImageData must therefore remain valid while the cursor object
+	/// is used.
+	void image(const Image& image, nytl::Vec2i hotspot = {0, 0}) noexcept
+		{ type_ = CursorType::image; image_ = image; hotspot_ = hotspot; }
 
-	///Sets to cursor to the given native type.
+	/// Sets to cursor to the given native type.
 	void nativeType(CursorType type) noexcept { type_ = type; }
 
-	///Returns the image of this image cursor, or nullptr if it is a native cursor type.
-	const ImageData* image() const noexcept { return (type_ == Type::image) ? &image_ : nullptr; }
+	/// Returns the image of this image cursor.
+	/// If the type of this cursor is not image, it will return an empty (i.e. data = nullptr)
+	/// Image object.
+	Image image() const noexcept { return (type_ == Type::image) ? image_ : Image{}; }
 
-	///Returns the image hotspot.
-	///The result will be undefined when the type of this cursor is not image.
+	/// Returns the image hotspot.
+	/// The result will be undefined when the type of this cursor is not image.
 	nytl::Vec2i imageHotspot() const noexcept { return hotspot_; }
 
-	///Returns the type of this cursor.
+	/// Returns the type of this cursor.
 	CursorType type() const noexcept { return type_; }
 
 protected:
 	CursorType type_ {CursorType::leftPtr};
+	Image image_ {};
 	nytl::Vec2i hotspot_ {};
-	ImageData image_ {};
 };
 
 }

@@ -55,7 +55,7 @@ public:
 
 	bool customDecorated() const override { return false; };
 
-	void icon(const ImageData& img) override;
+	void icon(const Image& img) override;
 	void title(nytl::StringParam title) override;
 
 	WinapiAppContext& appContext() const { return *appContext_; } ///The associated AppContext

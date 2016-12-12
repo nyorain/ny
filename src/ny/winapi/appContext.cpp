@@ -356,13 +356,27 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 		{
 			if(wc)
 			{
+	            constexpr auto SC_DRAGMOVE = 0xf012;
 				ToplevelState state;
 
 				if(wparam == SC_MAXIMIZE) state = ToplevelState::maximized;
 				else if(wparam == SC_MINIMIZE) state = ToplevelState::minimized;
 				else if(wparam == SC_RESTORE) state = ToplevelState::normal;
+                else if(wparam >= SC_SIZE && wparam <= SC_SIZE + 8)
+                {
+                    auto currentCursor = ::GetClassLongPtr(wc->handle(), -12);
 
-				//XXX: shown parameter? check WS_VISIBLE?
+                    auto edge = winapiToEdges(wparam - SC_SIZE);
+                    auto cursor = sizeCursorFromEdge(edge);
+                    wc->cursor(cursor);
+
+			        result = ::DefWindowProc(window, message, wparam, lparam);
+	                ::SetClassLongPtr(wc->handle(), -12, currentCursor);
+
+                    break;
+                }
+
+				//TODO: shown parameter? check WS_VISIBLE?
 				wc->listener().state(true, state, &eventData);
 			}
 

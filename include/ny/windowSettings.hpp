@@ -21,7 +21,7 @@ namespace ny
 ///Note that e.g. (WindowEdge::top | WindowEdge::right) == (WindowEdge::topRight).
 enum class WindowEdge : unsigned int
 {
-	unknown = 0,
+	none = 0,
 
 	top = 1,
 	bottom = 2,

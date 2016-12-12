@@ -17,11 +17,11 @@ namespace ny
 {
 
 //maps ny::Keycode to a windows-specific virtual key code.
-constexpr struct Mapping
+constexpr struct KeycodeConversion
 {
 	Keycode keycode;
 	unsigned int vkcode;
-} mappings [] =
+} keycodeConversions [] =
 {
 	{Keycode::none, 0x0},
 	{Keycode::a, 'A'},
@@ -160,22 +160,57 @@ constexpr struct Mapping
 	{Keycode::zoom, VK_ZOOM},
 };
 
+constexpr struct EdgeConversion
+{
+	WindowEdge windowEdge;
+	unsigned int winapiCode;
+} edgeConversions[] = {
+	{WindowEdge::top, 3u},
+	{WindowEdge::bottom, 6u},
+	{WindowEdge::left, 1u},
+	{WindowEdge::right, 2u},
+	{WindowEdge::topLeft, 4u},
+	{WindowEdge::bottomLeft, 7u},
+	{WindowEdge::topRight, 5u},
+	{WindowEdge::bottomRight, 8u},
+};
+
+constexpr struct CursorConversion
+{
+	CursorType cursor;
+	const wchar_t* idc;
+} cursorConversions[] = {
+	{CursorType::leftPtr, IDC_ARROW},
+	{CursorType::rightPtr, IDC_ARROW},
+	{CursorType::load, IDC_WAIT},
+	{CursorType::loadPtr, IDC_APPSTARTING},
+	{CursorType::hand, IDC_HAND},
+	{CursorType::grab, IDC_HAND},
+	{CursorType::crosshair, IDC_CROSS},
+	{CursorType::help, IDC_HELP},
+	{CursorType::size, IDC_SIZEALL},
+	{CursorType::sizeLeft, IDC_SIZEWE},
+	{CursorType::sizeRight, IDC_SIZEWE},
+	{CursorType::sizeTop, IDC_SIZENS},
+	{CursorType::sizeBottom, IDC_SIZENS},
+	{CursorType::sizeTopLeft, IDC_SIZENWSE},
+	{CursorType::sizeBottomRight, IDC_SIZENWSE},
+	{CursorType::sizeTopRight, IDC_SIZENESW},
+	{CursorType::sizeBottomLeft, IDC_SIZENESW},
+};
+
 Keycode winapiToKeycode(unsigned int code)
 {
-	for(auto& m : mappings)
-	{
-		if(m.vkcode == code) return m.keycode;
-	}
+	for(auto& kc : keycodeConversions)
+		if(kc.vkcode == code) return kc.keycode;
 
 	return Keycode::unkown;
 }
 
 unsigned int keycodeToWinapi(Keycode keycode)
 {
-	for(auto& m : mappings)
-	{
-		if(m.keycode == keycode) return m.vkcode;
-	}
+	for(auto& kc : keycodeConversions)
+		if(kc.keycode == keycode) return kc.vkcode;
 
 	return 0x0;
 }
@@ -230,59 +265,35 @@ std::string errorMessage(const char* msg)
 
 const wchar_t* cursorToWinapi(CursorType type)
 {
-	switch(type)
-	{
-		case CursorType::leftPtr: return IDC_ARROW;
-		case CursorType::rightPtr: return IDC_ARROW;
-		case CursorType::load: return IDC_WAIT;
-		case CursorType::loadPtr: return IDC_APPSTARTING;
-		case CursorType::hand: return IDC_HAND;
-		case CursorType::grab: return IDC_HAND;
-		case CursorType::crosshair: return IDC_CROSS;
-		case CursorType::help: return IDC_HELP;
-		case CursorType::size: return IDC_SIZEALL;
+	for(auto& cc : cursorConversions)
+		if(cc.cursor == type) return cc.idc;
 
-		case CursorType::sizeLeft: return IDC_SIZEWE;
-		case CursorType::sizeRight: return IDC_SIZEWE;
+	return nullptr;
+}
 
-		case CursorType::sizeTop: return IDC_SIZENS;
-		case CursorType::sizeBottom: return IDC_SIZENS;
+CursorType winapiToCursor(const wchar_t* idc)
+{
+	for(auto& cc : cursorConversions)
+		if(cc.idc == idc) return cc.cursor;
 
-		case CursorType::sizeTopLeft: return IDC_SIZENWSE;
-		case CursorType::sizeBottomRight: return IDC_SIZENWSE;
-
-		case CursorType::sizeTopRight: return IDC_SIZENESW;
-		case CursorType::sizeBottomLeft: return IDC_SIZENESW;
-
-		// case Cursor::Type::no: return IDC_NO;
-
-		default: return nullptr;
-	}
+	return CursorType::none;
 }
 
 unsigned int edgesToWinapi(WindowEdges edges)
 {
-	// SC_SIZE_HTLEFT = 1,
-	// SC_SIZE_HTRIGHT = 2,
-	// SC_SIZE_HTTOP = 3,
-	// SC_SIZE_HTTOPLEFT = 4,
-	// SC_SIZE_HTTOPRIGHT = 5,
-	// SC_SIZE_HTBOTTOM = 6,
-	// SC_SIZE_HTBOTTOMLEFT = 7,
-	// SC_SIZE_HTBOTTOMRIGHT = 8
+	auto edge = static_cast<WindowEdge>(edges.value());
+	for(auto& ec : edgeConversions)
+		if(ec.windowEdge == edge) return ec.winapiCode;
 
-	switch(static_cast<WindowEdge>(edges.value()))
-	{
-		case WindowEdge::top: return 3;
-		case WindowEdge::bottom: return 6;
-		case WindowEdge::left: return 1;
-		case WindowEdge::right: return 2;
-		case WindowEdge::topLeft: return 4;
-		case WindowEdge::bottomLeft: return 7;
-		case WindowEdge::topRight: return 5;
-		case WindowEdge::bottomRight: return 8;
-		default: return 0u;
-	}
+	return 0u;
+}
+
+WindowEdge winapiToEdges(unsigned int edges)
+{
+	for(auto& ec : edgeConversions)
+		if(ec.winapiCode == edges) return ec.windowEdge;
+
+	return WindowEdge::none;
 }
 
 WinapiErrorCategory& WinapiErrorCategory::instance()
@@ -365,24 +376,22 @@ std::error_code lastErrorCode()
 // 	return bitmap;
 // }
 
-HBITMAP toBitmap(const ImageData& img)
+HBITMAP toBitmap(const Image& img)
 {
+	auto copy = convertFormat(img, imageFormats::argb8888);
+
+	bool alpha = false;
+	for(auto& channel : img.format) if(channel.first == ColorChannel::alpha) alpha = true;
+	if(alpha) premultiply(copy);
+
 	BITMAPV5HEADER header {};
 	header.bV5Size = sizeof(header);
-	header.bV5Width = img.size.x;
-	header.bV5Height = -img.size.y;
-	header.bV5SizeImage = img.size.y * img.stride;
+	header.bV5Width = copy.size.x;
+	header.bV5Height = -copy.size.y;
+	header.bV5SizeImage = copy.size.y * copy.stride;
 	header.bV5Planes = 1;
 	header.bV5BitCount = 32;
-	header.bV5Compression = BI_BITFIELDS;
-
-	header.bV5RedMask = 0x00FF0000;
-	header.bV5GreenMask = 0x0000FF00;
-	header.bV5BlueMask = 0x000000FF;
-	header.bV5AlphaMask = 0xFF000000;
-
-	// header.bV5CSType = 0x57696e20; // LCS_WINDOWS_COLOR_SPACE
-	// header.bV5Intent = LCS_GM_BUSINESS;
+	header.bV5Compression = BI_RGB;
 
 	auto hdc = ::GetDC(nullptr);
 	auto hdcGuard = nytl::makeScopeGuard([&]{ ::ReleaseDC(nullptr, hdc); });
@@ -391,43 +400,11 @@ HBITMAP toBitmap(const ImageData& img)
 	auto& info = reinterpret_cast<BITMAPINFO&>(header);
 	auto bitmap = ::CreateDIBSection(hdc, &info, DIB_RGB_COLORS, &bitmapData, nullptr, 0);
 
-	auto stride = img.stride;
-	if(!stride) stride = img.size.x * 4;
-
-	//TODO: premultiply
-
-	auto data = img.data;
-	OwnedImageData ownedImage;
-	if(img.format != ImageDataFormat::argb8888)
-	{
-		ownedImage = convertFormat(img, ImageDataFormat::argb8888);
-		data = ownedImage.data.get();
-		stride = img.size.x * 4;
-	}
-
-	std::memcpy(bitmapData, data, img.size.y * stride);
+	std::memcpy(bitmapData, data(copy), dataSize(copy));
 	return bitmap;
 }
 
-BITMAPINFOHEADER toBitmapHeader(const ImageData& img)
-{
-	BITMAPINFOHEADER header {};
-	header.biSize = sizeof(header);
-	header.biWidth = img.size.x;
-	header.biHeight = -img.size.y;
-	header.biSizeImage = img.size.y * img.stride;
-	header.biPlanes = 1;
-	header.biBitCount = 32;
-	header.biCompression = BI_RGB;
-	// header.biCompression = BI_BITFIELDS;
-	header.biXPelsPerMeter = 1;
-	header.biYPelsPerMeter = 1;
-	// header.biClrUsed = 3;
-
-	return header;
-}
-
-OwnedImageData toImageData(HBITMAP hbitmap)
+UniqueImage toImage(HBITMAP hbitmap)
 {
 	auto hdc = ::GetDC(nullptr);
 	auto hdcGuard = nytl::makeScopeGuard([&]{ ::ReleaseDC(nullptr, hdc); });
@@ -457,10 +434,10 @@ OwnedImageData toImageData(HBITMAP hbitmap)
 		return {};
 	}
 
-	OwnedImageData ret;
+	UniqueImage ret;
 	ret.data = std::move(buffer);
 	ret.size = {width, height};
-	ret.format = ImageDataFormat::rgba8888;
+	ret.format = imageFormats::argb8888;
 	ret.stride = stride;
 
 	return ret;

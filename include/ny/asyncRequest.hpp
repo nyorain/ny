@@ -103,7 +103,7 @@ public:
 	///when the request completes.
 	///It will store the passed value, end a potential wait call and trigger the registered
 	///callback function (if any).
-	void complete(R value)
+	void complete(R&& value)
 	{
 		ready_ = true;
 		value_ = std::move(value);

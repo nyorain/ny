@@ -28,7 +28,10 @@ std::string errorMessage(const char* msg = nullptr);
 //Note: there isnt a string literal returned here. Just a (char?) pointer to some windows
 //resource. Better return void pointer or sth...
 const wchar_t* cursorToWinapi(CursorType type);
+CursorType winapiToCursor(const wchar_t* idc);
+
 unsigned int edgesToWinapi(WindowEdges edges);
+WindowEdge winapiToEdges(unsigned int winapiCode);
 
 ///Converts between (ny,application space) utf8-string and (winapi space) utf16-wstring.
 std::wstring widen(const std::string&);
@@ -68,12 +71,12 @@ std::error_code lastErrorCode();
 
 ///Converts a given ImageData to a winapi Bitmap header.
 ///Can be used e.g. to create a dib bitmap.
-BITMAPINFOHEADER toBitmapHeader(const ImageData&);
+// BITMAPINFOHEADER toBitmapHeader(const Image&);
 
 ///Converts between a ny::ImageData object and a native winapi bitmap.
 ///The returned HBITMAP is owned and must be freed.
-HBITMAP toBitmap(const ImageData&);
-OwnedImageData toImageData(HBITMAP bitmap);
+HBITMAP toBitmap(const Image&);
+UniqueImage toImage(HBITMAP bitmap);
 
 }
 

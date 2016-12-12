@@ -68,7 +68,7 @@ protected:
 	void updateKey(unsigned int keycode, bool pressed);
 
 	///Updates the modifier state from backend events.
-	void updateState(const Vec3ui& mods, const Vec3ui& layouts);
+	void updateState(nytl::Vec3ui mods, nytl::Vec3ui layouts);
 
 protected:
 	xkb_context* xkbContext_ = nullptr;

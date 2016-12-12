@@ -12,10 +12,10 @@ public:
 
 	std::vector<ny::DataFormat> formats() const override { return {ny::DataFormat::text}; }
 	std::any data(const ny::DataFormat& format) const override;
-	ny::ImageData image() const override;
+	ny::Image image() const override;
 
 private:
-	ny::OwnedImageData image_;
+	ny::UniqueImage image_;
 };
 
 void handleDataOffer(ny::DataOffer& dataOffer)
@@ -103,18 +103,29 @@ public:
 		auto bufferGuard = surface->buffer();
 		auto buffer = bufferGuard.get();
 		auto size = buffer.stride * buffer.size.y;
-		std::memset(buffer.data, 0x00, size);
+		std::memset(buffer.data, 0xCC, size);
 	}
 
-	void mouseButton(bool pressed, ny::MouseButton button, const ny::EventData*) override
+	void mouseButton(bool pressed, ny::MouseButton button, const ny::EventData* data) override
 	{
 		nytl::unused(button);
 		if(!pressed) return;
 
 		// initiate a dnd operation with the CustomDataSource
-		if(nytl::anyOf(ac->mouseContext()->position() > 100u)) return;
-		auto ret = ac->startDragDrop(std::make_unique<CustomDataSource>());
-		ny::log("Starting a dnd operation: ", ret);
+		if(nytl::allOf(ac->mouseContext()->position() < 100u))
+		{
+			auto src = std::make_unique<CustomDataSource>();
+			auto ret = ac->startDragDrop(std::move(src));
+			ny::log("Starting a dnd operation: ", ret);
+		}
+		else if(nytl::allOf(ac->mouseContext()->position() > 400u))
+		{
+			wc->beginResize(data, ny::WindowEdge::bottomRight);
+		}
+		else
+		{
+			wc->beginMove(data);
+		}
 	}
 
 	void mouseWheel(float value, const ny::EventData*) override
@@ -210,12 +221,11 @@ int main()
 CustomDataSource::CustomDataSource()
 {
 	image_.data = std::make_unique<std::uint8_t[]>(32 * 32 * 4);
-	image_.format = ny::ImageDataFormat::argb8888;
+	image_.format = ny::imageFormats::argb8888;
 	image_.size = {32u, 32u};
 
 	//light transparent red
-	// auto color = 0xFF9999CC;
-	auto color = 0x00000000;
+	auto color = 0xAAFF6666;
 
 	auto it = reinterpret_cast<std::uint32_t*>(image_.data.get());
 	std::fill(it, it + (32 * 32), color);
@@ -229,7 +239,7 @@ std::any CustomDataSource::data(const ny::DataFormat& format) const
 	return std::string("ayyy got em");
 }
 
-ny::ImageData CustomDataSource::image() const
+ny::Image CustomDataSource::image() const
 {
-	return {image_.data.get(), image_.size, image_.format, image_.stride};
+	return image_;
 }

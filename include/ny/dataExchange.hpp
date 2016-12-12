@@ -5,7 +5,7 @@
 #pragma once
 
 #include <ny/fwd.hpp>
-#include <ny/imageData.hpp>
+#include <ny/image.hpp>
 #include <ny/asyncRequest.hpp>
 
 #include <nytl/callback.hpp>
@@ -16,10 +16,10 @@
 #include <functional>
 #include <any>
 
+//TODO: rework doc
+
 namespace ny
 {
-
-using OwnedImageData = BasicImageData<std::unique_ptr<std::uint8_t[]>>;
 
 ///Description of a data format by mime and non-mime strings.
 ///There are a few standard formats in which data is passed around (i.e. wrapped
@@ -33,7 +33,7 @@ using OwnedImageData = BasicImageData<std::unique_ptr<std::uint8_t[]>>;
 /// | raw		| vector<uint8_t>		| "application/octet-stream"	|
 /// | text		| string				| "text/plain"					|
 /// | uriList	| vector<string> 		| "text/uri-list"				|
-/// | image		| OwnedImageData		| "image/x-ny-data"				|
+/// | image		| UniqueImage			| "image/x-ny-data"				|
 /// | <custom>  | vector<uint8_t>		| <custom>						|
 class DataFormat
 {
@@ -48,7 +48,7 @@ public:
 	///other applications that might know it the same format under a different name.
 	///More significant names/descriptions should come first. Can also contains none mime-type
 	///names, but should be avoided.
-	std::vector<std::string> additionalNames {}; 
+	std::vector<std::string> additionalNames {};
 
 public:
 	static const DataFormat none; //empty object, used for invalid formats
@@ -82,8 +82,8 @@ public:
 	///Returns an image representing the data. This image could e.g. used
 	///when this DataSource is used for a drag and drop opertation.
 	///If the data cannot be represented using an image, return a default-constructed
-	///ImageData object (or just don't override it.)
-	virtual ImageData image() const { return {}; };
+	///Image object (or just don't override it).
+	virtual Image image() const { return {}; };
 };
 
 ///Class that allows app to retrieve data from other apps
@@ -131,17 +131,13 @@ public:
 	///empty any object.
 	///Note that on some backends this function might not return (running an internal event loop)
 	///until the data is retrieved.
-	// [[deprecated("Use the new AsyncRequest api")]]
-	virtual nytl::Connection data(const DataFormat&, const DataFunction&) { return {}; }
-
-	///
 	virtual DataRequest data(const DataFormat&) { throw 0; }
 };
 
 using DataOfferPtr = std::unique_ptr<DataOffer>;
 
-std::vector<uint8_t> serialize(const ImageData&);
-OwnedImageData deserializeImageData(nytl::Range<uint8_t> buffer);
+std::vector<uint8_t> serialize(const Image&);
+UniqueImage deserializeImage(nytl::Range<uint8_t> buffer);
 
 ///Encodes a vector of uris to a single string with mime-type text/uri-list encoded in utf8.
 ///Will replace special chars with their escape codes and seperate the given uris using

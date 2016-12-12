@@ -13,7 +13,7 @@
 
 #include <ny/windowSettings.hpp>
 #include <ny/windowListener.hpp>
-#include <ny/imageData.hpp>
+#include <ny/image.hpp>
 #include <ny/dataExchange.hpp>
 #include <ny/cursor.hpp>
 #include <ny/loopControl.hpp>
