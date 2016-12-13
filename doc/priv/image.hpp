@@ -33,7 +33,7 @@
 namespace image
 {
 
-enum class ColorChannel
+enum class ColorChannel : uint8_t
 {
 	none,
 	red,

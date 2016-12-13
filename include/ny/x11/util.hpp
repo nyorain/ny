@@ -6,6 +6,7 @@
 
 #include <ny/x11/include.hpp>
 #include <ny/windowListener.hpp>
+#include <ny/image.hpp>
 #include <nytl/stringParam.hpp>
 
 #include <xcb/xcb.h>
@@ -73,8 +74,8 @@ protected:
 
 ///Tries to convert the given visual description with the given depth to an ImageDataFormat
 ///enumeration value. If there is no corresponding ImageDataFormat value, returns
-///ImageDataFormat::none.
-ImageDataFormat visualToFormat(const xcb_visualtype_t& visual, unsigned int depth);
+///imageFormats::none.
+ImageFormat visualToFormat(const xcb_visualtype_t& visual, unsigned int depth);
 
 ///Returns the MouseButton enumeration value for the given x11 button id.
 ///Note that default x11 does only support 3 buttons for sure, so custom1 and custom2

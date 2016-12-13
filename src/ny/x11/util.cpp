@@ -6,47 +6,70 @@
 #include <ny/log.hpp>
 #include <ny/mouseContext.hpp>
 #include <ny/mouseButton.hpp>
-#include <ny/imageData.hpp>
 
 #include <X11/Xlib.h>
 
 namespace ny
 {
 
-ImageDataFormat visualToFormat(const xcb_visualtype_t& v, unsigned int depth)
+ImageFormat visualToFormat(const xcb_visualtype_t& v, unsigned int depth)
 {
-	if(depth != 24 && depth != 32) return ImageDataFormat::none;
+	//the visual does only have an alpha channel if its depth is 32 bits
+	auto alphaMask = 0u;
+	if(depth == 32) alphaMask = 0xFFFFFFFFu & ~(v.red_mask | v.green_mask | v.blue_mask);
 
-	//XXX: the map could use some work; error/special case handling.
-	//A simple format map that maps the rgb[a] mask values of the visualtype to a format
-	//Note that only the rgb[a] masks of some visuals will result in a valid format,
-	//usually ImageDataFormat::none is returned
-	struct
+	//represents a color mask channel
+	struct Channel
 	{
-		std::uint32_t r, g, b, a;
-		ImageDataFormat format;
-	} static formats[] =
-	{
-		{ 0xFF000000u, 0x00FF0000u, 0x0000FF00u, 0x000000FFu, ImageDataFormat::rgba8888 },
-		{ 0x0000FF00u, 0x00FF0000u, 0xFF000000u, 0x000000FFu, ImageDataFormat::bgra8888 },
-		{ 0x00FF0000u, 0x0000FF00u, 0x000000FFu, 0xFF000000u, ImageDataFormat::argb8888 },
-		{ 0x00FF0000u, 0x0000FF00u, 0x000000FFu, 0u, ImageDataFormat::rgb888 },
-		{ 0x000000FFu, 0x0000FF00u, 0x00FF0000u, 0u, ImageDataFormat::bgr888 },
+		ColorChannel color;
+		unsigned int offset;
+		unsigned int size;
+	} channels[4];
 
-		{ 0xFF000000u, 0u, 0u, 0u, ImageDataFormat::a8 },
-		{ 0x000000FFu, 0u, 0u, 0u, ImageDataFormat::a8 },
-		{ 0x0u, 0u, 0u, 0xFF000000u, ImageDataFormat::a8 },
-		{ 0x0u, 0u, 0u, 0x000000FFu, ImageDataFormat::a8 }
+	//Converts a given mask to a Channel struct
+	auto parseMask = [](ColorChannel color, unsigned int mask) {
+		auto active = false;
+		Channel ret {color, 0u, 0u};
+
+		for(auto i = 0u; i < 32; ++i)
+		{
+			if(mask & (1 << i))
+			{
+				if(!active) ret.offset = i;
+				ret.size++;
+			}
+			else if(active)
+			{
+				break;
+			}
+		}
+
+		return ret;
 	};
 
-	auto a = 0u;
-	if(depth == 32) a = 0xFFFFFFFFu & ~(v.red_mask | v.green_mask | v.blue_mask);
+	//parse the color masks
+	channels[0] = parseMask(ColorChannel::red, v.red_mask);
+	channels[1] = parseMask(ColorChannel::green, v.green_mask);
+	channels[2] = parseMask(ColorChannel::blue, v.blue_mask);
+	channels[3] = parseMask(ColorChannel::alpha, alphaMask);
 
-	for(auto& f : formats)
-		if(v.red_mask == f.r && v.green_mask == f.g && v.blue_mask == f.b && a == f.a)
-			return f.format;
+	//sort them by the order they appear
+	std::sort(std::begin(channels), std::end(channels),
+		[](auto& a, auto& b){ return a.offset < b.offset; });
 
-	return ImageDataFormat::none;
+	//insert them (with offsets if needed) into the returned ImageFormat
+	ImageFormat ret {};
+
+	auto prev = 0u;
+	auto it = ret.begin();
+	for(auto channel : channels)
+	{
+		if(channel.offset > prev + 1) *(it++) = {ColorChannel::none, channel.offset - (prev + 1)};
+		*(it++) = {channel.color, channel.size};
+		prev = channel.offset + channel.size;
+	}
+
+	return ret;
 }
 
 MouseButton x11ToButton(unsigned int button)

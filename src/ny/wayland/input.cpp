@@ -56,7 +56,11 @@ WaylandMouseContext::WaylandMouseContext(WaylandAppContext& ac, wl_seat& seat)
 
 WaylandMouseContext::~WaylandMouseContext()
 {
-	if(wlPointer_) wl_pointer_release(wlPointer_);
+	if(wlPointer_)
+	{
+		if(wl_pointer_get_version(wlPointer_) >= 3) wl_pointer_release(wlPointer_);
+		else wl_pointer_destroy(wlPointer_);
+	}
 	if(wlCursorSurface_) wl_surface_destroy(wlCursorSurface_);
 }
 
@@ -204,7 +208,11 @@ WaylandKeyboardContext::WaylandKeyboardContext(WaylandAppContext& ac, wl_seat& s
 
 WaylandKeyboardContext::~WaylandKeyboardContext()
 {
-	if(wlKeyboard_) wl_keyboard_release(wlKeyboard_);
+	if(wlKeyboard_)
+	{
+		if(wl_keyboard_get_version(wlKeyboard_) >= 3) wl_keyboard_release(wlKeyboard_);
+		else wl_keyboard_destroy(wlKeyboard_);
+	}
 }
 
 bool WaylandKeyboardContext::pressed(Keycode key) const

@@ -6,6 +6,7 @@
 
 #include <ny/wayland/include.hpp>
 #include <ny/windowListener.hpp>
+#include <ny/image.hpp>
 
 #include <nytl/vec.hpp>
 #include <nytl/callback.hpp>
@@ -20,6 +21,7 @@ namespace ny
 namespace wayland
 {
 
+//TODO: shmbuffer in preferred format, don't just always use argb
 //TODO: use one shared shm_pool for all ShmBuffers?
 //At least use pool of pools but not one for every buffer. This is really bad
 
@@ -289,12 +291,12 @@ public:
     unsigned int serial;
 };
 
-///Wayland std::error_category implementation for one wayland interface.
-///Only used for wayland protocol errors, for other errors wayland uses posix
-///error codes, so generic_category will be used.
-///Note that there has to be one ErrorCategory for every wayland interface since
-///otherwise errors cannot be correctly represented just using an integer value
-///(i.e. the error code).
+/// Wayland std::error_category implementation for one wayland interface.
+/// Only used for wayland protocol errors, for other errors wayland uses posix
+/// error codes, so generic_category will be used.
+/// Note that there has to be one ErrorCategory for every wayland interface since
+/// otherwise errors cannot be correctly represented just using an integer value
+/// (i.e. the error code).
 class WaylandErrorCategory : public std::error_category
 {
 public:
@@ -311,22 +313,22 @@ protected:
 	std::string name_;
 };
 
-///Converts the given wl_shell or xdg_shell surface edge enumerations value to the corresponding
-///WindowEdge value.
-///Undefined behaviour for invalid edge values.
+/// Converts the given wl_shell_surface edge enumerations value to the corresponding
+/// WindowEdge value.
+/// Undefined behaviour for invalid edge values.
 WindowEdge waylandToEdge(unsigned int edge);
 
-///Converts a WindowEdge enumeration value to the corresponding wl_shell
-///(or xdg_shell, they are the same) surface edge enumeration value.
-///Undefined behaviour for invalid edge values.
+/// Converts a WindowEdge enumeration value to the corresponding wl_shell_surface
+/// edge enumeration value.
+/// Undefined behaviour for invalid edge values.
 unsigned int edgeToWayland(WindowEdge edge);
 
-///Converts the given wayland shm format to the corresponding ImageDataFormat enum value.
-///Returns ImageDataFormat::none for invalid or not representable formats.
-ImageDataFormat waylandToImageFormat(unsigned int format);
+/// Converts the given wayland shm format to the corresponding ImageFormat enum value.
+/// Returns imageFormats::none for invalid or not representable formats.
+ImageFormat waylandToImageFormat(unsigned int wlShmFormat);
 
-///Converts the given ImageDataFormat enum value to the corresponding wayland shm format.
-///Returns -1 for invalid or not representable formats.
-int imageFormatToWayland(ImageDataFormat format);
+/// Converts the given ImageDataFormat enum value to the corresponding wayland shm format.
+/// Returns -1 for invalid or not representable formats.
+int imageFormatToWayland(const ImageFormat&);
 
 }

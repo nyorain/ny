@@ -80,7 +80,7 @@ enum class DialogResult : unsigned int;
 enum class NativeWidgetType : unsigned int;
 enum class DialogType : unsigned int;
 enum class CursorType : unsigned int;
-enum class ImageDataFormat : unsigned int;
+enum class ColorChannel : uint8_t;
 
 using WindowHints = nytl::Flags<WindowHint>;
 using WindowEdges = nytl::Flags<WindowEdge>;

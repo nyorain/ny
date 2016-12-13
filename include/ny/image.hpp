@@ -30,6 +30,7 @@
 #include <memory>
 #include <cstring>
 #include <bitset>
+#include <array>
 
 //TODO: c++17 make ImageFormat pod struct derived from std::array and
 //  the default formats constexpr members (i.e. ImageFormat::rgba8888)
@@ -39,7 +40,7 @@ namespace ny
 {
 
 ///Represents a ColorChannel for an ImageFormat specification.
-enum class ColorChannel
+enum class ColorChannel : uint8_t
 {
 	none,
 	red,
@@ -103,7 +104,7 @@ constexpr ImageFormat rgb888 {{
 	{ColorChannel::blue, 8},
 }};
 
-constexpr ImageFormat xrgb888 {{
+constexpr ImageFormat xrgb8888 {{
 	{ColorChannel::none, 8},
 	{ColorChannel::red, 8},
 	{ColorChannel::green, 8},
@@ -122,11 +123,13 @@ constexpr ImageFormat g1 {{{ColorChannel::green, 1}}};
 constexpr ImageFormat b8 {{{ColorChannel::blue, 8}}};
 constexpr ImageFormat b1 {{{ColorChannel::blue, 1}}};
 
+constexpr ImageFormat none {};
+
 }
 
 ///Returns whether the current machine is little endian.
 ///If this returns false it is assumed to be big endian.
-constexpr bool littleEndian();
+inline bool littleEndian();
 
 ///Returns the next multiple of alignment that is greater or equal than value.
 ///Can be used to 'align' a value e.g. align(27, 8) returns 32.
@@ -359,7 +362,7 @@ void convertFormat(const Image&, ImageFormat to, uint8_t& into, unsigned int ali
 void premultiply(const MutableImage& img);
 
 /// - implementation -
-constexpr bool littleEndian()
+inline bool littleEndian()
 {
 	constexpr uint32_t dummy = 1u;
 	return ((reinterpret_cast<const uint8_t*>(&dummy))[0] == 1);

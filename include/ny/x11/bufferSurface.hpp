@@ -29,7 +29,7 @@ public:
 
 	X11WindowContext& windowContext() const { return *windowContext_; }
 	xcb_connection_t& xConnection() const { return windowContext().xConnection(); }
-	ImageDataFormat format() const { return format_; }
+	ImageFormat format() const { return format_; }
 	bool shm() const { return shm_; }
 	bool active() const { return active_; }
 
@@ -40,7 +40,7 @@ protected:
 protected:
 	X11WindowContext* windowContext_ {};
 
-	ImageDataFormat format_ {};
+	ImageFormat format_ {};
 	uint32_t gc_ {};
 	bool shm_ {};
 

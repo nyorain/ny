@@ -54,7 +54,7 @@ public:
     void beginResize(const EventData* ev, WindowEdges edges) override;
 
     void title(nytl::StringParam title) override;
-	void icon(const ImageData& img) override;
+	void icon(const Image& img) override;
 	bool customDecorated() const override;
 
 	void addWindowHints(WindowHints hints) override;

@@ -51,7 +51,7 @@ public:
 
 	void complete(const std::any& any)
 	{
-		DefaultAsyncRequest::complete(any);
+		DefaultAsyncRequest::complete(std::any(any));
 		dataOffer_ = nullptr;
 	}
 };
@@ -118,7 +118,8 @@ void WaylandDataOffer::destroy()
 
 	if(wlDataOffer_)
 	{
-		if(finish_) wl_data_offer_finish(wlDataOffer_);
+		auto version = wl_data_offer_get_version(wlDataOffer_);
+		if(finish_ && version > 3) wl_data_offer_finish(wlDataOffer_);
 		wl_data_offer_destroy(wlDataOffer_);
 	}
 }
@@ -210,6 +211,7 @@ void WaylandDataOffer::offer(const char* fmt)
 	else formats_.push_back({{fmt, {}}, fmt,});
 }
 
+//TODO: parse actions to determince whether wl_data_offer_finish has to be called? see protocol
 void WaylandDataOffer::sourceActions(unsigned int actions)
 {
 	nytl::unused(actions);
@@ -271,14 +273,15 @@ WaylandDataSource::WaylandDataSource(WaylandAppContext& ac, std::unique_ptr<Data
 	//if this is a dnd source, set the actions and create dnd surface and buffer
 	if(dnd_)
 	{
-		wl_data_source_set_actions(wlDataSource_, WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY);
+		if(wl_data_source_get_version(wlDataSource_) >= 3)
+			wl_data_source_set_actions(wlDataSource_, WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY);
 
 		auto img = source_->image();
 		if(img.data)
 		{
 			dragSurface_ = wl_compositor_create_surface(&appContext_.wlCompositor());
 			dragBuffer_ = {appContext_, img.size};
-			convertFormat(img, waylandToImageFormat(dragBuffer_.format()), dragBuffer_.data());
+			convertFormat(img, waylandToImageFormat(dragBuffer_.format()), dragBuffer_.data(), 8u);
 		}
 	}
 }
@@ -406,7 +409,11 @@ WaylandDataDevice::WaylandDataDevice(WaylandAppContext& ac) : appContext_(&ac)
 
 WaylandDataDevice::~WaylandDataDevice()
 {
-	if(wlDataDevice_) wl_data_device_destroy(wlDataDevice_);
+	if(wlDataDevice_)
+	{
+		if(wl_data_device_get_version(wlDataDevice_) >= 2) wl_data_device_release(wlDataDevice_);
+		else wl_data_device_destroy(wlDataDevice_);
+	}
 }
 
 void WaylandDataDevice::offer(wl_data_offer* offer)
@@ -479,8 +486,13 @@ void WaylandDataDevice::motion(unsigned int time, wl_fixed_t x, wl_fixed_t y)
 	if(fmt == DataFormat::none)
 	{
 		wl_data_offer_accept(&dndOffer_->wlDataOffer(), dndSerial_, nullptr);
-		wl_data_offer_set_actions(&dndOffer_->wlDataOffer(), WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE,
-			WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE);
+		if(wl_data_offer_get_version(&dndOffer_->wlDataOffer()) >= 3)
+		{
+			wl_data_offer_set_actions(&dndOffer_->wlDataOffer(),
+				WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE,
+				WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE);
+		}
+
 		return;
 	}
 
@@ -491,7 +503,8 @@ void WaylandDataDevice::motion(unsigned int time, wl_fixed_t x, wl_fixed_t y)
 
 void WaylandDataDevice::drop()
 {
-	// debug("drop");
+	// debug("ny::WaylandDataDevice::drop");
+
 	if(!dndOffer_ || !dndWC_)
 	{
 		log("ny::WaylandDataDevice::drop: invalid current dnd session.");
@@ -511,7 +524,6 @@ void WaylandDataDevice::drop()
 
 	if(ownedDndOffer)
 	{
-		// debug("drop drop");
 		ownedDndOffer->finish(true);
 		if(dndWC_) dndWC_->listener().dndDrop({}, std::move(ownedDndOffer), nullptr);
 		else warning("ny::WaylandDataDevice::drop: no current dnd WindowContext");

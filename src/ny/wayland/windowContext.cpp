@@ -337,26 +337,19 @@ void WaylandWindowContext::cursor(const Cursor& cursor)
 
 	if(cursor.type() == Cursor::Type::image)
 	{
-		auto* img = cursor.image();
-		if(!img || !img->data)
+		auto img = cursor.image();
+		if(!img.data)
 		{
 			warning("ny::WaylandWindowContext::cursor: invalid image cursor");
 			return;
 		}
 
-		shmCursorBuffer_ = wayland::ShmBuffer(appContext(), img->size, img->stride);
-		if(img->format != ImageDataFormat::argb8888)
-		{
-			convertFormat(*img, ImageDataFormat::argb8888, shmCursorBuffer_.data());
-		}
-		else
-		{
-			std::memcpy(&shmCursorBuffer_.data(), img->data, shmCursorBuffer_.dataSize());
-		}
-
+		shmCursorBuffer_ = wayland::ShmBuffer(appContext(), img.size);
+		convertFormat(img, waylandToImageFormat(shmCursorBuffer_.format()),
+			shmCursorBuffer_.data(), 8u);
 
 		cursorHotspot_ = cursor.imageHotspot();
-		cursorSize_ = img->size;
+		cursorSize_ = img.size;
 		cursorBuffer_ = &shmCursorBuffer_.wlBuffer();
 	}
 	else if(cursor.type() == Cursor::Type::none)

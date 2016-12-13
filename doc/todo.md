@@ -1,6 +1,7 @@
 Current todo:
 =============
 
+- new image formats, such as hsl, yuv since they might be supported by some backends?
 - clean up the namespace/prefix mess (e.g. wayland::EventData vs WaylandEventData)
 	- should be uniform across backends
 - deferred events (i.e. DONT dispatch outside dispatch functions)
@@ -96,6 +97,7 @@ wayland backend:
 - ShmBuffer shm_pool shared (not one per buffer...)
 - handle window hints correctly (at least try somehow)
 - correct capabilites
+- WaylandErrorCategory new protocols!
 - improve xdg shell v6 support (position, better configure events, popups)
 	- min/max size (also implement this for other surface roles)
 

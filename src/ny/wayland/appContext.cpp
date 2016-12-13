@@ -143,9 +143,15 @@ int noSigPoll(pollfd& fds, nfds_t nfds, int timeout = -1)
 thread_local std::string lastLogMessage = "<none>";
 void logHandler(const char* format, va_list vlist)
 {
+	va_list vlistcopy;
+	va_copy(vlistcopy, vlist);
+
 	auto size = std::vsnprintf(nullptr, 0, format, vlist);
-	lastLogMessage.resize(size);
-	std::vsnprintf(&lastLogMessage[0], lastLogMessage.size(), format, vlist);
+	va_end(vlist);
+
+	lastLogMessage.resize(size + 1);
+	std::vsnprintf(&lastLogMessage[0], lastLogMessage.size(), format, vlistcopy);
+	va_end(vlistcopy);
 
 	log("ny::wayland::logHandler: ", lastLogMessage);
 }

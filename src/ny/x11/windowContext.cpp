@@ -145,12 +145,12 @@ void X11WindowContext::initVisual()
 			//argb > rgba > bgra for 32
 			//rgb > bgr for 24
 			auto highestScore = 0u;
-			auto score = [](ImageDataFormat& f) {
-				if(f == ImageDataFormat::argb8888) return 6u;
-				else if(f == ImageDataFormat::rgba8888) return 5u;
-				else if(f == ImageDataFormat::bgra8888) return 4u;
-				else if(f == ImageDataFormat::rgb888) return 3u;
-				else if(f == ImageDataFormat::bgr888) return 2u;
+			auto score = [](const ImageFormat& f) {
+				if(f == imageFormats::argb8888) return 6u;
+				else if(f == imageFormats::rgba8888) return 5u;
+				else if(f == imageFormats::bgra8888) return 4u;
+				else if(f == imageFormats::rgb888) return 3u;
+				else if(f == imageFormats::bgr888) return 2u;
 				return 1u;
 			};
 
@@ -158,6 +158,7 @@ void X11WindowContext::initVisual()
 			for(; visual_iter.rem; xcb_visualtype_next(&visual_iter))
 			{
 				//TODO: make requested format dynamic with X11WindowSettings
+				//i.e. make it possible to request a certain format
 				auto format = visualToFormat(*visual_iter.data, avDepth);
 				if(score(format) > highestScore) visualID_ = visual_iter.data->visual_id;
 			}
@@ -255,25 +256,14 @@ void X11WindowContext::cursor(const Cursor& curs)
 	}
 	else if(curs.type() == CursorType::image)
 	{
-		constexpr static auto reqFormat = ImageDataFormat::bgra8888; //TODO: endianess?
+		auto img = curs.image();
 
-		auto& imgdata = *curs.image();
-
-		auto xcimage = XcursorImageCreate(imgdata.size.x, imgdata.size.y);
+		auto xcimage = XcursorImageCreate(img.size.x, img.size.y);
 		xcimage->xhot = curs.imageHotspot().x;
 		xcimage->yhot = curs.imageHotspot().y;
 
-		auto packedStride = imgdata.size.x * imageDataFormatSize(imgdata.format);
-		if((imgdata.stride != packedStride && imgdata.stride != 0) || imgdata.format != reqFormat)
-		{
-			auto pixels = reinterpret_cast<std::uint8_t*>(xcimage->pixels);
-			convertFormat(imgdata, reqFormat, *pixels);
-		}
-		else
-		{
-			std::memcpy(xcimage->pixels, imgdata.data, imgdata.stride * imgdata.size.y);
-		}
-
+		auto pixels = reinterpret_cast<std::uint8_t*>(xcimage->pixels);
+		convertFormat(img, imageFormats::argb8888, *pixels, 8u);
 		if(xCursor_) xcb_free_cursor(&xConnection(), xCursor_);
 
 		xCursor_ = XcursorImageLoadCursor(&xdpy, xcimage);
@@ -372,11 +362,11 @@ void X11WindowContext::beginResize(const EventData* ev, WindowEdges edge)
 		x11Edge, XCB_BUTTON_INDEX_1, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
 }
 
-void X11WindowContext::icon(const ImageData& img)
+void X11WindowContext::icon(const Image& img)
 {
     if(img.data)
     {
-		auto reqFormat = ImageDataFormat::rgba8888;
+		auto reqFormat = imageFormats::rgba8888;
 		auto neededSize = img.size.x * img.size.y;
 		auto ownedData = std::make_unique<std::uint32_t[]>(2 + neededSize);
 

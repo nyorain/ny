@@ -102,7 +102,7 @@ public:
 
 		auto bufferGuard = surface->buffer();
 		auto buffer = bufferGuard.get();
-		auto size = buffer.stride * buffer.size.y;
+		auto size = dataSize(buffer);
 		std::memset(buffer.data, 0xCC, size);
 	}
 

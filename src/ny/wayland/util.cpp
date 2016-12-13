@@ -8,7 +8,6 @@
 
 #include <ny/log.hpp>
 #include <ny/cursor.hpp>
-#include <ny/imageData.hpp>
 
 #include <nytl/scope.hpp>
 
@@ -262,7 +261,11 @@ Output::Output(WaylandAppContext& ac, wl_output& outp, unsigned int id)
 
 Output::~Output()
 {
-    if(wlOutput_) wl_output_release(wlOutput_);
+    if(wlOutput_)
+	{
+		if(wl_output_get_version(wlOutput_) > 3) wl_output_release(wlOutput_);
+		else wl_output_destroy(wlOutput_);
+	}
 }
 
 Output::Output(Output&& other) noexcept :
@@ -331,32 +334,28 @@ unsigned int edgeToWayland(WindowEdge edge)
 	return static_cast<unsigned int>(edge);
 }
 
-int imageFormatToWayland(ImageDataFormat format)
+constexpr struct FormatConversion
 {
-    switch(format)
-    {
-		case ImageDataFormat::argb8888: return WL_SHM_FORMAT_ARGB8888;
-		case ImageDataFormat::rgb888: return WL_SHM_FORMAT_RGB888;
-		case ImageDataFormat::rgba8888: return WL_SHM_FORMAT_RGBA8888;
-		case ImageDataFormat::bgr888: return WL_SHM_FORMAT_BGR888;
-		case ImageDataFormat::bgra8888: return WL_SHM_FORMAT_BGRA8888;
-		case ImageDataFormat::a8: return WL_SHM_FORMAT_C8;
-        default: return -1;
-    }
+	ImageFormat imageFormat;
+	unsigned int shmFormat;
+} formatConversions[] {
+	{imageFormats::argb8888, WL_SHM_FORMAT_ARGB8888},
+	{imageFormats::xrgb8888, WL_SHM_FORMAT_XRGB8888},
+	{imageFormats::rgba8888, WL_SHM_FORMAT_RGBA8888},
+	{imageFormats::bgr888, WL_SHM_FORMAT_BGR888},
+	{imageFormats::rgb888, WL_SHM_FORMAT_RGB888},
+};
+
+int imageFormatToWayland(const ImageFormat& format)
+{
+	for(auto& fc : formatConversions) if(fc.imageFormat == format) return fc.shmFormat;
+	return -1;
 }
 
-ImageDataFormat waylandToImageFormat(unsigned int wlFormat)
+ImageFormat waylandToImageFormat(unsigned int shmFormat)
 {
-    switch(wlFormat)
-    {
-		case WL_SHM_FORMAT_ARGB8888: return ImageDataFormat::argb8888;
-		case WL_SHM_FORMAT_RGB888: return ImageDataFormat::rgb888;
-		case WL_SHM_FORMAT_BGRA8888: return ImageDataFormat::bgra8888;
-		case WL_SHM_FORMAT_RGBA8888: return ImageDataFormat::rgba8888;
-		case WL_SHM_FORMAT_XRGB8888: return ImageDataFormat::argb8888; //XXX: extra image format?
-		case WL_SHM_FORMAT_C8: return ImageDataFormat::a8;
-		default: return ImageDataFormat::none;
-    }
+	for(auto& fc : formatConversions) if(fc.shmFormat == shmFormat) return fc.imageFormat;
+	return imageFormats::none;
 }
 
 //WaylandErrorCategory

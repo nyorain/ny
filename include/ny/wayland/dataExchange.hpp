@@ -45,7 +45,8 @@ protected:
 	wl_data_offer* wlDataOffer_ {};
 	std::vector<std::pair<DataFormat, std::string>> formats_ {};
 	std::map<std::string, PendingRequest> requests_;
-	bool finish_ {}; //whether it should be finished on destruction
+
+	bool finish_ {}; //whether it should be finished on destruction (only for accepted dnd offers)
 
 protected:
 	///Wayland callback that is called everytime a new mimeType is announced.

@@ -45,10 +45,10 @@ BufferGuard WaylandBufferSurface::buffer()
 	buffers_.back().use();
 	active_ = &buffers_.back();
 	auto format = waylandToImageFormat(buffers_.back().format());
-	if(format == ImageDataFormat::none)
+	if(format == imageFormats::none)
 		throw std::runtime_error("ny::WaylandBufferSurface: failed to parse shm buffer format");
 
-	return {*this, {&buffers_.back().data(), size, format, buffers_.back().stride()}};
+	return {*this, {&buffers_.back().data(), size, format, buffers_.back().stride() * 8}};
 }
 
 void WaylandBufferSurface::apply(const BufferGuard& buffer) noexcept

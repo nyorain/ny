@@ -69,7 +69,7 @@ X11BufferSurface::X11BufferSurface(X11WindowContext& wc) : windowContext_(&wc)
 		throw std::runtime_error("ny::X11BufferSurface: couldn't query depth format bpp");
 
 	format_ = visualToFormat(*windowContext().xVisualType(), fmt->bits_per_pixel);
-	if(format_ == ImageDataFormat::none)
+	if(format_ == imageFormats::none)
 		throw std::runtime_error("ny::X11BufferSurface: couldn't parse visual format");
 
 	//check if the server has shm suport
@@ -103,8 +103,7 @@ BufferGuard X11BufferSurface::buffer()
 
 	//check if resize is needed
 	auto size = windowContext().size();
-	auto bpp = imageDataFormatSize(format_); //bytes per pixel (XXX NOT bits!)
-	auto newBytes = size.x * size.y * bpp; //the needed size
+	auto newBytes = std::ceil(size.x * size.y * bitSize(format_) / 8.0); //the needed size
 	if(newBytes > byteSize_)
 	{
 		//we alloc more than is really needed because this will
@@ -142,7 +141,7 @@ BufferGuard X11BufferSurface::buffer()
 	size_ = size;
 	active_ = true;
 
-	return {*this, {data_, {size_.x, size_.y}, format_, size_.x * bpp}};
+	return {*this, {data_, {size_.x, size_.y}, format_, size_.x * bitSize(format_)}};
 }
 
 void X11BufferSurface::apply(const BufferGuard&) noexcept
@@ -169,9 +168,7 @@ void X11BufferSurface::apply(const BufferGuard&) noexcept
 	}
 	else
 	{
-		auto bpp = imageDataFormatSize(format_); //Bytes per pixel (XXX NOT bits!)
-		auto length = size_.x * size_.y * bpp;
-
+		auto length = std::ceil(size_.x * size_.y * bitSize(format_) / 8.0);
 		auto cookie = xcb_put_image_checked(&xConnection(), XCB_IMAGE_FORMAT_Z_PIXMAP, window,
 			gc_, size_.x, size_.y, 0, 0, 0, depth, length, data_);
 		windowContext().errorCategory().checkWarn(cookie, "ny::X11BufferSurface: put_image");
