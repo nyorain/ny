@@ -28,7 +28,7 @@ const DataFormat DataFormat::raw {"application/octet-stream",
 const DataFormat DataFormat::text {"text/plain", {"text", "string",
 	"unicode", "utf8", "STRING", "TEXT", "UTF8_STRING", "UNICODETEXT"}};
 const DataFormat DataFormat::uriList {"text/uri-list", {"uriList"}};
-const DataFormat DataFormat::imageData {"image/x-ny-data", {"ny::Image"}};
+const DataFormat DataFormat::image {"image/x-ny-data", {"ny::Image"}};
 
 std::vector<uint8_t> serialize(const Image& image)
 {

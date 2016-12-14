@@ -198,15 +198,8 @@ X11AppContext::X11AppContext()
 		{atoms.mime.textPlainUtf8, "text/plain;charset=utf8"},
 		{atoms.mime.textUriList, "text/uri-list"},
 
-		{atoms.mime.imageJpeg, "image/jpeg"},
-		{atoms.mime.imageGif, "image/gif"},
-		{atoms.mime.imagePng, "image/png"},
-		{atoms.mime.imageBmp, "image/bmp"},
-
 		{atoms.mime.imageData, "image/x-ny-data"},
-		{atoms.mime.timePoint, "x-application/ny-time-point"},
-		{atoms.mime.timeDuration, "x-application/ny-time-duration"},
-		{atoms.mime.raw, "x-application/ny-raw-buffer"},
+		{atoms.mime.raw, "application/octet-stream"}
 	};
 
 	auto length = sizeof(atomNames) / sizeof(atomNames[0]);

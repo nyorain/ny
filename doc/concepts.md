@@ -4,7 +4,7 @@ Developement concepts
 *__This includes developement concepts, or future ideas and interfaces.__*
 
 EventTypeRegister
-=================
+-----------------
 
 The idea of a static event type register that totally prevents multiple events having the same
 number. The problem would be that multiple processes could have different numbers for
@@ -29,11 +29,10 @@ public:
 };
 
 static auto eventTypeClose = EventTypeRegister::instance().register("ny::eventType::close");
-
 ```
 
 WindowListener
-==============
+--------------
 
 Concept that aims to replace the whole need for EventHandlers and the rather complex
 event dispatching mechanisms. The backend implementations just call directly those
@@ -62,33 +61,33 @@ class WindowListener
 {
 public:
 	///Returns a default WindowImpl object.
-    ///WindowContexts without explicitly set WindowListener have this object set.
-    ///This is done so it hasn't to be checked everytime whether a WindowContext has a valid
-    ///WindowListener.
+	///WindowContexts without explicitly set WindowListener have this object set.
+	///This is done so it hasn't to be checked everytime whether a WindowContext has a valid
+	///WindowListener.
 	static constexpr WindowListener& defaultInstance();
 
 public:
-    ///This function is called when a dnd action enters the window.
-    ///The window could use this to e.g. redraw itself in a special way.
-    ///Remember that after calling a dispatch function in this function, the given
-    ///DataOffer might not be valid anymore (then a dndLeave or dndDrop event occurred).
-    virtual void dndEnter(const DataOffer&, const EventData*) {};
+	///This function is called when a dnd action enters the window.
+	///The window could use this to e.g. redraw itself in a special way.
+	///Remember that after calling a dispatch function in this function, the given
+	///DataOffer might not be valid anymore (then a dndLeave or dndDrop event occurred).
+	virtual void dndEnter(const DataOffer&, const EventData*) {};
 
-    ///Called when a previously entered dnd offer is moved around in the window.
-    ///Many applications use this to enable e.g. scrolling while a dnd session is active.
-    ///Should return whether the given DataOffer could be accepted at the given position.
-    ///Remember that after calling a dispatch function in this function, the given
-    ///DataOffer might not be valid anymore (then a dndLeave or dndDrop event occurred).
-    virtual bool dndMove(nytl::Vec2i pos, const DataOffer&, const EventData*) { return false; }
+	///Called when a previously entered dnd offer is moved around in the window.
+	///Many applications use this to enable e.g. scrolling while a dnd session is active.
+	///Should return whether the given DataOffer could be accepted at the given position.
+	///Remember that after calling a dispatch function in this function, the given
+	///DataOffer might not be valid anymore (then a dndLeave or dndDrop event occurred).
+	virtual bool dndMove(nytl::Vec2i pos, const DataOffer&, const EventData*) { return false; }
 
-    ///This function is called when a DataOffer that entered the window leaves it.
-    ///The DataOffer object should then actually not be used anymore and is just passed here
-    ///for comparison. This function is only called if no drop occurs.
-    virtual void dndLeave(const DataOffer&, const EventData*) {};
+	///This function is called when a DataOffer that entered the window leaves it.
+	///The DataOffer object should then actually not be used anymore and is just passed here
+	///for comparison. This function is only called if no drop occurs.
+	virtual void dndLeave(const DataOffer&, const EventData*) {};
 
-    ///Called when a dnd DataOffer is dropped over the window.
-    ///The application gains ownership about the DataOffer object.
-    ///This event is only received when the previous dndMove handler returned true.
+	///Called when a dnd DataOffer is dropped over the window.
+	///The application gains ownership about the DataOffer object.
+	///This event is only received when the previous dndMove handler returned true.
 	virtual void dndDrop(nytl::Vec2i pos, std::unique_ptr<DataOffer>, const EventData*) {}
 
 	virtual void draw(const EventData*) {}; ///Redraw the window
@@ -106,7 +105,6 @@ public:
 	virtual void mouseWheel(int value, const EventData*) {}; ///Mouse wheel rotated over window
 	virtual void mouseCross(bool focused, const EventData*) {}; ///Mouse entered/left window
 };
-
 ```
 
 ### BackendEvent
@@ -120,7 +118,8 @@ class WindowListener
 	///This callback is called for backend-specific events that might be interesting for
 	///the applications. This function should only be used by applications that want to offer
     ///platform-specific features.
-    ///It can then check whether a certain backend is used and cast the received BackendEvent ///to the derived BackendEvent types of the specific backend.
+    ///It can then check whether a certain backend is used and cast the received BackendEvent
+	///to the derived BackendEvent types of the specific backend.
 	virtual void backendEvent(const BackendEvent&) {};
 };
 
@@ -135,7 +134,7 @@ public:
 ```
 
 Stub functions
-==============
+--------------
 
 #### The current situation:
 If an application is developed on a system where e.g. ny is installed without wayland support,
@@ -168,7 +167,7 @@ on platform where are features are present, this is how it is already usually do
 
 
 Common Unix abstraction
-=======================
+-----------------------
 
 The idea is to have a common abstraction above all unix backends to make integrating it
 with already existing applications/libaries easier.
@@ -209,12 +208,11 @@ public:
 ```
 
 Window Additions
-========================
+----------------
 
 Ideas for additional WindowContext/WindowSettings features.
 
-Additional capabitlity suggestions:
------------------------------------
+### Additional capabitlity suggestions:
 
  - change cursor
  - change icon
@@ -223,8 +221,7 @@ Additional capabitlity suggestions:
  - beginResize
  - title
 
-WindowType
-----------
+### WindowType
 
 Specifies the type of the window, i.e. the intention of its display.
 This might change how the window is presented to the user by the backend.
@@ -246,7 +243,7 @@ E.g. on windows native file/color/font picker dialogs. But since they arent even
 on windows anymore tbh, would this really make sense?
 
 AppContextSettings
-==================
+------------------
 
 Could be useful for displaying the applications name correctly and automatically parse
 arguments (introduce ny-specific arguments).
@@ -281,7 +278,7 @@ enum class DataAction
 ```
 
 Special position/size values
-============================
+----------------------------
 
 ```cpp
 ///Used as magical signal value for no postion.

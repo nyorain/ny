@@ -124,7 +124,7 @@ void WaylandDataOffer::destroy()
 	}
 }
 
-WaylandDataOffer::FormatsRequest WaylandDataOffer::formats() const
+WaylandDataOffer::FormatsRequest WaylandDataOffer::formats()
 {
 	//Since we don't have to query the supported formats but already have them
 	//stored, we can return a synchronous (i.e. already set) request object.

@@ -75,7 +75,7 @@ class DefaultAsyncRequest : public AsyncRequest<R>, public nytl::NonMovable
 {
 public:
 	DefaultAsyncRequest(AppContext& ac) : appContext_(&ac) {}
-	DefaultAsyncRequest(R value) : ready_(true), value_(value) {}
+	DefaultAsyncRequest(R value) : ready_(true), value_(std::move(value)) {}
 
 	void wait(LoopControl* lc = nullptr) override
 	{
@@ -103,7 +103,7 @@ public:
 	///when the request completes.
 	///It will store the passed value, end a potential wait call and trigger the registered
 	///callback function (if any).
-	void complete(R&& value)
+	void complete(R value)
 	{
 		ready_ = true;
 		value_ = std::move(value);

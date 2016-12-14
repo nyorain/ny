@@ -29,7 +29,7 @@ public:
 	WaylandDataOffer(WaylandDataOffer&& other) noexcept;
 	WaylandDataOffer& operator=(WaylandDataOffer&& other) noexcept;
 
-	FormatsRequest formats() const override;
+	FormatsRequest formats() override;
 	DataRequest data(const DataFormat& format) override;
 
 	wl_data_offer& wlDataOffer() const { return *wlDataOffer_; }

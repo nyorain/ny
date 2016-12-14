@@ -5,21 +5,14 @@
 #pragma once
 
 #include <ny/x11/include.hpp>
-#include <ny/data.hpp>
+#include <ny/dataExchange.hpp>
 #include <xcb/xcb.h>
 #include <memory>
 #include <map>
+#include <unordered_map>
 
 namespace ny
 {
-
-///Converts a given dataType format to a list of target atoms that represent the given
-//format. If none atoms are found, an empty vector is returned.
-std::vector<xcb_atom_t> formatToTargetAtom(const x11::Atoms&, unsigned int format);
-
-///Converts a given target atom to the dataType format representing it.
-///Returns dataType::none for unknown atoms.
-unsigned int targetAtomToFormat(const x11::Atoms&, xcb_atom_t atom);
 
 ///X11 DataOffer implementation for selections or dnd.
 class X11DataOffer : public DataOffer
@@ -27,13 +20,12 @@ class X11DataOffer : public DataOffer
 public:
 	X11DataOffer() = default;
 	X11DataOffer(X11AppContext&, unsigned int selection, xcb_window_t owner);
-	~X11DataOffer() = default;
+	~X11DataOffer();
 
-	//can they be defaulted?
-	X11DataOffer(X11DataOffer&&) = default;
-	X11DataOffer& operator=(X11DataOffer&&) = default;
+	X11DataOffer(X11DataOffer&&) = delete;
+	X11DataOffer& operator=(X11DataOffer&&) = delete;
 
-	FormatsRequest formats() const override;
+	FormatsRequest formats() override;
 	DataRequest data(const DataFormat& format) override;
 
 	//x11 specific
@@ -43,19 +35,31 @@ public:
 	X11AppContext& appContext() const { return *appContext_; }
 	xcb_atom_t selection() const { return selection_; }
 	xcb_window_t owner() const { return owner_; }
-	bool valid() const { return (selection_); }
+	bool valid() const { return selection_; }
+
+protected:
+	///This will register a data request for the given format.
+	///If the given format is not supported, the request is completed with an empty any object
+	///and en empty connection will be returned.
+	///Otherwise the connection guard for a callback into the given request that will
+	///be triggered when the requested data is received will be returned.
+	nytl::ConnectionGuard registerDataRequest(const DataFormat& format,
+		DefaultAsyncRequest<std::any>& request);
 
 protected:
 	X11AppContext* appContext_ {};
 	xcb_atom_t selection_ {};
 	xcb_window_t owner_ {};
 
-	//PendingRequest struct with target/format cache?
-	using RequestCallback = nytl::Callback<void(const std::any&, DataOffer&, unsigned int)>;
-	std::map<xcb_atom_t, RequestCallback> requests_;
-	std::vector<std::pair<unsigned int, xcb_atom_t>> dataTypes_;
-};
+	std::unordered_map<DataFormat, xcb_atom_t> formats_;
+	bool formatsRetrieved_ {};
 
+	nytl::Callback<void(std::vector<DataFormat>)> pendingFormatRequests_;
+	std::map<xcb_atom_t, nytl::Callback<void(std::any)>> pendingDataRequests_;
+
+	//PendingRequest struct with target/format cache?
+	// std::vector<std::pair<unsigned int, xcb_atom_t>> dataTypes_;
+};
 
 ///Manages all selection, Xdnd and data exchange interactions.
 ///The dataSource pointer members should only have a value as long as the
@@ -93,5 +97,18 @@ protected:
 	X11DataOffer currentDndOffer_; //the currently active data offer
 	std::vector<X11DataOffer*> dndOffers_; //old data offers and the currently actvie one
 };
+
+namespace x11
+{
+
+///Converts a given dataType format to a list of target atoms that represent the given
+//format. If none atoms are found, an empty vector is returned.
+std::vector<xcb_atom_t> formatToTargetAtom(const X11AppContext&, const DataFormat& format);
+
+///Converts a given target atom to the dataType format representing it.
+///Returns dataType::none for unknown atoms.
+DataFormat targetAtomToFormat(const X11AppContext&, xcb_atom_t atom);
+
+}
 
 }

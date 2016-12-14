@@ -125,19 +125,12 @@ struct Atoms
 
 	struct
 	{
-		xcb_atom_t textPlain;
-		xcb_atom_t textPlainUtf8;
-		xcb_atom_t textUriList;
-
-		xcb_atom_t imageJpeg;
-		xcb_atom_t imageGif;
-		xcb_atom_t imagePng;
-		xcb_atom_t imageBmp;
+		xcb_atom_t textPlain; //text/plain
+		xcb_atom_t textPlainUtf8; //text/plain;charset=utf8
+		xcb_atom_t textUriList; //text/uri-list
 
 		xcb_atom_t imageData; //image/x-ny-data
-		xcb_atom_t timePoint; //x-special/ny-time-point
-		xcb_atom_t timeDuration; //x-special/ny-time-duration
-		xcb_atom_t raw; //x-special/ny-raw-buffer
+		xcb_atom_t raw; //application/octet-stream
 	} mime;
 };
 

@@ -5,6 +5,7 @@
 #include <ny/x11/dataExchange.hpp>
 #include <ny/x11/appContext.hpp>
 #include <ny/x11/windowContext.hpp>
+#include <ny/x11/util.hpp>
 #include <ny/log.hpp>
 #include <algorithm>
 
@@ -19,6 +20,25 @@ namespace ny
 //TODO: timestamps currently not implemented like in icccm convention
 //TODO: should we surrender owned selections on X11DataManager destruction?
 
+//small DefaultAsyncRequest derivate that will unregister itself from pending requests
+//on destruction
+template<typename T>
+class X11AsyncRequestImpl : public DefaultAsyncRequest<T>
+{
+public:
+	using DefaultAsyncRequest<T>::DefaultAsyncRequest;
+	nytl::ConnectionGuard connection;
+};
+
+//X11AsyncRequest derivate that will be used for data requests that first have to wait
+//for the supported formats request to complete
+class X11DataFormatRequestImpl : public X11AsyncRequestImpl<std::any>
+{
+public:
+	using X11AsyncRequestImpl<std::any>::X11AsyncRequestImpl;
+	DataOffer::FormatsRequest formatsRequest;
+};
+
 //DataOffer
 X11DataOffer::X11DataOffer(X11AppContext& ac, unsigned int selection, xcb_window_t owner)
 	: appContext_(&ac), selection_(selection), owner_(owner)
@@ -26,6 +46,107 @@ X11DataOffer::X11DataOffer(X11AppContext& ac, unsigned int selection, xcb_window
 	//ask the selection owner to enumerate targets
 	xcb_convert_selection(&appContext().xConnection(), appContext().xDummyWindow(), selection_,
 		appContext().atoms().targets, appContext().atoms().clipboard, XCB_CURRENT_TIME);
+}
+
+X11DataOffer::~X11DataOffer()
+{
+	//signal all pending format requests that they have failed
+	pendingFormatRequests_({});
+
+	//singla all pending data requests that they have failed
+	for(auto& pdr : pendingDataRequests_) pdr.second({});
+}
+
+X11DataOffer::FormatsRequest X11DataOffer::formats()
+{
+	// using RequestImpl = DefaultAsyncRequest<std::vector<DataFormat>>;
+	using RequestImpl = X11AsyncRequestImpl<std::vector<DataFormat>>;
+
+	//check if formats have already been retrieved
+	if(formatsRetrieved_)
+	{
+		std::vector<DataFormat> fmts {};
+		fmts.reserve(formats_.size());
+		for(auto& fmt : formats_) fmts.push_back(fmt.first);
+
+		return std::make_unique<RequestImpl>(std::move(fmts));
+	}
+
+	//the returned request will unregister the callback automatically on destruction,
+	//therefore we can capute it and use it inside the callback.
+	//the request will additionally be completed (with failure) when this DataOffer is
+	//destructed
+	auto ret = std::make_unique<RequestImpl>(appContext());
+	auto fmtCallback = [req = ret.get()](nytl::ConnectionRef conn, std::vector<DataFormat> fmts) {
+		conn.disconnect();
+		req->complete(std::move(fmts));
+	};
+
+	ret->connection = pendingFormatRequests_.add(fmtCallback);
+	return ret;
+}
+
+X11DataOffer::DataRequest X11DataOffer::data(const DataFormat& fmt)
+{
+	//if we did not even retrieved the supported formats we actually have to create
+	//an extra request for the format
+	if(!formatsRetrieved_)
+	{
+		auto ret = std::make_unique<X11DataFormatRequestImpl>(appContext());
+		ret->formatsRequest = formats();
+
+		//the returned request will unregister the callback on destruction and when
+		//this DataOffer is destroyed, therefore both can be accessed (both are not movable)
+		//this callback is triggered when the formats are retrieved and it will (try to) request
+		//data in the request format.
+		ret->formatsRequest->callback([fmt, this, req = ret.get()]{
+			auto connection = this->registerDataRequest(fmt, *req);
+			if(connection.connected()) req->connection = std::move(connection);
+		});
+
+		return ret;
+	}
+
+	//Just return a default data request that is waiting for the data to arrive
+	auto ret = std::make_unique<X11AsyncRequestImpl<std::any>>(appContext());
+	ret->connection = registerDataRequest(fmt, *ret);
+	if(ret->connection.connected()) return {};
+	return ret;
+}
+
+nytl::ConnectionGuard X11DataOffer::registerDataRequest(const DataFormat& format,
+	DefaultAsyncRequest<std::any>& request)
+{
+	//check if the requested format is supported at all and query the associated
+	//target format atom
+	xcb_atom_t target = 0u;
+	for(auto& mapping : formats_)
+	{
+		if(mapping.first == format)
+		{
+			target = mapping.second;
+			break;
+		}
+	}
+
+	//if the format is not supported complete the request with an empty data object and return
+	//an empty connection
+	if(!target)
+	{
+		request.complete({});
+		return {};
+	}
+
+	//request the data from the selection owner that offers the data
+
+	//add a callback to the pending data callbacks that will be triggered as soon
+	//as we receive the data in the requested format
+	//this callback will unregister itself.
+	return pendingDataRequests_[target].add(
+		[req = &request](nytl::ConnectionRef conn, const std::any& any) {
+			req->complete(any);
+			conn.disconnect();
+	});
 }
 
 void X11DataOffer::notify(const xcb_selection_notify_event_t& notify)
@@ -95,78 +216,8 @@ void X11DataOffer::notify(const xcb_selection_notify_event_t& notify)
 		}
 		else if(format == dataType::uriList && target == atoms.mime.textUriList)
 		{
-			std::string escaped = {prop.data.begin(), prop.data.end()};
-			std::vector<std::string> files;
-
-			//first create a copy of the string in which all escape codes (e.g. %20) are
-			//replaced.
-			std::string uris;
-			uris.reserve(escaped.size());
-			for(auto i = 0u; i < escaped.size(); ++i)
-			{
-				if(escaped[i] != '%')
-				{
-					uris.insert(uris.end(), escaped[i]);
-					continue;
-				}
-
-				if(i + 2 >= escaped.size()) break;
-
-				char number[3] = {escaped[i + 1], escaped[i + 2], 0};
-				auto num = std::strtol(number, nullptr, 16);
-
-				if(!num) log("ny::X11DataOffer: invalid escaped uri list code ", number);
-				else uris.insert(uris.end(), num);
-
-				i += 2;
-			}
-
-			//then split the uri list in its seperate uris and insert them
-			//into the vector
-			//also check for comment lines
-			auto beg = 0;
-			auto end = 0;
-
-			do
-			{
-				beg = end;
-				end = uris.find("\r\n", beg);
-				if(uris[beg] != '#') files.push_back(uris.substr(beg, end));
-			} while(end != std::string::npos);
-
-			any = std::move(files);
-		}
-
-		it->second(any, *this, format);
-		requests_.erase(format);
-	}
-}
-
-X11DataOffer::FormatsRequest X11DataOffer::formats() const
-{
-
-}
-
-X11DataOffer::DataRequest X11DataOffer::data(unsigned int fmt, const DataFunction& func)
-{
-	xcb_atom_t target = 0u;
-	for(auto& mapping : dataTypes_)
-	{
-		if(mapping.first == fmt)
-		{
-			target = mapping.second;
-			break;
 		}
 	}
-
-	if(!target)
-	{
-		warning("ny::X11DataOffer: unsupported format given");
-		func({}, *this, fmt);
-		return {};
-	}
-
-	return requests_[target].add(func);
 }
 
 //X11DataManager
@@ -427,10 +478,29 @@ void X11DataManager::answerRequest(DataSource& source,
 	xcb_send_event(&xConnection(), 0, request.requestor, 0, eventData);
 }
 
-std::vector<xcb_atom_t> formatToTargetAtom(const x11::Atoms& atoms, unsigned int format)
+std::vector<xcb_atom_t> formatToTargetAtom(const X11AppContext& ac, const DataFormat& format)
 {
-	std::vector<xcb_atom_t> textAtoms {atoms.utf8string, atoms.mime.textPlainUtf8,
-		XCB_ATOM_STRING, atoms.text, atoms.mime.textPlain};
+	auto& atoms = ac.atoms();
+
+	std::vector<xcb_atom_t> textAtoms {
+		atoms.utf8string,
+		atoms.mime.textPlainUtf8,
+		XCB_ATOM_STRING,
+		atoms.text,
+		atoms.mime.textPlain
+	};
+
+	std::vector<xcb_atom_t> uriListAtoms {
+
+	};
+
+	if(format == DataFormat::text) return textAtoms;
+	if(format == Dataformat::uriList)
+	{
+		textAtoms.insert(textAtoms.begin(), atoms.fileName);
+		textAtoms.insert(textAtoms.begin(), atoms.mime.textUriList);
+		return textAtoms;
+	}
 
 	switch(format)
 	{
@@ -452,27 +522,41 @@ std::vector<xcb_atom_t> formatToTargetAtom(const x11::Atoms& atoms, unsigned int
 	}
 }
 
-unsigned int targetAtomToFormat(const x11::Atoms& atoms, xcb_atom_t atom)
+DataFormat targetAtomToFormat(const X11AppContext& ac, xcb_atom_t atom)
 {
-	if(atom == atoms.utf8string) return dataType::text;
-	if(atom == XCB_ATOM_STRING) return dataType::text;
-	if(atom == atoms.text) return dataType::text;
-	if(atom == atoms.fileName) return dataType::uriList;
-	if(atom == atoms.mime.textPlain) return dataType::text;
-	if(atom == atoms.mime.textPlainUtf8) return dataType::text;
+	auto& atoms = ac.atoms();
 
-	if(atom == atoms.mime.imageJpeg) return dataType::jpeg;
-	if(atom == atoms.mime.imageGif) return dataType::gif;
-	if(atom == atoms.mime.imagePng) return dataType::png;
-	if(atom == atoms.mime.imageBmp) return dataType::bmp;
+	if(atom == atoms.utf8string) return DataFormat::text;
+	if(atom == XCB_ATOM_STRING) return DataFormat::text;
+	if(atom == atoms.text) return DataFormat::text;
+	if(atom == atoms.mime.textPlain) return DataFormat::text;
+	if(atom == atoms.mime.textPlainUtf8) return DataFormat::text;
+	if(atom == atoms.fileName) return DataFormat::uriList;
+	if(atom == atoms.mime.imageData) return DataFormat::image;
+	if(atom == atoms.mime.raw) return DataFormat::raw;
 
-	if(atom == atoms.mime.imageData) return dataType::image;
-	if(atom == atoms.mime.timePoint) return dataType::timePoint;
-	if(atom == atoms.mime.timeDuration) return dataType::timeDuration;
-	if(atom == atoms.mime.textUriList) return dataType::uriList;
-	if(atom == atoms.mime.raw) return dataType::raw;
+	auto nameCookie = xcb_get_atom_name(&ac.xConnection(), atom);
 
-	return dataType::none;
+	xcb_generic_error_t* error {};
+	auto nameReply = xcb_get_atom_name_reply(&ac.xConnection(), nameCookie, &error);
+
+	if(error)
+	{
+		auto msg = x11::errorMessage(ac.xDisplay(), error->error_code);
+		warning("ny::x11::targetAtomToFormat: get_atom_name_reply: ", msg);
+		free(error);
+		return DataFormat::none;
+	}
+	else if(!nameReply)
+	{
+		warning("ny::x11::targetAtomToFormat: get_atom_name_reply failed without error");
+		return DataFormat::none;
+	}
+
+	auto name = xcb_get_atom_name_name(nameReply);
+	auto string = std::string(name, name + xcb_get_atom_name_name_length(nameReply));
+	free(nameReply);
+	return {std::move(string)};
 }
 
 
