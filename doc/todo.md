@@ -11,6 +11,8 @@ Current todo:
 		common implementation? (-> see common util file)
 - some fixes/rethinking to AsyncRequest
 	- dispatchLoop error handling? exception safety? implement in source!
+	- documentation !important
+		- clearly state that .wait() counts as dispatch function/might trigger one.
 - better WindowListener functions
 	- use events structures!
 	- keyboard modifier, state
@@ -80,6 +82,7 @@ x11 backend:
 ------------
 
 - selections and xdnd
+	- DataSource constructor: check for uri list one file -> filename target format
 - correct error handling (for xlib calls e.g. glx use an error handle in X11AppContext or util)
 	- glx: don't log every error but instead only output error list on total failure?
 - beginResize/beginMove bug

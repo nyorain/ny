@@ -15,15 +15,19 @@ namespace ny
 // the data manager was modeled after the clipboard specification of iccccm
 // https://www.x.org/releases/X11R7.6/doc/xorg-docs/specs/ICCCM/icccm.html#use_of_selection_atoms
 
+
 //TODO: something about notify event timeout
 // probably best done using a timerfd and fd callback support in x11appcontext
 //TODO: timestamps currently not implemented like in icccm convention
 //TODO: should we surrender owned selections on X11DataManager destruction?
 
+
+
+
 //small DefaultAsyncRequest derivate that will unregister itself from pending requests
 //on destruction
 template<typename T>
-class X11AsyncRequestImpl : public DefaultAsyncRequest<T>
+class X11DataOffer::AsyncRequestImpl : public DefaultAsyncRequest<T>
 {
 public:
 	using DefaultAsyncRequest<T>::DefaultAsyncRequest;
@@ -32,35 +36,48 @@ public:
 
 //X11AsyncRequest derivate that will be used for data requests that first have to wait
 //for the supported formats request to complete
-class X11DataFormatRequestImpl : public X11AsyncRequestImpl<std::any>
+class X11DataOffer::DataFormatRequestImpl : public AsyncRequestImpl<std::any>
 {
 public:
-	using X11AsyncRequestImpl<std::any>::X11AsyncRequestImpl;
+	using AsyncRequestImpl<std::any>::AsyncRequestImpl;
 	DataOffer::FormatsRequest formatsRequest;
 };
+
 
 //DataOffer
 X11DataOffer::X11DataOffer(X11AppContext& ac, unsigned int selection, xcb_window_t owner)
 	: appContext_(&ac), selection_(selection), owner_(owner)
 {
-	//ask the selection owner to enumerate targets
+	//ask the selection owner to enumerate targets, i.e. to send us all supported format
 	xcb_convert_selection(&appContext().xConnection(), appContext().xDummyWindow(), selection_,
 		appContext().atoms().targets, appContext().atoms().clipboard, XCB_CURRENT_TIME);
+}
+
+X11DataOffer::X11DataOffer(X11AppContext& ac, unsigned int selection, xcb_window_t owner,
+	nytl::Range<xcb_atom_t> supportedTargets)
+		: appContext_(&ac), selection_(selection), owner_(owner)
+{
+	//just parse/add all supported target formats.
+	//addFormats sets formatsRetrieved_ to true, so in formats() we can
+	//directly return a completed FormatsRequest
+	addFormats(supportedTargets);
 }
 
 X11DataOffer::~X11DataOffer()
 {
 	//signal all pending format requests that they have failed
+	//this will unregister the callbacks and destroy the connections
 	pendingFormatRequests_({});
 
-	//singla all pending data requests that they have failed
+	//singal all pending data requests that they have failed
+	//this will unregister the callbacks and destroy the connections
 	for(auto& pdr : pendingDataRequests_) pdr.second({});
 }
 
 X11DataOffer::FormatsRequest X11DataOffer::formats()
 {
 	// using RequestImpl = DefaultAsyncRequest<std::vector<DataFormat>>;
-	using RequestImpl = X11AsyncRequestImpl<std::vector<DataFormat>>;
+	using RequestImpl = AsyncRequestImpl<std::vector<DataFormat>>;
 
 	//check if formats have already been retrieved
 	if(formatsRetrieved_)
@@ -72,17 +89,20 @@ X11DataOffer::FormatsRequest X11DataOffer::formats()
 		return std::make_unique<RequestImpl>(std::move(fmts));
 	}
 
+	auto ret = std::make_unique<RequestImpl>(appContext());
+
 	//the returned request will unregister the callback automatically on destruction,
 	//therefore we can capute it and use it inside the callback.
 	//the request will additionally be completed (with failure) when this DataOffer is
 	//destructed
-	auto ret = std::make_unique<RequestImpl>(appContext());
-	auto fmtCallback = [req = ret.get()](nytl::ConnectionRef conn, std::vector<DataFormat> fmts) {
-		conn.disconnect();
+	//we also make sure that the connection is destroyed when this callback is called, therefore
+	//it will not be destroyed from the connection guard on destruction (where the DataOffer and
+	//therefore the associated callback might already be destroyed).
+	ret->connection = pendingFormatRequests_.add([req = ret.get()](std::vector<DataFormat> fmts) {
 		req->complete(std::move(fmts));
-	};
+		req->connection = {}; //disconnects and makes sure it will not disconnect on destruction
+	});
 
-	ret->connection = pendingFormatRequests_.add(fmtCallback);
 	return ret;
 }
 
@@ -92,7 +112,7 @@ X11DataOffer::DataRequest X11DataOffer::data(const DataFormat& fmt)
 	//an extra request for the format
 	if(!formatsRetrieved_)
 	{
-		auto ret = std::make_unique<X11DataFormatRequestImpl>(appContext());
+		auto ret = std::make_unique<DataFormatRequestImpl>(appContext());
 		ret->formatsRequest = formats();
 
 		//the returned request will unregister the callback on destruction and when
@@ -102,20 +122,23 @@ X11DataOffer::DataRequest X11DataOffer::data(const DataFormat& fmt)
 		ret->formatsRequest->callback([fmt, this, req = ret.get()]{
 			auto connection = this->registerDataRequest(fmt, *req);
 			if(connection.connected()) req->connection = std::move(connection);
+
+			//if connection is empty, this->registerDataRequest did already complete
+			//the request with an empty any data object
 		});
 
 		return ret;
 	}
 
 	//Just return a default data request that is waiting for the data to arrive
-	auto ret = std::make_unique<X11AsyncRequestImpl<std::any>>(appContext());
+	auto ret = std::make_unique<AsyncRequestImpl<std::any>>(appContext());
 	ret->connection = registerDataRequest(fmt, *ret);
 	if(ret->connection.connected()) return {};
 	return ret;
 }
 
 nytl::ConnectionGuard X11DataOffer::registerDataRequest(const DataFormat& format,
-	DefaultAsyncRequest<std::any>& request)
+	AsyncRequestImpl<std::any>& request)
 {
 	//check if the requested format is supported at all and query the associated
 	//target format atom
@@ -137,15 +160,19 @@ nytl::ConnectionGuard X11DataOffer::registerDataRequest(const DataFormat& format
 		return {};
 	}
 
-	//request the data from the selection owner that offers the data
+	//request the data in the target format from the selection owner that offers the data
+	//we request the owner to store it into the clipboard atom property of the dummy window
+	xcb_convert_selection(&appContext().xConnection(), appContext().xDummyWindow(), selection_,
+		target, appContext().atoms().clipboard, XCB_CURRENT_TIME);
 
 	//add a callback to the pending data callbacks that will be triggered as soon
-	//as we receive the data in the requested format
-	//this callback will unregister itself.
-	return pendingDataRequests_[target].add(
-		[req = &request](nytl::ConnectionRef conn, const std::any& any) {
-			req->complete(any);
-			conn.disconnect();
+	//as we receive the data in the requested format this callback will unregister itself.
+	//we also make sure that the connection is destroyed when this callback is called, therefore
+	//it will not be destroyed from the connection guard on destruction (where the DataOffer and
+	//therefore the associated callback might already be destroyed).
+	return pendingDataRequests_[target].add([req = &request](const std::any& any) {
+		req->complete(any);
+		req->connection = {}; //disconnects
 	});
 }
 
@@ -153,71 +180,278 @@ void X11DataOffer::notify(const xcb_selection_notify_event_t& notify)
 {
 	auto& atoms = appContext().atoms();
 
-	xcb_generic_error_t error;
+	xcb_generic_error_t error {};
 	auto prop = x11::readProperty(appContext().xConnection(), atoms.clipboard,
 		appContext().xDummyWindow(), &error);
 
+	if(error.error_code || prop.data.empty())
+	{
+		auto msg = std::string("No property data was returned");
+		if(error.error_code) msg = x11::errorMessage(appContext().xDisplay(), error.error_code);
+		log("ny::X11DataOffer::notify: failed to read the target property: ", msg);
+		return;
+	}
+
 	//check the target of the notify
-	//if the target it atom.target, it notifies us that the selection owner set the
+	//if the target it atoms.target, it notifies us that the selection owner set the
 	//property of the dummy window to the list of supported (convertable targets)
 	//otherwise it sets it to the data of some specific requested target
 	if(notify.target == appContext().atoms().targets)
 	{
+		//the property must be set to a list of atoms which have 32 bit length
+		//so if the format is not 32, the property/selectionEvent is invalid
 		if(prop.format != 32 || prop.data.empty())
 		{
-			log("ny::X11DataOffer::notify: received invalid targets notify");
+			log("ny::X11DataOffer::notify: received targets notify with invalid property data");
 			return;
 		}
 
+		//add the retrieved atoms the the list of supported targets/formats
 		auto& targetAtoms = reinterpret_cast<const xcb_atom_t&>(*prop.data.data());
-		for(auto atom : nytl::Range<xcb_atom_t>(targetAtoms, prop.data.size() / 4))
-		{
-			auto format = targetAtomToFormat(atoms, atom);
-			if(format != dataType::none) dataTypes_.push_back({format, atom});
-		}
+		auto size = static_cast<unsigned int>(prop.data.size() / 4);
+		addFormats({targetAtoms, size});
+
+		//extract the supported data formats
+		std::vector<DataFormat> supportedFormats;
+		supportedFormats.reserve(formats_.size());
+		for(auto& fmt : formats_) supportedFormats.push_back(fmt.first);
+
+		//complete the pending format requests
+		pendingFormatRequests_(std::move(supportedFormats));
+		pendingFormatRequests_.clear();
 	}
 	else
 	{
 		auto target = notify.target;
-		auto it = requests_.find(target);
-		if(it == requests_.end())
+		auto it = pendingDataRequests_.find(target);
+		if(it == pendingDataRequests_.end())
 		{
 			log("ny::X11DataOffer::notify: received notify with unkown/not requested target");
 			return;
 		}
 
 		//find the associated dataType format
-		auto format = 0u;
-		for(auto& dt : dataTypes_)
-		{
-			if(dt.second == target)
+		const auto* format = &DataFormat::none;
+		for(const auto& fmt : formats_)
+		{ if(fmt.second == target)
 			{
-				format = dt.first;
+				format = &fmt.first;
 				break;
 			}
 		}
 
-		//construct an associated object for the proerty data
-		std::any any;
+		if(*format == DataFormat::none)
+		{
+			warning("ny::X11DataOffer::notify: format not supported - internal inconsistency!");
+			it->second({}); //was invalid all the time? how could this happen?
+			return;
+		}
 
-		if(format == dataType::raw)
+		//construct an any data object for the raw buffer
+		//and complete the pending data requests for this data format
+		auto any = wrap(prop.data, *format);
+		it->second(std::move(any));
+		pendingDataRequests_.erase(it);
+	}
+}
+
+void X11DataOffer::addFormats(nytl::Range<xcb_atom_t> targets)
+{
+	std::vector<std::pair<xcb_get_atom_name_cookie_t, xcb_atom_t>> atomNameCookies;
+	atomNameCookies.reserve(targets.size());
+
+	auto& atoms = appContext().atoms();
+	auto& xConn = appContext().xConnection();
+
+	for(auto& target : targets)
+	{
+		//check for known target atoms
+		//if the target atom is not known, push a cookie to request its name
+		if(target == atoms.utf8string) formats_.emplace(DataFormat::text, target);
+		else if(target == XCB_ATOM_STRING) formats_.emplace(DataFormat::text, target);
+		else if(target == atoms.text) formats_.emplace(DataFormat::text, target);
+		else if(target == atoms.mime.textPlain) formats_.emplace(DataFormat::text, target);
+		else if(target == atoms.mime.textPlainUtf8) formats_.emplace(DataFormat::text, target);
+		else if(target == atoms.fileName) formats_.emplace(DataFormat::uriList, target);
+		else if(target == atoms.mime.imageData) formats_.emplace(DataFormat::image, target);
+		else if(target == atoms.mime.raw) formats_.emplace(DataFormat::raw, target);
+		else atomNameCookies.push_back({xcb_get_atom_name(&xConn, target), target});
+	}
+
+	//try to get all requested names and insert them into formats_ if successful
+	for(auto& cookie : atomNameCookies)
+	{
+		xcb_generic_error_t* error {};
+		auto nameReply = xcb_get_atom_name_reply(&xConn, cookie.first, &error);
+
+		if(error)
 		{
-			any = std::move(prop.data);
+			auto msg = x11::errorMessage(appContext().xDisplay(), error->error_code);
+			warning("ny::x11::targetAtomToFormat: get_atom_name_reply: ", msg);
+			free(error);
+			continue;
 		}
-		else if(format == dataType::text)
+		else if(!nameReply)
 		{
-			std::string string = {prop.data.begin(), prop.data.end()};
-			any = string;
+			warning("ny::x11::targetAtomToFormat: get_atom_name_reply failed without error");
+			continue;
 		}
-		else if(format == dataType::uriList && target == atoms.fileName)
+
+		auto name = xcb_get_atom_name_name(nameReply);
+		auto string = std::string(name, name + xcb_get_atom_name_name_length(nameReply));
+		free(nameReply);
+		formats_[{std::move(string)}] = cookie.second;
+	}
+
+	//remember that we have the formats retrieved, i.e. formats_ it complete now
+	//so we don't request them again
+	formatsRetrieved_ = true;
+}
+
+//X11DataSource
+X11DataSource::X11DataSource(X11AppContext& ac, std::unique_ptr<DataSource> src)
+	: appContext_(&ac), dataSource_(std::move(src))
+{
+	//convert the supported formats of the source to target atoms
+	auto& atoms = appContext().atoms();
+	auto& xConn = appContext().xConnection();
+	auto formats = dataSource_->formats();
+
+	std::vector<std::pair<const DataFormat*, xcb_intern_atom_cookie_t>> atomCookies;
+	atomCookies.reserve(formats.size());
+	for(auto& fmt : formats)
+	{
+		//check for known special formats
+		if(fmt == DataFormat::text || fmt == DataFormat::uriList)
 		{
-			std::vector<std::string> files = {{prop.data.begin(), prop.data.end()}};
-			any = files;
+			formats_.push_back({atoms.utf8string, fmt});
+			formats_.push_back({atoms.mime.textPlainUtf8, fmt});
+			formats_.push_back({XCB_ATOM_STRING, fmt});
+			formats_.push_back({atoms.text, fmt});
+			formats_.push_back({atoms.mime.textPlain, fmt});
 		}
-		else if(format == dataType::uriList && target == atoms.mime.textUriList)
+		else if(fmt == DataFormat::uriList)
 		{
+			formats_.push_back({atoms.utf8string, fmt});
+			formats_.push_back({atoms.mime.textPlainUtf8, fmt});
+			formats_.push_back({XCB_ATOM_STRING, fmt});
+			formats_.push_back({atoms.text, fmt});
+			formats_.push_back({atoms.mime.textPlain, fmt});
+			formats_.push_back({atoms.mime.textUriList, fmt});
+
+			//TODO:
+			//check if the uri list is only one file, then we can support the filename target
+		}
+		else
+		{
+			auto atomCookie = xcb_intern_atom(&xConn, 0, fmt.name.size(), fmt.name.c_str());
+			atomCookies.push_back({&fmt, atomCookie});
+
+			for(auto& an : fmt.additionalNames)
+			{
+				auto atomCookie = xcb_intern_atom(&xConn, 0, an.size(), an.c_str());
+				atomCookies.push_back({&fmt, atomCookie});
+			}
 		}
 	}
+
+	//receive all atoms for the supported formats and insert them into the
+	//vector of supported formats
+	for(auto& cookie : atomCookies)
+	{
+		xcb_generic_error_t* error {};
+		auto reply = xcb_intern_atom_reply(&xConn, cookie.second, &error);
+		if(reply)
+		{
+			formats_.push_back({reply->atom, *cookie.first});
+			free(reply);
+			continue;
+		}
+		else if(error)
+		{
+			auto msg = x11::errorMessage(appContext().xDisplay(), error->error_code);
+			warning("ny::X11DataSource: Failed to load atom for ", cookie.first->name);
+			free(error);
+		}
+	}
+}
+
+void X11DataSource::answerRequest(const xcb_selection_request_event& requestEvent)
+{
+	auto property = request.property;
+	if(!property) property = request.target;
+
+	auto dataTypes = source.types();
+	if(request.target == appContext().atoms().targets)
+	{
+		//store a list with all supported formats converted to atoms
+		std::vector<uint32_t> targets;
+		targets.reserve(dataTypes.types.size());
+
+		for(auto type : dataTypes.types)
+		{
+			auto atoms = formatToTargetAtom(appContext().atoms(), type);
+			if(!atoms.empty()) targets.insert(targets.end(), atoms.begin(), atoms.end());
+		}
+
+		//remove duplicates
+		std::sort(targets.begin(), targets.end());
+		targets.erase(std::unique(targets.begin(), targets.end()), targets.end());
+
+		xcb_change_property(&xConnection(), XCB_PROP_MODE_REPLACE, request.requestor,
+			property, XCB_ATOM_ATOM, 32, targets.size(), targets.data());
+	}
+	else
+	{
+		//let the source convert the data to the request type and send it (store as property)
+		auto fmt = targetAtomToFormat(appContext().atoms(), request.target);
+		if(!fmt || !dataTypes.contains(fmt)) property = 0u;
+		else
+		{
+			auto any = source.data(fmt);
+
+			//convert the value of the any to a raw buffer in some way
+			auto format = 0u;
+			auto size = 0u;
+			auto type = XCB_ATOM_ANY;
+			void* data = {};
+			std::vector<uint8_t> ownedBuffer;
+
+			if(fmt == dataType::text)
+			{
+				aut
+			}
+			else if(fmt == dataType::uriList)
+			{
+
+			}
+			else if(fmt == dataType::image)
+			{
+
+			}
+			else if(fmt == dataType::timePoint)
+			{
+
+			}
+			else if(fmt == dataType::timeDuration)
+			{
+
+			}
+
+			xcb_change_property(&xConnection(), XCB_PROP_MODE_REPLACE, request.requestor,
+				property, type, format, size, data);
+		}
+	}
+
+	//notify the requestor
+	xcb_selection_notify_event_t notifyEvent {};
+	notifyEvent.selection = request.selection;
+	notifyEvent.property = property;
+	notifyEvent.target = request.target;
+	notifyEvent.requestor = request.requestor;
+
+	auto eventData = reinterpret_cast<const char*>(&notifyEvent);
+	xcb_send_event(&xConnection(), 0, request.requestor, 0, eventData);
 }
 
 //X11DataManager
@@ -391,7 +625,7 @@ xcb_window_t X11DataManager::selectionOwner(xcb_atom_t selection)
 	}
 	else if(error)
 	{
-		auto msg = x11::errorMessage(*appContext().xDisplay(), error->error_code);
+		auto msg = x11::errorMessage(appContext().xDisplay(), error->error_code);
 		warning("ny::X11DataManager::selectionOwner: xcb_get_selection_owner: ", msg);
 		free(error);
 	}
@@ -399,165 +633,4 @@ xcb_window_t X11DataManager::selectionOwner(xcb_atom_t selection)
 	return owner;
 }
 
-void X11DataManager::answerRequest(DataSource& source,
-	const xcb_selection_request_event_t& request)
-{
-	auto property = request.property;
-	if(!property) property = request.target;
-
-	auto dataTypes = source.types();
-	if(request.target == appContext().atoms().targets)
-	{
-		//store a list with all supported formats converted to atoms
-		std::vector<uint32_t> targets;
-		targets.reserve(dataTypes.types.size());
-
-		for(auto type : dataTypes.types)
-		{
-			auto atoms = formatToTargetAtom(appContext().atoms(), type);
-			if(!atoms.empty()) targets.insert(targets.end(), atoms.begin(), atoms.end());
-		}
-
-		//remove duplicates
-		std::sort(targets.begin(), targets.end());
-		targets.erase(std::unique(targets.begin(), targets.end()), targets.end());
-
-		xcb_change_property(&xConnection(), XCB_PROP_MODE_REPLACE, request.requestor,
-			property, XCB_ATOM_ATOM, 32, targets.size(), targets.data());
-	}
-	else
-	{
-		//let the source convert the data to the request type and send it (store as property)
-		auto fmt = targetAtomToFormat(appContext().atoms(), request.target);
-		if(!fmt || !dataTypes.contains(fmt)) property = 0u;
-		else
-		{
-			auto any = source.data(fmt);
-
-			//convert the value of the any to a raw buffer in some way
-			auto format = 0u;
-			auto size = 0u;
-			auto type = XCB_ATOM_ANY;
-			void* data = {};
-			std::vector<uint8_t> ownedBuffer;
-
-			if(fmt == dataType::text)
-			{
-
-			}
-			else if(fmt == dataType::uriList)
-			{
-
-			}
-			else if(fmt == dataType::image)
-			{
-
-			}
-			else if(fmt == dataType::timePoint)
-			{
-
-			}
-			else if(fmt == dataType::timeDuration)
-			{
-
-			}
-
-			xcb_change_property(&xConnection(), XCB_PROP_MODE_REPLACE, request.requestor,
-				property, type, format, size, data);
-		}
-	}
-
-	//notify the requestor
-	xcb_selection_notify_event_t notifyEvent {};
-	notifyEvent.selection = request.selection;
-	notifyEvent.property = property;
-	notifyEvent.target = request.target;
-	notifyEvent.requestor = request.requestor;
-
-	auto eventData = reinterpret_cast<const char*>(&notifyEvent);
-	xcb_send_event(&xConnection(), 0, request.requestor, 0, eventData);
-}
-
-std::vector<xcb_atom_t> formatToTargetAtom(const X11AppContext& ac, const DataFormat& format)
-{
-	auto& atoms = ac.atoms();
-
-	std::vector<xcb_atom_t> textAtoms {
-		atoms.utf8string,
-		atoms.mime.textPlainUtf8,
-		XCB_ATOM_STRING,
-		atoms.text,
-		atoms.mime.textPlain
-	};
-
-	std::vector<xcb_atom_t> uriListAtoms {
-
-	};
-
-	if(format == DataFormat::text) return textAtoms;
-	if(format == Dataformat::uriList)
-	{
-		textAtoms.insert(textAtoms.begin(), atoms.fileName);
-		textAtoms.insert(textAtoms.begin(), atoms.mime.textUriList);
-		return textAtoms;
-	}
-
-	switch(format)
-	{
-		case dataType::raw: return {atoms.mime.raw};
-		case dataType::text: return textAtoms;
-		case dataType::uriList:
-			textAtoms.insert(textAtoms.begin(), atoms.fileName);
-			textAtoms.insert(textAtoms.begin(), atoms.mime.textUriList);
-			return textAtoms;
-
-		case dataType::image: return {atoms.mime.imageData, atoms.mime.imageBmp};
-		case dataType::timePoint: return {atoms.mime.timePoint};
-		case dataType::timeDuration: return {atoms.mime.timeDuration};
-		case dataType::bmp: return {atoms.mime.imageBmp};
-		case dataType::png: return {atoms.mime.imagePng};
-		case dataType::jpeg: return {atoms.mime.imageJpeg};
-		case dataType::gif: return {atoms.mime.imageGif};
-		default: return {};
-	}
-}
-
-DataFormat targetAtomToFormat(const X11AppContext& ac, xcb_atom_t atom)
-{
-	auto& atoms = ac.atoms();
-
-	if(atom == atoms.utf8string) return DataFormat::text;
-	if(atom == XCB_ATOM_STRING) return DataFormat::text;
-	if(atom == atoms.text) return DataFormat::text;
-	if(atom == atoms.mime.textPlain) return DataFormat::text;
-	if(atom == atoms.mime.textPlainUtf8) return DataFormat::text;
-	if(atom == atoms.fileName) return DataFormat::uriList;
-	if(atom == atoms.mime.imageData) return DataFormat::image;
-	if(atom == atoms.mime.raw) return DataFormat::raw;
-
-	auto nameCookie = xcb_get_atom_name(&ac.xConnection(), atom);
-
-	xcb_generic_error_t* error {};
-	auto nameReply = xcb_get_atom_name_reply(&ac.xConnection(), nameCookie, &error);
-
-	if(error)
-	{
-		auto msg = x11::errorMessage(ac.xDisplay(), error->error_code);
-		warning("ny::x11::targetAtomToFormat: get_atom_name_reply: ", msg);
-		free(error);
-		return DataFormat::none;
-	}
-	else if(!nameReply)
-	{
-		warning("ny::x11::targetAtomToFormat: get_atom_name_reply failed without error");
-		return DataFormat::none;
-	}
-
-	auto name = xcb_get_atom_name_name(nameReply);
-	auto string = std::string(name, name + xcb_get_atom_name_name_length(nameReply));
-	free(nameReply);
-	return {std::move(string)};
-}
-
-
-}
+} // namespace ny

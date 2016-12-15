@@ -144,6 +144,7 @@ struct Property
 };
 
 ///Reads the given x11 atom property for the given window.
+///Returns an empty property and sets error if an error occurred during the property reading.
 ///\param deleteProp Whether the property should be deleted after reading it
 Property readProperty(xcb_connection_t&, xcb_atom_t prop, xcb_window_t,
 	xcb_generic_error_t* error = nullptr, bool deleteProp = false);

@@ -233,6 +233,6 @@ std::string errorMessage(Display& dpy, unsigned int error)
 	return buffer;
 }
 
-}
+} // namespace x11
 
-}
+} // namespace ny

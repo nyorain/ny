@@ -223,8 +223,8 @@ X11AppContext::X11AppContext()
 		else if(error)
 		{
 			auto msg = x11::errorMessage(xDisplay(), error->error_code);
-			free(error);
 			warning("ny::X11AppContext: Failed to load atom ", atomNames[i].name, ": ", msg);
+			free(error);
 		}
 	}
 
