@@ -50,6 +50,10 @@ public:
 	/// by this offer.
 	void notify(const xcb_selection_notify_event_t& notify);
 
+	/// Signals the DataOffer that its ownership will be passed to the application and that
+	/// it therefore has to unregister itself from the DataManager on destruction.
+	void unregister() { unregister_ = true; }
+
 	X11AppContext& appContext() const { return *appContext_; }
 	xcb_atom_t selection() const { return selection_; } //the associated x selection
 	xcb_window_t owner() const { return owner_; } //the owner of the selection
@@ -75,15 +79,20 @@ protected:
 	//   so they don't have to be extracted in every formats request
 	std::unordered_map<DataFormat, xcb_atom_t> formats_;
 	bool formatsRetrieved_ {};
+	bool unregister_ {};
 
 	// callbacks into the pending AsyncRequest objects that are not yet completed
 	nytl::Callback<void(std::vector<DataFormat>)> pendingFormatRequests_;
 	std::map<xcb_atom_t, nytl::Callback<void(std::any)>> pendingDataRequests_;
 };
 
+/// Implements the source site of an X11 selection.
+/// Always owns the applicatoins DataSource implementation and represents
+/// it as selection for other x clients.
 class X11DataSource : public nytl::NonCopyable
 {
 public:
+	X11DataSource() = default;
 	X11DataSource(X11AppContext&, std::unique_ptr<DataSource> src);
 	~X11DataSource() = default;
 
@@ -107,15 +116,18 @@ protected:
 	std::vector<std::pair<xcb_atom_t, DataFormat>> formats_;
 };
 
-///Manages all selection, Xdnd and data exchange interactions.
-///The dataSource pointer members should only have a value as long as the
-///application has ownership over the associated selection.
-class X11DataManager
+/// Manages all selection, Xdnd and data exchange interactions.
+/// The dataSource pointer members should only have a value as long as the
+/// application has ownership over the associated selection.
+class X11DataManager : public nytl::NonCopyable
 {
 public:
 	X11DataManager() = default;
 	X11DataManager(X11AppContext& ac);
 	~X11DataManager() = default;
+
+	X11DataManager(X11DataManager&&) noexcept = default;
+	X11DataManager& operator=(X11DataManager&&) noexcept = default;
 
 	X11AppContext& appContext() const { return *appContext_; }
 	xcb_connection_t& xConnection() const;
@@ -135,6 +147,11 @@ public:
 	/// time this function or a dispatch function of the associated AppContext is called.
 	DataOffer* clipboard();
 
+	/// Called from within the X11DataOffer destructor when ownership for the DataOffer
+	/// was passed to the application. Signals the DataManager that no further notify
+	/// events should be dispatched to the DataOffer.
+	void unregisterDataOffer(const X11DataOffer&);
+
 protected:
 	/// Returns the owner of the given selection atom.
 	/// When selection is e.g. the clipboard atom (appContext().atoms().clipboard), this will
@@ -145,16 +162,21 @@ protected:
 protected:
 	X11AppContext* appContext_;
 
-	std::unique_ptr<DataSource> clipboardSource_;
-	std::unique_ptr<DataSource> primarySource_;
-	std::unique_ptr<DataSource> dndSource_;
+	X11DataSource clipboardSource_; //CLIPBOARD atom selection
+	X11DataSource primarySource_; //PRIMARY atom selection
+	X11DataSource dndSource_; //current xdnd selection
 
 	std::unique_ptr<X11DataOffer> clipboardOffer_;
 	std::unique_ptr<X11DataOffer> primaryOffer_;
 	std::unique_ptr<X11DataOffer> currentDndOffer_; //the currently active data offer
 
-	std::vector<X11DataOffer*> dndOffers_; //old data offers and the currently active one
-	//XXX: why are old ones needed?
+	//old data offers and the currently active one
+	//old data offers whose ownership has been passed to the application must be stored
+	//since notify events for them must be dispatched correctly nontheless.
+	//they unregister themself here calling unregisterDataOffer.
+	std::vector<X11DataOffer*> dndOffers_;
+
+	//TODO: store and dispatch to old dnd sources?
 };
 
 }

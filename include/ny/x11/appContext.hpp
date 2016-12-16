@@ -48,6 +48,7 @@ public:
 	const X11ErrorCategory& errorCategory() const;
 
 	GlxSetup* glxSetup() const;
+	X11DataManager& dataManager() const;
 
     void registerContext(xcb_window_t xWindow, X11WindowContext& context);
     void unregisterContext(xcb_window_t xWindow);
@@ -69,7 +70,6 @@ protected:
 
 	std::unique_ptr<X11MouseContext> mouseContext_;
 	std::unique_ptr<X11KeyboardContext> keyboardContext_;
-	// std::unique_ptr<X11DataManager> dataManager_;
 
 	struct Impl;
 	std::unique_ptr<Impl> impl_;

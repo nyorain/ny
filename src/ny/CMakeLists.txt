@@ -21,10 +21,10 @@ if(WithWinapi)
 	list(APPEND ny_src
 		winapi/appContext.cpp
 		winapi/backend.cpp
-		winapi/util.cpp
+		winapi/bufferSurface.cpp
 		winapi/com.cpp
 		winapi/input.cpp
-		winapi/bufferSurface.cpp
+		winapi/util.cpp
 		winapi/windowContext.cpp)
 
 	list(APPEND ny_libs gdi32 gdiplus Dwmapi Shlwapi)
@@ -44,9 +44,10 @@ if(WithX11)
 	list(APPEND ny_src
 		x11/appContext.cpp
 		x11/backend.cpp
-		x11/util.cpp
 		x11/bufferSurface.cpp
+		x11/dataExchange.cpp
 		x11/input.cpp
+		x11/util.cpp
 		x11/windowContext.cpp)
 
 	list(APPEND ny_libs
@@ -75,11 +76,11 @@ if(WithWayland)
 	list(APPEND ny_src
 		wayland/appContext.cpp
 		wayland/backend.cpp
+		wayland/bufferSurface.cpp
+		wayland/dataExchange.cpp
 		wayland/input.cpp
 		wayland/util.cpp
-		wayland/bufferSurface.cpp
 		wayland/windowContext.cpp
-		wayland/dataExchange.cpp
 
 		wayland/protocols/xdg-shell-v5.c
 		wayland/protocols/xdg-shell-v6.c)

@@ -18,7 +18,7 @@ namespace ny
 
 //TODO: something about notify event timeout
 // probably best done using a timerfd and fd callback support in x11appcontext
-//TODO: timestamps currently not implemented like in icccm convention
+//TODO: timestamps currently not implemented like in icccm convention (NOT! XCB_CURRENT_TIME)
 //TODO: should we surrender owned selections on X11DataManager destruction?
 
 
@@ -72,6 +72,10 @@ X11DataOffer::~X11DataOffer()
 	//singal all pending data requests that they have failed
 	//this will unregister the callbacks and destroy the connections
 	for(auto& pdr : pendingDataRequests_) pdr.second({});
+
+	//if the Application had ownership over this DataOffer we have to unregister from
+	//the DataManager so no further selection notifty events are dispatched to us
+	if(unregister_) appContext().dataManager().unregisterDataOffer(*this);
 }
 
 X11DataOffer::FormatsRequest X11DataOffer::formats()
@@ -317,6 +321,8 @@ X11DataSource::X11DataSource(X11AppContext& ac, std::unique_ptr<DataSource> src)
 	auto& xConn = appContext().xConnection();
 	auto formats = dataSource_->formats();
 
+	//TODO: care about duplicates?
+
 	std::vector<std::pair<const DataFormat*, xcb_intern_atom_cookie_t>> atomCookies;
 	atomCookies.reserve(formats.size());
 	for(auto& fmt : formats)
@@ -376,70 +382,65 @@ X11DataSource::X11DataSource(X11AppContext& ac, std::unique_ptr<DataSource> src)
 	}
 }
 
-void X11DataSource::answerRequest(const xcb_selection_request_event& requestEvent)
+void X11DataSource::answerRequest(const xcb_selection_request_event_t& request)
 {
+	//TODO: correctly implement all (reasonable parts) of icccm
+
 	auto property = request.property;
 	if(!property) property = request.target;
 
-	auto dataTypes = source.types();
 	if(request.target == appContext().atoms().targets)
 	{
-		//store a list with all supported formats converted to atoms
+		//create a list with all supported targets
 		std::vector<uint32_t> targets;
-		targets.reserve(dataTypes.types.size());
+		targets.reserve(formats_.size());
+		for(const auto& fmt : formats_) targets.push_back(fmt.first);
 
-		for(auto type : dataTypes.types)
-		{
-			auto atoms = formatToTargetAtom(appContext().atoms(), type);
-			if(!atoms.empty()) targets.insert(targets.end(), atoms.begin(), atoms.end());
-		}
-
-		//remove duplicates
+		//remove duplicates from the targets vector
 		std::sort(targets.begin(), targets.end());
 		targets.erase(std::unique(targets.begin(), targets.end()), targets.end());
 
-		xcb_change_property(&xConnection(), XCB_PROP_MODE_REPLACE, request.requestor,
+		//set the requested property of the requested window to the target atoms
+		xcb_change_property(&appContext().xConnection(), XCB_PROP_MODE_REPLACE, request.requestor,
 			property, XCB_ATOM_ATOM, 32, targets.size(), targets.data());
 	}
 	else
 	{
 		//let the source convert the data to the request type and send it (store as property)
-		auto fmt = targetAtomToFormat(appContext().atoms(), request.target);
-		if(!fmt || !dataTypes.contains(fmt)) property = 0u;
+		const DataFormat* format {};
+		for(const auto& fmt : formats_)
+		{
+			if(fmt.first == request.target)
+			{
+				format = &fmt.second;
+				break;
+			}
+		}
+
+		if(!format)
+		{
+			log("ny::X11DataSource::answerRequest: unsupported target request");
+			property = 0u;
+		}
 		else
 		{
-			auto any = source.data(fmt);
+			//request the data in the associated DataFormat from the source
+			auto any = dataSource_->data(*format);
+			if(!any.has_value())
+			{
+				warning("ny::X11DataSource::answerRequest: data source could not provide data");
+				//TODO: set property and break here or sth.
+			}
 
 			//convert the value of the any to a raw buffer in some way
-			auto format = 0u;
-			auto size = 0u;
+			auto atomFormat = 8u;
 			auto type = XCB_ATOM_ANY;
-			void* data = {};
-			std::vector<uint8_t> ownedBuffer;
+			auto ownedBuffer = unwrap(any, *format);
 
-			if(fmt == dataType::text)
-			{
-				aut
-			}
-			else if(fmt == dataType::uriList)
-			{
-
-			}
-			else if(fmt == dataType::image)
-			{
-
-			}
-			else if(fmt == dataType::timePoint)
-			{
-
-			}
-			else if(fmt == dataType::timeDuration)
-			{
-
-			}
-
-			xcb_change_property(&xConnection(), XCB_PROP_MODE_REPLACE, request.requestor,
-				property, type, format, size, data);
+			//set the property of the requested window to the raw data
+			xcb_change_property(&appContext().xConnection(), XCB_PROP_MODE_REPLACE,
+				request.requestor, property, type, atomFormat,
+				ownedBuffer.size(), ownedBuffer.data());
 		}
 	}
 
@@ -451,7 +452,7 @@ void X11DataSource::answerRequest(const xcb_selection_request_event& requestEven
 	notifyEvent.requestor = request.requestor;
 
 	auto eventData = reinterpret_cast<const char*>(&notifyEvent);
-	xcb_send_event(&xConnection(), 0, request.requestor, 0, eventData);
+	xcb_send_event(&appContext().xConnection(), 0, request.requestor, 0, eventData);
 }
 
 //X11DataManager
@@ -466,9 +467,11 @@ bool X11DataManager::handleEvent(xcb_generic_event_t& ev)
     {
 		case XCB_SELECTION_NOTIFY:
 		{
-			//a selectin owner notifies us that it set the request property
-			//in the dummyWindow
+			//a selection owner notifies us that it set the request property
+			//we need to query the DataOffer this is associated with and let it handle
+			//the notification
 			auto& notify = reinterpret_cast<xcb_selection_notify_event_t&>(ev);
+			auto& atoms = appContext().atoms();
 
 			if(notify.requestor != appContext().xDummyWindow())
 			{
@@ -477,10 +480,16 @@ bool X11DataManager::handleEvent(xcb_generic_event_t& ev)
 			}
 
 			X11DataOffer* dataOffer {};
-			if(notify.selection == appContext().atoms().clipboard) dataOffer = &clipboardOffer_;
-			else if(notify.selection == XCB_ATOM_PRIMARY) dataOffer = &primaryOffer_;
-			else if(notify.selection == appContext().atoms().xdndSelection)
+			if(notify.selection == atoms.clipboard) dataOffer = clipboardOffer_.get();
+			else if(notify.selection == XCB_ATOM_PRIMARY) dataOffer = primaryOffer_.get();
+			else if(notify.selection == atoms.xdndSelection)
 			{
+				//TODO:
+				//make it possible to identify the dnd offer this notification belongs to.
+
+				// for(auto& dndOffer : dndOffers_)
+				// {
+				// }
 			}
 
 			if(dataOffer) dataOffer->notify(notify);
@@ -491,19 +500,21 @@ bool X11DataManager::handleEvent(xcb_generic_event_t& ev)
 
 		case XCB_SELECTION_REQUEST:
 		{
-			//some application asks us to convert a selection
+			//some other x clients requests us to convert a selection or send him
+			//the supported targets
+			//find the associated data source and let it answer the request
 			auto& req = reinterpret_cast<xcb_selection_request_event_t&>(ev);
 
-			// if(req.owner != xDummyWindow())
+			X11DataSource* source = nullptr;
+			if(req.selection == atoms().clipboard) source = &clipboardSource_;
+			else if(req.selection == XCB_ATOM_PRIMARY) source = &primarySource_;
+			else if(req.selection == atoms().xdndSelection) source = &dndSource_;
 
-			DataSource* source = nullptr;
-			if(req.selection == atoms().clipboard) source = clipboardSource_.get();
-			else if(req.selection == XCB_ATOM_PRIMARY) source = primarySource_.get();
-			else if(req.selection == atoms().xdndSelection) source = dndSource_.get();
-
-			if(source) answerRequest(*source, req);
+			if(source) source->answerRequest(req);
 			else
 			{
+				//if the request cannot be handled, simply send an event to the client
+				//that notifies him the request failed.
 				log("ny::X11DataManager: received unknown selection request");
 
 				xcb_selection_notify_event_t notifyEvent {};
@@ -522,7 +533,8 @@ bool X11DataManager::handleEvent(xcb_generic_event_t& ev)
 
 		case XCB_SELECTION_CLEAR:
 		{
-			//we are notified that we lost some selection ownership
+			//we are notified that we lost ownership over a selection
+			//query the associated data source and unset it
 			auto& clear = reinterpret_cast<xcb_selection_clear_event_t&>(ev);
 			if(clear.owner != xDummyWindow())
 			{
@@ -530,28 +542,34 @@ bool X11DataManager::handleEvent(xcb_generic_event_t& ev)
 				return true;
 			}
 
-			if(clear.selection == atoms().clipboard) clipboardSource_.reset();
-			else if(clear.selection == XCB_ATOM_PRIMARY) primarySource_.reset();
+			if(clear.selection == atoms().clipboard) clipboardSource_ = {};
+			else if(clear.selection == XCB_ATOM_PRIMARY) primarySource_ = {};
 
 			return true;
 		}
 
 		case XCB_CLIENT_MESSAGE:
 		{
+			//xdnd events are sent as client messages
 			auto& clientm = reinterpret_cast<xcb_client_message_event_t&>(ev);
 			if(clientm.type == appContext().atoms().xdndEnter)
 			{
 				auto* data = clientm.data.data32;
 
-				bool typeList = data[1] & 1;
-				xcb_window_t source = data[0];
-				auto protocolVersion = data[1] >> 24;
+				bool targetsSent = data[1] & 1; //whether a list of supported targets is attached
+				xcb_window_t source = data[0]; //the source of the dnd operation
+				auto protocolVersion = data[1] >> 24; //the supported protocol version
 
-				if(typeList)
+				if(targetsSent)
 				{
+					//extract the supported targets and construct a data offer from it
+					//this way the data offer does not have to query the formats in an additional
+					//request to the offering client
 				}
 				else
 				{
+					//create a data offer without the known format. This will request the
+					//supported targets from the offering client
 				}
 			}
 			else if(clientm.type == appContext().atoms().xdndPosition)
@@ -567,13 +585,14 @@ bool X11DataManager::handleEvent(xcb_generic_event_t& ev)
 			{
 				//generate a data offer event
 				//push the current data offer into the vector vector with old ones
-				auto wc = appContext().windowContext(clientm.window);
-				if(wc && wc->eventHandler())
-				{
-					DataOfferEvent event(wc->eventHandler());
-					event.offer = std::make_unique<X11DataOffer>(std::move(currentDndOffer_));
-					wc->eventHandler()->handleEvent(event);
-				}
+
+				// auto wc = appContext().windowContext(clientm.window);
+				// if(wc && wc->eventHandler())
+				// {
+				// 	DataOfferEvent event(wc->eventHandler());
+				// 	event.offer = std::make_unique<X11DataOffer>(std::move(currentDndOffer_));
+				// 	wc->eventHandler()->handleEvent(event);
+				// }
 			}
 			else
 			{
@@ -592,11 +611,13 @@ bool X11DataManager::clipboard(std::unique_ptr<DataSource>&& dataSource)
 	//try to get ownership of selection
     xcb_set_selection_owner(&xConnection(), xDummyWindow(), atoms().clipboard, XCB_CURRENT_TIME);
 
-	//check for success (-> ICCCM)
+	//check for success
+	//icccm specifies that it may fail and should only be considered succesful if
+	//the owner is really changed
 	auto owner = selectionOwner(atoms().clipboard);
 	if(owner != xDummyWindow()) return false;
 
-    clipboardSource_ = std::move(dataSource);
+    clipboardSource_ = {appContext(), std::move(dataSource)};
 	return true;
 }
 
@@ -604,17 +625,26 @@ DataOffer* X11DataManager::clipboard()
 {
 	auto owner = selectionOwner(atoms().clipboard);
 
-	if(!owner) return nullptr;
-	else if(owner != clipboardOffer_.owner())
-		clipboardOffer_ = {appContext(), atoms().clipboard, owner};
+	//if there is no owner, the clipboard has currently no value
+	//we also (impliclty) reset the clipboard data offer then because it should no longer
+	//be used.
+	if(!owner)
+	{
+		clipboardOffer_ = {};
+		return nullptr;
+	}
 
-	return &clipboardOffer_;
+	//refresh the clipboard offer if needed to do so.
+	if(!clipboardOffer_ || owner != clipboardOffer_->owner())
+		clipboardOffer_ = std::make_unique<X11DataOffer>(appContext(), atoms().clipboard, owner);
+
+	return clipboardOffer_.get();
 }
 
 xcb_window_t X11DataManager::selectionOwner(xcb_atom_t selection)
 {
 	xcb_generic_error_t* error {};
-	auto ownerCookie = xcb_get_selection_owner(&xConnection(), atoms().clipboard);
+	auto ownerCookie = xcb_get_selection_owner(&xConnection(), selection);
 	auto reply = xcb_get_selection_owner_reply(&xConnection(), ownerCookie, &error);
 
 	xcb_window_t owner {};
@@ -631,6 +661,18 @@ xcb_window_t X11DataManager::selectionOwner(xcb_atom_t selection)
 	}
 
 	return owner;
+}
+
+void X11DataManager::unregisterDataOffer(const X11DataOffer& offer)
+{
+	auto end = std::remove(dndOffers_.begin(), dndOffers_.end(), &offer);
+	if(currentDndOffer_.get() == &offer || dndOffers_.end() == end)
+	{
+		warning("ny::X11DataManager::unregisterDataOffer: invalid offer");
+		return;
+	}
+
+	dndOffers_.erase(end, dndOffers_.end());
 }
 
 } // namespace ny

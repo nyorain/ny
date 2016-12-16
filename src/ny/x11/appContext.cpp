@@ -7,6 +7,7 @@
 #include <ny/x11/util.hpp>
 #include <ny/x11/input.hpp>
 #include <ny/x11/bufferSurface.hpp>
+#include <ny/x11/dataExchange.hpp>
 
 #include <ny/common/unix.hpp>
 #include <ny/loopControl.hpp>
@@ -30,7 +31,7 @@
 #include <X11/Xutil.h>
 #include <X11/Xlib-xcb.h>
 
-//undefine the most cancerous Xlib macros
+//undefine the worst Xlib macros
 #undef None
 #undef GenericEvent
 
@@ -115,6 +116,7 @@ struct X11AppContext::Impl
 	x11::EwmhConnection ewmhConnection;
 	x11::Atoms atoms;
 	X11ErrorCategory errorCategory;
+	X11DataManager dataManager;
 
 #ifdef NY_WithGl
 	GlxSetup glxSetup;
@@ -234,6 +236,9 @@ X11AppContext::X11AppContext()
 	//input
 	keyboardContext_ = std::make_unique<X11KeyboardContext>(*this);
 	mouseContext_ = std::make_unique<X11MouseContext>(*this);
+
+	//data manager
+	impl_->dataManager = {*this};
 }
 
 X11AppContext::~X11AppContext()
