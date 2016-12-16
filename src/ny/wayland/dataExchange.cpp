@@ -207,7 +207,7 @@ void WaylandDataOffer::offer(const char* fmt)
 	if(match(DataFormat::raw, fmt)) formats_.push_back({DataFormat::raw, fmt});
 	else if(match(DataFormat::text, fmt)) formats_.push_back({DataFormat::text, fmt});
 	else if(match(DataFormat::uriList, fmt)) formats_.push_back({DataFormat::uriList, fmt});
-	else if(match(DataFormat::imageData, fmt)) formats_.push_back({DataFormat::imageData, fmt});
+	else if(match(DataFormat::image, fmt)) formats_.push_back({DataFormat::image, fmt});
 	else formats_.push_back({{fmt, {}}, fmt,});
 }
 

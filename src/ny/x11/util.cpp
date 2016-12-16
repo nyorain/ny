@@ -189,6 +189,9 @@ namespace x11
 Property readProperty(xcb_connection_t& connection, xcb_atom_t atom, xcb_window_t window,
 	xcb_generic_error_t* error, bool del)
 {
+	//first perform a request with a length of 1 to retrieve the real number
+	//of bytes we can read. Never delete the property in the first request since
+	//we might need it further
 	error = nullptr;
 	xcb_generic_error_t* errorPtr;
 	auto length = 1;
@@ -196,9 +199,11 @@ Property readProperty(xcb_connection_t& connection, xcb_atom_t atom, xcb_window_
 	auto cookie = xcb_get_property(&connection, false, window, atom, XCB_ATOM_ANY, 0, length);
 	auto reply = xcb_get_property_reply(&connection, cookie, &errorPtr);
 
+	//if there are bytes remaining or we should delete the property read it again
+	//with the real length and delete the property if requested
 	if(reply && !errorPtr && (reply->bytes_after || del))
 	{
-		length = reply->length;
+		length = xcb_get_property_value_length(reply) + reply->bytes_after;
 		free(reply);
 
 		cookie = xcb_get_property(&connection, del, window, atom, XCB_ATOM_ANY, 0, length);

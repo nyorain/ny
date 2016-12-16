@@ -46,7 +46,7 @@ DataOfferImpl::DataOfferImpl(IDataObject& object) : data_(object)
 		DataFormat format;
 		unsigned int tymed {TYMED_HGLOBAL};
 	} mappings [] {
-		{CF_BITMAP, DataFormat::imageData, TYMED_GDI},
+		{CF_BITMAP, DataFormat::image, TYMED_GDI},
 		{CF_DIBV5, {"image/bmp", {"image/x-windows-bmp"}}},
 		{CF_DIF, {"video/x-dv"}},
 		{CF_ENHMETAFILE, {"image/x-emf"}},
@@ -102,7 +102,7 @@ DataOfferImpl::DataOfferImpl(IDataObject& object) : data_(object)
 				if(match(DF::text, name)) formats_[DF::text] = format;
 				else if(match(DF::raw, name)) formats_[DF::raw] = format;
 				else if(match(DF::uriList, name)) formats_[DF::uriList] = format;
-				else if(match(DF::imageData, name)) formats_[DF::imageData] = format;
+				else if(match(DF::image, name)) formats_[DF::image] = format;
 				else formats_[{name}] = format;
 			}
 		}
@@ -433,7 +433,7 @@ void DataObjectImpl::addFormat(const DataFormat& format)
 		DataFormat format;
 		unsigned int tymed {TYMED_HGLOBAL};
 	} mappings [] {
-		{CF_BITMAP, DataFormat::imageData, TYMED_GDI},
+		{CF_BITMAP, DataFormat::image, TYMED_GDI},
 		{CF_DIBV5, {"image/bmp", {"image/x-windows-bmp"}}},
 		{CF_DIF, {"video/x-dv"}},
 		{CF_ENHMETAFILE, {"image/x-emf"}},
@@ -623,7 +623,7 @@ std::any fromStgMedium(const FORMATETC& from, const DataFormat& to, const STGMED
 		::GlobalUnlock(medium.hGlobal);
 		return {paths};
 	}
-	else if(to == DataFormat::imageData && from.cfFormat == CF_BITMAP)
+	else if(to == DataFormat::image && from.cfFormat == CF_BITMAP)
 	{
 		if(medium.tymed != TYMED_GDI) return {};
 
@@ -657,7 +657,7 @@ STGMEDIUM toStgMedium(const DataFormat& from, const FORMATETC& to, const std::an
 		ret.tymed = TYMED_HGLOBAL;
 		ret.hGlobal = stringToGlobalUnicode(str16);
 	}
-	else if(from == DataFormat::imageData && to.cfFormat == CF_BITMAP)
+	else if(from == DataFormat::image && to.cfFormat == CF_BITMAP)
 	{
 		if(to.tymed != TYMED_GDI) return {};
 

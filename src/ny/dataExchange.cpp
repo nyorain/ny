@@ -198,7 +198,7 @@ std::any wrap(std::vector<uint8_t> buffer, const DataFormat& fmt)
 {
 	if(fmt == DataFormat::text) return std::string(buffer.begin(), buffer.end());
 	if(fmt == DataFormat::uriList) return decodeUriList({buffer.begin(), buffer.end()});
-	if(fmt == DataFormat::imageData) return  deserializeImage({buffer.data(), buffer.size()});
+	if(fmt == DataFormat::image) return  deserializeImage({buffer.data(), buffer.size()});
 
 	return {std::move(buffer)};
 }
@@ -216,7 +216,7 @@ std::vector<uint8_t> unwrap(std::any any, const DataFormat& format)
 		auto string = encodeUriList(uris);
 		return {string.begin(), string.end()};
 	}
-	if(format == DataFormat::imageData)
+	if(format == DataFormat::image)
 	{
 		auto img = std::any_cast<const UniqueImage&>(any);
 		return serialize(img);

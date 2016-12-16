@@ -137,7 +137,7 @@ X11DataOffer::DataRequest X11DataOffer::data(const DataFormat& fmt)
 	//Just return a default data request that is waiting for the data to arrive
 	auto ret = std::make_unique<AsyncRequestImpl<std::any>>(appContext());
 	ret->connection = registerDataRequest(fmt, *ret);
-	if(ret->connection.connected()) return {};
+	if(!ret->connection.connected()) return {};
 	return ret;
 }
 
@@ -211,7 +211,7 @@ void X11DataOffer::notify(const xcb_selection_notify_event_t& notify)
 		}
 
 		//add the retrieved atoms the the list of supported targets/formats
-		auto& targetAtoms = reinterpret_cast<const xcb_atom_t&>(*prop.data.data());
+		auto* targetAtoms = reinterpret_cast<const xcb_atom_t*>(prop.data.data());
 		auto size = static_cast<unsigned int>(prop.data.size() / 4);
 		addFormats({targetAtoms, size});
 
@@ -460,7 +460,7 @@ X11DataManager::X11DataManager(X11AppContext& ac) : appContext_(&ac)
 {
 }
 
-bool X11DataManager::handleEvent(xcb_generic_event_t& ev)
+bool X11DataManager::processEvent(const xcb_generic_event_t& ev)
 {
 	auto responseType = ev.response_type & ~0x80;
     switch(responseType)
@@ -470,7 +470,7 @@ bool X11DataManager::handleEvent(xcb_generic_event_t& ev)
 			//a selection owner notifies us that it set the request property
 			//we need to query the DataOffer this is associated with and let it handle
 			//the notification
-			auto& notify = reinterpret_cast<xcb_selection_notify_event_t&>(ev);
+			auto& notify = reinterpret_cast<const xcb_selection_notify_event_t&>(ev);
 			auto& atoms = appContext().atoms();
 
 			if(notify.requestor != appContext().xDummyWindow())
@@ -503,7 +503,7 @@ bool X11DataManager::handleEvent(xcb_generic_event_t& ev)
 			//some other x clients requests us to convert a selection or send him
 			//the supported targets
 			//find the associated data source and let it answer the request
-			auto& req = reinterpret_cast<xcb_selection_request_event_t&>(ev);
+			auto& req = reinterpret_cast<const xcb_selection_request_event_t&>(ev);
 
 			X11DataSource* source = nullptr;
 			if(req.selection == atoms().clipboard) source = &clipboardSource_;
@@ -535,7 +535,7 @@ bool X11DataManager::handleEvent(xcb_generic_event_t& ev)
 		{
 			//we are notified that we lost ownership over a selection
 			//query the associated data source and unset it
-			auto& clear = reinterpret_cast<xcb_selection_clear_event_t&>(ev);
+			auto& clear = reinterpret_cast<const xcb_selection_clear_event_t&>(ev);
 			if(clear.owner != xDummyWindow())
 			{
 				log("ny::X11DataManager: received selection clear event for invalid window");
@@ -551,7 +551,7 @@ bool X11DataManager::handleEvent(xcb_generic_event_t& ev)
 		case XCB_CLIENT_MESSAGE:
 		{
 			//xdnd events are sent as client messages
-			auto& clientm = reinterpret_cast<xcb_client_message_event_t&>(ev);
+			auto& clientm = reinterpret_cast<const xcb_client_message_event_t&>(ev);
 			if(clientm.type == appContext().atoms().xdndEnter)
 			{
 				auto* data = clientm.data.data32;
@@ -673,6 +673,21 @@ void X11DataManager::unregisterDataOffer(const X11DataOffer& offer)
 	}
 
 	dndOffers_.erase(end, dndOffers_.end());
+}
+
+xcb_connection_t& X11DataManager::xConnection() const
+{
+	return appContext().xConnection();
+}
+
+xcb_window_t X11DataManager::xDummyWindow() const
+{
+	return appContext().xDummyWindow();
+}
+
+const x11::Atoms& X11DataManager::atoms() const
+{
+	return appContext().atoms();
 }
 
 } // namespace ny

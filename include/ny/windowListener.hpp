@@ -43,19 +43,19 @@ public:
 	///The window could use this to e.g. redraw itself in a special way.
 	///Remember that after calling a dispatch function in this function, the given
 	///DataOffer might not be valid anymore (then a dndLeave or dndDrop event occurred).
-	virtual void dndEnter(const DataOffer&, const EventData*);
+	virtual void dndEnter(DataOffer&, const EventData*);
 
 	///Called when a previously entered dnd offer is moved around in the window.
 	///Many applications use this to enable e.g. scrolling while a dnd session is active.
 	///Should return whether the given DataOffer could be accepted at the given position.
 	///Remember that after calling a dispatch function in this function, the given
 	///DataOffer might not be valid anymore (then a dndLeave or dndDrop event occurred).
-	virtual DataFormat dndMove(nytl::Vec2i pos, const DataOffer&, const EventData*);
+	virtual DataFormat dndMove(nytl::Vec2i pos, DataOffer&, const EventData*);
 
 	///This function is called when a DataOffer that entered the window leaves it.
 	///The DataOffer object should then actually not be used anymore and is just passed here
 	///for comparison. This function is only called if no drop occurs.
-	virtual void dndLeave(const DataOffer&, const EventData*);
+	virtual void dndLeave(DataOffer&, const EventData*);
 
 	///Called when a dnd DataOffer is dropped over the window.
 	///The application gains ownership about the DataOffer object.

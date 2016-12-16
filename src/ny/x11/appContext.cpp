@@ -345,18 +345,17 @@ bool X11AppContext::dispatchLoop(LoopControl& control)
 
 bool X11AppContext::clipboard(std::unique_ptr<DataSource>&& dataSource)
 {
-	nytl::unused(dataSource);
-	return false;
+	return impl_->dataManager.clipboard(std::move(dataSource));
 }
 
 DataOffer* X11AppContext::clipboard()
 {
-	return nullptr;
+	return impl_->dataManager.clipboard();
 }
 
 bool X11AppContext::startDragDrop(std::unique_ptr<DataSource>&& dataSource)
 {
-	nytl::unused(dataSource);
+	// return impl_->dataManager.clipboard();
 	return false;
 }
 
@@ -464,6 +463,7 @@ void X11AppContext::bell()
 x11::EwmhConnection& X11AppContext::ewmhConnection() const { return impl_->ewmhConnection; }
 const X11ErrorCategory& X11AppContext::errorCategory() const { return impl_->errorCategory; }
 const x11::Atoms& X11AppContext::atoms() const { return impl_->atoms; }
+X11DataManager& X11AppContext::dataManager() const { return impl_->dataManager; }
 
 void X11AppContext::processEvent(const x11::GenericEvent& ev)
 {
@@ -541,6 +541,7 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev)
 			//check for xkb event
 			if(keyboardContext_->processEvent(ev)) break;
 			if(mouseContext_->processEvent(ev)) break;
+			if(impl_->dataManager.processEvent(ev)) break;
 		}
 	}
 

@@ -19,15 +19,15 @@ WindowListener::WindowListener(WindowContext& wc)
 	wc.listener(*this);
 }
 
-void WindowListener::dndEnter(const DataOffer&, const EventData*)
+void WindowListener::dndEnter(DataOffer&, const EventData*)
 {
 
 }
-DataFormat WindowListener::dndMove(nytl::Vec2i, const DataOffer&, const EventData*)
+DataFormat WindowListener::dndMove(nytl::Vec2i, DataOffer&, const EventData*)
 {
 	return DataFormat::none;
 }
-void WindowListener::dndLeave(const DataOffer&, const EventData*)
+void WindowListener::dndLeave(DataOffer&, const EventData*)
 {
 
 }

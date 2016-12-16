@@ -135,7 +135,7 @@ public:
 	const x11::Atoms& atoms() const;
 
 	/// Tries to handle the given event. Return true if it was been handled.
-	bool handleEvent(xcb_generic_event_t& event);
+	bool processEvent(const xcb_generic_event_t& event);
 
 	/// Tries to claim clipboard ownership and set it to the given DataSource.
 	/// Returns true on success and false on failure.

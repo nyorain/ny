@@ -133,7 +133,7 @@ public:
 		ny::log("Mouse Wheel rotated: value=", value);
 	}
 
-	ny::DataFormat dndMove(nytl::Vec2i pos, const ny::DataOffer& offer,
+	ny::DataFormat dndMove(nytl::Vec2i pos, ny::DataOffer& offer,
 		const ny::EventData*) override
 	{
 		// ny::log("dnd pos: ", pos);

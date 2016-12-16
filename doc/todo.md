@@ -1,6 +1,7 @@
 Current todo:
 =============
 
+- DataOffer: methods const? they do not change the state of the object (interface)
 - new image formats, such as hsl, yuv since they might be supported by some backends?
 - clean up the namespace/prefix mess (e.g. wayland::EventData vs WaylandEventData)
 	- should be uniform across backends
