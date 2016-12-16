@@ -536,14 +536,12 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev)
 			break;
 		}
 
-		default:
-		{
-			//check for xkb event
-			if(keyboardContext_->processEvent(ev)) break;
-			if(mouseContext_->processEvent(ev)) break;
-			if(impl_->dataManager.processEvent(ev)) break;
-		}
+		default: break;
 	}
+
+	if(keyboardContext_->processEvent(ev)) return;
+	if(mouseContext_->processEvent(ev)) return;
+	if(impl_->dataManager.processEvent(ev)) return;
 
 	#undef EventHandlerEvent
 }

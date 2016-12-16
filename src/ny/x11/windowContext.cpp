@@ -98,8 +98,15 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 				XCB_ATOM_STRING, 8, settings.title.size(), settings.title.c_str());
 	}
 
+	//signal that this window understands the xdnd protocol
+	//version 5 of the xdnd protocol is supported
+	unsigned int version = 5;
+	xcb_change_property(&xconn, XCB_PROP_MODE_REPLACE, xWindow_, appContext().atoms().xdndAware,
+		XCB_ATOM_ATOM, 32, 1, reinterpret_cast<const unsigned char*>(&version));
+
 	cursor(settings.cursor);
 	if(settings.show) show();
+
     xcb_flush(&xconn);
 }
 

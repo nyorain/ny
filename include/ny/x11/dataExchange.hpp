@@ -8,6 +8,7 @@
 #include <ny/dataExchange.hpp>
 #include <nytl/nonCopyable.hpp>
 
+//TODO: delete this header pull, use x11::GenericEvent for event functions
 #include <xcb/xcb.h>
 
 #include <memory>
@@ -168,7 +169,10 @@ protected:
 
 	std::unique_ptr<X11DataOffer> clipboardOffer_;
 	std::unique_ptr<X11DataOffer> primaryOffer_;
+
 	std::unique_ptr<X11DataOffer> currentDndOffer_; //the currently active data offer
+	unsigned int currentDndVersion_; //xdnd protocol version of the current xdnd session
+	WindowContext* currentDndWC_ {};
 
 	//old data offers and the currently active one
 	//old data offers whose ownership has been passed to the application must be stored
