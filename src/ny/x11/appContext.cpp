@@ -355,8 +355,7 @@ DataOffer* X11AppContext::clipboard()
 
 bool X11AppContext::startDragDrop(std::unique_ptr<DataSource>&& dataSource)
 {
-	// return impl_->dataManager.clipboard();
-	return false;
+	return impl_->dataManager.startDragDrop(std::move(dataSource));
 }
 
 std::vector<const char*> X11AppContext::vulkanExtensions() const
@@ -539,9 +538,9 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev)
 		default: break;
 	}
 
+	if(impl_->dataManager.processEvent(ev)) return;
 	if(keyboardContext_->processEvent(ev)) return;
 	if(mouseContext_->processEvent(ev)) return;
-	if(impl_->dataManager.processEvent(ev)) return;
 
 	#undef EventHandlerEvent
 }

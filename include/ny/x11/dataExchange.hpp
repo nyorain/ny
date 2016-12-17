@@ -103,6 +103,7 @@ public:
 	X11AppContext& appContext() const { return *appContext_; }
 	DataSource& dataSource() const { return *dataSource_; }
 	bool valid() const { return dataSource_.get(); }
+	const std::vector<xcb_atom_t>& targets() const { return targets_; }
 
 	/// Will answer the received convert selection request, i.e. by sending all
 	/// supported targets or trying to send the data from the source in the requested format.
@@ -114,7 +115,8 @@ protected:
 
 	// TODO: also store a vector of all supported xcb_atoms (extracted from formats_)
 	//   so they don't have to be extracted in every target convert selection
-	std::vector<std::pair<xcb_atom_t, DataFormat>> formats_;
+	std::vector<std::pair<xcb_atom_t, DataFormat>> formatsMap_;
+	std::vector<xcb_atom_t> targets_;
 };
 
 /// Manages all selection, Xdnd and data exchange interactions.
@@ -148,6 +150,11 @@ public:
 	/// time this function or a dispatch function of the associated AppContext is called.
 	DataOffer* clipboard();
 
+	/// Starts a drag and drop session for the given DataSource implementation.
+	/// Returns whether the operation succeeded.
+	/// Returns immidietly, i.e. does not wait for the dnd session to end.
+	bool startDragDrop(std::unique_ptr<DataSource>);
+
 	/// Called from within the X11DataOffer destructor when ownership for the DataOffer
 	/// was passed to the application. Signals the DataManager that no further notify
 	/// events should be dispatched to the DataOffer.
@@ -160,27 +167,45 @@ protected:
 	/// If the selection is unknown/not supported or there is no owner returns 0.
 	xcb_window_t selectionOwner(xcb_atom_t selection);
 
+	void xdndSendEnter();
+	void xdndSendLeave();
+	void xdndSendPosition(nytl::Vec2i rootPosition);
+
 protected:
 	X11AppContext* appContext_;
 
 	X11DataSource clipboardSource_; //CLIPBOARD atom selection
 	X11DataSource primarySource_; //PRIMARY atom selection
-	X11DataSource dndSource_; //current xdnd selection
 
 	std::unique_ptr<X11DataOffer> clipboardOffer_;
 	std::unique_ptr<X11DataOffer> primaryOffer_;
 
-	std::unique_ptr<X11DataOffer> currentDndOffer_; //the currently active data offer
-	unsigned int currentDndVersion_; //xdnd protocol version of the current xdnd session
-	WindowContext* currentDndWC_ {};
+	//we have to stricly seperate dnd src and offer since we might be source
+	//and target at the same time.
+	//values for the current dnd session as source
+	struct
+	{
+		unsigned int version {}; //protocol version with the window we are currently over
+		xcb_window_t sourceWindow {}; //the source window in this application
+		xcb_window_t targetWindow {}; //the dnd aware window we are currently over
+		X11DataSource source {};
+	} dndSrc_;
 
-	//old data offers and the currently active one
+	//values for the current dnd session as target
+	struct
+	{
+		unsigned int version {}; //xdnd version
+		X11WindowContext* windowContext {}; //the window context over which the offer is
+		std::unique_ptr<X11DataOffer> offer; //the currently active data offer
+	} dndOffer_;
+
+
 	//old data offers whose ownership has been passed to the application must be stored
 	//since notify events for them must be dispatched correctly nontheless.
 	//they unregister themself here calling unregisterDataOffer.
 	std::vector<X11DataOffer*> dndOffers_;
 
-	//TODO: store and dispatch to old dnd sources?
+	//TODO: store and dispatch to old dnd sources as well?
 };
 
 }

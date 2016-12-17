@@ -13,7 +13,7 @@
 
 #include <xcb/xcb.h>
 
-//i'm really sorry man...
+//i'm really sorry dude...
 //the xkb header is not very c++ friendly
 #define explicit explicit_
  #include <xcb/xkb.h>

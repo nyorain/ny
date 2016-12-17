@@ -6,6 +6,7 @@
 #include <ny/x11/appContext.hpp>
 #include <ny/x11/windowContext.hpp>
 #include <ny/x11/util.hpp>
+#include <ny/x11/input.hpp>
 #include <ny/log.hpp>
 #include <algorithm>
 
@@ -14,6 +15,7 @@ namespace ny
 
 // the data manager was modeled after the clipboard specification of iccccm
 // https://www.x.org/releases/X11R7.6/doc/xorg-docs/specs/ICCCM/icccm.html#use_of_selection_atoms
+// we only implement xdnd version 3
 
 
 //TODO: something about notify event timeout
@@ -21,9 +23,46 @@ namespace ny
 //TODO: timestamps currently not implemented like in icccm convention (NOT! XCB_CURRENT_TIME)
 //TODO: should we surrender owned selections on X11DataManager destruction?
 //TODO: unregister/unsert X11DataManager::currentDndWC_ when it is destroyed
+//TODO: xdnd enter handle target atoms set to None (i.e. ignore them)
+//TODO: DataManager: better event proccessing (connect dnd session to input?) currently more a hack
+//TODO: handle actions (xdndposition)
+//TODO: handle xdndstatus
+//TODO: xdndproxy
 
 
+// - Utillity -
+namespace
+{
 
+/// Checks if the given window is dnd aware. Returns the xdnd protocol version that should
+/// be used to communicate with the window or 0 if none is supported.
+unsigned int xdndAware(X11AppContext& ac, xcb_window_t window)
+{
+	static constexpr uint32_t supportedXdndVersion = 5; //we support xdnd version 5
+	xcb_generic_error_t error {};
+
+	//read the xdndAware property
+	auto prop = x11::readProperty(ac.xConnection(), ac.atoms().xdndAware, window, &error);
+	if(error.error_code || prop.data.size() < 4 || prop.type != XCB_ATOM_ATOM)
+	{
+		if(error.error_code)
+		{
+			auto msg = x11::errorMessage(ac.xDisplay(), error.error_code);
+			warning("ny::<X11>::xdndAware: x11::readProperty: ", msg);
+			return 0u;
+		}
+
+		return 0u;
+	}
+
+	auto protocolVersion = reinterpret_cast<uint32_t&>(*prop.data.data());
+ 	return std::min(protocolVersion, supportedXdndVersion);
+}
+
+}
+
+
+// - Classes -
 //small DefaultAsyncRequest derivate that will unregister itself from pending requests
 //on destruction
 template<typename T>
@@ -44,6 +83,7 @@ public:
 };
 
 
+// - Implementation
 //DataOffer
 X11DataOffer::X11DataOffer(X11AppContext& ac, unsigned int selection, xcb_window_t owner)
 	: appContext_(&ac), selection_(selection), owner_(owner)
@@ -166,8 +206,11 @@ nytl::ConnectionGuard X11DataOffer::registerDataRequest(const DataFormat& format
 
 	//request the data in the target format from the selection owner that offers the data
 	//we request the owner to store it into the clipboard atom property of the dummy window
-	xcb_convert_selection(&appContext().xConnection(), appContext().xDummyWindow(), selection_,
-		target, appContext().atoms().clipboard, XCB_CURRENT_TIME);
+	auto cookie = xcb_convert_selection_checked(&appContext().xConnection(),
+		appContext().xDummyWindow(), selection_, target,
+		appContext().atoms().clipboard, XCB_CURRENT_TIME);
+
+	appContext().errorCategory().checkWarn(cookie, "ny::X11DataOffer::registerDataRequest:0");
 
 	//add a callback to the pending data callbacks that will be triggered as soon
 	//as we receive the data in the requested format this callback will unregister itself.
@@ -182,10 +225,15 @@ nytl::ConnectionGuard X11DataOffer::registerDataRequest(const DataFormat& format
 
 void X11DataOffer::notify(const xcb_selection_notify_event_t& notify)
 {
-	auto& atoms = appContext().atoms();
+	//if the property is 0 the request failed
+	if(notify.property == 0)
+	{
+		log("ny::X11DataOffer::notify: request failed (property == 0)");
+		return;
+	}
 
 	xcb_generic_error_t error {};
-	auto prop = x11::readProperty(appContext().xConnection(), atoms.clipboard,
+	auto prop = x11::readProperty(appContext().xConnection(), notify.property,
 		appContext().xDummyWindow(), &error);
 
 	if(error.error_code || prop.data.empty())
@@ -333,22 +381,22 @@ X11DataSource::X11DataSource(X11AppContext& ac, std::unique_ptr<DataSource> src)
 	for(auto& fmt : formats)
 	{
 		//check for known special formats
-		if(fmt == DataFormat::text || fmt == DataFormat::uriList)
+		if(fmt == DataFormat::text)
 		{
-			formats_.push_back({atoms.utf8string, fmt});
-			formats_.push_back({atoms.mime.textPlainUtf8, fmt});
-			formats_.push_back({XCB_ATOM_STRING, fmt});
-			formats_.push_back({atoms.text, fmt});
-			formats_.push_back({atoms.mime.textPlain, fmt});
+			formatsMap_.push_back({atoms.utf8string, fmt});
+			formatsMap_.push_back({atoms.mime.textPlainUtf8, fmt});
+			formatsMap_.push_back({XCB_ATOM_STRING, fmt});
+			formatsMap_.push_back({atoms.text, fmt});
+			formatsMap_.push_back({atoms.mime.textPlain, fmt});
 		}
 		else if(fmt == DataFormat::uriList)
 		{
-			formats_.push_back({atoms.utf8string, fmt});
-			formats_.push_back({atoms.mime.textPlainUtf8, fmt});
-			formats_.push_back({XCB_ATOM_STRING, fmt});
-			formats_.push_back({atoms.text, fmt});
-			formats_.push_back({atoms.mime.textPlain, fmt});
-			formats_.push_back({atoms.mime.textUriList, fmt});
+			formatsMap_.push_back({atoms.utf8string, fmt});
+			formatsMap_.push_back({atoms.mime.textPlainUtf8, fmt});
+			formatsMap_.push_back({XCB_ATOM_STRING, fmt});
+			formatsMap_.push_back({atoms.text, fmt});
+			formatsMap_.push_back({atoms.mime.textPlain, fmt});
+			formatsMap_.push_back({atoms.mime.textUriList, fmt});
 
 			//TODO:
 			//check if the uri list is only one file, then we can support the filename target
@@ -374,7 +422,7 @@ X11DataSource::X11DataSource(X11AppContext& ac, std::unique_ptr<DataSource> src)
 		auto reply = xcb_intern_atom_reply(&xConn, cookie.second, &error);
 		if(reply)
 		{
-			formats_.push_back({reply->atom, *cookie.first});
+			formatsMap_.push_back({reply->atom, *cookie.first});
 			free(reply);
 			continue;
 		}
@@ -385,6 +433,14 @@ X11DataSource::X11DataSource(X11AppContext& ac, std::unique_ptr<DataSource> src)
 			free(error);
 		}
 	}
+
+	//extract a vector of supported targets since this is used pretty often
+	//also remove duplicates from the targets vector
+	targets_.reserve(formatsMap_.size());
+	for(const auto& entry : formatsMap_) targets_.push_back(entry.first);
+
+	std::sort(targets_.begin(), targets_.end());
+	targets_.erase(std::unique(targets_.begin(), targets_.end()), targets_.end());
 }
 
 void X11DataSource::answerRequest(const xcb_selection_request_event_t& request)
@@ -396,24 +452,15 @@ void X11DataSource::answerRequest(const xcb_selection_request_event_t& request)
 
 	if(request.target == appContext().atoms().targets)
 	{
-		//create a list with all supported targets
-		std::vector<uint32_t> targets;
-		targets.reserve(formats_.size());
-		for(const auto& fmt : formats_) targets.push_back(fmt.first);
-
-		//remove duplicates from the targets vector
-		std::sort(targets.begin(), targets.end());
-		targets.erase(std::unique(targets.begin(), targets.end()), targets.end());
-
 		//set the requested property of the requested window to the target atoms
 		xcb_change_property(&appContext().xConnection(), XCB_PROP_MODE_REPLACE, request.requestor,
-			property, XCB_ATOM_ATOM, 32, targets.size(), targets.data());
+			property, XCB_ATOM_ATOM, 32, targets_.size(), targets_.data());
 	}
 	else
 	{
 		//let the source convert the data to the request type and send it (store as property)
 		const DataFormat* format {};
-		for(const auto& fmt : formats_)
+		for(const auto& fmt : formatsMap_)
 		{
 			if(fmt.first == request.target)
 			{
@@ -437,9 +484,11 @@ void X11DataSource::answerRequest(const xcb_selection_request_event_t& request)
 				//TODO: set property and break here or sth.
 			}
 
+			log("data in format ", format->name);
+
 			//convert the value of the any to a raw buffer in some way
 			auto atomFormat = 8u;
-			auto type = XCB_ATOM_ANY;
+			auto type = XCB_ATOM_STRING;
 			auto ownedBuffer = unwrap(any, *format);
 
 			//set the property of the requested window to the raw data
@@ -493,8 +542,8 @@ bool X11DataManager::processEvent(const xcb_generic_event_t& ev)
 			else if(notify.selection == XCB_ATOM_PRIMARY) dataOffer = primaryOffer_.get();
 			else if(notify.selection == atoms.xdndSelection)
 			{
-				dataOffer = currentDndOffer_.get();
-				if(!dataOffer) dataOffer = dndOffers_.front();
+				dataOffer = dndOffer_.offer.get();
+				if(!dataOffer && !dndOffers_.empty()) dataOffer = dndOffers_.front();
 
 				//TODO:
 				//make it possible to identify the dnd offer this notification belongs to.
@@ -521,7 +570,9 @@ bool X11DataManager::processEvent(const xcb_generic_event_t& ev)
 			X11DataSource* source = nullptr;
 			if(req.selection == atoms().clipboard) source = &clipboardSource_;
 			else if(req.selection == XCB_ATOM_PRIMARY) source = &primarySource_;
-			else if(req.selection == atoms().xdndSelection) source = &dndSource_;
+			else if(req.selection == atoms().xdndSelection) source = &dndSrc_.source;
+
+			debug(" === selection request ====");
 
 			if(source) source->answerRequest(req);
 			else
@@ -566,10 +617,8 @@ bool X11DataManager::processEvent(const xcb_generic_event_t& ev)
 		{
 			//xdnd events are sent as client messages
 			auto& clientm = reinterpret_cast<const xcb_client_message_event_t&>(ev);
-			if(clientm.type == appContext().atoms().xdndEnter)
+			if(clientm.type == atoms().xdndEnter)
 			{
-				debug("xdndEnter");
-
 				auto* data = clientm.data.data32;
 
 				bool targetsSent = !(data[1] & 1); //whether the supported targets are attached
@@ -619,19 +668,16 @@ bool X11DataManager::processEvent(const xcb_generic_event_t& ev)
 				auto offer = std::make_unique<X11DataOffer>(appContext(),
 					atoms().xdndSelection, source, targets);
 
-				currentDndVersion_ = protocolVersion;
-				currentDndOffer_ = std::move(offer);
-				currentDndWC_ = windowContext;
-				dndOffers_.push_back(currentDndOffer_.get());
+				dndOffer_.version = protocolVersion;
+				dndOffer_.offer = std::move(offer);
+				dndOffer_.windowContext = windowContext;
 
 				//send an event to the listener of the associated window
-				windowContext->listener().dndEnter(*currentDndOffer_, &eventData);
+				windowContext->listener().dndEnter(*dndOffer_.offer, &eventData);
 			}
-			else if(clientm.type == appContext().atoms().xdndPosition)
+			else if(clientm.type == atoms().xdndPosition)
 			{
-				debug("xdndPosition");
-
-				if(!currentDndWC_ || !currentDndOffer_)
+				if(!dndOffer_.windowContext || !dndOffer_.offer)
 				{
 					log("ny::X11DataManager: xdndPosition event without current xdnd session");
 					return true;
@@ -656,12 +702,10 @@ bool X11DataManager::processEvent(const xcb_generic_event_t& ev)
 				nytl::Vec2i pos(reply->dst_x, reply->dst_y);
 				free(reply);
 
-				auto format = currentDndWC_->listener().dndMove(pos, *currentDndOffer_,
-					&eventData);
+				auto format = dndOffer_.windowContext->listener().dndMove(pos,
+					*dndOffer_.offer, &eventData);
 
 				bool accepted = (format != DataFormat::none);
-				debug("accepted: ", accepted);
-				debug("pos: ", pos);
 
 				//answer with the current state, i.e. whether the application can/will accept
 				//the offer or not
@@ -680,45 +724,48 @@ bool X11DataManager::processEvent(const xcb_generic_event_t& ev)
 				xcb_send_event(&xConnection(), 0, revent.window, 0, reventPtr);
 				xcb_flush(&xConnection());
 			}
-			else if(clientm.type == appContext().atoms().xdndLeave)
+			else if(clientm.type == atoms().xdndLeave)
 			{
-				debug("xdndLeave");
-
-				if(!currentDndOffer_ || !currentDndWC_)
+				if(!dndOffer_.windowContext || !dndOffer_.offer)
 				{
 					log("ny::X11DataManager: xdndLeave event without current xdnd session");
 				}
 				else
 				{
-					currentDndWC_->listener().dndLeave(*currentDndOffer_, &eventData);
+					dndOffer_.windowContext->listener().dndLeave(*dndOffer_.offer, &eventData);
 				}
 
-				//reset the currently active data offer
-				currentDndOffer_ = {};
-				currentDndVersion_ = {};
-				currentDndWC_ = {};
+				//reset the currently active data offer and all its data
+				dndOffer_ = {};
 			}
-			else if(clientm.type == appContext().atoms().xdndDrop)
+			else if(clientm.type == atoms().xdndDrop)
 			{
-				debug("xdndDrop");
-
 				//generate a data offer event
 				//push the current data offer into the vector vector with old ones
-				if(!currentDndWC_ || !currentDndOffer_)
+				if(!dndOffer_.windowContext || !dndOffer_.offer)
 				{
-					log("ny::X11DataManager: xdndLeave event without current xdnd session");
+					log("ny::X11DataManager: xdndDrop event without current xdnd session");
 					return true;
 				}
 
-				//TODO: send event if we cannot handle it?
+				//TODO: send event if application signaled that it cannot handle the dataOffer?
 				//do not generate dndDrop listener event in this case?
 
 				nytl::Vec2i pos {};
 				pos.x = clientm.data.data32[2] >> 16;
 				pos.y = clientm.data.data32[2] & 0xffff;
 
-				currentDndOffer_->unregister();
-				currentDndWC_->listener().dndDrop(pos, std::move(currentDndOffer_), &eventData);
+				dndOffers_.push_back(dndOffer_.offer.get());
+				dndOffer_.offer->unregister();
+				dndOffer_.windowContext->listener().dndDrop(pos,
+					std::move(dndOffer_.offer), &eventData);
+			}
+			else if(clientm.type == atoms().xdndStatus)
+			{
+				//we (as drag source) received a status message
+				//mainly interesting for debugging
+				auto accepted = clientm.data.data32[1] & 1;
+				debug("accepted: ", accepted);
 			}
 			else
 			{
@@ -728,8 +775,97 @@ bool X11DataManager::processEvent(const xcb_generic_event_t& ev)
 			return true; //we handled the client message
 		}
 
-		default: return false; //we did not handle the event type at all
+		default: break;
 	}
+
+	//if we are currently grabbing the pointer because we initiated a dnd session
+	//also handle the pointer events.
+	if(!dndSrc_.sourceWindow) return false;
+
+	switch(responseType)
+	{
+	    case XCB_MOTION_NOTIFY:
+	    {
+			const auto& motionEv = reinterpret_cast<const xcb_motion_notify_event_t&>(ev);
+
+			//query the xdnd window we are currently over
+			//this here is a real performance killer, so optimizations like caching
+			//the size are welcome
+			//we have to do it this complex since often not the window we are over but
+			//one of its ancestors is xdnd aware
+			auto child = motionEv.event;
+			xcb_window_t toplevel {};
+			unsigned int version {};
+			while(true)
+			{
+				//TODO: error checking
+				auto cookie = xcb_query_pointer(&xConnection(), child);
+				auto reply = xcb_query_pointer_reply(&xConnection(), cookie, nullptr);
+
+				if(!reply->child) break;
+				child = reply->child;
+
+				if(!toplevel)
+				{
+					version = xdndAware(appContext(), child);
+					if(version) toplevel = child;
+				}
+			}
+
+			//send leave event to old one and enter to new one if valid if it changed
+			//otherwise just send a default position event
+			if(toplevel != dndSrc_.targetWindow)
+			{
+				xdndSendLeave();
+				dndSrc_.targetWindow = toplevel;
+				dndSrc_.version = version;
+				if(toplevel) xdndSendEnter();
+			}
+			else if(dndSrc_.targetWindow)
+			{
+				xdndSendPosition({motionEv.root_x, motionEv.root_y});
+			}
+
+			return true;
+		}
+
+	    case XCB_BUTTON_RELEASE:
+	    {
+			debug("grab button release");
+
+			//if we are over an xdnd window, send a drop event
+			if(dndSrc_.targetWindow)
+			{
+				debug("sending drop event");
+
+				xcb_client_message_event_t clientev {};
+				clientev.window = dndSrc_.targetWindow;
+				clientev.format = 32;
+				clientev.response_type = XCB_CLIENT_MESSAGE;
+				clientev.type = atoms().xdndDrop;
+				clientev.data.data32[0] = dndSrc_.sourceWindow;
+
+				auto eventPtr = reinterpret_cast<const char*>(&clientev);
+				xcb_send_event(&xConnection(), 0, dndSrc_.targetWindow, 0, eventPtr);
+			}
+
+			//end the dnd session, i.e. ungrab the pointer
+			//send a xdnddrop event if we are over an accepting window
+			xcb_ungrab_pointer(&xConnection(), XCB_CURRENT_TIME);
+
+			//reset all session values
+			//not yet reset the dnd source sine it might be needed further
+			dndSrc_.version = {};
+			dndSrc_.sourceWindow = {};
+			dndSrc_.targetWindow = {};
+
+			return true;
+		}
+
+		default: break;
+	}
+
+	return false; //we did not handle the event type at all
 }
 
 bool X11DataManager::clipboard(std::unique_ptr<DataSource>&& dataSource)
@@ -767,6 +903,70 @@ DataOffer* X11DataManager::clipboard()
 	return clipboardOffer_.get();
 }
 
+bool X11DataManager::startDragDrop(std::unique_ptr<DataSource> src)
+{
+	//TODO: better check, give up xdndselection ownership on fail
+
+	//check if currently over window
+	if(!appContext().mouseContext()->over()) return false;
+
+	//try to take ownership of the xdnd selection
+	auto xdndSelection = atoms().xdndSelection;
+    xcb_set_selection_owner(&xConnection(), xDummyWindow(), xdndSelection, XCB_CURRENT_TIME);
+
+	//check for success
+	auto owner = selectionOwner(xdndSelection);
+	if(owner != xDummyWindow()) return false;
+
+	//grab the pointer
+	auto eventMask = XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_ENTER_WINDOW |
+		XCB_EVENT_MASK_LEAVE_WINDOW | XCB_EVENT_MASK_POINTER_MOTION;
+
+	auto wc = dynamic_cast<X11WindowContext*>(appContext().mouseContext()->over());
+	auto window = appContext().xDefaultScreen().root;
+	// auto window = wc->xWindow();
+
+	auto grabCookie = xcb_grab_pointer(&xConnection(), false, window, eventMask,
+		XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC, XCB_NONE, XCB_NONE, XCB_CURRENT_TIME);
+
+	xcb_generic_error_t* errorPtr {};
+	auto grabReply = xcb_grab_pointer_reply(&xConnection(), grabCookie, &errorPtr);
+	if(errorPtr)
+	{
+		auto msg = x11::errorMessage(appContext().xDisplay(), errorPtr->error_code);
+		warning("ny::X11DataManager: xcb_grab_pointer error :", msg);
+		free(errorPtr);
+		return false;
+	}
+
+	auto result = static_cast<unsigned int>(grabReply->status);
+	free(grabReply);
+
+	if(result != XCB_GRAB_STATUS_SUCCESS)
+	{
+		warning("ny::X11DataManager::startDragDrop: grabbing cursor failed with status ", result);
+		return false;
+	}
+
+	//if everything went fine, store the DataSource implementation to be able to
+	//answer requests we might get
+	//storing a valid DataSource in dndSource also effects that we will handle pointer event
+	//of the grabbed pointer
+	dndSrc_.source = {appContext(), std::move(src)};
+	dndSrc_.sourceWindow = wc->xWindow();
+
+	//if the data source supportes more than 3 targets, we can already set the xdndtypelist
+	//property of the source window
+	const auto& targets = dndSrc_.source.targets();
+	if(targets.size() > 3)
+	{
+		xcb_change_property(&xConnection(), XCB_PROP_MODE_REPLACE, dndSrc_.sourceWindow,
+			atoms().xdndTypeList, XCB_ATOM_ATOM, 32, targets.size(), targets.data());
+	}
+
+	return true;
+}
+
 xcb_window_t X11DataManager::selectionOwner(xcb_atom_t selection)
 {
 	xcb_generic_error_t* error {};
@@ -792,7 +992,7 @@ xcb_window_t X11DataManager::selectionOwner(xcb_atom_t selection)
 void X11DataManager::unregisterDataOffer(const X11DataOffer& offer)
 {
 	auto end = std::remove(dndOffers_.begin(), dndOffers_.end(), &offer);
-	if(currentDndOffer_.get() == &offer || dndOffers_.end() == end)
+	if(dndOffers_.end() == end)
 	{
 		warning("ny::X11DataManager::unregisterDataOffer: invalid offer");
 		return;
@@ -814,6 +1014,60 @@ xcb_window_t X11DataManager::xDummyWindow() const
 const x11::Atoms& X11DataManager::atoms() const
 {
 	return appContext().atoms();
+}
+
+void X11DataManager::xdndSendEnter()
+{
+	const auto& targets = dndSrc_.source.targets();
+
+	//see the xdnd spec for more information
+	//we only send the supported targets if it aren't more than 3
+	//otherwise we stored it in the xdndTypeList property in the startDragDrop function
+	xcb_client_message_event_t clientev {};
+	clientev.window = dndSrc_.targetWindow;
+	clientev.format = 32;
+	clientev.response_type = XCB_CLIENT_MESSAGE;
+	clientev.type = atoms().xdndEnter;
+	clientev.data.data32[0] = dndSrc_.sourceWindow;
+	clientev.data.data32[1] = (targets.size() > 3) | (dndSrc_.version << 24);
+
+	if(targets.size() <= 3)
+	{
+		if(targets.size() > 0) clientev.data.data32[2] = targets[0];
+		if(targets.size() > 1) clientev.data.data32[3] = targets[1];
+		if(targets.size() > 2) clientev.data.data32[4] = targets[2];
+	}
+
+	auto eventPtr = reinterpret_cast<const char*>(&clientev);
+	xcb_send_event(&xConnection(), 0, dndSrc_.targetWindow, 0, eventPtr);
+}
+
+void X11DataManager::xdndSendLeave()
+{
+	xcb_client_message_event_t clientev {};
+	clientev.window = dndSrc_.targetWindow;
+	clientev.format = 32;
+	clientev.response_type = XCB_CLIENT_MESSAGE;
+	clientev.type = atoms().xdndLeave;
+	clientev.data.data32[0] = dndSrc_.sourceWindow;
+
+	auto eventPtr = reinterpret_cast<const char*>(&clientev);
+	xcb_send_event(&xConnection(), 0, dndSrc_.targetWindow, 0, eventPtr);
+}
+
+void X11DataManager::xdndSendPosition(nytl::Vec2i rootPos)
+{
+	xcb_client_message_event_t clientev {};
+	clientev.window = dndSrc_.targetWindow;
+	clientev.format = 32;
+	clientev.response_type = XCB_CLIENT_MESSAGE;
+	clientev.type = atoms().xdndPosition;
+	clientev.data.data32[0] = dndSrc_.sourceWindow;
+	clientev.data.data32[1] = 0u; //reserved
+	clientev.data.data32[2] = (rootPos.x << 16) | rootPos.y;
+
+	auto eventPtr = reinterpret_cast<const char*>(&clientev);
+	xcb_send_event(&xConnection(), 0, dndSrc_.targetWindow, 0, eventPtr);
 }
 
 } // namespace ny
