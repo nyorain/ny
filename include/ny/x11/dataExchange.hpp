@@ -200,6 +200,7 @@ protected:
 	} dndOffer_;
 
 
+	//old data offers and the currently active one
 	//old data offers whose ownership has been passed to the application must be stored
 	//since notify events for them must be dispatched correctly nontheless.
 	//they unregister themself here calling unregisterDataOffer.

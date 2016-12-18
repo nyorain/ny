@@ -484,8 +484,6 @@ void X11DataSource::answerRequest(const xcb_selection_request_event_t& request)
 				//TODO: set property and break here or sth.
 			}
 
-			log("data in format ", format->name);
-
 			//convert the value of the any to a raw buffer in some way
 			auto atomFormat = 8u;
 			auto type = XCB_ATOM_STRING;
@@ -572,8 +570,6 @@ bool X11DataManager::processEvent(const xcb_generic_event_t& ev)
 			else if(req.selection == XCB_ATOM_PRIMARY) source = &primarySource_;
 			else if(req.selection == atoms().xdndSelection) source = &dndSrc_.source;
 
-			debug(" === selection request ====");
-
 			if(source) source->answerRequest(req);
 			else
 			{
@@ -621,19 +617,19 @@ bool X11DataManager::processEvent(const xcb_generic_event_t& ev)
 			{
 				auto* data = clientm.data.data32;
 
-				bool targetsSent = !(data[1] & 1); //whether the supported targets are attached
+				bool moreThan3 = data[1] & 1; //whether the supported targets are attached
 				xcb_window_t source = data[0]; //the source of the dnd operation
 				auto protocolVersion = data[1] >> 24; //the supported protocol version
 
 				std::vector<xcb_atom_t> targets;
 				targets.reserve(10);
 
-				if(targetsSent)
+				if(!moreThan3)
 				{
 					//extract the supported targets from the event
-					targets.push_back(data[2]);
-					targets.push_back(data[3]);
-					targets.push_back(data[4]);
+					if(data[2]) targets.push_back(data[2]);
+					if(data[3]) targets.push_back(data[3]);
+					if(data[4]) targets.push_back(data[4]);
 				}
 				else
 				{
@@ -762,10 +758,21 @@ bool X11DataManager::processEvent(const xcb_generic_event_t& ev)
 			}
 			else if(clientm.type == atoms().xdndStatus)
 			{
+				/*
 				//we (as drag source) received a status message
 				//mainly interesting for debugging
-				auto accepted = clientm.data.data32[1] & 1;
+				auto accepted = (clientm.data.data32[1] & 1u);
 				debug("accepted: ", accepted);
+
+				auto action = clientm.data.data32[4];
+				auto name = "<unknown>";
+				if(action == atoms().xdndActionAsk) name = "ask";
+				if(action == atoms().xdndActionCopy) name = "copy";
+				if(action == atoms().xdndActionMove) name = "move";
+				if(action == atoms().xdndActionLink) name = "link";
+				if(action == 0) name = "none";
+				debug("action: ", name);
+				*/
 			}
 			else
 			{
@@ -816,10 +823,10 @@ bool X11DataManager::processEvent(const xcb_generic_event_t& ev)
 			//otherwise just send a default position event
 			if(toplevel != dndSrc_.targetWindow)
 			{
-				xdndSendLeave();
+				if(dndSrc_.targetWindow) xdndSendLeave();
 				dndSrc_.targetWindow = toplevel;
 				dndSrc_.version = version;
-				if(toplevel) xdndSendEnter();
+				if(dndSrc_.targetWindow) xdndSendEnter();
 			}
 			else if(dndSrc_.targetWindow)
 			{
@@ -831,13 +838,9 @@ bool X11DataManager::processEvent(const xcb_generic_event_t& ev)
 
 	    case XCB_BUTTON_RELEASE:
 	    {
-			debug("grab button release");
-
 			//if we are over an xdnd window, send a drop event
 			if(dndSrc_.targetWindow)
 			{
-				debug("sending drop event");
-
 				xcb_client_message_event_t clientev {};
 				clientev.window = dndSrc_.targetWindow;
 				clientev.format = 32;
@@ -1065,6 +1068,8 @@ void X11DataManager::xdndSendPosition(nytl::Vec2i rootPos)
 	clientev.data.data32[0] = dndSrc_.sourceWindow;
 	clientev.data.data32[1] = 0u; //reserved
 	clientev.data.data32[2] = (rootPos.x << 16) | rootPos.y;
+	clientev.data.data32[3] = XCB_CURRENT_TIME;
+	clientev.data.data32[4] = atoms().xdndActionCopy;
 
 	auto eventPtr = reinterpret_cast<const char*>(&clientev);
 	xcb_send_event(&xConnection(), 0, dndSrc_.targetWindow, 0, eventPtr);

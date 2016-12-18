@@ -1,1 +1,3 @@
 - eglInitialize (called 1 time) may leak memory (even when eglTerminate is correctly called)
+- dnd with chromium-based application under x11 seem to work only on the same monitor
+	- bug in chromium (chromium doesnt send events, does not work for other apps as well)

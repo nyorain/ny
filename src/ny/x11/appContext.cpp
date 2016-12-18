@@ -180,6 +180,7 @@ X11AppContext::X11AppContext()
 		{atoms.xdndActionCopy, "XdndActionCopy"},
 		{atoms.xdndActionMove, "XdndActionMove"},
 		{atoms.xdndActionAsk, "XdndActionAsk"},
+		{atoms.xdndActionLink, "XdndActionLink"},
 		{atoms.xdndDrop, "XdndDrop"},
 		{atoms.xdndLeave, "XdndLeave"},
 		{atoms.xdndFinished, "XdndFinished"},

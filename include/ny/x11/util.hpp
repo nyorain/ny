@@ -107,6 +107,7 @@ struct Atoms
 	xcb_atom_t xdndActionCopy;
 	xcb_atom_t xdndActionMove;
 	xcb_atom_t xdndActionAsk;
+	xcb_atom_t xdndActionLink;
 	xcb_atom_t xdndDrop;
 	xcb_atom_t xdndLeave;
 	xcb_atom_t xdndFinished;

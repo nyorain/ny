@@ -182,13 +182,20 @@ public:
 			lc->stop();
 			return;
 		}
+		if(keycode == ny::Keycode::c)
+		{
+			ny::log("setting clipboard... ");
+			if(ac->clipboard(std::make_unique<CustomDataSource>())) ny::log("\tsuccesful!");
+			else ny::log("\tunsuccesful");
+		}
+		if(keycode == ny::Keycode::v)
+		{
+			ny::log("reading clipboard... ");
+			auto dataOffer = ac->clipboard();
 
-		//retrieving the clipboard DataOffer and listing all formats
-		ny::log("checking clipboard...");
-		auto dataOffer = ac->clipboard();
-
-		if(!dataOffer) ny::warning("Backend does not support clipboard operations...");
-		else handleDataOffer(*dataOffer);
+			if(!dataOffer) ny::log("Backend does not support clipboard operations...");
+			else handleDataOffer(*dataOffer);
+		}
 	}
 };
 
