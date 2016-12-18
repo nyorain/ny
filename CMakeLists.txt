@@ -10,6 +10,7 @@ set(vpatch 0)
 #default options
 option(BuildExamples "Build the ny examples" off)
 option(Debug "Include debug symbols" on)
+option(DependOnNytl "Make ny depend on nytl. Developement option" on)
 
 #to disable ninja byproduct warning
 cmake_policy(SET CMP0058 NEW)
@@ -89,11 +90,11 @@ if(NOT WithWayland AND NOT WithX11 AND NOT WithWinapi)
 endif()
 
 # test for nytl
-find_package(nytl 0.3.0)
-if(nytl_FOUND AND nytl_INCLUDE_DIRS EQUAL CMAKE_INSTALL_PREFIX)
-	set(nytl_location ${nytl_INCLUDE_DIRS})
-	set(nytl_own false)
-else()
+# find_package(nytl 0.3.0)
+# if(nytl_FOUND AND nytl_INCLUDE_DIRS EQUAL CMAKE_INSTALL_PREFIX)
+# 	set(nytl_location ${nytl_INCLUDE_DIRS})
+# 	set(nytl_own false)
+# else()
 	set(nytl_location "own")
 	set(nytl_own true)
 
@@ -107,7 +108,7 @@ else()
 	ExternalProject_Add(nytl_ep
 		PREFIX ${CMAKE_CURRENT_BINARY_DIR}/nytl
 		GIT_REPOSITORY https://github.com/nyorain/nytl.git
-		# GIT_TAG dev
+		GIT_TAG master
 		INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/external/install
 		CMAKE_ARGS ${ExternalProjectCMakeArgs})
 
@@ -116,8 +117,9 @@ else()
 		DEPENDEES configure
 		DEPENDERS install
 		ALWAYS 1)
+
 	install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/external/install/." DESTINATION .)
-endif()
+# endif()
 
 # config file
 # first set all macros (they have NY_ prefix since they are macros)
