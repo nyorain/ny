@@ -344,7 +344,7 @@ void X11DataOffer::addFormats(nytl::Range<xcb_atom_t> targets)
 		if(error)
 		{
 			auto msg = x11::errorMessage(appContext().xDisplay(), error->error_code);
-			warning("ny::x11::targetAtomToFormat: get_atom_name_reply: ", msg);
+			warning("ny::x11::targetAtomToFormat: get_atom_name_reply failed: ", msg);
 			free(error);
 			continue;
 		}
@@ -805,13 +805,24 @@ bool X11DataManager::processEvent(const xcb_generic_event_t& ev)
 			unsigned int version {};
 			while(true)
 			{
-				//TODO: error checking
+				xcb_generic_error_t* error {};
 				auto cookie = xcb_query_pointer(&xConnection(), child);
-				auto reply = xcb_query_pointer_reply(&xConnection(), cookie, nullptr);
+				auto reply = xcb_query_pointer_reply(&xConnection(), cookie, &error);
 
-				if(!reply->child) break;
-				child = reply->child;
+				if(error)
+				{
+					auto msg = x11::errorMessage(appContext().xDisplay(), error->error_code);
+					warning("ny::X11DataManager: xcb_query_pointer failed: ", msg);
+					free(error);
+					break;
+				}
 
+				auto replyChild = reply->child;
+				free(reply);
+
+				if(!replyChild) break;
+
+				child = replyChild;
 				if(!toplevel)
 				{
 					version = xdndAware(appContext(), child);
@@ -977,16 +988,16 @@ xcb_window_t X11DataManager::selectionOwner(xcb_atom_t selection)
 	auto reply = xcb_get_selection_owner_reply(&xConnection(), ownerCookie, &error);
 
 	xcb_window_t owner {};
-	if(reply)
+	if(error)
+	{
+		auto msg = x11::errorMessage(appContext().xDisplay(), error->error_code);
+		warning("ny::X11DataManager::selectionOwner: xcb_get_selection_owner failed: ", msg);
+		free(error);
+	}
+	else if(reply)
 	{
 		owner = reply->owner;
 		free(reply);
-	}
-	else if(error)
-	{
-		auto msg = x11::errorMessage(appContext().xDisplay(), error->error_code);
-		warning("ny::X11DataManager::selectionOwner: xcb_get_selection_owner: ", msg);
-		free(error);
 	}
 
 	return owner;

@@ -125,10 +125,22 @@ bool X11MouseContext::processEvent(const x11::GenericEvent& ev)
 nytl::Vec2ui X11MouseContext::position() const
 {
 	if(!over_) return {};
-	auto cookie = xcb_query_pointer(&appContext_.xConnection(), over_->xWindow());
-	auto reply = xcb_query_pointer_reply(&appContext_.xConnection(), cookie, nullptr);
 
-	return nytl::Vec2ui(reply->win_x, reply->win_y);
+	xcb_generic_error_t* error {};
+	auto cookie = xcb_query_pointer(&appContext_.xConnection(), over_->xWindow());
+	auto reply = xcb_query_pointer_reply(&appContext_.xConnection(), cookie, &error);
+
+	if(error)
+	{
+		auto msg = x11::errorMessage(appContext_.xDisplay(), error->error_code);
+		warning("ny::X11MouseContext::position: xcb_query_pointer failed: ", msg);
+		free(error);
+		return {};
+	}
+
+	auto pos = nytl::Vec2ui(reply->win_x, reply->win_y);
+	free(reply);
+	return pos;
 }
 
 bool X11MouseContext::pressed(MouseButton button) const
