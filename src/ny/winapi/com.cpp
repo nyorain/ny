@@ -171,6 +171,7 @@ HRESULT DropTargetImpl::DragEnter(IDataObject* data, DWORD keyState, POINTL scre
 	DWORD* effect)
 {
 	nytl::unused(keyState);
+	log("dragEnter");
 
 	POINT windowPos;
 	windowPos.x = screenPos.x;
@@ -652,7 +653,7 @@ STGMEDIUM toStgMedium(const DataFormat& from, const FORMATETC& to, const std::an
 
 		auto str = std::any_cast<const std::string&>(data);
 		replaceLF(str);
-		auto str16 = toUtf16(str);
+		auto str16 = nytl::toUtf16(str);
 
 		ret.tymed = TYMED_HGLOBAL;
 		ret.hGlobal = stringToGlobalUnicode(str16);

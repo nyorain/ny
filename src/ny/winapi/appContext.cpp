@@ -32,6 +32,7 @@
 #include <stdexcept>
 #include <cstring>
 #include <mutex>
+#include <condition_variable>
 #include <queue>
 
 namespace ny
@@ -101,6 +102,12 @@ struct WinapiAppContext::Impl
 #endif //GL
 };
 
+// TODO
+std::thread dndThread;
+std::mutex dndMutex;
+std::condition_variable dndCond;
+std::unique_ptr<DataSource> dndSource;
+
 //winapi callbacks
 LRESULT CALLBACK WinapiAppContext::wndProcCallback(HWND a, UINT b, WPARAM c, LPARAM d)
 {
@@ -145,6 +152,29 @@ WinapiAppContext::WinapiAppContext() : mouseContext_(*this), keyboardContext_(*t
 		else (reinterpret_cast<BOOL(*)(HWND)>(func))(dummyWindow_);
 		::FreeLibrary(lib);
 	}
+
+    // TODO: test
+    auto t1 = ::GetCurrentThreadId();
+    dndThread = std::thread([=](){
+        ::OleInitialize(nullptr);
+        auto t2 = ::GetCurrentThreadId();
+        ::AttachThreadInput(t2, t1, true);
+
+        std::unique_lock<std::mutex> lock(dndMutex);
+        while(true) {
+            dndCond.wait(lock);
+
+            if(dndSource) {
+            	auto dataObj = new winapi::com::DataObjectImpl(std::move(dndSource));
+            	auto dropSource = new winapi::com::DropSourceImpl();
+
+            	DWORD effect;
+                log("DoDragDrop start");
+            	auto ret = ::DoDragDrop(dataObj, dropSource, DROPEFFECT_COPY, &effect);
+                log("DoDragDrop: ", (unsigned int)ret);
+            }
+        }
+    });
 }
 
 WinapiAppContext::~WinapiAppContext()
@@ -279,28 +309,54 @@ DataOffer* WinapiAppContext::clipboard()
 
 bool WinapiAppContext::startDragDrop(std::unique_ptr<DataSource>&& source)
 {
-	//TODO: make non-blocking
+    //TODO: make non blocking
+    //TODO: catch dataObject constructor exception
 
-	// modalThreads_.emplace_back([source = std::move(source)]() mutable {
-	// 	::OleInitialize(nullptr);
-	// 	// auto res = ::CoInitializeEx(nullptr, COINIT_MULTITHREADED);
-	// 	auto dataObj = new winapi::com::DataObjectImpl(std::move(source));
-	// 	auto dropSource = new winapi::com::DropSourceImpl();
-	//
-	// 	DWORD effect;
-	// 	::DoDragDrop(dataObj, dropSource, DROPEFFECT_COPY, &effect);
-	// 	// ::CoUninitialize();
-	// 	::OleUninitialize();
-	// });
-	// modalThreads_.back().join();
-	//
+    // POINT p;
+    // GetCursorPos(&p);
+    // auto t1 = ::GetCurrentThreadId();
+    //
+    // auto thread = std::thread([&, src = std::move(source)]() mutable {
+    //     ::OleInitialize(nullptr);
+    //     auto t2 = ::GetCurrentThreadId();
+    //     ::AttachThreadInput(t2, t1, true);
+    //
+    // 	auto dataObj = new winapi::com::DataObjectImpl(std::move(src));
+    // 	auto dropSource = new winapi::com::DropSourceImpl();
+    //
+    //
+	//     // auto dummy = ::CreateWindow(L"STATIC", L"", WS_POPUP, p.x - 10, p.y - 10, 15, 15,
+    //     //     nullptr, nullptr, hinstance(), nullptr);
+    //     // ShowWindowAsync(dummy, SW_SHOW);
+    //     // UpdateWindow(dummy);
+    //
+    //     // auto win = WindowFromPoint(p);
+    //     // log(win);
+    //     // log(dummy);
+    //
+    //     // SendMessage(dummy, WM_MOUSEMOVE, 0, 10 << 16 | 10);
+    //     // SendMessage(dummy, WM_LBUTTONDOWN, 0, 10 << 16 | 10);
+    //
+    //
+    //     // ::CoUninitialize();
+    //     // ::DestroyWindow(dummy);
+    // });
+    //
+    // thread.join();
+    // thread.detach();
 
-	auto dataObj = new winapi::com::DataObjectImpl(std::move(source));
-	auto dropSource = new winapi::com::DropSourceImpl();
+    dndCond.notify_one();
+    dndSource = std::move(source);
+    return true;
 
-	DWORD effect;
-	auto ret = ::DoDragDrop(dataObj, dropSource, DROPEFFECT_COPY, &effect);
-	return (ret == S_OK || ret == DRAGDROP_S_DROP || ret == DRAGDROP_S_CANCEL);
+    //
+
+	// auto dataObj = new winapi::com::DataObjectImpl(std::move(source));
+	// auto dropSource = new winapi::com::DropSourceImpl();
+    //
+	// DWORD effect;
+	// auto ret = ::DoDragDrop(dataObj, dropSource, DROPEFFECT_COPY, &effect);
+	// return (ret == S_OK || ret == DRAGDROP_S_DROP || ret == DRAGDROP_S_CANCEL);
 }
 
 WinapiWindowContext* WinapiAppContext::windowContext(HWND w)

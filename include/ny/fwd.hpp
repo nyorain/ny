@@ -6,19 +6,16 @@
 
 #include <cstdint>
 #include <cstdlib>
-#include <nytl/fwd.hpp>
+#include <nytl/fwd.hpp> // pull in all nytl forward decls
 
-//This file contains forward delcarations for all ny classes and enumerations.
-//Can be useful if one does not want to pull in any ny headers but needs many of its
-//classes (used e.g. as pointers, references or template parameters (in some cases ok)).
+// This file contains forward delcarations for all ny classes and enumerations.
+// Can be useful if one does not want to pull in any ny headers but needs many of its
+// classes (used e.g. as pointers, references or template parameters (in some cases ok)).
 
-//own forward declarations
 namespace ny
 {
 
-using namespace nytl;
-
-//treat them as built-in
+// treat them as built-in
 using std::uint8_t;
 using std::uint16_t;
 using std::uint32_t;
@@ -69,7 +66,7 @@ template<typename P> class BasicImage;
 using Image = BasicImage<const uint8_t*>;
 using MutableImage = BasicImage<uint8_t*>;
 
-//enums
+// enums
 enum class ToplevelState : unsigned int;
 enum class WindowEdge : unsigned int;
 enum class WindowHint : unsigned int;

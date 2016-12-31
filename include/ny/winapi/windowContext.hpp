@@ -10,8 +10,6 @@
 #include <ny/windowSettings.hpp>
 #include <nytl/rect.hpp>
 
-#include <ole2.h>
-
 namespace ny
 {
 
@@ -62,18 +60,18 @@ public:
 	HINSTANCE hinstance() const; ///The associated HINSTANCE
 	HWND handle() const { return handle_; } ///The managed window handle
 
-	Rect2i extents() const; ///Current (async) window extents with server decorations
-	Rect2i clientExtents() const; ///Current (async) client area window extents
+	nytl::Rect2i extents() const; ///Current (async) window extents with server decorations
+	nytl::Rect2i clientExtents() const; ///Current (async) client area window extents
 
-	const nytl::Vec2ui minSize() const { return minSize_; }
-	const nytl::Vec2ui maxSize() const { return maxSize_; }
+	nytl::Vec2ui minSize() const { return minSize_; }
+	nytl::Vec2ui maxSize() const { return maxSize_; }
 
 protected:
 	struct State
 	{
 		std::uint64_t style {};
 		std::uint64_t exstyle {};
-		Rect2i extents {};
+		nytl::Rect2i extents {};
 		unsigned int state {}; //0: normal, 1: maximized, 2: minimized, 3: fullscreen
 	};
 

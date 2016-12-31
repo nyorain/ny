@@ -35,7 +35,7 @@ public:
 
 protected:
 	void apply(const BufferGuard&) noexcept override;
-	void resize(const nytl::Vec2ui& size);
+	void resize(nytl::Vec2ui size);
 
 protected:
 	X11WindowContext* windowContext_ {};

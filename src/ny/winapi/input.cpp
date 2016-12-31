@@ -13,7 +13,7 @@
 namespace ny
 {
 
-Vec2i WinapiMouseContext::position() const
+nytl::Vec2i WinapiMouseContext::position() const
 {
 	if(!over_) return {};
 
@@ -48,7 +48,7 @@ bool WinapiMouseContext::processEvent(const WinapiEventData& eventData, LRESULT&
 	{
 		case WM_MOUSEMOVE:
 		{
-			Vec2i pos(GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
+			nytl::Vec2i pos(GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
 
 			// POINT screenPos {pos.x, pos.y};
 			// ::ClientToScreen(window, &screenPos);

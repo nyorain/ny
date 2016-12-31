@@ -215,7 +215,7 @@ void ShmBuffer::destroy()
     if(data_) munmap(data_, shmSize_);
 }
 
-bool ShmBuffer::size(const nytl::Vec2ui& size, unsigned int stride)
+bool ShmBuffer::size(nytl::Vec2ui size, unsigned int stride)
 {
     size_ = size;
 	stride_ = stride;

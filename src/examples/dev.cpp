@@ -18,16 +18,22 @@ private:
 	ny::UniqueImage image_;
 };
 
-void handleDataOffer(ny::DataOffer& dataOffer)
+/// Returns whether AppContext received error
+bool handleDataOffer(ny::DataOffer& dataOffer)
 {
 	auto formatsRequest = dataOffer.formats();
 	if(!formatsRequest)
 	{
 		ny::warning("could not retrieve formats request");
-		return;
+		return true;
 	}
 
-	formatsRequest->wait();
+	if(!formatsRequest->wait())
+	{
+		ny::warning("AppContext broke while waiting for formats! Exiting.");
+		return false;
+	}
+
 	auto formats = formatsRequest->get();
 
 	ny::DataFormat dataFormat {};
@@ -50,7 +56,7 @@ void handleDataOffer(ny::DataOffer& dataOffer)
 	if(dataFormat == ny::DataFormat::none)
 	{
 		ny::log("no supported clipboard format!");
-		return;
+		return true;
 	}
 
 	// trying to retrieve the data in text form and outputting it if successful
@@ -58,16 +64,20 @@ void handleDataOffer(ny::DataOffer& dataOffer)
 	if(!dataRequest)
 	{
 		ny::warning("could not retrieve data request");
-		return;
+		return true;
 	}
 
-	dataRequest->wait();
+	if(!dataRequest->wait())
+	{
+		ny::warning("AppContext broke while waiting for data! Exiting.");
+		return false;
+	}
 
 	auto data = dataRequest->get();
 	if(!data.has_value())
 	{
 		ny::warning("invalid text clipboard data offer");
-		return;
+		return true;
 	}
 
 	if(dataFormat == ny::DataFormat::text)
@@ -79,6 +89,8 @@ void handleDataOffer(ny::DataOffer& dataOffer)
 		auto uriList = std::any_cast<const std::vector<std::string>&>(data);
 		for(auto& uri : uriList) ny::log("Received offer uri: ", uri);
 	}
+
+	return true;
 }
 
 class MyWindowListener : public ny::WindowListener
@@ -137,27 +149,20 @@ public:
 	ny::DataFormat dndMove(nytl::Vec2i pos, ny::DataOffer& offer,
 		const ny::EventData*) override
 	{
-		// ny::log("dnd pos: ", pos);
 		if(pos.x > 100 && pos.y > 100 && pos.x < 700 && pos.y < 400)
 		{
-			// ny::log("dnd pos match");
 			auto formatsReq = offer.formats();
-			formatsReq->wait();
-
-			//XXX: soon
-			// if(!formatsReq->wait())
-			// {
-			// 	ny::warning("AppContext broken!");
-			// 	lc_.stop();
-			// 	return;
-			// }
+			if(!formatsReq->wait())
+			{
+				ny::warning("AppContext broke while waiting for formats! Exiting.");
+				lc->stop();
+				return ny::DataFormat::none;
+			}
 
 			auto result = formatsReq->get();
 			for(const auto& fmt : result)
-			{
-				// ny::log("format offer: ", fmt.name);
-				if(fmt == ny::DataFormat::text || fmt == ny::DataFormat::uriList) return fmt;
-			}
+				if(fmt == ny::DataFormat::text || fmt == ny::DataFormat::uriList)
+					return fmt;
 		}
 
 		return ny::DataFormat::none;
@@ -168,7 +173,8 @@ public:
 		nytl::unused(pos);
 
 		ny::log("offer event received");
-		handleDataOffer(*offer);
+		if(!handleDataOffer(*offer))
+			lc->stop();
 	}
 
 	void key(bool pressed, ny::Keycode keycode, const std::string& utf8,
@@ -195,7 +201,7 @@ public:
 			auto dataOffer = ac->clipboard();
 
 			if(!dataOffer) ny::log("Backend does not support clipboard operations...");
-			else handleDataOffer(*dataOffer);
+			else if(!handleDataOffer(*dataOffer)) lc->stop();
 		}
 	}
 };

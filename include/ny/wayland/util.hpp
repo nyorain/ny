@@ -59,7 +59,7 @@ public:
 	///(e.g. more than 1000x1000px with 32bit color).
 	///\return true if the data pointer changed, false if it stayed the same, i.e.
 	///returns whether a new shm pool had to be created
-    bool size(const nytl::Vec2ui& size, unsigned int stride = 0);
+    bool size(nytl::Vec2ui size, unsigned int stride = 0);
 
 protected:
 	WaylandAppContext* appContext_ {};

@@ -1,44 +1,43 @@
-Needed fixes:
-============
+# Needed fixes:
 
-- DataOffer: methods const? they do not change the state of the object (interface)
-- new image formats, such as hsl, yuv since they might be supported by some backends?
-	- (mainly wayland)
+### priority
+
 - clean up the namespace/prefix mess (e.g. wayland::EventData vs WaylandEventData)
 	- should be uniform across backends
-- deferred events (i.e. DONT dispatch outside dispatch functions)
-	- winapi may do this at the moment (bad!)
-	- wayland e.g. may send a draw event from WindowContext::refesh. ok?
-	- how complex is it to implement general event deferring? for all backends?
-		common implementation? (-> see common util file)
-- some fixes/rethinking to AsyncRequest
-	- dispatchLoop error handling? exception safety? implement in source!
-	- documentation !important
-		- clearly state that .wait() counts as dispatch function/might trigger one.
 - better WindowListener functions
-	- use events structures!
+	- use event structures!
 	- keyboard modifier, state
 	- mouse move delta
 	- time
+
+### later; general; rework needed
+
+- DataOffer: methods const? they do not change the state of the object (interface)
+- new image formats, such as hsl, yuv since they might be supported by some backends?
+	- needs image format rework
+	- (mainly wayland)
+- deferred events (i.e. DONT dispatch outside dispatch functions)
+	- winapi may do this at the moment (bad!) [really? just use async and check!]
+	- wayland e.g. may send a draw event from WindowContext::refesh. ok?
+	- how complex is it to implement general event deferring? for all backends?
+		common implementation? (-> see common util file)
+- AppContext error handling? Give the application change to retrieve some error (code,
+	exception?) when e.g. AppContext::dispatchLoop returns false
 - MouseContext callbacks delta value might go crazy when changing over (mouseCross)
 	- reorder <Mouse/Keyobard>Context callback parameters/use Event structs as well
 		give them a similiar signature to the WindowListener callbacks
 - some common util file/dir for e.g. ConnectionList and LoopInterfaceGuard
 	(both not really public include where they are atm, both not really src)
-- nytl:
-	- SizedStringParam constructor from StringParam
-	- rework nytl
-	- remove using namespace nytl from fwd
-		- rethink general nytl use (especially CompFunc/Callback)
 - dataExchange: make whole usage optional with WindowContext windowflags?
 	- e.g. winapi: DropTarget is always register atm.
 - normalize wheel input values in some way across backends
+	- like value 1 if one "tick" was scrolled?
 - general keydown/keyup unicode value specificiation (cross-platform, differents atm)
 	- which event should contain the utf8 member set?
 - AppContext settings
 	- esp. useful wayland/x11 for app name
 - default windowContext surface to use bufferSurface?
-	- defaults window tear or show undefined content
+	- defaults window tear or show undefined content (bad, not sane default?)
 	- most applications want to draw in some way
 	- also default clear the buffer in some way? or set a flag for this with
 		default set to true?
@@ -46,6 +45,8 @@ Needed fixes:
 - test image and uri serialize/deserialize
 - popups and dialogs -> different window types (especially modal ones!)
 - some kind of dnd offer succesful feedback
+	- also offer dnd effects (copy/move etc)
+	- return something like AsynRequest from AppContext::startDragDrop
 	- also some kind of feedback for dataSources on whether another application received it?
 	- which format was chosen in the end? none?
 	- also: dndEnter event really needed? just send dndMove to introduce it?
@@ -57,9 +58,9 @@ Needed fixes:
 	- on all backends (where possible): first process all available events, then send them.
 	- prevents that e.g. a size event is sent although the next size event is already known
 	- some general event dispatching utiliy helpers for AppContext implementations?
-- AppContext: function for ringing the system bell
+- AppContext: function for ringing the systems bell (at least x11, winapi)
 
-improvements:
+further improvements:
 =============
 
 - testing! add general tests for all features
@@ -94,7 +95,7 @@ x11 backend:
 - correct error handling (for xlib calls e.g. glx use an error handle in X11AppContext or util)
 	- glx: don't log every error but instead only output error list on total failure?
 - beginResize/beginMove bug
-- icccm: follow ping protocol/set pid (set application class)
+- icccm: follow ping protocol/set pid (set application class, use pid protocol)
 - windowsettings init toplevel states
 - handle window hints correctly (customDecorated!)
 - egl support instead of/additionally to glx?
@@ -128,7 +129,7 @@ winapi backend:
 	- think about WM_CLIPBOARDUPDATE
 	- remove clibboardOffer_ from AppContext
 	- startDragDrop without blocking
-		- ability to cancel it
+		- ability to cancel it (general design)
 - windowsettings init toplevel states
 - clean up winapi-dependent data type usage, i.e. assure it works for 32 bit and
 	potential future typedef changes

@@ -196,7 +196,7 @@ void WinapiWindowContext::showWindow(const WinapiWindowSettings& settings)
 		::ShowWindowAsync(handle_, SW_SHOWDEFAULT);
 	}
 
-	::UpdateWindow(handle_);
+	refresh();
 }
 
 HINSTANCE WinapiWindowContext::hinstance() const
@@ -474,14 +474,14 @@ Surface WinapiWindowContext::surface()
 	return {};
 }
 
-Rect2i WinapiWindowContext::extents() const
+nytl::Rect2i WinapiWindowContext::extents() const
 {
 	RECT ext;
 	GetWindowRect(handle_, &ext);
 	return {{ext.left, ext.top}, {ext.right - ext.left, ext.bottom - ext.top}};
 }
 
-Rect2i WinapiWindowContext::clientExtents() const
+nytl::Rect2i WinapiWindowContext::clientExtents() const
 {
 	RECT ext;
 	GetClientRect(handle_, &ext);
