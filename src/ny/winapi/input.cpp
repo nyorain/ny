@@ -13,7 +13,7 @@
 namespace ny
 {
 
-Vec2ui WinapiMouseContext::position() const
+Vec2i WinapiMouseContext::position() const
 {
 	if(!over_) return {};
 
@@ -23,6 +23,7 @@ Vec2ui WinapiMouseContext::position() const
 
 	return nytl::Vec2i(p.x, p.y);
 }
+
 bool WinapiMouseContext::pressed(MouseButton button) const
 {
 	auto keyState = ::GetAsyncKeyState(buttonToWinapi(button));

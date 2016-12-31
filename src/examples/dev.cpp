@@ -112,13 +112,14 @@ public:
 		if(!pressed) return;
 
 		// initiate a dnd operation with the CustomDataSource
-		if(nytl::allOf(ac->mouseContext()->position() < 100u))
+		auto pos = ac->mouseContext()->position();
+		if(pos.x < 100 && pos.y < 100)
 		{
 			auto src = std::make_unique<CustomDataSource>();
 			auto ret = ac->startDragDrop(std::move(src));
 			ny::log("Starting a dnd operation: ", ret);
 		}
-		else if(nytl::allOf(ac->mouseContext()->position() > 400u))
+		else if(pos.x > 400 && pos.y > 400)
 		{
 			wc->beginResize(data, ny::WindowEdge::bottomRight);
 		}
@@ -137,7 +138,7 @@ public:
 		const ny::EventData*) override
 	{
 		// ny::log("dnd pos: ", pos);
-		if(nytl::allOf(pos > nytl::Vec2i(100, 100)) && nytl::allOf(pos < nytl::Vec2i(700, 400)))
+		if(pos.x > 100 && pos.y > 100 && pos.x < 700 && pos.y < 400)
 		{
 			// ny::log("dnd pos match");
 			auto formatsReq = offer.formats();

@@ -1,8 +1,9 @@
-Current todo:
-=============
+Needed fixes:
+============
 
 - DataOffer: methods const? they do not change the state of the object (interface)
 - new image formats, such as hsl, yuv since they might be supported by some backends?
+	- (mainly wayland)
 - clean up the namespace/prefix mess (e.g. wayland::EventData vs WaylandEventData)
 	- should be uniform across backends
 - deferred events (i.e. DONT dispatch outside dispatch functions)
@@ -26,6 +27,7 @@ Current todo:
 	(both not really public include where they are atm, both not really src)
 - nytl:
 	- SizedStringParam constructor from StringParam
+	- rework nytl
 	- remove using namespace nytl from fwd
 		- rethink general nytl use (especially CompFunc/Callback)
 - dataExchange: make whole usage optional with WindowContext windowflags?
@@ -56,6 +58,10 @@ Current todo:
 	- prevents that e.g. a size event is sent although the next size event is already known
 	- some general event dispatching utiliy helpers for AppContext implementations?
 - AppContext: function for ringing the system bell
+
+improvements:
+=============
+
 - testing! add general tests for all features
 - documentation
 	- operation
@@ -82,16 +88,17 @@ Backend stuff
 x11 backend:
 ------------
 
-- selections and xdnd
-	- DataSource constructor: check for uri list one file -> filename target format
+- selections and xdnd improvements (see x11/dataExchange header/source TODO)
+	- X11DataSource constructor: check for uri list one file -> filename target format
+	- dnd image window
 - correct error handling (for xlib calls e.g. glx use an error handle in X11AppContext or util)
 	- glx: don't log every error but instead only output error list on total failure?
 - beginResize/beginMove bug
 - icccm: follow ping protocol/set pid (set application class)
 - windowsettings init toplevel states
 - handle window hints correctly (customDecorated!)
-- egl support instead of glx?
-- KeyboardContext: correct xkb keymap recreation/ event handlign
+- egl support instead of/additionally to glx?
+- KeyboardContext: correct xkb keymap recreation/ event handling
 
 wayland backend:
 ---------------
@@ -117,7 +124,7 @@ winapi backend:
 - Set a cursor when moving the window (beginMove)? windows 10 does not do it
 - initial mouse focus (see KeyboardContext handler inconsistency)
 - better documentation about layered window, make it optional. Move it out of the source.
-- better dnd/clipboard
+- dnd/clipboard improvements
 	- think about WM_CLIPBOARDUPDATE
 	- remove clibboardOffer_ from AppContext
 	- startDragDrop without blocking

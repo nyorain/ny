@@ -5,10 +5,8 @@
 #pragma once
 
 #include <ny/fwd.hpp>
-#include <nytl/bits/tmpUtil.inl>
-
-#include <memory>
-#include <sstream>
+#include <memory> // std::unique_ptr
+#include <sstream> // std::ostringstream
 
 namespace ny
 {
@@ -40,7 +38,7 @@ public:
 	template<typename... Args>
 	void output(Args&&... args)
 	{
-		(void) Expand{(sstream_ << args, 0)...};
+		(sstream_ << ... << args);
 		write(sstream_.str());
 		sstream_.str("");
 	}

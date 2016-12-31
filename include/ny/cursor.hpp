@@ -5,8 +5,8 @@
 #pragma once
 
 #include <ny/fwd.hpp>
-#include <ny/image.hpp>
-#include <nytl/vec.hpp>
+#include <ny/image.hpp> // ny::Image
+#include <nytl/vec.hpp> // nytl::Vec
 
 //TODO: make Cursor constexpr when Image is constexpr (C++17)
 

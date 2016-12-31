@@ -118,7 +118,7 @@ public:
 using DataOfferPtr = std::unique_ptr<DataOffer>;
 
 std::vector<uint8_t> serialize(const Image&);
-UniqueImage deserializeImage(nytl::Range<uint8_t> buffer);
+UniqueImage deserializeImage(nytl::Span<const uint8_t> buffer);
 
 /// Encodes a vector of uris to a single string with mime-type text/uri-list encoded in utf8.
 /// Will replace special chars with their escape codes and seperate the given uris using
@@ -147,7 +147,7 @@ bool match(const DataFormat& a, const DataFormat& b);
 
 // TODO: for additional parameter (e.g. charset) parsing?
 // TODO: text/plain might have other charsets then utf8 that should be handled as well...
-// std::any wrap(nytl::Range<uint8_t> rawBuffer, nytl::StringParam formatName);
+// std::any wrap(nytl::Span<uint8_t> rawBuffer, nytl::StringParam formatName);
 // std::vector<uint8_t> unwrap(const std::any& any, nytl::StringParam formatName);
 
 }

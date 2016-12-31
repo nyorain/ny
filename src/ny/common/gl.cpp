@@ -4,16 +4,15 @@
 
 #include <ny/common/gl.hpp>
 #include <ny/log.hpp>
-#include <nytl/misc.hpp>
 
-#include <thread>
-#include <cstring>
-#include <mutex>
-#include <map>
+#include <thread> // std::this_thread
+#include <mutex> // std::mutex
+#include <unordered_map> // std::unordered_map
+#include <algorithm> // std::reverse
 
-//This is a rather complex construct regarding synchronization, excpetion safety, sharing and
-//making context/surface combinations current. Therefore it should only be altered if the
-//developer knows the critical implementation parts.
+// This is a rather complex construct regarding synchronization, excpetion safety, sharing and
+// making context/surface combinations current. Therefore it should only be altered if the
+// developer knows the critical implementation parts.
 
 namespace ny
 {
@@ -60,7 +59,7 @@ public:
 	}
 };
 
-using GlCurrentMap = std::map<std::thread::id, std::pair<GlContext*, const GlSurface*>>;
+using GlCurrentMap = std::unordered_map<std::thread::id, std::pair<GlContext*, const GlSurface*>>;
 GlCurrentMap& contextCurrentMap(std::mutex*& mutex)
 {
 	static GlCurrentMap smap;

@@ -10,7 +10,7 @@
 #include <ny/windowContext.hpp>
 #include <ny/log.hpp>
 
-#include <nytl/range.hpp>
+#include <nytl/span.hpp>
 #include <nytl/scope.hpp>
 
 #include <wayland-client-protocol.h>

@@ -356,7 +356,6 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 		{
 			if(wc)
 			{
-	            constexpr auto SC_DRAGMOVE = 0xf012;
 				ToplevelState state;
 
 				if(wparam == SC_MAXIMIZE) state = ToplevelState::maximized;

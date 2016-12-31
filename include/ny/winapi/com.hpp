@@ -40,7 +40,7 @@ HGLOBAL stringToGlobalUnicode(const std::u16string& string);
 std::u16string globalToStringUnicode(HGLOBAL global);
 
 ///Converts between a raw buffer and a global
-HGLOBAL bufferToGlobal(const nytl::Range<std::uint8_t>& buffer);
+HGLOBAL bufferToGlobal(nytl::Span<const uint8_t> buffer);
 std::vector<std::uint8_t> globalToBuffer(HGLOBAL global);
 
 ///Converts from a native winapi data medium to an any with the specified format.
@@ -239,7 +239,7 @@ public:
 	DataOfferImpl(DataOfferImpl&&) noexcept = default;
 	DataOfferImpl& operator=(DataOfferImpl&&) noexcept = default;
 
-	FormatsRequest formats() const override;
+	FormatsRequest formats() override;
 	DataRequest data(const DataFormat& format) override;
 
 	// - winapi specific -

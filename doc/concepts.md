@@ -254,7 +254,7 @@ struct AppContextSettings
 {
 	std::string name;
 	bool multithreaded;
-	nytl::Range<const char*> args;
+	nytl::Span<const char*> args;
 	std::vector<std::pair<const char*, const char*>> licenses;
 	const char* author;
 };

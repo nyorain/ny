@@ -5,7 +5,6 @@
 #pragma once
 
 #include <ny/fwd.hpp>
-#include <nytl/compFunc.hpp>
 #include <nytl/nonCopyable.hpp>
 
 #include <ny/appContext.hpp>
@@ -65,7 +64,7 @@ public:
 	///cleared and set to the given one. To reset/clear the current callback just call this
 	///with an empty (defualt-constructed) function.
 	///If this is called by the request is ready, the callback will be instanly triggered.
-	virtual void callback(nytl::CompFunc<void(AsyncRequest&)>) = 0;
+	virtual void callback(std::function<void(AsyncRequest&)>) = 0;
 };
 
 ///Default AsyncRequest implementation that behaves as specified and just waits to
@@ -89,7 +88,7 @@ public:
 		topControl_ = {};
 	}
 
-	void callback(nytl::CompFunc<void(AsyncRequest<R>&)> func) override
+	void callback(std::function<void(AsyncRequest<R>&)> func) override
 	{
 		if(ready_) func(*this);
 		callback_ = func;

@@ -12,7 +12,7 @@
 
 #include <nytl/utf.hpp>
 #include <nytl/scope.hpp>
-#include <nytl/range.hpp>
+#include <nytl/span.hpp>
 
 #include <Shlobj.h>
 #include <Shlwapi.h>
@@ -71,7 +71,7 @@ DataOfferImpl::DataOfferImpl(IDataObject& object) : data_(object)
 		auto ret = enumerator->Next(formatsSize, formats, &count);
 
 		//handle every returned format
-		for(auto format : nytl::Range<FORMATETC>(*formats, count))
+		for(auto format : nytl::Span<FORMATETC>(*formats, count))
 		{
 			//check mappings for standard formats
 			//if we don't know how to handle the medium, ignore it
@@ -115,7 +115,7 @@ DataOfferImpl::DataOfferImpl(IDataObject& object) : data_(object)
 	enumerator->Release();
 }
 
-DataOffer::FormatsRequest DataOfferImpl::formats() const
+DataOffer::FormatsRequest DataOfferImpl::formats()
 {
 	std::vector<DataFormat> formats;
 	formats.reserve(formats_.size());
@@ -183,7 +183,7 @@ HRESULT DropTargetImpl::DragEnter(IDataObject* data, DWORD keyState, POINTL scre
 
 	::ScreenToClient(windowContext().handle(), &windowPos);
 
-	auto position = nytl::Vec2ui(windowPos.x, windowPos.y);
+	auto position = nytl::Vec2i(windowPos.x, windowPos.y);
 	auto format = windowContext().listener().dndMove(position, *it->second, nullptr);
 
 	if(format != DataFormat::none) *effect = DROPEFFECT_COPY;
@@ -210,7 +210,7 @@ HRESULT DropTargetImpl::DragOver(DWORD keyState, POINTL screenPos, DWORD* effect
 
 	::ScreenToClient(windowContext().handle(), &windowPos);
 
-	auto position = nytl::Vec2ui(windowPos.x, windowPos.y);
+	auto position = nytl::Vec2i(windowPos.x, windowPos.y);
 	auto format = windowContext().listener().dndMove(position, *current_, nullptr);
 
 	if(format != DataFormat::none) *effect = DROPEFFECT_COPY;
@@ -256,7 +256,7 @@ HRESULT DropTargetImpl::Drop(IDataObject* data, DWORD keyState, POINTL screenPos
 
 	::ScreenToClient(windowContext().handle(), &windowPos);
 
-	auto position = nytl::Vec2ui(windowPos.x, windowPos.y);
+	auto position = nytl::Vec2i(windowPos.x, windowPos.y);
 	auto format = windowContext().listener().dndMove(position, *current_, nullptr);
 
 	if(format == DataFormat::none)
@@ -526,9 +526,9 @@ void replaceCRLF(std::string& string)
 
 HGLOBAL stringToGlobalUnicode(const std::u16string& string)
 {
-	auto cpy = std::u16string(string.c_str()); //remove nullterminator
-	auto ptr = reinterpret_cast<const std::uint8_t*>(cpy.data());
-	return bufferToGlobal({ptr, (string.size() + 1) * 2});
+	auto cpy = std::u16string(string.c_str()); // remove extra nullterminator
+	auto ptr = reinterpret_cast<const uint8_t*>(cpy.data());
+	return bufferToGlobal({*ptr, (string.size() + 1) * 2});
 }
 
 std::u16string globalToStringUnicode(HGLOBAL global)
@@ -548,7 +548,7 @@ std::u16string globalToStringUnicode(HGLOBAL global)
 	return str;
 }
 
-HGLOBAL bufferToGlobal(const nytl::Range<std::uint8_t>& buffer)
+HGLOBAL bufferToGlobal(nytl::Span<const uint8_t> buffer)
 {
 	auto ret = ::GlobalAlloc(GMEM_MOVEABLE, buffer.size());
 	if(!ret) return nullptr;

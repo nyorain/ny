@@ -112,7 +112,7 @@ WglSetup::WglSetup(HWND dummy) : dummyWindow_(dummy)
 			values.resize(attribs.size());
 
 			auto bestRating = 0u;
-			for(auto& format : nytl::Range<int>(formats, nformats))
+			for(auto& format : nytl::Span<int>(formats, nformats))
 			{
 				if(!wglGetPixelFormatAttribivARB(dummyDC_, format, PFD_MAIN_PLANE, attribs.size(),
 					attribs.data(), values.data()))

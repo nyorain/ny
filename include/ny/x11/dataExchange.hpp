@@ -38,7 +38,7 @@ public:
 	/// This constructor will store them and remember that they don't have to
 	/// requested anymore.
 	X11DataOffer(X11AppContext&, unsigned int selection, xcb_window_t owner,
-		nytl::Range<xcb_atom_t> supportedTargets);
+		nytl::Span<xcb_atom_t> supportedTargets);
 
 	~X11DataOffer();
 
@@ -69,7 +69,7 @@ protected:
 		AsyncRequestImpl<std::any>& request);
 
 	/// Converts and adds the given target atom format to the supported formats.
-	void addFormats(nytl::Range<xcb_atom_t> targets);
+	void addFormats(nytl::Span<xcb_atom_t> targets);
 
 protected:
 	X11AppContext* appContext_ {};

@@ -10,7 +10,7 @@
 #include <ny/log.hpp>
 
 #include <nytl/misc.hpp>
-#include <nytl/range.hpp>
+#include <nytl/span.hpp>
 
 #include <xcb/xcb.h>
 #include <algorithm>
@@ -77,7 +77,7 @@ GlxSetup::GlxSetup(const X11AppContext& ac, unsigned int screenNum) : xDisplay_(
 
 	configs_.reserve(fbcount);
 	auto highestRating = 0u;
-	for(auto& config : nytl::Range<GLXFBConfig>(*fbconfigs, fbcount))
+	for(auto& config : nytl::Span<GLXFBConfig>(*fbconfigs, fbcount))
 	{
 		GlConfig glconf;
 		int r, g, b, a, id, depth, stencil, doubleBuffer;

@@ -1,3 +1,8 @@
+# taken from https://cmake.org/Wiki/CMake_FAQ#Can_I_do_.22make_uninstall.22_with_CMake.3F
+# All credits go to the authors of cmake and its wiki.
+# Licensed under CC BY 2.5. See https://creativecommons.org/licenses/by/2.5/
+# No changes were made to the original code.
+
 if(NOT EXISTS "@CMAKE_CURRENT_BINARY_DIR@/install_manifest.txt")
 	message(FATAL_ERROR "Cannot find install manifest: @CMAKE_CURRENT_BINARY_DIR@/install_manifest.txt")
 endif(NOT EXISTS "@CMAKE_CURRENT_BINARY_DIR@/install_manifest.txt")

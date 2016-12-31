@@ -70,7 +70,7 @@ EglSetup::EglSetup(void* nativeDisplay)
 
 	configs_.reserve(configSize);
 	auto highestRating = 0u;
-	for(auto& config : nytl::Range<EGLConfig>(*configs, configSize))
+	for(auto& config : nytl::Span<EGLConfig>(*configs, configSize))
 	{
 		GlConfig glconf;
 		int r, g, b, a, id, depth, stencil, sampleBuffers, samples;
@@ -360,7 +360,7 @@ bool EglContext::makeCurrentImpl(const GlSurface& surface, std::error_code& ec)
 bool EglContext::makeNotCurrentImpl(std::error_code& ec)
 {
 	ec.clear();
-	
+
 	if(!::eglMakeCurrent(eglDisplay(), nullptr, nullptr, nullptr))
 	{
 		ec = EglErrorCategory::errorCode();

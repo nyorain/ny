@@ -113,8 +113,8 @@ void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 	auto size = settings.size;
 	auto position = settings.position;
 
-	if(nytl::allEqual(position, defaultPosition)) position.fill(CW_USEDEFAULT);
-	if(nytl::allEqual(size, defaultSize)) size.fill(CW_USEDEFAULT);
+	if(position == defaultPosition) position.x = position.y = CW_USEDEFAULT;
+	if(size == defaultSize) size.x = size.y = CW_USEDEFAULT;
 
 	//set the listener
 	if(settings.listener) listener(*settings.listener);
@@ -132,7 +132,7 @@ void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 	//Setting this flag can also really hit performance (e.g. resizing can lag) so
 	//this should probably only be set if really needed
 	//TODO: make this optional using WinapiWindowSettings
-	
+
 	auto exstyle = WS_EX_APPWINDOW | WS_EX_LAYERED | WS_EX_OVERLAPPEDWINDOW;
 	// exstyle = WS_EX_APPWINDOW | WS_EX_OVERLAPPEDWINDOW;
 	handle_ = ::CreateWindowEx(
@@ -370,8 +370,8 @@ void WinapiWindowContext::unsetFullscreen()
 		auto& rect = savedState_.extents;
 		SetWindowLong(handle(), GWL_STYLE, savedState_.style);
 		SetWindowLong(handle(), GWL_EXSTYLE, savedState_.exstyle);
-		SetWindowPos(handle(), nullptr, rect.left(), rect.top(), rect.width(), rect.height(),
-			SWP_ASYNCWINDOWPOS | SWP_FRAMECHANGED);
+		SetWindowPos(handle(), nullptr, rect.position.x, rect.position.y,
+			rect.size.x, rect.size.y, SWP_ASYNCWINDOWPOS | SWP_FRAMECHANGED);
 		fullscreen_ = false;
 	}
 }
@@ -478,14 +478,14 @@ Rect2i WinapiWindowContext::extents() const
 {
 	RECT ext;
 	GetWindowRect(handle_, &ext);
-	return {ext.left, ext.top, ext.right - ext.left, ext.bottom - ext.top};
+	return {{ext.left, ext.top}, {ext.right - ext.left, ext.bottom - ext.top}};
 }
 
 Rect2i WinapiWindowContext::clientExtents() const
 {
 	RECT ext;
 	GetClientRect(handle_, &ext);
-	return {ext.left, ext.top, ext.right - ext.left, ext.bottom - ext.top};
+	return {{ext.left, ext.top}, {ext.right - ext.left, ext.bottom - ext.top}};
 }
 
 }

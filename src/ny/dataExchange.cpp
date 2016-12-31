@@ -58,11 +58,11 @@ std::vector<uint8_t> serialize(const Image& image)
 	return ret;
 }
 
-UniqueImage deserializeImage(nytl::Range<uint8_t> buffer)
+UniqueImage deserializeImage(nytl::Span<const uint8_t> buffer)
 {
 	UniqueImage image;
 
-	auto headerSize = 9 + image.format.size() * 2;
+	auto headerSize = 9u + image.format.size() * 2u;
 	if(buffer.size() < headerSize) return {}; //invalid header
 
 	image.size.x = reinterpret_cast<const uint32_t&>(buffer[0]);

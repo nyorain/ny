@@ -22,7 +22,7 @@ public:
 	WinapiMouseContext(WinapiAppContext& context) : context_(context) {}
 	WinapiMouseContext() = default;
 
-	Vec2ui position() const override;
+	Vec2i position() const override;
 	bool pressed(MouseButton button) const override;
 	WinapiWindowContext* over() const override { return over_; }
 

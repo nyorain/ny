@@ -25,10 +25,10 @@ BufferGuard WinapiBufferSurface::buffer()
 		throw std::logic_error("ny::WinapiBufferSurface::get: has already an active BufferGuard");
 
 	auto currSize = nytl::Vec2ui(windowContext().clientExtents().size);
-	auto currTotal = nytl::multiply(currSize);
+	auto currTotal = currSize.x * currSize.y;
 
 	//TODO: allocate more than needed? store really allocated size
-	if(currTotal > nytl::multiply(size_))
+	if(currTotal > size_.x * size_.y)
 		data_ = std::make_unique<std::uint8_t[]>(currTotal * 4);
 
 	size_ = currSize;

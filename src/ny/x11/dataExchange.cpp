@@ -94,7 +94,7 @@ X11DataOffer::X11DataOffer(X11AppContext& ac, unsigned int selection, xcb_window
 }
 
 X11DataOffer::X11DataOffer(X11AppContext& ac, unsigned int selection, xcb_window_t owner,
-	nytl::Range<xcb_atom_t> supportedTargets)
+	nytl::Span<xcb_atom_t> supportedTargets)
 		: appContext_(&ac), selection_(selection), owner_(owner)
 {
 	//just parse/add all supported target formats.
@@ -309,7 +309,7 @@ void X11DataOffer::notify(const xcb_selection_notify_event_t& notify)
 	}
 }
 
-void X11DataOffer::addFormats(nytl::Range<xcb_atom_t> targets)
+void X11DataOffer::addFormats(nytl::Span<xcb_atom_t> targets)
 {
 	//TODO: filter out special formats such as MULTIPLE or TIMESTAMP or stuff
 	//they should not be advertised to the application

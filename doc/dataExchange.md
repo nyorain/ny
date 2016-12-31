@@ -159,7 +159,7 @@ For the common standardized formats below, DataOffers/DataSources must use the s
 types. Note how the associated type may differ for DataOffer/DataSource since DataOffer
 will retrieve data and therefore give the data ownership, while the data from
 a DataSource only has to be read and therefore don't has to be owned.
-In the table below, Range means nytl::Range.
+In the table below, Range means nytl::Span.
 
 <center>
 
