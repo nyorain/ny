@@ -5,13 +5,12 @@
 #pragma once
 
 #include <ny/fwd.hpp>
-#include <nytl/nonCopyable.hpp>
+#include <nytl/nonCopyable.hpp> // nytl::NonCopyable
 
-#include <memory>
-#include <vector>
+#include <memory> // std::unique_ptr
+#include <vector> // std::vector
 
-namespace ny
-{
+namespace ny {
 
 using WindowContextPtr = std::unique_ptr<WindowContext>;
 using AppContextPtr = std::unique_ptr<AppContext>;
@@ -24,8 +23,7 @@ using AppContextPtr = std::unique_ptr<AppContext>;
 /// Abstract base interface for a backend-specific display conncetion.
 /// Defines the interfaces for different (threaded/blocking) event dispatching functions
 /// that have to be implemented by the different backends.
-class AppContext : public nytl::NonCopyable
-{
+class AppContext : public nytl::NonCopyable {
 public:
 	AppContext() = default;
 	virtual ~AppContext() = default;
@@ -129,4 +127,4 @@ public:
 	virtual GlSetup* glSetup() const = 0;
 };
 
-}
+} // namespace nytl

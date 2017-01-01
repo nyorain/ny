@@ -4,9 +4,9 @@
 -I./build/linux/external/install/include
 -I./build/win/include
 -I./build/win/external/install/include
--Wno-pragma-once-outside-header
--Wno-unused-const-variable
--std=c++1z
 -Wall
 -Wextra
 -Wpedantic
+-Wno-pragma-once-outside-header
+-Wno-unused-const-variable
+-std=c++1z

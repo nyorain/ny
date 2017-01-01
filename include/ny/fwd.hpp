@@ -4,16 +4,14 @@
 
 #pragma once
 
-#include <cstdint>
-#include <cstdlib>
+#include <cstdint> // std::uint8_t
 #include <nytl/fwd.hpp> // pull in all nytl forward decls
 
 // This file contains forward delcarations for all ny classes and enumerations.
 // Can be useful if one does not want to pull in any ny headers but needs many of its
 // classes (used e.g. as pointers, references or template parameters (in some cases ok)).
 
-namespace ny
-{
+namespace ny {
 
 // treat them as built-in
 using std::uint8_t;
@@ -62,7 +60,10 @@ class EglSetup;
 class EglSurface;
 class EglContext;
 
-template<typename P> class BasicImage;
+template<typename T> class AsyncRequest;
+template<typename T> class DefaultAsyncRequest;
+
+template<typename T> class BasicImage;
 using Image = BasicImage<const uint8_t*>;
 using MutableImage = BasicImage<uint8_t*>;
 
@@ -83,7 +84,7 @@ using WindowHints = nytl::Flags<WindowHint>;
 using WindowEdges = nytl::Flags<WindowEdge>;
 using WindowCapabilities = nytl::Flags<WindowCapability>;
 
-}
+} // namespace ny
 
 using VkAllocationCallbacks = struct VkAllocationCallbacks;
 using VkInstance = struct VkInstance_T*;

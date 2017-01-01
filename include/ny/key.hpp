@@ -4,36 +4,33 @@
 
 #pragma once
 
-#include <nytl/stringParam.hpp>
-#include <cstdint>
+#include <nytl/stringParam.hpp> // nytl::StringParam
 
-namespace ny
-{
+namespace ny {
 
-//Modeled after linux/input.h
-
-//Note that the keycodes therefore directly match with the linux keycodes defined
-//in linux/input.h. They are also similiarly named.
-//Keys which names cannot be used as enum name are usually changed a bit.
-//If there is no possiblity to change the name (like e.g. for number keys 0-9) they
-//have a k (like key) prefix.
-
-//Note that e.g. Keycode::a should never be treated as if the user pressed a keyboard
-//button labeled 'A'. The keycodes are only a platform and device independent way of
-//representing hardware keys that could be located on a standard us keyboard.
-//For keyboards with other character sets (like e.g. japanese or russian keyboards)
-//Keycode::a will be generated when the key that is at the location where the 'A' key
-//would be on an us keyboard. But that does neither mean that the key that was pressed
-//is labeled 'A' nor that the user does now expect to e.g. see an 'A' on screen.
-//One should not try to e.g. give keycodes names and represent them to the user
-//in any way e.g. as application controls (which seems to make sense first, but
-//users may not have any idea how to press the 'W' key for moving forward
-//when they have a japanese keyboard).
-
-//Therefore the only use case for Keycodes is when handling special input keys such
-//as escape or leftshift that cannot be represented using unicode.
-enum class Keycode : unsigned int
-{
+// Modeled after linux/input.h
+//
+// Note that the keycodes therefore directly match with the linux keycodes defined
+// in linux/input.h. They are also similiarly named.
+// Keys which names cannot be used as enum name are usually changed a bit.
+// If there is no possiblity to change the name (like e.g. for number keys 0-9) they
+// have a k (like key) prefix.
+//
+// Note that e.g. Keycode::a should never be treated as if the user pressed a keyboard
+// button labeled 'A'. The keycodes are only a platform and device independent way of
+// representing hardware keys that could be located on a standard us keyboard.
+// For keyboards with other character sets (like e.g. japanese or russian keyboards)
+// Keycode::a will be generated when the key that is at the location where the 'A' key
+// would be on an us keyboard. But that does neither mean that the key that was pressed
+// is labeled 'A' nor that the user does now expect to e.g. see an 'A' on screen.
+// One should not try to e.g. give keycodes names and represent them to the user
+// in any way e.g. as application controls (which seems to make sense first, but
+// users may not have any idea how to press the 'W' key for moving forward
+// when they have a japanese keyboard).
+//
+// Therefore the only use case for Keycodes is when handling special input keys such
+// as escape or leftshift that cannot be represented using unicode.
+enum class Keycode : unsigned int {
 	none = 0,
 	escape,
 
@@ -291,7 +288,7 @@ enum class Keycode : unsigned int
 	rfkill,
 	micmute,
 
-	//extra keycodes that are usually not used in any way and just here for completeness.
+	// extra keycodes that are usually not used in any way and just here for completeness.
 	ok = 352,
 	select,
 	kgoto,
@@ -506,20 +503,20 @@ enum class Keycode : unsigned int
 	extra = 0x10000,
 };
 
-//linux/input.h
-//If one of those static_asserts fails for your compiler, please report it to the ny maintainers.
+// linux/input.h
+// If one of those static_asserts fails for your compiler, please report it to the ny maintainers.
 static_assert(static_cast<unsigned int>(Keycode::micmute) == 248, "Wrong enum numbering!");
 static_assert(static_cast<unsigned int>(Keycode::data) == 0x275, "Wrong enum numbering!");
 
-///Returns the name of a keycode.
-///Basically just transforms the enumeration value into a string.
-///Returns an empty ("") name for Keycode::none or invalid keycodes.
-///\sa keycodeFromName
+/// Returns the name of a keycode.
+/// Basically just transforms the enumeration value into a string.
+/// Returns an empty ("") name for Keycode::none or invalid keycodes.
+/// \sa keycodeFromName
 const char* keycodeName(Keycode keycode);
 
-///Constructs a keycode value from a given name string.
-///Returns the correspondingly named Keycode value or Keycode::none if there is no such value.
-///\sa keycodeName
+/// Constructs a keycode value from a given name string.
+/// Returns the correspondingly named Keycode value or Keycode::none if there is no such value.
+/// \sa keycodeName
 Keycode keycodeFromName(nytl::StringParam name);
 
-}
+} // namespace nytl

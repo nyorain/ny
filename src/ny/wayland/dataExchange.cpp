@@ -8,6 +8,7 @@
 #include <ny/wayland/windowContext.hpp>
 #include <ny/wayland/input.hpp>
 #include <ny/log.hpp>
+#include <ny/asyncRequest.hpp>
 
 #include <nytl/stringParam.hpp>
 #include <nytl/scope.hpp>

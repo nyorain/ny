@@ -5,18 +5,17 @@
 #pragma once
 
 #include <ny/fwd.hpp>
-#include <ny/windowListener.hpp>
+#include <ny/windowListener.hpp> // ny::WindowListener
+#include <functional> // std::reference_wrapper
 
-namespace ny
-{
+namespace ny {
 
 /// Abstract interface for a window context in the underlaying window system.
 /// Implementations are not required to store any information (like current size or state),
 /// but rather communicate them to the application via event callbacks.
 /// The application can set the WindowListener that will be called when the WindowContext
 /// receives any window or input events and store only the needed information.
-class WindowContext
-{
+class WindowContext {
 public:
 	WindowContext() = default;
 	virtual ~WindowContext() = default;
@@ -144,4 +143,4 @@ protected:
 	std::reference_wrapper<WindowListener> listener_ {WindowListener::defaultInstance()};
 };
 
-}
+} // namespace ny

@@ -10,13 +10,11 @@
 
 //TODO: make Cursor constexpr when Image is constexpr (C++17)
 
-namespace ny
-{
+namespace ny {
 
 /// Represents the different native cursor types.
 /// Note that not all types are available on all backends.
-enum class CursorType : unsigned int
-{
+enum class CursorType : unsigned int {
 	unknown = 0,
 	image = 1,
 	none = 2,
@@ -61,8 +59,7 @@ const char* name(CursorType);
 /// \warning The cursor does never own any image data so always check that images remain
 /// valid until the cursor object is not further used. Functions taking a Cursor
 /// should copy its data though.
-class Cursor
-{
+class Cursor {
 public:
 	using Type = CursorType;
 
@@ -106,4 +103,4 @@ protected:
 	nytl::Vec2i hotspot_ {};
 };
 
-}
+} // namespace ny

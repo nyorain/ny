@@ -5,21 +5,18 @@
 #pragma once
 
 #include <ny/fwd.hpp>
-#include <ny/image.hpp>
-#include <ny/asyncRequest.hpp>
+#include <ny/image.hpp> // ny::Image
 
-#include <nytl/callback.hpp>
-#include <nytl/stringParam.hpp>
+#include <nytl/callback.hpp> // nytl::Callback
+#include <nytl/stringParam.hpp> // nytl::StringPram
+#include <nytl/span.hpp> // nytl::Span
 
-#include <vector>
-#include <memory>
-#include <functional>
-#include <any>
+#include <vector> // std::vector
+#include <memory> // std::unique_ptr
+#include <functional> // std::function
+#include <any> // std::any
 
-//TODO: rework doc
-
-namespace ny
-{
+namespace ny {
 
 /// Description of a data format by mime and non-mime strings.
 /// There are a few standard formats in which data is passed around (i.e. wrapped
@@ -35,8 +32,14 @@ namespace ny
 /// | uriList	| vector<string> 		| "text/uri-list"				|
 /// | image		| UniqueImage			| "image/x-ny-data"				|
 /// | <custom>  | vector<uint8_t>		| <custom>						|
-class DataFormat
-{
+class DataFormat {
+public:
+	static const DataFormat none; //empty object, used for invalid formats
+	static const DataFormat raw; //raw, not further specified data buffer
+	static const DataFormat text; //textual data
+	static const DataFormat uriList; //a list of uri objects
+	static const DataFormat image; //raw image data
+
 public:
 	/// The primary default name of the DataFormat.
 	/// This will be used to compare multiple DataFormats and must not be empty, otherwise
@@ -49,13 +52,6 @@ public:
 	/// More significant names/descriptions should come first. Can also contains none mime-type
 	/// names, but should be avoided.
 	std::vector<std::string> additionalNames {};
-
-public:
-	static const DataFormat none; //empty object, used for invalid formats
-	static const DataFormat raw; //raw, not further specified data buffer
-	static const DataFormat text; //textual data
-	static const DataFormat uriList; //a list of uri objects
-	static const DataFormat image; //raw image data
 };
 
 inline bool operator==(const DataFormat& a, const DataFormat& b) { return a.name == b.name; }
@@ -65,8 +61,7 @@ inline bool operator!=(const DataFormat& a, const DataFormat& b) { return !(a ==
 /// actions or copy data into the clipboard.
 /// The interface gives information about in which formats data can be represented and then
 /// provides the data for a given format.
-class DataSource
-{
+class DataSource {
 public:
 	virtual ~DataSource() = default;
 
@@ -94,8 +89,7 @@ public:
 /// or to retrieve the data in a supported format.
 /// On Destruction, the DataOffer should trigger all waiting data callback without data to
 /// signal them that they dont have to wait for it any longer since retrieval failed.
-class DataOffer
-{
+class DataOffer {
 public:
 	using FormatsRequest = std::unique_ptr<AsyncRequest<std::vector<DataFormat>>>;
 	using DataRequest = std::unique_ptr<AsyncRequest<std::any>>;
@@ -150,14 +144,13 @@ bool match(const DataFormat& a, const DataFormat& b);
 // std::any wrap(nytl::Span<uint8_t> rawBuffer, nytl::StringParam formatName);
 // std::vector<uint8_t> unwrap(const std::any& any, nytl::StringParam formatName);
 
-}
+} // namespace ny
 
 // hash specialization for ny::DataFormat
 namespace std
 {
 	template<>
-	struct hash<ny::DataFormat>
-	{
+	struct hash<ny::DataFormat> {
 		auto operator()(const ny::DataFormat& format) const noexcept
 		{
 			std::hash<std::string> hasher;

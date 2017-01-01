@@ -4,15 +4,13 @@
 
 #pragma once
 
-#include <cstdint>
+#include <cstdint> // std::intmax_t
 
-namespace ny
-{
+namespace ny {
 
-///Class to reprsent some backend specific handle of e.g. a window.
-///Holds either a pointer to backend-specific type or an integer value.
-class NativeHandle
-{
+/// Class to reprsent some backend specific handle of e.g. a window.
+/// Holds either a pointer to backend-specific type or an integer value.
+class NativeHandle {
 public:
 	using Value = std::intmax_t;
 
@@ -43,6 +41,4 @@ protected:
 	Value value_ {};
 };
 
-
-
-}
+} // namespace ny

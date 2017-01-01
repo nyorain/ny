@@ -5,15 +5,14 @@
 #pragma once
 
 #include <ny/fwd.hpp>
-#include <nytl/nonCopyable.hpp>
-#include <nytl/scope.hpp>
+#include <nytl/nonCopyable.hpp> // nytl::NonMovable
+#include <nytl/scope.hpp> // nytl::ScopeGuard
 
-#include <ny/appContext.hpp>
-#include <ny/loopControl.hpp>
-#include <functional>
+#include <ny/appContext.hpp> // ny::AppContext
+#include <ny/loopControl.hpp> // ny::LoopControl
+#include <functional> // std::function
 
-namespace ny
-{
+namespace ny {
 
 /// Allows to deal with single-threaded asynchronous requests.
 /// Usually wait() will not just wait but instead keep the internal event loop running.
@@ -28,8 +27,7 @@ namespace ny
 /// e.g. std::future), but the flexible callback design can be easily used to achieve something
 /// similiar.
 template <typename R>
-class AsyncRequest
-{
+class AsyncRequest {
 public:
 	virtual ~AsyncRequest() = default;
 
@@ -71,8 +69,7 @@ public:
 /// Default AsyncRequest implementation that behaves as specified and just waits to
 /// be completed by the associated AppContext.
 template <typename R>
-class DefaultAsyncRequest : public AsyncRequest<R>, public nytl::NonMovable
-{
+class DefaultAsyncRequest : public AsyncRequest<R>, public nytl::NonMovable {
 public:
 	DefaultAsyncRequest(AppContext& ac) : appContext_(&ac) {}
 	DefaultAsyncRequest(R value) : ready_(true), value_(std::move(value)) {}
@@ -80,10 +77,8 @@ public:
 	bool wait(LoopControl* lc = nullptr) override
 	{
 		if(ready_) return true;
-
 		LoopControl localControl;
 		if(!lc) lc = &localControl;
-
 		topControl_ = lc;
 		auto controlGuard = nytl::makeScopeGuard([&]{ topControl_ = {}; });
 

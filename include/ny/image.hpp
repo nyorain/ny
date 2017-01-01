@@ -13,12 +13,10 @@
 //   the default formats constexpr members (i.e. ImageFormat::rgba8888)
 //   make also the utility functions constexpr
 
-namespace ny
-{
+namespace ny {
 
 /// Represents a ColorChannel for an ImageFormat specification.
-enum class ColorChannel : uint8_t
-{
+enum class ColorChannel : uint8_t {
 	none,
 	red,
 	green,
@@ -38,8 +36,7 @@ enum class ColorChannel : uint8_t
 using ImageFormat = std::array<std::pair<ColorChannel, uint8_t>, 9>;
 
 // - Default formats -
-namespace imageFormats
-{
+namespace imageFormats {
 
 constexpr ImageFormat rgba8888 {{
 	{ColorChannel::red, 8},
@@ -106,7 +103,7 @@ constexpr ImageFormat none {};
 
 /// Returns whether the current machine is little endian.
 /// If this returns false it is assumed to be big endian.
-inline bool littleEndian();
+bool littleEndian();
 
 /// Returns the next multiple of alignment that is greater or equal than value.
 /// Can be used to 'align' a value e.g. align(27, 8) returns 32.
@@ -130,40 +127,41 @@ unsigned int byteSize(const ImageFormat& format);
 /// data or the format when passing/receiving from/to this library.
 ImageFormat toggleByteWordOrder(const ImageFormat& format);
 
-namespace detail
+namespace detail {
+
+template<typename T, typename F>
+constexpr void copy(T& to, F from, unsigned int) { to = from; }
+
+template<typename T, typename PF>
+void copy(T& to, const std::unique_ptr<PF[]>& from, unsigned int) { to = from.get(); }
+
+template<typename PT>
+void copy(std::unique_ptr<PT[]>& to, const uint8_t* from, unsigned int size)
 {
-	template<typename T, typename F>
-	constexpr void copy(T& to, F from, unsigned int) { to = from; }
-
-	template<typename T, typename PF>
-	void copy(T& to, const std::unique_ptr<PF[]>& from, unsigned int) { to = from.get(); }
-
-	template<typename PT>
-	void copy(std::unique_ptr<PT[]>& to, const uint8_t* from, unsigned int size)
+	if(!from)
 	{
-		if(!from)
-		{
-			to = {};
-			return;
-		}
-
-		to = std::make_unique<PT[]>(size);
-		std::memcpy(to.get(), from, size);
+		to = {};
+		return;
 	}
 
-	template<typename PT, typename PF>
-	void copy(std::unique_ptr<PT[]>& to, const std::unique_ptr<PF[]>& from, unsigned int size)
-	{
-		if(!from)
-		{
-			to = {};
-			return;
-		}
-
-		to = std::make_unique<PT[]>(size);
-		std::memcpy(to.get(), from.get(), size);
-	}
+	to = std::make_unique<PT[]>(size);
+	std::memcpy(to.get(), from, size);
 }
+
+template<typename PT, typename PF>
+void copy(std::unique_ptr<PT[]>& to, const std::unique_ptr<PF[]>& from, unsigned int size)
+{
+	if(!from)
+	{
+		to = {};
+		return;
+	}
+
+	to = std::make_unique<PT[]>(size);
+	std::memcpy(to.get(), from.get(), size);
+}
+
+} // namespace detail
 
 template<typename P> class BasicImage;
 
@@ -196,8 +194,7 @@ template<typename P> constexpr unsigned int bitStride(const BasicImage<P>& img);
 /// \tparam P The pointer type to used. Should be a type that can be used as std::uint8_t*.
 /// Might be a cv-qualified or smart pointer.
 template<typename P>
-class BasicImage
-{
+class BasicImage {
 public:
 	P data {}; // raw image data. References at least std::ceil(stride * size.y / 8.0) * 8 bytes
 	nytl::Vec2ui size {}; // image size in pixels
@@ -336,13 +333,7 @@ UniqueImage convertFormat(const Image&, ImageFormat to, unsigned int alignNewStr
 void convertFormat(const Image&, ImageFormat to, uint8_t& into, unsigned int alignNewStride = 0);
 
 /// Premutliplies the alpha factors for the given image.
+/// Does nothing if the given image has no alpha channel.
 void premultiply(const MutableImage& img);
 
-/// - implementation -
-inline bool littleEndian()
-{
-	constexpr uint32_t dummy = 1u;
-	return ((reinterpret_cast<const uint8_t*>(&dummy))[0] == 1);
-}
-
-}
+} // namespace nytl

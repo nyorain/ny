@@ -379,10 +379,7 @@ std::error_code lastErrorCode()
 HBITMAP toBitmap(const Image& img)
 {
 	auto copy = convertFormat(img, imageFormats::argb8888);
-
-	bool alpha = false;
-	for(auto& channel : img.format) if(channel.first == ColorChannel::alpha) alpha = true;
-	if(alpha) premultiply(copy);
+	premultiply(copy);
 
 	BITMAPV5HEADER header {};
 	header.bV5Size = sizeof(header);

@@ -5,16 +5,14 @@
 #pragma once
 
 #include <ny/fwd.hpp>
-#include <nytl/callback.hpp>
+#include <nytl/callback.hpp> // nytl::Callback
 
-namespace ny
-{
+namespace ny {
 
 ///Keyboard interface.
 ///Implemented by the different backends. Can be used to handle keycodes and their unicode
 ///representations correctly as well as receiving general information about the keyboard.
-class KeyboardContext
-{
+class KeyboardContext {
 public:
 	///Returns whether the given key code is pressed.
 	///This functions may be async to any received events and callbacks e.g. if checked
@@ -53,4 +51,4 @@ public:
 	nytl::Callback<void(const KeyboardContext&, WindowContext* prev, WindowContext* now)> onFocus;
 };
 
-}
+} // namespace nytl

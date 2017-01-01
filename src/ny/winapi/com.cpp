@@ -6,7 +6,7 @@
 #include <ny/winapi/windowContext.hpp>
 #include <ny/winapi/appContext.hpp>
 #include <ny/winapi/util.hpp>
-#include <ny/dataExchange.hpp>
+#include <ny/asyncRequest.hpp>
 #include <ny/log.hpp>
 #include <ny/image.hpp>
 

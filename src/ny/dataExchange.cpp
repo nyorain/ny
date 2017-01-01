@@ -3,15 +3,14 @@
 // See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
 #include <ny/dataExchange.hpp>
-#include <ny/image.hpp>
-#include <nytl/utf.hpp>
-#include <sstream>
+#include <ny/log.hpp> // ny::warning
+#include <nytl/utf.hpp> // nytl::nth
 
-namespace ny
-{
+#include <sstream> // std::ostringstream
+#include <cstring> // std::memcpy
 
-namespace
-{
+namespace ny {
+namespace {
 
 bool sameBeginning(nytl::SizedStringParam a, nytl::SizedStringParam b)
 {
@@ -19,9 +18,9 @@ bool sameBeginning(nytl::SizedStringParam a, nytl::SizedStringParam b)
 	return !std::strncmp(a, b, std::min(a.size(), b.size()));
 }
 
-}
+} // anoymous util namespace
 
-// standard data formats
+// default data formats
 const DataFormat DataFormat::none {};
 const DataFormat DataFormat::raw {"application/octet-stream",
 	{"application/binary", "applicatoin/unknown", "raw", "binary", "buffer", "unknown"}};
@@ -43,8 +42,7 @@ std::vector<uint8_t> serialize(const Image& image)
 	reinterpret_cast<uint32_t&>(ret[8]) = stride;
 
 	auto it = &ret[12];
-	for(auto& channel : image.format)
-	{
+	for(auto& channel : image.format) {
 		*(it++) = static_cast<uint8_t>(channel.first);
 		*(it++) = channel.second;
 	}
@@ -61,23 +59,31 @@ std::vector<uint8_t> serialize(const Image& image)
 UniqueImage deserializeImage(nytl::Span<const uint8_t> buffer)
 {
 	UniqueImage image;
-
 	auto headerSize = 9u + image.format.size() * 2u;
-	if(buffer.size() < headerSize) return {}; //invalid header
+
+	// check for invaliad heaer/empty data
+	if(buffer.size() < headerSize) {
+		warning("ny::deserializeImage: invalid header");
+		return {};
+	}
 
 	image.size.x = reinterpret_cast<const uint32_t&>(buffer[0]);
 	image.size.y = reinterpret_cast<const uint32_t&>(buffer[4]);
 	image.stride = reinterpret_cast<const uint32_t&>(buffer[8]);
 
 	auto it = &buffer[12];
-	for(auto& channel : image.format)
-	{
+	for(auto& channel : image.format) {
 		channel.first = static_cast<ColorChannel>(*(it++));
 		channel.second = *(it++);
 	}
 
 	auto dSize = dataSize(image);
-	if(buffer.size() < dSize + headerSize) return {}; //invalid data size
+
+	//check for invalid data size
+	if(buffer.size() < dSize + headerSize) {
+		warning("ny::deserializeImage: invalid data size");
+		return {};
+	}
 
 	image.data = std::make_unique<uint8_t[]>(dSize);
 	std::memcpy(image.data.get(), &buffer[headerSize], dSize);
@@ -85,36 +91,30 @@ UniqueImage deserializeImage(nytl::Span<const uint8_t> buffer)
 	return image;
 }
 
-//see roughly: https://tools.ietf.org/html/rfc3986
-
+// see roughly: https://tools.ietf.org/html/rfc3986
 std::string encodeUriList(const std::vector<std::string>& uris)
 {
 	std::string ret;
 	ret.reserve(uris.size() * 10);
 
-	//first put the uris together and escape special chars
-	for(auto& uri : uris)
-	{
-		//correct utf8 parsing
-		for(auto i = 0u; i < nytl::charCount(uri); ++i)
-		{
+	// first put the uris together and escape special chars
+	// correct utf8 parsing
+	for(auto& uri : uris) {
+		for(auto i = 0u; i < nytl::charCount(uri); ++i) {
 			auto chars = nytl::nth(uri, i);
 			auto cint = reinterpret_cast<uint32_t&>(*chars.data());
 
-			//the chars that should not be encoded in uris (besides alphanum values)
+			// the chars that should not be encoded in uris (besides alphanum values)
 			std::string special = ":/?#[]@!$&'()*+,;=-_~.";
-			if(cint <= 255 && (std::isalnum(cint) || special.find(cint) != std::string::npos))
-			{
+			if(cint <= 255 && (std::isalnum(cint) || special.find(cint) != std::string::npos)) {
 				ret.append(chars.data());
-			}
-			else
-			{
+			} else {
 				auto last = 0u;
 				for(auto i = 0u; i < chars.size(); ++i) if(chars[i]) last = i;
 				for(auto i = 0u; i <= last; ++i)
 				{
 					unsigned int ci = static_cast<unsigned char>(chars[i]);
-					std::stringstream sstream;
+					std::ostringstream sstream;
 					sstream << std::hex << ci;
 					ret.append("%");
 					ret.append(sstream.str());
@@ -122,7 +122,7 @@ std::string encodeUriList(const std::vector<std::string>& uris)
 			}
 		}
 
-		//note that the uri spec sperates lines with "\r\n"
+		// note that the uri spec sperates lines with "\r\n"
 		ret.append("\r\n");
 	}
 
@@ -134,34 +134,31 @@ std::vector<std::string> decodeUriList(const std::string& escaped, bool removeCo
 	std::string uris;
 	uris.reserve(escaped.size());
 
-	//copy <escaped> into (non-const) <uris> into this loop, but replace
-	//the escape codes on the run
-	for(auto i = 0u; i < escaped.size(); ++i)
-	{
-		if(escaped[i] != '%')
-		{
+	// copy <escaped> into (non-const) <uris> into this loop, but replace
+	// the escape codes on the run
+	for(auto i = 0u; i < escaped.size(); ++i) {
+		if(escaped[i] != '%') {
 			uris.insert(uris.end(), escaped[i]);
 			continue;
 		}
 
-		//invalid escape
+		// invalid escape
 		if(i + 2 >= escaped.size()) break;
 
-		//% is always followed by 2 hexadecimal numbers
+		// % is always followed by 2 hexadecimal numbers
 		char number[3] = {escaped[i + 1], escaped[i + 2], 0};
 		auto num = std::strtol(number, nullptr, 16);
 
-		//if we receive some invalid escape like "%yy" we will simply ignore it
+		// if we receive some invalid escape like "%yy" we will simply ignore it
 		if(num) uris.insert(uris.end(), num);
 		i += 2;
 	}
 
 	std::vector<std::string> ret;
 
-	//split the list and check for comments if they should be removed
-	//note that the uri spec sperates lines with "\r\n"
-	while(true)
-	{
+	// split the list and check for comments if they should be removed
+	// note that the uri spec sperates lines with "\r\n"
+	while(true) {
 		auto pos = uris.find("\r\n");
 		if(pos == std::string::npos) break;
 
@@ -193,7 +190,6 @@ bool match(const DataFormat& a, const DataFormat& b)
 	return false;
 }
 
-//wrap
 std::any wrap(std::vector<uint8_t> buffer, const DataFormat& fmt)
 {
 	if(fmt == DataFormat::text) return std::string(buffer.begin(), buffer.end());
@@ -205,18 +201,14 @@ std::any wrap(std::vector<uint8_t> buffer, const DataFormat& fmt)
 
 std::vector<uint8_t> unwrap(std::any any, const DataFormat& format)
 {
-	if(format == DataFormat::text)
-	{
+	if(format == DataFormat::text) {
 		auto string = std::any_cast<const std::string&>(any);
 		return {string.begin(), string.end()};
-	}
-	if(format == DataFormat::uriList)
-	{
+	} else if(format == DataFormat::uriList) {
 		auto uris = std::any_cast<const std::vector<std::string>&>(any);
 		auto string = encodeUriList(uris);
 		return {string.begin(), string.end()};
-	}
-	if(format == DataFormat::image)
+	} else if(format == DataFormat::image)
 	{
 		auto img = std::any_cast<const UniqueImage&>(any);
 		return serialize(img);
@@ -225,4 +217,4 @@ std::vector<uint8_t> unwrap(std::any any, const DataFormat& format)
 	return std::move(std::any_cast<std::vector<uint8_t>&>(any));
 }
 
-}
+} // namespace ny

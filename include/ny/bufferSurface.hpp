@@ -5,17 +5,15 @@
 #pragma once
 
 #include <ny/fwd.hpp>
-#include <ny/image.hpp>
-#include <nytl/nonCopyable.hpp>
+#include <ny/image.hpp> // ny::MutableImage
+#include <nytl/nonCopyable.hpp> // nytl::NonCopyable
 
-namespace ny
-{
+namespace ny {
 
 /// Software drawable buffer manager. Abstract base class for backends to implement.
 /// Can be used to retrieve a BufferGuard which can be used to access a raw pixel buffer
 /// that can be accessed to change the associated Surfaces contents.
-class BufferSurface
-{
+class BufferSurface {
 public:
 	BufferSurface() = default;
 	virtual ~BufferSurface() = default;
@@ -41,8 +39,7 @@ protected:
 
 /// Manages a drawable buffer in form of an ImageData object.
 /// When this Guard object is destructed, it will apply the buffer it holds.
-class BufferGuard : public nytl::NonCopyable
-{
+class BufferGuard : public nytl::NonCopyable {
 public:
 	BufferGuard(BufferSurface& surf, const MutableImage& img) : surface_(surf), img_(img) {}
 	~BufferGuard() { surface_.apply(*this); }
@@ -70,4 +67,4 @@ protected:
 	MutableImage img_;
 };
 
-}
+} // namespace ny
