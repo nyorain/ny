@@ -51,10 +51,10 @@ the called symbol is simply not defined in the ny library which will trigger a l
 #endif NY_WithX11
 ```
 
-The example above would refuse to compile/link on systems where ny was built without x11 support,
-e.g. windows.
+Without the compile time siwtch, the example above would refuse to compile/link on systems where ny was built
+without x11 support, e.g. windows.
 
-Alternatively applications might just refuse to compile if they really depend on a
+Alternatively applications might actively choose to just refuse to compile if they really depend on a
 ny feature:
 
 ```cpp
@@ -64,11 +64,15 @@ ny feature:
 #endif //NY_WithVulkan
 ```
 
+But this does not automatically assures that the ny library used at runtime does automatically support the
+feature.
+
 Runtime
 -------
 
 Since even when an application was built on a system that had a version on ny with some feature
-installed, it might not be present on the system the application is actually executed on.
+installed, it might not be present on the system the application is actually executed on (since the machines
+might be different or the ny installation is changed between compile time and execution time).
 Therefore application should also check at runtime whether the needed feature is available.
 
 This can either be done directly using the ny::with* (e.g. ny::withX11) function from
