@@ -11,7 +11,6 @@
 #include <nytl/vec.hpp>
 #include <nytl/callback.hpp>
 #include <nytl/functionTraits.hpp>
-#include <nytl/compFunc.hpp>
 
 #include <type_traits>
 
@@ -77,16 +76,16 @@ protected:
 protected:
     void create(); //(re)creates the buffer for the set size/format/stride. Calls destroy
     void destroy(); //frees all associated resources
-    void released(){ used_ = false; } //registered as listener function
+    void released(wl_buffer*) { used_ = false; } //registered as listener function
 };
 
-///Holds information about a wayland output.
+/// Holds information about a wayland output.
 class Output
 {
 public:
-	///Represents a single possible output mode.
-	///Can be set when a WindowContext is made fullscreen.
-	///Usually outputs have multiple output modes.
+	/// Represents a single possible output mode.
+	/// Can be set when a WindowContext is made fullscreen.
+	/// Usually outputs have multiple output modes.
 	struct Mode
 	{
 		nytl::Vec2ui size;
@@ -94,8 +93,8 @@ public:
 		unsigned int refresh;
 	};
 
-	///All received output information.
-	///Note that this Information is not finished yet, if the done member is false.
+	/// All received output information.
+	/// Note that this Information is not finished yet, if the done member is false.
 	struct Information
 	{
 		nytl::Vec2i position;
@@ -132,10 +131,11 @@ protected:
 	Information information_ {};
 
 protected:
-	void geometry(int, int, int, int, int, const char*, const char*, int);
-	void mode(unsigned int, int, int, int);
-	void done();
-	void scale(int);
+	void geometry(wl_output*, int32_t, int32_t, int32_t, int32_t, int32_t, const char*,
+		const char*, int32_t);
+	void mode(wl_output*, uint32_t, int32_t, int32_t, int32_t);
+	void done(wl_output*);
+	void scale(wl_output*, int32_t);
 };
 
 ///Utility template that allows to associate a numerical value (name) with wayland globals.
@@ -156,61 +156,51 @@ struct NamedGlobal
 
 namespace detail
 {
-	template<typename F, F f,
-		typename Signature = typename nytl::FunctionTraits<F>::Signaure,
-		bool Last = false,
-		typename R = typename nytl::FunctionTraits<Signature>::ReturnType,
-		typename ArgsTuple = typename nytl::FunctionTraits<Signature>::ArgTuple>
-	struct MemberCallback;
 
-	template<typename F, F f, typename Signature, typename R, typename... Args>
-	struct MemberCallback<F, f, Signature, false, R, std::tuple<Args...>>
-	{
-		using Class = typename nytl::FunctionTraits<F>::Class;
-		static auto call(void* self, Args... args)
-		{
-			using Func = nytl::CompatibleFunction<Signature>;
-			auto func = Func(nytl::memberCallback(f, static_cast<Class*>(self)));
-			return func(std::forward<Args>(args)...);
-		}
-	};
+template<typename F, F f, typename Signature, bool Last>
+struct MemberCallback;
 
-	template<typename F, F f, typename Signature, typename... Args>
-	struct MemberCallback<F, f, Signature, false, void, std::tuple<Args...>>
+template<typename F, F f, typename R, typename... Args>
+struct MemberCallback<F, f, R(Args...), false>
+{
+	using Class = typename nytl::FunctionTraits<F>::Class;
+	static auto call(void* self, Args... args)
 	{
-		using Class = typename nytl::FunctionTraits<F>::Class;
-		static void call(void* self, Args... args)
-		{
-			using Func = nytl::CompatibleFunction<Signature>;
-			auto func = Func(nytl::memberCallback(f, static_cast<Class*>(self)));
-			func(std::forward<Args>(args)...);
-		}
-	};
+		return static_cast<Class*>(self)->*f(std::forward<Args>(args)...);
+	}
+};
 
-	template<typename F, F f, typename Signature, typename R, typename... Args>
-	struct MemberCallback<F, f, Signature, true, R, std::tuple<Args...>>
+template<typename F, F f, typename... Args>
+struct MemberCallback<F, f, void(Args...), false>
+{
+	using Class = typename nytl::FunctionTraits<F>::Class;
+	static void call(void* self, Args... args)
 	{
-		using Class = typename nytl::FunctionTraits<F>::Class;
-		static auto call(Args... args, void* self)
-		{
-			using Func = nytl::CompatibleFunction<Signature>;
-			auto func = Func(nytl::memberCallback(f, static_cast<Class*>(self)));
-			return func(std::forward<Args>(args)...);
-		}
-	};
+		(static_cast<Class*>(self)->*f)(std::forward<Args>(args)...);
+	}
+};
 
-	template<typename F, F f, typename Signature, typename... Args>
-	struct MemberCallback<F, f, Signature, true, void, std::tuple<Args...>>
+template<typename F, F f, typename R, typename... Args>
+struct MemberCallback<F, f, R(Args...), true>
+{
+	using Class = typename nytl::FunctionTraits<F>::Class;
+	static auto call(Args... args, void* self)
 	{
-		using Class = typename nytl::FunctionTraits<F>::Class;
-		static void call(Args... args, void* self)
-		{
-			using Func = nytl::CompatibleFunction<Signature>;
-			auto func = Func(nytl::memberCallback(f, static_cast<Class*>(self)));
-			func(std::forward<Args>(args)...);
-		}
-	};
-} //detail
+		return static_cast<Class*>(self)->*f(std::forward<Args>(args)...);
+	}
+};
+
+template<typename F, F f, typename... Args>
+struct MemberCallback<F, f, void(Args...), true>
+{
+	using Class = typename nytl::FunctionTraits<F>::Class;
+	static void call(Args... args, void* self)
+	{
+		static_cast<Class*>(self)->*f(std::forward<Args>(args)...);
+	}
+};
+
+} //namespace detail
 
 ///Can be used to implement wayland callbacks directly to member functions.
 ///Does only work if the first parameter of the callback is a void* userdata pointer and

@@ -13,8 +13,8 @@
 
 #include <xcb/xcb.h>
 
-//i'm really sorry dude...
-//the xkb header is not very c++ friendly
+// i'm really sorry for this...
+// the xkb header is not very c++ friendly
 #define explicit explicit_
  #include <xcb/xkb.h>
 #undef explicit
@@ -38,7 +38,7 @@ bool X11MouseContext::processEvent(const x11::GenericEvent& ev)
 			auto& motion = reinterpret_cast<const xcb_motion_notify_event_t&>(ev);
 			auto pos = nytl::Vec2i(motion.event_x, motion.event_y);
 
-			if(nytl::allEqual(pos, lastPosition_)) break;
+			if(pos == lastPosition_) break;
 			onMove(*this, pos, pos - lastPosition_);
 			lastPosition_ = pos;
 
@@ -122,7 +122,7 @@ bool X11MouseContext::processEvent(const x11::GenericEvent& ev)
 	return true;
 }
 
-nytl::Vec2ui X11MouseContext::position() const
+nytl::Vec2i X11MouseContext::position() const
 {
 	if(!over_) return {};
 
@@ -138,7 +138,7 @@ nytl::Vec2ui X11MouseContext::position() const
 		return {};
 	}
 
-	auto pos = nytl::Vec2ui(reply->win_x, reply->win_y);
+	auto pos = nytl::Vec2i(reply->win_x, reply->win_y);
 	free(reply);
 	return pos;
 }

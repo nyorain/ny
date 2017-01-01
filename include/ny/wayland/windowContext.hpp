@@ -113,20 +113,20 @@ protected:
     void createSubsurface(wl_surface& parent, const WaylandWindowSettings& ws);
 
 	//listeners
-	void handleFrameCallback();
-	void handleShellSurfacePing(unsigned int serial);
-	void handleShellSurfaceConfigure(unsigned int edges, int width, int height);
-	void handleShellSurfacePopupDone();
+	void handleFrameCallback(wl_callback*, uint32_t);
+	void handleShellSurfacePing(wl_shell_surface*, uint32_t);
+	void handleShellSurfaceConfigure(wl_shell_surface*, uint32_t, int32_t, int32_t);
+	void handleShellSurfacePopupDone(wl_shell_surface*);
 
-	void handleXdgSurfaceV5Configure(int width, int height, wl_array* states, unsigned int serial);
-	void handleXdgSurfaceV5Close();
-	void handleXdgPopupV5Done();
+	void handleXdgSurfaceV5Configure(xdg_surface*, int32_t, int32_t, wl_array*, uint32_t);
+	void handleXdgSurfaceV5Close(xdg_surface*);
+	void handleXdgPopupV5Done(xdg_popup*);
 
-	void handleXdgSurfaceV6Configure(unsigned int serial);
-	void handleXdgToplevelV6Configure(int width, int height, wl_array* states);
-	void handleXdgToplevelV6Close();
-	void handleXdgPopupV6Configure(int x, int y, int width, int height);
-	void handleXdgPopupV6Done();
+	void handleXdgSurfaceV6Configure(zxdg_surface_v6*, uint32_t);
+	void handleXdgToplevelV6Configure(zxdg_toplevel_v6*, int32_t, int32_t, wl_array*);
+	void handleXdgToplevelV6Close(zxdg_toplevel_v6*);
+	void handleXdgPopupV6Configure(zxdg_popup_v6*, int32_t, int32_t, int32_t, int32_t);
+	void handleXdgPopupV6Done(zxdg_popup_v6*);
 
 protected:
 	WaylandAppContext* appContext_ {};

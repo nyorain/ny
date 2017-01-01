@@ -12,8 +12,6 @@
 #include <ny/cursor.hpp>
 #include <ny/mouseContext.hpp>
 
-#include <nytl/vecOps.hpp>
-
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
 #include <xcb/xcb_image.h>
@@ -51,10 +49,10 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 	bool toplvl = false;
 
 	auto pos = settings.position;
-	if(nytl::allEqual(pos, defaultPosition)) pos = fallbackPosition;
+	if(pos == defaultPosition) pos = fallbackPosition;
 
 	auto size = settings.size;
-	if(nytl::allEqual(size, defaultSize)) size = fallbackSize;
+	if(size == defaultSize) size = fallbackSize;
 
     xcb_window_t xparent = settings.parent.uint64();
 	if(!xparent)

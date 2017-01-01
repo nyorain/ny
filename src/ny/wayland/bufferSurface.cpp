@@ -7,8 +7,7 @@
 #include <ny/log.hpp>
 #include <ny/surface.hpp>
 
-#include <nytl/vecOps.hpp>
-#include <stdexcept>
+#include <stdexcept> // std::runtime_error
 
 namespace ny
 {
@@ -32,7 +31,7 @@ BufferGuard WaylandBufferSurface::buffer()
 	for(auto& b : buffers_)
 	{
 		if(b.used()) continue;
-		if(!nytl::allEqual(b.size(), size)) b.size(size);
+		if(b.size() != size) b.size(size);
 
 		b.use();
 		active_ = &b;

@@ -94,7 +94,7 @@ X11DataOffer::X11DataOffer(X11AppContext& ac, unsigned int selection, xcb_window
 }
 
 X11DataOffer::X11DataOffer(X11AppContext& ac, unsigned int selection, xcb_window_t owner,
-	nytl::Span<xcb_atom_t> supportedTargets)
+	nytl::Span<const xcb_atom_t> supportedTargets)
 		: appContext_(&ac), selection_(selection), owner_(owner)
 {
 	//just parse/add all supported target formats.
@@ -163,7 +163,7 @@ X11DataOffer::DataRequest X11DataOffer::data(const DataFormat& fmt)
 		//this DataOffer is destroyed, therefore both can be accessed (both are not movable)
 		//this callback is triggered when the formats are retrieved and it will (try to) request
 		//data in the request format.
-		ret->formatsRequest->callback([fmt, this, req = ret.get()]{
+		ret->formatsRequest->callback([fmt, this, req = ret.get()](const auto&){
 			auto connection = this->registerDataRequest(fmt, *req);
 			if(connection.connected()) req->connection = std::move(connection);
 
@@ -309,7 +309,7 @@ void X11DataOffer::notify(const xcb_selection_notify_event_t& notify)
 	}
 }
 
-void X11DataOffer::addFormats(nytl::Span<xcb_atom_t> targets)
+void X11DataOffer::addFormats(nytl::Span<const xcb_atom_t> targets)
 {
 	//TODO: filter out special formats such as MULTIPLE or TIMESTAMP or stuff
 	//they should not be advertised to the application

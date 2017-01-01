@@ -9,6 +9,8 @@
 
 #include <X11/Xlib.h>
 
+#include <algorithm> // std::sort
+
 namespace ny
 {
 
@@ -19,8 +21,7 @@ ImageFormat visualToFormat(const xcb_visualtype_t& v, unsigned int depth)
 	if(depth == 32) alphaMask = 0xFFFFFFFFu & ~(v.red_mask | v.green_mask | v.blue_mask);
 
 	//represents a color mask channel
-	struct Channel
-	{
+	struct Channel {
 		ColorChannel color;
 		unsigned int offset;
 		unsigned int size;
@@ -31,15 +32,12 @@ ImageFormat visualToFormat(const xcb_visualtype_t& v, unsigned int depth)
 		auto active = false;
 		Channel ret {color, 0u, 0u};
 
-		for(auto i = 0u; i < 32; ++i)
-		{
-			if(mask & (1 << i))
-			{
+		for(auto i = 0u; i < 32; ++i) {
+			if(mask & (1 << i)) {
 				if(!active) ret.offset = i;
 				ret.size++;
 			}
-			else if(active)
-			{
+			else if(active) {
 				break;
 			}
 		}
@@ -62,8 +60,7 @@ ImageFormat visualToFormat(const xcb_visualtype_t& v, unsigned int depth)
 
 	auto prev = 0u;
 	auto it = ret.begin();
-	for(auto channel : channels)
-	{
+	for(auto channel : channels) {
 		if(channel.offset > prev + 1) *(it++) = {ColorChannel::none, channel.offset - (prev + 1)};
 		*(it++) = {channel.color, channel.size};
 		prev = channel.offset + channel.size;
@@ -74,8 +71,7 @@ ImageFormat visualToFormat(const xcb_visualtype_t& v, unsigned int depth)
 
 MouseButton x11ToButton(unsigned int button)
 {
-	switch(button)
-	{
+	switch(button) {
 		case 1: return MouseButton::left;
 		case 2: return MouseButton::middle;
 		case 3: return MouseButton::right;
@@ -89,8 +85,7 @@ MouseButton x11ToButton(unsigned int button)
 
 unsigned int buttonToX11(MouseButton button)
 {
-	switch(button)
-	{
+	switch(button) {
 		case MouseButton::left: return 1u;
 		case MouseButton::middle: return 2u;
 		case MouseButton::right: return 3u;
@@ -137,8 +132,7 @@ std::error_code X11ErrorCategory::errorCode(int error) const
 std::error_code X11ErrorCategory::check(xcb_void_cookie_t cookie) const
 {
 	auto e = xcb_request_check(xConnection_, cookie);
-	if(e)
-	{
+	if(e) {
 		auto code = std::error_code(e->error_code, *this);
 		free(e);
 		return code;
@@ -150,8 +144,7 @@ std::error_code X11ErrorCategory::check(xcb_void_cookie_t cookie) const
 bool X11ErrorCategory::check(xcb_void_cookie_t cookie, std::error_code& ec) const
 {
 	auto e = xcb_request_check(xConnection_, cookie);
-	if(e)
-	{
+	if(e) {
 		ec = {e->error_code, *this};
 		free(e);
 		return false;
@@ -163,8 +156,7 @@ bool X11ErrorCategory::check(xcb_void_cookie_t cookie, std::error_code& ec) cons
 bool X11ErrorCategory::checkWarn(xcb_void_cookie_t cookie, nytl::StringParam msg) const
 {
 	auto e = xcb_request_check(xConnection_, cookie);
-	if(e)
-	{
+	if(e) {
 		auto errorMsg = x11::errorMessage(*xDisplay_, e->error_code);
 
 		if(msg) warning("ny::X11: error code ", (int) e->error_code, ", ", errorMsg, ": ", msg);
@@ -201,8 +193,7 @@ Property readProperty(xcb_connection_t& connection, xcb_atom_t atom, xcb_window_
 
 	//if there are bytes remaining or we should delete the property read it again
 	//with the real length and delete the property if requested
-	if(reply && !errorPtr && (reply->bytes_after || del))
-	{
+	if(reply && !errorPtr && (reply->bytes_after || del)) {
 		length = xcb_get_property_value_length(reply) + reply->bytes_after;
 		free(reply);
 
@@ -211,17 +202,14 @@ Property readProperty(xcb_connection_t& connection, xcb_atom_t atom, xcb_window_
 	}
 
 	Property ret {};
-	if(!errorPtr && reply)
-	{
+	if(!errorPtr && reply) {
 		ret.format = reply->format;
 		ret.type = reply->type;
 
 		auto begin = static_cast<uint8_t*>(xcb_get_property_value(reply));
 		ret.data = {begin, begin + xcb_get_property_value_length(reply)};
 		free(reply);
-	}
-	else if(errorPtr)
-	{
+	} else if(errorPtr) {
 		if(error) *error = *errorPtr;
 		free(errorPtr);
 	}

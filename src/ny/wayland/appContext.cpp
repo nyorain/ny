@@ -61,11 +61,8 @@
 //support one of them. WaylandWindowContext will use version 6 is available.
 //Later on, all support for version 5 might be dropped
 
-namespace ny
-{
-
-namespace
-{
+namespace ny {
+namespace {
 
 ///Wayland LoopInterface implementation.
 ///The WaylandAppContext uses a modified version of wl_display_dispatch that
@@ -161,10 +158,10 @@ struct ListenerEntry
 {
 	int fd {};
 	unsigned int events {};
-	std::function<void(nytl::ConnectionRef, int fd, unsigned int events)> callback;
+	std::function<void(nytl::Connection, int fd, unsigned int events)> callback;
 };
 
-}
+} // anonymous util namespace
 
 struct WaylandAppContext::Impl
 {
@@ -197,10 +194,8 @@ WaylandAppContext::WaylandAppContext()
 	//listeners
 	using WAC = WaylandAppContext;
 	constexpr static wl_registry_listener registryListener = {
-		memberCallback<decltype(&WAC::handleRegistryAdd), &WAC::handleRegistryAdd,
-			void(wl_registry*, uint32_t, const char*, uint32_t)>,
-		memberCallback<decltype(&WAC::handleRegistryRemove), &WAC::handleRegistryRemove,
-			void(wl_registry*, uint32_t)>,
+		memberCallback<decltype(&WAC::handleRegistryAdd), &WAC::handleRegistryAdd>,
+		memberCallback<decltype(&WAC::handleRegistryRemove), &WAC::handleRegistryRemove>
 	};
 
 	//connect to the wayland displa and retrieve the needed objects
@@ -251,7 +246,7 @@ WaylandAppContext::WaylandAppContext()
 	//to true which will cause no further polling, but running the next loop
 	//iteration in dispatchLoop
 	eventfd_ = eventfd(0, EFD_NONBLOCK);
-	fdCallback(eventfd_, POLLIN, [&](){
+	fdCallback(eventfd_, POLLIN, [&](int, unsigned int){
 		int64_t v;
 		read(eventfd_, &v, 8);
 		wakeup_ = true;
@@ -566,6 +561,13 @@ bool WaylandAppContext::checkErrorWarn() const
 nytl::Connection WaylandAppContext::fdCallback(int fd, unsigned int events,
 	const FdCallbackFunc& func)
 {
+	return fdCallback(fd, events,
+		[f = func](nytl::Connection, int fd, unsigned int events){ f(fd, events); });
+}
+
+nytl::Connection WaylandAppContext::fdCallback(int fd, unsigned int events,
+	const FdCallbackFuncConn& func)
+{
 	return impl_->fdCallbacks.add({fd, events, func});
 }
 
@@ -659,8 +661,8 @@ int WaylandAppContext::pollFds(short wlDisplayEvents, int timeout)
 		for(auto& callback : impl_->fdCallbacks.items)
 		{
 			if(callback.clID_ != ids[i]) continue;
-			nytl::ConnectionRef connref(impl_->fdCallbacks, callback.clID_);
-			callback.callback(connref, fds[i].fd, fds[i].revents);
+			nytl::Connection conn(impl_->fdCallbacks, callback.clID_);
+			callback.callback(conn, fds[i].fd, fds[i].revents);
 			break;
 		}
 	}
@@ -673,32 +675,27 @@ void WaylandAppContext::roundtrip()
 	wl_display_roundtrip_queue(&wlDisplay(), wlRoundtripQueue_);
 }
 
-void WaylandAppContext::handleRegistryAdd(unsigned int id, const char* cinterface,
-	unsigned int version)
+void WaylandAppContext::handleRegistryAdd(wl_registry*, uint32_t id, const char* cinterface,
+	uint32_t version)
 {
 	//listeners
 	//they must be added instantly, otherwise we will miss initial events
 	using WAC = WaylandAppContext;
-	constexpr static wl_shm_listener shmListener = {
-		memberCallback<decltype(&WAC::handleShmFormat), &WAC::handleShmFormat,
-			void(wl_shm*, uint32_t)>
+	constexpr static wl_shm_listener shmListener {
+		memberCallback<decltype(&WAC::handleShmFormat), &WAC::handleShmFormat>
 	};
 
-	constexpr static wl_seat_listener seatListener = {
-		memberCallback<decltype(&WAC::handleSeatCapabilities), &WAC::handleSeatCapabilities,
-			void(wl_seat*, uint32_t)>,
-		memberCallback<decltype(&WAC::handleSeatName), &WAC::handleSeatName,
-			void(wl_seat*, const char*)>
+	constexpr static wl_seat_listener seatListener {
+		memberCallback<decltype(&WAC::handleSeatCapabilities), &WAC::handleSeatCapabilities>,
+		memberCallback<decltype(&WAC::handleSeatName), &WAC::handleSeatName>
 	};
 
-	constexpr static xdg_shell_listener xdgShellV5Listener = {
-		memberCallback<decltype(&WAC::handleXdgShellV5Ping), &WAC::handleXdgShellV5Ping,
-			void(xdg_shell*, uint32_t)>
+	constexpr static xdg_shell_listener xdgShellV5Listener {
+		memberCallback<decltype(&WAC::handleXdgShellV5Ping), &WAC::handleXdgShellV5Ping>
 	};
 
-	constexpr static zxdg_shell_v6_listener xdgShellV6Listener = {
-		memberCallback<decltype(&WAC::handleXdgShellV6Ping), &WAC::handleXdgShellV6Ping,
-			void(zxdg_shell_v6*, uint32_t)>
+	constexpr static zxdg_shell_v6_listener xdgShellV6Listener {
+		memberCallback<decltype(&WAC::handleXdgShellV6Ping), &WAC::handleXdgShellV6Ping>
 	};
 
 	//the supported interface versions by ny (for stable protocols)
@@ -782,7 +779,7 @@ void WaylandAppContext::handleRegistryAdd(unsigned int id, const char* cinterfac
 	}
 }
 
-void WaylandAppContext::handleRegistryRemove(unsigned int id)
+void WaylandAppContext::handleRegistryRemove(wl_registry*, uint32_t id)
 {
 	//TODO: stop the application/main loop when removing needed global? at least handle it somehow.
 	//TODO: check other globals here?
@@ -798,7 +795,7 @@ void WaylandAppContext::handleRegistryRemove(unsigned int id)
 	}
 }
 
-void WaylandAppContext::handleSeatCapabilities(unsigned int caps)
+void WaylandAppContext::handleSeatCapabilities(wl_seat*, uint32_t caps)
 {
 	//mouse
 	if((caps & WL_SEAT_CAPABILITY_POINTER) && !mouseContext_)
@@ -823,23 +820,23 @@ void WaylandAppContext::handleSeatCapabilities(unsigned int caps)
 	}
 }
 
-void WaylandAppContext::handleSeatName(const char* name)
+void WaylandAppContext::handleSeatName(wl_seat*, const char* name)
 {
 	seatName_ = name;
 }
 
-void WaylandAppContext::handleShmFormat(unsigned int format)
+void WaylandAppContext::handleShmFormat(wl_shm*, unsigned int format)
 {
 	shmFormats_.push_back(format);
 }
 
-void WaylandAppContext::handleXdgShellV5Ping(unsigned int serial)
+void WaylandAppContext::handleXdgShellV5Ping(xdg_shell*, unsigned int serial)
 {
 	if(!xdgShellV5()) return;
 	xdg_shell_pong(xdgShellV5(), serial);
 }
 
-void WaylandAppContext::handleXdgShellV6Ping(unsigned int serial)
+void WaylandAppContext::handleXdgShellV6Ping(zxdg_shell_v6*, unsigned int serial)
 {
 	if(!xdgShellV6()) return;
 	zxdg_shell_v6_pong(xdgShellV6(), serial);

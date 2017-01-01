@@ -202,7 +202,7 @@ void ShmBuffer::create()
 
 	static constexpr wl_buffer_listener listener
 	{
-		memberCallback<decltype(&ShmBuffer::released), &ShmBuffer::released, void(wl_buffer*)>
+		memberCallback<decltype(&ShmBuffer::released), &ShmBuffer::released>
 	};
 
     wl_buffer_add_listener(buffer_, &listener, this);
@@ -245,15 +245,10 @@ Output::Output(WaylandAppContext& ac, wl_output& outp, unsigned int id)
 {
 	static constexpr wl_output_listener listener
 	{
-		memberCallback<decltype(&Output::geometry), &Output::geometry,
-			void(wl_output*, int32_t, int32_t, int32_t, int32_t, int32_t, const char*,
-				const char*, int32_t)>,
-
-		memberCallback<decltype(&Output::mode), &Output::mode,
-			void(wl_output*, uint32_t, int32_t, int32_t, int32_t)>,
-
-		memberCallback<decltype(&Output::done), &Output::done, void(wl_output*)>,
-		memberCallback<decltype(&Output::scale), &Output::scale, void(wl_output*, int32_t)>,
+		memberCallback<decltype(&Output::geometry), &Output::geometry>,
+		memberCallback<decltype(&Output::mode), &Output::mode>,
+		memberCallback<decltype(&Output::done), &Output::done>,
+		memberCallback<decltype(&Output::scale), &Output::scale>
 	};
 
     wl_output_add_listener(&outp, &listener, this);
@@ -295,8 +290,8 @@ Output& Output::operator=(Output&& other) noexcept
 	return *this;
 }
 
-void Output::geometry(int x, int y, int phwidth, int phheight, int subpixel,
-	const char* make, const char* model, int transform)
+void Output::geometry(wl_output*, int32_t x, int32_t y, int32_t phwidth, int32_t phheight,
+	int32_t subpixel, const char* make, const char* model, int32_t transform)
 {
 	information_.make = make;
 	information_.model = model;
@@ -306,23 +301,23 @@ void Output::geometry(int x, int y, int phwidth, int phheight, int subpixel,
 	information_.subpixel = subpixel;
 }
 
-void Output::mode(unsigned int flags, int width, int height, int refresh)
+void Output::mode(wl_output*, uint32_t flags, int32_t width, int32_t height, int32_t refresh)
 {
 	unsigned int urefresh = refresh;
 	information_.modes.push_back({nytl::Vec2ui(width, height), flags, urefresh});
 }
 
-void Output::done()
+void Output::done(wl_output*)
 {
 	information_.done = true;
 }
 
-void Output::scale(int scale)
+void Output::scale(wl_output*, int32_t scale)
 {
 	information_.scale = scale;
 }
 
-}//namespace wayland
+} //namespace wayland
 
 WindowEdge waylandToEdge(unsigned int wlEdge)
 {

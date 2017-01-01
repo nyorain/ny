@@ -29,24 +29,15 @@ WaylandMouseContext::WaylandMouseContext(WaylandAppContext& ac, wl_seat& seat)
 {
 	using WMC = WaylandMouseContext;
 	constexpr static wl_pointer_listener listener = {
-		memberCallback<decltype(&WMC::handleEnter), &WMC::handleEnter,
-			void(wl_pointer*, uint32_t, wl_surface*, wl_fixed_t, wl_fixed_t)>,
-		memberCallback<decltype(&WMC::handleLeave), &WMC::handleLeave,
-			void(wl_pointer*, uint32_t, wl_surface*)>,
-		memberCallback<decltype(&WMC::handleMotion), &WMC::handleMotion,
-			void(wl_pointer*, uint32_t, wl_fixed_t, wl_fixed_t)>,
-		memberCallback<decltype(&WMC::handleButton), &WMC::handleButton,
-			void(wl_pointer*, uint32_t, uint32_t, uint32_t, uint32_t)>,
-		memberCallback<decltype(&WMC::handleAxis), &WMC::handleAxis,
-			void(wl_pointer*, uint32_t, uint32_t, wl_fixed_t)>,
-		memberCallback<decltype(&WMC::handleFrame), &WMC::handleFrame,
-			void(wl_pointer*)>,
-		memberCallback<decltype(&WMC::handleAxisSource), &WMC::handleAxisSource,
-			void(wl_pointer*, uint32_t)>,
-		memberCallback<decltype(&WMC::handleAxisStop), &WMC::handleAxisStop,
-			void(wl_pointer*, uint32_t, uint32_t)>,
-		memberCallback<decltype(&WMC::handleAxisDiscrete), &WMC::handleAxisDiscrete,
-			void(wl_pointer*, uint32_t, int32_t)>,
+		memberCallback<decltype(&WMC::handleEnter), &WMC::handleEnter>,
+		memberCallback<decltype(&WMC::handleLeave), &WMC::handleLeave>,
+		memberCallback<decltype(&WMC::handleMotion), &WMC::handleMotion>,
+		memberCallback<decltype(&WMC::handleButton), &WMC::handleButton>,
+		memberCallback<decltype(&WMC::handleAxis), &WMC::handleAxis>,
+		memberCallback<decltype(&WMC::handleFrame), &WMC::handleFrame>,
+		memberCallback<decltype(&WMC::handleAxisSource), &WMC::handleAxisSource>,
+		memberCallback<decltype(&WMC::handleAxisStop), &WMC::handleAxisStop>,
+		memberCallback<decltype(&WMC::handleAxisDiscrete), &WMC::handleAxisDiscrete>,
 	};
 
 	wlPointer_ = wl_seat_get_pointer(&seat);
@@ -74,7 +65,7 @@ WindowContext* WaylandMouseContext::over() const
 	return over_;
 }
 
-void WaylandMouseContext::handleMotion(unsigned int time, wl_fixed_t x, wl_fixed_t y)
+void WaylandMouseContext::handleMotion(wl_pointer*, uint32_t time, wl_fixed_t x, wl_fixed_t y)
 {
 	nytl::unused(time);
 
@@ -84,7 +75,7 @@ void WaylandMouseContext::handleMotion(unsigned int time, wl_fixed_t x, wl_fixed
 
 	if(over_) over_->listener().mouseMove(position_, nullptr);
 }
-void WaylandMouseContext::handleEnter(unsigned int serial, wl_surface* surface,
+void WaylandMouseContext::handleEnter(wl_pointer*, uint32_t serial, wl_surface* surface,
 	wl_fixed_t x, wl_fixed_t y)
 {
 	nytl::Vec2i pos(wl_fixed_to_int(x), wl_fixed_to_int(y));
@@ -113,7 +104,7 @@ void WaylandMouseContext::handleEnter(unsigned int serial, wl_surface* surface,
 		over_ = wc;
 	}
 }
-void WaylandMouseContext::handleLeave(unsigned int serial, wl_surface* surface)
+void WaylandMouseContext::handleLeave(wl_pointer*, uint32_t serial, wl_surface* surface)
 {
 	lastSerial_ = serial;
 	WaylandEventData eventData(serial);
@@ -126,8 +117,8 @@ void WaylandMouseContext::handleLeave(unsigned int serial, wl_surface* surface)
 
 	over_ = nullptr;
 }
-void WaylandMouseContext::handleButton(unsigned int serial, unsigned int time,
-	unsigned int button, bool pressed)
+void WaylandMouseContext::handleButton(wl_pointer*, uint32_t serial, uint32_t time, uint32_t button,
+	uint32_t pressed)
 {
 	nytl::unused(time);
 
@@ -140,7 +131,7 @@ void WaylandMouseContext::handleButton(unsigned int serial, unsigned int time,
 	if(over_) over_->listener().mouseButton(pressed, nybutton, &eventData);
 }
 
-void WaylandMouseContext::handleAxis(unsigned int time, unsigned int axis, wl_fixed_t value)
+void WaylandMouseContext::handleAxis(wl_pointer*, uint32_t time, uint32_t axis, wl_fixed_t value)
 {
 	nytl::unused(time, axis);
 	auto nvalue = wl_fixed_to_int(value);
@@ -151,21 +142,21 @@ void WaylandMouseContext::handleAxis(unsigned int time, unsigned int axis, wl_fi
 
 //Those events could be handled if more complex axis events are supported.
 //Handling the fame event will only become useful when the 3 callbacks below are handled
-void WaylandMouseContext::handleFrame()
+void WaylandMouseContext::handleFrame(wl_pointer*)
 {
 }
 
-void WaylandMouseContext::handleAxisSource(unsigned int source)
+void WaylandMouseContext::handleAxisSource(wl_pointer*, uint32_t source)
 {
 	nytl::unused(source);
 }
 
-void WaylandMouseContext::handleAxisStop(unsigned int time, unsigned int axis)
+void WaylandMouseContext::handleAxisStop(wl_pointer*, uint32_t time, uint32_t axis)
 {
 	nytl::unused(time, axis);
 }
 
-void WaylandMouseContext::handleAxisDiscrete(unsigned int axis, int discrete)
+void WaylandMouseContext::handleAxisDiscrete(wl_pointer*, uint32_t axis, int32_t discrete)
 {
 	nytl::unused(axis, discrete);
 }
@@ -185,18 +176,12 @@ WaylandKeyboardContext::WaylandKeyboardContext(WaylandAppContext& ac, wl_seat& s
 {
 	using WKC = WaylandKeyboardContext;
 	constexpr static wl_keyboard_listener listener = {
-		memberCallback<decltype(&WKC::handleKeymap), &WKC::handleKeymap,
-			void(wl_keyboard*, uint32_t, int32_t, uint32_t)>,
-		memberCallback<decltype(&WKC::handleEnter), &WKC::handleEnter,
-			void(wl_keyboard*, uint32_t, wl_surface*, wl_array*)>,
-		memberCallback<decltype(&WKC::handleLeave), &WKC::handleLeave,
-			void(wl_keyboard*, uint32_t, wl_surface*)>,
-		memberCallback<decltype(&WKC::handleKey), &WKC::handleKey,
-			void(wl_keyboard*, uint32_t, uint32_t, uint32_t, uint32_t)>,
-		memberCallback<decltype(&WKC::handleModifiers), &WKC::handleModifiers,
-			void(wl_keyboard*, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t)>,
-		memberCallback<decltype(&WKC::handleRepeatInfo), &WKC::handleRepeatInfo,
-			void(wl_keyboard*, int32_t, int32_t)>,
+		memberCallback<decltype(&WKC::handleKeymap), &WKC::handleKeymap>,
+		memberCallback<decltype(&WKC::handleEnter), &WKC::handleEnter>,
+		memberCallback<decltype(&WKC::handleLeave), &WKC::handleLeave>,
+		memberCallback<decltype(&WKC::handleKey), &WKC::handleKey>,
+		memberCallback<decltype(&WKC::handleModifiers), &WKC::handleModifiers>,
+		memberCallback<decltype(&WKC::handleRepeatInfo), &WKC::handleRepeatInfo>,
 	};
 
 	wlKeyboard_ = wl_seat_get_keyboard(&seat);
@@ -226,7 +211,7 @@ bool WaylandKeyboardContext::withKeymap()
 {
 	return keymap_;
 }
-void WaylandKeyboardContext::handleKeymap(unsigned int format, int fd, unsigned int size)
+void WaylandKeyboardContext::handleKeymap(wl_keyboard*, uint32_t format, int32_t fd, uint32_t size)
 {
 	//always close the give fd
 	auto fdGuard = nytl::makeScopeGuard([=]{ close(fd); });
@@ -270,7 +255,8 @@ void WaylandKeyboardContext::handleKeymap(unsigned int format, int fd, unsigned 
 		return;
 	}
 }
-void WaylandKeyboardContext::handleEnter(unsigned int serial, wl_surface* surface, wl_array* keys)
+void WaylandKeyboardContext::handleEnter(wl_keyboard*, uint32_t serial, wl_surface* surface,
+	wl_array* keys)
 {
 	lastSerial_ = serial;
 	WaylandEventData eventData(serial);
@@ -294,7 +280,7 @@ void WaylandKeyboardContext::handleEnter(unsigned int serial, wl_surface* surfac
 	}
 }
 
-void WaylandKeyboardContext::handleLeave(unsigned int serial, wl_surface* surface)
+void WaylandKeyboardContext::handleLeave(wl_keyboard*, uint32_t serial, wl_surface* surface)
 {
 	lastSerial_ = serial;
 	WaylandEventData eventData(serial);
@@ -311,8 +297,8 @@ void WaylandKeyboardContext::handleLeave(unsigned int serial, wl_surface* surfac
 	keyStates_.reset();
 	focus_ = nullptr;
 }
-void WaylandKeyboardContext::handleKey(unsigned int serial, unsigned int time,
-	unsigned int key, bool pressed)
+void WaylandKeyboardContext::handleKey(wl_keyboard*, uint32_t serial, uint32_t time,
+	uint32_t key, uint32_t pressed)
 {
 	nytl::unused(time);
 
@@ -327,14 +313,14 @@ void WaylandKeyboardContext::handleKey(unsigned int serial, unsigned int time,
 	onKey(*this, keycode, utf8, pressed);
 }
 
-void WaylandKeyboardContext::handleModifiers(unsigned int serial, unsigned int mdepressed,
-	unsigned int mlatched, unsigned int mlocked, unsigned int group)
+void WaylandKeyboardContext::handleModifiers(wl_keyboard*, uint32_t serial, uint32_t mdepressed,
+	uint32_t mlatched, uint32_t mlocked, uint32_t group)
 {
 	lastSerial_ = serial;
 	XkbKeyboardContext::updateState({mdepressed, mlatched, mlocked}, {group, group, group});
 }
 
-void WaylandKeyboardContext::handleRepeatInfo(int rate, int delay)
+void WaylandKeyboardContext::handleRepeatInfo(wl_keyboard*, int32_t rate, int32_t delay)
 {
 	nytl::unused(rate, delay);
 

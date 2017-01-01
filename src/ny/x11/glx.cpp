@@ -9,7 +9,6 @@
 #include <ny/surface.hpp>
 #include <ny/log.hpp>
 
-#include <nytl/misc.hpp>
 #include <nytl/span.hpp>
 
 #include <xcb/xcb.h>

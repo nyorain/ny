@@ -28,16 +28,14 @@ namespace ny
 
 ///Represents a pending wayland to another request for a specific format.
 ///Will be associated with a format using a std::map.
-class WaylandDataOffer::PendingRequest
-{
+class WaylandDataOffer::PendingRequest {
 public:
 	std::vector<WaylandDataOffer::DataRequestImpl*> requests;
 	nytl::ConnectionGuard fdConnection;
 };
 
 ///Small DefaultAsyncRequest addition that allows to unregister itself on desctruction.
-class WaylandDataOffer::DataRequestImpl : public DefaultAsyncRequest<std::any>
-{
+class WaylandDataOffer::DataRequestImpl : public DefaultAsyncRequest<std::any> {
 public:
 	using DefaultAsyncRequest::DefaultAsyncRequest;
 
@@ -60,16 +58,11 @@ public:
 WaylandDataOffer::WaylandDataOffer(WaylandAppContext& ac, wl_data_offer& wlDataOffer)
 	: appContext_(&ac), wlDataOffer_(&wlDataOffer)
 {
-	static constexpr wl_data_offer_listener listener =
-	{
-		memberCallback<decltype(&WaylandDataOffer::offer),
-			&WaylandDataOffer::offer, void(wl_data_offer*, const char*)>,
-
+	static constexpr wl_data_offer_listener listener {
+		memberCallback<decltype(&WaylandDataOffer::offer), &WaylandDataOffer::offer>,
 		memberCallback<decltype(&WaylandDataOffer::sourceActions),
-			&WaylandDataOffer::sourceActions, void(wl_data_offer*, unsigned int)>,
-
-		memberCallback<decltype(&WaylandDataOffer::action),
-			&WaylandDataOffer::action, void(wl_data_offer*, unsigned int)>,
+			&WaylandDataOffer::sourceActions>,
+		memberCallback<decltype(&WaylandDataOffer::action), &WaylandDataOffer::action>
 	};
 
 	wl_data_offer_add_listener(&wlDataOffer, &listener, this);
@@ -161,7 +154,7 @@ WaylandDataOffer::DataRequest WaylandDataOffer::data(const DataFormat& format)
 		wl_data_offer_receive(wlDataOffer_, reqfmt.second.c_str(), fds[1]);
 
 		auto callback = [wlOffer = wlDataOffer_,
-			ac = appContext_, format, reqfmt] (int fd)
+			ac = appContext_, format, reqfmt] (int fd, unsigned int)
 		{
 			//close the fd no matter if we actually fail here
 			auto fdGuard = nytl::makeScopeGuard([=]{ close(fd); });
@@ -202,7 +195,7 @@ WaylandDataOffer::DataRequest WaylandDataOffer::data(const DataFormat& format)
 	return ret;
 }
 
-void WaylandDataOffer::offer(const char* fmt)
+void WaylandDataOffer::offer(wl_data_offer*, const char* fmt)
 {
 	if(match(DataFormat::raw, fmt)) formats_.push_back({DataFormat::raw, fmt});
 	else if(match(DataFormat::text, fmt)) formats_.push_back({DataFormat::text, fmt});
@@ -212,12 +205,12 @@ void WaylandDataOffer::offer(const char* fmt)
 }
 
 //TODO: parse actions to determince whether wl_data_offer_finish has to be called? see protocol
-void WaylandDataOffer::sourceActions(unsigned int actions)
+void WaylandDataOffer::sourceActions(wl_data_offer*, uint32_t actions)
 {
 	nytl::unused(actions);
 }
 
-void WaylandDataOffer::action(unsigned int action)
+void WaylandDataOffer::action(wl_data_offer*, uint32_t action)
 {
 	nytl::unused(action);
 }
@@ -299,12 +292,12 @@ void WaylandDataSource::drawSurface()
 	wl_surface_commit(dragSurface_);
 }
 
-void WaylandDataSource::target(const char* mimeType)
+void WaylandDataSource::target(wl_data_source*, const char* mimeType)
 {
 	//we dont care about this information at all
 	nytl::unused(mimeType);
 }
-void WaylandDataSource::send(const char* mimeType, int fd)
+void WaylandDataSource::send(wl_data_source*, const char* mimeType, int32_t fd)
 {
 	//close the fd no matter what happens here
 	auto fdGuard = nytl::makeScopeGuard([=]{ close(fd); });
@@ -339,7 +332,7 @@ void WaylandDataSource::send(const char* mimeType, int fd)
 	if(ret < 0) warning("ny::WaylandDataSource::send: write failed: ", std::strerror(errno));
 }
 
-void WaylandDataSource::action(unsigned int action)
+void WaylandDataSource::action(wl_data_source*, uint32_t action)
 {
 	//change the cursor in response to the action if there is a mouseContext
 	if(!appContext_.waylandMouseContext()) return;
@@ -357,30 +350,30 @@ void WaylandDataSource::action(unsigned int action)
 	auto buffer = wl_cursor_image_get_buffer(img);
 
 	auto hotspot = nytl::Vec2i(img->hotspot_x, img->hotspot_y);
-	auto size = nytl::Vec2i(img->width, img->height);
+	auto size = nytl::Vec2ui(img->width, img->height);
 
 	appContext_.waylandMouseContext()->cursorBuffer(buffer, hotspot, size);
 }
 
-void WaylandDataSource::dndPerformed()
+void WaylandDataSource::dndPerformed(wl_data_source*)
 {
-	//we dont care about this information
-	//important: do not destroy the source here, only in cancelled/finished
+	// we dont care about this information
+	// important: do not destroy the source here, only in cancelled/finished
 }
 
-void WaylandDataSource::cancelled()
+void WaylandDataSource::cancelled(wl_data_source*)
 {
-	//destroy self here since this object is no longer needed
-	//for dnd sources this means the dnd session ended unsuccesfully
-	//for clipboard source this means that it was replaced
+	// destroy self here since this object is no longer needed
+	// for dnd sources this means the dnd session ended unsuccesfully
+	// for clipboard source this means that it was replaced
 	delete this;
 }
 
-void WaylandDataSource::dndFinished()
+void WaylandDataSource::dndFinished(wl_data_source*)
 {
-	//destroy self here since this object is no longer needed
-	//the dnd session ended succesful and this object will no longer be
-	//accessed
+	// destroy self here since this object is no longer needed
+	// the dnd session ended succesful and this object will no longer be
+	// accessed
 	delete this;
 }
 
@@ -393,15 +386,12 @@ WaylandDataDevice::WaylandDataDevice(WaylandAppContext& ac) : appContext_(&ac)
 	using WDD = WaylandDataDevice;
 	static constexpr wl_data_device_listener listener =
 	{
-		memberCallback<decltype(&WDD::offer), &WDD::offer, void(wl_data_device*, wl_data_offer*)>,
-		memberCallback<decltype(&WDD::enter), &WDD::enter,
-			void(wl_data_device*, uint32_t, wl_surface*, wl_fixed_t, wl_fixed_t, wl_data_offer*)>,
-		memberCallback<decltype(&WDD::leave), &WDD::leave, void(wl_data_device*)>,
-		memberCallback<decltype(&WDD::motion), &WDD::motion,
-			void(wl_data_device*, uint32_t, wl_fixed_t, wl_fixed_t)>,
-		memberCallback<decltype(&WDD::drop), &WDD::drop, void(wl_data_device*)>,
-		memberCallback<decltype(&WDD::selection),
-			&WDD::selection, void(wl_data_device*, wl_data_offer*)>,
+		memberCallback<decltype(&WDD::offer), &WDD::offer>,
+		memberCallback<decltype(&WDD::enter), &WDD::enter>,
+		memberCallback<decltype(&WDD::leave), &WDD::leave>,
+		memberCallback<decltype(&WDD::motion), &WDD::motion>,
+		memberCallback<decltype(&WDD::drop), &WDD::drop>,
+		memberCallback<decltype(&WDD::selection), &WDD::selection>
 	};
 
 	wl_data_device_add_listener(wlDataDevice_, &listener, this);
@@ -416,12 +406,12 @@ WaylandDataDevice::~WaylandDataDevice()
 	}
 }
 
-void WaylandDataDevice::offer(wl_data_offer* offer)
+void WaylandDataDevice::offer(wl_data_device*, wl_data_offer* offer)
 {
 	offers_.push_back(std::make_unique<WaylandDataOffer>(*appContext_, *offer));
 }
 
-void WaylandDataDevice::enter(unsigned int serial, wl_surface* surface, wl_fixed_t x, wl_fixed_t y,
+void WaylandDataDevice::enter(wl_data_device*, uint32_t serial, wl_surface* surface, wl_fixed_t x, wl_fixed_t y,
 	wl_data_offer* offer)
 {
 	WaylandEventData eventData(serial);
@@ -456,7 +446,7 @@ void WaylandDataDevice::enter(unsigned int serial, wl_surface* surface, wl_fixed
 	dndWC_->listener().dndMove(pos, *dndOffer_, &eventData);
 }
 
-void WaylandDataDevice::leave()
+void WaylandDataDevice::leave(wl_data_device*)
 {
 	if(dndOffer_)
 	{
@@ -476,7 +466,7 @@ void WaylandDataDevice::leave()
 	dndWC_ = {};
 }
 
-void WaylandDataDevice::motion(unsigned int time, wl_fixed_t x, wl_fixed_t y)
+void WaylandDataDevice::motion(wl_data_device*, uint32_t time, wl_fixed_t x, wl_fixed_t y)
 {
 	// debug("motion");
 	nytl::unused(time); //time param needed for CompFunc since it would be stored in x otherwise
@@ -501,7 +491,7 @@ void WaylandDataDevice::motion(unsigned int time, wl_fixed_t x, wl_fixed_t y)
 		WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY);
 }
 
-void WaylandDataDevice::drop()
+void WaylandDataDevice::drop(wl_data_device*)
 {
 	// debug("ny::WaylandDataDevice::drop");
 
@@ -535,7 +525,7 @@ void WaylandDataDevice::drop()
 	dndWC_ = {};
 }
 
-void WaylandDataDevice::selection(wl_data_offer* offer)
+void WaylandDataDevice::selection(wl_data_device*, wl_data_offer* offer)
 {
 	//erase the previous clipboard offer
 	if(clipboardOffer_)

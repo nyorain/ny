@@ -39,7 +39,7 @@ WaylandWindowContext::WaylandWindowContext(WaylandAppContext& ac,
 
     //parse settings
 	size_ = settings.size;
-    if(nytl::allEqual(size_, defaultSize)) size_ = fallbackSize;
+    if(size_ == defaultSize) size_ = fallbackSize;
 	shown_ = settings.show;
     if(settings.listener) listener(*settings.listener);
 
@@ -99,12 +99,11 @@ void WaylandWindowContext::createShellSurface(const WaylandWindowSettings& ws)
 {
 	using WWC = WaylandWindowContext;
 	constexpr static wl_shell_surface_listener shellSurfaceListener = {
-		memberCallback<decltype(&WWC::handleShellSurfacePing), &WWC::handleShellSurfacePing,
-			void(wl_shell_surface*, uint32_t)>,
+		memberCallback<decltype(&WWC::handleShellSurfacePing), &WWC::handleShellSurfacePing>,
 		memberCallback<decltype(&WWC::handleShellSurfaceConfigure),
-			&WWC::handleShellSurfaceConfigure, void(wl_shell_surface*, uint32_t, int32_t, int32_t)>,
+			&WWC::handleShellSurfaceConfigure>,
 		memberCallback<decltype(&WWC::handleShellSurfacePopupDone),
-			&WWC::handleShellSurfacePopupDone, void(wl_shell_surface*)>
+			&WWC::handleShellSurfacePopupDone>
 	};
 
     wlShellSurface_ = wl_shell_get_shell_surface(appContext().wlShell(), wlSurface_);
@@ -125,11 +124,9 @@ void WaylandWindowContext::createXdgSurfaceV5(const WaylandWindowSettings& ws)
 	using WWC = WaylandWindowContext;
 	constexpr static xdg_surface_listener xdgSurfaceListener = {
 		memberCallback<decltype(&WWC::handleXdgSurfaceV5Configure),
-			&WWC::handleXdgSurfaceV5Configure,
-			void(xdg_surface*, int32_t, int32_t, wl_array*, uint32_t)>,
+			&WWC::handleXdgSurfaceV5Configure>,
 		memberCallback<decltype(&WWC::handleXdgSurfaceV5Close),
-			&WWC::handleXdgSurfaceV5Close,
-			void(xdg_surface*)>
+			&WWC::handleXdgSurfaceV5Close>
 	};
 
     xdgSurfaceV5_ = xdg_shell_get_xdg_surface(appContext().xdgShellV5(), wlSurface_);
@@ -151,17 +148,14 @@ void WaylandWindowContext::createXdgSurfaceV6(const WaylandWindowSettings& ws)
 	using WWC = WaylandWindowContext;
 	constexpr static zxdg_surface_v6_listener xdgSurfaceListener = {
 		memberCallback<decltype(&WWC::handleXdgSurfaceV6Configure),
-			&WWC::handleXdgSurfaceV6Configure,
-			void(zxdg_surface_v6*, uint32_t)>,
+			&WWC::handleXdgSurfaceV6Configure>
 	};
 
 	constexpr static zxdg_toplevel_v6_listener xdgToplevelListener = {
 		memberCallback<decltype(&WWC::handleXdgToplevelV6Configure),
-			&WWC::handleXdgToplevelV6Configure,
-			void(zxdg_toplevel_v6*, int32_t, int32_t, wl_array*)>,
+			&WWC::handleXdgToplevelV6Configure>,
 		memberCallback<decltype(&WWC::handleXdgToplevelV6Close),
-			&WWC::handleXdgToplevelV6Close,
-			void(zxdg_toplevel_v6*)>
+			&WWC::handleXdgToplevelV6Close>
 	};
 
 	//create the xdg surface
@@ -203,9 +197,9 @@ void WaylandWindowContext::createXdgPopupV5(const WaylandWindowSettings& ws)
 	};
 
 	wl_surface* parent {};
-	Vec2i position = ws.position;
+	nytl::Vec2i position = ws.position;
 	unsigned int serial {};
-	if(nytl::allEqual(position, defaultPosition)) position = fallbackPosition;
+	if(position == defaultPosition) position = fallbackPosition;
 	xdgPopupV5_ = xdg_shell_get_xdg_popup(appContext().xdgShellV5(), &wlSurface(), parent,
 		appContext().wlSeat(), serial, position.x, position.y);
 
@@ -224,15 +218,12 @@ void WaylandWindowContext::createXdgPopupV6(const WaylandWindowSettings& ws)
 	using WWC = WaylandWindowContext;
 	constexpr static zxdg_surface_v6_listener xdgSurfaceListener = {
 		memberCallback<decltype(&WWC::handleXdgSurfaceV6Configure),
-			&WWC::handleXdgSurfaceV6Configure,
-			void(zxdg_surface_v6*, uint32_t)>,
+			&WWC::handleXdgSurfaceV6Configure>
 	};
 
 	constexpr static zxdg_popup_v6_listener xdgPopupListener = {
-		memberCallback<decltype(&WWC::handleXdgPopupV6Configure), &WWC::handleXdgPopupV6Configure,
-			void(zxdg_popup_v6*, int32_t, int32_t, int32_t, int32_t)>,
-		memberCallback<decltype(&WWC::handleXdgPopupV6Done), &WWC::handleXdgPopupV6Done,
-			void(zxdg_popup_v6*)>
+		memberCallback<decltype(&WWC::handleXdgPopupV6Configure), &WWC::handleXdgPopupV6Configure>,
+		memberCallback<decltype(&WWC::handleXdgPopupV6Done), &WWC::handleXdgPopupV6Done>
 	};
 
 	//create the xdg surface
@@ -242,8 +233,8 @@ void WaylandWindowContext::createXdgPopupV6(const WaylandWindowSettings& ws)
 
 	//create the popup role
 	wl_surface* parent {};
-	Vec2i position = ws.position;
-	if(nytl::allEqual(position, defaultPosition)) position = fallbackPosition;
+	nytl::Vec2i position = ws.position;
+	if(position == defaultPosition) position = fallbackPosition;
 	unsigned int serial {};
 
 	xdgPopupV5_ = xdg_shell_get_xdg_popup(appContext().xdgShellV5(), &wlSurface(), parent,
@@ -420,14 +411,14 @@ void WaylandWindowContext::maximize()
 void WaylandWindowContext::fullscreen()
 {
 	// TODO: which wayland output to choose here?
+	constexpr auto method = WL_SHELL_SURFACE_FULLSCREEN_METHOD_DEFAULT;
 
     if(wlShellSurface())
-	{
-		wl_shell_surface_set_fullscreen(wlShellSurface(),
-			WL_SHELL_SURFACE_FULLSCREEN_METHOD_DEFAULT, 0, nullptr);
-	}
-	else if(xdgSurfaceV5()) xdg_surface_set_fullscreen(xdgSurfaceV5_, nullptr);
-	else if(xdgToplevelV6()) zxdg_toplevel_v6_set_fullscreen(xdgSurfaceV6_.toplevel, nullptr);
+		wl_shell_surface_set_fullscreen(wlShellSurface(), method, 0, nullptr);
+	else if(xdgSurfaceV5())
+		xdg_surface_set_fullscreen(xdgSurfaceV5_, nullptr);
+	else if(xdgToplevelV6())
+		zxdg_toplevel_v6_set_fullscreen(xdgSurfaceV6_.toplevel, nullptr);
 }
 
 void WaylandWindowContext::minimize()
@@ -437,17 +428,12 @@ void WaylandWindowContext::minimize()
 }
 void WaylandWindowContext::normalState()
 {
-    if(wlShellSurface())
-	{
+    if(wlShellSurface()) {
 		wl_shell_surface_set_toplevel(wlShellSurface_);
-	}
-	else if(xdgSurfaceV5())
-	{
+	} else if(xdgSurfaceV5()) {
 		xdg_surface_unset_fullscreen(xdgSurfaceV5_);
 		xdg_surface_unset_maximized(xdgSurfaceV5_);
-	}
-	else if(xdgToplevelV6())
-	{
+	} else if(xdgToplevelV6()) {
 		zxdg_toplevel_v6_unset_fullscreen(xdgSurfaceV6_.toplevel);
 		zxdg_toplevel_v6_unset_maximized(xdgSurfaceV6_.toplevel);
 	}
@@ -505,8 +491,10 @@ xdg_popup* WaylandWindowContext::xdgPopupV5() const
 
 zxdg_surface_v6* WaylandWindowContext::xdgSurfaceV6() const
 {
-	using WSR = WaylandSurfaceRole;
-	return (role_ == WSR::xdgToplevelV6 || role_ == WSR::xdgPopupV6) ? xdgSurfaceV6_.surface : nullptr;
+	if(role_ == WaylandSurfaceRole::xdgToplevelV6 || role_ == WaylandSurfaceRole::xdgPopupV6)
+	 	return xdgSurfaceV6_.surface;
+
+	return nullptr;
 }
 
 zxdg_popup_v6* WaylandWindowContext::xdgPopupV6() const
@@ -527,21 +515,16 @@ wl_display& WaylandWindowContext::wlDisplay() const
 void WaylandWindowContext::attachCommit(wl_buffer* buffer)
 {
 	using WWC = WaylandWindowContext;
-	static constexpr wl_callback_listener frameListener = {
-		memberCallback<decltype(&WWC::handleFrameCallback),
-			&WWC::handleFrameCallback, void(wl_callback*, uint32_t)>
+	static constexpr wl_callback_listener frameListener {
+		memberCallback<decltype(&WWC::handleFrameCallback), &WWC::handleFrameCallback>
 	};
 
-	if(shown_)
-	{
+	if(shown_) {
 		frameCallback_ = wl_surface_frame(wlSurface_);
 		wl_callback_add_listener(frameCallback_, &frameListener, this);
-
 		wl_surface_damage(wlSurface_, 0, 0, size_.x, size_.y);
 		wl_surface_attach(wlSurface_, buffer, 0, 0);
-	}
-	else
-	{
+	} else {
 		wl_surface_attach(wlSurface_, nullptr, 0, 0);
 	}
 
@@ -553,29 +536,28 @@ Surface WaylandWindowContext::surface()
 	return {};
 }
 
-void WaylandWindowContext::handleFrameCallback()
+void WaylandWindowContext::handleFrameCallback(wl_callback*, uint32_t)
 {
-	if(frameCallback_)
-	{
+	if(frameCallback_) {
 		wl_callback_destroy(frameCallback_);
 		frameCallback_ = nullptr;
 	}
 
-	if(refreshFlag_)
-	{
+	if(refreshFlag_) {
 		refreshFlag_ = false;
 		listener().draw(nullptr);
 	}
 }
 
-void WaylandWindowContext::handleShellSurfacePing(unsigned int serial)
+void WaylandWindowContext::handleShellSurfacePing(wl_shell_surface*, uint32_t serial)
 {
     wl_shell_surface_pong(wlShellSurface(), serial);
 }
 
-void WaylandWindowContext::handleShellSurfaceConfigure(unsigned int edges, int width, int height)
+void WaylandWindowContext::handleShellSurfaceConfigure(wl_shell_surface*, uint32_t edges,
+	int32_t width, int32_t height)
 {
-	nytl::unused(edges);
+	nytl::unused(edges); // TODO
 
 	auto newSize = nytl::Vec2ui(width, height);
 	listener().resize(newSize, nullptr);
@@ -583,13 +565,13 @@ void WaylandWindowContext::handleShellSurfaceConfigure(unsigned int edges, int w
 	size(newSize);
 }
 
-void WaylandWindowContext::handleShellSurfacePopupDone()
+void WaylandWindowContext::handleShellSurfacePopupDone(wl_shell_surface*)
 {
 	//TODO
 }
 
-void WaylandWindowContext::handleXdgSurfaceV5Configure(int width, int height, wl_array* states,
-	unsigned int serial)
+void WaylandWindowContext::handleXdgSurfaceV5Configure(xdg_surface*, int32_t width, int32_t height,
+	wl_array* states, uint32_t serial)
 {
 	//TODO
 	if(!width || !height) return;
@@ -602,17 +584,17 @@ void WaylandWindowContext::handleXdgSurfaceV5Configure(int width, int height, wl
 	size(newSize);
 }
 
-void WaylandWindowContext::handleXdgSurfaceV5Close()
+void WaylandWindowContext::handleXdgSurfaceV5Close(xdg_surface*)
 {
 	listener().close(nullptr);
 }
 
-void WaylandWindowContext::handleXdgPopupV5Done()
+void WaylandWindowContext::handleXdgPopupV5Done(xdg_popup*)
 {
 	//TODO
 }
 
-void WaylandWindowContext::handleXdgSurfaceV6Configure(unsigned int serial)
+void WaylandWindowContext::handleXdgSurfaceV6Configure(zxdg_surface_v6*, uint32_t serial)
 {
 	xdgSurfaceV6_.configured = true;
 	zxdg_surface_v6_ack_configure(xdgSurfaceV6(), serial);
@@ -621,7 +603,8 @@ void WaylandWindowContext::handleXdgSurfaceV6Configure(unsigned int serial)
 	refreshFlag_ = false;
 }
 
-void WaylandWindowContext::handleXdgToplevelV6Configure(int width, int height, wl_array* states)
+void WaylandWindowContext::handleXdgToplevelV6Configure(zxdg_toplevel_v6*, int32_t width,
+	int32_t height, wl_array* states)
 {
 	//TODO
 	nytl::unused(states);
@@ -633,12 +616,13 @@ void WaylandWindowContext::handleXdgToplevelV6Configure(int width, int height, w
 	size(newSize);
 }
 
-void WaylandWindowContext::handleXdgToplevelV6Close()
+void WaylandWindowContext::handleXdgToplevelV6Close(zxdg_toplevel_v6*)
 {
 	listener().close(nullptr);
 }
 
-void WaylandWindowContext::handleXdgPopupV6Configure(int x, int y, int width, int height)
+void WaylandWindowContext::handleXdgPopupV6Configure(zxdg_popup_v6*, int32_t x, int32_t y,
+	int32_t width, int32_t height)
 {
 	//TODO
 	if(!width || !height) return;
@@ -650,7 +634,7 @@ void WaylandWindowContext::handleXdgPopupV6Configure(int x, int y, int width, in
 	size(newSize);
 }
 
-void WaylandWindowContext::handleXdgPopupV6Done()
+void WaylandWindowContext::handleXdgPopupV6Done(zxdg_popup_v6*)
 {
 	//TODO
 }

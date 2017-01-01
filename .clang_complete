@@ -7,5 +7,6 @@
 -Wno-pragma-once-outside-header
 -Wno-unused-const-variable
 -std=c++1z
+-Wall
 -Wextra
 -Wpedantic

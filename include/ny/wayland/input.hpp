@@ -22,7 +22,7 @@ public:
 	~WaylandMouseContext();
 
 	//MouseContext
-	Vec2ui position() const override { return position_; }
+	nytl::Vec2i position() const override { return position_; }
 	bool pressed(MouseButton button) const override;
 	WindowContext* over() const override;
 
@@ -43,7 +43,7 @@ public:
 protected:
 	WaylandAppContext& appContext_;
 	WaylandWindowContext* over_ {};
-	Vec2i position_;
+	nytl::Vec2i position_;
 	wl_pointer* wlPointer_ {};
 	std::bitset<8> buttonStates_;
 
@@ -53,15 +53,15 @@ protected:
 	unsigned int cursorSerial_ {};
 
 protected:
-	void handleEnter(unsigned int serial, wl_surface*, wl_fixed_t x, wl_fixed_t y);
-	void handleLeave(unsigned int serial, wl_surface*);
-	void handleMotion(unsigned int time, wl_fixed_t x, wl_fixed_t y);
-	void handleButton(unsigned int serial, unsigned int time, unsigned int button, bool pressed);
-	void handleAxis(unsigned int time, unsigned int axis, wl_fixed_t value);
-	void handleFrame();
-	void handleAxisSource(unsigned int source);
-	void handleAxisStop(unsigned int time, unsigned int axis);
-	void handleAxisDiscrete(unsigned int axis, int discrete);
+	void handleEnter(wl_pointer*, uint32_t serial, wl_surface*, wl_fixed_t x, wl_fixed_t y);
+	void handleLeave(wl_pointer*, uint32_t serial, wl_surface*);
+	void handleMotion(wl_pointer*, uint32_t time, wl_fixed_t x, wl_fixed_t y);
+	void handleButton(wl_pointer*, uint32_t s, uint32_t t, uint32_t button, uint32_t pressed);
+	void handleAxis(wl_pointer*, uint32_t time, uint32_t axis, wl_fixed_t value);
+	void handleFrame(wl_pointer*);
+	void handleAxisSource(wl_pointer*, uint32_t source);
+	void handleAxisStop(wl_pointer*, uint32_t time, uint32_t axis);
+	void handleAxisDiscrete(wl_pointer*, uint32_t axis, int32_t discrete);
 };
 
 
@@ -95,12 +95,12 @@ protected:
 	int repeatDelay_ {};
 
 protected:
-    void handleKeymap(unsigned int format, int fd, unsigned int size);
-    void handleEnter(unsigned int serial, wl_surface* surface, wl_array* keys);
-    void handleLeave(unsigned int serial, wl_surface* surface);
-    void handleKey(unsigned int serial, unsigned int time, unsigned int key, bool pressed);
-    void handleModifiers(unsigned int, unsigned int, unsigned int, unsigned int, unsigned int);
-	void handleRepeatInfo(int rate, int delay);
+    void handleKeymap(wl_keyboard*, uint32_t format, int32_t fd, uint32_t size);
+    void handleEnter(wl_keyboard*, uint32_t serial, wl_surface* surface, wl_array* keys);
+    void handleLeave(wl_keyboard*, uint32_t serial, wl_surface* surface);
+    void handleKey(wl_keyboard*, uint32_t serial, uint32_t time, uint32_t key, uint32_t pressed);
+    void handleModifiers(wl_keyboard*, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
+	void handleRepeatInfo(wl_keyboard*, int32_t rate, int32_t delay);
 };
 
 }
