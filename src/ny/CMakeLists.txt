@@ -16,8 +16,7 @@ set(ny_src
 	key.cpp
 	mouseButton.cpp
 	backend.cpp
-	library.cpp
-	windowListener.cpp)
+	library.cpp)
 
 # =======================================================================================
 # Winapi backend

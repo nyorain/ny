@@ -139,22 +139,23 @@ std::vector<uint8_t> unwrap(std::any any, const DataFormat& format);
 bool match(const DataFormat& dataFormat, nytl::StringParam formatName);
 bool match(const DataFormat& a, const DataFormat& b);
 
-// TODO: for additional parameter (e.g. charset) parsing?
-// TODO: text/plain might have other charsets then utf8 that should be handled as well...
+// TODO: with additional parameter (e.g. charset) parsing?
+// text/plain might have other charsets then utf8 that should be handled as well...
 // std::any wrap(nytl::Span<uint8_t> rawBuffer, nytl::StringParam formatName);
 // std::vector<uint8_t> unwrap(const std::any& any, nytl::StringParam formatName);
 
 } // namespace ny
 
 // hash specialization for ny::DataFormat
-namespace std
-{
-	template<>
-	struct hash<ny::DataFormat> {
-		auto operator()(const ny::DataFormat& format) const noexcept
-		{
-			std::hash<std::string> hasher;
-			return hasher(format.name);
-		}
-	};
-}
+namespace std {
+
+template<>
+struct hash<ny::DataFormat> {
+	auto operator()(const ny::DataFormat& format) const noexcept
+	{
+		static const std::hash<std::string> hasher;
+		return hasher(format.name);
+	}
+};
+
+} // namespace std

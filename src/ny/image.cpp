@@ -47,7 +47,6 @@ unsigned int pixelBit(const Image& image, nytl::Vec2ui pos)
 	return image.stride * pos.y + bitSize(image.format) * pos.x;
 }
 
-// TODO: find an actual big endian machine to test this on
 nytl::Vec4u64 readPixel(const uint8_t& pixel, const ImageFormat& format, unsigned int bitOffset)
 {
 	const uint8_t* iter = &pixel;
@@ -58,23 +57,21 @@ nytl::Vec4u64 readPixel(const uint8_t& pixel, const ImageFormat& format, unsigne
 		auto channel = (littleEndian()) ? format[format.size() - (i + 1)] : format[i];
 		if(!channel.second) continue;
 
-		// calculate the byte count we have to load at all for this channel
-		unsigned int byteCount = std::ceil(channel.second / 8.0);
-
 		uint64_t* val {};
 		switch(channel.first) {
 			case ColorChannel::red: val = &rgba[0]; break;
 			case ColorChannel::green: val = &rgba[1]; break;
 			case ColorChannel::blue: val = &rgba[2]; break;
 			case ColorChannel::alpha: val = &rgba[3]; break;
-			case ColorChannel::none: iter += byteCount; continue; //TODO: handle bitOffset
+			case ColorChannel::none:
+				iter += (bitOffset + channel.second) / 8;
+				bitOffset = (bitOffset + channel.second) % 8;
+				continue;
 		}
-
-		// reset the color value
-		*val = {};
 
 		// the bitset should store least significant bits/bytes (with data) first
 		std::bitset<64> bitset {};
+		*val = {};
 
 		// we simply iterate over all bytes/bits and copy them into the bitset
 		// we have to respect byte endianess here
@@ -143,9 +140,6 @@ void writePixel(uint8_t& pixel, const ImageFormat& format, nytl::Vec4u64 color,
 		// for little endian channel order is inversed
 		auto channel = (littleEndian()) ? format[format.size() - (i + 1)] : format[i];
 		if(!channel.second) continue;
-
-		// calculate the byte count we have to load at all for this channel
-		unsigned int byteCount = std::ceil(channel.second / 8.0);
 		std::bitset<64> bitset;
 
 		switch(channel.first) {
@@ -153,7 +147,10 @@ void writePixel(uint8_t& pixel, const ImageFormat& format, nytl::Vec4u64 color,
 			case ColorChannel::green: bitset = color[1]; break;
 			case ColorChannel::blue: bitset = color[2]; break;
 			case ColorChannel::alpha: bitset = color[3]; break;
-			case ColorChannel::none: iter += byteCount; continue; //TODO: handle bitOffset
+			case ColorChannel::none:
+				iter += (bitOffset + channel.second) / 8;
+				bitOffset = (bitOffset + channel.second) % 8;
+				continue;
 		}
 
 		// this is exactly like readPixel but in the opposite direction

@@ -313,9 +313,9 @@ std::string WinapiErrorCategory::message(int code) const
 	return errorMessage(code);
 }
 
-//The ugly hack our all lives depend on. You have found it. Congratulations!
-//Srsly, this is done this way because we rely on windows treating wchar_t strings
-//as utf16 strings. Strangely u16string is not the same as wstring.
+// The ugly hack our all lives depend on. You have found it. Congratulations!
+// Srsly, this is done this way because we rely on windows treating wchar_t strings
+// as utf16 strings. Strangely u16string is not the same as wstring on windows (mingw).
 std::wstring widen(const std::string& string)
 {
 	auto str16 = nytl::toUtf16(string);
@@ -328,53 +328,12 @@ std::string narrow(const std::wstring& string)
 	return nytl::toUtf8(str16);
 }
 
-namespace winapi
-{
+namespace winapi {
 
 std::error_code lastErrorCode()
 {
 	return {static_cast<int>(::GetLastError()), EC::instance()};
 }
-
-//TODO!
-// HBITMAP toBitmap(const ImageData& img)
-// {
-// 	auto stride = img.stride;
-// 	if(!stride) stride = img.size.x * 4;
-//
-// 	auto hdc = ::GetDC(nullptr);
-// 	auto hdcGuard = nytl::makeScopeGuard([&]{ ::ReleaseDC(nullptr, hdc); });
-//
-// 	using BIH = BITMAPINFOHEADER;
-// 	static constexpr auto size = sizeof(BIH) + 4 * sizeof(DWORD);
-// 	std::aligned_storage<1, alignof(BIH)>::type header[size];
-//
-// 	auto& info = reinterpret_cast<BITMAPINFO&>(header);
-// 	info.bmiHeader = toBitmapHeader(img);
-//
-// 	//rgba[a]
-// 	auto* table = reinterpret_cast<DWORD*>(header + sizeof(BIH));
-// 	table[0] = 0xFF000000;
-// 	table[1] = 0x00FF0000;
-// 	table[2] = 0x0000FF00;
-// 	table[3] = 0x000000FF;
-//
-// 	void* bitmapData {};
-// 	// auto bitmap = ::CreateDIBSection(hdc, &info, DIB_RGB_COLORS, &bitmapData, nullptr, 0);
-//
-// 	auto data = img.data;
-// 	OwnedImageData ownedImage;
-// 	if(img.format != ImageDataFormat::argb8888)
-// 	{
-// 		ownedImage = convertFormat(img, ImageDataFormat::argb8888);
-// 		data = ownedImage.data.get();
-// 		stride = img.size.x * 4;
-// 	}
-//
-// 	// std::memcpy(bitmapData, data, img.size.y * stride);
-// 	auto bitmap = ::CreateBitmap(img.size.x, img.size.y, 1, 32, img.data);
-// 	return bitmap;
-// }
 
 HBITMAP toBitmap(const Image& img)
 {
@@ -409,8 +368,7 @@ UniqueImage toImage(HBITMAP hbitmap)
 	::BITMAPINFO bminfo {};
 	bminfo.bmiHeader.biSize = sizeof(bminfo.bmiHeader);
 
-	if(!::GetDIBits(hdc, hbitmap, 0, 0, nullptr, &bminfo, DIB_RGB_COLORS))
-	{
+	if(!::GetDIBits(hdc, hbitmap, 0, 0, nullptr, &bminfo, DIB_RGB_COLORS)) {
 		warning("ny::winapi::toImageData(HBITMAP): GetDiBits:1 failed");
 		return {};
 	}
@@ -425,8 +383,7 @@ UniqueImage toImage(HBITMAP hbitmap)
 	bminfo.bmiHeader.biCompression = BI_RGB;
 	bminfo.bmiHeader.biHeight = height;
 
-	if(!::GetDIBits(hdc, hbitmap, 0, height, buffer.get(), &bminfo, DIB_RGB_COLORS))
-	{
+	if(!::GetDIBits(hdc, hbitmap, 0, height, buffer.get(), &bminfo, DIB_RGB_COLORS)) {
 		warning("ny::winapi::toImageData(HBITMAP): GetDiBits:2 failed");
 		return {};
 	}
@@ -440,6 +397,5 @@ UniqueImage toImage(HBITMAP hbitmap)
 	return ret;
 }
 
-}
-
-}
+} // namespace winapi
+} // namespace ny

@@ -4,15 +4,15 @@
 
 - clean up the namespace/prefix mess (e.g. wayland::EventData vs WaylandEventData)
 	- should be uniform across backends
-- better WindowListener functions
-	- use event structures!
-	- keyboard modifier, state
-	- mouse move delta
-	- time
+- improve KeyEvent/KeyboardListener with active keyboard modifiers, state
 
 ### later; general; rework needed
 
+- C++17 update:
+	- use extended aggregate initialization for Event class
 - DataOffer: methods const? they do not change the state of the object (interface)
+	- also: really pass it as unique ptr in WindowListener::drop
+		- why not simply non-const pointer, from this can be moved as well?!
 - new image formats, such as hsl, yuv since they might be supported by some backends?
 	- needs image format rework
 	- (mainly wayland)
@@ -36,6 +36,9 @@
 	- which event should contain the utf8 member set?
 - AppContext settings
 	- esp. useful wayland/x11 for app name
+	- could also be used for different logger (ny/log.hpp) initializations
+		- e.g. something like a --log or --verbose flag for ny itself
+		- program arguments passed with AppContextSettings
 - default windowContext surface to use bufferSurface?
 	- defaults window tear or show undefined content (bad, not sane default?)
 	- most applications want to draw in some way
@@ -64,6 +67,7 @@ further improvements:
 =============
 
 - testing! add general tests for all features
+	- test image functions on big endian machine
 - documentation
 	- operation
 	- dataExchange fix
@@ -124,7 +128,7 @@ winapi backend:
 - rethink WinapiWindowContext::cursor implementation.
 - Set a cursor when moving the window (beginMove)? windows 10 does not do it
 - initial mouse focus (see KeyboardContext handler inconsistency)
-- better documentation about layered window, make it optional. Move it out of the source.
+- better documentation about layered window, make it optional. Move doc out of the source.
 - dnd/clipboard improvements
 	- think about WM_CLIPBOARDUPDATE
 	- remove clibboardOffer_ from AppContext
@@ -136,5 +140,4 @@ winapi backend:
 - does it really make sense to store the WindowContext as user window longptr?
 	- cannot differentiate to windows created not by ny
 - com: correct refadd/release? check with destructor log!
-- com: only need one DropSource/Target helper?
 - WC: cursor and icon: respect/handle/take care of system metrics

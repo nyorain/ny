@@ -35,11 +35,8 @@
 #include <condition_variable>
 #include <queue>
 
-namespace ny
-{
-
-namespace
-{
+namespace ny {
+namespace {
 
 //LoopControl
 class WinapiLoopImpl : public ny::LoopInterfaceGuard
@@ -92,7 +89,7 @@ public:
 	}
 };
 
-}
+} // anonymous util namespace
 
 struct WinapiAppContext::Impl
 {
@@ -103,10 +100,10 @@ struct WinapiAppContext::Impl
 };
 
 // TODO
-std::thread dndThread;
-std::mutex dndMutex;
-std::condition_variable dndCond;
-std::unique_ptr<DataSource> dndSource;
+// std::thread dndThread;
+// std::mutex dndMutex;
+// std::condition_variable dndCond;
+// std::unique_ptr<DataSource> dndSource;
 
 //winapi callbacks
 LRESULT CALLBACK WinapiAppContext::wndProcCallback(HWND a, UINT b, WPARAM c, LPARAM d)
@@ -129,11 +126,11 @@ WinapiAppContext::WinapiAppContext() : mouseContext_(*this), keyboardContext_(*t
 	impl_ = std::make_unique<Impl>();
 	instance_ = ::GetModuleHandle(nullptr);
 
-	//needed for dnd and clipboard
+	// needed for dnd and clipboard
 	auto res = ::OleInitialize(nullptr);
 	if(res != S_OK) warning("ny::WinapiAppContext: OleInitialize failed with code ", res);
 
-	//init dummy window (needed as clipboard viewer)
+	// init dummy window (needed as clipboard viewer and opengl dummy window)
 	dummyWindow_ = ::CreateWindow(L"STATIC", L"", WS_DISABLED, 0, 0, 10, 10, nullptr, nullptr,
 		hinstance(), nullptr);
 
@@ -144,37 +141,37 @@ WinapiAppContext::WinapiAppContext() : mouseContext_(*this), keyboardContext_(*t
 	//anyways everytime clipboard() is called.
 	//But this can free the old clipboard DataOffer object as soon as the clipboard
 	//changes and create the new one.
-	auto lib = ::LoadLibrary(L"User32.dll");
-	if(lib)
-	{
-		auto func = ::GetProcAddress(lib, "AddClipboardFormatListener");
-		if(!func) warning("ny::WinapiAppContext: Failed to retrieve AddClipboardFormatListener");
-		else (reinterpret_cast<BOOL(*)(HWND)>(func))(dummyWindow_);
-		::FreeLibrary(lib);
-	}
 
-    // TODO: test
-    auto t1 = ::GetCurrentThreadId();
-    dndThread = std::thread([=](){
-        ::OleInitialize(nullptr);
-        auto t2 = ::GetCurrentThreadId();
-        ::AttachThreadInput(t2, t1, true);
+	// auto lib = ::LoadLibrary(L"User32.dll");
+	// if(lib) {
+	// 	auto func = ::GetProcAddress(lib, "AddClipboardFormatListener");
+	// 	if(!func) warning("ny::WinapiAppContext: Failed to retrieve AddClipboardFormatListener");
+	// 	else (reinterpret_cast<BOOL(*)(HWND)>(func))(dummyWindow_);
+	// 	::FreeLibrary(lib);
+	// }
 
-        std::unique_lock<std::mutex> lock(dndMutex);
-        while(true) {
-            dndCond.wait(lock);
-
-            if(dndSource) {
-            	auto dataObj = new winapi::com::DataObjectImpl(std::move(dndSource));
-            	auto dropSource = new winapi::com::DropSourceImpl();
-
-            	DWORD effect;
-                log("DoDragDrop start");
-            	auto ret = ::DoDragDrop(dataObj, dropSource, DROPEFFECT_COPY, &effect);
-                log("DoDragDrop: ", (unsigned int)ret);
-            }
-        }
-    });
+    // TODO: correctly implement
+    // auto t1 = ::GetCurrentThreadId();
+    // dndThread = std::thread([=](){
+    //     ::OleInitialize(nullptr);
+    //     auto t2 = ::GetCurrentThreadId();
+    //     ::AttachThreadInput(t2, t1, true);
+    //
+    //     std::unique_lock<std::mutex> lock(dndMutex);
+    //     while(true) {
+    //         dndCond.wait(lock);
+    //
+    //         if(dndSource) {
+    //         	auto dataObj = new winapi::com::DataObjectImpl(std::move(dndSource));
+    //         	auto dropSource = new winapi::com::DropSourceImpl();
+    //
+    //         	DWORD effect;
+    //             log("DoDragDrop start");
+    //         	auto ret = ::DoDragDrop(dataObj, dropSource, DROPEFFECT_COPY, &effect);
+    //             log("DoDragDrop: ", (unsigned int)ret);
+    //         }
+    //     }
+    // });
 }
 
 WinapiAppContext::~WinapiAppContext()
@@ -191,8 +188,7 @@ std::unique_ptr<WindowContext> WinapiAppContext::createWindowContext(const Windo
 	if(ws) winapiSettings = *ws;
 	else winapiSettings.WindowSettings::operator=(settings);
 
-	if(settings.surface == SurfaceType::vulkan)
-	{
+	if(settings.surface == SurfaceType::vulkan) {
 		#ifdef NY_WithVulkan
 			return std::make_unique<WinapiVulkanWindowContext>(*this, winapiSettings);
 		#else
@@ -201,9 +197,7 @@ std::unique_ptr<WindowContext> WinapiAppContext::createWindowContext(const Windo
 
 			 throw std::logic_error(noVulkan);
 		#endif //vulkan
-	}
-	else if(settings.surface == SurfaceType::gl)
-	{
+	} else if(settings.surface == SurfaceType::gl) {
 		#ifdef NY_WithGl
 			static constexpr auto wglFailed = "ny::WinapiAppContext::createWindowContext: "
 				"initializing wgl failed, therefore no gl surfaces can be created";
@@ -216,9 +210,7 @@ std::unique_ptr<WindowContext> WinapiAppContext::createWindowContext(const Windo
 
 			throw std::logic_error(noWgl);
 		#endif //gl
-	}
-	else if(settings.surface == SurfaceType::buffer)
-	{
+	} else if(settings.surface == SurfaceType::buffer) {
 		return std::make_unique<WinapiBufferWindowContext>(*this, winapiSettings);
 	}
 
@@ -253,18 +245,14 @@ bool WinapiAppContext::dispatchLoop(LoopControl& control)
 	WinapiLoopImpl loopImpl(control);
 
 	MSG msg;
-	while(!receivedQuit_ && loopImpl.run.load())
-	{
+	while(!receivedQuit_ && loopImpl.run.load()) {
 		while(auto func = loopImpl.popFunction()) func();
 
 		auto ret = ::GetMessage(&msg, nullptr, 0, 0);
-		if(ret == -1)
-		{
+		if(ret == -1) {
 			warning(errorMessage("ny::WinapiAppContext::dispatchLoop: GetMessage error"));
 			return false;
-		}
-		else
-		{
+		} else {
 			::DispatchMessage(&msg);
 		}
 	}
@@ -277,9 +265,9 @@ bool WinapiAppContext::clipboard(std::unique_ptr<DataSource>&& source)
 {
 	//OleSetClipboard
 	winapi::com::DataObjectImpl* dataObj {};
-	try { dataObj = new winapi::com::DataObjectImpl(std::move(source)); }
-	catch(const std::exception& err)
-	{
+	try {
+        dataObj = new winapi::com::DataObjectImpl(std::move(source));
+    } catch(const std::exception& err) {
 		warning("ny::WinapiAppContext::clipboard(set): DataObject failed: ", err.what());
 		return false;
 	}
@@ -294,14 +282,13 @@ bool WinapiAppContext::clipboard(std::unique_ptr<DataSource>&& source)
 DataOffer* WinapiAppContext::clipboard()
 {
 	auto seq = ::GetClipboardSequenceNumber();
-	if(!clipboardOffer_ || seq > clipboardSequenceNumber_)
-	{
+	if(!clipboardOffer_ || seq > clipboardSequenceNumber_) {
 		clipboardOffer_ = nullptr;
 		clipboardSequenceNumber_ = seq;
 
 		IDataObject* obj;
 		::OleGetClipboard(&obj);
-		if(obj) clipboardOffer_ = std::make_unique<winapi::DataOfferImpl>(*obj);
+		if(obj) clipboardOffer_ = std::make_unique<WinapiDataOffer>(*obj);
 	}
 
 	return clipboardOffer_.get();
@@ -312,51 +299,19 @@ bool WinapiAppContext::startDragDrop(std::unique_ptr<DataSource>&& source)
     //TODO: make non blocking
     //TODO: catch dataObject constructor exception
 
-    // POINT p;
-    // GetCursorPos(&p);
-    // auto t1 = ::GetCurrentThreadId();
-    //
-    // auto thread = std::thread([&, src = std::move(source)]() mutable {
-    //     ::OleInitialize(nullptr);
-    //     auto t2 = ::GetCurrentThreadId();
-    //     ::AttachThreadInput(t2, t1, true);
-    //
-    // 	auto dataObj = new winapi::com::DataObjectImpl(std::move(src));
-    // 	auto dropSource = new winapi::com::DropSourceImpl();
-    //
-    //
-	//     // auto dummy = ::CreateWindow(L"STATIC", L"", WS_POPUP, p.x - 10, p.y - 10, 15, 15,
-    //     //     nullptr, nullptr, hinstance(), nullptr);
-    //     // ShowWindowAsync(dummy, SW_SHOW);
-    //     // UpdateWindow(dummy);
-    //
-    //     // auto win = WindowFromPoint(p);
-    //     // log(win);
-    //     // log(dummy);
-    //
-    //     // SendMessage(dummy, WM_MOUSEMOVE, 0, 10 << 16 | 10);
-    //     // SendMessage(dummy, WM_LBUTTONDOWN, 0, 10 << 16 | 10);
-    //
-    //
-    //     // ::CoUninitialize();
-    //     // ::DestroyWindow(dummy);
-    // });
-    //
-    // thread.join();
-    // thread.detach();
-
-    dndCond.notify_one();
-    dndSource = std::move(source);
-    return true;
+    // TODO
+    // dndCond.notify_one();
+    // dndSource = std::move(source);
+    // return true;
 
     //
 
-	// auto dataObj = new winapi::com::DataObjectImpl(std::move(source));
-	// auto dropSource = new winapi::com::DropSourceImpl();
-    //
-	// DWORD effect;
-	// auto ret = ::DoDragDrop(dataObj, dropSource, DROPEFFECT_COPY, &effect);
-	// return (ret == S_OK || ret == DRAGDROP_S_DROP || ret == DRAGDROP_S_CANCEL);
+	auto dataObj = new winapi::com::DataObjectImpl(std::move(source));
+	auto dropSource = new winapi::com::DropSourceImpl();
+
+	DWORD effect;
+	auto ret = ::DoDragDrop(dataObj, dropSource, DROPEFFECT_COPY, &effect);
+	return (ret == S_OK || ret == DRAGDROP_S_DROP || ret == DRAGDROP_S_CANCEL);
 }
 
 WinapiWindowContext* WinapiAppContext::windowContext(HWND w)
@@ -379,46 +334,41 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 
 	LRESULT result = 0;
 
-	switch(message)
-	{
-		case WM_PAINT:
-		{
-			if(wc) wc->listener().draw(&eventData);
-			result = ::DefWindowProc(window, message, wparam, lparam); //to validate the window
+	if(!wc) return ::DefWindowProc(window, message, wparam, lparam);
+
+	switch(message) {
+		case WM_PAINT: {
+            DrawEvent de;
+            de.eventData = &eventData;
+			wc->listener().draw(de);
+			result = ::DefWindowProc(window, message, wparam, lparam); // to validate the window
 			break;
 		}
 
-		case WM_DESTROY:
-		{
-			if(wc) wc->listener().close(&eventData);
+		case WM_DESTROY: {
+            CloseEvent ce;
+            ce.eventData = &eventData;
+			wc->listener().close(ce);
 			break;
 		}
 
-		case WM_SIZE:
-		{
-			nytl::Vec2ui size(LOWORD(lparam), HIWORD(lparam));
-			if(wc) wc->listener().resize(size, &eventData);
+		case WM_SIZE: {
+            SizeEvent se;
+            se.eventData = &eventData;
+            se.size = nytl::Vec2ui(LOWORD(lparam), HIWORD(lparam));
+            se.edges = WindowEdge::none;
+			wc->listener().resize(se);
 			break;
 		}
 
-		case WM_MOVE:
-		{
-			nytl::Vec2i position(LOWORD(lparam), HIWORD(lparam));
-			if(wc) wc->listener().position(position, &eventData);
-			break;
-		}
-
-		case WM_SYSCOMMAND:
-		{
-			if(wc)
-			{
+		case WM_SYSCOMMAND: {
+			if(wc) {
 				ToplevelState state;
 
 				if(wparam == SC_MAXIMIZE) state = ToplevelState::maximized;
 				else if(wparam == SC_MINIMIZE) state = ToplevelState::minimized;
 				else if(wparam == SC_RESTORE) state = ToplevelState::normal;
-                else if(wparam >= SC_SIZE && wparam <= SC_SIZE + 8)
-                {
+                else if(wparam >= SC_SIZE && wparam <= SC_SIZE + 8) {
                     auto currentCursor = ::GetClassLongPtr(wc->handle(), -12);
 
                     auto edge = winapiToEdges(wparam - SC_SIZE);
@@ -431,18 +381,19 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
                     break;
                 }
 
-				//TODO: shown parameter? check WS_VISIBLE?
-				wc->listener().state(true, state, &eventData);
+                StateEvent se;
+                se.eventData = &eventData;
+                se.state = state;
+                se.shown = IsWindowVisible(window);
+				wc->listener().state(se);
 			}
 
 			result = ::DefWindowProc(window, message, wparam, lparam);
 			break;
 		}
 
-		case WM_GETMINMAXINFO:
-		{
-			if(wc)
-			{
+		case WM_GETMINMAXINFO: {
+			if(wc) {
 				::MINMAXINFO* mmi = reinterpret_cast<MINMAXINFO*>(lparam);
 				mmi->ptMaxTrackSize.x = wc->maxSize().x;
 				mmi->ptMaxTrackSize.y = wc->maxSize().y;
@@ -453,34 +404,35 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 			break;
 		}
 
-		case WM_ERASEBKGND:
-		{
-			//prevent the background erase
+		case WM_ERASEBKGND: {
+			// prevent the background erase
 			result = 1;
 			break;
 		}
 
 		//XXX: needed?
-		case WM_CLIPBOARDUPDATE:
-		{
-			clipboardSequenceNumber_ = ::GetClipboardSequenceNumber();
-			clipboardOffer_.reset();
+		// case WM_CLIPBOARDUPDATE: {
+		// 	clipboardSequenceNumber_ = ::GetClipboardSequenceNumber();
+		// 	clipboardOffer_.reset();
+        //
+		// 	IDataObject* obj;
+		// 	::OleGetClipboard(&obj);
+		// 	if(obj) clipboardOffer_ = std::make_unique<winapi::DataOfferImpl>(*obj);
+		// 	break;
+		// }
 
-			IDataObject* obj;
-			::OleGetClipboard(&obj);
-			if(obj) clipboardOffer_ = std::make_unique<winapi::DataOfferImpl>(*obj);
-			break;
-		}
+		// case WM_MOVE: {
+		// 	nytl::Vec2i position(LOWORD(lparam), HIWORD(lparam));
+		// 	if(wc) wc->listener().position(position, &eventData);
+		// 	break;
+		// }
 
-		case WM_QUIT:
-		{
+		case WM_QUIT: {
 			receivedQuit_ = 1;
 			break;
 		}
 
-		default:
-		{
-			//process mouse/keyboard events
+		default: {
 			if(keyboardContext_.processEvent(eventData, result)) break;
 			if(mouseContext_.processEvent(eventData, result)) break;
 
@@ -515,11 +467,10 @@ WglSetup* WinapiAppContext::wglSetup() const
 	#ifdef NY_WithGl
 		if(impl_->wglFailed) return nullptr;
 
-		if(!impl_->wglSetup.valid())
-		{
-			try { impl_->wglSetup = {dummyWindow_}; }
-			catch(const std::exception& error)
-			{
+		if(!impl_->wglSetup.valid()) {
+			try {
+                impl_->wglSetup = {dummyWindow_};
+            } catch(const std::exception& error) {
 				warning("ny::WinapiAppContext::wglSetup: init failed: ", error.what());
 				impl_->wglFailed = true;
 				impl_->wglSetup = {};

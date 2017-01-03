@@ -11,8 +11,7 @@
 	#error ny was built without winapi. Do not include this header.
 #endif
 
-namespace ny
-{
+namespace ny {
 	class WinapiWindowContext;
 	class WinapiAppContext;
 	class WinapiBufferSurface;
@@ -22,16 +21,11 @@ namespace ny
 	class WinapiVulkanWindowContext;
 	class WinapiBufferWindowContext;
 	class WinapiEventData;
+	class WinapiDataOffer;
 
-	namespace winapi
-	{
-		namespace com
-		{
-			class DropTargetImpl;
-			class DropSourceImpl;
-			class DataObjectImpl;
-		}
-
-		class DataOfferImpl;
+	namespace winapi::com {
+		class DropTargetImpl;
+		class DropSourceImpl;
+		class DataObjectImpl;
 	}
 }

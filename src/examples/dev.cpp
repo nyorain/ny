@@ -5,8 +5,7 @@
 
 //Our CustomDataSource implementation that will be used if we want to provide data of different
 //types to the backend, e.g. for the clipboard or dnd (drag-and-drop) operations.
-class CustomDataSource : public ny::DataSource
-{
+class CustomDataSource : public ny::DataSource {
 public:
 	CustomDataSource();
 
@@ -22,14 +21,12 @@ private:
 bool handleDataOffer(ny::DataOffer& dataOffer)
 {
 	auto formatsRequest = dataOffer.formats();
-	if(!formatsRequest)
-	{
+	if(!formatsRequest) {
 		ny::warning("could not retrieve formats request");
 		return true;
 	}
 
-	if(!formatsRequest->wait())
-	{
+	if(!formatsRequest->wait()) {
 		ny::warning("AppContext broke while waiting for formats! Exiting.");
 		return false;
 	}
@@ -37,55 +34,42 @@ bool handleDataOffer(ny::DataOffer& dataOffer)
 	auto formats = formatsRequest->get();
 
 	ny::DataFormat dataFormat {};
-	for(const auto& fmt : formats)
-	{
+	for(const auto& fmt : formats) {
 		ny::log("clipboard type ", fmt.name);
-
-		if(fmt == ny::DataFormat::text)
-		{
+		if(fmt == ny::DataFormat::text) {
 			dataFormat = fmt;
 			break;
-		}
-
-		if(fmt == ny::DataFormat::uriList && dataFormat == ny::DataFormat::none)
-		{
+		} else if(fmt == ny::DataFormat::uriList && dataFormat == ny::DataFormat::none) {
 			dataFormat = fmt;
 		}
 	}
 
-	if(dataFormat == ny::DataFormat::none)
-	{
+	if(dataFormat == ny::DataFormat::none) {
 		ny::log("no supported clipboard format!");
 		return true;
 	}
 
 	// trying to retrieve the data in text form and outputting it if successful
 	auto dataRequest = dataOffer.data(dataFormat);
-	if(!dataRequest)
-	{
+	if(!dataRequest) {
 		ny::warning("could not retrieve data request");
 		return true;
 	}
 
-	if(!dataRequest->wait())
-	{
+	if(!dataRequest->wait()) {
 		ny::warning("AppContext broke while waiting for data! Exiting.");
 		return false;
 	}
 
 	auto data = dataRequest->get();
-	if(!data.has_value())
-	{
+	if(!data.has_value()) {
 		ny::warning("invalid text clipboard data offer");
 		return true;
 	}
 
-	if(dataFormat == ny::DataFormat::text)
-	{
+	if(dataFormat == ny::DataFormat::text) {
 		ny::log("Received offer text data: ", std::any_cast<const std::string&>(data));
-	}
-	else if(dataFormat == ny::DataFormat::uriList)
-	{
+	} else if(dataFormat == ny::DataFormat::uriList) {
 		auto uriList = std::any_cast<const std::vector<std::string>&>(data);
 		for(auto& uri : uriList) ny::log("Received offer uri: ", uri);
 	}
@@ -93,8 +77,7 @@ bool handleDataOffer(ny::DataOffer& dataOffer)
 	return true;
 }
 
-class MyWindowListener : public ny::WindowListener
-{
+class MyWindowListener : public ny::WindowListener {
 public:
 	ny::AppContext* ac;
 	ny::WindowContext* wc;
@@ -102,13 +85,13 @@ public:
 	ny::BufferSurface* surface {};
 
 public:
-	void close(const ny::EventData*) override
+	void close(const ny::CloseEvent&) override
 	{
 		ny::log("Recevied closed event. Exiting");
 		lc->stop();
 	}
 
-	void draw(const ny::EventData*) override
+	void draw(const ny::DrawEvent&) override
 	{
 		if(!surface) return;
 
@@ -118,42 +101,34 @@ public:
 		std::memset(buffer.data, 0xCC, size);
 	}
 
-	void mouseButton(bool pressed, ny::MouseButton button, const ny::EventData* data) override
+	void mouseButton(const ny::MouseButtonEvent& ev) override
 	{
-		nytl::unused(button);
-		if(!pressed) return;
+		if(!ev.pressed) return;
 
 		// initiate a dnd operation with the CustomDataSource
-		auto pos = ac->mouseContext()->position();
-		if(pos.x < 100 && pos.y < 100)
-		{
+		auto pos = ev.position;
+		if(pos.x < 100 && pos.y < 100) {
 			auto src = std::make_unique<CustomDataSource>();
 			auto ret = ac->startDragDrop(std::move(src));
 			ny::log("Starting a dnd operation: ", ret);
-		}
-		else if(pos.x > 400 && pos.y > 400)
-		{
-			wc->beginResize(data, ny::WindowEdge::bottomRight);
-		}
-		else
-		{
-			wc->beginMove(data);
+		} else if(pos.x > 400 && pos.y > 400) {
+			wc->beginResize(ev.eventData, ny::WindowEdge::bottomRight);
+		} else {
+			wc->beginMove(ev.eventData);
 		}
 	}
 
-	void mouseWheel(float value, const ny::EventData*) override
+	void mouseWheel(const ny::MouseWheelEvent& ev) override
 	{
-		ny::log("Mouse Wheel rotated: value=", value);
+		ny::log("Mouse Wheel rotated: value=", ev.value);
 	}
 
-	ny::DataFormat dndMove(nytl::Vec2i pos, ny::DataOffer& offer,
-		const ny::EventData*) override
+	ny::DataFormat dndMove(const ny::DndMoveEvent& ev)
 	{
-		if(pos.x > 100 && pos.y > 100 && pos.x < 700 && pos.y < 400)
-		{
-			auto formatsReq = offer.formats();
-			if(!formatsReq->wait())
-			{
+		auto pos = ev.position;
+		if(pos.x > 100 && pos.y > 100 && pos.x < 700 && pos.y < 400) {
+			auto formatsReq = ev.offer->formats();
+			if(!formatsReq->wait()) {
 				ny::warning("AppContext broke while waiting for formats! Exiting.");
 				lc->stop();
 				return ny::DataFormat::none;
@@ -168,34 +143,26 @@ public:
 		return ny::DataFormat::none;
 	}
 
-	void dndDrop(nytl::Vec2i pos, ny::DataOfferPtr offer, const ny::EventData*) override
+	void dndDrop(const ny::DndDropEvent& ev) override
 	{
-		nytl::unused(pos);
-
-		ny::log("offer event received");
-		if(!handleDataOffer(*offer))
+		if(!handleDataOffer(*ev.offer))
 			lc->stop();
 	}
 
-	void key(bool pressed, ny::Keycode keycode, const std::string& utf8,
-		const ny::EventData*) override
+	void key(const ny::KeyEvent& ev) override
 	{
-		nytl::unused(utf8);
-		if(!pressed) return;
+		if(!ev.pressed) return;
 
-		if(keycode == ny::Keycode::escape)
-		{
+		if(ev.keycode == ny::Keycode::escape) {
 			ny::log("Escape pressed, exiting");
 			lc->stop();
 			return;
-		}
-		if(keycode == ny::Keycode::c)
-		{
+		} else if(ev.keycode == ny::Keycode::c) {
 			ny::log("setting clipboard... ");
 			if(ac->clipboard(std::make_unique<CustomDataSource>())) ny::log("\tsuccesful!");
 			else ny::log("\tunsuccesful");
 		}
-		if(keycode == ny::Keycode::v)
+		if(ev.keycode == ny::Keycode::v)
 		{
 			ny::log("reading clipboard... ");
 			auto dataOffer = ac->clipboard();

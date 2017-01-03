@@ -38,29 +38,35 @@ bool WinapiMouseContext::processEvent(const WinapiEventData& eventData, LRESULT&
 	auto lparam = eventData.lparam;
 	auto wparam = eventData.wparam;
 
+	if(!wc) return false;
+
 	using MB = MouseButton;
 	auto handleMouseButton = [&](bool pressed, MouseButton button) {
-		if(wc) wc->listener().mouseButton(pressed, button, &eventData);
+		MouseButtonEvent mbe;
+		mbe.eventData = &eventData;
+		mbe.position = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+		mbe.button = button;
+		mbe.pressed = pressed;
+		wc->listener().mouseButton(mbe);
 		onButton(*this, button, pressed);
 	};
 
-	switch(message)
-	{
-		case WM_MOUSEMOVE:
-		{
+	switch(message) {
+		case WM_MOUSEMOVE: {
 			nytl::Vec2i pos(GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
 
-			// POINT screenPos {pos.x, pos.y};
-			// ::ClientToScreen(window, &screenPos);
+			// check for implicit mouse over change
+			// windows does not send any mouse enter events, we have to detect them this way
+			if(wc && over() != wc) {
+				MouseCrossEvent mce;
+				mce.entered = true;
+				mce.eventData = &eventData;
+				mce.position = pos;
+				wc->listener().mouseCross(mce);
 
-			//check for implicit mouse over change
-			//windows does not send any mouse enter events, we have to detect them this way
-			if(wc && over() != wc)
-			{
-				wc->listener().mouseCross(true, &eventData);
-
-				//Request wm_mouseleave events
-				//we have to do this everytime
+				// Request wm_mouseleave events
+				// we have to do this everytime
+				// therefore we do not send leave event here (should be generated)
 				TRACKMOUSEEVENT trackMouse {};
 				trackMouse.cbSize = sizeof(trackMouse);
 				trackMouse.dwFlags = TME_LEAVE;
@@ -71,25 +77,26 @@ bool WinapiMouseContext::processEvent(const WinapiEventData& eventData, LRESULT&
 				over_ = wc;
 			}
 
-			if(wc) wc->listener().mouseMove(position_, &eventData);
+			MouseMoveEvent mme;
+			mme.position = pos;
+			mme.delta = pos - position_;
+			mme.eventData = &eventData;
+			wc->listener().mouseMove(mme);
 
-			auto delta = pos - position_;
 			position_ = pos;
-			onMove(*this, pos, delta);
-
+			onMove(*this, pos, mme.delta);
 			break;
 		}
 
-		case WM_MOUSELEAVE:
-		{
-			if(over_)
-			{
-				over_->listener().mouseCross(false, &eventData);
+		case WM_MOUSELEAVE: {
+			MouseCrossEvent mce;
+			mce.eventData = &eventData;
+			mce.entered = false;
+			mce.position = position_;
+			wc->listener().mouseCross(mce);
 
-				onFocus(*this, over_, nullptr);
-				over_ = nullptr;
-			}
-
+			if(wc == over_) onFocus(*this, over_, nullptr);
+			over_ = nullptr;
 			break;
 		}
 
@@ -99,26 +106,28 @@ bool WinapiMouseContext::processEvent(const WinapiEventData& eventData, LRESULT&
 		case WM_RBUTTONUP: handleMouseButton(false, MB::right); break;
 		case WM_MBUTTONDOWN: handleMouseButton(true, MB::middle); break;
 		case WM_MBUTTONUP: handleMouseButton(false, MB::middle); break;
-		case WM_XBUTTONDOWN:
-		{
+		case WM_XBUTTONDOWN: {
 			auto button = (HIWORD(wparam) == 1) ? MB::custom1 : MB::custom2;
 			handleMouseButton(true, button);
 			break;
 		}
 
-		case WM_XBUTTONUP:
-		{
-
+		case WM_XBUTTONUP: {
 			auto button = (HIWORD(wparam) == 1) ? MB::custom1 : MB::custom2;
 			handleMouseButton(false, button);
 			break;
 		}
 
-		case WM_MOUSEWHEEL:
-		{
-			float value = GET_WHEEL_DELTA_WPARAM(wparam);
-			if(wc) wc->listener().mouseWheel(value, &eventData);
-			onWheel(*this, value);
+		case WM_MOUSEWHEEL: {
+			POINT screenPos {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+			::ClientToScreen(window, &screenPos);
+
+			MouseWheelEvent mwe;
+			mwe.eventData = &eventData;
+			mwe.value = GET_WHEEL_DELTA_WPARAM(wparam) / 120.0;
+			mwe.position = nytl::Vec2i(screenPos.x, screenPos.y);
+			wc->listener().mouseWheel(mwe);
+			onWheel(*this, mwe.value);
 			break;
 		}
 
@@ -130,25 +139,25 @@ bool WinapiMouseContext::processEvent(const WinapiEventData& eventData, LRESULT&
 }
 
 
-//KeyboardContext
+// KeyboardContext
 WinapiKeyboardContext::WinapiKeyboardContext(WinapiAppContext& context) : context_(context)
 {
 	wchar_t unicode[16] {};
 	unsigned char state[256] {};
 	auto decimalScancode = ::MapVirtualKey(VK_DECIMAL, MAPVK_VK_TO_VSC);
 
-	for(auto i = 0u; i < 255u; ++i)
-	{
+	for(auto i = 0u; i < 255u; ++i) {
 		auto keycode = static_cast<Keycode>(i);
 		auto vkcode = keycodeToWinapi(keycode);
 		auto scancode = ::MapVirtualKey(vkcode, MAPVK_VK_TO_VSC);
 
-		//first reset the current keyboard buffer state regarding dead keys
+		// first reset the current keyboard buffer state regarding dead keys
 		int ret;
-		do { ret = ::ToUnicode(VK_DECIMAL, decimalScancode, state, unicode, 16, 0); }
-		while(ret < 0);
+		do {
+			ret = ::ToUnicode(VK_DECIMAL, decimalScancode, state, unicode, 16, 0);
+		} while(ret < 0);
 
-		//now read the real keycode
+		// now read the real keycode
 		ret = ::ToUnicode(vkcode, scancode, state, unicode, 16, 0);
 		if(ret <= 0) continue;
 
@@ -180,13 +189,13 @@ bool WinapiKeyboardContext::processEvent(const WinapiEventData& eventData, LRESU
 
 	bool keyPressed = false;
 
-	switch(message)
-	{
-		case WM_SETFOCUS:
-		{
-			if(wc && wc != focus_)
-			{
-				wc->listener().focus(true, &eventData);
+	switch(message) {
+		case WM_SETFOCUS: {
+			if(wc != focus_) {
+				FocusEvent fe;
+				fe.eventData = &eventData;
+				fe.gained = true;
+				wc->listener().focus(fe);
 				onFocus(*this, focus_, wc);
 				focus_ = wc;
 			}
@@ -194,11 +203,12 @@ bool WinapiKeyboardContext::processEvent(const WinapiEventData& eventData, LRESU
 			break;
 		}
 
-		case WM_KILLFOCUS:
-		{
-			if(wc && focus_ == wc)
-			{
-				wc->listener().focus(false, &eventData);
+		case WM_KILLFOCUS: {
+			if(focus_ == wc) {
+				FocusEvent fe;
+				fe.eventData = &eventData;
+				fe.gained = false;
+				wc->listener().focus(fe);
 				onFocus(*this, focus_, nullptr);
 				focus_ = nullptr;
 			}
@@ -207,8 +217,7 @@ bool WinapiKeyboardContext::processEvent(const WinapiEventData& eventData, LRESU
 		}
 
 		case WM_KEYDOWN: keyPressed = true;
-		case WM_KEYUP:
-		{
+		case WM_KEYUP: {
 			auto vkcode = wparam;
 			auto scancode = HIWORD(lparam);
 			auto keycode = winapiToKeycode(vkcode);
@@ -216,18 +225,20 @@ bool WinapiKeyboardContext::processEvent(const WinapiEventData& eventData, LRESU
 			unsigned char state[256] {};
 			::GetKeyboardState(state);
 
-			std::string utf8;
+			KeyEvent ke;
+			ke.keycode = keycode;
+			ke.eventData = &eventData;
+			ke.pressed = keyPressed;
 			wchar_t utf16[64];
 			auto bytes = ::ToUnicode(vkcode, scancode, state, utf16, 64, 0);
-			if(bytes > 0)
-			{
+			if(bytes > 0) {
 				utf16[bytes] = L'\0';
 				auto utf16string = reinterpret_cast<char16_t*>(utf16);
-				utf8 = nytl::toUtf8(utf16string);
+				ke.utf8 = nytl::toUtf8(utf16string);
 			}
 
-			if(wc) wc->listener().key(keyPressed, keycode, utf8, &eventData);
-			onKey(*this, keycode, utf8, keyPressed);
+			wc->listener().key(ke);
+			onKey(*this, keycode, ke.utf8, keyPressed);
 
 			break;
 		}
@@ -239,4 +250,4 @@ bool WinapiKeyboardContext::processEvent(const WinapiEventData& eventData, LRESU
 	return true;
 }
 
-}
+} // namespace ny

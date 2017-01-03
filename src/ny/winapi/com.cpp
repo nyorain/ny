@@ -21,26 +21,20 @@
 #include <cstring>
 #include <cmath>
 
-//the few useful sources:
-//https://chromium.googlesource.com/chromium/chromium/+/master/ui/base/dragdrop/
-//https://msdn.microsoft.com/en-us/library/windows/desktop/bb762034(v=vs.85).aspx
-//https://github.com/WebKit/webkit/blob/c595dc9b3993d095e25311b0ec1797bd665447e8/Tools/DumpRenderTree/win/DRTDataObject.cpp
+// the few useful sources:
+// https://chromium.googlesource.com/chromium/chromium/+/master/ui/base/dragdrop/
+// https://msdn.microsoft.com/en-us/library/windows/desktop/bb762034(v=vs.85).aspx
+// https://github.com/WebKit/webkit/blob/master/Tools/DumpRenderTree/win/DRTDataObject.cpp
 
-//TODO: error handling! especially CoCreateInstance
+namespace ny {
 
-namespace ny
-{
-
-namespace winapi
-{
-
-DataOfferImpl::DataOfferImpl(IDataObject& object) : data_(object)
+WinapiDataOffer::WinapiDataOffer(IDataObject& object) : data_(object)
 {
 	IEnumFORMATETC* enumerator;
 	data_->EnumFormatEtc(DATADIR_GET, &enumerator);
 
-	//other formats with non-standard mime types
-	//windows can automatically convert between certain formats
+	// other formats with non-standard mime types
+	// windows can automatically convert between certain formats
 	static struct {
 		unsigned int cf;
 		DataFormat format;
@@ -57,47 +51,42 @@ DataOfferImpl::DataOfferImpl(IDataObject& object) : data_(object)
 		{CF_UNICODETEXT, DataFormat::text}
 	};
 
-	//enumerate all formats and check for the ones that can be understood
-	//msdn states that the enumerator allocates the memory for formats but since we only pass
-	//a pointer this does not make any sense. We obviously pass with formats an array of at
-	//least celt (first param) objects.
+	// enumerate all formats and check for the ones that can be understood
+	// msdn states that the enumerator allocates the memory for formats but since we only pass
+	// a pointer this does not make any sense. We obviously pass with formats an array of at
+	// least celt (first param) objects.
 	constexpr auto formatsSize = 100;
 	FORMATETC formats[formatsSize];
 	ULONG count;
 
-	//enumerate formats until there are no more available
-	while(true)
-	{
+	// enumerate formats until there are no more available
+	while(true) {
 		auto ret = enumerator->Next(formatsSize, formats, &count);
 
-		//handle every returned format
-		for(auto format : nytl::Span<FORMATETC>(*formats, count))
-		{
-			//check mappings for standard formats
-			//if we don't know how to handle the medium, ignore it
+		// handle every returned format
+		for(auto format : nytl::Span<FORMATETC>(*formats, count)) {
+			// check mappings for standard formats
+			// if we don't know how to handle the medium, ignore it
 			bool found {};
-			for(auto& mapping : mappings)
-			{
-				if(mapping.cf == format.cfFormat && (mapping.tymed & mapping.tymed))
-				{
+			for(auto& mapping : mappings) {
+				if(mapping.cf == format.cfFormat && (mapping.tymed & mapping.tymed)) {
 					formats_[mapping.format] = format;
 					found = true;
 					break;
 				}
 			}
 
-			//check for custom value and valid format
-			//XXX: handle other medium types such as files and streams
-			if(!found && format.cfFormat >= 0xC000 && format.tymed == TYMED_HGLOBAL)
-			{
+			// check for custom value and valid format
+			// TODO: handle other medium types such as files and streams
+			if(!found && format.cfFormat >= 0xC000 && format.tymed == TYMED_HGLOBAL) {
 				wchar_t buffer[256] {};
 				auto bytes = ::GetClipboardFormatName(format.cfFormat, buffer, 255);
 				if(!bytes) continue;
 				buffer[bytes] = '\0';
 				auto name = narrow(buffer);
 
-				//check for uri-names of standard formats (etc. handle "text/plain" as text)
-				//otherwise just insert the name as data format
+				// check for uri-names of standard formats (etc. handle "text/plain" as text)
+				// otherwise just insert the name as data format
 				using DF = DataFormat;
 				if(match(DF::text, name)) formats_[DF::text] = format;
 				else if(match(DF::raw, name)) formats_[DF::raw] = format;
@@ -107,7 +96,7 @@ DataOfferImpl::DataOfferImpl(IDataObject& object) : data_(object)
 			}
 		}
 
-		//XXX: error handling?
+		// TODO: error handling?
 		if(ret == S_FALSE || count < formatsSize) break;
 		count = 0;
 	}
@@ -115,7 +104,7 @@ DataOfferImpl::DataOfferImpl(IDataObject& object) : data_(object)
 	enumerator->Release();
 }
 
-DataOffer::FormatsRequest DataOfferImpl::formats()
+DataOffer::FormatsRequest WinapiDataOffer::formats()
 {
 	std::vector<DataFormat> formats;
 	formats.reserve(formats_.size());
@@ -125,40 +114,50 @@ DataOffer::FormatsRequest DataOfferImpl::formats()
 	return std::make_unique<RequestImpl>(std::move(formats));
 }
 
-DataOffer::DataRequest DataOfferImpl::data(const DataFormat& format)
+DataOffer::DataRequest WinapiDataOffer::data(const DataFormat& format)
 {
 	HRESULT res = 0;
 	STGMEDIUM medium {};
 
 	auto it = formats_.find(format);
-	if(it == formats_.end())
-	{
+	if(it == formats_.end()) {
 		warning("ny::winapi::DataOfferImpl::data failed: format not supported");
 		return {};
 	}
 
 	auto& formatetc = it->second;
-	if((res = data_->GetData(&formatetc, &medium)))
-	{
+	if((res = data_->GetData(&formatetc, &medium))) {
 		warning(errorMessage(res, "ny::winapi::DataOfferImpl::data: data_->GetData failed"));
 		return {};
 	}
 
-	//always release the medium, no matter what
+	// always release the medium, no matter what
 	auto releaseGuard = nytl::makeScopeGuard([&]{ ::ReleaseStgMedium(&medium); });
 
 	using RequestImpl = DefaultAsyncRequest<std::any>;
-	return std::make_unique<RequestImpl>(fromStgMedium(formatetc, format, medium));
+	return std::make_unique<RequestImpl>(winapi::com::fromStgMedium(formatetc, format, medium));
 }
 
-namespace com
-{
+namespace winapi::com {
 
-//DropTargetImpl
+IDragSourceHelper* DataObjectImpl::helper_ {};
+IDropTargetHelper* DropTargetImpl::helper_ {};
+
+// DropTargetImpl
 DropTargetImpl::DropTargetImpl(WinapiWindowContext& ctx) : windowContext_(&ctx)
 {
-	::CoCreateInstance(CLSID_DragDropHelper, nullptr, CLSCTX_INPROC_SERVER,
-		IID_IDropTargetHelper, reinterpret_cast<void**>(&helper_));
+	if(!helper_) {
+		auto ret = ::CoCreateInstance(CLSID_DragDropHelper, nullptr, CLSCTX_INPROC_SERVER,
+			IID_IDropTargetHelper, reinterpret_cast<void**>(&helper_));
+
+		if(!helper_ || ret != S_OK) {
+			std::string msg = "ny::winapi::com::DataObjectImpl: CoCreateInstance: ";
+			msg += std::to_string(ret);
+			msg += errorMessage(ret);
+			throw std::runtime_error(msg);
+		}
+	}
+
 	helper_->Show(true);
 }
 
@@ -171,21 +170,28 @@ HRESULT DropTargetImpl::DragEnter(IDataObject* data, DWORD keyState, POINTL scre
 	DWORD* effect)
 {
 	nytl::unused(keyState);
-	log("dragEnter");
 
 	POINT windowPos;
 	windowPos.x = screenPos.x;
 	windowPos.y = screenPos.y;
 
 	helper_->DragEnter(windowContext().handle(), data, &windowPos, *effect);
-
-	auto it = offers_.emplace(data, std::make_unique<DataOfferImpl>(*data)).first;
-	current_ = it->second.get();
+	offer_ = {*data};
 
 	::ScreenToClient(windowContext().handle(), &windowPos);
-
 	auto position = nytl::Vec2i(windowPos.x, windowPos.y);
-	auto format = windowContext().listener().dndMove(position, *it->second, nullptr);
+
+	DndEnterEvent dee;
+	dee.eventData = nullptr;
+	dee.position = position;
+	dee.offer = &offer_;
+	windowContext().listener().dndEnter(dee);
+
+	DndMoveEvent dme;
+	dme.eventData = nullptr;
+	dme.position = position;
+	dme.offer = &offer_;
+	auto format = windowContext().listener().dndMove(dme);
 
 	if(format != DataFormat::none) *effect = DROPEFFECT_COPY;
 	else *effect = DROPEFFECT_NONE;
@@ -203,16 +209,18 @@ HRESULT DropTargetImpl::DragOver(DWORD keyState, POINTL screenPos, DWORD* effect
 
 	helper_->DragOver(&windowPos, *effect);
 
-	if(!current_)
-	{
+	if(!offer_.dataObject()) {
 		warning("ny::winapi::DropTargetImpl::DragOver: no current drag data object");
 		return E_UNEXPECTED;
 	}
 
 	::ScreenToClient(windowContext().handle(), &windowPos);
 
-	auto position = nytl::Vec2i(windowPos.x, windowPos.y);
-	auto format = windowContext().listener().dndMove(position, *current_, nullptr);
+	DndMoveEvent dme;
+	dme.eventData = nullptr;
+	dme.position = nytl::Vec2i(windowPos.x, windowPos.y);
+	dme.offer = &offer_;
+	auto format = windowContext().listener().dndMove(dme);
 
 	if(format != DataFormat::none) *effect = DROPEFFECT_COPY;
 	else *effect = DROPEFFECT_NONE;
@@ -224,18 +232,17 @@ HRESULT DropTargetImpl::DragLeave()
 {
 	helper_->DragLeave();
 
-	if(!current_)
-	{
+	if(!offer_.dataObject()) {
 		warning("ny::winapi::DropTargetImpl::DragLeave: no current drag data object");
 		return E_UNEXPECTED;
 	}
 
-	windowContext().listener().dndLeave(*current_, nullptr);
+	DndLeaveEvent dle;
+	dle.eventData = nullptr;
+	dle.offer = &offer_;
+	windowContext().listener().dndLeave(dle);
 
-	//erase it and reset current_
-	offers_.erase(offers_.find(current_->dataObject().get()));
-	current_ = {};
-
+	offer_ = {}; // reset the current offer
 	return S_OK;
 }
 
@@ -249,38 +256,35 @@ HRESULT DropTargetImpl::Drop(IDataObject* data, DWORD keyState, POINTL screenPos
 
 	helper_->Drop(data, &windowPos, *effect);
 
-	if(!current_ || current_->dataObject().get() != data)
-	{
+	if(!data || offer_.dataObject().get() != data) {
 		warning("ny::winapi::DropTargetImpl::Drop: current drop data object inconsistency");
 		return E_UNEXPECTED;
 	}
 
 	::ScreenToClient(windowContext().handle(), &windowPos);
-
 	auto position = nytl::Vec2i(windowPos.x, windowPos.y);
-	auto format = windowContext().listener().dndMove(position, *current_, nullptr);
 
-	if(format == DataFormat::none)
-	{
+	DndMoveEvent dme;
+	dme.eventData = nullptr;
+	dme.position = position;
+	dme.offer = &offer_;
+	auto format = windowContext().listener().dndMove(dme);
+
+	if(format == DataFormat::none) {
 		*effect = DROPEFFECT_NONE;
 		return S_OK;
 	}
 
-	auto it = offers_.find(data);
-	if(it == offers_.end())
-	{
-		warning("ny::winapi::DropTargetImpl::Drop: invalid current drop data object");
-		return E_UNEXPECTED;
-	}
-
-	auto offer = std::move(it->second);
-	offers_.erase(it);
-	windowContext().listener().dndDrop(position, std::move(offer), nullptr);
+	DndDropEvent dde;
+	dde.eventData = nullptr;
+	dde.offer = std::make_unique<WinapiDataOffer>(std::move(offer_));
+	dde.position = position;
+	windowContext().listener().dndDrop(dde);
 
 	return S_OK;
 }
 
-//DropSourceImpl
+// DropSourceImpl
 HRESULT DropSourceImpl::QueryContinueDrag(BOOL fEscapePressed, DWORD keyState)
 {
 	if(fEscapePressed) return DRAGDROP_S_CANCEL;
@@ -290,11 +294,10 @@ HRESULT DropSourceImpl::QueryContinueDrag(BOOL fEscapePressed, DWORD keyState)
 HRESULT DropSourceImpl::GiveFeedback(DWORD dwEffect)
 {
 	nytl::unused(dwEffect);
-	return DRAGDROP_S_USEDEFAULTCURSORS;
-	// return S_OK;
+	return DRAGDROP_S_USEDEFAULTCURSORS; // or use return S_OK?
 }
 
-//DataObjectImpl
+// DataObjectImpl
 DataObjectImpl::DataObjectImpl(std::unique_ptr<DataSource> source) : source_(std::move(source))
 {
 	formats_.reserve(source_->formats().size());
@@ -303,11 +306,18 @@ DataObjectImpl::DataObjectImpl(std::unique_ptr<DataSource> source) : source_(std
 	for(auto format : source_->formats()) addFormat(format);
 
 	auto img = source_->image();
-	if(img.data)
-	{
-		helper_ = nullptr;
-		::CoCreateInstance(CLSID_DragDropHelper, nullptr, CLSCTX_INPROC_SERVER,
-			IID_IDragSourceHelper, reinterpret_cast<void**>(&helper_));
+	if(img.data) {
+		if(!helper_) {
+			auto ret = ::CoCreateInstance(CLSID_DragDropHelper, nullptr, CLSCTX_INPROC_SERVER,
+				IID_IDragSourceHelper, reinterpret_cast<void**>(&helper_));
+
+			if(!helper_ || ret != S_OK) {
+				std::string msg = "ny::winapi::com::DataObjectImpl: CoCreateInstance: ";
+				msg += std::to_string(ret);
+				msg += errorMessage(ret);
+				throw std::runtime_error(msg);
+			}
+		}
 
 		auto bitmap = winapi::toBitmap(img);
 
@@ -333,15 +343,15 @@ HRESULT DataObjectImpl::GetData(FORMATETC* format, STGMEDIUM* stgmed)
 	if(!stgmed) return E_UNEXPECTED;
 	*stgmed = {};
 
-	//lookup the DataFormat for the requested format. Fetch the data from the source,
-	//and store it into the medium using winapi::toStgMedium
-	//we always use the first matching format, therefore order matters when
-	//inserting the formats
-	for(auto& f : formats_)
-	{
-		if(f.first.cfFormat == format->cfFormat && f.first.tymed == format->tymed
-			&& f.first.dwAspect == format->dwAspect)
-		{
+	// lookup the DataFormat for the requested format. Fetch the data from the source,
+	// and store it into the medium using winapi::toStgMedium
+	// we always use the first matching format, therefore order matters when
+	// inserting the formats
+	for(auto& f : formats_) {
+		if(f.first.cfFormat == format->cfFormat &&
+			f.first.tymed == format->tymed &&
+			f.first.dwAspect == format->dwAspect) {
+
 			auto stg = toStgMedium(f.second, f.first, source_->data(f.second));
 			if(!stg.tymed) return DV_E_FORMATETC;
 
@@ -350,13 +360,13 @@ HRESULT DataObjectImpl::GetData(FORMATETC* format, STGMEDIUM* stgmed)
 		}
 	}
 
-	//check private formats add with SetData
-	//needed for DragSourceHelper to work correctly
-	for(auto& f : additionalData_)
-	{
-		if(f.first.cfFormat == format->cfFormat && f.first.tymed == format->tymed
-			&& f.first.dwAspect == format->dwAspect)
-		{
+	// check private formats add with SetData
+	// needed for DragSourceHelper to work correctly
+	for(auto& f : additionalData_) {
+		if(f.first.cfFormat == format->cfFormat &&
+			f.first.tymed == format->tymed &&
+			f.first.dwAspect == format->dwAspect) {
+
 			duplicate(*stgmed, f.second.medium, f.first.cfFormat);
 			return S_OK;
 		}
@@ -500,8 +510,6 @@ void DataObjectImpl::addFormat(const DataFormat& format)
 	formats_.push_back({formatetc, format});
 }
 
-} //namespace com
-
 //free functions impl
 void replaceLF(std::string& string)
 {
@@ -538,9 +546,9 @@ std::u16string globalToStringUnicode(HGLOBAL global)
 	auto ptr = ::GlobalLock(global);
 	if(!ptr) return {};
 
-	//usually len should be an even number (since it is encoded using utf16)
-	//but to go safe, we round len / 2 up and then later remove the trailing
-	//nullterminator
+	// usually len should be an even number (since it is encoded using utf16)
+	// but to go safe, we round len / 2 up and then later remove the trailing
+	// nullterminator
 	std::u16string str(std::ceil(len / 2), '\0');
 	std::memcpy(&str[0], ptr, len);
 	::GlobalUnlock(global);
@@ -555,8 +563,7 @@ HGLOBAL bufferToGlobal(nytl::Span<const uint8_t> buffer)
 	if(!ret) return nullptr;
 
 	auto ptr = ::GlobalLock(ret);
-	if(!ptr)
-	{
+	if(!ptr) {
 		::GlobalFree(ret);
 		return nullptr;
 	}
@@ -568,7 +575,7 @@ HGLOBAL bufferToGlobal(nytl::Span<const uint8_t> buffer)
 
 std::vector<std::uint8_t> globalToBuffer(HGLOBAL global)
 {
-	auto len = ::GlobalSize(global); //excluding null terminator
+	auto len = ::GlobalSize(global); // excluding null terminator
 	auto ptr = ::GlobalLock(global);
 	if(!ptr) return {};
 
@@ -582,30 +589,27 @@ std::any fromStgMedium(const FORMATETC& from, const DataFormat& to, const STGMED
 {
 	if(to == DataFormat::none || !from.cfFormat || !from.tymed) return {};
 
-	if(to == DataFormat::text && from.cfFormat == CF_UNICODETEXT)
-	{
+	if(to == DataFormat::text && from.cfFormat == CF_UNICODETEXT) {
 		if(medium.tymed != TYMED_HGLOBAL) return {};
 
 		auto str16 = globalToStringUnicode(medium.hGlobal);
 		if(str16.empty()) return {};
 		auto str = nytl::toUtf8(str16);
+
 		replaceCRLF(str);
 		return str;
-	}
-	else if(to == DataFormat::uriList && from.cfFormat == CF_HDROP)
-	{
+	} else if(to == DataFormat::uriList && from.cfFormat == CF_HDROP) {
 		if(medium.tymed != TYMED_HGLOBAL) return {};
 
 		auto ptr = ::GlobalLock(medium.hGlobal);
 		if(!ptr) return {};
 
 		auto hdrop = reinterpret_cast<HDROP>(ptr);
-		auto count = DragQueryFile(hdrop, 0xFFFFFFFF, nullptr, 0); //query files count
+		auto count = DragQueryFile(hdrop, 0xFFFFFFFF, nullptr, 0); // query files count
 
 		std::vector<std::string> paths;
-		for(auto i = 0u; i < count; ++i)
-		{
-			auto size = DragQueryFile(hdrop, i, nullptr, 0); //query buffer size
+		for(auto i = 0u; i < count; ++i) {
+			auto size = DragQueryFile(hdrop, i, nullptr, 0); // query buffer size
 			if(!size) continue;
 
 			std::wstring path;
@@ -623,9 +627,8 @@ std::any fromStgMedium(const FORMATETC& from, const DataFormat& to, const STGMED
 
 		::GlobalUnlock(medium.hGlobal);
 		return {paths};
-	}
-	else if(to == DataFormat::image && from.cfFormat == CF_BITMAP)
-	{
+
+	} else if(to == DataFormat::image && from.cfFormat == CF_BITMAP) {
 		if(medium.tymed != TYMED_GDI) return {};
 
 		auto hbitmap = reinterpret_cast<HBITMAP>(medium.hGlobal);
@@ -633,10 +636,7 @@ std::any fromStgMedium(const FORMATETC& from, const DataFormat& to, const STGMED
 		if(!ret.data) return {};
 		return ret;
 
-		return ret;
-	}
-	else
-	{
+	} else {
 		if(medium.tymed != TYMED_HGLOBAL) return {};
 		return wrap(globalToBuffer(medium.hGlobal), to);
 	}
@@ -647,8 +647,7 @@ STGMEDIUM toStgMedium(const DataFormat& from, const FORMATETC& to, const std::an
 	if(from == DataFormat::none || !to.cfFormat || !to.tymed || !data.has_value()) return {};
 
 	STGMEDIUM ret {};
-	if(from == DataFormat::text && to.cfFormat == CF_UNICODETEXT)
-	{
+	if(from == DataFormat::text && to.cfFormat == CF_UNICODETEXT) {
 		if(to.tymed != TYMED_HGLOBAL) return {};
 
 		auto str = std::any_cast<const std::string&>(data);
@@ -657,24 +656,21 @@ STGMEDIUM toStgMedium(const DataFormat& from, const FORMATETC& to, const std::an
 
 		ret.tymed = TYMED_HGLOBAL;
 		ret.hGlobal = stringToGlobalUnicode(str16);
-	}
-	else if(from == DataFormat::image && to.cfFormat == CF_BITMAP)
-	{
+
+	} else if(from == DataFormat::image && to.cfFormat == CF_BITMAP) {
 		if(to.tymed != TYMED_GDI) return {};
 
 		const auto& img = std::any_cast<const UniqueImage&>(data);
 		ret.tymed = TYMED_HGLOBAL;
 		ret.hGlobal = toBitmap(img);
-	}
-	else if(from == DataFormat::uriList && to.cfFormat == CF_HDROP)
-	{
+
+	} else if(from == DataFormat::uriList && to.cfFormat == CF_HDROP) {
 		if(to.tymed != TYMED_HGLOBAL) return {};
 
-		//https://msdn.microsoft.com/en-us/library/windows/desktop/bb776902(v=vs.85).aspx
+		// https://msdn.microsoft.com/en-us/library/windows/desktop/bb776902(v=vs.85).aspx
 		std::string filesstring;
 		auto uriList = std::any_cast<const std::vector<std::string>&>(data);
-		for(auto& uri : uriList)
-		{
+		for(auto& uri : uriList) {
 			auto uriW = widen(uri);
 			DWORD bufferSize = MAX_PATH;
 			std::wstring path;
@@ -683,26 +679,24 @@ STGMEDIUM toStgMedium(const DataFormat& from, const FORMATETC& to, const std::an
 			filesstring.append(narrow(path));
 		}
 
-		filesstring.append('\0'); //double null terminated
+		filesstring.append('\0'); // must be double null terminated
 
 		DROPFILES dropfiles {};
 		dropfiles.pFiles = sizeof(dropfiles);
 		dropfiles.fWide = true;
 
-		//allocate a global buffer
-		//copy the DROPFILES value into it and the filestring after it
-		//note that filestring.size() * 2 is needed since the string is utf16 encoded
+		// allocate a global buffer
+		// copy the DROPFILES value into it and the filestring after it
+		// note that filestring.size() * 2 is needed since the string is utf16 encoded
 		auto size = sizeof(dropfiles) + (filesstring.size() * 2);
 		auto globalBuffer = ::GlobalAlloc(GMEM_MOVEABLE, size);
-		if(!globalBuffer)
-		{
+		if(!globalBuffer) {
 			warning(errorMessage("ny::winapi::toStgMedium(DataExchange): GlobalAlloc"));
 			return {};
 		}
 
 		auto bufferPtr = reinterpret_cast<uint8_t*>(::GlobalLock(globalBuffer));
-		if(!bufferPtr)
-		{
+		if(!bufferPtr) {
 			warning(errorMessage("ny::winapi::toStgMedium(DataExchange): GlobalLock"));
 			::GlobalFree(globalBuffer);
 			return {};
@@ -715,12 +709,9 @@ STGMEDIUM toStgMedium(const DataFormat& from, const FORMATETC& to, const std::an
 
 		ret.tymed = TYMED_HGLOBAL;
 		ret.hGlobal = globalBuffer;
-	}
-	else if(to.tymed == TYMED_HGLOBAL)
-	{
+	} else if(to.tymed == TYMED_HGLOBAL) {
 		auto buffer = unwrap(data, from);
-		if(!buffer.empty())
-		{
+		if(!buffer.empty()) {
 			ret.tymed = TYMED_HGLOBAL;
 			ret.hGlobal = bufferToGlobal(buffer);
 		}
@@ -733,8 +724,7 @@ void duplicate(STGMEDIUM& dst, const STGMEDIUM& src, unsigned int cfFormat)
 {
 	dst = {};
 
-	switch (src.tymed)
-	{
+	switch (src.tymed) {
 		case TYMED_HGLOBAL:
 			dst.hGlobal = static_cast<HGLOBAL>(OleDuplicateData(src.hGlobal, cfFormat, 0));
 			break;
@@ -771,6 +761,5 @@ void duplicate(STGMEDIUM& dst, const STGMEDIUM& src, unsigned int cfFormat)
 	if(dst.pUnkForRelease) dst.pUnkForRelease->AddRef();
 }
 
-} //namespace winapi
-
-} //namespace ny
+} // namespace winapi::com
+} // namespace ny

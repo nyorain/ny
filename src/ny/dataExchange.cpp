@@ -208,8 +208,7 @@ std::vector<uint8_t> unwrap(std::any any, const DataFormat& format)
 		auto uris = std::any_cast<const std::vector<std::string>&>(any);
 		auto string = encodeUriList(uris);
 		return {string.begin(), string.end()};
-	} else if(format == DataFormat::image)
-	{
+	} else if(format == DataFormat::image) {
 		auto img = std::any_cast<const UniqueImage&>(any);
 		return serialize(img);
 	}

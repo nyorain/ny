@@ -108,7 +108,8 @@ public:
 
 	/// Start a drag and drop action at the current cursor position.
 	/// Note that this function might not return (running an internal event loop)
-	/// until the drag and drop ends.
+	/// until the drag and drop ends. Anyways may no further mouse events sent until
+	/// the drag and drop ends.
 	/// \param dataSource A DataSource implementation for the data to drag and drop.
 	/// The implementation must be able to provide the data as long as it exists.
 	/// \return true on success, false on failure (e.g. cursor is not over a window)
