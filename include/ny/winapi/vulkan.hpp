@@ -7,12 +7,14 @@
 #include <ny/winapi/include.hpp>
 #include <ny/winapi/windowContext.hpp>
 
-namespace ny
-{
+#ifndef NY_WithVulkan
+	#error ny was built without vulkan. Do not include this header.
+#endif
 
-///WinapiWindowContext that also creates/owns a VkSurfaceKHR.
-class WinapiVulkanWindowContext : public WinapiWindowContext
-{
+namespace ny {
+
+/// WinapiWindowContext that also creates/owns a VkSurfaceKHR.
+class WinapiVulkanWindowContext : public WinapiWindowContext {
 public:
 	WinapiVulkanWindowContext(WinapiAppContext&, const WinapiWindowSettings&);
 	~WinapiVulkanWindowContext();
@@ -28,8 +30,4 @@ protected:
 	std::unique_ptr<VkAllocationCallbacks> allocationCallbacks_ {};
 };
 
-}
-
-#ifndef NY_WithVulkan
-	#error ny was built without vulkan. Do not include this header.
-#endif
+} // namespace ny

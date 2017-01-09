@@ -9,9 +9,9 @@
 
 #ifndef NY_WithWayland
 	#error ny was built without wayland. Do not include this header file!
-#endif //WithWayland
+#endif // WithWayland
 
-//wayland forward decls
+// wayland forward decls
 struct xdg_surface;
 struct xdg_popup;
 struct xdg_shell;
@@ -53,27 +53,27 @@ struct wl_cursor_theme;
 
 typedef std::int32_t wl_fixed_t;
 
-namespace ny
-{
-	class WaylandBackend;
-	class WaylandAppContext;
-	class WaylandWindowContext;
-	class WaylandKeyboardContext;
-	class WaylandMouseContext;
-	class WaylandWindowSettings;
-	class WaylandDataDevice;
-	class WaylandErrorCategory;
-	class WaylandBufferWindowContext;
-	class WaylandEglWindowContext;
-	class WaylandVulkanContext;
+namespace ny {
 
-	namespace wayland
-	{
-		class ShmBuffer;
-		class ServerCallback;
-		class Output;
-		enum class SurfaceRole : unsigned char;
-		template<typename T> struct NamedGlobal;
-	}
+class WaylandBackend;
+class WaylandAppContext;
+class WaylandWindowContext;
+class WaylandKeyboardContext;
+class WaylandMouseContext;
+class WaylandWindowSettings;
+class WaylandDataDevice;
+class WaylandErrorCategory;
+class WaylandBufferWindowContext;
+class WaylandEglWindowContext;
+class WaylandVulkanContext;
 
-}
+namespace wayland {
+
+class ShmBuffer;
+class ServerCallback;
+class Output;
+enum class SurfaceRole : unsigned char;
+template<typename T> struct NamedGlobal;
+
+} // namespace wayland
+} // namespace ny

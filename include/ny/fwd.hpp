@@ -39,10 +39,24 @@ class MouseContext;
 class KeyboardContext;
 class WindowSettings;
 class WindowListener;
-class EventData;
 class NativeHandle;
-class Keyboard;
-class Mouse;
+
+struct EventData;
+struct Event;
+struct MouseMoveEvent;
+struct MouseButtonEvent;
+struct MouseCrossEvent;
+struct MouseWheelEvent;
+struct KeyEvent;
+struct FocusEvent;
+struct DrawEvent;
+struct CloseEvent;
+struct StateEvent;
+struct SizeEvent;
+struct DndEnterEvent;
+struct DndMoveEvent;
+struct DndLeaveEvent;
+struct DndDropEvent;
 
 class Surface;
 class BufferSurface;

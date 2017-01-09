@@ -7,12 +7,10 @@
 #include <ny/winapi/include.hpp>
 #include <ny/backend.hpp>
 
-namespace ny
-{
+namespace ny {
 
-///Winapi backend implementation.
-class WinapiBackend : public Backend
-{
+/// Winapi backend implementation
+class WinapiBackend : public Backend {
 public:
 	static WinapiBackend& instance(){ return instance_; }
 
@@ -29,4 +27,4 @@ protected:
 	WinapiBackend() = default;
 };
 
-}
+} // namespace ny

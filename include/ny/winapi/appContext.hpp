@@ -12,13 +12,11 @@
 #include <map>
 #include <thread>
 
-namespace ny
-{
+namespace ny {
 
 ///Winapi AppContext implementation.
 ///Implements the main event loop and callbacks and deals with com/ole implementations.
-class WinapiAppContext : public AppContext
-{
+class WinapiAppContext : public AppContext {
 public:
 	static LONG_PTR CALLBACK wndProcCallback(HWND, UINT, WPARAM, LPARAM);
 	static INT_PTR CALLBACK dlgProcCallback(HWND, UINT, WPARAM, LPARAM);
@@ -67,4 +65,4 @@ protected:
 	std::unique_ptr<Impl> impl_;
 };
 
-}
+} // namespace ny

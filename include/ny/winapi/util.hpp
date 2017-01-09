@@ -13,8 +13,7 @@
 #include <string>
 #include <system_error>
 
-namespace ny
-{
+namespace ny {
 
 Keycode winapiToKeycode(unsigned int code);
 unsigned int keycodeToWinapi(Keycode key);
@@ -25,35 +24,29 @@ MouseButton winapiToButton(unsigned int code);
 std::string errorMessage(unsigned int code, const char* msg = nullptr);
 std::string errorMessage(const char* msg = nullptr);
 
-//Note: there isnt a string literal returned here. Just a (char?) pointer to some windows
-//resource. Better return void pointer or sth...
+// Note: there isnt a string literal returned here. Just a (char?) pointer to some windows
+// resource. Better return void pointer or sth...
 const wchar_t* cursorToWinapi(CursorType type);
 CursorType winapiToCursor(const wchar_t* idc);
 
 unsigned int edgesToWinapi(WindowEdges edges);
 WindowEdge winapiToEdges(unsigned int winapiCode);
 
-///Converts between (ny,application space) utf8-string and (winapi space) utf16-wstring.
+/// Converts between (ny,application space) utf8-string and (winapi space) utf16-wstring.
 std::wstring widen(const std::string&);
 std::string narrow(const std::wstring&);
 
-///Winapi EventData. Carries the winapi message.
-class WinapiEventData : public EventData
-{
-public:
-	WinapiEventData() = default;
-	~WinapiEventData() = default;
-
-	WinapiWindowContext* windowContext;
-	HWND window;
-	UINT message;
-	WPARAM wparam;
-	LPARAM lparam;
+/// Winapi EventData. Carries the winapi message.
+struct WinapiEventData : public EventData {
+	WinapiWindowContext* windowContext {};
+	HWND window {};
+	UINT message {};
+	WPARAM wparam {};
+	LPARAM lparam {};
 };
 
-///Winapi std::error_category
-class WinapiErrorCategory : public std::error_category
-{
+/// Winapi std::error_category implementation
+class WinapiErrorCategory : public std::error_category {
 public:
 	static WinapiErrorCategory& instance();
 	static std::system_error exception(nytl::StringParam msg = "");
@@ -63,21 +56,15 @@ public:
 	std::string message(int code) const override;
 };
 
-namespace winapi
-{
+namespace winapi {
 
 using EC = WinapiErrorCategory;
 std::error_code lastErrorCode();
 
-///Converts a given ImageData to a winapi Bitmap header.
-///Can be used e.g. to create a dib bitmap.
-// BITMAPINFOHEADER toBitmapHeader(const Image&);
-
-///Converts between a ny::ImageData object and a native winapi bitmap.
-///The returned HBITMAP is owned and must be freed.
+/// Converts between a ny::ImageData object and a native winapi bitmap.
+/// The returned HBITMAP is owned and must be freed.
 HBITMAP toBitmap(const Image&);
 UniqueImage toImage(HBITMAP bitmap);
 
-}
-
-}
+} // namespace winapi
+} // namespace ny

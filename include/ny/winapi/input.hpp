@@ -12,12 +12,10 @@
 #include <map>
 #include <string>
 
-namespace ny
-{
+namespace ny {
 
-///Winapi MouseContext implementation.
-class WinapiMouseContext : public MouseContext
-{
+/// Winapi MouseContext implementation.
+class WinapiMouseContext : public MouseContext {
 public:
 	WinapiMouseContext(WinapiAppContext& context) : context_(context) {}
 	WinapiMouseContext() = default;
@@ -27,8 +25,8 @@ public:
 	WinapiWindowContext* over() const override { return over_; }
 
 	// - winapi specific -
-	///Handles the given event if it is mouse related. Returns false otherwise.
-	///If it could be handled sets the result value.
+	/// Handles the given event if it is mouse related. Returns false otherwise.
+	/// If it could be handled sets the result value.
 	bool processEvent(const WinapiEventData&, LRESULT& result);
 
 protected:
@@ -37,9 +35,8 @@ protected:
 	nytl::Vec2i position_;
 };
 
-///Winapi KeyboardContext implementation.
-class WinapiKeyboardContext : public KeyboardContext
-{
+/// Winapi KeyboardContext implementation.
+class WinapiKeyboardContext : public KeyboardContext {
 public:
 	WinapiKeyboardContext(WinapiAppContext& context);
 	WinapiKeyboardContext() = default;
@@ -49,8 +46,8 @@ public:
 	WinapiWindowContext* focus() const override { return focus_; }
 
 	// - winapi specific -
-	///Handles the given event if it is keyboard related. Returns false otherwise.
-	///If it could be handled sets the result value.
+	/// Handles the given event if it is keyboard related. Returns false otherwise.
+	/// If it could be handled sets the result value.
 	bool processEvent(const WinapiEventData&, LRESULT& result);
 
 protected:
@@ -59,4 +56,4 @@ protected:
 	std::map<Keycode, std::string> keycodeUnicodeMap_;
 };
 
-}
+} // namespace ny

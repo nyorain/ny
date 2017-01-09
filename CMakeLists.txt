@@ -38,11 +38,11 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/src/cmake")
 # enable all sane warnings
 # for msvc we first check if some level is set by default and replace it
 if(MSVC)
-  if(CMAKE_CXX_FLAGS MATCHES "/W[0-4]")
-    string(REGEX REPLACE "/W[0-4]" "/W4" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-  else()
-	  list(APPEND CMAKE_CXX_FLAGS "/W4")
-  endif()
+if(CMAKE_CXX_FLAGS MATCHES "/W[0-4]")
+	string(REGEX REPLACE "/W[0-4]" "/W4" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+else()
+	list(APPEND CMAKE_CXX_FLAGS "/W4")
+endif()
 elseif(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-long-long -Wextra -Wpedantic")
 endif()
@@ -119,7 +119,7 @@ ExternalProject_Add(nytl_ep
 	PREFIX ${CMAKE_CURRENT_BINARY_DIR}/nytl
 	GIT_REPOSITORY https://github.com/nyorain/nytl.git
 	GIT_TAG master
-    INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/external/install
+	INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/external/install
 	CMAKE_ARGS ${ExternalProjectCMakeArgs})
 
 ExternalProject_Add_Step(nytl_ep

@@ -5,15 +5,19 @@
 #pragma once
 
 #include <ny/wayland/include.hpp>
-#include <ny/wayland/windowContext.hpp>
-#include <memory>
+#include <ny/wayland/windowContext.hpp> // ny::WaylandWindowContext
 
-namespace ny
-{
+#ifndef NY_WithVulkan
+	#error ny was built without vulkan. Do not include this header.
+#endif
 
-///WinapiWindowContext that also creates/owns a VkSurfaceKHR.
-class WaylandVulkanWindowContext : public WaylandWindowContext
-{
+#include <memory> // std::unique_ptr
+#include <cstdint> // std::uintptr_t
+
+namespace ny {
+
+/// Wayland WindowContext implementation that also creates a VkSurfaceKHR.
+class WaylandVulkanWindowContext : public WaylandWindowContext {
 public:
 	WaylandVulkanWindowContext(WaylandAppContext&, const WaylandWindowSettings&);
 	~WaylandVulkanWindowContext();
@@ -29,8 +33,4 @@ protected:
 	std::unique_ptr<VkAllocationCallbacks> allocationCallbacks_ {};
 };
 
-}
-
-#ifndef NY_WithVulkan
-	#error ny was built without vulkan. Do not include this header.
-#endif
+} // namespace ny

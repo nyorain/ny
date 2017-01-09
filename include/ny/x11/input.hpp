@@ -4,15 +4,13 @@
 #include <ny/common/xkb.hpp>
 #include <ny/mouseContext.hpp>
 
-namespace ny
-{
+namespace ny {
 
 // TODO: something about over window change and relative move delta...
 // also pass enter position when over changes?
 
 /// X11 MouseContext implementation
-class X11MouseContext : public MouseContext
-{
+class X11MouseContext : public MouseContext {
 public:
 	X11MouseContext(X11AppContext& ac) : appContext_(ac) {}
 	~X11MouseContext() = default;
@@ -40,8 +38,7 @@ protected:
 
 
 /// X11 KeyboardContext implementation
-class X11KeyboardContext : public XkbKeyboardContext
-{
+class X11KeyboardContext : public XkbKeyboardContext {
 public:
 	X11KeyboardContext(X11AppContext& ac);
 	~X11KeyboardContext() = default;
@@ -71,4 +68,4 @@ protected:
 	uint8_t eventType_ {};
 };
 
-}
+} // namespace ny

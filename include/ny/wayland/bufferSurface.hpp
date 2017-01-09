@@ -13,12 +13,10 @@
 
 #include <vector>
 
-namespace ny
-{
+namespace ny {
 
-///Wayland BufferSurface implementation.
-class WaylandBufferSurface : public nytl::NonCopyable, public BufferSurface
-{
+/// Wayland BufferSurface implementation.
+class WaylandBufferSurface : public nytl::NonCopyable, public BufferSurface {
 public:
 	WaylandBufferSurface(WaylandWindowContext&);
 	~WaylandBufferSurface();
@@ -36,9 +34,8 @@ protected:
 	wayland::ShmBuffer* active_ {};
 };
 
-///WaylandWindowContext for a BufferSurface.
-class WaylandBufferWindowContext : public WaylandWindowContext
-{
+/// WaylandWindowContext for a BufferSurface.
+class WaylandBufferWindowContext : public WaylandWindowContext {
 public:
 	WaylandBufferWindowContext(WaylandAppContext&, const WaylandWindowSettings& = {});
 	~WaylandBufferWindowContext() = default;
@@ -49,4 +46,4 @@ protected:
 	WaylandBufferSurface bufferSurface_;
 };
 
-}
+} // namespace ny

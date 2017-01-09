@@ -50,12 +50,12 @@ enum class WindowCapability : unsigned int {
 	maximize = (1L << 4),
 	position = (1L << 5),
 	sizeLimits = (1L << 6),
-    icon = (1L << 7),
-    cursor = (1L << 8),
-    title = (1L << 9),
-    beginMove = (1L << 10),
-    beginResize = (1L << 11),
-    visibility = (1L << 12),
+	icon = (1L << 7),
+	cursor = (1L << 8),
+	title = (1L << 9),
+	beginMove = (1L << 10),
+	beginResize = (1L << 11),
+	visibility = (1L << 12),
 };
 
 NYTL_FLAG_OPS(WindowEdge)
@@ -92,7 +92,7 @@ struct VulkanSurfaceSettings {
 	/// The VkInstance object which should be used to create the surface.
 	/// Note that this instance must have the needed extensions enabled, those can be
 	/// queried using ny::AppContext::vulkanExtensions
- 	VkInstance instance {};
+	VkInstance instance {};
 
 	/// The allocation callbacks for creating and destroying the surface.
 	/// They only have to be valid until the surface is created.
@@ -148,7 +148,7 @@ public:
 	std::string title = "Some Random Window Title"; ///< The title of the window
 	bool show = true; ///< Show the window direclty after initialization?
 	Cursor cursor {}; ///< Default cursor for the whole window
-    WindowListener* listener {}; ///< First listener after initialization
+	WindowListener* listener {}; ///< First listener after initialization
 
 	/// Can be used to specify if and which context should be created for the window.
 	/// Specifies which union member is active.

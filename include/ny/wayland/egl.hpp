@@ -5,33 +5,32 @@
 #pragma once
 
 #include <ny/wayland/include.hpp>
-#include <ny/wayland/windowContext.hpp>
-#include <ny/common/egl.hpp>
-
-#include <nytl/nonCopyable.hpp>
-#include <nytl/vec.hpp>
+#include <ny/wayland/windowContext.hpp> // WaylandWindowContext
+#include <nytl/vec.hpp> // nytl::Vec
 
 struct wl_egl_window;
 
-namespace ny
-{
+namespace ny {
 
 ///Egl WindowContext implementation for wayland.
-class WaylandEglWindowContext: public WaylandWindowContext
-{
+class WaylandEglWindowContext: public WaylandWindowContext {
 public:
-    WaylandEglWindowContext(WaylandAppContext&, const EglSetup&, const WaylandWindowSettings&);
-    virtual ~WaylandEglWindowContext();
+	WaylandEglWindowContext(WaylandAppContext&, const EglSetup&, const WaylandWindowSettings&);
+	virtual ~WaylandEglWindowContext();
 
 	void size(nytl::Vec2ui size) override;
 	Surface surface() override;
 
-    wl_egl_window& wlEglWindow() const { return *wlEglWindow_; };
+	wl_egl_window& wlEglWindow() const { return *wlEglWindow_; };
 	EglSurface& surface() const { return *surface_; }
 
 protected:
-    wl_egl_window* wlEglWindow_ {};
+	wl_egl_window* wlEglWindow_ {};
 	std::unique_ptr<EglSurface> surface_;
 };
 
-}
+} // namespace ny
+
+#ifndef NY_WithEgl
+	#error ny was built without egl. Do not include this header.
+#endif

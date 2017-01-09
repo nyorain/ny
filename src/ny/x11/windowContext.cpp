@@ -20,8 +20,7 @@
 
 #include <cstring> //memcpy
 
-namespace ny
-{
+namespace ny {
 
 //windowContext
 X11WindowContext::X11WindowContext(X11AppContext& ctx, const X11WindowSettings& settings)
@@ -781,4 +780,4 @@ Surface X11WindowContext::surface()
 	return {};
 }
 
-}
+} // namespace ny

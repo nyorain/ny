@@ -7,12 +7,10 @@
 #include <ny/x11/include.hpp>
 #include <ny/backend.hpp>
 
-namespace ny
-{
+namespace ny {
 
-///X11 backend implementation.
-class X11Backend : public Backend
-{
+/// X11 backend implementation.
+class X11Backend : public Backend {
 public:
 	static X11Backend& instance(){ return instance_; }
 
@@ -29,4 +27,4 @@ protected:
     X11Backend();
 };
 
-}
+} // namespace ny

@@ -16,22 +16,18 @@
 #include <vector>
 #include <string>
 
-namespace ny
-{
+namespace ny {
 
-///X11EventData stores the native xcb event for later use.
-///To see where this might be needed look at the X11WC::beginResize and X11WC::beginMove functions.
-class X11EventData : public EventData
-{
-public:
-    X11EventData(const xcb_generic_event_t& e) : event(e) {};
-    xcb_generic_event_t event;
+/// X11EventData stores the native xcb event for later use.
+/// To see where this might be needed look at the X11WC::beginResize and X11WC::beginMove functions.
+struct X11EventData : public EventData {
+	X11EventData(const xcb_generic_event_t& e) : event(e) {};
+	xcb_generic_event_t event;
 };
 
-///Implements std::error_category for x11 protocol errors codes.
-///Needs a Xlib Display to correctly obtain error messages for error codes.
-class X11ErrorCategory : public std::error_category
-{
+/// Implements std::error_category for x11 protocol errors codes.
+/// Needs a Xlib Display to correctly obtain error messages for error codes.
+class X11ErrorCategory : public std::error_category {
 public:
 	X11ErrorCategory() = default;
 	X11ErrorCategory(Display&, xcb_connection_t&);
@@ -43,63 +39,61 @@ public:
 	const char* name() const noexcept override { return "ny::x11"; }
 	std::string message(int code) const override;
 
-	///Returns an error_code of this category for a valid x11 error value.
-	///Otherwise returns an empty error_code.
+	/// Returns an error_code of this category for a valid x11 error value.
+	/// Otherwise returns an empty error_code.
 	std::error_code errorCode(int error) const;
 
-	///Checks the given cookie and returns an error_code object of this category if the
-	///cookie contains an error. Otherwise returns an empty error_code.
+	/// Checks the given cookie and returns an error_code object of this category if the
+	/// cookie contains an error. Otherwise returns an empty error_code.
 	std::error_code check(xcb_void_cookie_t cookie) const;
 
-	///Checks if the cookie contains an error and if so, sets the given error_code and returns
-	///false. Returns true and resets the error code if the cookie is ok.
+	/// Checks if the cookie contains an error and if so, sets the given error_code and returns
+	/// false. Returns true and resets the error code if the cookie is ok.
 	bool check(xcb_void_cookie_t, std::error_code&) const;
 
-	///Checks whether the cookie contains and error and if so, outputs a warning with the
-	///meaning of the error code and the given msg, if any.
-	///Returns false if the cookie contained an error, true otherwise.
+	/// Checks whether the cookie contains and error and if so, outputs a warning with the
+	/// meaning of the error code and the given msg, if any.
+	/// Returns false if the cookie contained an error, true otherwise.
 	bool checkWarn(xcb_void_cookie_t, nytl::StringParam msg = {}) const;
 
-	///Checks whether the cookie contains and error and if so, throws a std::system_error
-	///with an error_code for the cookie error and the given msg, if any.
+	/// Checks whether the cookie contains and error and if so, throws a std::system_error
+	/// with an error_code for the cookie error and the given msg, if any.
 	void checkThrow(xcb_void_cookie_t, nytl::StringParam msg = {}) const;
 
 	Display& xDisplay() const { return *xDisplay_; }
 	xcb_connection_t& xConnection() const { return *xConnection_; }
 
 protected:
-	Display* xDisplay_ {}; ///Needed to obtain the error message
+	Display* xDisplay_ {}; // Needed to obtain the error message
 	xcb_connection_t* xConnection_ {};
 };
 
-///Tries to convert the given visual description with the given depth to an ImageDataFormat
-///enumeration value. If there is no corresponding ImageDataFormat value, returns
-///imageFormats::none.
+/// Tries to convert the given visual description with the given depth to an ImageDataFormat
+/// enumeration value. If there is no corresponding ImageDataFormat value, returns
+/// imageFormats::none.
 ImageFormat visualToFormat(const xcb_visualtype_t& visual, unsigned int depth);
 
-///Returns the MouseButton enumeration value for the given x11 button id.
-///Note that default x11 does only support 3 buttons for sure, so custom1 and custom2
-///may not be correctly detected. If the button id
-///is not known, MouseButton::unknown is returned.
+/// Returns the MouseButton enumeration value for the given x11 button id.
+/// Note that default x11 does only support 3 buttons for sure, so custom1 and custom2
+/// may not be correctly detected. If the button id
+/// is not known, MouseButton::unknown is returned.
 MouseButton x11ToButton(unsigned int button);
 
-///Returns the x11 button id for the given MouseButton enumeration value.
-///If the given MouseButton is invalid or has no corresponding x11 button id, 0 is returned.
+/// Returns the x11 button id for the given MouseButton enumeration value.
+/// If the given MouseButton is invalid or has no corresponding x11 button id, 0 is returned.
 unsigned int buttonToX11(MouseButton);
 
-namespace x11
-{
+namespace x11 {
 
-///Forward declaration dummys, since some xcb types are anonymous typedefs and
-///we don't want to pull all xcb headers everwhere.
+/// Forward declaration dummys, since some xcb types are anonymous typedefs and
+/// we don't want to pull all xcb headers everwhere.
 struct EwmhConnection : public xcb_ewmh_connection_t {};
 struct GenericEvent : public xcb_generic_event_t {};
 
-///All non-predefined atoms that will be used by some backend component.
-///X11AppContext contains an Atoms object and tries to load each of these atoms in
-///the constructor.
-struct Atoms
-{
+/// All non-predefined atoms that will be used by some backend component.
+/// X11AppContext contains an Atoms object and tries to load each of these atoms in
+/// the constructor.
+struct Atoms {
 	xcb_atom_t xdndEnter;
 	xcb_atom_t xdndPosition;
 	xcb_atom_t xdndStatus;
@@ -126,34 +120,31 @@ struct Atoms
 
 	struct
 	{
-		xcb_atom_t textPlain; //text/plain
-		xcb_atom_t textPlainUtf8; //text/plain;charset=utf8
-		xcb_atom_t textUriList; //text/uri-list
+		xcb_atom_t textPlain; // text/plain
+		xcb_atom_t textPlainUtf8; // text/plain;charset=utf8
+		xcb_atom_t textUriList; // text/uri-list
 
-		xcb_atom_t imageData; //image/x-ny-data
-		xcb_atom_t raw; //application/octet-stream
+		xcb_atom_t imageData; // image/x-ny-data
+		xcb_atom_t raw; // application/octet-stream
 	} mime;
 };
 
-///Represents a Property value of an x11 window for a property atom.
-///Can be retrieved using readProperty or used to change a property using changeProperty
-struct Property
-{
-	std::vector<uint8_t> data; ///The raw property data. Use data.size() to determine the length
-	int format = 8; ///How the data should be interpreted, i.e. how many bits are grouped together
-	xcb_atom_t type = XCB_ATOM_ANY; ///An atom representing the type of the data
+/// Represents a Property value of an x11 window for a property atom.
+/// Can be retrieved using readProperty or used to change a property using changeProperty
+struct Property {
+	std::vector<uint8_t> data; /// The raw property data. Use data.size() to determine the length
+	int format = 8; /// How the data should be interpreted, i.e. how many bits are grouped together
+	xcb_atom_t type = XCB_ATOM_ANY; /// An atom representing the type of the data
 };
 
-///Reads the given x11 atom property for the given window.
-///Returns an empty property and sets error if an error occurred during the property reading.
-///\param deleteProp Whether the property should be deleted after reading it
+/// Reads the given x11 atom property for the given window.
+/// Returns an empty property and sets error if an error occurred during the property reading.
+/// \param deleteProp Whether the property should be deleted after reading it
 Property readProperty(xcb_connection_t&, xcb_atom_t prop, xcb_window_t,
 	xcb_generic_error_t* error = nullptr, bool deleteProp = false);
 
-///Returns an error string for an x11 error code.
+/// Returns an error string for an x11 error code.
 std::string errorMessage(Display&, unsigned int error);
 
-}
-
-
-}
+} // namespace x11
+} // namespace ny

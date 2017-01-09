@@ -10,18 +10,17 @@
 #include <ny/library.hpp>
 #include <nytl/vec.hpp>
 
-//prototypes to include glx.h
+// prototypes to not include glx.h
 typedef struct __GLXcontextRec* GLXContext;
 typedef struct __GLXFBConfigRec* GLXFBConfig;
 
-namespace ny
-{
+namespace ny {
 
 //TODO: for glx calls: correct error handling
-
 //TODO: api loading, glLibrary, context extensions, swapInterval, screen number
-class GlxSetup : public GlSetup
-{
+
+/// Glx GlSetup implementation
+class GlxSetup : public GlSetup {
 public:
 	GlxSetup() = default;
 	GlxSetup(const X11AppContext&, unsigned int screenNumber = 0);
@@ -48,12 +47,12 @@ protected:
 	std::vector<GlConfig> configs_;
 	GlConfig* defaultConfig_ {};
 
-	//TODO
+	// TODO
 	Library glLibrary_;
 };
 
-class GlxSurface : public GlSurface
-{
+/// Glx GlSurface implementation
+class GlxSurface : public GlSurface {
 public:
 	GlxSurface(Display& xdpy, unsigned int xDrawable, const GlConfig& config);
 	~GlxSurface() = default;
@@ -71,12 +70,12 @@ protected:
 	GlConfig config_ {};
 };
 
-class GlxContext : public GlContext
-{
+/// Glx GlContext implementation
+class GlxContext : public GlContext {
 public:
 	GlxContext(const GlxSetup& setup, const GlContextSettings& settings);
-    GlxContext(const GlxSetup& setup, GLXContext context, const GlConfig& config);
-    ~GlxContext();
+	GlxContext(const GlxSetup& setup, GLXContext context, const GlConfig& config);
+	~GlxContext();
 
 	NativeHandle nativeHandle() const override { return {glxContext_}; }
 	bool compatible(const GlSurface&) const override;
@@ -87,16 +86,16 @@ public:
 	GLXContext glxContext() const { return glxContext_; }
 
 protected:
-    virtual bool makeCurrentImpl(const GlSurface&, std::error_code&) override;
-    virtual bool makeNotCurrentImpl(std::error_code&) override;
+	virtual bool makeCurrentImpl(const GlSurface&, std::error_code&) override;
+	virtual bool makeNotCurrentImpl(std::error_code&) override;
 
 protected:
 	const GlxSetup* setup_ {};
-    GLXContext glxContext_ {};
+	GLXContext glxContext_ {};
 };
 
-class GlxWindowContext : public X11WindowContext
-{
+/// X11 WindowContext implementation that also creates a GlSurface using glx.
+class GlxWindowContext : public X11WindowContext {
 public:
 	GlxWindowContext(X11AppContext&, const GlxSetup& setup, const X11WindowSettings& = {});
 
@@ -107,4 +106,4 @@ protected:
 	std::unique_ptr<GlxSurface> surface_;
 };
 
-}
+} // namespace ny

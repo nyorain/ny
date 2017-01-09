@@ -83,8 +83,6 @@ struct StateEvent : public Event {
 };
 
 /// Event that is sent when a drag and drop offer enters the window
-/// The WindowListener will receive a DndEnterEvent followed by a DndMoveEvent when a dnd offer
-/// enters the window.
 /// The associated DataOffer pointer is only valid until a DndLeaveEvent for the offer is sent.
 struct DndEnterEvent : public Event {
 	nytl::Vec2i position {}; /// The position at which it entered

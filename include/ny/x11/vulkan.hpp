@@ -7,12 +7,14 @@
 #include <ny/x11/include.hpp>
 #include <ny/x11/windowContext.hpp>
 
-namespace ny
-{
+#ifndef NY_WithVulkan
+	#error ny was built without vulkan. Do not include this header.
+#endif
 
-///WinapiWindowContext that also creates/owns a VkSurfaceKHR.
-class X11VulkanWindowContext : public X11WindowContext
-{
+namespace ny {
+
+/// X11 WindowContext implementation that also creates a VkSurfaceKHR.
+class X11VulkanWindowContext : public X11WindowContext {
 public:
 	X11VulkanWindowContext(X11AppContext&, const X11WindowSettings&);
 	~X11VulkanWindowContext();
@@ -28,8 +30,4 @@ protected:
 	std::unique_ptr<VkAllocationCallbacks> allocationCallbacks_ {};
 };
 
-}
-
-#ifndef NY_WithVulkan
-	#error ny was built without vulkan. Do not include this header.
-#endif
+} // namespace ny

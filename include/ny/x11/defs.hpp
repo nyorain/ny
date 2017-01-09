@@ -2,11 +2,7 @@
 
 #include <cstdint>
 
-namespace ny
-{
-
-namespace x11
-{
+namespace ny::x11 {
 
 //All Motif WM Hints and structures.
 constexpr unsigned long mwmDecoBorder = (1L << 1);
@@ -15,7 +11,7 @@ constexpr unsigned long mwmDecoTitle = (1L << 3);
 constexpr unsigned long mwmDecomenu = (1L << 4);
 constexpr unsigned long mwmDecominimize = (1L << 5);
 constexpr unsigned long mwmDecomaximize = (1L << 5);
-constexpr unsigned long mwmDecoAll = 
+constexpr unsigned long mwmDecoAll =
 	mwmDecoBorder | mwmDecoResize | mwmDecoTitle | mwmDecomenu | mwmDecominimize | mwmDecomaximize;
 
 constexpr unsigned long mwmFuncResize = mwmDecoBorder;
@@ -23,7 +19,7 @@ constexpr unsigned long mwmFuncmove = mwmDecoResize;
 constexpr unsigned long mwmFuncminimize = mwmDecoTitle;
 constexpr unsigned long mwmFuncmaximize = mwmDecomenu;
 constexpr unsigned long mwmFuncClose = mwmDecominimize;
-constexpr unsigned long mwmFuncAll = 
+constexpr unsigned long mwmFuncAll =
 	mwmFuncResize | mwmFuncmove | mwmFuncmaximize | mwmFuncminimize | mwmFuncClose;
 
 constexpr unsigned long mwmHintsFunc = (1L << 0);
@@ -54,22 +50,17 @@ constexpr unsigned char moveResizeSizeKeyboard = 9;
 constexpr unsigned char moveResizemoveKeyboard = 10;
 constexpr unsigned char moveResizeCancel = 11;
 
-struct MwmHints
-{
-    unsigned long flags;
-    unsigned long functions;
-    unsigned long decorations;
-    long inputMode;
-    unsigned long status;
+struct MwmHints {
+	unsigned long flags;
+	unsigned long functions;
+	unsigned long decorations;
+	long inputMode;
+	unsigned long status;
 };
 
-struct MwmInfo
-{
-    long flags;
+struct MwmInfo {
+	long flags;
 	std::uint32_t window;
 };
 
-}
-
-}
-
+} // namespace ny:x11

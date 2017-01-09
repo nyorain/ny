@@ -6,24 +6,21 @@
 #include <ny/wayland/windowContext.hpp>
 #include <ny/wayland/appContext.hpp>
 #include <ny/wayland/util.hpp>
+#include <ny/common/egl.hpp>
 #include <ny/surface.hpp>
 #include <ny/log.hpp>
 
 #include <wayland-egl.h>
 #include <EGL/egl.h>
 
-namespace ny
-{
+namespace ny {
 
-//A small derivate of EglSurface that holds a reference to the WindowContext it is associated with.
-//If the WindowContext is not shown, the EglContext does not swapBuffers on apply()
-class WaylandEglSurface : public EglSurface
-{
-public:
+// A small derivate of EglSurface that holds a reference to the WindowContext it is associated with.
+// If the WindowContext is not shown, the EglContext does not swapBuffers on apply()
+class WaylandEglSurface : public EglSurface {
 	using EglSurface::EglSurface;
 	WaylandWindowContext* waylandWC_;
 
-public:
 	bool apply(std::error_code& ec) const override
 	{
 		if(!waylandWC_->shown()) return true;
@@ -31,18 +28,18 @@ public:
 	}
 };
 
-//WaylandEglWindowContext
+// WaylandEglWindowContext
 WaylandEglWindowContext::WaylandEglWindowContext(WaylandAppContext& ac, const EglSetup& setup,
 	const WaylandWindowSettings& ws) : WaylandWindowContext(ac, ws)
 {
     wlEglWindow_ = wl_egl_window_create(&wlSurface(), ws.size.x, ws.size.y);
-    if(!wlEglWindow_) throw std::runtime_error("ny::WaylandEglWC: wl_egl_window_create failed");
+    if(!wlEglWindow_)
+		throw std::runtime_error("ny::WaylandEglWindowContext: wl_egl_window_create failed");
 
 	auto eglDisplay = setup.eglDisplay();
 	auto eglnwindow = static_cast<void*>(wlEglWindow_);
 	surface_ = std::make_unique<EglSurface>(eglDisplay, eglnwindow, ws.gl.config, setup);
 
-	//store surface if requested so
 	if(ws.gl.storeSurface) *ws.gl.storeSurface = surface_.get();
 }
 
@@ -63,4 +60,4 @@ Surface WaylandEglWindowContext::surface()
 	return {*surface_};
 }
 
-}
+} // namespace ny

@@ -9,12 +9,10 @@
 #include <ny/bufferSurface.hpp>
 #include <nytl/vec.hpp>
 
-namespace ny
-{
+namespace ny {
 
-///Winapi BufferSurface implementation.
-class WinapiBufferSurface : public BufferSurface
-{
+/// Winapi BufferSurface implementation.
+class WinapiBufferSurface : public BufferSurface {
 public:
 	WinapiBufferSurface(WinapiWindowContext&);
 	~WinapiBufferSurface();
@@ -31,9 +29,8 @@ protected:
 	nytl::Vec2ui size_ {};
 };
 
-//WinapiBufferWindowContext
-class WinapiBufferWindowContext : public WinapiWindowContext
-{
+/// WinapiBufferWindowContext
+class WinapiBufferWindowContext : public WinapiWindowContext {
 public:
 	WinapiBufferWindowContext(WinapiAppContext&, const WinapiWindowSettings& = {});
 	~WinapiBufferWindowContext() = default;
@@ -44,4 +41,4 @@ protected:
 	WinapiBufferSurface bufferSurface_;
 };
 
-}
+} // namespace ny

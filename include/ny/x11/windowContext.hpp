@@ -10,8 +10,7 @@
 
 #include <vector>
 
-namespace ny
-{
+namespace ny {
 
 ///Additional settings for a X11 Window.
 class X11WindowSettings : public WindowSettings {};
@@ -19,48 +18,47 @@ class X11WindowSettings : public WindowSettings {};
 ///The X11 implementation of the WindowContext interface.
 ///Provides some extra functionality for x11.
 ///Tries to use xcb where possible, for some things (e.g. glx context) xlib is needed though.
-class X11WindowContext : public WindowContext
-{
+class X11WindowContext : public WindowContext {
 public:
-    X11WindowContext(X11AppContext& ctx, const X11WindowSettings& settings = {});
-    ~X11WindowContext();
+	X11WindowContext(X11AppContext& ctx, const X11WindowSettings& settings = {});
+	~X11WindowContext();
 
 	// - WindowContext implementation -
-    void refresh() override;
-    void show() override;
-    void hide() override;
+	void refresh() override;
+	void show() override;
+	void hide() override;
 
 	// void droppable(const DataTypes&) override {};
 
-    void minSize(nytl::Vec2ui size) override;
-    void maxSize(nytl::Vec2ui size) override;
+	void minSize(nytl::Vec2ui size) override;
+	void maxSize(nytl::Vec2ui size) override;
 
-    void size(nytl::Vec2ui size) override;
-    void position(nytl::Vec2i position) override;
+	void size(nytl::Vec2ui size) override;
+	void position(nytl::Vec2i position) override;
 
-    void cursor(const Cursor& c) override;
+	void cursor(const Cursor& c) override;
 
 	NativeHandle nativeHandle() const override;
 	WindowCapabilities capabilities() const override;
 	Surface surface() override;
 
-    //toplevel window
-    void maximize() override;
-    void minimize() override;
-    void fullscreen() override;
-    void normalState() override;
+	//toplevel window
+	void maximize() override;
+	void minimize() override;
+	void fullscreen() override;
+	void normalState() override;
 
-    void beginMove(const EventData*) override;
-    void beginResize(const EventData* ev, WindowEdges edges) override;
+	void beginMove(const EventData*) override;
+	void beginResize(const EventData* ev, WindowEdges edges) override;
 
-    void title(nytl::StringParam title) override;
+	void title(nytl::StringParam title) override;
 	void icon(const Image& img) override;
 	bool customDecorated() const override;
 
 	void addWindowHints(WindowHints hints) override;
 	void removeWindowHints(WindowHints hints) override;
 
-    // - x11-specific -
+	// - x11-specific -
 	//specific event handlers
 	virtual void reparentEvent();
 
@@ -72,35 +70,35 @@ public:
 	const X11ErrorCategory& errorCategory() const; ///Shortcut for the AppContexts ErrorCategory
 
 	nytl::Vec2ui size() const; ///Queries the current window size
-    void overrideRedirect(bool redirect); ///Sets the overrideRedirect flag for the window
-    void transientFor(uint32_t win); ///Makes the window transient for another x window
+	void overrideRedirect(bool redirect); ///Sets the overrideRedirect flag for the window
+	void transientFor(uint32_t win); ///Makes the window transient for another x window
 
-    void raise(); ///tries to raise the window
-    void lower(); ///tries to lower the window
-    void requestFocus(); ///tries to bring the window focus
+	void raise(); ///tries to raise the window
+	void lower(); ///tries to lower the window
+	void requestFocus(); ///tries to bring the window focus
 
 	///Sets the motif deco and/or function hints for the window.
 	///The hints are declared in ny/backend/x11/util.hpp.
 	///Motif hints are outdated, so may not work on every compositor.
-    void mwmHints(unsigned long deco, unsigned long func, bool d = true, bool f = true);
+	void mwmHints(unsigned long deco, unsigned long func, bool d = true, bool f = true);
 
-    unsigned long mwmDecorationHints() const; ///Returns the current motif deco hints
-    unsigned long mwmFunctionHints() const; ///Returns the current motif function hints
-
-	///Adds the given state/states to the window.
-	///Look at the ewmh specification for more information and allowed atoms.
-	///The changed property is _NET_WM_STATE.
-    void addStates(uint32_t state1, uint32_t state2 = 0);
+	unsigned long mwmDecorationHints() const; ///Returns the current motif deco hints
+	unsigned long mwmFunctionHints() const; ///Returns the current motif function hints
 
 	///Adds the given state/states to the window.
 	///Look at the ewmh specification for more information and allowed atoms.
 	///The changed property is _NET_WM_STATE.
-    void removeStates(uint32_t state1, uint32_t state2 = 0);
+	void addStates(uint32_t state1, uint32_t state2 = 0);
 
 	///Adds the given state/states to the window.
 	///Look at the ewmh specification for more information and allowed atoms.
 	///The changed property is _NET_WM_STATE.
-    void toggleStates(uint32_t state1, uint32_t state2 = 0);
+	void removeStates(uint32_t state1, uint32_t state2 = 0);
+
+	///Adds the given state/states to the window.
+	///Look at the ewmh specification for more information and allowed atoms.
+	///The changed property is _NET_WM_STATE.
+	void toggleStates(uint32_t state1, uint32_t state2 = 0);
 
 	///Returns the states associated with this window.
 	///For more information look in the ewmh specification for _NET_WM_STATE.
@@ -108,11 +106,11 @@ public:
 
 	///Reloads the stores window states.
 	///XXX: Needed? should they be stored? TODO
-    void refreshStates();
+	void refreshStates();
 
 	///Sets the window type.
 	///For more information look in the ewmh specification for _NET_WM_WINDOW_TYPE.
-    void xWindowType(uint32_t type);
+	void xWindowType(uint32_t type);
 
 	///Returns the window type assocated with this window.
 	///For more information look in the ewmh specification for _NET_WM_WINDOW_TYPE.
@@ -120,15 +118,15 @@ public:
 
 	///Adds an allowed action for the window.
 	///For more information look in the ewmh specification for _NET_WM_ALLOWED_ACTIONS.
-    void addAllowedAction(uint32_t action); //only does something when custom handled
+	void addAllowedAction(uint32_t action); //only does something when custom handled
 
 	///Removes an allowed action for the window.
 	///For more information look in the ewmh specification for _NET_WM_ALLOWED_ACTIONS.
-    void removeAllowedAction(uint32_t action);
+	void removeAllowedAction(uint32_t action);
 
 	///Returns all allowed actions for the window.
 	///For more information look in the ewmh specification for _NET_WM_ALLOWED_ACTIONS.
-    std::vector<uint32_t> allowedActions() const;
+	std::vector<uint32_t> allowedActions() const;
 
 	///Returns the x visual id for this window.
 	///If it has not been set, 0 is retrned.
@@ -158,7 +156,7 @@ protected:
 	///Will automatically be called by the create function if the xVisualtype_ member variable is
 	///not set yet (since it is needed for window creation).
 	///By default, this just selects the 32 or 24 bit visual with the best format.
-    virtual void initVisual();
+	virtual void initVisual();
 
 protected:
 	X11AppContext* appContext_ = nullptr;
@@ -176,8 +174,8 @@ protected:
 
 	//Stored EWMH states can be used to check whether it is fullscreen, maximized etc.
 	std::vector<uint32_t> states_;
-    unsigned long mwmFuncHints_ {};
-    unsigned long mwmDecoHints_ {};
+	unsigned long mwmFuncHints_ {};
+	unsigned long mwmDecoHints_ {};
 };
 
-}
+} // namespace ny

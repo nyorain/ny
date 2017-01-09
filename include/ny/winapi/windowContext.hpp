@@ -8,17 +8,17 @@
 #include <ny/winapi/windows.hpp>
 #include <ny/windowContext.hpp>
 #include <ny/windowSettings.hpp>
+
 #include <nytl/rect.hpp>
+#include <nytl/vec.hpp>
 
-namespace ny
-{
+namespace ny {
 
-///Extents the WindowSettings class with extra winapi-specific settings.
+/// Extents the WindowSettings class with extra winapi-specific settings.
 class WinapiWindowSettings : public WindowSettings {};
 
-///WindowContext for winapi windows using the winapi backend on a windows OS.
-class WinapiWindowContext : public WindowContext
-{
+/// WindowContext for winapi windows using the winapi backend on a windows OS.
+class WinapiWindowContext : public WindowContext {
 public:
 	WinapiWindowContext(WinapiAppContext& ctx, const WinapiWindowSettings& settings = {});
 	~WinapiWindowContext();
@@ -67,12 +67,11 @@ public:
 	nytl::Vec2ui maxSize() const { return maxSize_; }
 
 protected:
-	struct State
-	{
+	struct State {
 		std::uint64_t style {};
 		std::uint64_t exstyle {};
 		nytl::Rect2i extents {};
-		unsigned int state {}; //0: normal, 1: maximized, 2: minimized, 3: fullscreen
+		unsigned int state {}; // 0: normal, 1: maximized, 2: minimized, 3: fullscreen
 	};
 
 protected:
@@ -94,21 +93,20 @@ protected:
 	std::wstring wndClassName_;
 
 	HWND handle_ = nullptr;
-	winapi::com::DropTargetImpl* dropTarget_ = nullptr; //referenced-counted (shared owned here)
+	winapi::com::DropTargetImpl* dropTarget_ = nullptr; // referenced-counted (shared owned here)
 
-	//If ownedCursor_ is true, cursor_ was created, otherwise it was loaded (and must not
-	//be destroyed). icon_ is always owned.
+	// If ownedCursor_ is true, cursor_ was created, otherwise it was loaded (and must not
+	// be destroyed). icon_ is always owned.
 	bool ownedCursor_ = false;
 	HCURSOR cursor_ = nullptr;
 	HICON icon_ = nullptr;
 
 	bool fullscreen_ = false;
 	std::uint64_t style_ = 0;
-	State savedState_; //used e.g. for resetState
+	State savedState_; // used e.g. for resetState
 
 	nytl::Vec2ui minSize_ {};
 	nytl::Vec2ui maxSize_ {9999, 9999};
 };
 
-
-}
+} // namespace ny

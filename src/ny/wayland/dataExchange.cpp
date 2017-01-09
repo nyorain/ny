@@ -24,18 +24,17 @@
 
 #include <algorithm>
 
-namespace ny
-{
+namespace ny {
 
-///Represents a pending wayland to another request for a specific format.
-///Will be associated with a format using a std::map.
+// /Represents a pending wayland to another request for a specific format.
+// /Will be associated with a format using a std::map.
 class WaylandDataOffer::PendingRequest {
 public:
 	std::vector<WaylandDataOffer::DataRequestImpl*> requests;
 	nytl::ConnectionGuard fdConnection;
 };
 
-///Small DefaultAsyncRequest addition that allows to unregister itself on desctruction.
+// /Small DefaultAsyncRequest addition that allows to unregister itself on desctruction.
 class WaylandDataOffer::DataRequestImpl : public DefaultAsyncRequest<std::any> {
 public:
 	using DefaultAsyncRequest::DefaultAsyncRequest;
@@ -412,52 +411,57 @@ void WaylandDataDevice::offer(wl_data_device*, wl_data_offer* offer)
 	offers_.push_back(std::make_unique<WaylandDataOffer>(*appContext_, *offer));
 }
 
-void WaylandDataDevice::enter(wl_data_device*, uint32_t serial, wl_surface* surface, wl_fixed_t x, wl_fixed_t y,
-	wl_data_offer* offer)
+void WaylandDataDevice::enter(wl_data_device*, uint32_t serial, wl_surface* surface,
+	wl_fixed_t x, wl_fixed_t y, wl_data_offer* offer)
 {
 	WaylandEventData eventData(serial);
 	nytl::Vec2i pos(wl_fixed_to_int(x), wl_fixed_to_int(y));
 
 	//find the associated dataOffer and cache it as dndOffer_
-	for(auto& o : offers_)
-	{
-		if(&o->wlDataOffer() == offer)
-		{
+	for(auto& o : offers_) {
+		if(&o->wlDataOffer() == offer) {
 			dndOffer_ = o.get();
 			break;
 		}
 	}
 
-	if(!dndOffer_)
-	{
+	if(!dndOffer_) {
 		log("ny::WaylandDataDevice::enter: invalid wl_data_offer given");
 		return;
 	}
 
 	dndWC_ = appContext_->windowContext(*surface);
-	if(!dndWC_)
-	{
+	if(!dndWC_) {
 		log("ny::WaylandDataDevice::enter: invalid wl_surface given");
 		dndOffer_ = {};
 		return;
 	}
 
 	dndSerial_ = serial;
-	dndWC_->listener().dndEnter(*dndOffer_, &eventData);
-	dndWC_->listener().dndMove(pos, *dndOffer_, &eventData);
+
+	DndEnterEvent dde;
+	dde.eventData = &eventData;
+	dde.offer = dndOffer_;
+	dde.position = pos;
+	dndWC_->listener().dndEnter(dde);
+
+	// TODO: already handle dndMove return format
+	DndMoveEvent dme;
+	dme.eventData = &eventData;
+	dme.position = pos;
+	dndWC_->listener().dndMove(dme);
 }
 
 void WaylandDataDevice::leave(wl_data_device*)
 {
-	if(dndOffer_)
-	{
-
+	if(dndOffer_) {
 		auto it = std::find_if(offers_.begin(), offers_.end(),
 			[=](auto& v) { return v.get() == dndOffer_; });
 
-		if(it != offers_.end())
-		{
-			if(dndWC_) dndWC_->listener().dndLeave(*it->get(), nullptr);
+		if(it != offers_.end()) {
+			DndLeaveEvent dle;
+			dle.offer = it->get();
+			if(dndWC_) dndWC_->listener().dndLeave(dle);
 			offers_.erase(it);
 		}
 	}
@@ -473,17 +477,18 @@ void WaylandDataDevice::motion(wl_data_device*, uint32_t time, wl_fixed_t x, wl_
 	nytl::unused(time); //time param needed for CompFunc since it would be stored in x otherwise
     nytl::Vec2i pos(wl_fixed_to_int(x), wl_fixed_to_int(y));
 
-	auto fmt = dndWC_->listener().dndMove(pos, *dndOffer_, nullptr);
-	if(fmt == DataFormat::none)
-	{
+	DndMoveEvent dme;
+	dme.position = pos;
+	dme.offer = dndOffer_;
+	auto fmt = dndWC_->listener().dndMove(dme);
+
+	if(fmt == DataFormat::none) {
 		wl_data_offer_accept(&dndOffer_->wlDataOffer(), dndSerial_, nullptr);
-		if(wl_data_offer_get_version(&dndOffer_->wlDataOffer()) >= 3)
-		{
+		if(wl_data_offer_get_version(&dndOffer_->wlDataOffer()) >= 3) {
 			wl_data_offer_set_actions(&dndOffer_->wlDataOffer(),
 				WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE,
 				WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE);
 		}
-
 		return;
 	}
 
@@ -496,30 +501,33 @@ void WaylandDataDevice::drop(wl_data_device*)
 {
 	// debug("ny::WaylandDataDevice::drop");
 
-	if(!dndOffer_ || !dndWC_)
-	{
+	if(!dndOffer_ || !dndWC_) {
 		log("ny::WaylandDataDevice::drop: invalid current dnd session.");
 		return;
 	}
 
 	std::unique_ptr<WaylandDataOffer> ownedDndOffer;
-	for(auto it = offers_.begin(); it != offers_.end(); ++it)
-	{
-		if(it->get() == dndOffer_)
-		{
+	for(auto it = offers_.begin(); it != offers_.end(); ++it) {
+		if(it->get() == dndOffer_) {
 			ownedDndOffer = std::move(*it);
 			offers_.erase(it);
 			break;
 		}
 	}
 
-	if(ownedDndOffer)
-	{
+	if(ownedDndOffer) {
 		ownedDndOffer->finish(true);
-		if(dndWC_) dndWC_->listener().dndDrop({}, std::move(ownedDndOffer), nullptr);
-		else warning("ny::WaylandDataDevice::drop: no current dnd WindowContext");
+		if(dndWC_) {
+			DndDropEvent dde;
+			dde.position = {}; // TODO
+			dde.offer = std::move(ownedDndOffer);
+			dndWC_->listener().dndDrop(dde);
+		} else {
+			warning("ny::WaylandDataDevice::drop: no current dnd WindowContext");
+		}
+	} else {
+		warning("ny::WaylandDataDevice::drop: invalid current cached dnd offer");
 	}
-	else warning("ny::WaylandDataDevice::drop: invalid current cached dnd offer");
 
 	dndOffer_ = {};
 	dndSerial_ = {};
@@ -529,18 +537,15 @@ void WaylandDataDevice::drop(wl_data_device*)
 void WaylandDataDevice::selection(wl_data_device*, wl_data_offer* offer)
 {
 	//erase the previous clipboard offer
-	if(clipboardOffer_)
-	{
+	if(clipboardOffer_) {
 		offers_.erase(std::remove_if(offers_.begin(), offers_.end(),
 			[=](auto& v) { return v.get() == clipboardOffer_; }), offers_.end());
 		clipboardOffer_ = nullptr;
 	}
 
 	if(!offer) return;
-	for(auto& o : offers_)
-	{
-		if(&o->wlDataOffer() == offer)
-		{
+	for(auto& o : offers_) {
+		if(&o->wlDataOffer() == offer) {
 			clipboardOffer_ = o.get();
 			return;
 		}
@@ -549,4 +554,4 @@ void WaylandDataDevice::selection(wl_data_device*, wl_data_offer* offer)
 	warning("ny::WaylandDataDevice::selection: unkown offer argument");
 }
 
-}
+} // namespace ny

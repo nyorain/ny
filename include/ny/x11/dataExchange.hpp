@@ -15,16 +15,14 @@
 #include <map>
 #include <unordered_map>
 
-namespace ny
-{
+namespace ny {
 
 /// X11 DataOffer implementation for selections or dnd.
 /// Manage all communication with the owner of the associated selection and handles
 /// all asynchronous requests.
 /// Note that this is by far the most complex DataOffer implementation since the X11
 /// backends handles the formats as well as all data requests in an asynchronous manner.
-class X11DataOffer : public DataOffer, public nytl::NonMovable
-{
+class X11DataOffer : public DataOffer, public nytl::NonMovable {
 public:
 	template<typename T> class AsyncRequestImpl;
 	class DataFormatRequestImpl;
@@ -90,8 +88,7 @@ protected:
 /// Implements the source site of an X11 selection.
 /// Always owns the applicatoins DataSource implementation and represents
 /// it as selection for other x clients.
-class X11DataSource : public nytl::NonCopyable
-{
+class X11DataSource : public nytl::NonCopyable {
 public:
 	X11DataSource() = default;
 	X11DataSource(X11AppContext&, std::unique_ptr<DataSource> src);
@@ -122,8 +119,7 @@ protected:
 /// Manages all selection, Xdnd and data exchange interactions.
 /// The dataSource pointer members should only have a value as long as the
 /// application has ownership over the associated selection.
-class X11DataManager : public nytl::NonCopyable
-{
+class X11DataManager : public nytl::NonCopyable {
 public:
 	X11DataManager() = default;
 	X11DataManager(X11AppContext& ac);
@@ -180,33 +176,31 @@ protected:
 	std::unique_ptr<X11DataOffer> clipboardOffer_;
 	std::unique_ptr<X11DataOffer> primaryOffer_;
 
-	//we have to stricly seperate dnd src and offer since we might be source
-	//and target at the same time.
-	//values for the current dnd session as source
-	struct
-	{
+	// we have to stricly seperate dnd src and offer since we might be source
+	// and target at the same time.
+	// values for the current dnd session as source
+	struct {
 		unsigned int version {}; //protocol version with the window we are currently over
 		xcb_window_t sourceWindow {}; //the source window in this application
 		xcb_window_t targetWindow {}; //the dnd aware window we are currently over
 		X11DataSource source {};
 	} dndSrc_;
 
-	//values for the current dnd session as target
-	struct
-	{
+	// values for the current dnd session as target
+	struct {
 		unsigned int version {}; //xdnd version
 		X11WindowContext* windowContext {}; //the window context over which the offer is
 		std::unique_ptr<X11DataOffer> offer; //the currently active data offer
 	} dndOffer_;
 
 
-	//old data offers and the currently active one
-	//old data offers whose ownership has been passed to the application must be stored
-	//since notify events for them must be dispatched correctly nontheless.
-	//they unregister themself here calling unregisterDataOffer.
+	// old data offers and the currently active one
+	// old data offers whose ownership has been passed to the application must be stored
+	// since notify events for them must be dispatched correctly nontheless.
+	// they unregister themself here calling unregisterDataOffer.
 	std::vector<X11DataOffer*> dndOffers_;
 
 	//TODO: store and dispatch to old dnd sources as well?
 };
 
-}
+} // namespace ny

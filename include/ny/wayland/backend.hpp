@@ -7,26 +7,24 @@
 #include <ny/wayland/include.hpp>
 #include <ny/backend.hpp>
 
-namespace ny
-{
+namespace ny {
 
 ///Wayland backend implementation.
-class WaylandBackend : public Backend
-{
+class WaylandBackend : public Backend {
 public:
 	static WaylandBackend& instance(){ return instance_; }
 
 public:
-    bool available() const override;
-    AppContextPtr createAppContext() override;
+	bool available() const override;
+	AppContextPtr createAppContext() override;
 	const char* name() const override { return "wayland"; }
 
 	bool gl() const override;
 	bool vulkan() const override;
 
 protected:
-    static WaylandBackend instance_;
-    WaylandBackend();
+	static WaylandBackend instance_;
+	WaylandBackend();
 };
 
-}
+} // namespace ny

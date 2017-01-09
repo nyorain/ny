@@ -3,8 +3,7 @@
 #include <bitset> // std::bitset
 #include <algorithm> // std::reverse
 
-namespace ny
-{
+namespace ny {
 
 bool littleEndian()
 {
@@ -297,4 +296,4 @@ void premultiply(const MutableImage& img)
 	}
 }
 
-}
+} // namespace ny

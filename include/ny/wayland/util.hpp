@@ -13,81 +13,77 @@
 #include <nytl/functionTraits.hpp>
 
 #include <type_traits>
+#include <vector>
+#include <string>
 
-namespace ny
-{
+namespace ny {
+namespace wayland {
 
-namespace wayland
-{
+// TODO: shmbuffer in preferred format, don't just always use argb
+// TODO: use one shared shm_pool for all ShmBuffers?
+// At least use pool of pools but not one for every buffer. This is really bad
 
-//TODO: shmbuffer in preferred format, don't just always use argb
-//TODO: use one shared shm_pool for all ShmBuffers?
-//At least use pool of pools but not one for every buffer. This is really bad
-
-///Wraps and manages a wayland shm buffer.
-class ShmBuffer
-{
+/// Wraps and manages a wayland shm buffer.
+class ShmBuffer {
 public:
 	ShmBuffer() = default;
-    ShmBuffer(WaylandAppContext& ac, nytl::Vec2ui size, unsigned int stride = 0);
-    ~ShmBuffer();
+	ShmBuffer(WaylandAppContext& ac, nytl::Vec2ui size, unsigned int stride = 0);
+	~ShmBuffer();
 
 	ShmBuffer(ShmBuffer&& other);
 	ShmBuffer& operator=(ShmBuffer&& other);
 
-    nytl::Vec2ui size() const { return size_; }
-    unsigned int dataSize() const { return stride_ * size_.y; }
+	nytl::Vec2ui size() const { return size_; }
+	unsigned int dataSize() const { return stride_ * size_.y; }
 	unsigned int format() const { return format_; }
 	unsigned int stride() const { return stride_; }
-	std::uint8_t& data(){ return *data_; }
-    wl_buffer& wlBuffer() const { return *buffer_; }
+	uint8_t& data(){ return *data_; }
+	wl_buffer& wlBuffer() const { return *buffer_; }
 
-	///Sets the internal used flag to true. Should be called everytime the buffer
-	///is attached to a surface. The ShmBuffer will automatically clear the flag
-	///when the compositor send the buffer release event.
-	///\sa used
-    void use() { used_ = true; }
+	/// Sets the internal used flag to true. Should be called everytime the buffer
+	/// is attached to a surface. The ShmBuffer will automatically clear the flag
+	/// when the compositor send the buffer release event.
+	/// \sa used
+	void use() { used_ = true; }
 
-	///Returns whether the ShmBuffer is currently in use by the compostior.
-	///If this is true, the data should not be accessed in any way.
-	///\sa use
-    bool used() const { return used_; }
+	/// Returns whether the ShmBuffer is currently in use by the compostior.
+	/// If this is true, the data should not be accessed in any way.
+	/// \sa use
+	bool used() const { return used_; }
 
-	///Will trigger a buffer recreate if the given size exceeds the current size.
-	///At the beginning 5MB will be allocated for a buffer
-	///(e.g. more than 1000x1000px with 32bit color).
-	///\return true if the data pointer changed, false if it stayed the same, i.e.
-	///returns whether a new shm pool had to be created
-    bool size(nytl::Vec2ui size, unsigned int stride = 0);
+	/// Will trigger a buffer recreate if the given size exceeds the current size.
+	/// At the beginning 5MB will be allocated for a buffer
+	/// (e.g. more than 1000x1000px with 32bit color).
+	/// \return true if the data pointer changed, false if it stayed the same, i.e.
+	/// returns whether a new shm pool had to be created
+	bool size(nytl::Vec2ui size, unsigned int stride = 0);
 
 protected:
 	WaylandAppContext* appContext_ {};
 
-    nytl::Vec2ui size_;
+	nytl::Vec2ui size_;
 	unsigned int stride_ {};
-    unsigned int shmSize_ = 1024 * 1024 * 5; //5MB at the beginning
+	unsigned int shmSize_ = 1024 * 1024 * 5; // 5MB at the beginning
 
-    wl_buffer* buffer_ {};
-    wl_shm_pool* pool_ {};
+	wl_buffer* buffer_ {};
+	wl_shm_pool* pool_ {};
 	uint8_t* data_ {};
-	unsigned int format_ {}; //wayland format; argb > bgra > rgba > abgr > xrgb (all 32 bits)
-    bool used_ {0}; //whether the compositor owns the buffer atm
+	unsigned int format_ {}; // wayland format; argb > bgra > rgba > abgr > xrgb (all 32 bits)
+	bool used_ {0}; // whether the compositor owns the buffer atm
 
 protected:
-    void create(); //(re)creates the buffer for the set size/format/stride. Calls destroy
-    void destroy(); //frees all associated resources
-    void released(wl_buffer*) { used_ = false; } //registered as listener function
+	void create(); // (re)creates the buffer for the set size/format/stride. Calls destroy
+	void destroy(); // frees all associated resources
+	void released(wl_buffer*) { used_ = false; } // registered as listener function
 };
 
 /// Holds information about a wayland output.
-class Output
-{
+class Output {
 public:
 	/// Represents a single possible output mode.
 	/// Can be set when a WindowContext is made fullscreen.
 	/// Usually outputs have multiple output modes.
-	struct Mode
-	{
+	struct Mode {
 		nytl::Vec2ui size;
 		unsigned int flags;
 		unsigned int refresh;
@@ -95,8 +91,7 @@ public:
 
 	/// All received output information.
 	/// Note that this Information is not finished yet, if the done member is false.
-	struct Information
-	{
+	struct Information {
 		nytl::Vec2i position;
 		nytl::Vec2ui physicalSize;
 		std::vector<Mode> modes;
@@ -111,8 +106,8 @@ public:
 
 public:
 	Output() = default;
-    Output(WaylandAppContext& ac, wl_output& outp, unsigned int id);
-    ~Output();
+	Output(WaylandAppContext& ac, wl_output& outp, unsigned int id);
+	~Output();
 
 	Output(Output&& other) noexcept;
 	Output& operator=(Output&& other) noexcept;
@@ -126,7 +121,7 @@ public:
 
 protected:
 	WaylandAppContext* appContext_;
-    wl_output* wlOutput_ {};
+	wl_output* wlOutput_ {};
 	unsigned int globalID_ {};
 	Information information_ {};
 
@@ -138,31 +133,29 @@ protected:
 	void scale(wl_output*, int32_t);
 };
 
-///Utility template that allows to associate a numerical value (name) with wayland globals.
+/// Utility template that allows to associate a numerical value (name) with wayland globals.
+/// \tparam T The type of the wayland global, e.g. wl_output
 template<typename T>
-struct NamedGlobal
-{
+struct NamedGlobal {
 	T* global = nullptr;
 	unsigned int name = 0;
 
 	operator T*() const { return global; }
 };
 
-}//wayland
+} // namespace wayland
 
-//The following could also be moved to some general util file since many c libraries use
-//the user-data-void*-as-first-callback-parameter idiom and this make connecting this
-//to OO-C++ code really convinient.
+// The following could also be moved to some general util file since many c libraries use
+// the user-data-void*-as-first-callback-parameter idiom and this make connecting this
+// to OO-C++ code really convinient.
 
-namespace detail
-{
+namespace detail {
 
 template<typename F, F f, typename Signature, bool Last>
 struct MemberCallback;
 
 template<typename F, F f, typename R, typename... Args>
-struct MemberCallback<F, f, R(Args...), false>
-{
+struct MemberCallback<F, f, R(Args...), false> {
 	using Class = typename nytl::FunctionTraits<F>::Class;
 	static auto call(void* self, Args... args)
 	{
@@ -171,8 +164,7 @@ struct MemberCallback<F, f, R(Args...), false>
 };
 
 template<typename F, F f, typename... Args>
-struct MemberCallback<F, f, void(Args...), false>
-{
+struct MemberCallback<F, f, void(Args...), false> {
 	using Class = typename nytl::FunctionTraits<F>::Class;
 	static void call(void* self, Args... args)
 	{
@@ -181,8 +173,7 @@ struct MemberCallback<F, f, void(Args...), false>
 };
 
 template<typename F, F f, typename R, typename... Args>
-struct MemberCallback<F, f, R(Args...), true>
-{
+struct MemberCallback<F, f, R(Args...), true> {
 	using Class = typename nytl::FunctionTraits<F>::Class;
 	static auto call(Args... args, void* self)
 	{
@@ -191,8 +182,7 @@ struct MemberCallback<F, f, R(Args...), true>
 };
 
 template<typename F, F f, typename... Args>
-struct MemberCallback<F, f, void(Args...), true>
-{
+struct MemberCallback<F, f, void(Args...), true> {
 	using Class = typename nytl::FunctionTraits<F>::Class;
 	static void call(Args... args, void* self)
 	{
@@ -200,40 +190,37 @@ struct MemberCallback<F, f, void(Args...), true>
 	}
 };
 
-} //namespace detail
+} // namespace detail
 
-///Can be used to implement wayland callbacks directly to member functions.
-///Does only work if the first parameter of the callback is a void* userdata pointer and
-///the pointer holds the object of which the given member function should be called.
-///Note that while the same could (usually) also be achieved by just casting the
-///member function pointer to a non-member function pointer taking a void* pointer,
-///this way is C++ standard conform and should also not have any call real overhead.
-///\tparam F The type of the member callback function. This template parameter
-///can be avoided by using <auto f> in C++17.
-///\tparam f The member callback function.
-///\tparam S The original callback signature. Since the actually passed callback function
-///can take less parameters than the wayland listener function takes (nytl::CompatibleFunction is
-///used to achieve parameter mapping at compile time) this parameter should be the
-///Signature the raw listener function (i.e. the function returnd by this expression) should
-///have.
-///|tparam L Whether the object void pointer is the last parameter instead of the first.
+/// Can be used to implement wayland callbacks directly to member functions.
+/// Does only work if the first parameter of the callback is a void* userdata pointer and
+/// the pointer holds the object of which the given member function should be called.
+/// Note that while the same could (usually) also be achieved by just casting the
+/// member function pointer to a non-member function pointer taking a void* pointer,
+/// this way is C++ standard conform and should also not have any call real overhead.
+/// \tparam F The type of the member callback function. This template parameter
+/// can be avoided by using <auto f> in C++17.
+/// \tparam f The member callback function.
+/// \tparam S The original callback signature. Since the actually passed callback function
+/// can take less parameters than the wayland listener function takes (nytl::CompatibleFunction is
+/// used to achieve parameter mapping at compile time) this parameter should be the
+/// Signature the raw listener function (i.e. the function returnd by this expression) should
+/// have.
+/// |tparam L Whether the object void pointer is the last parameter instead of the first.
 template<typename F, F f, typename S = typename nytl::FunctionTraits<F>::Signature, bool L = false>
 auto constexpr memberCallback = &detail::MemberCallback<std::decay_t<F>, f, S, L>::call;
 
-//C++17
+// TODO: C++17
 // template<auto f>
 // constexpr auto memberCallback = &detail::MemberCallback<std::decay_t<decltype(f)>, f>::call;
 
-///TODO: does not belong here... rather some common util file
-///Utility template that allows a generic list of connectable objects.
-///Used by WaylandAppContext for its fd listeners.
+// TODO: does not belong here... rather some common util file
+/// Utility template that allows a generic list of connectable objects.
+/// Used by WaylandAppContext for its fd listeners.
 template<typename T>
-class ConnectionList : public nytl::Connectable
-{
+class ConnectionList : public nytl::Connectable {
 public:
-	class Value : public T
-	{
-	public:
+	struct Value : public T {
 		using T::T;
 		nytl::ConnectionID clID_;
 	};
@@ -274,11 +261,10 @@ public:
 ///Used for e.g. move/resize requests where the serial of the trigger can be given
 ///All wayland event callbacks that retrieve a serial value should create a WaylandEventData
 ///object and pass it to the event handler.
-class WaylandEventData : public ny::EventData
-{
+class WaylandEventData : public ny::EventData {
 public:
-    WaylandEventData(unsigned int xserial) : serial(xserial) {};
-    unsigned int serial;
+	WaylandEventData(unsigned int xserial) : serial(xserial) {};
+	unsigned int serial;
 };
 
 /// Wayland std::error_category implementation for one wayland interface.
@@ -287,8 +273,7 @@ public:
 /// Note that there has to be one ErrorCategory for every wayland interface since
 /// otherwise errors cannot be correctly represented just using an integer value
 /// (i.e. the error code).
-class WaylandErrorCategory : public std::error_category
-{
+class WaylandErrorCategory : public std::error_category {
 public:
 	WaylandErrorCategory(const wl_interface&);
 	~WaylandErrorCategory() = default;
@@ -321,4 +306,4 @@ ImageFormat waylandToImageFormat(unsigned int wlShmFormat);
 /// Returns -1 for invalid or not representable formats.
 int imageFormatToWayland(const ImageFormat&);
 
-}
+} // namespace ny

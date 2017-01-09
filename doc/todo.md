@@ -10,6 +10,7 @@
 
 - C++17 update:
 	- use extended aggregate initialization for Event class
+		- update for backends (not create explicit structs before calling listener)
 - DataOffer: methods const? they do not change the state of the object (interface)
 	- also: really pass it as unique ptr in WindowListener::drop
 		- why not simply non-const pointer, from this can be moved as well?!
@@ -104,6 +105,7 @@ x11 backend:
 - handle window hints correctly (customDecorated!)
 - egl support instead of/additionally to glx?
 - KeyboardContext: correct xkb keymap recreation/ event handling
+- send correct StateEvents (check for change in configure events?)
 
 wayland backend:
 ---------------

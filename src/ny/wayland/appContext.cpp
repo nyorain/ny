@@ -878,4 +878,4 @@ zxdg_shell_v6* WaylandAppContext::xdgShellV6() const { return impl_->xdgShellV6;
 wl_data_device_manager* WaylandAppContext::wlDataManager() const { return impl_->wlDataManager; }
 wl_cursor_theme* WaylandAppContext::wlCursorTheme() const { return wlCursorTheme_; }
 
-}
+} // namespace ny

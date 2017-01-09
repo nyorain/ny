@@ -15,13 +15,13 @@
 #include <ny/dataExchange.hpp>
 
 #ifdef NY_WithVulkan
- #define VK_USE_PLATFORM_XCB_KHR
- #include <ny/x11/vulkan.hpp>
- #include <vulkan/vulkan.h>
+	#define VK_USE_PLATFORM_XCB_KHR
+	#include <ny/x11/vulkan.hpp>
+	#include <vulkan/vulkan.h>
 #endif //Vulkan
 
 #ifdef NY_WithGl
- #include <ny/x11/glx.hpp>
+	#include <ny/x11/glx.hpp>
 #endif //GL
 
 #include <nytl/scope.hpp>
@@ -42,19 +42,15 @@
 #include <mutex>
 #include <queue>
 
-namespace ny
-{
-
-namespace
-{
+namespace ny {
+namespace {
 
 //TODO: reimplement this using eventfd and allow X11AppContext to handle fd callbacks
 
 ///X11 LoopInterface implementation.
 ///Wakes up a blocking xcb_connection by simply sending a client message to
 ///a dummy window.
-class X11LoopImpl : public ny::LoopInterfaceGuard
-{
+class X11LoopImpl : public ny::LoopInterfaceGuard {
 public:
 	xcb_connection_t& xConnection;
 	xcb_window_t xDummyWindow {};
@@ -109,10 +105,9 @@ public:
 	}
 };
 
-}
+} // anonymous util namespace
 
-struct X11AppContext::Impl
-{
+struct X11AppContext::Impl {
 	x11::EwmhConnection ewmhConnection;
 	x11::Atoms atoms;
 	X11ErrorCategory errorCategory;
@@ -136,7 +131,7 @@ X11AppContext::X11AppContext()
 
 	xDefaultScreenNumber_ = ::XDefaultScreen(xDisplay_);
 
-	 xConnection_ = ::XGetXCBConnection(xDisplay_);
+	xConnection_ = ::XGetXCBConnection(xDisplay_);
 	if(!xConnection_ || xcb_connection_has_error(xConnection_))
 		throw std::runtime_error("ny::X11AppContext: unable to get xcb connection");
 
@@ -145,10 +140,8 @@ X11AppContext::X11AppContext()
 
 	//query information
 	auto iter = xcb_setup_roots_iterator(xcb_get_setup(&xConnection()));
-	for(auto i = 0; iter.rem; ++i, xcb_screen_next(&iter))
-	{
-		if(i == xDefaultScreenNumber_)
-		{
+	for(auto i = 0; iter.rem; ++i, xcb_screen_next(&iter)) {
+		if(i == xDefaultScreenNumber_) {
 			xDefaultScreen_ = iter.data;
 			break;
 		}
@@ -167,12 +160,10 @@ X11AppContext::X11AppContext()
 
 	//Load all default required atoms
 	auto& atoms = impl_->atoms;
-	struct
-	{
+	struct {
 		xcb_atom_t& atom;
 		const char* name;
-	} atomNames[] =
-	{
+	} atomNames[] = {
 		{atoms.xdndEnter, "XdndEnter"},
 		{atoms.xdndPosition, "XdndPosition"},
 		{atoms.xdndStatus, "XdndStatus"},
@@ -213,32 +204,28 @@ X11AppContext::X11AppContext()
 	for(auto& name : atomNames)
 		atomCookies.push_back(xcb_intern_atom(xConnection_, 0, std::strlen(name.name), name.name));
 
-	for(auto i = 0u; i < atomCookies.size(); ++i)
-	{
+	for(auto i = 0u; i < atomCookies.size(); ++i) {
 		xcb_generic_error_t* error {};
 		auto reply = xcb_intern_atom_reply(xConnection_, atomCookies[i], &error);
-		if(reply)
-		{
+		if(reply) {
 			atomNames[i].atom = reply->atom;
 			free(reply);
 			continue;
-		}
-		else if(error)
-		{
+		} else if(error) {
 			auto msg = x11::errorMessage(xDisplay(), error->error_code);
 			warning("ny::X11AppContext: Failed to load atom ", atomNames[i].name, ": ", msg);
 			free(error);
 		}
 	}
 
-	//ewmh
+	// ewmh atoms
 	xcb_ewmh_init_atoms_replies(&ewmhConnection(), ewmhCookie, nullptr);
 
-	//input
+	// input
 	keyboardContext_ = std::make_unique<X11KeyboardContext>(*this);
 	mouseContext_ = std::make_unique<X11MouseContext>(*this);
 
-	//data manager
+	// data manager
 	impl_->dataManager = {*this};
 }
 
@@ -265,20 +252,15 @@ WindowContextPtr X11AppContext::createWindowContext(const WindowSettings& settin
 	if(ws) x11Settings = *ws;
 	else x11Settings.WindowSettings::operator=(settings);
 
-	//type
-	if(settings.surface == SurfaceType::vulkan)
-	{
+	// type
+	if(settings.surface == SurfaceType::vulkan) {
 		#ifdef NY_WithVulkan
 			return std::make_unique<X11VulkanWindowContext>(*this, x11Settings);
 		#else
-			static constexpr auto noVulkan = "ny::X11AppContext::createWindowContext: "
-				"ny built without vulkan support, cannot create the requested vulkan surface";
-
-			throw std::logic_error(noVulkan);
+			throw std::logic_error("ny::X11AppContext::createWindowContext: "
+				"ny built without vulkan support, cannot create the requested vulkan surface");
 		#endif
-	}
-	else if(settings.surface == SurfaceType::gl)
-	{
+	} else if(settings.surface == SurfaceType::gl) {
 		#ifdef NY_WithGl
 			static constexpr auto glxFailed = "ny::X11AppContext::createWindowContext: "
 				"failed to init glx, cannot create the requested gl surface";
@@ -286,14 +268,10 @@ WindowContextPtr X11AppContext::createWindowContext(const WindowSettings& settin
 			if(!glxSetup()) throw std::runtime_error(glxFailed);
 			return std::make_unique<GlxWindowContext>(*this, *glxSetup(), x11Settings);
 		#else
-			static constexpr auto noGlx = "ny::X11AppContext::createWindowContext: "
-				"ny built without gl/glx support, cannot create the requested gl surface";
-
-			throw std::logic_error(noGlx);
+			throw std::logic_error("ny::X11AppContext::createWindowContext: "
+				"ny built without gl/glx support, cannot create the requested gl surface");
 		#endif
-	}
-	else if(settings.surface == SurfaceType::buffer)
-	{
+	} else if(settings.surface == SurfaceType::buffer) {
 		return std::make_unique<X11BufferWindowContext>(*this, x11Settings);
 	}
 
@@ -315,8 +293,7 @@ bool X11AppContext::dispatchEvents()
 	if(!checkErrorWarn()) return false;
 
 	xcb_flush(&xConnection());
-	while(auto event = xcb_poll_for_event(xConnection_))
-	{
+	while(auto event = xcb_poll_for_event(xConnection_)) {
 		processEvent(static_cast<const x11::GenericEvent&>(*event));
 		free(event);
 		xcb_flush(&xConnection());
@@ -329,8 +306,7 @@ bool X11AppContext::dispatchLoop(LoopControl& control)
 {
 	X11LoopImpl loopImpl(control, xConnection(), xDummyWindow());
 
-	while(loopImpl.run.load())
-	{
+	while(loopImpl.run.load()) {
 		while(auto func = loopImpl.popFunction()) func();
 
 		xcb_generic_event_t* event = xcb_wait_for_event(xConnection_);
@@ -382,11 +358,10 @@ GlxSetup* X11AppContext::glxSetup() const
 	#ifdef NY_WithGl
 		if(impl_->glxFailed) return nullptr;
 
-		if(!impl_->glxSetup.valid())
-		{
-			try { impl_->glxSetup = {*this}; }
-			catch(const std::exception& error)
-			{
+		if(!impl_->glxSetup.valid()) {
+			try {
+				impl_->glxSetup = {*this};
+			} catch(const std::exception& error) {
 				warning("ny::X11AppContext::glxSetup: initialization failed: ", error.what());
 				impl_->glxFailed = true;
 				impl_->glxSetup = {};
@@ -435,13 +410,11 @@ bool X11AppContext::checkErrorWarn()
 xcb_atom_t X11AppContext::atom(const std::string& name)
 {
 	auto it = additionalAtoms_.find(name);
-	if(it == additionalAtoms_.end())
-	{
+	if(it == additionalAtoms_.end()) {
 		auto cookie = xcb_intern_atom(xConnection_, 0, name.size(), name.c_str());
 		xcb_generic_error_t* error;
 		auto reply = xcb_intern_atom_reply(xConnection_, cookie, &error);
-		if(error)
-		{
+		if(error) {
 			auto msg = x11::errorMessage(xDisplay(), error->error_code);
 			warning("ny::X11AppContext::atom: failed to retrieve atom ", name, ": ", msg);
 			free(error);
@@ -460,75 +433,74 @@ void X11AppContext::bell()
 	xcb_bell(xConnection_, 100);
 }
 
-x11::EwmhConnection& X11AppContext::ewmhConnection() const { return impl_->ewmhConnection; }
-const X11ErrorCategory& X11AppContext::errorCategory() const { return impl_->errorCategory; }
-const x11::Atoms& X11AppContext::atoms() const { return impl_->atoms; }
-X11DataManager& X11AppContext::dataManager() const { return impl_->dataManager; }
-
 void X11AppContext::processEvent(const x11::GenericEvent& ev)
 {
 	X11EventData eventData {ev};
 
 	auto responseType = ev.response_type & ~0x80;
-	switch(responseType)
-	{
-		case XCB_EXPOSE:
-		{
+	switch(responseType) {
+		case XCB_EXPOSE: {
 			auto& expose = reinterpret_cast<const xcb_expose_event_t&>(ev);
 			auto wc = windowContext(expose.window);
-			if(expose.count == 0 && wc) wc->listener().draw(&eventData);
+			if(expose.count == 0 && wc) {
+				DrawEvent de;
+				de.eventData = &eventData;
+				wc->listener().draw(de);
+			}
 			break;
 		}
 
-		case XCB_MAP_NOTIFY:
-		{
-			//TODO: something about state/shown?
+		case XCB_MAP_NOTIFY: {
 			auto& map = reinterpret_cast<const xcb_map_notify_event_t&>(ev);
 			auto wc = windowContext(map.event);
-			if(wc) wc->listener().draw(&eventData);
+			if(wc) {
+				DrawEvent de;
+				de.eventData = &eventData;
+				wc->listener().draw(de);
+			}
 			break;
 		}
 
-		case XCB_REPARENT_NOTIFY:
-		{
+		case XCB_REPARENT_NOTIFY: {
 			auto& reparent = reinterpret_cast<const xcb_reparent_notify_event_t&>(ev);
 			auto wc = windowContext(reparent.window);
 			if(wc) wc->reparentEvent();
 			break;
 		}
 
-		case XCB_CONFIGURE_NOTIFY:
-		{
+		case XCB_CONFIGURE_NOTIFY: {
 			auto& configure = reinterpret_cast<const xcb_configure_notify_event_t&>(ev);
 
-			//todo: something about window state
 			auto nsize = nytl::Vec2ui(configure.width, configure.height);
-			auto npos = nytl::Vec2i(configure.x, configure.y); //positionEvent
+			// auto npos = nytl::Vec2i(configure.x, configure.y);
 
 			auto wc = windowContext(configure.window);
-			if(wc)
-			{
-				wc->listener().resize(nsize, &eventData);
-				wc->listener().position(npos, &eventData);
+			if(wc) {
+				SizeEvent se;
+				se.eventData = &eventData;
+				se.size = nsize;
+				wc->listener().resize(se);
+				// wc->listener().position({{&eventData}, npos});
 			}
 
 			break;
 		}
 
-		case XCB_CLIENT_MESSAGE:
-		{
+		case XCB_CLIENT_MESSAGE: {
 			auto& client = reinterpret_cast<const xcb_client_message_event_t&>(ev);
 			auto protocol = static_cast<unsigned int>(client.data.data32[0]);
 
 			auto wc = windowContext(client.window);
-			if(protocol == atoms().wmDeleteWindow && wc) wc->listener().close(&eventData);
+			if(protocol == atoms().wmDeleteWindow && wc) {
+				CloseEvent ce;
+				ce.eventData = &eventData;
+				wc->listener().close(ce);
+			}
 
 			break;
 		}
 
-		case 0u:
-		{
-			//an error occurred!
+	case 0u: {
 			int code = reinterpret_cast<const xcb_generic_error_t&>(ev).error_code;
 			auto errorMsg = x11::errorMessage(xDisplay(), code);
 			warning("ny::X11AppContext::processEvent: retrieved error code ", code, ": ", errorMsg);
@@ -545,5 +517,10 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev)
 
 	#undef EventHandlerEvent
 }
+
+x11::EwmhConnection& X11AppContext::ewmhConnection() const { return impl_->ewmhConnection; }
+const X11ErrorCategory& X11AppContext::errorCategory() const { return impl_->errorCategory; }
+const x11::Atoms& X11AppContext::atoms() const { return impl_->atoms; }
+X11DataManager& X11AppContext::dataManager() const { return impl_->dataManager; }
 
 }

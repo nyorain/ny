@@ -5,14 +5,16 @@
 #pragma once
 
 #include <ny/wayland/include.hpp>
-#include <ny/wayland/util.hpp>
-#include <ny/dataExchange.hpp>
+#include <ny/wayland/util.hpp> // ny::wayland::ShmBuffer
+#include <ny/dataExchange.hpp> // ny::DataOffer
 
-#include <nytl/callback.hpp>
-#include <map>
+#include <map> // std::map
+#include <vector> // std::vector
+#include <memory> // std::unique_ptr
+#include <string> // std::string
+#include <utility> // std::pair
 
-namespace ny
-{
+namespace ny {
 
 /// DataOffer implementation for the wayland backend and wrapper around wl_data_offer.
 class WaylandDataOffer : public DataOffer {
@@ -21,7 +23,7 @@ public:
 	class DataRequestImpl;
 
 public:
-	WaylandDataOffer() = default;
+	WaylandDataOffer();
 	WaylandDataOffer(WaylandAppContext& ac, wl_data_offer& wlDataOffer);
 	~WaylandDataOffer();
 
@@ -43,6 +45,8 @@ protected:
 	WaylandAppContext* appContext_ {};
 	wl_data_offer* wlDataOffer_ {};
 	std::vector<std::pair<DataFormat, std::string>> formats_ {};
+
+	// TODO: unordered_map here currently results in errors sine PendingRequest is incomplete
 	std::map<std::string, PendingRequest> requests_;
 
 	bool finish_ {}; // whether it should be finished on destruction (only for accepted dnd offers)
@@ -78,8 +82,7 @@ protected:
 /// be wrapped in smart pointers such as shared_ptr or unique_ptr.
 /// Leaks occur if an object of this class is created without ever being used as
 /// relevant data source, i.e. never used as dnd or clipboard source.
-class WaylandDataSource
-{
+class WaylandDataSource {
 public:
 	WaylandDataSource(WaylandAppContext&, std::unique_ptr<DataSource>&&, bool dnd);
 
@@ -118,8 +121,7 @@ protected:
 /// Wrapper and implementation around wl_data_device.
 /// Manages all introduces wl_data_offer objects and keeps track of the current
 /// clipboard and dnd data offers if there are any.
-class WaylandDataDevice
-{
+class WaylandDataDevice {
 public:
 	WaylandDataDevice(WaylandAppContext&);
 	~WaylandDataDevice();
@@ -164,4 +166,4 @@ protected:
 	void selection(wl_data_device*, wl_data_offer*);
 };
 
-}
+} // namespace ny

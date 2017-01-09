@@ -6,6 +6,11 @@
 
 #include <ny/fwd.hpp>
 #include <ny/config.hpp>
+
+#ifndef NY_WithEgl
+	#error ny was built without egl. Do not include this header.
+#endif
+
 #include <ny/library.hpp>
 #include <ny/common/gl.hpp>
 
@@ -18,12 +23,10 @@ using EGLConfig = void*; //Represents a context setup. May have more than one
 using EGLContext = void*; //The actual context. May have more than one
 using EGLSurface = void*; //One surface needed per WindowContext
 
-namespace ny
-{
+namespace ny {
 
-///EGL GlSetup implementation
-class EglSetup : public GlSetup
-{
+/// EGL GlSetup implementation
+class EglSetup : public GlSetup {
 public:
 	EglSetup() = default;
 	EglSetup(void* nativeDisplay);
@@ -51,15 +54,14 @@ protected:
 	std::vector<GlConfig> configs_;
 	GlConfig* defaultConfig_ {};
 
-	//TODO:
+	//TODO: currently not used
 	Library glLibrary_;
 	Library glesLibrary_;
 	Library eglLibrary_;
 };
 
-///EGL GlSurface implementation
-class EglSurface : public GlSurface
-{
+/// EGL GlSurface implementation
+class EglSurface : public GlSurface {
 public:
 	EglSurface(EGLDisplay, void* nativeWindow, GlConfigID, const EglSetup&);
 	EglSurface(EGLDisplay, void* nativeWindow, const GlConfig&, EGLConfig eglConfig);
@@ -78,9 +80,8 @@ protected:
 	GlConfig config_;
 };
 
-///EGL GlContext implementation
-class EglContext : public GlContext
-{
+/// EGL GlContext implementation
+class EglContext : public GlContext {
 public:
 	EglContext(const EglSetup& setup, const GlContextSettings& = {});
 	virtual ~EglContext();
@@ -103,8 +104,4 @@ protected:
 	EGLContext eglContext_ {};
 };
 
-}
-
-#ifndef NY_WithEgl
-	#error ny was built without egl. Do not include this header.
-#endif
+} // namespace ny

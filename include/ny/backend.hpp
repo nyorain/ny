@@ -44,12 +44,12 @@ public:
 public:
 	/// Returns whether the backend is available.
 	/// Here implementation can check whether they could e.g. connect to a server.
-    virtual bool available() const = 0;
+	virtual bool available() const = 0;
 
 	/// Creates an AppContext that can be used to retrieve events from this backend or to create
 	/// a WindowContext.
 	/// \sa AppContext
-    virtual AppContextPtr createAppContext() = 0;
+	virtual AppContextPtr createAppContext() = 0;
 
 	/// Returns the name of this backend.
 	/// Example for backend names are e.g. "wayland", "x11" or "winapi".

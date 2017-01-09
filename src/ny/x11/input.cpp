@@ -16,50 +16,59 @@
 // i'm really sorry for this...
 // the xkb header is not very c++ friendly
 #define explicit explicit_
- #include <xcb/xkb.h>
+	#include <xcb/xkb.h>
 #undef explicit
 
 #include <xkbcommon/xkbcommon-x11.h>
 #include <xkbcommon/xkbcommon-compose.h>
 
-namespace ny
-{
+namespace ny {
 
-//Mouse
+// MouseContext
 bool X11MouseContext::processEvent(const x11::GenericEvent& ev)
 {
 	X11EventData eventData {ev};
 
 	auto responseType = ev.response_type & ~0x80;
-    switch(responseType)
-    {
-	    case XCB_MOTION_NOTIFY:
-	    {
+	switch(responseType) {
+		case XCB_MOTION_NOTIFY: {
 			auto& motion = reinterpret_cast<const xcb_motion_notify_event_t&>(ev);
 			auto pos = nytl::Vec2i(motion.event_x, motion.event_y);
 
 			if(pos == lastPosition_) break;
-			onMove(*this, pos, pos - lastPosition_);
+			auto delta = pos - lastPosition_;
+			onMove(*this, pos, delta);
 			lastPosition_ = pos;
 
 			auto wc = appContext().windowContext(motion.event);
-			if(wc) wc->listener().mouseMove(pos, &eventData);
-			break;
-	    }
 
-	    case XCB_BUTTON_PRESS:
-	    {
+			if(wc) {
+				MouseMoveEvent mme;
+				mme.eventData = &eventData;
+				mme.position = pos;
+				mme.delta = delta;
+				wc->listener().mouseMove(mme);
+			}
+
+			break;
+		}
+
+		case XCB_BUTTON_PRESS: {
 			auto& button = reinterpret_cast<const xcb_button_press_event_t&>(ev);
 
 			int scroll = 0;
-			if(button.detail == 4) scroll = 10;
-			else if(button.detail == 5) scroll = -10;
+			if(button.detail == 4) scroll = 1;
+			else if(button.detail == 5) scroll = -1;
 
 			auto wc = appContext().windowContext(button.event);
+			auto pos = nytl::Vec2i(button.event_x, button.event_y);
 
-			if(scroll)
-			{
-				if(wc) wc->listener().mouseWheel(scroll, &eventData);
+			if(scroll) {
+				MouseWheelEvent mwe;
+				mwe.eventData = &eventData;
+				mwe.value = scroll;
+				mwe.position = pos;
+				if(wc) wc->listener().mouseWheel(mwe);
 				onWheel(*this, scroll);
 				break;
 			}
@@ -68,12 +77,19 @@ bool X11MouseContext::processEvent(const x11::GenericEvent& ev)
 			buttonStates_[static_cast<unsigned int>(nybutton)] = true;
 			onButton(*this, nybutton, true);
 
-			if(wc) wc->listener().mouseButton(true, nybutton, &eventData);
-			break;
-	    }
+			if(wc) {
+				MouseButtonEvent mbe;
+				mbe.pressed = true;
+				mbe.position = pos;
+				mbe.button = nybutton;
+				mbe.eventData = &eventData;
+				wc->listener().mouseButton(mbe);
+			}
 
-	    case XCB_BUTTON_RELEASE:
-	    {
+			break;
+		}
+
+		case XCB_BUTTON_RELEASE: {
 			auto& button = reinterpret_cast<const xcb_button_release_event_t&>(ev);
 			if(button.detail == 4 || button.detail == 5) break;
 
@@ -82,39 +98,59 @@ bool X11MouseContext::processEvent(const x11::GenericEvent& ev)
 			onButton(*this, nybutton, false);
 
 			auto wc = appContext().windowContext(button.event);
-			if(wc) wc->listener().mouseButton(false, nybutton, &eventData);
+			if(wc) {
+				auto pos = nytl::Vec2i(button.event_x, button.event_y);
+				MouseButtonEvent mbe;
+				mbe.pressed = false;
+				mbe.position = pos;
+				mbe.button = nybutton;
+				mbe.eventData = &eventData;
+				wc->listener().mouseButton(mbe);
+			}
 			break;
-	    }
+		}
 
-	    case XCB_ENTER_NOTIFY:
-	    {
+		case XCB_ENTER_NOTIFY: {
 			auto& enter = reinterpret_cast<const xcb_enter_notify_event_t&>(ev);
 
 			auto wc = appContext().windowContext(enter.event);
-			if(over_ != wc)
-			{
+			if(over_ != wc) {
 				onFocus(*this, over_, wc);
 				over_ = wc;
 			}
 
-			if(wc) wc->listener().mouseCross(true, &eventData);
-			break;
-	    }
+			if(wc) {
+				auto pos = nytl::Vec2i(enter.event_x, enter.event_y);
+				MouseCrossEvent mce;
+				mce.eventData = &eventData;
+				mce.entered = true;
+				mce.position = pos;
+				wc->listener().mouseCross(mce);
+			}
 
-	    case XCB_LEAVE_NOTIFY:
-	    {
+			break;
+		}
+
+		case XCB_LEAVE_NOTIFY: {
 			auto& leave = reinterpret_cast<const xcb_enter_notify_event_t&>(ev);
 
 			auto wc = appContext().windowContext(leave.event);
-			if(over_ == wc)
-			{
+			if(over_ == wc) {
 				onFocus(*this, over_, nullptr);
 				over_ = nullptr;
 			}
 
-			if(wc) wc->listener().mouseCross(true, &eventData);
+			if(wc) {
+				auto pos = nytl::Vec2i(leave.event_x, leave.event_y);
+				MouseCrossEvent mce;
+				mce.eventData = &eventData;
+				mce.entered = false;
+				mce.position = pos;
+				wc->listener().mouseCross(mce);
+			}
+
 			break;
-	    }
+		}
 
 		default: return false;
 	}
@@ -130,8 +166,7 @@ nytl::Vec2i X11MouseContext::position() const
 	auto cookie = xcb_query_pointer(&appContext_.xConnection(), over_->xWindow());
 	auto reply = xcb_query_pointer_reply(&appContext_.xConnection(), cookie, &error);
 
-	if(error)
-	{
+	if(error) {
 		auto msg = x11::errorMessage(appContext_.xDisplay(), error->error_code);
 		warning("ny::X11MouseContext::position: xcb_query_pointer failed: ", msg);
 		free(error);
@@ -145,7 +180,7 @@ nytl::Vec2i X11MouseContext::position() const
 
 bool X11MouseContext::pressed(MouseButton button) const
 {
-	//TODO: async checking?
+	// TODO: async checking?
 	return buttonStates_[static_cast<unsigned int>(button)];
 }
 
@@ -154,11 +189,11 @@ WindowContext* X11MouseContext::over() const
 	return over_;
 }
 
-//Keyboard
+// Keyboard
 X11KeyboardContext::X11KeyboardContext(X11AppContext& ac) : appContext_(ac)
 {
-	//TODO: possibility for backend without xkb (if extension not supported?)
-	//more error checking required
+	// TODO: possibility for backend without xkb (if extension not supported?)
+	// more error checking required
 	auto& xconn = appContext_.xConnection();
 
 	xkbContext_ = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
@@ -166,21 +201,21 @@ X11KeyboardContext::X11KeyboardContext(X11AppContext& ac) : appContext_(ac)
 
 	std::uint16_t major, minor;
 	auto ret = xkb_x11_setup_xkb_extension(&xconn, XKB_X11_MIN_MAJOR_XKB_VERSION,
-        XKB_X11_MIN_MINOR_XKB_VERSION, XKB_X11_SETUP_XKB_EXTENSION_NO_FLAGS,
-        &major, &minor, &eventType_, nullptr);
+		XKB_X11_MIN_MINOR_XKB_VERSION, XKB_X11_SETUP_XKB_EXTENSION_NO_FLAGS,
+		&major, &minor, &eventType_, nullptr);
 	if(!ret) throw std::runtime_error("X11KC: Failed to setup xkb extension");
-	log("ny:: xkb version ", major, ".", minor, " supported");
+	// log("ny:: xkb version ", major, ".", minor, " supported");
 
 	auto devid = xkb_x11_get_core_keyboard_device_id(&xconn);
 	auto flags = XKB_KEYMAP_COMPILE_NO_FLAGS;
 	xkbKeymap_ = xkb_x11_keymap_new_from_device(xkbContext_, &xconn, devid, flags);
 	xkbState_ =  xkb_x11_state_new_from_device(xkbKeymap_, &xconn, devid);
 
-	//event mask
+	// event mask
 	constexpr auto reqEvents =
 		XCB_XKB_EVENT_TYPE_NEW_KEYBOARD_NOTIFY |
-        XCB_XKB_EVENT_TYPE_MAP_NOTIFY |
-        XCB_XKB_EVENT_TYPE_STATE_NOTIFY;
+		XCB_XKB_EVENT_TYPE_MAP_NOTIFY |
+		XCB_XKB_EVENT_TYPE_STATE_NOTIFY;
 	constexpr auto reqNknDetails = XCB_XKB_NKN_DETAIL_KEYCODES;
 	constexpr auto reqMapParts =
 		XCB_XKB_MAP_PART_KEY_TYPES |
@@ -198,29 +233,28 @@ X11KeyboardContext::X11KeyboardContext(X11AppContext& ac) : appContext_(ac)
 		XCB_XKB_STATE_PART_GROUP_LATCH |
 		XCB_XKB_STATE_PART_GROUP_LOCK;
 
-    xcb_xkb_select_events_details_t details {};
+	xcb_xkb_select_events_details_t details {};
 	details.affectNewKeyboard = reqNknDetails;
-    details.newKeyboardDetails = reqNknDetails;
-    details.affectState = reqStateDetails;
-    details.stateDetails = reqStateDetails;
+	details.newKeyboardDetails = reqNknDetails;
+	details.affectState = reqStateDetails;
+	details.stateDetails = reqStateDetails;
 
 	auto cookie = xcb_xkb_select_events_aux_checked(&xconn, devid, reqEvents, 0, 0,
 		reqMapParts, reqMapParts, &details);
 
-    auto error = xcb_request_check(&xconn, cookie);
-    if(error)
-	{
-        free(error);
+	auto error = xcb_request_check(&xconn, cookie);
+	if(error) {
+		free(error);
 		auto msg = "X11KC: failed to select xkb events: " + std::to_string((int) error->error_code);
 		throw std::runtime_error(msg);
-    }
+	}
 
 	XkbKeyboardContext::setupCompose();
 }
 
 bool X11KeyboardContext::pressed(Keycode key) const
 {
-	//TODO: XQueryKeymap for async checking
+	// TODO: XQueryKeymap for async checking
 	auto uint = static_cast<unsigned int>(key);
 	if(uint > 255) return false;
 	return keyStates_[uint];
@@ -233,11 +267,8 @@ WindowContext* X11KeyboardContext::focus() const
 
 bool X11KeyboardContext::processEvent(const x11::GenericEvent& ev)
 {
-	//XkbEvent
-	union XkbEvent
-	{
-		struct
-		{
+	union XkbEvent {
+		struct {
 			std::uint8_t response_type;
 			std::uint8_t xkbType;
 			std::uint16_t sequence;
@@ -253,79 +284,96 @@ bool X11KeyboardContext::processEvent(const x11::GenericEvent& ev)
 	X11EventData eventData {ev};
 
 	auto responseType = ev.response_type & ~0x80;
-    switch(responseType)
-    {
-	    case XCB_FOCUS_IN:
-	    {
+	switch(responseType) {
+		case XCB_FOCUS_IN: {
 			auto& focus = reinterpret_cast<const xcb_focus_in_event_t&>(ev);
 			auto wc = appContext().windowContext(focus.event);
 
-			if(focus_ != wc)
-			{
+			if(focus_ != wc) {
 				onFocus(*this, focus_, wc);
 				focus_ = wc;
 			}
 
-			if(wc) wc->listener().focus(true, &eventData);
-			break;
-	    }
+			if(wc) {
+				FocusEvent fe;
+				fe.eventData = &eventData;
+				fe.gained = true;
+				wc->listener().focus(fe);
+			}
 
-	    case XCB_FOCUS_OUT:
-	    {
+			break;
+		}
+
+		case XCB_FOCUS_OUT: {
 			auto& focus = reinterpret_cast<const xcb_focus_in_event_t&>(ev);
 			auto wc = appContext().windowContext(focus.event);
 
-			if(focus_ == wc)
-			{
+			if(focus_ == wc) {
 				onFocus(*this, focus_, nullptr);
 				focus_ = nullptr;
 			}
 
-			if(wc) wc->listener().focus(false, &eventData);
-			break;
-	    }
+			if(wc) {
+				FocusEvent fe;
+				fe.eventData = &eventData;
+				fe.gained = false;
+				wc->listener().focus(fe);
+			}
 
-	    case XCB_KEY_PRESS:
-	    {
+			break;
+		}
+
+		case XCB_KEY_PRESS: {
 			auto& key = reinterpret_cast<const xcb_key_press_event_t&>(ev);
 			auto wc = appContext().windowContext(key.event);
 
 			Keycode keycode;
 			std::string utf8;
 
-			//When the user presses keys that cancel a dead key, we ring the bell.
+			// When the user presses keys that cancel a dead key, we ring the bell.
 			if(!handleKey(key.detail, true, keycode, utf8)) appContext().bell();
 			onKey(*this, keycode, utf8, true);
-			if(wc) wc->listener().key(true, keycode, utf8, &eventData);
+
+			if(wc) {
+				KeyEvent ke;
+				ke.eventData = &eventData;
+				ke.keycode = keycode;
+				ke.utf8 = utf8;
+				ke.pressed = true;
+				wc->listener().key(ke);
+			}
 
 			break;
-	    }
+		}
 
-	    case XCB_KEY_RELEASE:
-	    {
+		case XCB_KEY_RELEASE: {
 			auto& key = reinterpret_cast<const xcb_key_press_event_t&>(ev);
 			auto wc = appContext().windowContext(key.event);
 
 			Keycode keycode;
 			std::string utf8;
 
-			//When the user presses keys that cancel a dead key, we ring the bell.
+			// When the user presses keys that cancel a dead key, we ring the bell.
 			if(!handleKey(key.detail, false, keycode, utf8)) appContext().bell();
 			onKey(*this, keycode, utf8, false);
-			if(wc) wc->listener().key(false, keycode, utf8, &eventData);
+
+			if(wc) {
+				KeyEvent ke;
+				ke.eventData = &eventData;
+				ke.keycode = keycode;
+				ke.utf8 = utf8;
+				ke.pressed = false;
+				wc->listener().key(ke);
+			}
 
 			break;
-	    }
+		}
 
-		default:
-		{
-			if(ev.response_type == xkbEventType())
-			{
+		default: {
+			if(ev.response_type == xkbEventType()) {
 				auto& xkbev = reinterpret_cast<const XkbEvent&>(ev);
-				switch(xkbev.any.xkbType)
-				{
-					case XCB_XKB_STATE_NOTIFY:
-					{
+				switch(xkbev.any.xkbType) {
+					case XCB_XKB_STATE_NOTIFY: {
 						xkb_state_update_mask(xkbState_,
 							xkbev.state.baseMods,
 							xkbev.state.latchedMods,
@@ -349,8 +397,8 @@ bool X11KeyboardContext::processEvent(const x11::GenericEvent& ev)
 
 bool X11KeyboardContext::updateKeymap()
 {
-	//TODO
+	// TODO
 	return true;
 }
 
-}
+} // namespace ny

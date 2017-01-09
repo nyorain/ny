@@ -12,20 +12,23 @@
 #endif
 
 namespace ny {
-	class WinapiWindowContext;
-	class WinapiAppContext;
-	class WinapiBufferSurface;
-	class WglContext;
-	class WglSetup;
-	class WglSurface;
-	class WinapiVulkanWindowContext;
-	class WinapiBufferWindowContext;
-	class WinapiEventData;
-	class WinapiDataOffer;
 
-	namespace winapi::com {
-		class DropTargetImpl;
-		class DropSourceImpl;
-		class DataObjectImpl;
-	}
-}
+class WinapiWindowContext;
+class WinapiAppContext;
+class WinapiBufferSurface;
+class WglContext;
+class WglSetup;
+class WglSurface;
+class WinapiVulkanWindowContext;
+class WinapiBufferWindowContext;
+class WinapiEventData;
+class WinapiDataOffer;
+
+namespace winapi::com {
+
+class DropTargetImpl;
+class DropSourceImpl;
+class DataObjectImpl;
+
+} // namespace winapi::com
+} // namespace ny

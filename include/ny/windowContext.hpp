@@ -18,7 +18,7 @@ namespace ny {
 class WindowContext {
 public:
 	WindowContext() = default;
-	virtual ~WindowContext() = default;
+	virtual ~WindowContext() { listener().destroyed(); }
 
 	/// Changes the registered WindowListener that will be called when events occurr.
 	/// Note that there is always an associated WindowListener, the default is

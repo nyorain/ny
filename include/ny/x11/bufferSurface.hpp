@@ -15,12 +15,10 @@
 
 struct xcb_image_t;
 
-namespace ny
-{
+namespace ny {
 
-///X11 BufferSurface implementation.
-class X11BufferSurface : public nytl::NonMovable, public BufferSurface
-{
+/// X11 BufferSurface implementation.
+class X11BufferSurface : public nytl::NonMovable, public BufferSurface {
 public:
 	X11BufferSurface(X11WindowContext&);
 	~X11BufferSurface();
@@ -45,20 +43,20 @@ protected:
 	bool shm_ {};
 
 	bool active_ {};
-	nytl::Vec2ui size_; //size of active
-	unsigned int byteSize_ {}; //the size in bytes of ((shm_) ? shmaddr_ : data_)
-	uint8_t* data_ {}; //the actual data (either shmaddr or points so ownedBuffer)
+	nytl::Vec2ui size_; // size of active
+	unsigned int byteSize_ {}; // the size in bytes of ((shm_) ? shmaddr_ : data_)
+	uint8_t* data_ {}; // the actual data (either shmaddr or points so ownedBuffer)
 
-	//when using shm
+ 	// when using shm
 	unsigned int shmid_ {};
 	uint32_t shmseg_ {};
 
-	//otherwise when using owned buffer because shm not available
+	// otherwise when using owned buffer because shm not available
 	std::unique_ptr<uint8_t[]> ownedBuffer_;
 };
 
-class X11BufferWindowContext : public X11WindowContext
-{
+/// X11 WindowContext implementation with a drawable buffer surface.
+class X11BufferWindowContext : public X11WindowContext {
 public:
 	X11BufferWindowContext(X11AppContext& ac, const X11WindowSettings& settings = {});
 	~X11BufferWindowContext() = default;
@@ -69,4 +67,4 @@ protected:
 	X11BufferSurface bufferSurface_;
 };
 
-}
+} // namespace ny

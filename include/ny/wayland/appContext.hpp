@@ -5,16 +5,16 @@
 #pragma once
 
 #include <ny/wayland/include.hpp>
-#include <ny/appContext.hpp>
+#include <ny/appContext.hpp> // ny::AppContext
+#include <nytl/connection.hpp> // nytl::Connection
 
-#include <vector>
-#include <string>
-#include <memory>
-#include <system_error>
-#include <map>
+#include <vector> // std::vector
+#include <string> // std::string
+#include <memory> // std::unique_ptr
+#include <system_error> // std::error_code
+#include <functional> // std::function
 
-namespace ny
-{
+namespace ny {
 
 /// Wayland AppContext implementation.
 /// Holds the wayland display connection as well as all global resources.
@@ -124,7 +124,7 @@ protected:
 	std::unique_ptr<WaylandKeyboardContext> keyboardContext_;
 	std::unique_ptr<WaylandMouseContext> mouseContext_;
 
-	bool wakeup_ {false}; // Set to true from the eventfd callback, causes dispatchDisplay to return
+	bool wakeup_ {false}; // Set from the eventfd callback, causes dispatchDisplay to return
 
 	struct Impl;
 	std::unique_ptr<Impl> impl_;

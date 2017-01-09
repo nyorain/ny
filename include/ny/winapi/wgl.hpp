@@ -11,11 +11,10 @@
 #include <ny/library.hpp>
 #include <ny/common/gl.hpp>
 
-namespace ny
-{
+namespace ny {
 
-class WglSetup : public GlSetup
-{
+/// Wgl GlSetup implementation
+class WglSetup : public GlSetup {
 public:
 	WglSetup() = default;
 	WglSetup(HWND dummy);
@@ -42,8 +41,8 @@ protected:
 	HDC dummyDC_ {};
 };
 
-class WglSurface : public GlSurface
-{
+/// Wgl GlSurface implementation
+class WglSurface : public GlSurface {
 public:
 	WglSurface(HDC hdc, const GlConfig& config) : hdc_(hdc), config_(config) {}
 	~WglSurface() = default;
@@ -59,9 +58,8 @@ protected:
 	GlConfig config_;
 };
 
-///OpenGL context implementation using the wgl api on windows.
-class WglContext : public GlContext
-{
+/// Wgl GlContext implementation.
+class WglContext : public GlContext {
 public:
 	WglContext(const WglSetup& setup, const GlContextSettings& settings = {});
 	virtual ~WglContext();
@@ -82,9 +80,8 @@ protected:
 	HGLRC wglContext_ {};
 };
 
-///Winapi WindowContext using wgl (OpenGL) to draw.
-class WglWindowContext : public WinapiWindowContext
-{
+/// Winapi WindowContext implementation that also creates a GlSurface using wgl.
+class WglWindowContext : public WinapiWindowContext {
 public:
 	WglWindowContext(WinapiAppContext&, WglSetup&, const WinapiWindowSettings& = {});
 	~WglWindowContext();
@@ -99,4 +96,4 @@ protected:
 	HDC hdc_ {};
 };
 
-}
+} // namespace ny

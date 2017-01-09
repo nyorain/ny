@@ -9,9 +9,9 @@
 
 #ifndef NY_WithX11
 	#error ny was built without X11. Do not include this header file!
-#endif //WithX11
+#endif // WithX11
 
-//xlib/xcb forward declarations
+// xlib/xcb forward declarations
 using Display = struct _XDisplay;
 using xcb_connection_t = struct xcb_connection_t;
 using xcb_visualtype_t = struct xcb_visualtype_t;
@@ -19,34 +19,35 @@ using xcb_screen_t = struct xcb_screen_t;
 using xcb_window_t = uint32_t;
 using xcb_atom_t = uint32_t;
 
-namespace ny
-{
-    class X11WindowContext;
-    class X11AppContext;
-	class X11MouseContext;
-	class X11KeyboardContext;
-	class X11DataManager;
-	class X11ErrorCategory;
+namespace ny {
 
-    class GlxContext;
-	class GlxSetup;
-	class GlxSurface;
+class X11WindowContext;
+class X11AppContext;
+class X11MouseContext;
+class X11KeyboardContext;
+class X11DataManager;
+class X11ErrorCategory;
 
-	class GlxWindowContext;
-	class X11VulkanWindowContext;
-	class X11BufferWindowContext;
-	class X11BufferSurface;
+class GlxContext;
+class GlxSetup;
+class GlxSurface;
 
-	namespace x11
-	{
-		///Dummy delcaration to not include xcb_ewmh.h
-		///The xcb_ewmh_connection_t type cannot be forward declared since it is a unnamed
-		///struct typedef in the original xcb_ewmh header, which should not be included in a
-		///header file.
-		struct EwmhConnection;
-		struct GenericEvent;
+class GlxWindowContext;
+class X11VulkanWindowContext;
+class X11BufferWindowContext;
+class X11BufferSurface;
 
-		struct Atoms;
-		struct Property;
-	}
-}
+namespace x11 {
+
+/// Dummy delcaration to not include xcb_ewmh.h
+/// The xcb_ewmh_connection_t type cannot be forward declared since it is a unnamed
+/// struct typedef in the original xcb_ewmh header, which should not be included in a
+/// header file.
+struct EwmhConnection;
+struct GenericEvent;
+
+struct Atoms;
+struct Property;
+
+} // namespace x11
+} // namespace ny

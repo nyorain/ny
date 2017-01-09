@@ -9,12 +9,10 @@
 #include <map>
 #include <memory>
 
-namespace ny
-{
+namespace ny {
 
 ///X11 AppContext implementation.
-class X11AppContext : public AppContext
-{
+class X11AppContext : public AppContext {
 public:
     X11AppContext();
     ~X11AppContext();
@@ -75,4 +73,4 @@ protected:
 	std::unique_ptr<Impl> impl_;
 };
 
-}
+} // namespace ny
