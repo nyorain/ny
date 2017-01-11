@@ -1,4 +1,4 @@
-// Copyright (c) 2016 nyorain
+// Copyright (c) 2017 nyorain
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
@@ -9,18 +9,19 @@
 #include <stdexcept>
 #include <cstring>
 
-namespace ny
-{
+// TODO: api loading/library
 
-namespace
-{
+namespace ny {
+namespace {
 
-///EGL std::error_category
-class EglErrorCategory : public std::error_category
-{
+/// EGL std::error_category implementation.
+/// Used to provide error codes for the possibly failing implementation functions.
+/// Implemented at the bottom of this file.
+class EglErrorCategory : public std::error_category {
 public:
 	static EglErrorCategory& instance();
-	static std::exception exception(nytl::StringParam msg = "");
+
+	static std::system_error exception(nytl::StringParam msg = "");
 	static std::error_code errorCode();
 
 public:
@@ -28,17 +29,16 @@ public:
 	std::string message(int code) const override;
 };
 
-}
+} // anonymous util namespace
 
-//EglSetup
-///TODO: api loading/library
+// EglSetup
 EglSetup::EglSetup(void* nativeDisplay)
 {
-	//It does not matter if NativeDisplayType here is not the real NativeDisplayType that
-	//was passed to this function. If multiple platforms are supported, the egl implementation
-	//will treat it as void* anyways.
+	// It does not matter if NativeDisplayType here is not the real NativeDisplayType that
+	// was passed to this function. If multiple platforms are supported, the egl implementation
+	// will treat it as void* anyways.
 	eglDisplay_ = ::eglGetDisplay((EGLNativeDisplayType) nativeDisplay);
-    if(eglDisplay_ == EGL_NO_DISPLAY)
+	if(eglDisplay_ == EGL_NO_DISPLAY)
 		throw std::runtime_error("ny::EglSetup: eglGetDisplay failed");
 
 	int major, minor;
@@ -49,20 +49,19 @@ EglSetup::EglSetup(void* nativeDisplay)
 
 	//query all available configs
 	//change this to only hold really required attributes
-    constexpr EGLint attribs[] =
-	{
-        EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-        EGL_RED_SIZE, 8,
-        EGL_GREEN_SIZE, 8,
-        EGL_BLUE_SIZE, 8,
-        EGL_NONE
-    };
+	constexpr EGLint attribs[] = {
+		EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
+		EGL_RED_SIZE, 8,
+		EGL_GREEN_SIZE, 8,
+		EGL_BLUE_SIZE, 8,
+		EGL_NONE
+	};
 
 	int configSize;
 	EGLConfig configs[512] {};
 
-	//it might really fail here on some platforms
-    if(!::eglChooseConfig(eglDisplay_, attribs, configs, 512, &configSize))
+	// it might really fail here on some platforms
+	if(!::eglChooseConfig(eglDisplay_, attribs, configs, 512, &configSize))
 		throw EglErrorCategory::exception("ny::EglSetup: eglChooseConfig failed");
 
 	if(!configSize)
@@ -70,8 +69,7 @@ EglSetup::EglSetup(void* nativeDisplay)
 
 	configs_.reserve(configSize);
 	auto highestRating = 0u;
-	for(auto& config : nytl::Span<EGLConfig>(*configs, configSize))
-	{
+	for(auto& config : nytl::Span<EGLConfig>(*configs, configSize)) {
 		GlConfig glconf;
 		int r, g, b, a, id, depth, stencil, sampleBuffers, samples;
 
@@ -92,7 +90,7 @@ EglSetup::EglSetup(void* nativeDisplay)
 		glconf.blue = b;
 		glconf.alpha = a;
 		glconf.id = glConfigID(id);
-		glconf.doublebuffer = true; //cannot be queried by config, but should always be possible
+		glconf.doublebuffer = true; // cannot be queried by config, but should always be possible
 
 		if(sampleBuffers) glconf.samples = samples;
 
@@ -102,17 +100,16 @@ EglSetup::EglSetup(void* nativeDisplay)
 		if(rating > highestRating)
 		{
 			highestRating = rating;
-			defaultConfig_ = &configs_.back(); //configs_ will never be reallocated
+			defaultConfig_ = &configs_.back(); // configs_ will never be reallocated
 		}
 	}
 }
 
 EglSetup::~EglSetup()
 {
-	if(eglDisplay_)
-	{
+	if(eglDisplay_) {
 		::eglTerminate(eglDisplay_);
-		::eglReleaseThread(); //XXX: may be a problem if using multiple EglSetups in one thread
+		::eglReleaseThread(); // TODO: may be a problem if using multiple EglSetups in one thread
 	}
 }
 
@@ -199,8 +196,7 @@ EglSurface::~EglSurface()
 bool EglSurface::apply(std::error_code& ec) const
 {
 	ec.clear();
-	if(!::eglSwapBuffers(eglDisplay_, eglSurface_))
-	{
+	if(!::eglSwapBuffers(eglDisplay_, eglSurface_)) {
 		ec = EglErrorCategory::errorCode();
 		warning("ny::EglSurface::apply (eglSwapBuffers) failed: ", ec.message());
 		return false;
@@ -209,7 +205,7 @@ bool EglSurface::apply(std::error_code& ec) const
 	return true;
 }
 
-//EglContext
+// EglContext
 EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 	: setup_(&setup)
 {
@@ -221,22 +217,19 @@ EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 	GlConfig glConfig;
 	EGLConfig eglConfig;
 
-	if(settings.config)
-	{
+	if(settings.config) {
 		glConfig = setup.config(settings.config);
 		eglConfig = setup.eglConfig(settings.config);
-	}
-	else
-	{
+	} else {
 		glConfig = setup.defaultConfig();
 		eglConfig = setup.eglConfig(glConfig.id);
 	}
 
-	if(!eglConfig) throw GlContextError(GlContextErrc::invalidConfig, "ny::EglContext");
+	if(!eglConfig)
+		throw GlContextError(GlContextErrc::invalidConfig, "ny::EglContext");
 
 	EGLContext eglShareContext = nullptr;
-	if(settings.share)
-	{
+	if(settings.share) {
 		//do the context have to be associated with the same configs?
 		auto shareCtx = dynamic_cast<EglContext*>(settings.share);
 		if(!shareCtx)
@@ -251,10 +244,8 @@ EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 	versionPairs.reserve(16);
 	contextAttribs.reserve(16);
 
-	if(settings.version.api == GlApi::gles)
-	{
-		if(major == 0 && minor == 0)
-		{
+	if(settings.version.api == GlApi::gles) {
+		if(major == 0 && minor == 0) {
 			major = 3;
 			minor = 2;
 		}
@@ -264,11 +255,8 @@ EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 
 		versionPairs = {{3, 2}, {3, 1}, {3, 0}, {2, 0}, {1, 1}, {1, 0}};
 		eglBindAPI(EGL_OPENGL_ES_API);
-	}
-	else if(settings.version.api == GlApi::gl)
-	{
-		if(major == 0 && minor == 0)
-		{
+	} else if(settings.version.api == GlApi::gl) {
+		if(major == 0 && minor == 0) {
 			major = 3;
 			minor = 2;
 		}
@@ -279,22 +267,20 @@ EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 		versionPairs = {{4, 5}, {3, 3}, {3, 2}, {3, 1}, {3, 0}, {1, 2}, {1, 0}};
 		eglBindAPI(EGL_OPENGL_API);
 
-		//profile
+		// profile
 		contextAttribs.push_back(EGL_CONTEXT_OPENGL_PROFILE_MASK);
 		if(!settings.compatibility) contextAttribs.push_back(EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT);
 		else contextAttribs.push_back(EGL_CONTEXT_OPENGL_COMPATIBILITY_PROFILE_BIT);
 
-		//forward compatible
+		// forward compatible
 		contextAttribs.push_back(EGL_CONTEXT_OPENGL_FORWARD_COMPATIBLE);
 		if(settings.forwardCompatible) contextAttribs.push_back(EGL_TRUE);
 		else contextAttribs.push_back(EGL_FALSE);
-	}
-	else
-	{
+	} else {
 		throw GlContextError(GlContextErrc::invalidApi, "ny::EglContext");
 	}
 
-	//debug
+	// debug
 	contextAttribs.push_back(EGL_CONTEXT_OPENGL_DEBUG);
 	if(settings.debug) contextAttribs.push_back(EGL_TRUE);
 	else contextAttribs.push_back(EGL_FALSE);
@@ -309,10 +295,8 @@ EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 
 	eglContext_ = ::eglCreateContext(eglDisplay, eglConfig, eglShareContext, contextAttribs.data());
 
-	if(!eglContext_ && ::eglGetError() == EGL_BAD_MATCH && !settings.forceVersion)
-	{
-		for(const auto& p : versionPairs)
-		{
+	if(!eglContext_ && ::eglGetError() == EGL_BAD_MATCH && !settings.forceVersion) {
+		for(const auto& p : versionPairs) {
 			contextAttribs[contextAttribs.size() - 4] = p.first;
 			contextAttribs[contextAttribs.size() - 2] = p.second;
 			eglContext_ = ::eglCreateContext(eglDisplay, eglConfig, eglShareContext,
@@ -331,9 +315,7 @@ EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 
 EglContext::~EglContext()
 {
-
-	if(eglContext_)
-	{
+	if(eglContext_) {
 		std::error_code ec;
 		if(!makeNotCurrent(ec))
 			warning("ny::~EglContext: failed to make the context not current: ", ec.message());
@@ -347,8 +329,7 @@ bool EglContext::makeCurrentImpl(const GlSurface& surface, std::error_code& ec)
 	ec.clear();
 
 	auto eglSurface = dynamic_cast<const EglSurface*>(&surface)->eglSurface();
-	if(!eglMakeCurrent(eglDisplay(), eglSurface, eglSurface, eglContext()))
-	{
+	if(!eglMakeCurrent(eglDisplay(), eglSurface, eglSurface, eglContext())) {
 		ec = EglErrorCategory::errorCode();
 		warning("ny::EglContext::makeCurrent (eglMakeCurrent) failed: ", ec.message());
 		return false;
@@ -361,8 +342,7 @@ bool EglContext::makeNotCurrentImpl(std::error_code& ec)
 {
 	ec.clear();
 
-	if(!::eglMakeCurrent(eglDisplay(), nullptr, nullptr, nullptr))
-	{
+	if(!::eglMakeCurrent(eglDisplay(), nullptr, nullptr, nullptr)) {
 		ec = EglErrorCategory::errorCode();
 		warning("ny::EglContext::makeNotCurrent (eglMakeCurrent) failed: ", ec.message());
 		return false;
@@ -395,8 +375,7 @@ GlContextExtensions EglContext::contextExtensions() const
 
 bool EglContext::swapInterval(int interval, std::error_code& ec) const
 {
-	if(!::eglSwapInterval(eglDisplay(), interval))
-	{
+	if(!::eglSwapInterval(eglDisplay(), interval)) {
 		ec = EglErrorCategory::errorCode();
 		return false;
 	}
@@ -409,7 +388,7 @@ EGLConfig EglContext::eglConfig() const
 	return setup_->eglConfig(config().id);
 }
 
-//Error category
+// EglErrorCategory
 EglErrorCategory& EglErrorCategory::instance()
 {
 	static EglErrorCategory ret;
@@ -418,8 +397,7 @@ EglErrorCategory& EglErrorCategory::instance()
 
 std::string EglErrorCategory::message(int code) const
 {
-	switch(code)
-	{
+	switch(code) {
 		case EGL_BAD_ACCESS: return "EGL_BAD_ACCESS";
 		case EGL_SUCCESS: return "EGL_SUCCESS";
 		case EGL_NOT_INITIALIZED: return "EGL_NOT_INITIALIZED";
@@ -439,7 +417,7 @@ std::string EglErrorCategory::message(int code) const
 	}
 }
 
-std::exception EglErrorCategory::exception(nytl::StringParam msg)
+std::system_error EglErrorCategory::exception(nytl::StringParam msg)
 {
 	return std::system_error(errorCode(), msg);
 }
@@ -449,4 +427,4 @@ std::error_code EglErrorCategory::errorCode()
 	return {::eglGetError(), instance()};
 }
 
-}
+} // namespace ny

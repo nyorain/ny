@@ -8,4 +8,5 @@ attribution when only used in binaries).
 
 For some first sketchup of how ny will/could look, see the first [docs](doc) or some
 really basic [example apps](src/examples).
+The examples are of course available under public domain.
 All kinds of contributions are appreciated.

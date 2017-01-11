@@ -1,4 +1,4 @@
-// Copyright (c) 2016 nyorain
+// Copyright (c) 2017 nyorain
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
@@ -20,7 +20,7 @@
 
 namespace ny {
 
-//mouse
+// mouse
 WaylandMouseContext::WaylandMouseContext(WaylandAppContext& ac, wl_seat& seat)
 	: appContext_(ac)
 {
@@ -38,14 +38,13 @@ WaylandMouseContext::WaylandMouseContext(WaylandAppContext& ac, wl_seat& seat)
 	};
 
 	wlPointer_ = wl_seat_get_pointer(&seat);
-    wl_pointer_add_listener(wlPointer_, &listener, this);
+	wl_pointer_add_listener(wlPointer_, &listener, this);
 	wlCursorSurface_ = wl_compositor_create_surface(&ac.wlCompositor());
 }
 
 WaylandMouseContext::~WaylandMouseContext()
 {
-	if(wlPointer_)
-	{
+	if(wlPointer_) {
 		if(wl_pointer_get_version(wlPointer_) >= 3) wl_pointer_release(wlPointer_);
 		else wl_pointer_destroy(wlPointer_);
 	}
@@ -166,8 +165,8 @@ void WaylandMouseContext::handleAxis(wl_pointer*, uint32_t time, uint32_t axis, 
 	}
 }
 
-//Those events could be handled if more complex axis events are supported.
-//Handling the fame event will only become useful when the 3 callbacks below are handled
+// Those events could be handled if more complex axis events are supported.
+// Handling the fame event will only become useful when the 3 callbacks below are handled
 void WaylandMouseContext::handleFrame(wl_pointer*)
 {
 }
@@ -211,7 +210,7 @@ WaylandKeyboardContext::WaylandKeyboardContext(WaylandAppContext& ac, wl_seat& s
 	};
 
 	wlKeyboard_ = wl_seat_get_keyboard(&seat);
-    wl_keyboard_add_listener(wlKeyboard_, &listener, this);
+	wl_keyboard_add_listener(wlKeyboard_, &listener, this);
 
 	XkbKeyboardContext::createDefault();
 	XkbKeyboardContext::setupCompose();

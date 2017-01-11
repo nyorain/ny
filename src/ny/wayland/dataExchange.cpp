@@ -1,4 +1,4 @@
-// Copyright (c) 2016 nyorain
+// Copyright (c) 2017 nyorain
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
@@ -106,11 +106,10 @@ WaylandDataOffer::~WaylandDataOffer()
 
 void WaylandDataOffer::destroy()
 {
-	//signal all pending requests that they have failed
+	// signal all pending requests that they have failed
 	for(auto& r : requests_) for(auto& req : r.second.requests) req->complete({});
 
-	if(wlDataOffer_)
-	{
+	if(wlDataOffer_) {
 		auto version = wl_data_offer_get_version(wlDataOffer_);
 		if(finish_ && version > 3) wl_data_offer_finish(wlDataOffer_);
 		wl_data_offer_destroy(wlDataOffer_);
@@ -119,8 +118,8 @@ void WaylandDataOffer::destroy()
 
 WaylandDataOffer::FormatsRequest WaylandDataOffer::formats()
 {
-	//Since we don't have to query the supported formats but already have them
-	//stored, we can return a synchronous (i.e. already set) request object.
+	// Since we don't have to query the supported formats but already have them
+	// stored, we can return a synchronous (i.e. already set) request object.
 	std::vector<DataFormat> formats;
 	formats.reserve(formats_.size());
 	for(auto& supported : formats_) formats.push_back(supported.first);
@@ -129,34 +128,30 @@ WaylandDataOffer::FormatsRequest WaylandDataOffer::formats()
 
 WaylandDataOffer::DataRequest WaylandDataOffer::data(const DataFormat& format)
 {
-	//find the associated wayland format string
+	// find the associated wayland format string
 	std::pair<DataFormat, std::string> reqfmt {};
 	for(auto& supported : formats_) if(format == supported.first) reqfmt = supported;
-	if(reqfmt.second.empty())
-	{
+	if(reqfmt.second.empty()) {
 		warning("ny::WaylandDataOffer::data: unsupported format ", format.name);
 		return {};
 	}
 
-	//we check if there is already a pending request for the given format.
-	//if so, we skip all request and appContext fd callback registering
+	// we check if there is already a pending request for the given format.
+	// if so, we skip all request and appContext fd callback registering
 	auto& conn = requests_[reqfmt.second].fdConnection;
-	if(!conn.connected())
-	{
+	if(!conn.connected()) {
 		int fds[2];
 		auto ret = pipe2(fds, O_CLOEXEC);
-		if(ret < 0)
-		{
+		if(ret < 0) {
 			warning("ny::WaylandDataOffer::data: pipe2 failed: ", std::strerror(errno));
 			return {};
 		}
 
 		wl_data_offer_receive(wlDataOffer_, reqfmt.second.c_str(), fds[1]);
 
-		auto callback = [wlOffer = wlDataOffer_,
-			ac = appContext_, format, reqfmt] (int fd, unsigned int)
-		{
-			//close the fd no matter if we actually fail here
+		auto callback =
+			[wlOffer = wlDataOffer_, ac = appContext_, format, reqfmt](int fd, unsigned int) {
+
 			auto fdGuard = nytl::makeScopeGuard([=]{ close(fd); });
 
 			constexpr auto readCount = 1000;
@@ -164,20 +159,19 @@ WaylandDataOffer::DataRequest WaylandDataOffer::data(const DataFormat& format)
 			std::vector<uint8_t> buffer;
 
 			auto ret = readCount;
-			while(ret == readCount)
-			{
+			while(ret == readCount) {
 				buffer.resize(buffer.size() + readCount);
 				ret = read(fd, buffer.data(), buffer.size());
 			}
 
-			buffer.resize(buffer.size() - (readCount - ret)); //remove the unneeded bytes
-			//is eof really assured here?
-			//the data source side might write multiple data segments and not be
-			//finished here...
+			buffer.resize(buffer.size() - (readCount - ret)); // remove the unneeded bytes
+			// TODO: is eof really assured here?
+			// the data source side might write multiple data segments and not be
+			// finished here...
 
 			auto any = wrap(buffer, reqfmt.first);
 
-			//complete all pending requests and remove the request entry
+			// complete all pending requests and remove the request entry
 			for(auto& req : self->requests_[reqfmt.second].requests) req->complete(any);
 			self->requests_.erase(self->requests_.find(reqfmt.second));
 		};
@@ -185,9 +179,9 @@ WaylandDataOffer::DataRequest WaylandDataOffer::data(const DataFormat& format)
 		conn = appContext_->fdCallback(fds[0], POLLIN, callback);
 	}
 
-	//create an asynchronous request object that unregisters itself on destruction so
-	//we won't call complete on invalid objects. The application has ownership over the
-	//AsyncRequest
+	// create an asynchronous request object that unregisters itself on destruction so
+	// we won't call complete on invalid objects. The application has ownership over the
+	// AsyncRequest
 	auto ret = std::make_unique<DataRequestImpl>(appContext());
 	ret->format_ = reqfmt.second;
 	ret->dataOffer_ = this;
@@ -204,7 +198,7 @@ void WaylandDataOffer::offer(wl_data_offer*, const char* fmt)
 	else formats_.push_back({{fmt, {}}, fmt,});
 }
 
-//TODO: parse actions to determince whether wl_data_offer_finish has to be called? see protocol
+// TODO: parse actions to determine whether wl_data_offer_finish has to be called? see protocol
 void WaylandDataOffer::sourceActions(wl_data_offer*, uint32_t actions)
 {
 	nytl::unused(actions);
@@ -218,15 +212,13 @@ void WaylandDataOffer::action(wl_data_offer*, uint32_t action)
 void WaylandDataOffer::removeDataRequest(const std::string& format, DataRequestImpl& request)
 {
 	auto it = requests_.find(format);
-	if(it == requests_.end())
-	{
+	if(it == requests_.end()) {
 		warning("ny::WaylandDataOffer::removeDataRequest: invalid format");
 		return;
 	}
 
 	auto it2 = std::find(it->second.requests.begin(), it->second.requests.end(), &request);
-	if(it2 == it->second.requests.end())
-	{
+	if(it2 == it->second.requests.end()) {
 		warning("ny::WaylandDataOffer::removeDataRequest: invalid request");
 		return;
 	}
@@ -234,7 +226,7 @@ void WaylandDataOffer::removeDataRequest(const std::string& format, DataRequestI
 	it->second.requests.erase(it2);
 }
 
-//WaylandDataSource
+// WaylandDataSource
 WaylandDataSource::WaylandDataSource(WaylandAppContext& ac, std::unique_ptr<DataSource>&& src,
 	bool dnd) : appContext_(ac), source_(std::move(src)), dnd_(dnd)
 {
@@ -243,8 +235,7 @@ WaylandDataSource::WaylandDataSource(WaylandAppContext& ac, std::unique_ptr<Data
 		throw std::runtime_error("ny::WaylandDataSource: faield to create wl_data_source");
 
 	using WDS = WaylandDataSource;
-	static constexpr wl_data_source_listener listener =
-	{
+	static constexpr wl_data_source_listener listener = {
 		memberCallback<decltype(&WDS::target), &WDS::target, void(wl_data_source*, const char*)>,
 		memberCallback<decltype(&WDS::send), &WDS::send, void(wl_data_source*, const char*, int)>,
 		memberCallback<decltype(&WDS::cancelled), &WDS::cancelled, void(wl_data_source*)>,
@@ -256,22 +247,19 @@ WaylandDataSource::WaylandDataSource(WaylandAppContext& ac, std::unique_ptr<Data
 	wl_data_source_add_listener(wlDataSource_, &listener, this);
 
 	auto formats = source_->formats();
-	for(auto& format : formats)
-	{
+	for(auto& format : formats) {
 		wl_data_source_offer(&wlDataSource(), format.name.c_str());
 		for(auto& name : format.additionalNames)
 			wl_data_source_offer(&wlDataSource(), name.c_str());
 	}
 
-	//if this is a dnd source, set the actions and create dnd surface and buffer
-	if(dnd_)
-	{
+	// if this is a dnd source, set the actions and create dnd surface and buffer
+	if(dnd_) {
 		if(wl_data_source_get_version(wlDataSource_) >= 3)
 			wl_data_source_set_actions(wlDataSource_, WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY);
 
 		auto img = source_->image();
-		if(img.data)
-		{
+		if(img.data) {
 			dragSurface_ = wl_compositor_create_surface(&appContext_.wlCompositor());
 			dragBuffer_ = {appContext_, img.size};
 			convertFormat(img, waylandToImageFormat(dragBuffer_.format()), dragBuffer_.data(), 8u);
@@ -294,37 +282,35 @@ void WaylandDataSource::drawSurface()
 
 void WaylandDataSource::target(wl_data_source*, const char* mimeType)
 {
-	//we dont care about this information at all
+	// TODO: use it to check whether data is accepted (and change cursor)?
 	nytl::unused(mimeType);
 }
 void WaylandDataSource::send(wl_data_source*, const char* mimeType, int32_t fd)
 {
-	//close the fd no matter what happens here
+	// close the fd no matter what happens here
 	auto fdGuard = nytl::makeScopeGuard([=]{ close(fd); });
 
-	//find the associated DataFormat
+	// find the associated DataFormat
 	auto formats = source_->formats();
 	DataFormat* dataFormat = nullptr;
 	for(auto& format : formats) if(match(format, mimeType)) dataFormat = &format;
 
-	if(!dataFormat)
-	{
+	if(!dataFormat) {
 		log("ny::WaylandDataSource::send: invalid/unsupported mimeType: ", mimeType);
 		return;
 	}
 
 	auto data = source_->data(*dataFormat);
-	if(!data.has_value())
-	{
+	if(!data.has_value()) {
 		warning("ny::WaylandDataSource::send: failed to retrieve data object via DataSource::data");
 		return;
 	}
 
 	auto buffer = unwrap(data, *dataFormat);
 
-	//if the given fd is invalid, no signal should be generated
-	//we simply set the sigpipe error handler to ignore and restore it when this
-	//function exits
+	// if the given fd is invalid, no signal should be generated
+	// we simply set the sigpipe error handler to ignore and restore it when this
+	// function exits
 	auto prev = signal(SIGPIPE, SIG_IGN);
 	auto sigpipeGuard = nytl::makeScopeGuard([=] { signal(SIGPIPE, prev); });
 
@@ -334,12 +320,11 @@ void WaylandDataSource::send(wl_data_source*, const char* mimeType, int32_t fd)
 
 void WaylandDataSource::action(wl_data_source*, uint32_t action)
 {
-	//change the cursor in response to the action if there is a mouseContext
+	// change the cursor in response to the action if there is a mouseContext
 	if(!appContext_.waylandMouseContext()) return;
 
 	const char* cursorName = nullptr;
-	switch(action)
-	{
+	switch(action) {
 		case WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY: cursorName = "dnd-copy"; break;
 		case WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE: cursorName = "dnd-move"; break;
 		default: cursorName = "dnd-none";
@@ -384,8 +369,7 @@ WaylandDataDevice::WaylandDataDevice(WaylandAppContext& ac) : appContext_(&ac)
 	wlDataDevice_ = wl_data_device_manager_get_data_device(wldm, ac.wlSeat());
 
 	using WDD = WaylandDataDevice;
-	static constexpr wl_data_device_listener listener =
-	{
+	static constexpr wl_data_device_listener listener = {
 		memberCallback<decltype(&WDD::offer), &WDD::offer>,
 		memberCallback<decltype(&WDD::enter), &WDD::enter>,
 		memberCallback<decltype(&WDD::leave), &WDD::leave>,
@@ -399,8 +383,7 @@ WaylandDataDevice::WaylandDataDevice(WaylandAppContext& ac) : appContext_(&ac)
 
 WaylandDataDevice::~WaylandDataDevice()
 {
-	if(wlDataDevice_)
-	{
+	if(wlDataDevice_) {
 		if(wl_data_device_get_version(wlDataDevice_) >= 2) wl_data_device_release(wlDataDevice_);
 		else wl_data_device_destroy(wlDataDevice_);
 	}
@@ -417,7 +400,7 @@ void WaylandDataDevice::enter(wl_data_device*, uint32_t serial, wl_surface* surf
 	WaylandEventData eventData(serial);
 	nytl::Vec2i pos(wl_fixed_to_int(x), wl_fixed_to_int(y));
 
-	//find the associated dataOffer and cache it as dndOffer_
+	// find the associated dataOffer and cache it as dndOffer_
 	for(auto& o : offers_) {
 		if(&o->wlDataOffer() == offer) {
 			dndOffer_ = o.get();
@@ -475,7 +458,7 @@ void WaylandDataDevice::motion(wl_data_device*, uint32_t time, wl_fixed_t x, wl_
 {
 	// debug("motion");
 	nytl::unused(time); //time param needed for CompFunc since it would be stored in x otherwise
-    nytl::Vec2i pos(wl_fixed_to_int(x), wl_fixed_to_int(y));
+	nytl::Vec2i pos(wl_fixed_to_int(x), wl_fixed_to_int(y));
 
 	DndMoveEvent dme;
 	dme.position = pos;
@@ -492,7 +475,7 @@ void WaylandDataDevice::motion(wl_data_device*, uint32_t time, wl_fixed_t x, wl_
 		return;
 	}
 
-    wl_data_offer_accept(&dndOffer_->wlDataOffer(), dndSerial_, fmt.name.c_str());
+	wl_data_offer_accept(&dndOffer_->wlDataOffer(), dndSerial_, fmt.name.c_str());
 	wl_data_offer_set_actions(&dndOffer_->wlDataOffer(), WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY,
 		WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY);
 }
@@ -536,7 +519,7 @@ void WaylandDataDevice::drop(wl_data_device*)
 
 void WaylandDataDevice::selection(wl_data_device*, wl_data_offer* offer)
 {
-	//erase the previous clipboard offer
+	// erase the previous clipboard offer
 	if(clipboardOffer_) {
 		offers_.erase(std::remove_if(offers_.begin(), offers_.end(),
 			[=](auto& v) { return v.get() == clipboardOffer_; }), offers_.end());

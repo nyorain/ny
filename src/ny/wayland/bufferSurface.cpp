@@ -1,4 +1,4 @@
-// Copyright (c) 2016 nyorain
+// Copyright (c) 2017 nyorain
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
@@ -9,10 +9,9 @@
 
 #include <stdexcept> // std::runtime_error
 
-namespace ny
-{
+namespace ny {
 
-//WaylandBufferSurface
+// WaylandBufferSurface
 WaylandBufferSurface::WaylandBufferSurface(WaylandWindowContext& wc) : windowContext_(&wc)
 {
 }
@@ -28,8 +27,7 @@ BufferGuard WaylandBufferSurface::buffer()
 		throw std::logic_error("ny::WlBufferSurface: there is already an active BufferGuard");
 
 	auto size = windowContext().size();
-	for(auto& b : buffers_)
-	{
+	for(auto& b : buffers_) {
 		if(b.used()) continue;
 		if(b.size() != size) b.size(size);
 
@@ -39,7 +37,7 @@ BufferGuard WaylandBufferSurface::buffer()
 		return {*this, {&b.data(), size, format, b.stride()}};
 	}
 
-	//create new buffer if none is unused
+	// create new buffer if none is unused
 	buffers_.emplace_back(windowContext().appContext(), size);
 	buffers_.back().use();
 	active_ = &buffers_.back();
@@ -52,8 +50,7 @@ BufferGuard WaylandBufferSurface::buffer()
 
 void WaylandBufferSurface::apply(const BufferGuard& buffer) noexcept
 {
-	if(!active_ || buffer.get().data != &active_->data())
-	{
+	if(!active_ || buffer.get().data != &active_->data()) {
 		warning("ny::WaylandBufferSurface::apply: invalid BufferGuard given");
 		return;
 	}
@@ -62,7 +59,7 @@ void WaylandBufferSurface::apply(const BufferGuard& buffer) noexcept
 	active_ = nullptr;
 }
 
-//WaylandBufferWindowContext
+// WaylandBufferWindowContext
 WaylandBufferWindowContext::WaylandBufferWindowContext(WaylandAppContext& ac,
 	const WaylandWindowSettings& settings) :
 		WaylandWindowContext(ac, settings),
@@ -76,4 +73,4 @@ Surface WaylandBufferWindowContext::surface()
 	return {bufferSurface_};
 }
 
-}
+} // namespace ny

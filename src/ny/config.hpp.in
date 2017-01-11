@@ -1,17 +1,20 @@
-// Copyright (c) 2016 nyorain
+// Copyright (c) 2017 nyorain
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
+// This file (ny/config.hpp) was automatically generated for the configuration ny was
+// built with using cmake. It should therefore not be manually edited.
+
 #pragma once
 
-//ny version
+// ny version
 #define NY_VMajor @vmajor@
 #define NY_VMinor @vminor@
 #define NY_VPatch @vpatch@
-#define NY_Version NY_VMajor * 1000000 + NY_VMinor * 1000 + NY_VPatch
+#define NY_Version NY_VMajor * 1000000u + NY_VMinor * 1000u + NY_VPatch
 
-//these macros can be used to check which parts are built in to ny.
-//all ny header files include the parsed config.hpp
+// these macros can be used to check which parts are built in to ny.
+// all ny header files include the parsed config.hpp
 #cmakedefine NY_WithGl
 #cmakedefine NY_WithEgl
 #cmakedefine NY_WithVulkan
@@ -21,11 +24,10 @@
 #cmakedefine NY_WithWayland
 #cmakedefine NY_WithWinapi
 
-namespace ny
-{
+namespace ny {
 
-//Use the following functions to determine whether the ny library your application
-//is dynamically linked to was built with the given features.
+// Use the following functions to determine whether the ny library your application
+// is dynamically linked to was built with the given features.
 
 bool builtWithX11();
 bool builtWithWayland();
@@ -41,4 +43,4 @@ unsigned int minorVersion();
 unsigned int patchVersion();
 unsigned int version();
 
-}
+} // namespace ny

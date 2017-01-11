@@ -15,6 +15,9 @@ Protected/private member variables end with an underscore like this `int count_ 
 Whitespace and empty lines are used sparingly:
 
 ```cpp
+namespace ny {
+namespace detail::nspace {
+
 class Example {
 public:
 	// first static public stuff and typedefs
@@ -35,25 +38,33 @@ if(condition1) {
 	doSomethingElse();
 }
 
-/// Document stuff like this
+/// Document stuff with comments like this
 /// Prefer to use standardese tags like
 /// \param, \module, \throws, \requires or \brief
-for(auto c : string) {
-	foo(c);
+void foo()
+{
+
+	for(auto c : string) {
+		foo(c);
+	}
+
+	switch(var) {
+		case 1: {
+			foo();
+			break;
+		}
+		case 2: {
+			bar();
+			break;
+		}
+		default:
+			break;
+	}
+
 }
 
-switch(var) {
-	case 1: {
-		foo();
-		break;
-	}
-	case 2: {
-		bar();
-		break;
-	}
-	default:
-		break;
-}
+} // namespace detail::nspace
+} // namespace ny
 ```
 
 ## Documentation

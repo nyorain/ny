@@ -1,4 +1,4 @@
-// Copyright (c) 2016 nyorain
+// Copyright (c) 2017 nyorain
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
@@ -7,13 +7,11 @@
 #include <ny/mouseButton.hpp>
 #include <ny/cursor.hpp>
 
-namespace ny
-{
+namespace ny {
 
 const char* cursorToXName(CursorType cursor)
 {
-	switch(cursor)
-	{
+	switch(cursor) {
 		case CursorType::leftPtr: return "left_ptr";
 		case CursorType::sizeBottom: return "bottom_side";
 		case CursorType::sizeBottomLeft: return "bottom_left_corner";
@@ -59,8 +57,7 @@ Keycode linuxToKey(unsigned int keycode)
 
 unsigned int buttonToLinux(MouseButton button)
 {
-	switch(button)
-	{
+	switch(button) {
 		case MouseButton::left: return 0x110;
 		case MouseButton::right: return 0x111;
 		case MouseButton::middle: return 0x112;
@@ -77,8 +74,7 @@ unsigned int buttonToLinux(MouseButton button)
 
 MouseButton linuxToButton(unsigned int buttoncode)
 {
-	switch(buttoncode)
-	{
+	switch(buttoncode) {
 		case 0x110: return MouseButton::left;
 		case 0x111: return MouseButton::right;
 		case 0x112: return MouseButton::middle;
@@ -91,4 +87,4 @@ MouseButton linuxToButton(unsigned int buttoncode)
 	}
 }
 
-}
+} // namespace ny

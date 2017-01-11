@@ -3,8 +3,12 @@
 ### priority
 
 - clean up the namespace/prefix mess (e.g. wayland::EventData vs WaylandEventData)
+	- see doc/style.md (should be alright, see if fixes everywhere)
 	- should be uniform across backends
 - improve KeyEvent/KeyboardListener with active keyboard modifiers, state
+- egl/wgl/glx library loading (dynamically load opengl) -> see e.g. common/egl
+- fix/clean up TODO marks in code
+- fix code style for other backend implementations
 
 ### later; general; rework needed
 
@@ -12,13 +16,14 @@
 	- use extended aggregate initialization for Event class
 		- update for backends (not create explicit structs before calling listener)
 - DataOffer: methods const? they do not change the state of the object (interface)
+	- may not be threadsafe in implementation; should not be required (should it?)
 	- also: really pass it as unique ptr in WindowListener::drop
 		- why not simply non-const pointer, from this can be moved as well?!
 - new image formats, such as hsl, yuv since they might be supported by some backends?
 	- needs image format rework
 	- (mainly wayland)
 - deferred events (i.e. DONT dispatch outside dispatch functions)
-	- winapi may do this at the moment (bad!) [really? just use async and check!]
+	- winapi may do this at the moment (bad!) (does it really? just use async and check!)
 	- wayland e.g. may send a draw event from WindowContext::refesh. ok?
 	- how complex is it to implement general event deferring? for all backends?
 		common implementation? (-> see common util file)
@@ -63,6 +68,7 @@
 	- prevents that e.g. a size event is sent although the next size event is already known
 	- some general event dispatching utiliy helpers for AppContext implementations?
 - AppContext: function for ringing the systems bell (at least x11, winapi)
+- send CloseEvent when WindowContext::close called? define such things somewhere!
 
 further improvements:
 =============
@@ -70,6 +76,7 @@ further improvements:
 - testing! add general tests for all features
 	- test image functions on big endian machine
 - documentation
+	- fix/remove/split main.md
 	- operation
 	- dataExchange fix
 

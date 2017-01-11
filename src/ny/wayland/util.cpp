@@ -1,4 +1,4 @@
-// Copyright (c) 2016 nyorain
+// Copyright (c) 2017 nyorain
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
@@ -23,90 +23,81 @@
 #include <iostream>
 #include <cstring>
 
-namespace ny
-{
-
-namespace wayland
-{
-
-//utility functions
-namespace
-{
+namespace ny {
+namespace wayland {
+namespace {
 
 int setCloexecOrClose(int fd)
 {
-    long flags;
-    if(fd == -1) goto err2;
+	long flags;
+	if(fd == -1) goto err2;
 
-    flags = fcntl(fd, F_GETFD);
-    if(flags == -1) goto err1;
+	flags = fcntl(fd, F_GETFD);
+	if(flags == -1) goto err1;
 
-    if(fcntl(fd, F_SETFD, flags | FD_CLOEXEC) == -1) goto err1;
-    return fd;
+	if(fcntl(fd, F_SETFD, flags | FD_CLOEXEC) == -1) goto err1;
+	return fd;
 
 err1:
-    close(fd);
+	close(fd);
 
 err2:
 	warning("ny::wayland::setCloexecOrClose: fctnl failed: ", std::strerror(errno));
-    return -1;
+	return -1;
 }
 
 int createTmpfileCloexec(char *tmpname)
 {
-    int fd;
+	int fd;
 
-    #ifdef HAVE_MKOSTEMP
+	#ifdef HAVE_MKOSTEMP
 		fd = mkostemp(tmpname, O_CLOEXEC);
 		if(fd >= 0) unlink(tmpname);
 
-    #else
+	#else
 		fd = mkstemp(tmpname);
 		if(fd >= 0)
 		{
 			fd = setCloexecOrClose(fd);
 			unlink(tmpname);
 		}
-    #endif
+	#endif
 
-    return fd;
+	return fd;
 }
 
 int osCreateAnonymousFile(off_t size)
 {
-    static const char template1[] = "/weston-shared-XXXXXX";
-    const char *path;
-    char *name;
-    int fd;
+	static const char template1[] = "/weston-shared-XXXXXX";
+	const char *path;
+	char *name;
+	int fd;
 
-    path = getenv("XDG_RUNTIME_DIR");
-    if (!path)
-    {
-        errno = ENOENT;
-        return -1;
-    }
+	path = getenv("XDG_RUNTIME_DIR");
+	if (!path) {
+		errno = ENOENT;
+		return -1;
+	}
 
-    name = (char*) malloc(strlen(path) + sizeof(template1));
-    if(!name) return -1;
+	name = (char*) malloc(strlen(path) + sizeof(template1));
+	if(!name) return -1;
 
-    strcpy(name, path);
-    strcat(name, template1);
+	strcpy(name, path);
+	strcat(name, template1);
 
-    fd = createTmpfileCloexec(name);
-    free(name);
+	fd = createTmpfileCloexec(name);
+	free(name);
 
-    if(fd < 0) return -1;
+	if(fd < 0) return -1;
+	if(ftruncate(fd, size) < 0) {
+		close(fd);
+		return -1;
+	}
 
-    if(ftruncate(fd, size) < 0)
-    {
-        close(fd);
-        return -1;
-    }
-
-    return fd;
+	return fd;
 }
 
-}
+} // anonymous util namespace
 
 //shmBuffer
 ShmBuffer::ShmBuffer(WaylandAppContext& ac, nytl::Vec2ui size, unsigned int stride)
@@ -114,12 +105,12 @@ ShmBuffer::ShmBuffer(WaylandAppContext& ac, nytl::Vec2ui size, unsigned int stri
 {
 	format_ = WL_SHM_FORMAT_ARGB8888;
 	if(!stride_) stride_ = size.x * 4;
-    create();
+	create();
 }
 
 ShmBuffer::~ShmBuffer()
 {
-    destroy();
+	destroy();
 }
 
 ShmBuffer::ShmBuffer(ShmBuffer&& other)
@@ -180,84 +171,78 @@ void ShmBuffer::create()
 	if(!size_.x || !size_.y) throw std::runtime_error("ny::wayland::ShmBuffer invalid size");
 	if(!stride_) throw std::runtime_error("ny::wayland::ShmBuffer invalid stride");
 
-    auto* shm = appContext_->wlShm();
-    if(!shm) throw std::runtime_error("ny::wayland::ShmBuffer: wlAC has no wl_shm");
+	auto* shm = appContext_->wlShm();
+	if(!shm) throw std::runtime_error("ny::wayland::ShmBuffer: wlAC has no wl_shm");
 
-    auto vecSize = stride_ * size_.y;
-    shmSize_ = std::max(vecSize, shmSize_);
+	auto vecSize = stride_ * size_.y;
+	shmSize_ = std::max(vecSize, shmSize_);
 
-    auto fd = osCreateAnonymousFile(shmSize_);
-    if (fd < 0) throw std::runtime_error("ny::wayland::ShmBuffer: could not create shm file");
+	auto fd = osCreateAnonymousFile(shmSize_);
+	if (fd < 0) throw std::runtime_error("ny::wayland::ShmBuffer: could not create shm file");
 
-	//the fd is not needed here anymore AFTER the pool was created
-	//our access to the file is represented by the pool
+	// the fd is not needed here anymore AFTER the pool was created
+	// our access to the file is represented by the pool
 	auto fdGuard = nytl::makeScopeGuard([&]{ close(fd); });
 
-    auto ptr = mmap(nullptr, shmSize_, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    if(ptr == MAP_FAILED) throw std::runtime_error("ny::wayland::ShmBuffer: could not mmap file");
+	auto ptr = mmap(nullptr, shmSize_, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	if(ptr == MAP_FAILED) throw std::runtime_error("ny::wayland::ShmBuffer: could not mmap file");
 
 	data_ = reinterpret_cast<std::uint8_t*>(ptr);
-    pool_ = wl_shm_create_pool(shm, fd, shmSize_);
-    buffer_ = wl_shm_pool_create_buffer(pool_, 0, size_.x, size_.y, stride_, format_);
+	pool_ = wl_shm_create_pool(shm, fd, shmSize_);
+	buffer_ = wl_shm_pool_create_buffer(pool_, 0, size_.x, size_.y, stride_, format_);
 
-	static constexpr wl_buffer_listener listener
-	{
+	static constexpr wl_buffer_listener listener {
 		memberCallback<decltype(&ShmBuffer::released), &ShmBuffer::released>
 	};
 
-    wl_buffer_add_listener(buffer_, &listener, this);
+	wl_buffer_add_listener(buffer_, &listener, this);
 }
 
 void ShmBuffer::destroy()
 {
-    if(buffer_) wl_buffer_destroy(buffer_);
-    if(pool_) wl_shm_pool_destroy(pool_);
-    if(data_) munmap(data_, shmSize_);
+	if(buffer_) wl_buffer_destroy(buffer_);
+	if(pool_) wl_shm_pool_destroy(pool_);
+	if(data_) munmap(data_, shmSize_);
 }
 
 bool ShmBuffer::size(nytl::Vec2ui size, unsigned int stride)
 {
-    size_ = size;
+	size_ = size;
 	stride_ = stride;
 
 	if(!stride_) stride_ = size.x * 4;
-    unsigned int vecSize = stride_ * size_.y;
+	unsigned int vecSize = stride_ * size_.y;
 
 	if(!size_.x || !size_.y) throw std::runtime_error("ny::wayland::ShmBuffer invalid size");
 	if(!stride_) throw std::runtime_error("ny::wayland::ShmBuffer invalid stride");
 
-    if(vecSize > shmSize_)
-    {
-        create();
+	if(vecSize > shmSize_) {
+		create();
 		return true;
-    }
-    else
-    {
-        wl_buffer_destroy(buffer_);
-        buffer_ = wl_shm_pool_create_buffer(pool_, 0, size_.x, size_.y, stride_, format_);
+	} else {
+		wl_buffer_destroy(buffer_);
+		buffer_ = wl_shm_pool_create_buffer(pool_, 0, size_.x, size_.y, stride_, format_);
 		return false;
-    }
+	}
 }
 
-//output
+// Output
 Output::Output(WaylandAppContext& ac, wl_output& outp, unsigned int id)
 	: appContext_(&ac), wlOutput_(&outp), globalID_(id)
 {
-	static constexpr wl_output_listener listener
-	{
+	static constexpr wl_output_listener listener {
 		memberCallback<decltype(&Output::geometry), &Output::geometry>,
 		memberCallback<decltype(&Output::mode), &Output::mode>,
 		memberCallback<decltype(&Output::done), &Output::done>,
 		memberCallback<decltype(&Output::scale), &Output::scale>
 	};
 
-    wl_output_add_listener(&outp, &listener, this);
+	wl_output_add_listener(&outp, &listener, this);
 }
 
 Output::~Output()
 {
-    if(wlOutput_)
-	{
+	if(wlOutput_) {
 		if(wl_output_get_version(wlOutput_) > 3) wl_output_release(wlOutput_);
 		else wl_output_destroy(wlOutput_);
 	}
@@ -276,7 +261,7 @@ Output::Output(Output&& other) noexcept :
 
 Output& Output::operator=(Output&& other) noexcept
 {
-    if(wlOutput_) wl_output_release(wlOutput_);
+	if(wlOutput_) wl_output_release(wlOutput_);
 
 	appContext_ = other.appContext_;
 	wlOutput_ = other.wlOutput_;
@@ -317,7 +302,7 @@ void Output::scale(wl_output*, int32_t scale)
 	information_.scale = scale;
 }
 
-} //namespace wayland
+} // namespace wayland
 
 WindowEdge waylandToEdge(unsigned int wlEdge)
 {
@@ -329,8 +314,7 @@ unsigned int edgeToWayland(WindowEdge edge)
 	return static_cast<unsigned int>(edge);
 }
 
-constexpr struct FormatConversion
-{
+constexpr struct FormatConversion {
 	ImageFormat imageFormat;
 	unsigned int shmFormat;
 } formatConversions[] {
@@ -353,7 +337,7 @@ ImageFormat waylandToImageFormat(unsigned int shmFormat)
 	return imageFormats::none;
 }
 
-//WaylandErrorCategory
+// WaylandErrorCategory
 WaylandErrorCategory::WaylandErrorCategory(const wl_interface& interface) : interface_(interface)
 {
 	name_ = std::string() + "ny::wayland::" + interface.name;
@@ -361,77 +345,100 @@ WaylandErrorCategory::WaylandErrorCategory(const wl_interface& interface) : inte
 
 std::string WaylandErrorCategory::message(int code) const
 {
-	struct Error
-	{
+	struct Error {
 		int code;
 		const char* msg;
 	};
 
-	static struct
-	{
+	static struct {
 		const wl_interface& interface;
 		std::vector<Error> errors;
 	} interfaces[] =
 	{
-		//core protocol
+		// core protocol
 		{ wl_display_interface, {
 			{ WL_DISPLAY_ERROR_INVALID_OBJECT, "WL_DISPLAY_ERROR_INVALID_OBJECT" },
 			{ WL_DISPLAY_ERROR_INVALID_METHOD, "WL_DISPLAY_ERROR_INVALID_METHOD" },
 			{ WL_DISPLAY_ERROR_NO_MEMORY, "WL_DISPLAY_ERROR_NO_MEMORY" } }
 		},
 		{ wl_shm_interface, {
-			{ WL_SHM_ERROR_INVALID_FORMAT , "WL_SHM_ERROR_INVALID_FORMAT" },
-			{ WL_SHM_ERROR_INVALID_STRIDE , "WL_SHM_ERROR_INVALID_STRIDE" },
-			{ WL_SHM_ERROR_INVALID_FD , "WL_SHM_ERROR_INVALID_FD" } }
+			{ WL_SHM_ERROR_INVALID_FORMAT, "WL_SHM_ERROR_INVALID_FORMAT" },
+			{ WL_SHM_ERROR_INVALID_STRIDE, "WL_SHM_ERROR_INVALID_STRIDE" },
+			{ WL_SHM_ERROR_INVALID_FD, "WL_SHM_ERROR_INVALID_FD" } }
 		},
 		{ wl_data_offer_interface, {
-			{ WL_DATA_OFFER_ERROR_INVALID_FINISH , "WL_DATA_OFFER_ERROR_INVALID_FINISH" },
-			{ WL_DATA_OFFER_ERROR_INVALID_ACTION_MASK , "WL_DATA_OFFER_ERROR_INVALID_ACTION_MASK" },
-			{ WL_DATA_OFFER_ERROR_INVALID_ACTION , "WL_DATA_OFFER_ERROR_INVALID_ACTION" },
-			{ WL_DATA_OFFER_ERROR_INVALID_OFFER  , "WL_DATA_OFFER_ERROR_INVALID_OFFER" } }
+			{ WL_DATA_OFFER_ERROR_INVALID_FINISH, "WL_DATA_OFFER_ERROR_INVALID_FINISH" },
+			{ WL_DATA_OFFER_ERROR_INVALID_ACTION_MASK, "WL_DATA_OFFER_ERROR_INVALID_ACTION_MASK" },
+			{ WL_DATA_OFFER_ERROR_INVALID_ACTION, "WL_DATA_OFFER_ERROR_INVALID_ACTION" },
+			{ WL_DATA_OFFER_ERROR_INVALID_OFFER , "WL_DATA_OFFER_ERROR_INVALID_OFFER" } }
 		},
 		{ wl_data_source_interface, {
-			{ WL_DATA_SOURCE_ERROR_INVALID_ACTION_MASK , "WL_DATA_SOURCE_ERROR_INVALID_ACTION_MASK" },
-			{ WL_DATA_SOURCE_ERROR_INVALID_SOURCE , "WL_DATA_SOURCE_ERROR_INVALID_SOURCE" } }
+			{ WL_DATA_SOURCE_ERROR_INVALID_ACTION_MASK, "WL_DATA_SOURCE_ERROR_INVALID_ACTION_MASK" },
+			{ WL_DATA_SOURCE_ERROR_INVALID_SOURCE, "WL_DATA_SOURCE_ERROR_INVALID_SOURCE" } }
 		},
 		{ wl_data_device_interface, {
-			{ WL_DATA_DEVICE_ERROR_ROLE , "WL_DATA_DEVICE_ERROR_ROLE" } },
+			{ WL_DATA_DEVICE_ERROR_ROLE, "WL_DATA_DEVICE_ERROR_ROLE" } },
 		},
 		{ wl_shell_interface, {
-			{ WL_SHELL_ERROR_ROLE , "WL_SHELL_ERROR_ROLE" } },
+			{ WL_SHELL_ERROR_ROLE, "WL_SHELL_ERROR_ROLE" } },
 		},
 		{ wl_surface_interface, {
-			{ WL_SURFACE_ERROR_INVALID_SCALE , "WL_SURFACE_ERROR_INVALID_SCALE" },
-			{ WL_SURFACE_ERROR_INVALID_TRANSFORM , "WL_SURFACE_ERROR_INVALID_TRANSFORM" } },
+			{ WL_SURFACE_ERROR_INVALID_SCALE, "WL_SURFACE_ERROR_INVALID_SCALE" },
+			{ WL_SURFACE_ERROR_INVALID_TRANSFORM, "WL_SURFACE_ERROR_INVALID_TRANSFORM" } },
 		},
 		{ wl_shell_interface, {
-			{ WL_POINTER_ERROR_ROLE , "WL_POINTER_ERROR_ROLE" } },
+			{ WL_POINTER_ERROR_ROLE, "WL_POINTER_ERROR_ROLE" } },
 		},
 		{ wl_subcompositor_interface, {
-			{ WL_SUBCOMPOSITOR_ERROR_BAD_SURFACE , "WL_SUBCOMPOSITOR_ERROR_BAD_SURFACE" } },
+			{ WL_SUBCOMPOSITOR_ERROR_BAD_SURFACE, "WL_SUBCOMPOSITOR_ERROR_BAD_SURFACE" } },
 		},
 		{ wl_subsurface_interface, {
-			{ WL_SUBSURFACE_ERROR_BAD_SURFACE , "WL_SUBSURFACE_ERROR_BAD_SURFACE" } },
+			{ WL_SUBSURFACE_ERROR_BAD_SURFACE, "WL_SUBSURFACE_ERROR_BAD_SURFACE" } },
 		},
 
-		//xdg
+		// xdg
+		// shell v5
 		{ xdg_shell_interface, {
-			{ XDG_SHELL_ERROR_ROLE , "XDG_SHELL_ERROR_ROLE" },
-			{ XDG_SHELL_ERROR_DEFUNCT_SURFACES , "XDG_SHELL_ERROR_DEFUNCT_SURFACES" },
-			{ XDG_SHELL_ERROR_NOT_THE_TOPMOST_POPUP , "XDG_SHELL_ERROR_NOT_THE_TOPMOST_POPUP" },
-			{ XDG_SHELL_ERROR_INVALID_POPUP_PARENT , "XDG_SHELL_ERROR_INVALID_POPUP_PARENT" } },
-		}
+			{ XDG_SHELL_ERROR_ROLE, "XDG_SHELL_ERROR_ROLE" },
+			{ XDG_SHELL_ERROR_DEFUNCT_SURFACES, "XDG_SHELL_ERROR_DEFUNCT_SURFACES" },
+			{ XDG_SHELL_ERROR_NOT_THE_TOPMOST_POPUP, "XDG_SHELL_ERROR_NOT_THE_TOPMOST_POPUP" },
+			{ XDG_SHELL_ERROR_INVALID_POPUP_PARENT, "XDG_SHELL_ERROR_INVALID_POPUP_PARENT" } },
+		},
+
+		// shell v6
+		{ zxdg_shell_v6_interface, {
+			{ ZXDG_SHELL_V6_ERROR_ROLE, "ZXDG_SHELL_V6_ERROR_ROLE" },
+			{ ZXDG_SHELL_V6_ERROR_DEFUNCT_SURFACES, "ZXDG_SHELL_V6_ERROR_DEFUNCT_SURFACES" },
+			{ ZXDG_SHELL_V6_ERROR_NOT_THE_TOPMOST_POPUP,
+				"ZXDG_SHELL_V6_ERROR_NOT_THE_TOPMOST_POPUP" },
+			{ ZXDG_SHELL_V6_ERROR_INVALID_POPUP_PARENT,
+				"ZXDG_SHELL_V6_ERROR_INVALID_POPUP_PARENT" },
+			{ ZXDG_SHELL_V6_ERROR_INVALID_SURFACE_STATE,
+				"ZXDG_SHELL_V6_ERROR_INVALID_SURFACE_STATE" },
+			{ ZXDG_SHELL_V6_ERROR_INVALID_POSITIONER, "ZXDG_SHELL_V6_ERROR_INVALID_POSITIONER" } },
+		},
+		{ zxdg_positioner_v6_interface, {
+			{ ZXDG_POSITIONER_V6_ERROR_INVALID_INPUT, "ZXDG_POSITIONER_V6_ERROR_INVALID_INPUT"} }
+		},
+		{ zxdg_surface_v6_interface, {
+			{ ZXDG_SURFACE_V6_ERROR_NOT_CONSTRUCTED, "ZXDG_SURFACE_V6_ERROR_NOT_CONSTRUCTED" },
+			{ ZXDG_SURFACE_V6_ERROR_ALREADY_CONSTRUCTED,
+				"ZXDG_SURFACE_V6_ERROR_ALREADY_CONSTRUCTED" },
+			{ ZXDG_SURFACE_V6_ERROR_UNCONFIGURED_BUFFER,
+				"ZXDG_SURFACE_V6_ERROR_UNCONFIGURED_BUFFER" } }
+		},
+		{ zxdg_popup_v6_interface, {
+			{ ZXDG_POPUP_V6_ERROR_INVALID_GRAB, "ZXDG_POPUP_V6_ERROR_INVALID_GRAB"} }
+		},
 	};
 
-	for(auto& i : interfaces)
-	{
+	for(auto& i : interfaces) {
 		if(&i.interface != &interface_) continue;
-
 		for(auto& e : i.errors) if(e.code - 1 == code) return e.msg;
 		break;
 	}
 
-	return "unknown error";
+	return "<unknown interface error>";
 }
 
-}
+} // namespace ny

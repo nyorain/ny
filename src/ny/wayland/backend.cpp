@@ -1,4 +1,4 @@
-// Copyright (c) 2016 nyorain
+// Copyright (c) 2017 nyorain
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
@@ -8,26 +8,23 @@
 
 #include <wayland-client-core.h>
 
-namespace ny
-{
+namespace ny {
 
 WaylandBackend WaylandBackend::instance_;
 
-WaylandBackend::WaylandBackend()
-{
-}
+WaylandBackend::WaylandBackend() {}
 
 bool WaylandBackend::available() const
 {
-    wl_display* dpy = wl_display_connect(nullptr);
-    if(!dpy) return false;
-    wl_display_disconnect(dpy);
-    return true;
+	wl_display* dpy = wl_display_connect(nullptr);
+	if(!dpy) return false;
+	wl_display_disconnect(dpy);
+	return true;
 }
 
 AppContextPtr WaylandBackend::createAppContext()
 {
-    return std::make_unique<WaylandAppContext>();
+	return std::make_unique<WaylandAppContext>();
 }
 
 bool WaylandBackend::gl() const
@@ -40,4 +37,4 @@ bool WaylandBackend::vulkan() const
 	return builtWithVulkan();
 }
 
-}
+} // namespace ny

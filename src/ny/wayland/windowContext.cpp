@@ -1,4 +1,4 @@
-// Copyright (c) 2016 nyorain
+// Copyright (c) 2017 nyorain
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
@@ -30,24 +30,24 @@ namespace ny {
 WaylandWindowContext::WaylandWindowContext(WaylandAppContext& ac,
 	const WaylandWindowSettings& settings) : appContext_(&ac)
 {
-    wlSurface_ = wl_compositor_create_surface(&ac.wlCompositor());
-    if(!wlSurface_)
+	wlSurface_ = wl_compositor_create_surface(&ac.wlCompositor());
+	if(!wlSurface_)
 		throw std::runtime_error("ny::WaylandWindowContext: could not create wl_surface");
 
-    wl_surface_set_user_data(wlSurface_, this);
+	wl_surface_set_user_data(wlSurface_, this);
 
-    // parse settings
+	// parse settings
 	size_ = settings.size;
-    if(size_ == defaultSize) size_ = fallbackSize;
+	if(size_ == defaultSize) size_ = fallbackSize;
 	shown_ = settings.show;
-    if(settings.listener) listener(*settings.listener);
+	if(settings.listener) listener(*settings.listener);
 
-    // surface
-    if(settings.nativeHandle) {
-        // In this case we simply copy the surface and not create/handle any role for it
-        // TODO: use WaylandWindowSettings for a role on a provided handle
-        wlSurface_ = settings.nativeHandle.asPtr<wl_surface>();
-    } else if(settings.parent.pointer()) {
+	// surface
+	if(settings.nativeHandle) {
+		// In this case we simply copy the surface and not create/handle any role for it
+		// TODO: use WaylandWindowSettings for a role on a provided handle
+		wlSurface_ = settings.nativeHandle.asPtr<wl_surface>();
+	} else if(settings.parent.pointer()) {
 		auto& parent = *reinterpret_cast<wl_surface*>(settings.parent.pointer());
 		createSubsurface(parent, settings);
 	} else {
@@ -71,20 +71,20 @@ WaylandWindowContext::WaylandWindowContext(WaylandAppContext& ac,
 
 WaylandWindowContext::~WaylandWindowContext()
 {
-    if(frameCallback_) wl_callback_destroy(frameCallback_);
+	if(frameCallback_) wl_callback_destroy(frameCallback_);
 
-    // role
-    if(wlShellSurface()) wl_shell_surface_destroy(wlShellSurface_);
-    else if(wlSubsurface()) wl_subsurface_destroy(wlSubsurface_);
-    else if(xdgSurfaceV5()) xdg_surface_destroy(xdgSurfaceV5_);
-    else if(xdgPopupV5()) xdg_popup_destroy(xdgPopupV5_);
+	// role
+	if(wlShellSurface()) wl_shell_surface_destroy(wlShellSurface_);
+	else if(wlSubsurface()) wl_subsurface_destroy(wlSubsurface_);
+	else if(xdgSurfaceV5()) xdg_surface_destroy(xdgSurfaceV5_);
+	else if(xdgPopupV5()) xdg_popup_destroy(xdgPopupV5_);
 	else if(xdgSurfaceV6()) {
 		if(xdgPopupV6()) zxdg_popup_v6_destroy(xdgSurfaceV6_.popup);
 		else if(xdgToplevelV6()) zxdg_toplevel_v6_destroy(xdgSurfaceV6_.toplevel);
 		zxdg_surface_v6_destroy(xdgSurfaceV6_.surface);
 	}
 
-    if(wlSurface_) wl_surface_destroy(wlSurface_);
+	if(wlSurface_) wl_surface_destroy(wlSurface_);
 }
 
 void WaylandWindowContext::createShellSurface(const WaylandWindowSettings& ws)
@@ -98,14 +98,14 @@ void WaylandWindowContext::createShellSurface(const WaylandWindowSettings& ws)
 			&WWC::handleShellSurfacePopupDone>
 	};
 
-    wlShellSurface_ = wl_shell_get_shell_surface(appContext().wlShell(), wlSurface_);
-    if(!wlShellSurface_)
+	wlShellSurface_ = wl_shell_get_shell_surface(appContext().wlShell(), wlSurface_);
+	if(!wlShellSurface_)
 		throw std::runtime_error("ny::WaylandWindowContext: failed to create wl_shell_surface");
 
-    role_ = WaylandSurfaceRole::shell;
+	role_ = WaylandSurfaceRole::shell;
 
-    wl_shell_surface_set_user_data(wlShellSurface_, this);
-    wl_shell_surface_add_listener(wlShellSurface_, &shellSurfaceListener, this);
+	wl_shell_surface_set_user_data(wlShellSurface_, this);
+	wl_shell_surface_add_listener(wlShellSurface_, &shellSurfaceListener, this);
 
 	wl_shell_surface_set_title(wlShellSurface_, ws.title.c_str());
 	wl_shell_surface_set_class(wlShellSurface_, "ny::application"); //TODO: AppContextSettings
@@ -121,15 +121,15 @@ void WaylandWindowContext::createXdgSurfaceV5(const WaylandWindowSettings& ws)
 			&WWC::handleXdgSurfaceV5Close>
 	};
 
-    xdgSurfaceV5_ = xdg_shell_get_xdg_surface(appContext().xdgShellV5(), wlSurface_);
-    if(!xdgSurfaceV5_)
+	xdgSurfaceV5_ = xdg_shell_get_xdg_surface(appContext().xdgShellV5(), wlSurface_);
+	if(!xdgSurfaceV5_)
 		throw std::runtime_error("ny::WaylandWindowContext: failed to create xdg_surface v5");
 
-    role_ = WaylandSurfaceRole::xdgSurfaceV5;
+	role_ = WaylandSurfaceRole::xdgSurfaceV5;
 
 	xdg_surface_set_window_geometry(xdgSurfaceV5_, 0, 0, size_.x, size_.y);
-    xdg_surface_set_user_data(xdgSurfaceV5_, this);
-    xdg_surface_add_listener(xdgSurfaceV5_, &xdgSurfaceListener, this);
+	xdg_surface_set_user_data(xdgSurfaceV5_, this);
+	xdg_surface_add_listener(xdgSurfaceV5_, &xdgSurfaceListener, this);
 
 	xdg_surface_set_title(xdgSurfaceV5_, ws.title.c_str());
 	xdg_surface_set_app_id(xdgSurfaceV5_, "ny::application-xdgv5"); // TODO: AppContextSettings
@@ -151,19 +151,19 @@ void WaylandWindowContext::createXdgSurfaceV6(const WaylandWindowSettings& ws)
 	};
 
 	// create the xdg surface
-    xdgSurfaceV6_.surface = zxdg_shell_v6_get_xdg_surface(appContext().xdgShellV6(), wlSurface_);
-    if(!xdgSurfaceV6_.surface)
+	xdgSurfaceV6_.surface = zxdg_shell_v6_get_xdg_surface(appContext().xdgShellV6(), wlSurface_);
+	if(!xdgSurfaceV6_.surface)
 		throw std::runtime_error("ny::WaylandWindowContext: failed to create xdg_surface v6");
 
 	// create the xdg toplevel for the surface
 	xdgSurfaceV6_.toplevel = zxdg_surface_v6_get_toplevel(xdgSurfaceV6_.surface);
-    if(!xdgSurfaceV6_.toplevel)
+	if(!xdgSurfaceV6_.toplevel)
 		throw std::runtime_error("ny::WaylandWindowContext: failed to create xdg_toplevel v6");
 
 	// commit to apply the role
 	wl_surface_commit(wlSurface_);
 
-    role_ = WaylandSurfaceRole::xdgToplevelV6;
+	role_ = WaylandSurfaceRole::xdgToplevelV6;
 	xdgSurfaceV6_.configured = false;
 
 	// TODO: when we use this here we override the size our WindowContext would get i.e. on
@@ -171,8 +171,8 @@ void WaylandWindowContext::createXdgSurfaceV6(const WaylandWindowSettings& ws)
 	// wants the application to choose the size we need this call to actually choose it.
 	// how to handle this? somehow parse the configure events we get and react to it
 	zxdg_surface_v6_set_window_geometry(xdgSurfaceV6_.surface, 0, 0, size_.x, size_.y);
-    zxdg_surface_v6_add_listener(xdgSurfaceV6_.surface, &xdgSurfaceListener, this);
-    zxdg_toplevel_v6_add_listener(xdgSurfaceV6_.toplevel, &xdgToplevelListener, this);
+	zxdg_surface_v6_add_listener(xdgSurfaceV6_.surface, &xdgSurfaceListener, this);
+	zxdg_toplevel_v6_add_listener(xdgSurfaceV6_.toplevel, &xdgToplevelListener, this);
 
 	zxdg_toplevel_v6_set_title(xdgSurfaceV6_.toplevel, ws.title.c_str());
 	zxdg_toplevel_v6_set_app_id(xdgSurfaceV6_.toplevel, "ny::application-xdgv6"); //TODO: AppContextSettings
@@ -218,12 +218,12 @@ void WaylandWindowContext::createXdgPopupV6(const WaylandWindowSettings& ws)
 		memberCallback<decltype(&WWC::handleXdgPopupV6Done), &WWC::handleXdgPopupV6Done>
 	};
 
-	//create the xdg surface
-    xdgSurfaceV6_.surface = zxdg_shell_v6_get_xdg_surface(appContext().xdgShellV6(), wlSurface_);
-    if(!xdgSurfaceV6_.surface)
+	// create the xdg surface
+	xdgSurfaceV6_.surface = zxdg_shell_v6_get_xdg_surface(appContext().xdgShellV6(), wlSurface_);
+	if(!xdgSurfaceV6_.surface)
 		throw std::runtime_error("ny::WaylandWindowContext: failed to create xdg_surface v6");
 
-	//create the popup role
+	// create the popup role
 	wl_surface* parent {};
 	nytl::Vec2i position = ws.position;
 	if(position == defaultPosition) position = fallbackPosition;
@@ -244,26 +244,26 @@ void WaylandWindowContext::createXdgPopupV6(const WaylandWindowSettings& ws)
 void WaylandWindowContext::createSubsurface(wl_surface& parent, const WaylandWindowSettings&)
 {
 	auto subcomp = appContext().wlSubcompositor();
-    if(!subcomp) throw std::runtime_error("ny::WaylandWindowContext: no wl_subcompositor");
+	if(!subcomp) throw std::runtime_error("ny::WaylandWindowContext: no wl_subcompositor");
 
-    role_ = WaylandSurfaceRole::sub;
-    wlSubsurface_ = wl_subcompositor_get_subsurface(subcomp, wlSurface_, &parent);
+	role_ = WaylandSurfaceRole::sub;
+	wlSubsurface_ = wl_subcompositor_get_subsurface(subcomp, wlSurface_, &parent);
 
-    if(!wlSubsurface_)
+	if(!wlSubsurface_)
 		throw std::runtime_error("ny::WaylandWindowContext: failed to create wl_subsurface");
 
-    wl_subsurface_set_user_data(wlSubsurface_, this);
-    wl_subsurface_set_desync(wlSubsurface_);
+	wl_subsurface_set_user_data(wlSubsurface_, this);
+	wl_subsurface_set_desync(wlSubsurface_);
 }
 
 void WaylandWindowContext::refresh()
 {
 	// if there is an active frameCallback just set the flag that we want to refresh
 	// as soon as possible
-    if(frameCallback_ || !xdgSurfaceV6_.configured) {
-        refreshFlag_ = true;
-        return;
-    }
+	if(frameCallback_ || !xdgSurfaceV6_.configured) {
+		refreshFlag_ = true;
+		return;
+	}
 
 	// otherwise send a draw event.
 	DrawEvent de {};
@@ -299,9 +299,9 @@ void WaylandWindowContext::size(nytl::Vec2ui size)
 
 void WaylandWindowContext::position(nytl::Vec2i position)
 {
-    if(wlSubsurface()) {
+	if(wlSubsurface()) {
 		wl_subsurface_set_position(wlSubsurface_, position.x, position.y);
-    } else {
+	} else {
 		warning("ny::WaylandWindowContext::position: wayland does not support custom positions");
 	}
 }
@@ -384,7 +384,7 @@ WindowCapabilities WaylandWindowContext::capabilities() const
 
 void WaylandWindowContext::maximize()
 {
-    if(wlShellSurface()) wl_shell_surface_set_maximized(wlShellSurface_, nullptr);
+	if(wlShellSurface()) wl_shell_surface_set_maximized(wlShellSurface_, nullptr);
 	else if(xdgSurfaceV5()) xdg_surface_set_maximized(xdgSurfaceV5_);
 	else if(xdgToplevelV6()) zxdg_toplevel_v6_set_maximized(xdgSurfaceV6_.toplevel);
 }
@@ -394,7 +394,7 @@ void WaylandWindowContext::fullscreen()
 	// TODO: which wayland output to choose here?
 	constexpr auto method = WL_SHELL_SURFACE_FULLSCREEN_METHOD_DEFAULT;
 
-    if(wlShellSurface())
+	if(wlShellSurface())
 		wl_shell_surface_set_fullscreen(wlShellSurface(), method, 0, nullptr);
 	else if(xdgSurfaceV5())
 		xdg_surface_set_fullscreen(xdgSurfaceV5_, nullptr);
@@ -409,7 +409,7 @@ void WaylandWindowContext::minimize()
 }
 void WaylandWindowContext::normalState()
 {
-    if(wlShellSurface()) {
+	if(wlShellSurface()) {
 		wl_shell_surface_set_toplevel(wlShellSurface_);
 	} else if(xdgSurfaceV5()) {
 		xdg_surface_unset_fullscreen(xdgSurfaceV5_);
@@ -421,8 +421,8 @@ void WaylandWindowContext::normalState()
 }
 void WaylandWindowContext::beginMove(const EventData* ev)
 {
-    auto* data = dynamic_cast<const WaylandEventData*>(ev);
-    if(!data || !appContext().wlSeat()) return;
+	auto* data = dynamic_cast<const WaylandEventData*>(ev);
+	if(!data || !appContext().wlSeat()) return;
 
 	if(wlShellSurface())
 		wl_shell_surface_move(wlShellSurface_, appContext().wlSeat(), data->serial);
@@ -434,13 +434,13 @@ void WaylandWindowContext::beginMove(const EventData* ev)
 
 void WaylandWindowContext::beginResize(const EventData* ev, WindowEdges edge)
 {
-    auto* data = dynamic_cast<const WaylandEventData*>(ev);
+	auto* data = dynamic_cast<const WaylandEventData*>(ev);
 
-    if(!data || !appContext().wlSeat()) return;
+	if(!data || !appContext().wlSeat()) return;
 
-    // unsigned int wlEdge = static_cast<unsigned int>(edge);
-    unsigned int wlEdge = edge.value();
-    wl_shell_surface_resize(wlShellSurface_, appContext().wlSeat(), data->serial, wlEdge);
+	// unsigned int wlEdge = static_cast<unsigned int>(edge);
+	unsigned int wlEdge = edge.value();
+	wl_shell_surface_resize(wlShellSurface_, appContext().wlSeat(), data->serial, wlEdge);
 }
 
 void WaylandWindowContext::title(nytl::StringParam titlestring)
@@ -473,7 +473,7 @@ xdg_popup* WaylandWindowContext::xdgPopupV5() const
 zxdg_surface_v6* WaylandWindowContext::xdgSurfaceV6() const
 {
 	if(role_ == WaylandSurfaceRole::xdgToplevelV6 || role_ == WaylandSurfaceRole::xdgPopupV6)
-	 	return xdgSurfaceV6_.surface;
+	return xdgSurfaceV6_.surface;
 
 	return nullptr;
 }
@@ -534,7 +534,7 @@ void WaylandWindowContext::handleFrameCallback(wl_callback*, uint32_t)
 
 void WaylandWindowContext::handleShellSurfacePing(wl_shell_surface*, uint32_t serial)
 {
-    wl_shell_surface_pong(wlShellSurface(), serial);
+	wl_shell_surface_pong(wlShellSurface(), serial);
 }
 
 void WaylandWindowContext::handleShellSurfaceConfigure(wl_shell_surface*, uint32_t edges,
@@ -553,13 +553,13 @@ void WaylandWindowContext::handleShellSurfaceConfigure(wl_shell_surface*, uint32
 
 void WaylandWindowContext::handleShellSurfacePopupDone(wl_shell_surface*)
 {
-	//TODO
+	// TODO
 }
 
 void WaylandWindowContext::handleXdgSurfaceV5Configure(xdg_surface*, int32_t width, int32_t height,
 	wl_array* states, uint32_t serial)
 {
-	//TODO
+	// TODO
 	if(!width || !height) return;
 	nytl::unused(states);
 
@@ -581,7 +581,7 @@ void WaylandWindowContext::handleXdgSurfaceV5Close(xdg_surface*)
 
 void WaylandWindowContext::handleXdgPopupV5Done(xdg_popup*)
 {
-	//TODO
+	// TODO
 }
 
 void WaylandWindowContext::handleXdgSurfaceV6Configure(zxdg_surface_v6*, uint32_t serial)
@@ -600,7 +600,7 @@ void WaylandWindowContext::handleXdgSurfaceV6Configure(zxdg_surface_v6*, uint32_
 void WaylandWindowContext::handleXdgToplevelV6Configure(zxdg_toplevel_v6*, int32_t width,
 	int32_t height, wl_array* states)
 {
-	//TODO
+	// TODO
 	nytl::unused(states);
 	if(!width || !height) return;
 
@@ -622,7 +622,7 @@ void WaylandWindowContext::handleXdgToplevelV6Close(zxdg_toplevel_v6*)
 void WaylandWindowContext::handleXdgPopupV6Configure(zxdg_popup_v6*, int32_t x, int32_t y,
 	int32_t width, int32_t height)
 {
-	//TODO
+	// TODO
 	if(!width || !height) return;
 	nytl::unused(x, y);
 
@@ -637,7 +637,7 @@ void WaylandWindowContext::handleXdgPopupV6Configure(zxdg_popup_v6*, int32_t x, 
 
 void WaylandWindowContext::handleXdgPopupV6Done(zxdg_popup_v6*)
 {
-	//TODO
+	// TODO
 }
 
 } // namespace ny

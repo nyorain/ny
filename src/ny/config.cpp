@@ -1,11 +1,10 @@
-// Copyright (c) 2016 nyorain
+// Copyright (c) 2017 nyorain
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
 #include <ny/config.hpp>
 
-namespace ny
-{
+namespace ny {
 
 bool builtWithWayland()
 {
@@ -75,4 +74,4 @@ unsigned int minorVersion() { return NY_VMinor; }
 unsigned int patchVersion() { return NY_VPatch; }
 unsigned int version() { return NY_Version; }
 
-}
+} // namespace ny

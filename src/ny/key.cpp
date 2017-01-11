@@ -1,15 +1,13 @@
-// Copyright (c) 2016 nyorain
+// Copyright (c) 2017 nyorain
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
 #include <ny/key.hpp>
 
-namespace ny
-{
+namespace ny {
 
 //Does only map chars in the range 0-255 since most of the other ones are not really used.
-constexpr struct Mapping
-{
+constexpr struct Mapping {
 	Keycode keycode;
 	const char* name;
 } mappings[] =
@@ -288,4 +286,4 @@ Keycode keycodeFromName(nytl::StringParam name)
 	return Keycode::none;
 }
 
-}
+} // namespace ny

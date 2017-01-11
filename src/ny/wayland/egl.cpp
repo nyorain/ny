@@ -1,4 +1,4 @@
-// Copyright (c) 2016 nyorain
+// Copyright (c) 2017 nyorain
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
@@ -32,8 +32,8 @@ class WaylandEglSurface : public EglSurface {
 WaylandEglWindowContext::WaylandEglWindowContext(WaylandAppContext& ac, const EglSetup& setup,
 	const WaylandWindowSettings& ws) : WaylandWindowContext(ac, ws)
 {
-    wlEglWindow_ = wl_egl_window_create(&wlSurface(), ws.size.x, ws.size.y);
-    if(!wlEglWindow_)
+	wlEglWindow_ = wl_egl_window_create(&wlSurface(), ws.size.x, ws.size.y);
+	if(!wlEglWindow_)
 		throw std::runtime_error("ny::WaylandEglWindowContext: wl_egl_window_create failed");
 
 	auto eglDisplay = setup.eglDisplay();
@@ -52,7 +52,7 @@ WaylandEglWindowContext::~WaylandEglWindowContext()
 void WaylandEglWindowContext::size(nytl::Vec2ui size)
 {
 	WaylandWindowContext::size(size);
-    wl_egl_window_resize(wlEglWindow_, size.x, size.y, 0, 0);
+	wl_egl_window_resize(wlEglWindow_, size.x, size.y, 0, 0);
 }
 
 Surface WaylandEglWindowContext::surface()

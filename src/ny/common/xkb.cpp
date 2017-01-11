@@ -1,4 +1,4 @@
-// Copyright (c) 2016 nyorain
+// Copyright (c) 2017 nyorain
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
@@ -12,14 +12,13 @@
 #include <xkbcommon/xkbcommon-keysyms.h>
 #include <stdexcept>
 
-namespace ny
-{
+namespace ny {
 
-//utility
+// utility
 Keycode xkbToKey(xkb_keycode_t keycode) { return static_cast<Keycode>(keycode - 8); }
 xkb_keycode_t keyToXkb(Keycode keycode) { return static_cast<unsigned int>(keycode) + 8; }
 
-//Keyboardcontext
+// Keyboardcontext
 XkbKeyboardContext::XkbKeyboardContext()
 {
 }
@@ -93,7 +92,7 @@ std::string XkbKeyboardContext::utf8(Keycode key) const
 	auto code = keyToXkb(key);
 	std::string ret;
 
-	//create a dummy state to not interfer/copy any current state
+	// create a dummy state to not interfer/copy any current state
 	auto state = xkb_state_new(xkbKeymap_);
 
 	auto needed = xkb_state_key_get_utf8(state, code, nullptr, 0) + 1;
@@ -116,17 +115,13 @@ bool XkbKeyboardContext::handleKey(std::uint8_t keycode, bool pressed, Keycode& 
 	auto keysym = xkb_state_key_get_one_sym(xkbState_, keycode);
 	auto ret = true;
 	auto composed = false;
-	if(pressed)
-	{
+	if(pressed) {
 		xkb_compose_state_feed(xkbComposeState_, keysym);
 		auto status = xkb_compose_state_get_status(xkbComposeState_);
-		if(status == XKB_COMPOSE_CANCELLED)
-		{
+		if(status == XKB_COMPOSE_CANCELLED) {
 			xkb_compose_state_reset(xkbComposeState_);
 			ret = false;
-		}
-		else if(status == XKB_COMPOSE_COMPOSED)
-		{
+		} else if(status == XKB_COMPOSE_COMPOSED) {
 			auto needed = xkb_compose_state_get_utf8(xkbComposeState_, nullptr, 0) + 1;
 			utf8.resize(needed);
 			xkb_compose_state_get_utf8(xkbComposeState_, &utf8[0], needed);
@@ -135,8 +130,7 @@ bool XkbKeyboardContext::handleKey(std::uint8_t keycode, bool pressed, Keycode& 
 		}
 	}
 
-	if(!composed)
-	{
+	if(!composed) {
 		auto needed = xkb_state_key_get_utf8(xkbState_, keycode, nullptr, 0) + 1;
 		utf8.resize(needed);
 		xkb_state_key_get_utf8(xkbState_, keycode, &utf8[0], needed);
@@ -145,4 +139,4 @@ bool XkbKeyboardContext::handleKey(std::uint8_t keycode, bool pressed, Keycode& 
 	return ret;
 }
 
-}
+} // namespace ny
