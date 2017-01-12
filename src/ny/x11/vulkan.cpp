@@ -9,8 +9,7 @@
 #define VK_USE_PLATFORM_XCB_KHR
 #include <vulkan/vulkan.h>
 
-namespace ny
-{
+namespace ny {
 
 X11VulkanWindowContext::X11VulkanWindowContext(X11AppContext& ac,
 	const X11WindowSettings& ws) : X11WindowContext(ac, ws)
@@ -47,4 +46,4 @@ Surface X11VulkanWindowContext::surface()
 	return {vkSurface_};
 }
 
-}
+} // namespace ny

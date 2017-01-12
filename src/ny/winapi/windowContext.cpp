@@ -19,16 +19,13 @@
 #include <tchar.h>
 #include <stdexcept>
 
-namespace ny
-{
+namespace ny {
 
-//windowContext
+// windowContext
 WinapiWindowContext::WinapiWindowContext(WinapiAppContext& appContext,
 	const WinapiWindowSettings& settings)
 {
-	//init check
 	appContext_ = &appContext;
-
 	initWindowClass(settings);
 	setStyle(settings);
 	initWindow(settings);
@@ -37,29 +34,25 @@ WinapiWindowContext::WinapiWindowContext(WinapiAppContext& appContext,
 
 WinapiWindowContext::~WinapiWindowContext()
 {
-	if(dropTarget_)
-	{
+	if(dropTarget_) {
 		dropTarget_->Release();
 		dropTarget_ = nullptr;
 	}
 
-	if(ownedCursor_ && cursor_)
-	{
+	if(ownedCursor_ && cursor_) {
 		::SetCursor(nullptr);
 		::DestroyCursor(cursor_);
 		cursor_ = nullptr;
 	}
 
-	if(icon_)
-	{
+	if(icon_) {
 		PostMessage(handle(), WM_SETICON, ICON_BIG, (LPARAM) nullptr);
 		PostMessage(handle(), WM_SETICON, ICON_SMALL, (LPARAM) nullptr);
 		::DestroyIcon(icon_);
 		icon_ = nullptr;
 	}
 
-	if(handle_)
-	{
+	if(handle_) {
 		::SetWindowLongPtr(handle_, GWLP_USERDATA, (LONG_PTR)nullptr);
 		::DestroyWindow(handle_);
 		handle_ = nullptr;
@@ -75,7 +68,7 @@ void WinapiWindowContext::initWindowClass(const WinapiWindowSettings& settings)
 
 WNDCLASSEX WinapiWindowContext::windowClass(const WinapiWindowSettings&)
 {
-	//TODO: does every window needs it own class (sa setCursor function)?
+	// TODO: does every window needs it own class (sa setCursor function)?
 	static unsigned int highestID = 0;
 	highestID++;
 
@@ -109,32 +102,31 @@ void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 	auto hinstance = appContext().hinstance();
 	auto titleW = widen(settings.title);
 
-	//parse position and size
+	// parse position and size
 	auto size = settings.size;
 	auto position = settings.position;
 
 	if(position == defaultPosition) position.x = position.y = CW_USEDEFAULT;
 	if(size == defaultSize) size.x = size.y = CW_USEDEFAULT;
 
-	//set the listener
+	// set the listener
 	if(settings.listener) listener(*settings.listener);
 
-	//NOTE on transparency and layered windows
-	//The window has to be layered to enable transparent drawing on it
-	//On newer windows versions it is not enough to call DwmEnableBlueBehinWindow, only
-	//layered windows are considered really transparent and contents beneath it
-	//are rerendered.
-
-	//Note that we even set this flag here for e.g. opengl windows which have CS_OWNDC set
-	//which is not allowed per msdn. But windows applications do it themselves, it
-	//is the only way to get the possibility for transparent windows and it works.
-
-	//Setting this flag can also really hit performance (e.g. resizing can lag) so
-	//this should probably only be set if really needed
-	//TODO: make this optional using WinapiWindowSettings
+	// NOTE on transparency and layered windows
+	// The window has to be layered to enable transparent drawing on it
+	// On newer windows versions it is not enough to call DwmEnableBlueBehinWindow, only
+	// layered windows are considered really transparent and contents beneath it
+	// are rerendered.
+	//
+	// Note that we even set this flag here for e.g. opengl windows which have CS_OWNDC set
+	// which is not allowed per msdn. But windows applications do it themselves, it
+	// is the only way to get the possibility for transparent windows and it works.
+	//
+	// Setting this flag can also really hit performance (e.g. resizing can lag) so
+	// this should probably only be set if really needed
+	// TODO: make this optional using WinapiWindowSettings
 
 	auto exstyle = WS_EX_APPWINDOW | WS_EX_LAYERED | WS_EX_OVERLAPPEDWINDOW;
-	// exstyle = WS_EX_APPWINDOW | WS_EX_OVERLAPPEDWINDOW;
 	handle_ = ::CreateWindowEx(
 		exstyle,
 		wndClassName_.c_str(),
@@ -147,29 +139,30 @@ void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 	if(!handle_) throw winapi::EC::exception("ny::WinapiWindowContext: CreateWindowEx failed");
 
 	{
-		//TODO: check for windows version > xp here.
-		//Otherwise ny will no compile/run on xp
+		// TODO: check for windows version > xp here.
+		// Otherwise ny will no compile/run on xp
 
-		//This will simply cause windows to respect the alpha bits in the content of the window
-		//and not actually blur anything. Windows is stupid af.
+		// This will simply cause windows to respect the alpha bits in the content of the window
+		// and not actually blur anything. Windows is stupid af.
 		DWM_BLURBEHIND bb {};
 		bb.dwFlags = DWM_BB_ENABLE | DWM_BB_BLURREGION;
 		bb.hRgnBlur = CreateRectRgn(0, 0, -1, -1);  // makes the window transparent
 		bb.fEnable = TRUE;
 		::DwmEnableBlurBehindWindow(handle(), &bb);
 
-		//This is not what makes the window transparent.
-		//We simply have to do this so the window contents are shown.
-		//We only have to set the layered flag to make DwmEnableBlueBehinWindow function
-		//correctly and this causes the flag to have no further effect.
+		// This is not what makes the window transparent.
+		// We simply have to do this so the window contents are shown.
+		// We only have to set the layered flag to make DwmEnableBlueBehinWindow function
+		// correctly and this causes the flag to have no further effect.
 		::SetLayeredWindowAttributes(handle(), 0x1, 0, LWA_COLORKEY);
 	}
 
-	//Set the userdata
+	// Set the userdata
 	std::uintptr_t ptr = reinterpret_cast<std::uintptr_t>(this);
 	::SetWindowLongPtr(handle_, GWLP_USERDATA, ptr);
 
-	//always register a drop target
+	// TODO: make this optional
+	// always register a drop target
 	dropTarget_ = new winapi::com::DropTargetImpl(*this);
 	dropTarget_->AddRef();
 	::RegisterDragDrop(handle(), dropTarget_);
@@ -220,8 +213,7 @@ void WinapiWindowContext::hide()
 
 void WinapiWindowContext::addWindowHints(WindowHints hints)
 {
-	if(hints & WindowHint::customDecorated)
-	{
+	if(hints & WindowHint::customDecorated) {
 		auto style = ::GetWindowLong(handle(), GWL_STYLE);
 		style &= ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU);
 		::SetWindowLong(handle(), GWL_STYLE, style);
@@ -233,8 +225,7 @@ void WinapiWindowContext::addWindowHints(WindowHints hints)
 }
 void WinapiWindowContext::removeWindowHints(WindowHints hints)
 {
-	if(hints & WindowHint::customDecorated)
-	{
+	if(hints & WindowHint::customDecorated) {
 		auto style = ::GetWindowLong(handle(), GWL_STYLE);
 		style |= (WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU);
 		::SetWindowLong(handle(), GWL_STYLE, style);
@@ -256,8 +247,7 @@ void WinapiWindowContext::position(nytl::Vec2i position)
 
 void WinapiWindowContext::cursor(const Cursor& cursor)
 {
-	if(cursor.type() == CursorType::image)
-	{
+	if(cursor.type() == CursorType::image) {
 		auto img = cursor.image();
 		auto bitmap = winapi::toBitmap(img);
 		auto mask = ::CreateBitmap(img.size.x, img.size.y, 1, 1, nullptr);
@@ -267,8 +257,7 @@ void WinapiWindowContext::cursor(const Cursor& cursor)
 			if(mask) ::DeleteObject(mask);
 		});
 
-		if(!bitmap || !mask)
-		{
+		if(!bitmap || !mask) {
 			warning(errorMessage("ny::WinapiWindowContext::cursor: failed to create bitmaps"));
 			return;
 		}
@@ -282,21 +271,16 @@ void WinapiWindowContext::cursor(const Cursor& cursor)
 		iconinfo.hbmColor = bitmap;
 
 		cursor_ = reinterpret_cast<HCURSOR>(::CreateIconIndirect(&iconinfo));
-		if(!cursor_)
-		{
+		if(!cursor_) {
 			warning(errorMessage("ny::WinapiWindowContext::cursor: failed to create icon"));
 			return;
 		}
 
 		ownedCursor_ = true;
-	}
-	else if(cursor.type() == CursorType::none)
-	{
+	} else if(cursor.type() == CursorType::none) {
 		cursor_ = nullptr;
 		ownedCursor_ = false;
-	}
-	else
-	{
+	} else {
 		auto cursorName = cursorToWinapi(cursor.type());
 		if(!cursorName)
 		{
@@ -307,20 +291,19 @@ void WinapiWindowContext::cursor(const Cursor& cursor)
 		ownedCursor_ = false;
 		cursor_ = ::LoadCursor(nullptr, cursorName);
 
-		if(!cursor_)
-		{
+		if(!cursor_) {
 			warning(errorMessage("ny::WinapiWindowContext::cursor: failed to load native cursor"));
 			return;
 		}
 	}
 
-	//Some better method for doing this?
-	//maybe just respond to the WM_SETCURSOR?
-	//http://stackoverflow.com/questions/169155/setcursor-reverts-after-a-mouse-move
+	// Some better method for doing this?
+	// maybe just respond to the WM_SETCURSOR?
+	// http://stackoverflow.com/questions/169155/setcursor-reverts-after-a-mouse-move
 	::SetCursor(cursor_);
 
-	//-12 == GCL_HCURSOR
-	//number used since it is not defined in windows.h sometimes (tested with MinGW headers)
+	// -12 == GCL_HCURSOR
+	// number used since it is not defined in windows.h sometimes (tested with MinGW headers)
 	::SetClassLongPtr(handle(), -12, reinterpret_cast<LONG_PTR>(cursor_));
 	// ::SetClassLongPtr(handle(), -12, (LONG_PTR) nullptr);
 }
@@ -329,12 +312,12 @@ void WinapiWindowContext::fullscreen()
 {
 	if(fullscreen_) return;
 
-	//TODO: maybe add possibilty for display modes?
-	//games *might* want to set a different resolution (low prio)
-	//discussion needed, ny could also generally discourage/not implement it since it sucks
-	//might be useful for dealing with 4k (some games might only wanna support 1080p, sucks too)
+	// TODO: maybe add possibilty for display modes?
+	// games *might* want to set a different resolution (low prio)
+	// discussion needed, ny could also generally discourage/not implement it since it sucks
+	// might be useful for dealing with 4k (some games might only wanna support 1080p, sucks too)
 
-	//store current state since winapi does not do it for fullscreen
+	// store current state since winapi does not do it for fullscreen
 	savedState_.style = ::GetWindowLong(handle(), GWL_STYLE);
 	savedState_.exstyle = ::GetWindowLong(handle(), GWL_EXSTYLE);
 	savedState_.extents = extents();
@@ -351,12 +334,12 @@ void WinapiWindowContext::fullscreen()
 	::SetWindowLong(handle(), GWL_EXSTYLE, savedState_.exstyle & ~(WS_EX_DLGMODALFRAME |
 		WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE));
 
-	//the rect.bottom + 1 is needed here since some (buggy?) winapi implementations
-	//go automatically in real fullscreen mode when the window is a popup and the size
-	//the same as the monitor (observed behaviour).
-	//ny does not handle/support real fullscreen mode (consideren bad) since then
-	//the window has to take care about correct alt-tab/minimize handling which becomes
-	//easily buggy
+	// the rect.bottom + 1 is needed here since some (buggy?) winapi implementations
+	// go automatically in real fullscreen mode when the window is a popup and the size
+	// the same as the monitor (observed behaviour).
+	// ny does not handle/support real fullscreen mode (consideren bad) since then
+	// the window has to take care about correct alt-tab/minimize handling which becomes
+	// easily buggy
 	::SetWindowPos(handle(), HWND_TOP, rect.left, rect.top, rect.right, rect.bottom + 1,
 		SWP_NOOWNERZORDER |	SWP_ASYNCWINDOWPOS | SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOACTIVATE);
 
@@ -365,8 +348,7 @@ void WinapiWindowContext::fullscreen()
 
 void WinapiWindowContext::unsetFullscreen()
 {
-	if(fullscreen_)
-	{
+	if(fullscreen_) {
 		auto& rect = savedState_.extents;
 		SetWindowLong(handle(), GWL_STYLE, savedState_.style);
 		SetWindowLong(handle(), GWL_EXSTYLE, savedState_.exstyle);
@@ -384,8 +366,8 @@ void WinapiWindowContext::maximize()
 
 void WinapiWindowContext::minimize()
 {
-	//We do intentionally not unset fullscreen here, since when a fullscreen window
-	//is minimized it does usually keep its fullscreen state when it will be un-minimized again
+	// We do intentionally not unset fullscreen here, since when a fullscreen window
+	// is minimized it does usually keep its fullscreen state when it will be un-minimized again
 	::ShowWindowAsync(handle_, SW_MINIMIZE);
 }
 
@@ -413,17 +395,16 @@ void WinapiWindowContext::beginMove(const EventData*)
 
 void WinapiWindowContext::beginResize(const EventData*, WindowEdges edges)
 {
-	//note that WinapiAppContext does explicitly handle this message and sets
-	//the cursor.
+	// note that WinapiAppContext does explicitly handle this message and sets
+	// the cursor.
 	auto winapiEdges = edgesToWinapi(edges);
 	::PostMessage(handle_, WM_SYSCOMMAND, SC_SIZE + winapiEdges, 0);
 }
 
 void WinapiWindowContext::icon(const Image& img)
 {
-	//if nullptr passed set no icon
-	if(!img.data)
-	{
+	// if nullptr passed set no icon
+	if(!img.data) {
 		::PostMessage(handle(), WM_SETICON, ICON_BIG, (LPARAM) nullptr);
 		::PostMessage(handle(), WM_SETICON, ICON_SMALL, (LPARAM) nullptr);
 		return;
@@ -438,14 +419,13 @@ void WinapiWindowContext::icon(const Image& img)
 
 	auto pixelsData = data(uniqueImage);
 	icon_ = ::CreateIcon(hinstance(), img.size.x, img.size.y, 1, 32, nullptr, pixelsData);
-	if(!icon_)
-	{
+	if(!icon_) {
 		warning(errorMessage("ny::WinapiWindowContext::icon: CreateIcon failed"));
 		return;
 	}
 
-	PostMessage(handle(), WM_SETICON, ICON_BIG, (LPARAM) icon_);
-	PostMessage(handle(), WM_SETICON, ICON_SMALL, (LPARAM) icon_);
+	::PostMessage(handle(), WM_SETICON, ICON_BIG, (LPARAM) icon_);
+	::PostMessage(handle(), WM_SETICON, ICON_SMALL, (LPARAM) icon_);
 }
 
 void WinapiWindowContext::title(nytl::StringParam title)
@@ -468,7 +448,7 @@ WindowCapabilities WinapiWindowContext::capabilities() const
 		WindowCapability::sizeLimits;
 }
 
-//specific
+// win32 specific
 Surface WinapiWindowContext::surface()
 {
 	return {};
@@ -476,16 +456,16 @@ Surface WinapiWindowContext::surface()
 
 nytl::Rect2i WinapiWindowContext::extents() const
 {
-	RECT ext;
+	::RECT ext;
 	GetWindowRect(handle_, &ext);
 	return {{ext.left, ext.top}, {ext.right - ext.left, ext.bottom - ext.top}};
 }
 
 nytl::Rect2i WinapiWindowContext::clientExtents() const
 {
-	RECT ext;
+	::RECT ext;
 	GetClientRect(handle_, &ext);
 	return {{ext.left, ext.top}, {ext.right - ext.left, ext.bottom - ext.top}};
 }
 
-}
+} // namespace ny

@@ -15,16 +15,15 @@
 
 #include <thread>
 
-namespace ny
-{
-
+namespace ny {
 namespace
 {
 
+// needed for function loading callbacks
 thread_local WglSetup* gWglSetup;
 void* wglLoadFunc(const char* name) { return gWglSetup->procAddr(name); }
 
-}
+} // anonymous util namespace
 
 //WglSetup
 WglSetup::WglSetup(HWND dummy) : dummyWindow_(dummy)
@@ -73,10 +72,8 @@ WglSetup::WglSetup(HWND dummy) : dummyWindow_(dummy)
 	//now enumerate all gl configs
 	//if the extension is available retrieve all formats with the required attributes
 	//otherwise just retrieve and parse parse a few formats
-	if(GLAD_WGL_ARB_pixel_format)
-	{
-		int pfAttribs[] =
-		{
+	if(GLAD_WGL_ARB_pixel_format) {
+		int pfAttribs[] = {
 			WGL_DRAW_TO_WINDOW_ARB, true,
 			WGL_SUPPORT_OPENGL_ARB, true,
 			0, 0
@@ -86,10 +83,8 @@ WglSetup::WglSetup(HWND dummy) : dummyWindow_(dummy)
 		UINT nformats = 0;
 		bool ret = wglChoosePixelFormatARB(dummyDC_, pfAttribs, nullptr, 1024, formats, &nformats);
 
-		if(ret && nformats)
-		{
-			std::vector<int> attribs =
-			{
+		if(ret && nformats) {
+			std::vector<int> attribs = {
 				WGL_ACCELERATION_ARB,
 				WGL_RED_BITS_ARB,
 				WGL_GREEN_BITS_ARB,
@@ -100,8 +95,7 @@ WglSetup::WglSetup(HWND dummy) : dummyWindow_(dummy)
 				WGL_DOUBLE_BUFFER_ARB //7
 			};
 
-			if(GLAD_WGL_ARB_multisample)
-			{
+			if(GLAD_WGL_ARB_multisample) {
 				attribs.push_back(WGL_SAMPLE_BUFFERS_ARB);
 				attribs.push_back(WGL_SAMPLES_ARB); //9
 			}
@@ -112,11 +106,10 @@ WglSetup::WglSetup(HWND dummy) : dummyWindow_(dummy)
 			values.resize(attribs.size());
 
 			auto bestRating = 0u;
-			for(auto& format : nytl::Span<int>(formats, nformats))
-			{
-				if(!wglGetPixelFormatAttribivARB(dummyDC_, format, PFD_MAIN_PLANE, attribs.size(),
-					attribs.data(), values.data()))
-				{
+			for(auto& format : nytl::Span<int>(formats, nformats)) {
+				auto succ = wglGetPixelFormatAttribivARB(dummyDC_, format, PFD_MAIN_PLANE,
+					attribs.size(), attribs.data(), values.data());
+				if(!succ) {
 					warning(errorMessage("ny::WglSetup: wglGetPixelFormatAttrib"));
 					continue;
 				}
@@ -134,25 +127,19 @@ WglSetup::WglSetup(HWND dummy) : dummyWindow_(dummy)
 				if(GLAD_WGL_ARB_multisample && values[8]) configs_.back().samples = values[9];
 
 				auto rating = rate(configs_.back()) + values[0] * 50;
-				if(rating >= bestRating)
-				{
+				if(rating >= bestRating) {
 					bestRating = rating;
 					defaultConfig_ = &configs_.back(); //configs_ wont reallocate
 				}
 			}
-		}
-		else
-		{
+		} else {
 			warning(errorMessage("ny::WglSetup: wglChoosePixelFormat"));
 		}
-	}
-	else
-	{
+	} else {
 		warning("ny::WglSetup: extension WGL_ARB_pixel_format could not be loaded.");
 	}
 
-	if(!defaultConfig_)
-	{
+	if(!defaultConfig_) {
 		auto pixelformat = 0;
 		auto bestRating = 0u;
 
@@ -171,17 +158,17 @@ WglSetup::WglSetup(HWND dummy) : dummyWindow_(dummy)
 			if(db) pfd.dwFlags |= PFD_DOUBLEBUFFER;
 			else pfd.dwFlags &= ~PFD_DOUBLEBUFFER;
 
-			//We do not check for acceleration here since this function should
-			//always choose the accelerated one if it is available
+			// We do not check for acceleration here since this function should
+			// always choose the accelerated one if it is available
 			pixelformat = ::ChoosePixelFormat(dummyDC_, &pfd);
 			if(!pixelformat) return; //dont error here - its ok
 
-			//first check that we dont already have this format
+			// first check that we dont already have this format
 			auto pixelformatu = static_cast<unsigned int>(pixelformat);
 			for(auto& fmt : configs_)
 				if(glConfigNumber(fmt.id) == pixelformatu) return;
 
-			//check the actual values since ChoosePixelFormat returns only the closest format
+			// check the actual values since ChoosePixelFormat returns only the closest format
 			PIXELFORMATDESCRIPTOR realPfd {};
 			::DescribePixelFormat(dummyDC_, pixelformat, sizeof(realPfd), &realPfd);
 
@@ -198,8 +185,7 @@ WglSetup::WglSetup(HWND dummy) : dummyWindow_(dummy)
 			configs_.push_back(config);
 
 			auto rating = rate(config);
-			if(rating > bestRating)
-			{
+			if(rating > bestRating) {
 				bestRating = rating;
 				defaultConfig_ = &configs_.back();
 			}
@@ -210,8 +196,12 @@ WglSetup::WglSetup(HWND dummy) : dummyWindow_(dummy)
 		int stencil[] = {0, 8};
 		bool doubleBuffer[] = {true, false};
 
-		configs_.reserve(2 * 3 * 2 * 2); //the possible number of configs
+		configs_.reserve(2 * 3 * 2 * 2); // the possible number of configs
 
+		// TODO: some kind of fallback (ANY config is better than no config at all)
+		// would be nice
+
+		// test all usual configs
 		for(auto c : colors)
 			for(auto d : depth)
 				for(auto s : stencil)
@@ -274,13 +264,12 @@ void* WglSetup::procAddr(nytl::StringParam name) const
 	return ret;
 }
 
-//WglSurface
+// WglSurface
 bool WglSurface::apply(std::error_code& ec) const
 {
 	ec.clear();
 	::SetLastError(0);
-	if(!::SwapBuffers(hdc_))
-	{
+	if(!::SwapBuffers(hdc_)) {
 		warning(errorMessage("ny::WglContext::apply (SwapBuffer) failed"));
 		ec = winapi::lastErrorCode();
 		return false;
@@ -289,21 +278,21 @@ bool WglSurface::apply(std::error_code& ec) const
 	return true;
 }
 
-//WglContext
+// WglContext
 WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 	: setup_(&setup)
 {
 	::SetLastError(0);
 
-	//test for logic errors
+	// test for logic errors
+	// XXX: must be changed if gles is supported
 	if(settings.version.api != GlApi::gl)
 		throw GlContextError(GlContextErrc::invalidApi, "ny::WglContext");
 
 	auto major = settings.version.major;
 	auto minor = settings.version.minor;
 
-	if(major == 0 && minor == 0)
-	{
+	if(major == 0 && minor == 0) {
 		major = 4;
 		minor = 5;
 	}
@@ -311,8 +300,8 @@ WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 	if(major < 1 || major > 4 || minor > 5)
 		throw GlContextError(GlContextErrc::invalidVersion, "ny::WglContext");
 
-	//we create our own dummyDC that is compatibly to the default dummy dc
-	//and then select the chosen config (pixel format) into the dc
+	// we create our own dummyDC that is compatibly to the default dummy dc
+	// and then select the chosen config (pixel format) into the dc
 	auto dummyDC = ::CreateCompatibleDC(setup.dummyDC());
 	if(!dummyDC) throw winapi::EC::exception("ny::WglContext: failed to create dummy dc");
 
@@ -331,8 +320,7 @@ WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 		throw winapi::EC::exception("ny::WglContext: failed to set pixel format");
 
 	HGLRC share = nullptr;
-	if(settings.share)
-	{
+	if(settings.share) {
 		auto shareCtx = dynamic_cast<WglContext*>(settings.share);
 		if(!shareCtx || shareCtx->config().id != config_.id)
 			throw GlContextError(GlContextErrc::invalidSharedContext, "ny::WglContext");
@@ -342,8 +330,7 @@ WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 
 	::SetLastError(0);
 
-	if(GLAD_WGL_ARB_create_context)
-	{
+	if(GLAD_WGL_ARB_create_context) {
 		std::vector<int> attributes;
 		attributes.reserve(20);
 
@@ -352,8 +339,7 @@ WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 		attributes.push_back(WGL_CONTEXT_MINOR_VERSION_ARB);
 		attributes.push_back(minor);
 
-		if(settings.compatibility)
-		{
+		if(settings.compatibility) {
 			attributes.push_back(WGL_CONTEXT_PROFILE_MASK_ARB);
 			attributes.push_back(WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB);
 		}
@@ -362,8 +348,7 @@ WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 		if(settings.forwardCompatible) flags |= WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB;
 		if(settings.debug) flags |= WGL_CONTEXT_DEBUG_BIT_ARB;
 
-		if(flags)
-		{
+		if(flags) {
 			attributes.push_back(WGL_CONTEXT_FLAGS_ARB);
 			attributes.push_back(flags);
 		}
@@ -372,15 +357,14 @@ WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 		attributes.push_back(0);
 
 		wglContext_ = ::wglCreateContextAttribsARB(dummyDC, share, attributes.data());
-		if(!wglContext_ && ::GetLastError() == ERROR_INVALID_VERSION_ARB && !settings.forceVersion)
-		{
-			//those versions will be tried to create when the version specified in
-			//the passed settings fails and the passed version should not be forced.
-			constexpr std::pair<unsigned int, unsigned int> versionPairs[] =
-				{{4, 5}, {3, 3}, {3, 2}, {3, 1}, {3, 0}, {1, 2}, {1, 0}};
 
-			for(const auto& p : versionPairs)
-			{
+		// those versions will be tried to create when the version specified in
+		// the passed settings fails and the passed version should not be forced.
+		bool tryAgain = settings.forceVersion;
+		constexpr std::pair<unsigned int, unsigned int> versionPairs[] =
+			{{4, 5}, {3, 3}, {3, 2}, {3, 1}, {3, 0}, {1, 2}, {1, 0}};
+		if(!wglContext_ && ::GetLastError() == ERROR_INVALID_VERSION_ARB && tryAgain) {
+			for(const auto& p : versionPairs) {
 				attributes[1] = p.first;
 				attributes[3] = p.second;
 
@@ -391,12 +375,10 @@ WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 		}
 	}
 
-	if(!wglContext_ && !settings.forceVersion)
-	{
-		//try legacy version
+	// try legacy version
+	if(!wglContext_ && !settings.forceVersion) {
 		wglContext_ = ::wglCreateContext(dummyDC);
-		if(share && !::wglShareLists(share, wglContext_))
-		{
+		if(share && !::wglShareLists(share, wglContext_)) {
 			::wglDeleteContext(wglContext_);
 			throw winapi::EC::exception("ny::WglContext: wglShareLists");
 		}
@@ -410,8 +392,7 @@ WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 
 WglContext::~WglContext()
 {
-	if(wglContext_)
-	{
+	if(wglContext_) {
 		std::error_code ec;
 		if(!makeNotCurrent(ec))
 			warning("ny::~WglContext: failed to make the context not current: ", ec.message());
@@ -426,8 +407,7 @@ bool WglContext::makeCurrentImpl(const GlSurface& surf, std::error_code& ec)
 
 	::SetLastError(0);
 	auto wglSurface = dynamic_cast<const WglSurface*>(&surf);
-	if(!::wglMakeCurrent(wglSurface->hdc(), wglContext_))
-	{
+	if(!::wglMakeCurrent(wglSurface->hdc(), wglContext_)) {
 		warning(errorMessage("ny::WglContext::makeCurrentImpl (wglMakeCurrent) failed"));
 		ec = winapi::lastErrorCode();
 		return false;
@@ -441,8 +421,7 @@ bool WglContext::makeNotCurrentImpl(std::error_code& ec)
 	ec.clear();
 
 	::SetLastError(0);
-	if(!::wglMakeCurrent(nullptr, nullptr))
-	{
+	if(!::wglMakeCurrent(nullptr, nullptr)) {
 		warning(errorMessage("ny::WglContext::makeNotCurrentImpl (wglMakeCurrent) failed"));
 		ec = winapi::lastErrorCode();
 		return false;
@@ -461,14 +440,12 @@ GlContextExtensions WglContext::contextExtensions() const
 
 bool WglContext::swapInterval(int interval, std::error_code& ec) const
 {
-	if(!GLAD_WGL_EXT_swap_control || !::wglSwapIntervalEXT)
-	{
+	if(!GLAD_WGL_EXT_swap_control || !::wglSwapIntervalEXT) {
 		ec = {GlContextErrc::extensionNotSupported};
 		return false;
 	}
 
-	if(!::wglSwapIntervalEXT(interval))
-	{
+	if(!::wglSwapIntervalEXT(interval)) {
 		ec = winapi::lastErrorCode();
 		return false;
 	}
@@ -484,8 +461,7 @@ bool WglContext::compatible(const GlSurface& surface) const
 	return (wglSurface);
 }
 
-
-//WglWindowContext
+// WglWindowContext
 WglWindowContext::WglWindowContext(WinapiAppContext& ac, WglSetup& setup,
 	const WinapiWindowSettings& settings)
 {
@@ -529,4 +505,4 @@ Surface WglWindowContext::surface()
 	return {*surface_};
 }
 
-}
+} // namespace ny

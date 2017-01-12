@@ -10,8 +10,7 @@
 #include <ny/mouseButton.hpp>
 #include <nytl/utf.hpp>
 
-namespace ny
-{
+namespace ny {
 
 nytl::Vec2i WinapiMouseContext::position() const
 {

@@ -6,19 +6,14 @@
 #include <ny/x11/appContext.hpp>
 #include <xcb/xcb.h>
 
-namespace ny
-{
+namespace ny {
 
 X11Backend X11Backend::instance_;
 
-X11Backend::X11Backend()
-{
-}
+X11Backend::X11Backend() {}
 
 bool X11Backend::available() const
 {
-    // ::XInitThreads(); //TODO
-
 	auto connection = xcb_connect(nullptr, nullptr);
 	bool ret = xcb_connection_has_error(connection);
 	xcb_disconnect(connection);
@@ -27,7 +22,7 @@ bool X11Backend::available() const
 
 std::unique_ptr<AppContext> X11Backend::createAppContext()
 {
-    return std::make_unique<X11AppContext>();
+	return std::make_unique<X11AppContext>();
 }
 
 bool X11Backend::gl() const
@@ -40,4 +35,4 @@ bool X11Backend::vulkan() const
 	return builtWithVulkan();
 }
 
-}
+} // namespace ny

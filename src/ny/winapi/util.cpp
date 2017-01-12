@@ -13,12 +13,10 @@
 #include <nytl/utf.hpp>
 #include <nytl/scope.hpp>
 
-namespace ny
-{
+namespace ny {
 
-//maps ny::Keycode to a windows-specific virtual key code.
-constexpr struct KeycodeConversion
-{
+// maps ny::Keycode to a windows-specific virtual key code.
+constexpr struct KeycodeConversion {
 	Keycode keycode;
 	unsigned int vkcode;
 } keycodeConversions [] =
@@ -154,7 +152,7 @@ constexpr struct KeycodeConversion
 	{Keycode::rightbrace, VK_OEM_6},
 	{Keycode::apostrophe, VK_OEM_7},
 
-	//XXX: something about OEM_102. is the 102nd keycode for linux/input.h
+	// XXX: something about OEM_102. is the 102nd keycode for linux/input.h
 
 	{Keycode::play, VK_PLAY},
 	{Keycode::zoom, VK_ZOOM},
@@ -175,8 +173,7 @@ constexpr struct EdgeConversion
 	{WindowEdge::bottomRight, 8u},
 };
 
-constexpr struct CursorConversion
-{
+constexpr struct CursorConversion {
 	CursorType cursor;
 	const wchar_t* idc;
 } cursorConversions[] = {

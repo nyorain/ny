@@ -25,6 +25,7 @@
 // TODO: handle actions (xdndposition)
 // TODO: handle xdndstatus
 // TODO: xdndproxy
+// TODO: split up the multiple hundred lines of dnd/selection event handling
 
 namespace ny {
 namespace {
@@ -49,7 +50,7 @@ unsigned int xdndAware(X11AppContext& ac, xcb_window_t window)
 	}
 
 	auto protocolVersion = reinterpret_cast<uint32_t&>(*prop.data.data());
- 	return std::min(protocolVersion, supportedXdndVersion);
+	return std::min(protocolVersion, supportedXdndVersion);
 }
 
 } // anonymous util namespace
@@ -471,7 +472,7 @@ bool X11DataManager::processEvent(const xcb_generic_event_t& ev)
 	X11EventData eventData {ev};
 
 	auto responseType = ev.response_type & ~0x80;
-    switch(responseType) {
+	switch(responseType) {
 		case XCB_SELECTION_NOTIFY: {
 			// a selection owner notifies us that it set the request property
 			// we need to query the DataOffer this is associated with and let it handle
@@ -705,8 +706,9 @@ bool X11DataManager::processEvent(const xcb_generic_event_t& ev)
 				dndOffer_ = {};
 
 			} else if(clientm.type == atoms().xdndStatus) {
-				// // we (as drag source) received a status message
-				// // mainly interesting for debugging
+				// we (as drag source) received a status message
+				// mainly interesting for debugging
+
 				// auto accepted = (clientm.data.data32[1] & 1u);
 				// debug("accepted: ", accepted);
 				//
@@ -733,7 +735,7 @@ bool X11DataManager::processEvent(const xcb_generic_event_t& ev)
 	if(!dndSrc_.sourceWindow) return false;
 
 	switch(responseType) {
-	    case XCB_MOTION_NOTIFY: {
+		case XCB_MOTION_NOTIFY: {
 			const auto& motionEv = reinterpret_cast<const xcb_motion_notify_event_t&>(ev);
 
 			// query the xdnd window we are currently over
@@ -782,9 +784,10 @@ bool X11DataManager::processEvent(const xcb_generic_event_t& ev)
 			return true;
 		}
 
-	    case XCB_BUTTON_RELEASE: {
-			// if we are over an xdnd window, send a drop event
+		case XCB_BUTTON_RELEASE: {
 			if(dndSrc_.targetWindow) {
+
+				// if we are over an xdnd window, send a drop event
 				xcb_client_message_event_t clientev {};
 				clientev.window = dndSrc_.targetWindow;
 				clientev.format = 32;
@@ -812,13 +815,13 @@ bool X11DataManager::processEvent(const xcb_generic_event_t& ev)
 		default: break;
 	}
 
-	return false; //we did not handle the event type at all
+	return false; // we did not handle the event type at all
 }
 
 bool X11DataManager::clipboard(std::unique_ptr<DataSource>&& dataSource)
 {
 	//try to get ownership of selection
-    xcb_set_selection_owner(&xConnection(), xDummyWindow(), atoms().clipboard, XCB_CURRENT_TIME);
+	xcb_set_selection_owner(&xConnection(), xDummyWindow(), atoms().clipboard, XCB_CURRENT_TIME);
 
 	//check for success
 	//icccm specifies that it may fail and should only be considered succesful if
@@ -826,7 +829,7 @@ bool X11DataManager::clipboard(std::unique_ptr<DataSource>&& dataSource)
 	auto owner = selectionOwner(atoms().clipboard);
 	if(owner != xDummyWindow()) return false;
 
-    clipboardSource_ = {appContext(), std::move(dataSource)};
+	clipboardSource_ = {appContext(), std::move(dataSource)};
 	return true;
 }
 
@@ -851,20 +854,20 @@ DataOffer* X11DataManager::clipboard()
 
 bool X11DataManager::startDragDrop(std::unique_ptr<DataSource> src)
 {
-	//TODO: better check, give up xdndselection ownership on fail
+	// TODO: better check, give up xdndselection ownership on fail
 
-	//check if currently over window
+	// check if currently over window
 	if(!appContext().mouseContext()->over()) return false;
 
-	//try to take ownership of the xdnd selection
+	// try to take ownership of the xdnd selection
 	auto xdndSelection = atoms().xdndSelection;
-    xcb_set_selection_owner(&xConnection(), xDummyWindow(), xdndSelection, XCB_CURRENT_TIME);
+	xcb_set_selection_owner(&xConnection(), xDummyWindow(), xdndSelection, XCB_CURRENT_TIME);
 
-	//check for success
+	// check for success
 	auto owner = selectionOwner(xdndSelection);
 	if(owner != xDummyWindow()) return false;
 
-	//grab the pointer
+	// grab the pointer
 	auto eventMask = XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_ENTER_WINDOW |
 		XCB_EVENT_MASK_LEAVE_WINDOW | XCB_EVENT_MASK_POINTER_MOTION;
 

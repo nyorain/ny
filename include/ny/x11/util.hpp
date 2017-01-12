@@ -16,6 +16,11 @@
 #include <vector>
 #include <string>
 
+// Needed sice Xlib defines this macro
+#ifdef GenericEvent
+	#undef GenericEvent
+#endif
+
 namespace ny {
 
 /// X11EventData stores the native xcb event for later use.
@@ -85,8 +90,8 @@ unsigned int buttonToX11(MouseButton);
 
 namespace x11 {
 
-/// Forward declaration dummys, since some xcb types are anonymous typedefs and
-/// we don't want to pull all xcb headers everwhere.
+// Forward declaration dummys, since some xcb types are anonymous typedefs and
+// we don't want to pull all xcb headers everwhere.
 struct EwmhConnection : public xcb_ewmh_connection_t {};
 struct GenericEvent : public xcb_generic_event_t {};
 

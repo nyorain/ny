@@ -7,8 +7,7 @@
 #include <nytl/vecOps.hpp>
 #include <windows.h>
 
-namespace ny
-{
+namespace ny {
 
 WinapiBufferSurface::WinapiBufferSurface(WinapiWindowContext& wc) : windowContext_(&wc)
 {
@@ -27,7 +26,7 @@ BufferGuard WinapiBufferSurface::buffer()
 	auto currSize = nytl::Vec2ui(windowContext().clientExtents().size);
 	auto currTotal = currSize.x * currSize.y;
 
-	//TODO: allocate more than needed? store really allocated size
+	// TODO: allocate more than needed? store really allocated size
 	if(currTotal > size_.x * size_.y)
 		data_ = std::make_unique<std::uint8_t[]>(currTotal * 4);
 
@@ -38,8 +37,7 @@ BufferGuard WinapiBufferSurface::buffer()
 }
 void WinapiBufferSurface::apply(const BufferGuard& bufferGuard) noexcept
 {
-	if(!active_ || bufferGuard.get().data != data_.get())
-	{
+	if(!active_ || bufferGuard.get().data != data_.get()) {
 		warning("ny::WinapiBufferSurface::apply: invalid bufferGuard");
 		return;
 	}
@@ -58,7 +56,7 @@ void WinapiBufferSurface::apply(const BufferGuard& bufferGuard) noexcept
 	::DeleteObject(bitmap);
 }
 
-//WinapiBufferWindowContext
+// WinapiBufferWindowContext
 WinapiBufferWindowContext::WinapiBufferWindowContext(WinapiAppContext& ac,
 	const WinapiWindowSettings& ws) : WinapiWindowContext(ac, ws), bufferSurface_(*this)
 {
@@ -70,4 +68,4 @@ Surface WinapiBufferWindowContext::surface()
 	return {bufferSurface_};
 }
 
-}
+} // namespace ny

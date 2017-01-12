@@ -7,14 +7,15 @@
 	- should be uniform across backends
 - improve KeyEvent/KeyboardListener with active keyboard modifiers, state
 - egl/wgl/glx library loading (dynamically load opengl) -> see e.g. common/egl
-- fix/clean up TODO marks in code
-- fix code style for other backend implementations
+- fix WindowHints (i.e. remove them? just customDecorated useful)
+- fix examples
 
 ### later; general; rework needed
 
 - C++17 update:
 	- use extended aggregate initialization for Event class
 		- update for backends (not create explicit structs before calling listener)
+- fix/clean up TODO marks in code
 - DataOffer: methods const? they do not change the state of the object (interface)
 	- may not be threadsafe in implementation; should not be required (should it?)
 	- also: really pass it as unique ptr in WindowListener::drop

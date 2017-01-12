@@ -104,10 +104,6 @@ public:
 	///For more information look in the ewmh specification for _NET_WM_STATE.
 	std::vector<uint32_t> states() const { return states_; };
 
-	///Reloads the stores window states.
-	///XXX: Needed? should they be stored? TODO
-	void refreshStates();
-
 	///Sets the window type.
 	///For more information look in the ewmh specification for _NET_WM_WINDOW_TYPE.
 	void xWindowType(uint32_t type);

@@ -11,23 +11,22 @@
 
 #include <algorithm> // std::sort
 
-namespace ny
-{
+namespace ny {
 
 ImageFormat visualToFormat(const xcb_visualtype_t& v, unsigned int depth)
 {
-	//the visual does only have an alpha channel if its depth is 32 bits
+	// the visual does only have an alpha channel if its depth is 32 bits
 	auto alphaMask = 0u;
 	if(depth == 32) alphaMask = 0xFFFFFFFFu & ~(v.red_mask | v.green_mask | v.blue_mask);
 
-	//represents a color mask channel
+	// represents a color mask channel
 	struct Channel {
 		ColorChannel color;
 		unsigned int offset;
 		unsigned int size;
 	} channels[4];
 
-	//Converts a given mask to a Channel struct
+	// converts a given mask to a Channel struct
 	auto parseMask = [](ColorChannel color, unsigned int mask) {
 		auto active = false;
 		Channel ret {color, 0u, 0u};
@@ -45,17 +44,17 @@ ImageFormat visualToFormat(const xcb_visualtype_t& v, unsigned int depth)
 		return ret;
 	};
 
-	//parse the color masks
+	// parse the color masks
 	channels[0] = parseMask(ColorChannel::red, v.red_mask);
 	channels[1] = parseMask(ColorChannel::green, v.green_mask);
 	channels[2] = parseMask(ColorChannel::blue, v.blue_mask);
 	channels[3] = parseMask(ColorChannel::alpha, alphaMask);
 
-	//sort them by the order they appear
+	// sort them by the order they appear
 	std::sort(std::begin(channels), std::end(channels),
 		[](auto& a, auto& b){ return a.offset < b.offset; });
 
-	//insert them (with offsets if needed) into the returned ImageFormat
+	// insert them (with offsets if needed) into the returned ImageFormat
 	ImageFormat ret {};
 
 	auto prev = 0u;
@@ -95,7 +94,7 @@ unsigned int buttonToX11(MouseButton button)
 	}
 }
 
-//X11ErrorCategory
+// X11ErrorCategory
 X11ErrorCategory::X11ErrorCategory(Display& dpy, xcb_connection_t& conn)
 	: xDisplay_(&dpy), xConnection_(&conn)
 {
@@ -175,8 +174,7 @@ void X11ErrorCategory::checkThrow(xcb_void_cookie_t cookie, nytl::StringParam ms
 	if(!check(cookie, ec)) throw std::system_error(ec, msg);
 }
 
-namespace x11
-{
+namespace x11 {
 
 Property readProperty(xcb_connection_t& connection, xcb_atom_t atom, xcb_window_t window,
 	xcb_generic_error_t* error, bool del)

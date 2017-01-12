@@ -9,8 +9,7 @@
 #define VK_USE_PLATFORM_WIN32_KHR
 #include <vulkan/vulkan.h>
 
-namespace ny
-{
+namespace ny {
 
 WinapiVulkanWindowContext::WinapiVulkanWindowContext(WinapiAppContext& ac,
 	const WinapiWindowSettings& ws) : WinapiWindowContext(ac, ws)
@@ -47,4 +46,4 @@ Surface WinapiVulkanWindowContext::surface()
 	return {vkSurface_};
 }
 
-}
+} // namespace ny

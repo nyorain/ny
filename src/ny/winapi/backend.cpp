@@ -5,8 +5,7 @@
 #include <ny/winapi/backend.hpp>
 #include <ny/winapi/appContext.hpp>
 
-namespace ny
-{
+namespace ny {
 
 WinapiBackend WinapiBackend::instance_;
 
@@ -25,4 +24,4 @@ bool WinapiBackend::vulkan() const
 	return builtWithVulkan();
 }
 
-}
+} // namespace ny

@@ -31,7 +31,7 @@
 #include <X11/Xutil.h>
 #include <X11/Xlib-xcb.h>
 
-//undefine the worst Xlib macros
+// undefine the worst Xlib macros
 #undef None
 #undef GenericEvent
 
@@ -45,11 +45,14 @@
 namespace ny {
 namespace {
 
-//TODO: reimplement this using eventfd and allow X11AppContext to handle fd callbacks
+// TODO: reimplement this using eventfd and allow X11AppContext to handle fd callbacks
+// should be more efficient and offer more possibilities
+// See WaylandAppContexst for details
+// See also the common unix AppContext interface concept
 
-///X11 LoopInterface implementation.
-///Wakes up a blocking xcb_connection by simply sending a client message to
-///a dummy window.
+/// X11 LoopInterface implementation.
+/// Wakes up a blocking xcb_connection by simply sending a client message to
+/// a dummy window.
 class X11LoopImpl : public ny::LoopInterfaceGuard {
 public:
 	xcb_connection_t& xConnection;
@@ -119,10 +122,13 @@ struct X11AppContext::Impl {
 #endif //GL
 };
 
-//appContext
+// AppContext
 X11AppContext::X11AppContext()
 {
-	//XInitThreads(); //todo, make this optional
+	// TODO, make this optional, may be needed by some applications
+	// Something like a threadsafe flags in X11AppContextSettings would make sense
+	// XInitThreads();
+
 	impl_ = std::make_unique<Impl>();
 
 	xDisplay_ = ::XOpenDisplay(nullptr);
@@ -138,7 +144,7 @@ X11AppContext::X11AppContext()
 	impl_->errorCategory = {*xDisplay_, *xConnection_};
 	auto ewmhCookie = xcb_ewmh_init_atoms(&xConnection(), &ewmhConnection());
 
-	//query information
+	// query server information
 	auto iter = xcb_setup_roots_iterator(xcb_get_setup(&xConnection()));
 	for(auto i = 0; iter.rem; ++i, xcb_screen_next(&iter)) {
 		if(i == xDefaultScreenNumber_) {
@@ -147,18 +153,18 @@ X11AppContext::X11AppContext()
 		}
 	}
 
-	//This must be called because xcb is used to access the event queue
+	// This must be called because xcb is used to access the event queue
 	::XSetEventQueueOwner(xDisplay_, XCBOwnsEventQueue);
 
-	//Generate an x dummy window that can e.g. be used for selections
-	//This window remains invisible, i.e. it is not begin mapped
+	// Generate an x dummy window that can e.g. be used for selections
+	// This window remains invisible, i.e. it is not begin mapped
 	xDummyWindow_ = xcb_generate_id(xConnection_);
 	auto cookie = xcb_create_window_checked(xConnection_, XCB_COPY_FROM_PARENT, xDummyWindow_,
 		xDefaultScreen_->root, 0, 0, 50, 50, 0, XCB_WINDOW_CLASS_INPUT_ONLY,
 		XCB_COPY_FROM_PARENT, 0, nullptr);
 	errorCategory().checkThrow(cookie, "ny::X11AppContext: create_window for dummy window failed");
 
-	//Load all default required atoms
+	// Load all default required atoms
 	auto& atoms = impl_->atoms;
 	struct {
 		xcb_atom_t& atom;
@@ -398,8 +404,7 @@ X11WindowContext* X11AppContext::windowContext(xcb_window_t win)
 bool X11AppContext::checkErrorWarn()
 {
 	auto err = xcb_connection_has_error(xConnection_);
-	if(err)
-	{
+	if(err) {
 		error("ny::X11AppContext: xcb_connection has critical error ", err);
 		return false;
 	}
@@ -430,6 +435,7 @@ xcb_atom_t X11AppContext::atom(const std::string& name)
 
 void X11AppContext::bell()
 {
+	// TODO: rather random value here. accept (defaulted) parameter?
 	xcb_bell(xConnection_, 100);
 }
 

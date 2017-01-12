@@ -7,7 +7,7 @@
 
 namespace ny {
 
-// TODO: use constexpr lookup tables
+// TODO: use constexpr lookup tables (?)
 // TODO: cursorType from name
 
 WindowEdge edgeFromSizeCursor(CursorType cursor)
