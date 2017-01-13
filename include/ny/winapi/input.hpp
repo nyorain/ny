@@ -44,11 +44,15 @@ public:
 	bool pressed(Keycode) const override;
 	std::string utf8(Keycode) const override;
 	WinapiWindowContext* focus() const override { return focus_; }
+	KeyboardModifiers modifiers() const override;
 
 	// - winapi specific -
 	/// Handles the given event if it is keyboard related. Returns false otherwise.
 	/// If it could be handled sets the result value.
 	bool processEvent(const WinapiEventData&, LRESULT& result);
+
+	/// Returns whether the given virtual keycode is pressed using GetAsyncKeyState.
+	bool pressed(unsigned int vkcode) const;
 
 protected:
 	WinapiAppContext& context_;

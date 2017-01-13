@@ -250,7 +250,7 @@ bool WinapiAppContext::dispatchLoop(LoopControl& control)
 
 		auto ret = ::GetMessage(&msg, nullptr, 0, 0);
 		if(ret == -1) {
-			warning(errorMessage("ny::WinapiAppContext::dispatchLoop: GetMessage error"));
+			warning(winapi::errorMessage("ny::WinapiAppContext::dispatchLoop: GetMessage error"));
 			return false;
 		} else {
 			::DispatchMessage(&msg);

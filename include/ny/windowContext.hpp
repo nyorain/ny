@@ -35,46 +35,68 @@ public:
 	/// Returns the capabilities this WindowContext has.
 	/// This makes it possible for implementations like e.g. linux drm to
 	/// at least signal the application somehow that it is barely able to implement any of
-	/// the default window functions.
+	/// the default window functions, while making it still a useful backend for rendering
+	/// stuff.
 	virtual WindowCapabilities capabilities() const = 0;
 
 	/// Makes the window visible.
+	/// If the WindowCapability::visibility flag of the capabilities() return value
+	/// is not set, this function is not supported and may not change the current
+	/// visibility status.
 	virtual void show() = 0;
 
 	/// Hides the window.
+	/// If the WindowCapability::visibility flag of the capabilities() return value
+	/// is not set, this function is not supported and may not change the current
+	/// visibility status.
 	virtual void hide() = 0;
 
 	/// Sets the minimal size of the window.
-	/// Might have no effect on certain backends.
+	/// If the WindowCapability::sizeLimits flag of the capabilities() return value
+	/// is not set, this function is not able to set the minimum window size.
+	/// Applications should not depend on this function and generally be prepared
+	/// for all window sizes.
 	virtual void minSize(nytl::Vec2ui minSize) = 0;
 
 	/// Sets the maximal size of the window.
-	/// Might have no effect on certain backends.
+	/// If the WindowCapability::sizeLimits flag of the capabilities() return value
+	/// is not set, this function is not able to set the maximum window size.
+	/// Applications should not depend on this function and generally be prepared
+	/// for all window sizes.
 	virtual void maxSize(nytl::Vec2ui maxSize) = 0;
 
-	/// Resizes the window.
-	/// Will usually trigger a DrawEvent.
+	/// Resizes the window to the given size.
+	/// Might trigger a (often delayed) DrawEvent.
+	/// If the WindowCapability::size flag of the capabilites() return value is not set,
+	/// this function might not be able to change the size of the window.
+	/// Applications should not rely on this to work.
 	virtual void size(nytl::Vec2ui size) = 0;
 
 	/// Sets the position of the window.
-	/// Note that on some backends or if the window is in a fullscreen/maximized state, this
-	/// might have no effect.
+	/// This function might have no effect if the window is in maximized or fullscreen mode.
+	/// If the WindowCapability::position flag of the capabilites() return value is not set,
+	/// this function might not be able to change the size of the window.
+	/// Applications should not rely on this to work.
 	virtual void position(nytl::Vec2i position) = 0;
 
-	/// Sets the mouse cursor of the window. The mouse cursor will only be changed to the given
-	/// cursor when the pointer is oven this window.
+	/// Sets the mouse cursor of the window. The mouse cursor will then always have
+	/// the given cursor when over this window.
+	/// If the WindowCapability::cursor flag of the capabilites() return value is not set,
+	/// this function might not be able to set the cursor.
 	virtual void cursor(const Cursor& c) = 0;
 
 	/// Returns the underlaying native window handle.
 	/// This handle can then be passed on to other window toolkits or used in some backend-specific
-	/// way. It can also be used to create a child WindowContext for this one.
+	/// way. It can also be used to create a child WindowContext for this WindowContext.
+	/// \note Backends are allowed to return a 0/nullptr here if they have no kind of
+	/// native handle. This is very unlikely but applications should not rely on
+	/// the NativeHandle value to be not equal to 0.
 	virtual NativeHandle nativeHandle() const = 0;
 
 	/// Asks the platform-specific windowing api for a window refresh.
 	/// Will basically send a DrawEvent to the registered EventHandler as soon as the window is
-	/// ready to draw. This function might directly dispatch a DrawEvent to the registered
-	/// EventHandler which might lead to a redraw before this function returns depending on
-	/// the used event dispatching system.
+	/// ready to draw. This function might directly dispatch a DrawEvent to the associated
+	/// WindowListener if no kind of draw synchronization is available.
 	virtual void refresh() = 0;
 
 	/// Returns a Surface object that holds some type of surface object that was created
@@ -86,22 +108,31 @@ public:
 
 	// - toplevel-specific -
 
-	/// Maximized the window.
+	/// Maximized the window. If the window was previously in fullscreen or minimized, will
+	/// first try to reset it to normal state.
+	/// If the WindowCapability::maximize flag of the capabilites() return value is not set,
+	/// this function will have no effect on the window.
 	/// \warning Shall have only an effect for toplevel windows.
 	virtual void maximize() = 0;
 
-	/// Minimized the window.
+	/// Minimized the window. Will otherwise not change the window state, e.g. a window
+	/// in fullscreen state will be restored to fullscreen when unminimized.
+	/// If the WindowCapability::minimize flag of the capabilites() return value is not set,
+	/// this function will have no effect on the window.
 	/// \warning Shall have only an effect for toplevel windows.
 	virtual void minimize() = 0;
 
-	/// Sets the window in a fullscreen state.
+	/// Sets the window in a fullscreen state. Will automatically unminimize it if possible.
+	/// If the WindowCapability::fullscreen flag of the capabilites() return value is not set,
+	/// this function will have no effect on the window.
 	/// \warning Shall have only an effect for toplevel windows.
 	virtual void fullscreen() = 0;
 
-	/// Resets the window in normal toplevel state.
+	/// Resets the window in normal toplevel state, i.e. resets fullscreen or minimized state if
+	/// possible.
 	/// If it is currently maximized, minimized or in fullscreen, these states will be removed.
 	/// \warning Shall have only an effect for toplevel windows.
-	virtual void normalState() = 0; //or reset()?
+	virtual void normalState() = 0;
 
 	/// Asks the window manager to start an interactive move for the window.
 	/// \param event A pointer to an EventData object [optional]. Might fail if nullptr is given.
@@ -123,21 +154,24 @@ public:
 	/// \warning Shall have only an effect for toplevel windows.
 	virtual void icon(const Image& newicon) = 0;
 
+	/// Tries to set/unset the custom decoration of this window.
+	/// \note Changing this value might not have success, capabilities() of
+	/// this WindowContext and the customDecorated() get function can be used to determine
+	/// whether the window should be custom decorated.
+	/// \note The best way is usually to provide a user setting for custom decoration and
+	/// only follow this setting.
+	/// \return Whether the request was successful.
+	/// \warning Shall have only an effect for toplevel windows.
+	virtual void customDecorated(bool set) = 0;
+
 	/// Returns whether the window should be custom decorated.
-	/// Custom decoration can either be manually triggered by setting the custom decorated
-	/// window hint or the backend may tell the client to decrate itself (i.e. wayland).
+	/// This function cannot always predict whether the user expects window decorations,
+	/// it will try to use a sane default for the backend.
+	/// Can be tried to change using the customDecorated(bool set) function.
+	/// \note The best way is usually to provide a user setting for custom decoration and
+	/// only follow this setting.
 	/// \warning Will only return a valid value for toplevel windows.
 	virtual bool customDecorated() const = 0;
-
-	/// Tires to adds the given window hints to the window.
-	/// \warning Window hints are only valid for toplevel windows.
-	/// \sa WindowHints
-	virtual void addWindowHints(WindowHints hints) = 0;
-
-	/// Tries to remove the given window hints from the window.
-	/// \warning Window  hints are only valid for toplevel windows.
-	/// \sa WindowHints
-	virtual void removeWindowHints(WindowHints hints) = 0;
 
 protected:
 	std::reference_wrapper<WindowListener> listener_ {WindowListener::defaultInstance()};

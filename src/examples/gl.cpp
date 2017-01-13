@@ -12,17 +12,12 @@ using PfnClear = void(*)(unsigned int);
 PfnClearColor gl_clearColor;
 PfnClear gl_clear;
 
-
-class MyEventHandler : public ny::EventHandler
-{
+class MyEventHandler : public ny::WindowListener {
 public:
 	ny::GlSurface* surface;
 	ny::GlContext* ctx;
 
 public:
-	MyEventHandler(ny::LoopControl& mainLoop, ny::WindowContext& wc) : lc_(mainLoop), wc_(wc) {}
-	bool handleEvent(const ny::Event& ev) override;
-
 public:
 	ny::LoopControl& lc_;
 	ny::WindowContext& wc_;
@@ -33,8 +28,7 @@ int main()
 	auto& backend = ny::Backend::choose();
 	auto ac = backend.createAppContext();
 
-	if(!backend.gl() || !ac->glSetup())
-	{
+	if(!backend.gl() || !ac->glSetup()) {
 		ny::error("The ny library was built without gl or failed to init it!");
 		return EXIT_FAILURE;
 	}

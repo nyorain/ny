@@ -127,7 +127,7 @@ DataOffer::DataRequest WinapiDataOffer::data(const DataFormat& format)
 
 	auto& formatetc = it->second;
 	if((res = data_->GetData(&formatetc, &medium))) {
-		warning(errorMessage(res, "ny::winapi::DataOfferImpl::data: data_->GetData failed"));
+		warning(winapi::errorMessage(res, "ny::winapi::DataOfferImpl::data: GetData failed"));
 		return {};
 	}
 
@@ -314,7 +314,7 @@ DataObjectImpl::DataObjectImpl(std::unique_ptr<DataSource> source) : source_(std
 			if(!helper_ || ret != S_OK) {
 				std::string msg = "ny::winapi::com::DataObjectImpl: CoCreateInstance: ";
 				msg += std::to_string(ret);
-				msg += errorMessage(ret);
+				msg += winapi::errorMessage(ret);
 				throw std::runtime_error(msg);
 			}
 		}
@@ -691,13 +691,13 @@ STGMEDIUM toStgMedium(const DataFormat& from, const FORMATETC& to, const std::an
 		auto size = sizeof(dropfiles) + (filesstring.size() * 2);
 		auto globalBuffer = ::GlobalAlloc(GMEM_MOVEABLE, size);
 		if(!globalBuffer) {
-			warning(errorMessage("ny::winapi::toStgMedium(DataExchange): GlobalAlloc"));
+			warning(winapi::errorMessage("ny::winapi::toStgMedium(DataExchange): GlobalAlloc"));
 			return {};
 		}
 
 		auto bufferPtr = reinterpret_cast<uint8_t*>(::GlobalLock(globalBuffer));
 		if(!bufferPtr) {
-			warning(errorMessage("ny::winapi::toStgMedium(DataExchange): GlobalLock"));
+			warning(winapi::errorMessage("ny::winapi::toStgMedium(DataExchange): GlobalLock"));
 			::GlobalFree(globalBuffer);
 			return {};
 		}

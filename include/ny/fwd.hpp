@@ -87,6 +87,7 @@ enum class WindowEdge : unsigned int;
 enum class WindowHint : unsigned int;
 enum class WindowCapability : unsigned int;
 enum class Keycode : unsigned int;
+enum class KeyboardModifier : unsigned int;
 enum class MouseButton : unsigned int;
 enum class DialogResult : unsigned int;
 enum class NativeWidgetType : unsigned int;
@@ -97,6 +98,7 @@ enum class ColorChannel : uint8_t;
 using WindowHints = nytl::Flags<WindowHint>;
 using WindowEdges = nytl::Flags<WindowEdge>;
 using WindowCapabilities = nytl::Flags<WindowCapability>;
+using KeyboardModifiers = nytl::Flags<KeyboardModifier>;
 
 } // namespace ny
 

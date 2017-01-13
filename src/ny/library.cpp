@@ -4,8 +4,10 @@
 
 #include <ny/library.hpp>
 #include <ny/log.hpp>
+#include <nytl/utf.hpp>
 
 #ifdef _WIN32
+	#define UNICODE
 	#include <windows.h>
 #else
 	#include <dlfcn.h>
@@ -18,15 +20,17 @@ namespace detail {
 
 void* dlopen(const char* name)
 {
-	auto ret = ::LoadLibrary(name);
-	if(!ret)
-	{
-		char buffer[512] = {};
+	auto wname = nytl::toUtf16(name);
+	auto ret = ::LoadLibrary(reinterpret_cast<const wchar_t*>(wname.c_str()));
+
+	if(!ret) {
+		wchar_t buffer[512] = {};
 		auto code = ::GetLastError();
 		::FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, nullptr, code,
 			0, buffer, sizeof(buffer), nullptr);
 
-		log("ny::Library: failed to open ", name, "with error ", code, ": ", buffer);
+		auto msg = nytl::toUtf8(reinterpret_cast<const char16_t*>(buffer));
+		log("ny::Library: failed to open ", name, " with error ", code, ": ", msg);
 	}
 
 	return ret;

@@ -24,6 +24,8 @@ public:
 	Library() = default;
 
 	/// Tries to load the library with the given name.
+	/// Can be a full file name (absolute or relative) or just a library name that
+	/// is searched for in the current path.
 	/// On failure the library handle is invalid (i.e. handle() == nullptr).
 	Library(nytl::StringParam name);
 	~Library();

@@ -40,6 +40,12 @@ public:
 	/// event.
 	virtual WindowContext* focus() const = 0;
 
+	/// Returns all active (effective) modifers at the current keyboard state.
+	/// If e.g. the caps lock key is locked, this will report the shift modifier as well.
+	/// The return value may be asynchronous, i.e. it may be newer than the last
+	/// processed event.
+	virtual KeyboardModifiers modifiers() const = 0;
+
 public:
 	/// Will be called every time a key status changes.
 	nytl::Callback<void(const KeyboardContext&, Keycode, std::string utf8, bool pressed)> onKey;

@@ -75,8 +75,8 @@ unsigned int rate(const GlConfig& config);
 /// If the given version is 0.0, the context will be created with the highest version possible.
 /// If the config id is not changed, the default config will be used.
 struct GlContextSettings {
-	GlConfigID config;
-	GlVersion version;
+	GlConfigID config {};
+	GlVersion version {};
 	bool compatibility {};
 	bool forwardCompatible {};
 	bool debug {};

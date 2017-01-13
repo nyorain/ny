@@ -20,7 +20,6 @@ namespace ny {
 /// Note that e.g. (WindowEdge::top | WindowEdge::right) == (WindowEdge::topRight).
 enum class WindowEdge : unsigned int {
 	none = 0,
-
 	top = 1,
 	bottom = 2,
 	left = 4,
@@ -31,17 +30,10 @@ enum class WindowEdge : unsigned int {
 	bottomRight = 10,
 };
 
-/// Toplevel window style hints.
-/// They can be used to make the backend change how the window is presented.
-enum class WindowHint : unsigned int {
-	close = (1L << 1), // can be closed, i.e. contains a close button/menu context
-	maximize = (1L << 2), // can be maximized
-	minimize = (1L << 3), // can be minimized
-	resize = (1L << 4), // can be resized
-	customDecorated = (1L << 5), // is customDecorated
-};
-
 /// They can be used to determine which actions can be performed on a window.
+/// If a WindowContext does not return a certain capability, it might not be correctly
+/// implemented or not implemented at all. This is needed because not all functionality
+/// is available on all backends and ny tries to allow all kinds of backends.
 enum class WindowCapability : unsigned int {
 	none = 0,
 	size = (1L << 1),
@@ -56,10 +48,13 @@ enum class WindowCapability : unsigned int {
 	beginMove = (1L << 10),
 	beginResize = (1L << 11),
 	visibility = (1L << 12),
+	customDecoration = (1L << 13),
+	serverDecoration = (1L << 14)
 };
 
+// Creates the binary operations for the typesafe enum classes that
+// allow to combine values into nytl::Flags objects.
 NYTL_FLAG_OPS(WindowEdge)
-NYTL_FLAG_OPS(WindowHint)
 NYTL_FLAG_OPS(WindowCapability)
 
 /// Typesafe enum for the current state of a toplevel window.
@@ -137,18 +132,21 @@ constexpr nytl::Vec2ui defaultSize {
 constexpr nytl::Vec2ui fallbackSize {800, 500};
 
 /// Settings for a Window.
-/// Backends usually have their own WindowSettings class derived from this one.
+/// Backends may have their own WindowSettings class derived from this one that
+/// contains additional settings.
 class WindowSettings {
 public:
 	NativeHandle nativeHandle {}; ///< May specify an already existent native handle
 	NativeHandle parent {}; ///< May specify the windows native parent
 	ToplevelState initState = ToplevelState::normal; ///< Window state after initialization
-	nytl::Vec2ui size = defaultSize; ///< Beginning window size
+	nytl::Vec2ui size = defaultSize; ///< Beginning window size. Must not be (0, 0)
 	nytl::Vec2i position = defaultPosition; ///< Beginngin window position
 	std::string title = "Some Random Window Title"; ///< The title of the window
 	bool show = true; ///< Show the window direclty after initialization?
 	Cursor cursor {}; ///< Default cursor for the whole window
-	WindowListener* listener {}; ///< First listener after initialization
+	WindowListener* listener {}; ///< first listener after initialization. Can be changed
+	bool transparent = false; ///< Whether to try to make the window possibly transparent
+	bool droppable = false; ///< Whether the window can handle drop events
 
 	/// Can be used to specify if and which context should be created for the window.
 	/// Specifies which union member is active.

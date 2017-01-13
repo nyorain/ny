@@ -41,12 +41,16 @@ public:
 	std::unique_ptr<GlContext> createContext(const GlContextSettings& = {}) const override;
 	void* procAddr(nytl::StringParam name) const override;
 
-	///Returns the EGLConfig for the given GlConfigId.
-	///If the given id is invalid returns nullptr.
+	/// Returns the EGLConfig for the given GlConfigId.
+	/// If the given id is invalid returns nullptr.
 	EGLConfig eglConfig(GlConfigID id) const;
 	EGLDisplay eglDisplay() const { return eglDisplay_; }
 
 	bool valid() const { return (eglDisplay_); }
+
+	const Library& eglLibrary() const { return eglLibrary_; }
+	const Library& glLibrary() const { return glLibrary_; }
+	const Library& glesLibrary() const { return glesLibrary_; }
 
 protected:
 	EGLDisplay eglDisplay_ {};
@@ -54,7 +58,6 @@ protected:
 	std::vector<GlConfig> configs_;
 	GlConfig* defaultConfig_ {};
 
-	//TODO: currently not used
 	Library glLibrary_;
 	Library glesLibrary_;
 	Library eglLibrary_;

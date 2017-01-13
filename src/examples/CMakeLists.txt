@@ -1,6 +1,6 @@
-#intro
-# add_executable(ny-intro intro.cpp)
-# target_link_libraries(ny-intro ny)
+# intro
+add_executable(ny-intro intro.cpp)
+target_link_libraries(ny-intro ny)
 
 #multithread
 # add_executable(ny-multithread multithread.cpp)
@@ -30,6 +30,10 @@ endif()
 #dev
 add_executable(ny-dev dev.cpp)
 target_link_libraries(ny-dev ny)
+
+#egl
+add_executable(ny-egl egl.cpp)
+target_link_libraries(ny-egl ny)
 
 #inline
 add_executable(ny-inline inline.cpp)

@@ -1,10 +1,10 @@
 #include <ny/ny.hpp>
 #include <nytl/vecOps.hpp>
 
-//used in the moment to test data sources and data offers, dragndrop and clipboard stuff
+// used at the moment to test data sources and data offers, dragndrop and clipboard stuff
 
-//Our CustomDataSource implementation that will be used if we want to provide data of different
-//types to the backend, e.g. for the clipboard or dnd (drag-and-drop) operations.
+// Our CustomDataSource implementation that will be used if we want to provide data of different
+// types to the backend, e.g. for the clipboard or dnd (drag-and-drop) operations.
 class CustomDataSource : public ny::DataSource {
 public:
 	CustomDataSource();
@@ -205,7 +205,7 @@ CustomDataSource::CustomDataSource()
 	image_.format = ny::imageFormats::argb8888;
 	image_.size = {32u, 32u};
 
-	//light transparent red
+	// light transparent red
 	auto color = 0xAAFF6666;
 
 	auto it = reinterpret_cast<std::uint32_t*>(image_.data.get());

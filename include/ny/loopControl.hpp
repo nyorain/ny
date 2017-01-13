@@ -52,7 +52,7 @@ protected:
 /// Only lifetime synchronization has to managed by the application.
 /// If the loop is currently waiting/blocking for events calling member functions of the
 /// associated LoopControl object will wake up the loop.
-class LoopControl : public nytl::NonCopyable {
+class LoopControl : public nytl::NonMovable {
 public:
 	LoopControl() = default;
 	~LoopControl() { stop(); }

@@ -1,98 +1,90 @@
 #include <ny/ny.hpp>
 
-//XXX: This is the first ny example.
-//It tries to cover the most important parts a ny application has or might use.
-//In the following examples only the new parts will be documented so make sure to (roughly)
-//understand the documented code here.
-//If you have questions, just ask them on github (post an issue on github.com/nyorain/ny) and
-//we will try to document unclear aspects.
+// This is the first ny example.
+// It tries to cover the most important parts a ny application has or might use.
+// In the following examples only the new parts will be documented so make sure to (roughly)
+// understand the documented code here.
+// If you have questions, just ask them on github (post an issue on github.com/nyorain/ny) and
+// we will try to document unclear aspects.
 
-///Custom event handler for the low-level backend api.
-///See intro-app for a higher level example if you think this is too complex.
-class MyEventHandler : public ny::EventHandler
-{
+// Create a custom Windowlistener that will handle events for windows.
+// We only the handle the close event in this simple case.
+// The class also holds an additional ny::LoopControl to which we will come in the main function.
+// The close function is implemented at the bottom of this file.
+class MyWindowListener : public ny::WindowListener {
 public:
-	MyEventHandler(ny::LoopControl& mainLoop, ny::WindowContext& wc) : lc_(mainLoop), wc_(wc) {}
-
-	//Virtual function derived from ny::EventHandler.
-	//This function will receive the events for the created window.
-	//It should return true if the event was processed and false otherwise (although it does not
-	//make a difference in this case).
-	bool handleEvent(const ny::Event& ev) override;
-
-protected:
-	ny::LoopControl& lc_;
-	ny::WindowContext& wc_;
+	ny::LoopControl* lc;
+	void close(const ny::CloseEvent& ev) override;
 };
 
-//Main function that just chooses a backend, creates Window- and AppContext from it, registers
-//a custom EventHandler and then runs the mainLoop.
-//There is no special main function (like WinMain or sth.) needed for different backends.
+// Main function that just chooses a backend, creates Window- and AppContext from it, registers
+// a custom EventHandler and then runs the mainLoop. All classes are only roughly described
+// here, usually just looking at the ny header files and reading their documentation
+// will really help you.
+// The most important classes (interaces) of ny are ny::AppContext and ny::WindowContext.
 int main()
 {
-	//We let ny choose a backend.
-	//If no backend is available, this function will simply throw an exception.
-	//The backend will determine the type of display manager used, usually there is only
-	//one available, but for corner cases (like e.g. wayland and XWayland) it will choose the
-	//better/native one (in this case wayland).
+	// We let ny choose a backend.
+	// If no backend is available, this function will simply throw an exception.
+	// The backend will determine the type of display manager used.
+	// This function will try to choose the best available backend, but it can be
+	// controlled by setting the NY_BACKEND environment variable.
+	// After all, applications can also choose their backend in other ways.
+	// Note how this is not done behind the scenes like other toolkits do.
+	// The application has the full explicit control over what is done.
+	// There is no global or implicit state in ny.
 	auto& backend = ny::Backend::choose();
 
-	//Here we let the backend create an AppContext implementation.
-	//This represents the connection to the display, our method of creating windows and
-	//receiving events.
-	auto ac = backend.createAppContext(); //decltype(ac): std::unique_ptr<ny::AppContext>
+	// Here we let the backend create an AppContext implementation.
+	// This represents the connection to the display, our method of creating windows and
+	// receiving events from a display manager.
+	auto ac = backend.createAppContext(); // decltype(ac): std::unique_ptr<ny::AppContext>
 
-	//Now we let the AppContext create a WindowContext implementation.
-	//Just use the defaulted WindowSettings.
-	//This can later be used to change various aspects of the created window.
-	ny::WindowSettings settings;
-	auto wc = ac->createWindowContext(settings); //decltype(wc): std::unique_ptr<ny::WindowContext>
+	// Create an object of our WindowListener class.
+	auto listener = MyWindowListener {};
 
-	//Now we create a LoopControl object.
-	//With this object we can stop the dispatchLoop (which is called below) from the inside
-	//or even from different threads (see ny-multithread).
-	//We construct the EventHandler with a reference to it and when it receives an event that
-	//the WindowContext was closed, it will stop the dispatchLoop, which will end this
-	//program.
-	ny::LoopControl control;
-	MyEventHandler handler(control, *wc);
+	// Now we let the AppContext create a WindowContext implementation.
+	// This can then be used to receive input like e.g. key, button or mouse move events.
+	// In later tutorials we will create windows in which we can render (using various methods),
+	// but here we will create a renderless window which will usually result in flickering
+	// or undefined window contents (might look ugly depending on the backend).
+	// On some backends (e.g. wayland) this might output no window at all.
+	// Here we therefore just use the default constructed WindowSettings, the only
+	// thing we set is our own listener that should receive events about this window.
+	// This listener could also be changed later on.
+	// This can later be used to change various aspects of the created window.
+	auto ws = ny::WindowSettings {};
+	ws.listener = &listener;
+	auto wc = ac->createWindowContext(ws); // decltype(wc): std::unique_ptr<ny::WindowContext>
 
-	//This call registers our EventHandler to receive the WindowContext related events from
-	//the dispatchLoop.
-	wc->eventHandler(handler);
-	wc->refresh();
+	// Now we create a LoopControl object.
+	// With this object we can stop the loop called below from the inside (in callbacks/listeners)
+	// or even from different threads (see the ny-multithread example).
+	// We also pass the loopControl to our listener, since it will use it to stop the main
+	// loop when the window is closed.
+	ny::LoopControl control {};
+	listener.lc = &control;
 
-	//ny::log can be used to easily output application information.
-	//There are also other output methods, see ny/log.hpp.
-	//The call will have no cost/effect when not compiled in debug mode.
+	// ny::log can be used to easily output application information.
+	// There are also other output methods, see ny/log.hpp.
 	ny::log("Entering main loop");
+
+	// We call the main dispatch loop, which will just wait for new events and process them
+	// until a critical error occurs or we stop the loop using the passed LoopControl.
+	// The LoopControl idiom can be imagined like this: We pass the looping function
+	// an interface object and this function will set its implementation before starting
+	// the loop that allows us in callbacks and listener functions triggered during the dispatch
+	// loop to stop it (we do it below, when the window is closed).
 	ac->dispatchLoop(control);
+
+	// Clean up is done automatically, everything follows the RAII idiom.
 }
 
-bool MyEventHandler::handleEvent(const ny::Event& ev)
+void MyWindowListener::close(const ny::CloseEvent&)
 {
-	ny::log("Received event with type ", ev.type());
-
-	//We want to application to exit when the window is closed.
-	if(ev.type() == ny::eventType::close)
-	{
-		ny::log("Window closed. Exiting.");
-		lc_.stop();
-		return true;
-	}
-
-	//We want the application also to exit when a key is pressed.
-	//Some backends (wayland) may not have a possibilty to really close the window.
-	else if(ev.type() == ny::eventType::key)
-	{
-		//Check if the KeyEvent was sent because a key was pressed.
-		//If it was sent because it was released, dont handle the event.
-		if(!static_cast<const ny::KeyEvent&>(ev).pressed) return false;
-
-		ny::log("Key pressed. Exiting.");
-		lc_.stop();
-		return true;
-	}
-
-	return false;
+	// We output that we received the close event and then call the stop function
+	// on the loop control that controls the main dispatch loop on the AppContext.
+	// This will cause the main loop to end and our program to exit gracefully.
+	ny::log("Received an closed event - exiting");
+	lc->stop();
 }

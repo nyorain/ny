@@ -68,6 +68,7 @@ struct KeyEvent : public Event {
 	std::string utf8 {}; /// The utf8-encoded meaning of this keypress. Empty for special keys.
 	Keycode keycode {}; /// The keycode of the associated key.
 	bool pressed {}; /// True if the key was pressed, false if it was released.
+	KeyboardModifiers modifiers {}; /// The active modifiers while pressing the key
 };
 
 /// Event for a window getting resized.

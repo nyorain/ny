@@ -2,13 +2,19 @@
 
 ### priority
 
-- clean up the namespace/prefix mess (e.g. wayland::EventData vs WaylandEventData)
-	- see doc/style.md (should be alright, see if fixes everywhere)
-	- should be uniform across backends
-- improve KeyEvent/KeyboardListener with active keyboard modifiers, state
-- egl/wgl/glx library loading (dynamically load opengl) -> see e.g. common/egl
-- fix WindowHints (i.e. remove them? just customDecorated useful)
+- implement windowHints/keyboard modifier changes for x11/wayland
+- egl/wgl/glx library loading (dynamically load opengl)
+	- link e.g. core egl statically?
 - fix examples
+	- remove unneeded ones
+- fix WindowSettings handling for backends
+- fix WindowCapabilites for backends
+- AppContext error handling? Give the application change to retrieve some error (code,
+	exception?) when e.g. AppContext::dispatchLoop returns false
+	- also: AsyncRequest wait return type? the bool return type is rather bad.
+		perfer excpetions in AppContext for critical errors? would really make more sense...
+		the function might already throw if any listener/callback throw so it should
+		throw on critical errors!
 
 ### later; general; rework needed
 
@@ -28,8 +34,6 @@
 	- wayland e.g. may send a draw event from WindowContext::refesh. ok?
 	- how complex is it to implement general event deferring? for all backends?
 		common implementation? (-> see common util file)
-- AppContext error handling? Give the application change to retrieve some error (code,
-	exception?) when e.g. AppContext::dispatchLoop returns false
 - MouseContext callbacks delta value might go crazy when changing over (mouseCross)
 	- reorder <Mouse/Keyobard>Context callback parameters/use Event structs as well
 		give them a similiar signature to the WindowListener callbacks
@@ -131,6 +135,11 @@ winapi backend:
 ---------------
 
 - winapi bufferSurface pre-allocate bigger buffer (lien l30)
+- egl backend (see egl.cpp)
+	- optional instead of wgl
+	- check if available, use wgl instead
+	- should be easy to implement
+	- might be more efficient (ANGLE) than using wgl
 - ime input? at least check if it is needed
 - assure/recheck unicode handling for title, window class name etc.
 - native widgets (for all backends relevant)

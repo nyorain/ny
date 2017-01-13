@@ -63,7 +63,7 @@ void WinapiWindowContext::initWindowClass(const WinapiWindowSettings& settings)
 {
 	auto wndClass = windowClass(settings);
 	if(!::RegisterClassEx(&wndClass))
-		throw winapi::EC::exception("ny::WinapiWindowContext: RegisterClassEx failed");
+		throw winapi::lastErrorException("ny::WinapiWindowContext: RegisterClassEx failed");
 }
 
 WNDCLASSEX WinapiWindowContext::windowClass(const WinapiWindowSettings&)
@@ -78,7 +78,7 @@ WNDCLASSEX WinapiWindowContext::windowClass(const WinapiWindowSettings&)
 	ret.hInstance = appContext().hinstance();
 	ret.lpszClassName = wndClassName_.c_str();
 	ret.lpfnWndProc = &WinapiAppContext::wndProcCallback;
-	ret.style = CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW;
+	ret.style = CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
 	ret.cbSize = sizeof(WNDCLASSEX);
 	ret.hIcon = ::LoadIcon (nullptr, IDI_APPLICATION);
 	ret.hIconSm = ::LoadIcon (nullptr, IDI_APPLICATION);
@@ -136,7 +136,7 @@ void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 		size.x, size.y,
 		parent, nullptr, hinstance, this);
 
-	if(!handle_) throw winapi::EC::exception("ny::WinapiWindowContext: CreateWindowEx failed");
+	if(!handle_) throw winapi::lastErrorException("ny::WinapiWindowContext: CreateWindowEx failed");
 
 	{
 		// TODO: check for windows version > xp here.
@@ -211,29 +211,26 @@ void WinapiWindowContext::hide()
 	::ShowWindowAsync(handle_, SW_HIDE);
 }
 
-void WinapiWindowContext::addWindowHints(WindowHints hints)
+void WinapiWindowContext::customDecorated(bool set)
 {
-	if(hints & WindowHint::customDecorated) {
-		auto style = ::GetWindowLong(handle(), GWL_STYLE);
+	auto style = ::GetWindowLong(handle(), GWL_STYLE);
+	auto exStyle = ::GetWindowLong(handle(), GWL_EXSTYLE);
+
+	if(set) {
 		style &= ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU);
 		::SetWindowLong(handle(), GWL_STYLE, style);
 
-		auto exStyle = ::GetWindowLong(handle(), GWL_EXSTYLE);
 		exStyle &= ~(WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
 		::SetWindowLong(handle(), GWL_EXSTYLE, exStyle);
-	}
-}
-void WinapiWindowContext::removeWindowHints(WindowHints hints)
-{
-	if(hints & WindowHint::customDecorated) {
-		auto style = ::GetWindowLong(handle(), GWL_STYLE);
+	} else {
 		style |= (WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU);
 		::SetWindowLong(handle(), GWL_STYLE, style);
 
-		auto exStyle = ::GetWindowLong(handle(), GWL_EXSTYLE);
 		exStyle |= (WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
 		::SetWindowLong(handle(), GWL_EXSTYLE, exStyle);
 	}
+
+	customDecorated_ = set;
 }
 
 void WinapiWindowContext::size(nytl::Vec2ui size)
@@ -247,6 +244,8 @@ void WinapiWindowContext::position(nytl::Vec2i position)
 
 void WinapiWindowContext::cursor(const Cursor& cursor)
 {
+	using winapi::errorMessage;
+
 	if(cursor.type() == CursorType::image) {
 		auto img = cursor.image();
 		auto bitmap = winapi::toBitmap(img);
@@ -420,7 +419,7 @@ void WinapiWindowContext::icon(const Image& img)
 	auto pixelsData = data(uniqueImage);
 	icon_ = ::CreateIcon(hinstance(), img.size.x, img.size.y, 1, 32, nullptr, pixelsData);
 	if(!icon_) {
-		warning(errorMessage("ny::WinapiWindowContext::icon: CreateIcon failed"));
+		warning(winapi::errorMessage("ny::WinapiWindowContext::icon: CreateIcon failed"));
 		return;
 	}
 
@@ -444,8 +443,17 @@ WindowCapabilities WinapiWindowContext::capabilities() const
 		WindowCapability::fullscreen |
 		WindowCapability::minimize |
 		WindowCapability::maximize |
+		WindowCapability::fullscreen |
 		WindowCapability::position |
-		WindowCapability::sizeLimits;
+		WindowCapability::sizeLimits |
+		WindowCapability::icon |
+		WindowCapability::cursor |
+		WindowCapability::title |
+		WindowCapability::beginMove |
+		WindowCapability::beginResize |
+		WindowCapability::visibility |
+		WindowCapability::customDecoration |
+		WindowCapability::serverDecoration;
 }
 
 // win32 specific

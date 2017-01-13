@@ -42,7 +42,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ny/winapi/wglApi.hpp>
+#include <ny/winapi/wglApi.h>
 
 static HDC GLADWGLhdc = (HDC)INVALID_HANDLE_VALUE;
 

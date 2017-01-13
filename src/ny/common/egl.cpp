@@ -3,13 +3,12 @@
 // See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
 #include <ny/common/egl.hpp>
+#include <ny/common/eglApi.h>
 #include <ny/log.hpp>
 
-#include <EGL/egl.h>
 #include <stdexcept>
 #include <cstring>
-
-// TODO: api loading/library
+#include <mutex>
 
 namespace ny {
 namespace {
@@ -29,11 +28,66 @@ public:
 	std::string message(int code) const override;
 };
 
+// Needed to load the egl api using glad
+thread_local EglSetup* gLoaderSetup;
+std::once_flag loadEglFlag;
+
+extern "C" void* loadEglProcAddr(const char* name)
+{
+	if(!gLoaderSetup) {
+		warning("ny::Egl::loadEglProcAddr: called while gLoaderSetup == nullptr");
+		return nullptr;
+	}
+
+	return gLoaderSetup->eglLibrary().symbol(name);
+}
+
 } // anonymous util namespace
 
 // EglSetup
 EglSetup::EglSetup(void* nativeDisplay)
 {
+	// try to open suited egl libraries
+	constexpr const char* eglNames[] = {"EGL", "egl", "libEGL.dll"};
+	for(auto n : eglNames) {
+		eglLibrary_ = {n};
+		if(eglLibrary_) break;
+	}
+
+	if(!eglLibrary_)
+		throw std::runtime_error("ny::EglSetup: could not find EGL library");
+
+	std::call_once(loadEglFlag, [=]{
+		gLoaderSetup = this;
+		gladLoadEGLLoader(&loadEglProcAddr);
+		gLoaderSetup = nullptr;
+	});
+
+	// some dummy tests
+	if(!eglGetDisplay || !eglInitialize || !eglCreateContext || !eglCreateWindowSurface)
+		throw std::runtime_error("ny::EglSetup: Failed to load the egl api");
+
+	// XXX: is it a critical error if no gl/gles library can be found?
+	// they are only needed for the procAddr function
+	constexpr const char* glNames[] = {"GL", "gl", "opengl", "OpenGL"};
+	constexpr const char* glesNames[] = {"GLESV2", "GLESv2", "GLES", "gles", "libGLESV2.dll"};
+
+	for(auto n : glNames) {
+		glLibrary_ = {n};
+		if(glLibrary_) break;
+	}
+
+	if(!glLibrary_)
+		warning("ny::EglSetup: Could not find and load any gl library");
+
+	for(auto n : glesNames) {
+		glesLibrary_ = {n};
+		if(glesLibrary_) break;
+	}
+
+	if(!glesLibrary_)
+		warning("ny::EglSetup: Could not find and load any gles library");
+
 	// It does not matter if NativeDisplayType here is not the real NativeDisplayType that
 	// was passed to this function. If multiple platforms are supported, the egl implementation
 	// will treat it as void* anyways.
@@ -45,10 +99,13 @@ EglSetup::EglSetup(void* nativeDisplay)
 	if(!::eglInitialize(eglDisplay_, &major, &minor))
 		throw EglErrorCategory::exception("ny::EglSetup: eglInitialize failed");
 
-	log("ny::EglSetup: egl version: ", major, ".", minor);
+	if(major < 1 || (major == 1 && minor < 4)) {
+		error("ny::EglSetup: only egl version ", major, ".", minor, " supported");
+		throw std::runtime_error("ny::EglSetup: egl 1.4 not supported");
+	}
 
-	//query all available configs
-	//change this to only hold really required attributes
+	// query all available configs
+	// change this to only hold really required attributes
 	constexpr EGLint attribs[] = {
 		EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
 		EGL_RED_SIZE, 8,
@@ -97,8 +154,7 @@ EglSetup::EglSetup(void* nativeDisplay)
 		configs_.push_back(glconf);
 
 		auto rating = rate(configs_.back());
-		if(rating > highestRating)
-		{
+		if(rating > highestRating) {
 			highestRating = rating;
 			defaultConfig_ = &configs_.back(); // configs_ will never be reallocated
 		}
@@ -109,7 +165,7 @@ EglSetup::~EglSetup()
 {
 	if(eglDisplay_) {
 		::eglTerminate(eglDisplay_);
-		::eglReleaseThread(); // TODO: may be a problem if using multiple EglSetups in one thread
+		::eglReleaseThread();
 	}
 }
 
@@ -152,7 +208,15 @@ std::unique_ptr<GlContext> EglSetup::createContext(const GlContextSettings& sett
 
 void* EglSetup::procAddr(nytl::StringParam name) const
 {
-	auto ret = reinterpret_cast<void*>(::eglGetProcAddress(name));
+	auto ret = eglLibrary().symbol(name);
+	if(!ret) ret = reinterpret_cast<void*>(::eglGetProcAddress(name));
+
+	if(!ret) {
+		auto current = GlContext::current();
+		if(current && current->api() == GlApi::gl) ret = glLibrary().symbol(name);
+		else if(current) ret = glesLibrary().symbol(name);
+	}
+
 	return ret;
 }
 
@@ -168,7 +232,7 @@ EGLConfig EglSetup::eglConfig(GlConfigID id) const
 	return eglConfig;
 }
 
-//EglSurface
+// EglSurface
 EglSurface::EglSurface(EGLDisplay dpy, void* nw, GlConfigID configid, const EglSetup& setup)
 	: EglSurface(dpy, nw, configid ? setup.config(configid) : setup.defaultConfig(),
 		configid ? setup.eglConfig(configid) : setup.eglConfig(setup.defaultConfig().id))
@@ -230,7 +294,6 @@ EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 
 	EGLContext eglShareContext = nullptr;
 	if(settings.share) {
-		//do the context have to be associated with the same configs?
 		auto shareCtx = dynamic_cast<EglContext*>(settings.share);
 		if(!shareCtx)
 			throw GlContextError(GlContextErrc::invalidSharedContext, "ny::EglContext");
@@ -295,14 +358,17 @@ EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 
 	eglContext_ = ::eglCreateContext(eglDisplay, eglConfig, eglShareContext, contextAttribs.data());
 
-	if(!eglContext_ && ::eglGetError() == EGL_BAD_MATCH && !settings.forceVersion) {
+	// if(!eglContext_ && ::eglGetError() == EGL_BAD_MATCH && !settings.forceVersion) {
+	if(!eglContext_ && !settings.forceVersion) {
+		log("try again");
 		for(const auto& p : versionPairs) {
 			contextAttribs[contextAttribs.size() - 4] = p.first;
 			contextAttribs[contextAttribs.size() - 2] = p.second;
 			eglContext_ = ::eglCreateContext(eglDisplay, eglConfig, eglShareContext,
 				contextAttribs.data());
 
-			if(!eglContext_ && ::eglGetError() == EGL_BAD_MATCH) continue;
+			// if(!eglContext_ && ::eglGetError() == EGL_BAD_MATCH) continue;
+			if(!eglContext_) continue;
 			break;
 		}
 	}

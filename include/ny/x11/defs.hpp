@@ -4,7 +4,7 @@
 
 namespace ny::x11 {
 
-//All Motif WM Hints and structures.
+// All Motif WM Hints and structures.
 constexpr unsigned long mwmDecoBorder = (1L << 1);
 constexpr unsigned long mwmDecoResize = (1L << 2);
 constexpr unsigned long mwmDecoTitle = (1L << 3);
@@ -28,9 +28,9 @@ constexpr unsigned long mwmHintsInput = mwmDecoResize;
 constexpr unsigned long mwmHintsStatus = mwmDecoTitle;
 
 constexpr unsigned long mwmInputmodeless = (1L << 0);
-constexpr unsigned long mwmInputPrimaryAppmodal = mwmDecoBorder; //mWm_INPUT_PRImARY_APPLICATION_mODAL
+constexpr unsigned long mwmInputPrimaryAppmodal = mwmDecoBorder;
 constexpr unsigned long mwmInputSystemmodal = mwmDecoResize;
-constexpr unsigned long mwmInputFullAppmodal = mwmDecoTitle; //mWm_INPUT_FULL_APPLICATION_mODAL
+constexpr unsigned long mwmInputFullAppmodal = mwmDecoTitle;
 
 constexpr unsigned long mwmTearoffWindow = (1L << 0);
 

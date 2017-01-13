@@ -27,9 +27,6 @@ public:
 	void show() override;
 	void hide() override;
 
-	void addWindowHints(WindowHints hints) override;
-	void removeWindowHints(WindowHints hints) override;
-
 	void size(nytl::Vec2ui size) override;
 	void position(nytl::Vec2i position) override;
 
@@ -51,7 +48,8 @@ public:
 	void beginMove(const EventData* ev) override;
 	void beginResize(const EventData* ev, WindowEdges edges) override;
 
-	bool customDecorated() const override { return false; };
+	void customDecorated(bool set) override;
+	bool customDecorated() const override { return customDecorated_; };
 
 	void icon(const Image& img) override;
 	void title(nytl::StringParam title) override;
@@ -94,6 +92,8 @@ protected:
 
 	HWND handle_ = nullptr;
 	winapi::com::DropTargetImpl* dropTarget_ = nullptr; // referenced-counted (shared owned here)
+
+	bool customDecorated_ = false;
 
 	// If ownedCursor_ is true, cursor_ was created, otherwise it was loaded (and must not
 	// be destroyed). icon_ is always owned.

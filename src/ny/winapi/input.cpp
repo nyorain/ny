@@ -7,6 +7,7 @@
 #include <ny/winapi/util.hpp>
 #include <ny/winapi/windowContext.hpp>
 #include <ny/log.hpp>
+#include <ny/key.hpp>
 #include <ny/mouseButton.hpp>
 #include <nytl/utf.hpp>
 
@@ -168,8 +169,7 @@ WinapiKeyboardContext::WinapiKeyboardContext(WinapiAppContext& context) : contex
 
 bool WinapiKeyboardContext::pressed(Keycode key) const
 {
-	auto keyState = ::GetAsyncKeyState(keycodeToWinapi(key));
-	return ((1 << 16) & keyState);
+	return pressed(keycodeToWinapi(key));
 }
 
 std::string WinapiKeyboardContext::utf8(Keycode keycode) const
@@ -177,6 +177,24 @@ std::string WinapiKeyboardContext::utf8(Keycode keycode) const
 	auto it = keycodeUnicodeMap_.find(keycode);
 	if(it != keycodeUnicodeMap_.end()) return it->second;
 	return "";
+}
+
+KeyboardModifiers WinapiKeyboardContext::modifiers() const
+{
+	auto mods = KeyboardModifiers {};
+	if(pressed(VK_SHIFT)) mods |= KeyboardModifier::shift;
+	if(pressed(VK_CONTROL)) mods |= KeyboardModifier::ctrl;
+	if(pressed(VK_MENU)) mods |= KeyboardModifier::alt;
+	if(pressed(VK_LWIN) || pressed(VK_RWIN)) mods |= KeyboardModifier::super;
+	if(pressed(VK_CAPITAL)) mods |= KeyboardModifier::capsLock;
+	if(pressed(VK_NUMLOCK)) mods |= KeyboardModifier::numLock;
+	return mods;
+}
+
+bool WinapiKeyboardContext::pressed(unsigned int vkcode) const
+{
+	auto keyState = ::GetAsyncKeyState(vkcode);
+	return ((1 << 16) & keyState);
 }
 
 bool WinapiKeyboardContext::processEvent(const WinapiEventData& eventData, LRESULT& result)
@@ -228,6 +246,7 @@ bool WinapiKeyboardContext::processEvent(const WinapiEventData& eventData, LRESU
 			ke.keycode = keycode;
 			ke.eventData = &eventData;
 			ke.pressed = keyPressed;
+			ke.modifiers = modifiers();
 			wchar_t utf16[64];
 			auto bytes = ::ToUnicode(vkcode, scancode, state, utf16, 64, 0);
 			if(bytes > 0) {

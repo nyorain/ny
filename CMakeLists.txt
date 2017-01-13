@@ -76,7 +76,8 @@ cmake_dependent_option(WithGl
 
 cmake_dependent_option(WithEgl
 	"Built ny with EGL support. Requires GL" on
-	"WithGl;EGL_FOUND" off)
+	"WithGl" off)
+	# "WithGl;EGL_FOUND" off)
 
 cmake_dependent_option(WithVulkan
 	"Build ny with Vulkan support" on

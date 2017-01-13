@@ -209,7 +209,7 @@ unsigned int keycodeToWinapi(Keycode keycode)
 	for(auto& kc : keycodeConversions)
 		if(kc.keycode == keycode) return kc.vkcode;
 
-	return 0x0;
+	return 0u;
 }
 
 MouseButton winapiToButton(unsigned int code)
@@ -234,30 +234,8 @@ unsigned int buttonToWinapi(MouseButton button)
 		case MouseButton::middle: return VK_MBUTTON;
 		case MouseButton::custom1: return VK_XBUTTON1;
 		case MouseButton::custom2: return VK_XBUTTON2;
-		default: return 0;
+		default: return 0u;
 	}
-}
-
-std::string errorMessage(unsigned int code, const char* msg)
-{
-	std::string ret;
-	if(msg) ret += msg;
-
-	wchar_t buffer[512] = {};
-	auto size = ::FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, nullptr, code, 0, buffer,
-		sizeof(buffer), nullptr);
-
-	if(msg) ret += ": ";
-
-	if(size > 0) ret += narrow(buffer);
-	else ret += "<unkown winapi error>";
-
-	return ret;
-}
-
-std::string errorMessage(const char* msg)
-{
-	return errorMessage(::GetLastError(), msg);
 }
 
 const wchar_t* cursorToWinapi(CursorType type)
@@ -307,7 +285,7 @@ std::system_error WinapiErrorCategory::exception(nytl::StringParam msg)
 
 std::string WinapiErrorCategory::message(int code) const
 {
-	return errorMessage(code);
+	return winapi::errorMessage(code);
 }
 
 // The ugly hack our all lives depend on. You have found it. Congratulations!
@@ -329,7 +307,12 @@ namespace winapi {
 
 std::error_code lastErrorCode()
 {
-	return {static_cast<int>(::GetLastError()), EC::instance()};
+	return {static_cast<int>(::GetLastError()), WinapiErrorCategory::instance()};
+}
+
+std::system_error lastErrorException(nytl::StringParam msg)
+{
+	return WinapiErrorCategory::exception(msg);
 }
 
 HBITMAP toBitmap(const Image& img)
@@ -392,6 +375,28 @@ UniqueImage toImage(HBITMAP hbitmap)
 	ret.stride = stride;
 
 	return ret;
+}
+
+std::string errorMessage(unsigned int code, nytl::StringParam msg)
+{
+	std::string ret;
+	if(msg) ret += msg;
+
+	wchar_t buffer[512] = {};
+	auto size = ::FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, nullptr, code, 0, buffer,
+		sizeof(buffer), nullptr);
+
+	if(msg) ret += ": ";
+
+	if(size > 0) ret += narrow(buffer);
+	else ret += "<unkown winapi error>";
+
+	return ret;
+}
+
+std::string errorMessage(nytl::StringParam msg)
+{
+	return errorMessage(::GetLastError(), msg);
 }
 
 } // namespace winapi

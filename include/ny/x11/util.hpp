@@ -73,11 +73,6 @@ protected:
 	xcb_connection_t* xConnection_ {};
 };
 
-/// Tries to convert the given visual description with the given depth to an ImageDataFormat
-/// enumeration value. If there is no corresponding ImageDataFormat value, returns
-/// imageFormats::none.
-ImageFormat visualToFormat(const xcb_visualtype_t& visual, unsigned int depth);
-
 /// Returns the MouseButton enumeration value for the given x11 button id.
 /// Note that default x11 does only support 3 buttons for sure, so custom1 and custom2
 /// may not be correctly detected. If the button id
@@ -150,6 +145,11 @@ Property readProperty(xcb_connection_t&, xcb_atom_t prop, xcb_window_t,
 
 /// Returns an error string for an x11 error code.
 std::string errorMessage(Display&, unsigned int error);
+
+/// Tries to convert the given visual description with the given depth to an ImageDataFormat
+/// enumeration value. If there is no corresponding ImageDataFormat value, returns
+/// imageFormats::none.
+ImageFormat visualToFormat(const xcb_visualtype_t& visual, unsigned int depth);
 
 } // namespace x11
 } // namespace ny

@@ -5,31 +5,48 @@
 #pragma once
 
 #include <nytl/stringParam.hpp> // nytl::StringParam
+#include <nytl/flags.hpp> // nytl::Flags
 
 namespace ny {
 
-// Modeled after linux/input.h
-//
-// Note that the keycodes therefore directly match with the linux keycodes defined
-// in linux/input.h. They are also similiarly named.
-// Keys which names cannot be used as enum name are usually changed a bit.
-// If there is no possiblity to change the name (like e.g. for number keys 0-9) they
-// have a k (like key) prefix.
-//
-// Note that e.g. Keycode::a should never be treated as if the user pressed a keyboard
-// button labeled 'A'. The keycodes are only a platform and device independent way of
-// representing hardware keys that could be located on a standard us keyboard.
-// For keyboards with other character sets (like e.g. japanese or russian keyboards)
-// Keycode::a will be generated when the key that is at the location where the 'A' key
-// would be on an us keyboard. But that does neither mean that the key that was pressed
-// is labeled 'A' nor that the user does now expect to e.g. see an 'A' on screen.
-// One should not try to e.g. give keycodes names and represent them to the user
-// in any way e.g. as application controls (which seems to make sense first, but
-// users may not have any idea how to press the 'W' key for moving forward
-// when they have a japanese keyboard).
-//
-// Therefore the only use case for Keycodes is when handling special input keys such
-// as escape or leftshift that cannot be represented using unicode.
+/// Keyboard modifier
+/// Prefer these over checking whether the associated keys are pressed since
+/// there might or might not be multiple keys for the same modifier on different keyboard.
+enum class KeyboardModifier : unsigned int {
+	shift = (1 << 1),
+	ctrl = (1 << 2),
+	alt = (1 << 3),
+	super = (1 << 4), // aka "windows key"
+	capsLock = (1 << 5),
+	numLock = (1 << 6)
+};
+
+// Enum values from KeyboardModifier can be combined into nytl::Flags using bniary operations.
+NYTL_FLAG_OPS(KeyboardModifier)
+
+/// Keycodes representing hardware keys.
+/// Modeled after linux/input.h
+///
+/// Note that the keycodes therefore directly match with the linux keycodes defined
+/// in linux/input.h. They are also similiarly named.
+/// Keys which names cannot be used as enum name are usually changed a bit.
+/// If there is no possiblity to change the name (like e.g. for number keys 0-9) they
+/// have a k (like key) prefix.
+///
+/// Note that e.g. Keycode::a should never be treated as if the user pressed a keyboard
+/// button labeled 'A'. The keycodes are only a platform and device independent way of
+/// representing hardware keys that could be located on a standard us keyboard.
+/// For keyboards with other character sets (like e.g. japanese or russian keyboards)
+/// Keycode::a will be generated when the key that is at the location where the 'A' key
+/// would be on an us keyboard. But that does neither mean that the key that was pressed
+/// is labeled 'A' nor that the user does now expect to e.g. see an 'A' on screen.
+/// One should not try to e.g. give keycodes names and represent them to the user
+/// in any way e.g. as application controls (which seems to make sense first, but
+/// users may not have any idea how to press the 'W' key for moving forward
+/// when they have a japanese keyboard).
+///
+/// Therefore the only use case for Keycodes is when handling special input keys such
+/// as escape or leftshift that cannot be represented using unicode.
 enum class Keycode : unsigned int {
 	none = 0,
 	escape,
@@ -163,8 +180,8 @@ enum class Keycode : unsigned int {
 	hanguel = hangeul,
 	hanja,
 	yen,
-	leftmeta,
-	rightmeta,
+	leftmeta, // aka leftsuper
+	rightmeta, // aka rightsuper
 	compose,
 	stop,
 	again,
