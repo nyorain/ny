@@ -26,7 +26,7 @@ WinapiVulkanWindowContext::WinapiVulkanWindowContext(WinapiAppContext& ac,
 	auto* allocCbs = ws.vulkan.allocationCallbacks;
 	if(allocCbs) allocationCallbacks_ = std::make_unique<VkAllocationCallbacks>(*allocCbs);
 
-	auto surface = reinterpret_cast<VkSurfaceKHR>(vkSurface_);
+	auto& surface = reinterpret_cast<VkSurfaceKHR&>(vkSurface_);
 	auto res = vkCreateWin32SurfaceKHR(vkInstance_, &info, allocationCallbacks_.get(), &surface);
 	if(res != VK_SUCCESS)
 		throw std::runtime_error("ny::WinapiVulkanWindowContext: failed to create vulkan surface");

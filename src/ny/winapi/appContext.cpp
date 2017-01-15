@@ -444,9 +444,9 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 std::vector<const char*> WinapiAppContext::vulkanExtensions() const
 {
 	#ifdef NY_WithVulkan
-	return {VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME};
+		return {VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME};
 	#else
-	return {};
+		return {};
 	#endif // WithVulkan
 }
 

@@ -26,7 +26,7 @@ X11VulkanWindowContext::X11VulkanWindowContext(X11AppContext& ac,
 	auto* allocCbs = ws.vulkan.allocationCallbacks;
 	if(allocCbs) allocationCallbacks_ = std::make_unique<VkAllocationCallbacks>(*allocCbs);
 
-	auto surface = reinterpret_cast<VkSurfaceKHR>(vkSurface_);
+	auto& surface = reinterpret_cast<VkSurfaceKHR&>(vkSurface_);
 	auto res = vkCreateXcbSurfaceKHR(vkInstance_, &info, allocationCallbacks_.get(), &surface);
 	if(res != VK_SUCCESS)
 		throw std::runtime_error("ny::X11VulkanWindowContext: failed to create vulkan surface");
