@@ -13,7 +13,7 @@
 // The close function is implemented at the bottom of this file.
 class MyWindowListener : public ny::WindowListener {
 public:
-	ny::LoopControl* lc;
+	ny::LoopControl* lc {};
 	void close(const ny::CloseEvent& ev) override;
 };
 
