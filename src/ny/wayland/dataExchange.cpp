@@ -276,7 +276,7 @@ void WaylandDataSource::drawSurface()
 {
 	auto img = source_->image();
 	wl_surface_attach(dragSurface_, &dragBuffer_.wlBuffer(), 0, 0);
-	wl_surface_damage(dragSurface_, 0, 0, img.size.x, img.size.y);
+	wl_surface_damage(dragSurface_, 0, 0, img.size[0], img.size[1]);
 	wl_surface_commit(dragSurface_);
 }
 

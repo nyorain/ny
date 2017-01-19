@@ -165,4 +165,4 @@ public:
 	virtual ~WindowSettings() = default;
 };
 
-}
+} // namespace ny

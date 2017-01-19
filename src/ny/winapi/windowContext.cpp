@@ -106,8 +106,8 @@ void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 	auto size = settings.size;
 	auto position = settings.position;
 
-	if(position == defaultPosition) position.x = position.y = CW_USEDEFAULT;
-	if(size == defaultSize) size.x = size.y = CW_USEDEFAULT;
+	if(position == defaultPosition) position[0] = position[1] = CW_USEDEFAULT;
+	if(size == defaultSize) size[0] = size[1] = CW_USEDEFAULT;
 
 	// set the listener
 	if(settings.listener) listener(*settings.listener);
@@ -124,9 +124,10 @@ void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 	//
 	// Setting this flag can also really hit performance (e.g. resizing can lag) so
 	// this should probably only be set if really needed
-	// TODO: make this optional using WinapiWindowSettings
 
-	auto exstyle = WS_EX_APPWINDOW | WS_EX_LAYERED | WS_EX_OVERLAPPEDWINDOW;
+	auto exstyle = WS_EX_APPWINDOW |  WS_EX_OVERLAPPEDWINDOW;
+	if(settings.transparent) exstyle |= WS_EX_LAYERED;
+
 	handle_ = ::CreateWindowEx(
 		exstyle,
 		wndClassName_.c_str(),
@@ -136,9 +137,14 @@ void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 		size.x, size.y,
 		parent, nullptr, hinstance, this);
 
-	if(!handle_) throw winapi::lastErrorException("ny::WinapiWindowContext: CreateWindowEx failed");
+	if(!handle_)
+		throw winapi::lastErrorException("ny::WinapiWindowContext: CreateWindowEx failed");
 
-	{
+	// Set the userdata
+	std::uintptr_t ptr = reinterpret_cast<std::uintptr_t>(this);
+	::SetWindowLongPtr(handle_, GWLP_USERDATA, ptr);
+
+	if(settings.transparent) {
 		// TODO: check for windows version > xp here.
 		// Otherwise ny will no compile/run on xp
 
@@ -157,15 +163,12 @@ void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 		::SetLayeredWindowAttributes(handle(), 0x1, 0, LWA_COLORKEY);
 	}
 
-	// Set the userdata
-	std::uintptr_t ptr = reinterpret_cast<std::uintptr_t>(this);
-	::SetWindowLongPtr(handle_, GWLP_USERDATA, ptr);
-
-	// TODO: make this optional
-	// always register a drop target
-	dropTarget_ = new winapi::com::DropTargetImpl(*this);
-	dropTarget_->AddRef();
-	::RegisterDragDrop(handle(), dropTarget_);
+	// register a drop target
+	if(settings.droppable) {
+		dropTarget_ = new winapi::com::DropTargetImpl(*this);
+		dropTarget_->AddRef();
+		::RegisterDragDrop(handle(), dropTarget_);
+	}
 }
 
 void WinapiWindowContext::initDialog(const WinapiWindowSettings& settings)

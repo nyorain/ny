@@ -37,8 +37,8 @@ std::vector<uint8_t> serialize(const Image& image)
 	//width, height, stride stored as uint32_t
 	//format: for each channel: colorchannel 8 bits, bit size 8 bits
 	ret.resize((3 * 4) + image.format.size() * 2);
-	reinterpret_cast<uint32_t&>(ret[0]) = image.size.x;
-	reinterpret_cast<uint32_t&>(ret[4]) = image.size.y;
+	reinterpret_cast<uint32_t&>(ret[0]) = image.size[0];
+	reinterpret_cast<uint32_t&>(ret[4]) = image.size[1];
 	reinterpret_cast<uint32_t&>(ret[8]) = stride;
 
 	auto it = &ret[12];

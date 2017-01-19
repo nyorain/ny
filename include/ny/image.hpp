@@ -199,7 +199,7 @@ public:
 	P data {}; // raw image data. References at least std::ceil(stride * size.y / 8.0) * 8 bytes
 	nytl::Vec2ui size {}; // image size in pixels
 	ImageFormat format {}; // data format in word order (endian-native)
-	unsigned int stride {}; // stride in bits. At least size.x * bitSize(format)
+	unsigned int stride {}; // stride in bits. At least size[0] * bitSize(format)
 
 public:
 	constexpr BasicImage() = default;
@@ -207,7 +207,7 @@ public:
 
 	constexpr BasicImage(P xdata, nytl::Vec2ui xsize, const ImageFormat& fmt, unsigned int strd = 0)
 		: data(std::move(xdata)), size(xsize), format(fmt), stride(strd)
-		{ if(!stride) stride = size.x * bitSize(format); }
+		{ if(!stride) stride = size[0] * bitSize(format); }
 
 	template<typename O>
 	constexpr BasicImage(const BasicImage<O>& lhs)
@@ -269,13 +269,13 @@ constexpr const uint8_t* data(const BasicImage<std::unique_ptr<P>>& img)
 /// If the given image has no stride stored, calculates the stride.
 template<typename P>
 constexpr unsigned int bitStride(const BasicImage<P>& img)
-	{ return img.stride ? img.stride : img.size.x * bitSize(img.format); }
+	{ return img.stride ? img.stride : img.size[0] * bitSize(img.format); }
 
 /// Returns the stride of the given BasicImage in bytes (rounded up).
 /// If the given image has no stride stored, calculates the stride.
 template<typename P>
 constexpr unsigned int byteStride(const BasicImage<P>& img)
-	{ return img.stride ? std::ceil(img.stride / 8) : img.size.x * byteSize(img.format); }
+	{ return img.stride ? std::ceil(img.stride / 8) : img.size[0] * byteSize(img.format); }
 
 /// Returns the total amount of bytes the image data holds (rounded up).
 template<typename P>

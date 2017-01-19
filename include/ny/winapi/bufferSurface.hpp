@@ -26,6 +26,7 @@ protected:
 	WinapiWindowContext* windowContext_ {};
 	bool active_ {};
 	std::unique_ptr<std::uint8_t[]> data_;
+	unsigned int dataSize_ {};
 	nytl::Vec2ui size_ {};
 };
 

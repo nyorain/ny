@@ -120,8 +120,8 @@ int main()
 
 	std::cout << std::hex;
 	auto dump = [](auto&& img) {
-		for(auto y = 0u; y < img.size.y; ++y)
-			for(auto x = 0u; x < img.size.x; ++x)
+		for(auto y = 0u; y < img.size[0]; ++y)
+			for(auto x = 0u; x < img.size[0]; ++x)
 				std::cout << readPixel(img, {x, y}) << "\n";
 
 		std::cout << "=====\n\n";

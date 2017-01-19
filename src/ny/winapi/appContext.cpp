@@ -392,10 +392,10 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 		case WM_GETMINMAXINFO: {
 			if(wc) {
 				::MINMAXINFO* mmi = reinterpret_cast<MINMAXINFO*>(lparam);
-				mmi->ptMaxTrackSize.x = wc->maxSize().x;
-				mmi->ptMaxTrackSize.y = wc->maxSize().y;
-				mmi->ptMinTrackSize.x = wc->minSize().x;
-				mmi->ptMinTrackSize.y = wc->minSize().y;
+				mmi->ptMaxTrackSize.x = wc->maxSize()[0];
+				mmi->ptMaxTrackSize.y = wc->maxSize()[1];
+				mmi->ptMinTrackSize.x = wc->minSize()[0];
+				mmi->ptMinTrackSize.y = wc->minSize()[1];
 			}
 
 			break;

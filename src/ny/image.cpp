@@ -47,7 +47,7 @@ ImageFormat toggleByteWordOrder(const ImageFormat& format)
 
 unsigned int pixelBit(const Image& image, nytl::Vec2ui pos)
 {
-	return image.stride * pos.y + bitSize(image.format) * pos.x;
+	return image.stride * pos[1] + bitSize(image.format) * pos[0];
 }
 
 nytl::Vec4u64 readPixel(const uint8_t& pixel, const ImageFormat& format, unsigned int bitOffset)
@@ -243,18 +243,18 @@ nytl::Vec4u64 downscale(nytl::Vec4u64 color, const ImageFormat& format)
 bool satisfiesRequirements(const Image& img, const ImageFormat& format,
 	unsigned int strideAlign)
 {
-	auto smallestStride = img.size.x * bitSize(format);
+	auto smallestStride = img.size[0] * bitSize(format);
 	if(strideAlign) smallestStride = align(smallestStride, strideAlign);
 	return (img.format == format && bitStride(img) == smallestStride);
 }
 
 UniqueImage convertFormat(const Image& img, ImageFormat to, unsigned int alignNewStride)
 {
-	auto newStride = img.size.x * bitSize(to);
+	auto newStride = img.size[0] * bitSize(to);
 	if(alignNewStride) newStride = align(newStride, alignNewStride);
 
 	UniqueImage ret;
-	ret.data = std::make_unique<std::uint8_t[]>(std::ceil((newStride * img.size.y) / 8.0));
+	ret.data = std::make_unique<std::uint8_t[]>(std::ceil((newStride * img.size[1]) / 8.0));
 	ret.size = img.size;
 	ret.format = to;
 	ret.stride = newStride;
@@ -270,11 +270,11 @@ void convertFormat(const Image& img, ImageFormat to, uint8_t& into, unsigned int
 		return;
 	}
 
-	auto newStride = img.size.x * bitSize(to);
+	auto newStride = img.size[0] * bitSize(to);
 	if(alignNewStride) newStride = align(newStride, alignNewStride);
 
-	for(auto y = 0u; y < img.size.y; ++y) {
-		for(auto x = 0u; x < img.size.x; ++x) {
+	for(auto y = 0u; y < img.size[1]; ++y) {
+		for(auto x = 0u; x < img.size[0]; ++x) {
 			auto color = downscale(readPixel(img, {x, y}), to);
 			auto bit = y * newStride + x * bitSize(to);
 			writePixel(*(&into + bit / 8), to, color, bit % 8);
@@ -288,8 +288,8 @@ void premultiply(const MutableImage& img)
 	for(auto& channel : img.format) if(channel.first == ColorChannel::alpha) alpha = true;
 	if(!alpha) return;
 
-	for(auto y = 0u; y < img.size.y; ++y) {
-		for(auto x = 0u; x < img.size.x; ++x) {
+	for(auto y = 0u; y < img.size[1]; ++y) {
+		for(auto x = 0u; x < img.size[0]; ++x) {
 			auto color = readPixel(img, {x, y});
 			auto alpha = norm(color, img.format).w;
 			color[0] *= alpha;

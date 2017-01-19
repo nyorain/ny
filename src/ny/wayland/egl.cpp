@@ -32,7 +32,7 @@ class WaylandEglSurface : public EglSurface {
 WaylandEglWindowContext::WaylandEglWindowContext(WaylandAppContext& ac, const EglSetup& setup,
 	const WaylandWindowSettings& ws) : WaylandWindowContext(ac, ws)
 {
-	wlEglWindow_ = wl_egl_window_create(&wlSurface(), ws.size.x, ws.size.y);
+	wlEglWindow_ = wl_egl_window_create(&wlSurface(), ws.size[0], ws.size[1]);
 	if(!wlEglWindow_)
 		throw std::runtime_error("ny::WaylandEglWindowContext: wl_egl_window_create failed");
 
@@ -52,7 +52,7 @@ WaylandEglWindowContext::~WaylandEglWindowContext()
 void WaylandEglWindowContext::size(nytl::Vec2ui size)
 {
 	WaylandWindowContext::size(size);
-	wl_egl_window_resize(wlEglWindow_, size.x, size.y, 0, 0);
+	wl_egl_window_resize(wlEglWindow_, size[0], size[1], 0, 0);
 }
 
 Surface WaylandEglWindowContext::surface()

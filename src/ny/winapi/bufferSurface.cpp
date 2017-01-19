@@ -4,7 +4,6 @@
 
 #include <ny/winapi/bufferSurface.hpp>
 #include <ny/log.hpp>
-#include <nytl/vecOps.hpp>
 #include <windows.h>
 
 namespace ny {
@@ -24,16 +23,17 @@ BufferGuard WinapiBufferSurface::buffer()
 		throw std::logic_error("ny::WinapiBufferSurface::get: has already an active BufferGuard");
 
 	auto currSize = nytl::Vec2ui(windowContext().clientExtents().size);
-	auto currTotal = currSize.x * currSize.y;
+	auto currTotal = currSize[0] * currSize[1] * 4;
 
-	// TODO: allocate more than needed? store really allocated size
-	if(currTotal > size_.x * size_.y)
-		data_ = std::make_unique<std::uint8_t[]>(currTotal * 4);
+	if(currTotal > dataSize_) {
+		dataSize_ = currTotal * 4; // allocate more storage than needed
+		data_ = std::make_unique<std::uint8_t[]>(dataSize_);
+	}
 
 	size_ = currSize;
 	active_ = true;
 
-	return {*this, {data_.get(), size_, imageFormats::argb8888, size_.x * 32}};
+	return {*this, {data_.get(), size_, imageFormats::argb8888, size_[0] * 32}};
 }
 void WinapiBufferSurface::apply(const BufferGuard& bufferGuard) noexcept
 {
@@ -43,12 +43,12 @@ void WinapiBufferSurface::apply(const BufferGuard& bufferGuard) noexcept
 	}
 
 	active_ = false;
-	auto bitmap = ::CreateBitmap(size_.x, size_.y, 1, 32, data_.get());
+	auto bitmap = ::CreateBitmap(size_[0], size_[1], 1, 32, data_.get());
 	auto whdc = ::GetDC(windowContext().handle());
 	auto bhdc = ::CreateCompatibleDC(whdc);
 
 	auto prev = ::SelectObject(bhdc, bitmap);
-	::BitBlt(whdc, 0, 0, size_.x, size_.y, bhdc, 0, 0, SRCCOPY);
+	::BitBlt(whdc, 0, 0, size_[0], size_[1], bhdc, 0, 0, SRCCOPY);
 	::SelectObject(bhdc, prev);
 
 	::DeleteDC(bhdc);

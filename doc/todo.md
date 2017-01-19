@@ -42,8 +42,6 @@
 		give them a similiar signature to the WindowListener callbacks
 - some common util file/dir for e.g. ConnectionList and LoopInterfaceGuard
 	(both not really public include where they are atm, both not really src)
-- dataExchange: make whole usage optional with WindowContext windowflags?
-	- e.g. winapi: DropTarget is always register atm.
 - normalize wheel input values in some way across backends
 	- like value 1 if one "tick" was scrolled?
 - general keydown/keyup unicode value specificiation (cross-platform, differents atm)
@@ -58,7 +56,6 @@
 	- most applications want to draw in some way
 	- also default clear the buffer in some way? or set a flag for this with
 		default set to true?
-- use pass-by-value for nytl::Vec2 params, everywhere
 - test image and uri serialize/deserialize
 - popups and dialogs -> different window types (especially modal ones!)
 - some kind of dnd offer succesful feedback
@@ -139,7 +136,6 @@ wayland backend:
 winapi backend:
 ---------------
 
-- winapi bufferSurface pre-allocate bigger buffer (lien l30)
 - egl backend (see egl.cpp)
 	- optional instead of wgl
 	- check if available, use wgl instead

@@ -104,7 +104,7 @@ ShmBuffer::ShmBuffer(WaylandAppContext& ac, nytl::Vec2ui size, unsigned int stri
 	: appContext_(&ac), size_(size), stride_(stride)
 {
 	format_ = WL_SHM_FORMAT_ARGB8888;
-	if(!stride_) stride_ = size.x * 4;
+	if(!stride_) stride_ = size[0] * 4;
 	create();
 }
 
@@ -210,7 +210,7 @@ bool ShmBuffer::size(nytl::Vec2ui size, unsigned int stride)
 	size_ = size;
 	stride_ = stride;
 
-	if(!stride_) stride_ = size.x * 4;
+	if(!stride_) stride_ = size[0] * 4;
 	unsigned int vecSize = stride_ * size_.y;
 
 	if(!size_.x || !size_.y) throw std::runtime_error("ny::wayland::ShmBuffer invalid size");
