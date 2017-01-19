@@ -64,7 +64,7 @@ X11BufferSurface::X11BufferSurface(X11WindowContext& wc) : windowContext_(&wc)
 	if(!fmt)
 		throw std::runtime_error("ny::X11BufferSurface: couldn't query depth format bpp");
 
-	format_ = visualToFormat(*windowContext().xVisualType(), fmt->bits_per_pixel);
+	format_ = x11::visualToFormat(*windowContext().xVisualType(), fmt->bits_per_pixel);
 	if(format_ == imageFormats::none)
 		throw std::runtime_error("ny::X11BufferSurface: couldn't parse visual format");
 

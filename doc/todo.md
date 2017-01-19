@@ -2,19 +2,22 @@
 
 ### priority
 
-- implement windowHints/keyboard modifier changes for x11/wayland
 - egl/wgl/glx library loading (dynamically load opengl)
 	- link e.g. core egl statically?
 - fix examples
 	- remove unneeded ones
 - fix WindowSettings handling for backends
 - fix WindowCapabilites for backends
+	- make return value dependent on child or toplevel window
+	- query server caps if possible
 - AppContext error handling? Give the application change to retrieve some error (code,
 	exception?) when e.g. AppContext::dispatchLoop returns false
 	- also: AsyncRequest wait return type? the bool return type is rather bad.
 		perfer excpetions in AppContext for critical errors? would really make more sense...
 		the function might already throw if any listener/callback throw so it should
 		throw on critical errors!
+	- or is it ok this way? applications ususually can't do much about critical errors...
+		and to modify where ny logs it, they can just change the log streams
 
 ### later; general; rework needed
 
@@ -118,6 +121,8 @@ x11 backend:
 - egl support instead of/additionally to glx?
 - KeyboardContext: correct xkb keymap recreation/ event handling
 - send correct StateEvents (check for change in configure events?)
+- customDecorated: query current de/window manager to guess if they support motif
+	- any other (better) way to query this?
 
 wayland backend:
 ---------------

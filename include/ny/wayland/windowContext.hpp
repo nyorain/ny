@@ -65,9 +65,8 @@ public:
     void title(nytl::StringParam name) override;
 	void icon(const Image&) override {}
 
+	void customDecorated(bool) override {}
 	bool customDecorated() const override { return true; }
-	void addWindowHints(WindowHints hints) override;
-	void removeWindowHints(WindowHints hints) override;
 
     // - wayland specific -
     wl_surface& wlSurface() const { return *wlSurface_; };

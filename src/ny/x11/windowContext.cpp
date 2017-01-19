@@ -93,7 +93,6 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 				XCB_ATOM_STRING, 8, settings.title.size(), settings.title.c_str());
 	}
 
-	// TODO:
 	// signal that this window understands the xdnd protocol
 	// version 5 of the xdnd protocol is supported
 	unsigned int version = 5;
@@ -158,7 +157,7 @@ void X11WindowContext::initVisual()
 			// make it possible to explicitly request 24 bit instead of 32
 			auto visual_iter = xcb_depth_visuals_iterator(depth_iter.data);
 			for(; visual_iter.rem; xcb_visualtype_next(&visual_iter)) {
-				auto format = visualToFormat(*visual_iter.data, avDepth);
+				auto format = x11::visualToFormat(*visual_iter.data, avDepth);
 				if(score(format) > highestScore) visualID_ = visual_iter.data->visual_id;
 			}
 
@@ -412,158 +411,43 @@ void X11WindowContext::reparentEvent()
 	position(settings_.position);
 }
 
+void X11WindowContext::customDecorated(bool set)
+{
+	x11::MwmHints mhints;
+	mhints.flags = x11::mwmHintsDeco | x11::mwmHintsFunc;
+
+	if(!set) {
+		mhints.decorations = x11::mwmDecoAll;
+		mhints.functions = x11::mwmFuncAll;
+	}
+
+	xcb_change_property(&xConnection(), XCB_PROP_MODE_REPLACE, xWindow(),
+		appContext().atoms().motifWmHints, XCB_ATOM_CARDINAL, 32, sizeof(x11::MwmHints) / 32,
+		reinterpret_cast<std::uint32_t*>(&mhints));
+}
+
 bool X11WindowContext::customDecorated() const
 {
-	return false;
+	return customDecorated_;
 }
 
 WindowCapabilities X11WindowContext::capabilities() const
 {
+	// TODO; query if curstom and server decoration are really supported!
 	return WindowCapability::size |
 		WindowCapability::fullscreen |
 		WindowCapability::minimize |
 		WindowCapability::maximize |
 		WindowCapability::position |
-		WindowCapability::sizeLimits;
-}
-
-void X11WindowContext::addWindowHints(WindowHints hints)
-{
-	// TODO
-	nytl::unused(hints);
-
-	// unsigned long motifDeco = 0;
-	// unsigned long motifFunc = 0;
-	// bool customDecorated = 0;
-
-	/*
-	if(window().windowHints() & windowHints::customDecorated)
-	{
-		if(mwmDecoHints_ != 0)
-		{
-			mwmDecoHints_ = 0;
-			mwmHints(mwmDecoHints_, mwmFuncHints_);
-		}
-
-		customDecorated = 1;
-	}
-	if(hints & windowHints::close)
-	{
-		motifFunc |= x11::MwmFuncClose;
-		addAllowedAction(x11::AllowedActionClose);
-	}
-	if(hints & windowHints::maximize)
-	{
-		motifFunc |= x11::MwmFuncMaximize;
-		motifDeco |= x11::MwmDecoMaximize;
-
-		addAllowedAction(x11::AllowedActionMaximizeHorz);
-		addAllowedAction(x11::AllowedActionMaximizeVert);
-	}
-
-	if(hints & windowHints::minimize)
-	{
-		motifFunc |= x11::MwmFuncMinimize;
-		motifDeco |= x11::MwmDecoMinimize;
-
-		addAllowedAction(x11::AllowedActionMinimize);
-	}
-	if(hints & windowHints::move)
-	{
-		motifFunc |= x11::MwmFuncMove;
-		motifDeco |= x11::MwmDecoTitle;
-
-		addAllowedAction(x11::AllowedActionMove);
-	}
-	if(hints & windowHints::resize)
-	{
-		motifFunc |= x11::MwmFuncResize;
-		motifDeco |= x11::MwmDecoResize;
-
-		addAllowedAction(x11::AllowedActionResize);
-	}
-	if(hints & windowHints::showInTaskbar)
-	{
-		removeState(x11::StateSkipPager);
-		removeState(x11::StateSkipTaskbar);
-	}
-	if(hints & windowHints::alwaysOnTop)
-	{
-		addState(x11::StateAbove);
-	}
-
-	if(customDecorated)
-	{
-		motifDeco = 0;
-	}
-
-	if(motifFunc != 0 || motifDeco != 0)
-	{
-		mwmFuncHints_ |= motifFunc;
-		mwmDecoHints_ |= motifDeco;
-		mwmHints(mwmDecoHints_, mwmFuncHints_);
-	}
-	*/
-}
-void X11WindowContext::removeWindowHints(WindowHints hints)
-{
-	// TODO
-	nytl::unused(hints);
-
-	// unsigned long motifDeco = 0;
-	// unsigned long motifFunc = 0;
-
-	/*
-	if(hints & windowHints::close)
-	{
-		motifFunc |= x11::MwmFuncClose;
-		removeAllowedAction(x11::AllowedActionClose);
-	}
-	if(hints & windowHints::maximize)
-	{
-		motifFunc |= x11::MwmFuncMaximize;
-		motifDeco |= x11::MwmDecoMaximize;
-
-		removeAllowedAction(x11::AllowedActionMaximizeHorz);
-		removeAllowedAction(x11::AllowedActionMaximizeVert);
-	}
-
-	if(hints & windowHints::minimize)
-	{
-		motifFunc |= x11::MwmFuncMinimize;
-		motifDeco |= x11::MwmDecoMinimize;
-
-		removeAllowedAction(x11::AllowedActionMinimize);
-	}
-	if(hints & windowHints::move)
-	{
-		motifFunc |= x11::MwmFuncMove;
-		motifDeco |= x11::MwmDecoTitle;
-
-		removeAllowedAction(x11::AllowedActionMove);
-	}
-	if(hints & windowHints::resize)
-	{
-		motifFunc |= x11::MwmFuncResize;
-		motifDeco |= x11::MwmDecoResize;
-
-		removeAllowedAction(x11::AllowedActionResize);
-	}
-	if(hints & windowHints::showInTaskbar)
-	{
-		addState(x11::StateSkipPager);
-		addState(x11::StateSkipTaskbar);
-	}
-	if(hints & windowHints::alwaysOnTop)
-	{
-		removeState(x11::StateAbove);
-	}
-
-	mwmFuncHints_ &= ~motifFunc;
-	mwmDecoHints_ &= ~motifDeco;
-
-	mwmHints(mwmDecoHints_, mwmFuncHints_);
-	*/
+		WindowCapability::sizeLimits |
+		WindowCapability::icon |
+		WindowCapability::cursor |
+		WindowCapability::title |
+		WindowCapability::beginMove |
+		WindowCapability::beginResize |
+		WindowCapability::visibility |
+		WindowCapability::customDecoration |
+		WindowCapability::serverDecoration;
 }
 
 // x11 specific
@@ -602,67 +486,8 @@ void X11WindowContext::toggleStates(xcb_atom_t state1, xcb_atom_t state2)
 		state1, state2, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
 }
 
-void X11WindowContext::mwmHints(unsigned long deco, unsigned long func, bool d, bool f)
-{
-	x11::MwmHints mhints;
-	if(d) {
-		mwmDecoHints_ = deco;
-		mhints.flags |= x11::mwmHintsDeco;
-		mhints.decorations = deco;
-	}
-
-	if(f) {
-		mwmFuncHints_ = func;
-		mhints.flags |= x11::mwmHintsFunc;
-		mhints.functions = func;
-	}
-
-	// XXX: use XCB_ATOM_ATOM?
-	xcb_change_property(&xConnection(), XCB_PROP_MODE_REPLACE, xWindow(),
-		appContext().atoms().motifWmHints, XCB_ATOM_CARDINAL, 32, sizeof(x11::MwmHints) / 32,
-		reinterpret_cast<std::uint32_t*>(&mhints));
-}
-
-unsigned long X11WindowContext::mwmFunctionHints() const
-{
-	// TODO
-	return 0;
-}
-
-unsigned long X11WindowContext::mwmDecorationHints() const
-{
-	// TODO
-	return 0;
-}
-
 void X11WindowContext::addAllowedAction(xcb_atom_t action)
 {
-	/*
-	XEvent ev;
-
-	ev.type = ClientMessage;
-	ev.xclient.window = xWindow_;
-	ev.xclient.message_type = x11::AllowedActions;
-	ev.xclient.format = 32;
-
-	ev.xclient.data.l[0] = 1; //add
-	ev.xclient.data.l[1] = action;
-	ev.xclient.data.l[2] = 0;
-
-	XSendEvent(xDisplay(), DefaultRootWindow(xDisplay()), False, SubstructureNotifyMask, &ev);
-
-	///XXX
-	xcb_client_message_event_t ev;
-	ev.response_type = XCB_CLIENT_MESSAGE;
-	ev.type = ewmhConnection()->_NET_WM_ALLOWED_ACTIONS;
-
-	ev.data.data32[0] = 1; //add
-	ev.data.data32[1] = action;
-	ev.data.data32[2] = 0;
-
-	xcb_send_event(&xConnection(), appContext().xDefaultScreen()->root, );
-	*/
-
 	std::uint32_t data[] = {1, action, 0};
 	xcb_ewmh_send_client_message(&xConnection(), xWindow(), appContext().xDefaultScreen().root,
 		ewmhConnection()._NET_WM_ALLOWED_ACTIONS, 3, data);
@@ -670,21 +495,6 @@ void X11WindowContext::addAllowedAction(xcb_atom_t action)
 
 void X11WindowContext::removeAllowedAction(xcb_atom_t action)
 {
-	/*
-	XEvent ev;
-
-	ev.type = ClientMessage;
-	ev.xclient.window = xWindow_;
-	ev.xclient.message_type = x11::AllowedActions;
-	ev.xclient.format = 32;
-
-	ev.xclient.data.l[0] = 0; //remove
-	ev.xclient.data.l[1] = action;
-	ev.xclient.data.l[2] = 0;
-
-	XSendEvent(xDisplay(), DefaultRootWindow(xDisplay()), False, SubstructureNotifyMask, &ev);
-	*/
-
 	std::uint32_t data[] = {0, action, 0};
 	xcb_ewmh_send_client_message(&xConnection(), xWindow(), appContext().xDefaultScreen().root,
 		ewmhConnection()._NET_WM_ALLOWED_ACTIONS, 3, data);
@@ -715,12 +525,6 @@ void X11WindowContext::transientFor(xcb_window_t other)
 void X11WindowContext::xWindowType(xcb_window_t type)
 {
 	xcb_ewmh_set_wm_window_type(&ewmhConnection(), xWindow(), 1, &type);
-}
-
-xcb_atom_t X11WindowContext::xWindowType()
-{
-	// TODO
-	return {};
 }
 
 void X11WindowContext::overrideRedirect(bool redirect)

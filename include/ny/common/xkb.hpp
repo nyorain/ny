@@ -37,6 +37,7 @@ xkb_keycode_t keyToXkb(Keycode key);
 class XkbKeyboardContext : public KeyboardContext, public nytl::NonMovable {
 public:
 	std::string utf8(Keycode) const override;
+	KeyboardModifiers modifiers() const override;
 
 	//specific
 	xkb_context& xkbContext() const { return *xkbContext_; }

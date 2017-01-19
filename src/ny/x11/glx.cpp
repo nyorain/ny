@@ -5,8 +5,8 @@
 #include <ny/x11/glx.hpp>
 #include <ny/x11/windowContext.hpp>
 #include <ny/x11/appContext.hpp>
-#include <ny/x11/glxApi.hpp>
 #include <ny/x11/util.hpp>
+#include <ny/x11/glxApi.h>
 #include <ny/surface.hpp>
 #include <ny/log.hpp>
 

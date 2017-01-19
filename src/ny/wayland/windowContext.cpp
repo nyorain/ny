@@ -282,15 +282,6 @@ void WaylandWindowContext::hide()
 	attachCommit(nullptr);
 }
 
-void WaylandWindowContext::addWindowHints(WindowHints hints)
-{
-	nytl::unused(hints);
-}
-void WaylandWindowContext::removeWindowHints(WindowHints hints)
-{
-	nytl::unused(hints);
-}
-
 void WaylandWindowContext::size(nytl::Vec2ui size)
 {
 	size_ = size;
@@ -379,7 +370,12 @@ WindowCapabilities WaylandWindowContext::capabilities() const
 	return WindowCapability::size |
 		WindowCapability::fullscreen |
 		WindowCapability::minimize |
-		WindowCapability::maximize;
+		WindowCapability::maximize |
+		WindowCapability::cursor |
+		WindowCapability::title |
+		WindowCapability::beginMove |
+		WindowCapability::beginResize |
+		WindowCapability::customDecoration;
 }
 
 void WaylandWindowContext::maximize()

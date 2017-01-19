@@ -3,9 +3,11 @@
 // See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
 #include <ny/common/xkb.hpp>
+#include <ny/key.hpp>
 
 #include <nytl/vec.hpp>
 #include <nytl/utf.hpp>
+#include <nytl/flags.hpp>
 
 #include <xkbcommon/xkbcommon.h>
 #include <xkbcommon/xkbcommon-compose.h>
@@ -100,6 +102,28 @@ std::string XkbKeyboardContext::utf8(Keycode key) const
 	xkb_state_key_get_utf8(state, code, &ret[0], ret.size());
 
 	xkb_state_unref(state);
+	return ret;
+}
+
+KeyboardModifiers XkbKeyboardContext::modifiers() const
+{
+	struct {
+		const char* xkb;
+		KeyboardModifier modifier;
+	} mappings[] = {
+		{"Shift", KeyboardModifier::shift},
+		{"Lock", KeyboardModifier::capsLock},
+		{"Control", KeyboardModifier::ctrl},
+		{"Mod1", KeyboardModifier::alt},
+		{"Mod2", KeyboardModifier::numLock},
+		{"Mod4", KeyboardModifier::super}
+	};
+
+	KeyboardModifiers ret {};
+	for(const auto& mapping : mappings)
+		if(xkb_state_mod_name_is_active(&xkbState(), mapping.xkb, XKB_STATE_MODS_EFFECTIVE))
+			ret |= mapping.modifier;
+
 	return ret;
 }
 
