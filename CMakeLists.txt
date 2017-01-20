@@ -2,7 +2,7 @@
 # Distributed under the Boost Software License, Version 1.0.
 # See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
-cmake_minimum_required (VERSION 3.1.0)
+cmake_minimum_required (VERSION 3.2)
 project(ny)
 
 # increase this version on a new release
@@ -16,7 +16,7 @@ option(Debug "Include debug symbols" on)
 option(DependOnNytl "Make ny depend on nytl. Developement option" on)
 
 # to disable ninja byproduct warning
-cmake_policy(SET CMP0058 NEW)
+# cmake_policy(SET CMP0058 NEW)
 
 # include dirs
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include") # public headers
@@ -63,7 +63,7 @@ find_package(Vulkan)
 if(UNIX)
 	find_package(X11 COMPONENTS Xcursor)
 	find_package(XCB COMPONENTS ewmh xkb image icccm shm)
-	find_package(Wayland)
+	find_package(Wayland COMPONENTS client egl)
 	find_package(XKBCommon)
 endif()
 
@@ -89,7 +89,7 @@ cmake_dependent_option(WithXkbCommon
 
 cmake_dependent_option(WithX11
 	"Build ny with an x11 backend" on
-	"WithXkbCommon;X11_FOUND;XCB_FOUND" off)
+	"WithXkbCommon;X11_FOUND;XCB_FOUND;XCB_EWMH_FOUND;XCB_ICCCM_FOUND" off)
 
 cmake_dependent_option(WithWayland
 	"Build ny with a wayland backend" on

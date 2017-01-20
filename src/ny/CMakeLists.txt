@@ -88,11 +88,13 @@ if(WithWayland)
 		wayland/protocols/xdg-shell-v5.c
 		wayland/protocols/xdg-shell-v6.c)
 
-	list(APPEND ny_libs ${WAYLAND_LIBRARIES})
-	list(APPEND ny_include ${WAYLAND_INCLUDE_DIRS})
+	list(APPEND ny_libs ${WAYLAND_CLIENT_LIBRARIES} ${WAYLAND_CURSOR_LIBRARIES})
+	list(APPEND ny_include ${WAYLAND_CLIENT_INCLUDE_DIRS} ${WAYLAND_CURSOR_INCLUDE_DIRS})
 
 	if(WithEgl)
 		list(APPEND ny_src wayland/egl.cpp)
+		list(APPEND ny_libs ${WAYLAND_EGL_LIBRARIES})
+		list(APPEND ny_include ${WAYLAND_EGLT_INCLUDE_DIRS})
 	endif()
 
 	if(WithVulkan)

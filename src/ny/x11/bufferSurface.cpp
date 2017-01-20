@@ -139,10 +139,10 @@ void X11BufferSurface::apply(const BufferGuard&) noexcept
 
 	active_ = false;
 
-	// we use the checked versions here since those function are very error prone due to
+	// XXX: we use the checked versions here since those function are very error prone due to
 	// the rather complex depth/visual/bpp x system. We catch invalid x request here
 	// directly.
-	// XXX: maybe remove this later on if tested enough?
+	// maybe remove this later on if tested enough?
 
 	auto depth = windowContext().visualDepth();
 	auto window = windowContext().xWindow();

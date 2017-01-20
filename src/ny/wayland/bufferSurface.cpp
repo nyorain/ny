@@ -55,7 +55,7 @@ void WaylandBufferSurface::apply(const BufferGuard& buffer) noexcept
 		return;
 	}
 
-	if(windowContext().shown()) windowContext().attachCommit(&active_->wlBuffer());
+	windowContext().attachCommit(&active_->wlBuffer());
 	active_ = nullptr;
 }
 

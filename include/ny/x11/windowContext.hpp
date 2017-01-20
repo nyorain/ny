@@ -128,21 +128,29 @@ public:
 	/// visual type (since it also counts the alpha bits).
 	unsigned int visualDepth() const { return depth_; }
 
+	/// Returns whether this window is droppable, i.e. if it handles drop events.
+	/// This value is set in the passed WindowSettings on window creation.
+	bool droppable() const { return droppable_; }
+
 protected:
 	/// Default Constructor only for derived classes that later call the create function.
 	X11WindowContext() = default;
 
-	/// Creates the x11 window.
-	/// This extra function may be needed by derived drawType classes.
+	/// Inits the x11 window from the given settings.
+	/// Will initialize the visual if it was not already set.
+	/// May be needed by derived classes.
 	void create(X11AppContext& ctx, const X11WindowSettings& settings);
+
+	/// Creates the window for the givne WindowSettings.
+	/// Will initialize the visual if it was not already set.
+	/// Called only during initialization.
+	void createWindow(const X11WindowSettings& settings);
 
 	/// The different context classes derived from this class may override this function to
 	/// select a custom visual for the window or query it in a different way connected with
 	/// more information.
-	/// Will automatically be called by the create function if the xVisualtype_ member variable is
-	/// not set yet (since it is needed for window creation).
-	/// By default, this just selects the 32 or 24 bit visual with the best format.
-	virtual void initVisual();
+	/// By default, this just selects the 32 or 24 bit visual with the most usual format.
+	void initVisual(const X11WindowSettings& settings);
 
 protected:
 	X11AppContext* appContext_ = nullptr;

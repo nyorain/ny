@@ -18,6 +18,13 @@
 		throw on critical errors!
 	- or is it ok this way? applications ususually can't do much about critical errors...
 		and to modify where ny logs it, they can just change the log streams
+- fix config:
+	- which cmake version is needed?
+	- see: gl linkin/building
+	- better find xcb cmake script
+		- make sure icccm and ewmh are found (are they available everywhere?)
+	- test wayland config
+		- wayland without egl, wayland without cursor library
 
 ### later; general; rework needed
 
@@ -40,8 +47,6 @@
 - MouseContext callbacks delta value might go crazy when changing over (mouseCross)
 	- reorder <Mouse/Keyobard>Context callback parameters/use Event structs as well
 		give them a similiar signature to the WindowListener callbacks
-- some common util file/dir for e.g. ConnectionList and LoopInterfaceGuard
-	(both not really public include where they are atm, both not really src)
 - normalize wheel input values in some way across backends
 	- like value 1 if one "tick" was scrolled?
 - general keydown/keyup unicode value specificiation (cross-platform, differents atm)
@@ -88,6 +93,10 @@ further improvements:
 low prio, for later:
 ====================
 
+- some common util file/dir for e.g. ConnectionList and LoopInterfaceGuard
+	(both not really public include where they are atm, both not really src)
+- LoopControl: callIn implementation (combines timer and function call)
+	- can be merged with call function by using `now` as special time value
 - touch support (TouchContext and touch events)
 - BufferSurfaceSettings, things like preferred strideAlign or format
 	- double buffers setting

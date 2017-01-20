@@ -73,7 +73,6 @@ public:
 	wl_callback* frameCallback() const { return frameCallback_; }
 	WaylandSurfaceRole surfaceRole() const { return role_; }
 	nytl::Vec2ui size() const { return size_; }
-	bool shown() const { return shown_; }
 
 	//return nullptr if this object has another role
     wl_shell_surface* wlShellSurface() const;
@@ -165,8 +164,6 @@ protected:
 
 		XdgSurfaceV6 xdgSurfaceV6_;
     };
-
-	bool shown_ {}; // whether the WindowContext should be shown or hidden
 
 	wayland::ShmBuffer shmCursorBuffer_ {}; // only needed when cursor is custom image
 

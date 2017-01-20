@@ -23,31 +23,35 @@
 #include <cstring>
 
 // TODO: correct xdg surface configure/ sizing, better subsurface support
-// TODO: better show handling? i.e. don't refresh when the WindowContext is not shown
+// TODO: implement show capability? could be done with custom egl surface, show flag
+//	and custom refrsh/redraw handling (see earlier commits)
 
 namespace ny {
 
 WaylandWindowContext::WaylandWindowContext(WaylandAppContext& ac,
 	const WaylandWindowSettings& settings) : appContext_(&ac)
 {
-	wlSurface_ = wl_compositor_create_surface(&ac.wlCompositor());
-	if(!wlSurface_)
-		throw std::runtime_error("ny::WaylandWindowContext: could not create wl_surface");
-
-	wl_surface_set_user_data(wlSurface_, this);
-
 	// parse settings
 	size_ = settings.size;
 	if(size_ == defaultSize) size_ = fallbackSize;
-	shown_ = settings.show;
 	if(settings.listener) listener(*settings.listener);
 
 	// surface
 	if(settings.nativeHandle) {
 		// In this case we simply copy the surface and not create/handle any role for it
+
 		// TODO: use WaylandWindowSettings for a role on a provided handle
+		// then no custom role has to be created here
+		// At the moement this constructor crashs with native handle that already has a role...
 		wlSurface_ = settings.nativeHandle.asPtr<wl_surface>();
-	} else if(settings.parent.pointer()) {
+	} else {
+		wlSurface_ = wl_compositor_create_surface(&ac.wlCompositor());
+		if(!wlSurface_)
+			throw std::runtime_error("ny::WaylandWindowContext: could not create wl_surface");
+		wl_surface_set_user_data(wlSurface_, this);
+	}
+
+	if(settings.parent.pointer()) {
 		auto& parent = *reinterpret_cast<wl_surface*>(settings.parent.pointer());
 		createSubsurface(parent, settings);
 	} else {
@@ -56,6 +60,7 @@ WaylandWindowContext::WaylandWindowContext(WaylandAppContext& ac,
 		else if(ac.wlShell()) createShellSurface(settings);
 		else throw std::runtime_error("ny::WaylandWindowContext: compositor has no shell global");
 
+		if(!settings.title.empty()) title(setetings.title);
 		switch(settings.initState) {
 			case ToplevelState::normal: normalState(); break;
 			case ToplevelState::fullscreen: fullscreen(); break;
@@ -272,14 +277,10 @@ void WaylandWindowContext::refresh()
 
 void WaylandWindowContext::show()
 {
-	shown_ = true;
-	refresh(); // call this here?
 }
 
 void WaylandWindowContext::hide()
 {
-	shown_ = false;
-	attachCommit(nullptr);
 }
 
 void WaylandWindowContext::size(nytl::Vec2ui size)
@@ -496,14 +497,10 @@ void WaylandWindowContext::attachCommit(wl_buffer* buffer)
 		memberCallback<decltype(&WWC::handleFrameCallback), &WWC::handleFrameCallback>
 	};
 
-	if(shown_) {
-		frameCallback_ = wl_surface_frame(wlSurface_);
-		wl_callback_add_listener(frameCallback_, &frameListener, this);
-		wl_surface_damage(wlSurface_, 0, 0, size_.x, size_.y);
-		wl_surface_attach(wlSurface_, buffer, 0, 0);
-	} else {
-		wl_surface_attach(wlSurface_, nullptr, 0, 0);
-	}
+	frameCallback_ = wl_surface_frame(wlSurface_);
+	wl_callback_add_listener(frameCallback_, &frameListener, this);
+	wl_surface_damage(wlSurface_, 0, 0, size_.x, size_.y);
+	wl_surface_attach(wlSurface_, buffer, 0, 0);
 
 	wl_surface_commit(wlSurface_);
 }

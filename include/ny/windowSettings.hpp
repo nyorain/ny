@@ -57,7 +57,7 @@ enum class WindowCapability : unsigned int {
 NYTL_FLAG_OPS(WindowEdge)
 NYTL_FLAG_OPS(WindowCapability)
 
-/// Typesafe enum for the current state of a toplevel window.
+/// Enumreation for the current state of a toplevel window.
 enum class ToplevelState : unsigned int {
 	unknown = 0,
 	maximized,

@@ -407,7 +407,7 @@ GlxWindowContext::GlxWindowContext(X11AppContext& ac, const GlxSetup& setup,
 	visualID_ = setup.visualID(configid);
 	depth_ = findVisualDepth(ac, visualID_);
 
-	X11WindowContext::create(ac, settings);
+	X11WindowContext::init(ac, settings);
 
 	surface_ = std::make_unique<GlxSurface>(appContext().xDisplay(), xWindow(), config);
 	if(settings.gl.storeSurface) *settings.gl.storeSurface = surface_.get();

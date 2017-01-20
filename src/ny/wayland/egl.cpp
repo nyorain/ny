@@ -15,19 +15,6 @@
 
 namespace ny {
 
-// A small derivate of EglSurface that holds a reference to the WindowContext it is associated with.
-// If the WindowContext is not shown, the EglContext does not swapBuffers on apply()
-class WaylandEglSurface : public EglSurface {
-	using EglSurface::EglSurface;
-	WaylandWindowContext* waylandWC_;
-
-	bool apply(std::error_code& ec) const override
-	{
-		if(!waylandWC_->shown()) return true;
-		return EglSurface::apply(ec);
-	}
-};
-
 // WaylandEglWindowContext
 WaylandEglWindowContext::WaylandEglWindowContext(WaylandAppContext& ac, const EglSetup& setup,
 	const WaylandWindowSettings& ws) : WaylandWindowContext(ac, ws)

@@ -25,27 +25,74 @@ namespace ny {
 //windowContext
 X11WindowContext::X11WindowContext(X11AppContext& ctx, const X11WindowSettings& settings)
 {
-	create(ctx, settings);
+	init(ctx, settings);
 }
 
-void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& settings)
+X11WindowContext::~X11WindowContext()
+{
+	if(xWindow_) {
+		appContext().unregisterContext(xWindow_);
+		xcb_destroy_window(&xConnection(), xWindow_);
+	}
+
+	if(xColormap_) xcb_free_colormap(&xConnection(), xCursor_);
+	if(xCursor_) xcb_free_cursor(&xConnection(), xCursor_);
+	xcb_flush(&xConnection());
+}
+
+void X11WindowContext::init(X11AppContext& ctx, const X11WindowSettings& settings)
 {
 	appContext_ = &ctx;
 	settings_ = settings;
 
 	if(settings.listener) listener(*settings.listener);
 
-	if(!visualID_) initVisual();
+	// TODO: query visual id for native handle
+	if(settings.nativeHandle) xWindow_ = settings.nativeHandle;
+	else createWindow();
+
+	appContext_->registerContext(xWindow_, *this);
+
+	if(!settings.parent) {
+		auto protocols = ewmhConnection().WM_PROTOCOLS;
+		auto supportedProtocols = appContext_->atoms().wmDeleteWindow;
+		if(!settings.title.empty()) title(settings.title);
+		xcb_change_property(&xconn, XCB_PROP_MODE_REPLACE, xWindow_, protocols,
+				XCB_ATOM_ATOM, 32, 1, &list);
+		xcb_change_property(&xconn, XCB_PROP_MODE_REPLACE, xWindow_, XCB_ATOM_WM_NAME,
+				XCB_ATOM_STRING, 8, settings.title.size(), settings.title.c_str());
+	}
+
+	// signal that this window understands the xdnd protocol
+	// version 5 of the xdnd protocol is supported
+	if(settings.droppable) {
+		static constexpr auto version = 5u;
+		xcb_change_property(&xconn, XCB_PROP_MODE_REPLACE, xWindow_, appContext().atoms().xdndAware,
+			XCB_ATOM_ATOM, 32, 1, reinterpret_cast<const unsigned char*>(&version));
+	}
+
+	// apply init settings
+	cursor(settings.cursor);
+	if(settings.show) show();
+
+	if(settings.initState == ToplevelState::maximized) maximize();
+	else if(settings.initState == ToplevelState::minimized) minimize();
+	else if(settings.initState == ToplevelState::fullscreen) fullscreen();
+
+	// make sure windows is mapped and set to correct state
+	xcb_flush(&xconn);
+}
+
+void X11::WindowContext::createWindow(const X11WindowSettings& settings)
+{
+	if(!visualID_) initVisual(settings);
 	auto visualtype = xVisualType();
 	if(!visualtype)
 		throw std::runtime_error("ny::X11WindowContext: failed to retrieve the visualtype");
 
 	auto vid = visualtype->visual_id;
-
 	auto& xconn = appContext_->xConnection();
 	auto& xscreen = appContext_->xDefaultScreen();
-
-	bool toplvl = false;
 
 	auto pos = settings.position;
 	if(pos == defaultPosition) pos = fallbackPosition;
@@ -54,10 +101,7 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 	if(size == defaultSize) size = fallbackSize;
 
 	xcb_window_t xparent = settings.parent.uint64();
-	if(!xparent) {
-		xparent = xscreen.root;
-		toplvl = true;
-	}
+	if(!xparent) xparent = xscreen.root;
 
 	auto colormap = xcb_generate_id(&xconn);
 	auto cookie = xcb_create_colormap_checked(&xconn, XCB_COLORMAP_ALLOC_NONE, colormap,
@@ -80,47 +124,14 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 	cookie = xcb_create_window_checked(&xconn, depth_, window, xparent, pos.x, pos.y,
 		size.x, size.y, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT, vid, valuemask, valuelist);
 	errorCategory().checkThrow(cookie, "ny::X11WindowContext: create_window failed");
-
 	xWindow_ = window;
-	appContext_->registerContext(xWindow_, *this);
-	if(toplvl) {
-		auto protocols = ewmhConnection().WM_PROTOCOLS;
-		auto list = appContext_->atoms().wmDeleteWindow;
-
-		xcb_change_property(&xconn, XCB_PROP_MODE_REPLACE, xWindow_, protocols,
-				XCB_ATOM_ATOM, 32, 1, &list);
-		xcb_change_property(&xconn, XCB_PROP_MODE_REPLACE, xWindow_, XCB_ATOM_WM_NAME,
-				XCB_ATOM_STRING, 8, settings.title.size(), settings.title.c_str());
-	}
-
-	// signal that this window understands the xdnd protocol
-	// version 5 of the xdnd protocol is supported
-	unsigned int version = 5;
-	xcb_change_property(&xconn, XCB_PROP_MODE_REPLACE, xWindow_, appContext().atoms().xdndAware,
-		XCB_ATOM_ATOM, 32, 1, reinterpret_cast<const unsigned char*>(&version));
-
-	cursor(settings.cursor);
-	if(settings.show) show();
-
-	xcb_flush(&xconn);
 }
 
-X11WindowContext::~X11WindowContext()
-{
-	if(xWindow_) {
-		appContext().unregisterContext(xWindow_);
-		xcb_destroy_window(&xConnection(), xWindow_);
-	}
-
-	if(xColormap_) xcb_free_colormap(&xConnection(), xCursor_);
-	if(xCursor_) xcb_free_cursor(&xConnection(), xCursor_);
-	xcb_flush(&xConnection());
-}
-
-void X11WindowContext::initVisual()
+void X11WindowContext::initVisual(const X11WindowSettings& settings)
 {
 	static constexpr auto novis = "ny::X11WindowContext::initVisual: no 24 or 32 bit visuals";
 	static constexpr auto no32vis = "ny::X11WindowContext::initVisual: no 32 bit visuals";
+	static constexpr auto no24vis = "ny::X11WindowContext::initVisual: no 24 bit visuals";
 	static constexpr auto nofound = "ny::X11WindowContext::initVisual: no matching visuals";
 
 	visualID_ = 0u;
@@ -129,40 +140,47 @@ void X11WindowContext::initVisual()
 
 	auto depth_iter = xcb_screen_allowed_depths_iterator(&screen);
 	for(; depth_iter.rem; xcb_depth_next(&depth_iter)) {
-		if(depth_iter.data->depth == 32) avDepth = 32;
-		if(!avDepth && depth_iter.data->depth == 24) avDepth = 24;
+		if(depth_iter.data->depth == 32) {
+			avDepth = 32;
+			if(settings.transparent) break;
+		}
+
+		if(!avDepth && depth_iter.data->depth == 24) {
+			avDepth = 24;
+			if(!settings.transparent) break;
+		}
 	}
 
 	if(avDepth == 0u) throw std::runtime_error(novis);
-	else if(avDepth == 24) warning(no32vis);
+	else if(settings.transparent && avDepth == 24) warning(no32vis);
+	else if(!settings.transparent && avDepth == 32) warning(no24vis);
 
-	// 32 > 24 (should not be decided here though)
 	// argb > rgba > bgra for 32
 	// rgb > bgr for 24
 	depth_iter = xcb_screen_allowed_depths_iterator(&screen);
 	for(; depth_iter.rem; xcb_depth_next(&depth_iter)) {
-		if(depth_iter.data->depth == avDepth) {
-			auto highestScore = 0u;
-			auto score = [](const ImageFormat& f) {
-				if(f == imageFormats::argb8888) return 6u;
-				else if(f == imageFormats::rgba8888) return 5u;
-				else if(f == imageFormats::bgra8888) return 4u;
-				else if(f == imageFormats::rgb888) return 3u;
-				else if(f == imageFormats::bgr888) return 2u;
-				return 1u;
-			};
+		if(depth_iter.data->depth != avDepth) continue;
 
-			// TODO: make requested format dynamic with X11WindowSettings
-			// i.e. make it possible to request a certain format
-			// make it possible to explicitly request 24 bit instead of 32
-			auto visual_iter = xcb_depth_visuals_iterator(depth_iter.data);
-			for(; visual_iter.rem; xcb_visualtype_next(&visual_iter)) {
-				auto format = x11::visualToFormat(*visual_iter.data, avDepth);
-				if(score(format) > highestScore) visualID_ = visual_iter.data->visual_id;
-			}
+		auto highestScore = 0u;
+		auto score = [](const ImageFormat& f) {
+			if(f == imageFormats::argb8888) return 3u;
+			else if(f == imageFormats::rgba8888) return 2u;
+			else if(f == imageFormats::bgra8888) return 1u;
 
-			break;
+			else if(f == imageFormats::rgb888) return 2u;
+			else if(f == imageFormats::bgr888) return 1u;
+			return 1u;
+		};
+
+		// TODO: make requested format dynamic with X11WindowSettings
+		// i.e. make it possible to request a certain format
+		auto visual_iter = xcb_depth_visuals_iterator(depth_iter.data);
+		for(; visual_iter.rem; xcb_visualtype_next(&visual_iter)) {
+			auto format = x11::visualToFormat(*visual_iter.data, avDepth);
+			if(score(format) > highestScore) visualID_ = visual_iter.data->visual_id;
 		}
+
+		break;
 	}
 
 	if(!visualID_) throw std::runtime_error(nofound);

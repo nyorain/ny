@@ -133,7 +133,7 @@ public:
 	xcb_window_t xDummyWindow() const;
 	const x11::Atoms& atoms() const;
 
-	/// Tries to handle the given event. Return true if it was been handled.
+	/// Tries to handle the given event. Return true if it was handled.
 	bool processEvent(const xcb_generic_event_t& event);
 
 	/// Tries to claim clipboard ownership and set it to the given DataSource.
@@ -162,6 +162,14 @@ protected:
 	/// return the window that holds clipboard ownership.
 	/// If the selection is unknown/not supported or there is no owner returns 0.
 	xcb_window_t selectionOwner(xcb_atom_t selection);
+
+	/// Tries to handle the given client message.
+	/// Returns true if it was handled.
+	bool processClientMessage(const xcb_client_message_event_t&);
+
+	/// Tries to handle the given event if currently implementing a dnd session.
+	/// Returns true if it was handled.
+	bool processDndEvent(const xcb_generic_event_t& ev);
 
 	void xdndSendEnter();
 	void xdndSendLeave();
