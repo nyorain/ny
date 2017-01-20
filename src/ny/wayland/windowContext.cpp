@@ -60,7 +60,7 @@ WaylandWindowContext::WaylandWindowContext(WaylandAppContext& ac,
 		else if(ac.wlShell()) createShellSurface(settings);
 		else throw std::runtime_error("ny::WaylandWindowContext: compositor has no shell global");
 
-		if(!settings.title.empty()) title(setetings.title);
+		if(!settings.title.empty()) title(settings.title);
 		switch(settings.initState) {
 			case ToplevelState::normal: normalState(); break;
 			case ToplevelState::fullscreen: fullscreen(); break;
