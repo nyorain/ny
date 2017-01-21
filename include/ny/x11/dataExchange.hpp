@@ -165,7 +165,7 @@ protected:
 
 	/// Tries to handle the given client message.
 	/// Returns true if it was handled.
-	bool processClientMessage(const xcb_client_message_event_t&);
+	bool processClientMessage(const xcb_client_message_event_t&, const EventData&);
 
 	/// Tries to handle the given event if currently implementing a dnd session.
 	/// Returns true if it was handled.

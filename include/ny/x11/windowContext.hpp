@@ -128,10 +128,6 @@ public:
 	/// visual type (since it also counts the alpha bits).
 	unsigned int visualDepth() const { return depth_; }
 
-	/// Returns whether this window is droppable, i.e. if it handles drop events.
-	/// This value is set in the passed WindowSettings on window creation.
-	bool droppable() const { return droppable_; }
-
 protected:
 	/// Default Constructor only for derived classes that later call the create function.
 	X11WindowContext() = default;

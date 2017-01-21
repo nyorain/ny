@@ -2,7 +2,7 @@
 # Distributed under the Boost Software License, Version 1.0.
 # See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
-cmake_minimum_required (VERSION 3.2)
+cmake_minimum_required (VERSION 2.8)
 project(ny)
 
 # increase this version on a new release
@@ -89,7 +89,7 @@ cmake_dependent_option(WithXkbCommon
 
 cmake_dependent_option(WithX11
 	"Build ny with an x11 backend" on
-	"WithXkbCommon;X11_FOUND;XCB_FOUND;XCB_EWMH_FOUND;XCB_ICCCM_FOUND" off)
+	"WithXkbCommon;X11_FOUND;XCB_FOUND" off)
 
 cmake_dependent_option(WithWayland
 	"Build ny with a wayland backend" on
