@@ -1,5 +1,7 @@
 -I./include
 -I./src
+-I./build/include
+-I./build/external/install/include
 -I./build/linux/include
 -I./build/linux/external/install/include
 -I./build/win/include

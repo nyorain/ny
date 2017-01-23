@@ -561,16 +561,21 @@ bool X11DataManager::processEvent(const xcb_generic_event_t& ev)
 		// xdnd events are sent as client messages
 		case XCB_CLIENT_MESSAGE: {
 			auto& clientm = reinterpret_cast<const xcb_client_message_event_t&>(ev);
-			if(handleClientMessage(clientm)) return true;
+			if(processClientMessage(clientm, eventData)) return true;
+		}
+
+		default:
+			break;
 	}
 
 	// if we are currently grabbing the pointer because we initiated a dnd session
 	// also handle the pointer events and forward them to dnd handlers.
-	if(dndSrc_.sourceWindow && handleDndEvent(ev)) return true;
+	if(dndSrc_.sourceWindow && processDndEvent(ev)) return true;
 	return false; // we did never handle the event in any way
 }
 
-bool X11DataManager::handleClientMessage(const xcb_client_message_event_t& clientm)
+bool X11DataManager::processClientMessage(const xcb_client_message_event_t& clientm,
+	const EventData& eventData)
 {
 	if(clientm.type == atoms().xdndEnter) {
 		auto* data = clientm.data.data32;

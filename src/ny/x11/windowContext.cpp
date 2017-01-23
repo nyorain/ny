@@ -25,7 +25,7 @@ namespace ny {
 //windowContext
 X11WindowContext::X11WindowContext(X11AppContext& ctx, const X11WindowSettings& settings)
 {
-	init(ctx, settings);
+	create(ctx, settings);
 }
 
 X11WindowContext::~X11WindowContext()
@@ -40,16 +40,17 @@ X11WindowContext::~X11WindowContext()
 	xcb_flush(&xConnection());
 }
 
-void X11WindowContext::init(X11AppContext& ctx, const X11WindowSettings& settings)
+void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& settings)
 {
 	appContext_ = &ctx;
 	settings_ = settings;
+	auto& xconn = xConnection();
 
 	if(settings.listener) listener(*settings.listener);
 
 	// TODO: query visual id for native handle
 	if(settings.nativeHandle) xWindow_ = settings.nativeHandle;
-	else createWindow();
+	else createWindow(settings);
 
 	appContext_->registerContext(xWindow_, *this);
 
@@ -58,7 +59,7 @@ void X11WindowContext::init(X11AppContext& ctx, const X11WindowSettings& setting
 		auto supportedProtocols = appContext_->atoms().wmDeleteWindow;
 		if(!settings.title.empty()) title(settings.title);
 		xcb_change_property(&xconn, XCB_PROP_MODE_REPLACE, xWindow_, protocols,
-				XCB_ATOM_ATOM, 32, 1, &list);
+				XCB_ATOM_ATOM, 32, 1, &supportedProtocols);
 		xcb_change_property(&xconn, XCB_PROP_MODE_REPLACE, xWindow_, XCB_ATOM_WM_NAME,
 				XCB_ATOM_STRING, 8, settings.title.size(), settings.title.c_str());
 	}
@@ -83,7 +84,7 @@ void X11WindowContext::init(X11AppContext& ctx, const X11WindowSettings& setting
 	xcb_flush(&xconn);
 }
 
-void X11::WindowContext::createWindow(const X11WindowSettings& settings)
+void X11WindowContext::createWindow(const X11WindowSettings& settings)
 {
 	if(!visualID_) initVisual(settings);
 	auto visualtype = xVisualType();
