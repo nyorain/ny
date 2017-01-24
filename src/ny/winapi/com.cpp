@@ -537,7 +537,7 @@ HGLOBAL stringToGlobalUnicode(const std::u16string& string)
 {
 	auto cpy = std::u16string(string.c_str()); // remove extra nullterminator
 	auto ptr = reinterpret_cast<const uint8_t*>(cpy.data());
-	return bufferToGlobal({*ptr, (string.size() + 1) * 2});
+	return bufferToGlobal({ptr, (string.size() + 1) * 2});
 }
 
 std::u16string globalToStringUnicode(HGLOBAL global)
