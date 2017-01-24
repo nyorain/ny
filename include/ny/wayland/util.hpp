@@ -306,4 +306,12 @@ ImageFormat waylandToImageFormat(unsigned int wlShmFormat);
 /// Returns -1 for invalid or not representable formats.
 int imageFormatToWayland(const ImageFormat&);
 
+/// Converts the given xdg shell protocol edge to a ToplevelState enum value.
+/// Returns ToplevelState::unknown for none/invalid states.
+ToplevelState waylandToState(unsigned int wlState);
+
+/// Converts the given ToplevelState enum value to a xdg shell protoocl state value.
+/// Returns 0 for values that cannot be represented.
+unsigned int stateToWayland(ToplevelState);
+
 } // namespace ny

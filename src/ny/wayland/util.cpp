@@ -337,6 +337,24 @@ ImageFormat waylandToImageFormat(unsigned int shmFormat)
 	return imageFormats::none;
 }
 
+unsigned int stateToWayland(ToplevelState state)
+{
+	switch(state) {
+		case ToplevelState::maximized: return 1;
+		case ToplevelState::fullscreen: return 2;
+		default: return 0;
+	}
+}
+
+ToplevelState waylandToState(unsigned int wlState)
+{
+	switch(wlState) {
+		case 1: return ToplevelState::maximized;
+		case 2: return ToplevelState::fullscreen;
+		default: return ToplevelState::unknown;
+	}
+}
+
 // WaylandErrorCategory
 WaylandErrorCategory::WaylandErrorCategory(const wl_interface& interface) : interface_(interface)
 {

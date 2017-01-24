@@ -99,6 +99,11 @@ public:
 	wl_display& wlDisplay() const;
 
 protected:
+
+	/// Tries to reparse the current state from the array of xdg states.
+	/// Will send a StateEvent if it changed
+	void reparseState(const wl_array& states);
+
 	// init helpers
     void createShellSurface(const WaylandWindowSettings& ws);
     void createXdgSurfaceV5(const WaylandWindowSettings& ws);
@@ -164,6 +169,9 @@ protected:
 
 		XdgSurfaceV6 xdgSurfaceV6_;
     };
+
+	// current toplevel state for xdg toplevel windows
+	ToplevelState currentXdgState_;
 
 	wayland::ShmBuffer shmCursorBuffer_ {}; // only needed when cursor is custom image
 

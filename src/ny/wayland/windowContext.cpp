@@ -562,6 +562,24 @@ Surface WaylandWindowContext::surface()
 	return {};
 }
 
+void WaylandWindowContext::reparseState(const wl_array& states)
+{
+	// TODO: what about multiple valid states is array? maximied and fullscreen?
+	for(auto i = 0u; i < states.size / sizeof(uint32_t); ++i) {
+		auto wlState = (static_cast<uint32_t*>(states.data))[i];
+		auto toplevelState = waylandToState(wlState);
+
+		if(toplevelState != ToplevelState::unknown && toplevelState != currentXdgState_) {
+			currentXdgState_ = toplevelState;
+
+			StateEvent se;
+			se.state = toplevelState;
+			listener().state(se);
+			break;
+		}
+	}
+}
+
 void WaylandWindowContext::handleFrameCallback(wl_callback*, uint32_t)
 {
 	if(frameCallback_) {
@@ -585,7 +603,7 @@ void WaylandWindowContext::handleShellSurfacePing(wl_shell_surface*, uint32_t se
 void WaylandWindowContext::handleShellSurfaceConfigure(wl_shell_surface*, uint32_t edges,
 	int32_t width, int32_t height)
 {
-	nytl::unused(edges); // TODO
+	nytl::unused(edges); // TODO?
 
 	auto newSize = nytl::Vec2ui(width, height);
 
@@ -599,6 +617,8 @@ void WaylandWindowContext::handleShellSurfaceConfigure(wl_shell_surface*, uint32
 void WaylandWindowContext::handleShellSurfacePopupDone(wl_shell_surface*)
 {
 	// TODO
+	CloseEvent ce;
+	listener().close(ce);
 }
 
 void WaylandWindowContext::handleXdgSurfaceV5Configure(xdg_surface*, int32_t width, int32_t height,
@@ -606,7 +626,7 @@ void WaylandWindowContext::handleXdgSurfaceV5Configure(xdg_surface*, int32_t wid
 {
 	// TODO
 	if(!width || !height) return;
-	nytl::unused(states);
+	reparseState(*states);
 
 	auto newSize = nytl::Vec2ui(width, height);
 
@@ -648,8 +668,8 @@ void WaylandWindowContext::handleXdgSurfaceV6Configure(zxdg_surface_v6*, uint32_
 void WaylandWindowContext::handleXdgToplevelV6Configure(zxdg_toplevel_v6*, int32_t width,
 	int32_t height, wl_array* states)
 {
-	nytl::unused(states);
 	if(!width || !height) return;
+	reparseState(*states);
 
 	// we store the new size but not yet actually resize/redraw the window
 	// this should/can only be done after we recevie the surfaceV6Configure event

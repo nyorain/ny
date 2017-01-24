@@ -283,8 +283,8 @@ void WaylandKeyboardContext::handleEnter(wl_keyboard*, uint32_t serial, wl_surfa
 	WaylandEventData eventData(serial);
 
 	keyStates_.reset();
-	for(auto i = 0u; i < keys->size / sizeof(std::uint32_t); ++i) {
-		auto keyid = (static_cast<std::uint32_t*>(keys->data))[i];
+	for(auto i = 0u; i < keys->size / sizeof(uint32_t); ++i) {
+		auto keyid = (static_cast<uint32_t*>(keys->data))[i];
 		keyStates_[keyid] = true;
 	}
 
