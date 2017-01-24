@@ -6,7 +6,6 @@
 #include <ny/x11/windowContext.hpp>
 #include <ny/x11/appContext.hpp>
 #include <ny/x11/util.hpp>
-#include <ny/x11/glxApi.h>
 #include <ny/surface.hpp>
 #include <ny/log.hpp>
 
@@ -15,12 +14,65 @@
 #include <xcb/xcb.h>
 #include <algorithm>
 
+#include <X11/GLX.h>
+
+#ifndef GLAPI
+# if defined(GLAD_GLAPI_EXPORT)
+#  if defined(WIN32) || defined(__CYGWIN__)
+#   if defined(GLAD_GLAPI_EXPORT_BUILD)
+#    if defined(__GNUC__)
+#     define GLAPI __attribute__ ((dllexport)) extern
+#    else
+#     define GLAPI __declspec(dllexport) extern
+#    endif
+#   else
+#    if defined(__GNUC__)
+#     define GLAPI __attribute__ ((dllimport)) extern
+#    else
+#     define GLAPI __declspec(dllimport) extern
+#    endif
+#   endif
+#  elif defined(__GNUC__) && defined(GLAD_GLAPI_EXPORT_BUILD)
+#   define GLAPI __attribute__ ((visibility ("default"))) extern
+#  else
+#   define GLAPI extern
+#  endif
+# else
+#  define GLAPI extern
+# endif
+#endif
+
+#define GLX_CONTEXT_DEBUG_BIT_ARB 0x00000001
+#define GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB 0x00000002
+#define GLX_CONTEXT_MAJOR_VERSION_ARB 0x2091
+#define GLX_CONTEXT_MINOR_VERSION_ARB 0x2092
+#define GLX_CONTEXT_FLAGS_ARB 0x2094
+#define GLX_CONTEXT_CORE_PROFILE_BIT_ARB 0x00000001
+#define GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB 0x00000002
+#define GLX_CONTEXT_PROFILE_MASK_ARB 0x9126
+#define GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB 0x20B2
+#define GLX_SAMPLE_BUFFERS_ARB 100000
+#define GLX_SAMPLES_ARB 100001
+#define GLX_CONTEXT_ES2_PROFILE_BIT_EXT 0x00000004
+#define GLX_CONTEXT_ES_PROFILE_BIT_EXT 0x00000004
+#define GLX_SWAP_INTERVAL_EXT 0x20F1
+#define GLX_MAX_SWAP_INTERVAL_EXT 0x20F2
+
 // TODO: this needs massive error (code) handling improvements (see GlContext implementation)
-// For glx GlConfig objects, the id member is the GLX_FB_CONFIG_ID of the associated
+// NOTE: For glx GlConfig objects, the id member is the GLX_FB_CONFIG_ID of the associated
 // glx fb config.
 
 namespace ny {
 namespace {
+
+using PfnGlxSwapIntervalEXT = void (APIENTRYP)(Display* dpy, GLXDrawable drawable, int interval);
+using PfnGlxCreateContextAttribsARB = GLXContext(APIENTRYP)(Display* dpy, GLXFBConfig config,
+	GLXContext share_context, Bool direct, const int* attrib_list);
+
+struct Api {
+	PfnGlxSwapIntervalEXT swapInterval;
+	PfnGlxCreateContextAttribsARB createContextAttribs;
+};
 
 // This error handler might be signaled when glx context creation fails
 int ctxErrorHandler(Display* display, XErrorEvent* event)
@@ -239,7 +291,7 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 	{
 		auto shareCtx = dynamic_cast<GlxContext*>(settings.share);
 		if(!shareCtx)
-			throw GlContextError(GlContextErrc::invalidSharedContext, "ny::EglContext");
+			throw GlContextError(GlContextErrc::invalidSharedContext, "ny::GlxContext");
 
 		glxShareContext = shareCtx->glxContext();
 	}

@@ -4,6 +4,8 @@
 
 - egl/wgl/glx library loading (dynamically load opengl)
 	- link e.g. core egl statically?
+	- is there any need to load gl libs dynamically? why isn't egl/glx/wgl ProcAddr enough?
+		- should be!
 - fix examples
 	- remove unneeded ones
 - fix WindowSettings handling for backends

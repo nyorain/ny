@@ -297,6 +297,10 @@ GlConfigID glConfigID(const std::uintptr_t& number);
 std::error_condition make_error_condition(GlContextErrc);
 std::error_code make_error_code(GlContextErrc);
 
+// The usual name the gl libraries have on various platforms.
+// Ordered by relevance. Tries to load by the backends in this order to retrieve
+// function pointers.
+
 } // namespace ny
 
 namespace std {

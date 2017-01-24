@@ -3,8 +3,9 @@
 // See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
 #include <ny/common/egl.hpp>
-#include <ny/common/eglApi.h>
 #include <ny/log.hpp>
+
+#include <EGL/egl.h>
 
 #include <stdexcept>
 #include <cstring>
