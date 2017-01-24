@@ -123,7 +123,7 @@ public:
 		ny::log("Mouse Wheel rotated: value=", ev.value);
 	}
 
-	ny::DataFormat dndMove(const ny::DndMoveEvent& ev)
+	ny::DataFormat dndMove(const ny::DndMoveEvent& ev) override
 	{
 		auto pos = ev.position;
 		if(pos.x > 100 && pos.y > 100 && pos.x < 700 && pos.y < 400) {

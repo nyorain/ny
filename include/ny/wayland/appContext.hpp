@@ -86,6 +86,7 @@ public:
 	bool shmFormatSupported(unsigned int wlShmFormat);
 
 	EglSetup* eglSetup() const;
+	const char* appName() const { return "ny::app"; } // TODO: AppContextSettings
 
 protected:
 	/// Modified version of wl_dispatch_display that performs the same operations but
