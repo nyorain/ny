@@ -22,9 +22,9 @@ if(WithVulkan)
 endif()
 
 #gl
-if(WithGL)
-	# add_executable(ny-gl gl.cpp)
-	# target_link_libraries(ny-gl ny)
+if(WithGl)
+	add_executable(ny-gl gl.cpp)
+	target_link_libraries(ny-gl ny)
 endif()
 
 #dev
