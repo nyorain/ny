@@ -12,36 +12,98 @@
 #include <nytl/span.hpp>
 
 #include <xcb/xcb.h>
+#include <GL/glx.h>
+
 #include <algorithm>
+#include <mutex>
 
-#include <X11/GLX.h>
+// TODO: this needs massive error (code) handling improvements (see GlContext implementation)
+// NOTE: For glx GlConfig objects, the id member is the GLX_FB_CONFIG_ID of the associated
+// glx fb config.
 
-#ifndef GLAPI
-# if defined(GLAD_GLAPI_EXPORT)
-#  if defined(WIN32) || defined(__CYGWIN__)
-#   if defined(GLAD_GLAPI_EXPORT_BUILD)
-#    if defined(__GNUC__)
-#     define GLAPI __attribute__ ((dllexport)) extern
-#    else
-#     define GLAPI __declspec(dllexport) extern
-#    endif
-#   else
-#    if defined(__GNUC__)
-#     define GLAPI __attribute__ ((dllimport)) extern
-#    else
-#     define GLAPI __declspec(dllimport) extern
-#    endif
-#   endif
-#  elif defined(__GNUC__) && defined(GLAD_GLAPI_EXPORT_BUILD)
-#   define GLAPI __attribute__ ((visibility ("default"))) extern
-#  else
-#   define GLAPI extern
-#  endif
-# else
-#  define GLAPI extern
-# endif
-#endif
+namespace ny {
+namespace ext {
 
+bool hasCreateContext = false;
+bool hasSwapControl = false;
+
+using PfnGlxSwapIntervalEXT = void (APIENTRYP)(Display* dpy, GLXDrawable drawable, int interval);
+using PfnGlxCreateContextAttribsARB = GLXContext(APIENTRYP)(Display* dpy, GLXFBConfig config,
+	GLXContext share_context, Bool direct, const int* attrib_list);
+
+PfnGlxSwapIntervalEXT swapIntervalEXT;
+PfnGlxCreateContextAttribsARB createContextAttribsARB;
+
+void queryExtensions(Display& dpy)
+{
+	static std::once_flag cof;
+	std::call_once(cof, [&]{
+		log("called");
+		struct {
+			const char* name;
+			bool& value;
+		} query[] = {
+			{"GLX_ARB_create_context", hasCreateContext},
+			{"GLX_EXT_swap_control", hasSwapControl}
+		};
+
+	    auto exts = ::glXGetClientString(&dpy, GLX_EXTENSIONS);
+	    if(!exts) {
+			warning("ny::Glx::queryExtensions: failed to query extensions");
+			return;
+		}
+
+	    for(auto ext : query) {
+			auto extensions = exts;
+			ext.value = false;
+			while(true) {
+		        auto loc = std::strstr(extensions, ext.name);
+		        if(!loc) break;
+
+		        auto terminator = loc + std::strlen(ext.name);
+				bool blankBefore = loc == extensions || *(loc - 1) == ' ';
+				bool blankAfter = *terminator == ' ' || *terminator == '\0';
+				if(blankBefore && blankAfter) {
+					ext.value = true;
+					break;
+		        }
+
+		        extensions = terminator;
+			}
+	    }
+	});
+
+	log("createContext: ", hasCreateContext);
+	log("swapControl: ", hasSwapControl);
+}
+
+void loadExtensions()
+{
+	using PfnVoid = void(*)();
+	static std::once_flag cof;
+
+	std::call_once(cof, [&]{
+		struct {
+			bool extension;
+			const char* name;
+			PfnVoid& pointer;
+		} funcs[] = {
+			{hasCreateContext, "glXCreateContextAttribsARB", (PfnVoid&)createContextAttribsARB},
+			{hasSwapControl, "glXSwapIntervalEXT", (PfnVoid&)(swapIntervalEXT)}
+		};
+
+		for(auto& func : funcs) {
+			if(!func.extension) continue;
+			auto name = reinterpret_cast<const unsigned char*>(func.name);
+			func.pointer = ::glXGetProcAddress(name);
+		}
+	});
+
+	log("createContext: ", createContextAttribsARB);
+	log("swapControl: ", swapIntervalEXT);
+}
+
+// TODO: use constexpr
 #define GLX_CONTEXT_DEBUG_BIT_ARB 0x00000001
 #define GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB 0x00000002
 #define GLX_CONTEXT_MAJOR_VERSION_ARB 0x2091
@@ -58,23 +120,16 @@
 #define GLX_SWAP_INTERVAL_EXT 0x20F1
 #define GLX_MAX_SWAP_INTERVAL_EXT 0x20F2
 
-// TODO: this needs massive error (code) handling improvements (see GlContext implementation)
-// NOTE: For glx GlConfig objects, the id member is the GLX_FB_CONFIG_ID of the associated
-// glx fb config.
+} // namespace ext
 
-namespace ny {
 namespace {
 
-using PfnGlxSwapIntervalEXT = void (APIENTRYP)(Display* dpy, GLXDrawable drawable, int interval);
-using PfnGlxCreateContextAttribsARB = GLXContext(APIENTRYP)(Display* dpy, GLXFBConfig config,
-	GLXContext share_context, Bool direct, const int* attrib_list);
-
-struct Api {
-	PfnGlxSwapIntervalEXT swapInterval;
-	PfnGlxCreateContextAttribsARB createContextAttribs;
-};
-
 // This error handler might be signaled when glx context creation fails
+// We will test various gl api versions, so we install this handler that
+// the application does not end for the expected error
+// Will output GlxBadFBConfig for api version testings
+// otherwise a "real" (i.e. unexpected) error might ocurr,
+// context creation is rather error prone
 int ctxErrorHandler(Display* display, XErrorEvent* event)
 {
 	if(!display || !event) {
@@ -88,15 +143,8 @@ int ctxErrorHandler(Display* display, XErrorEvent* event)
 	return 0;
 }
 
-void assureGlxLoaded(Display* dpy)
-{
-	static bool loaded = false;
-	if(!loaded) {
-		gladLoadGLX(dpy, DefaultScreen(dpy));
-		loaded = true;
-	}
-}
-
+// Returns the depth on bits for a given visual id.
+// Returns zero for invalid/unknown visuals.
 unsigned int findVisualDepth(const X11AppContext& ac, unsigned int visualID)
 {
 	auto depthi = xcb_screen_allowed_depths_iterator(&ac.xDefaultScreen());
@@ -114,7 +162,15 @@ unsigned int findVisualDepth(const X11AppContext& ac, unsigned int visualID)
 // GlxSetup
 GlxSetup::GlxSetup(const X11AppContext& ac, unsigned int screenNum) : xDisplay_(&ac.xDisplay())
 {
-	assureGlxLoaded(xDisplay_);
+	// query version
+	// we need at least glx 1.3 for fb configs
+	// should be supported on almost all machines
+	int major, minor;
+	::glXQueryVersion(xDisplay_, &major, &minor);
+	if(major < 1 || (major == 1 && minor < 3))
+		throw std::runtime_error("ny::GlxSetup: glx 1.3 not supported");
+
+	// query configs
 	constexpr int attribs[] = {
 		GLX_RENDER_TYPE, GLX_RGBA_BIT,
 		GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT,
@@ -122,7 +178,8 @@ GlxSetup::GlxSetup(const X11AppContext& ac, unsigned int screenNum) : xDisplay_(
 	};
 
 	int fbcount = 0;
-	GLXFBConfig* fbconfigs = ::glXChooseFBConfig(xDisplay_, screenNum, attribs, &fbcount);
+	// GLXFBConfig* fbconfigs = ::glXChooseFBConfig(xDisplay_, screenNum, attribs, &fbcount);
+	GLXFBConfig* fbconfigs = ::glXGetFBConfigs(xDisplay_, screenNum, &fbcount);
 	if(!fbconfigs || !fbcount)
 		throw std::runtime_error("ny::GlxSetup: could not retrieve any fb configs");
 
@@ -152,18 +209,29 @@ GlxSetup::GlxSetup(const X11AppContext& ac, unsigned int screenNum) : xDisplay_(
 		glconf.doublebuffer = doubleBuffer;
 
 		configs_.push_back(glconf);
-		auto xvDepth = findVisualDepth(ac, id);
+		auto visual = visualID(glconf.id);
+		if(!visual) continue;
+
+		auto xvDepth = findVisualDepth(ac, visual);
 
 		auto rating = rate(configs_.back());
 
-		if(xvDepth == 24) rating *= 2;
-		else if(xvDepth == 32) rating *= 3;
+		if(xvDepth == 24) rating = 2;
+		else if(xvDepth == 32) rating = 3;
 		if(rating > highestRating) {
 			highestRating = rating;
 			defaultConfig_ = &configs_.back(); // configs_ will never be reallocated
 		}
+
+		// log("alpha1: ", glconf.alpha);
+		// auto ddepth = findVisualDepth(ac, visualID(glconf.id));
+		// if(ddepth < 32) continue;
+		// log("depth1: ", ddepth);
+		// log("visual: ", visualID(glconf.id));
 	}
 
+	log("alpha: ", defaultConfig_->alpha);
+	log("depth: ", findVisualDepth(ac, visualID(defaultConfig_->id)));
 	::XFree(fbconfigs);
 }
 
@@ -200,7 +268,8 @@ std::unique_ptr<GlContext> GlxSetup::createContext(const GlContextSettings& sett
 
 void* GlxSetup::procAddr(nytl::StringParam name) const
 {
-	auto ret = reinterpret_cast<void*>(::glXGetProcAddress(name));
+	auto data = reinterpret_cast<const unsigned char*>(name.data());
+	auto ret = reinterpret_cast<void*>(::glXGetProcAddress(data));
 	return ret;
 }
 
@@ -223,7 +292,10 @@ GLXFBConfig GlxSetup::glxConfig(GlConfigID id) const
 unsigned int GlxSetup::visualID(GlConfigID id) const
 {
 	auto glxfbc = glxConfig(id);
-	if(glxfbc) return 0u;
+	if(!glxfbc) {
+		warning("ny::GlxSetup::visualID: invalid gl config id");
+		return 0u;
+	}
 
 	int visualid;
 	::glXGetFBConfigAttrib(xDisplay_, glxfbc, GLX_VISUAL_ID, &visualid);
@@ -265,7 +337,7 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 	// XXX: must be changed if supporting gles
 	// test for logical errors
 	if(settings.version.api != GlApi::gl)
-		throw GlContextError(GlContextErrc::invalidApi, "ny::WglContext");
+		throw GlContextError(GlContextErrc::invalidApi, "ny::GlxContext");
 
 	if(major < 1 || major > 4 || minor > 5)
 		throw GlContextError(GlContextErrc::invalidVersion, "ny::GlxContext");
@@ -287,8 +359,7 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 
 	// shared
 	GLXContext glxShareContext = nullptr;
-	if(settings.share)
-	{
+	if(settings.share) {
 		auto shareCtx = dynamic_cast<GlxContext*>(settings.share);
 		if(!shareCtx)
 			throw GlContextError(GlContextErrc::invalidSharedContext, "ny::GlxContext");
@@ -296,9 +367,13 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 		glxShareContext = shareCtx->glxContext();
 	}
 
+	// test for extensions
+	ext::queryExtensions(*xDisplay());
+	ext::loadExtensions();
+
 	// set a new error handler
 	auto oldErrorHandler = ::XSetErrorHandler(&ctxErrorHandler);
-	if(GLAD_GLX_ARB_create_context && glXCreateContextAttribsARB) {
+	if(ext::hasCreateContext && ext::createContextAttribsARB) {
 		std::vector<int> contextAttribs;
 
 		// profile
@@ -323,7 +398,7 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 		// end
 		contextAttribs.push_back(0);
 
-		glxContext_ = ::glXCreateContextAttribsARB(xDisplay(), glxConfig, glxShareContext,
+		glxContext_ = ext::createContextAttribsARB(xDisplay(), glxConfig, glxShareContext,
 			true, contextAttribs.data());
 
 		// those versions will be tried to create when the version specified in
@@ -335,7 +410,7 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 			for(const auto& p : versionPairs) {
 				contextAttribs[contextAttribs.size() - 4] = p.first;
 				contextAttribs[contextAttribs.size() - 2] = p.second;
-				glxContext_ = glXCreateContextAttribsARB(xDisplay(), glxConfig, glxShareContext,
+				glxContext_ = ext::createContextAttribsARB(xDisplay(), glxConfig, glxShareContext,
 					true, contextAttribs.data());
 
 				if(glxContext_) break;
@@ -389,7 +464,7 @@ bool GlxContext::compatible(const GlSurface& surface) const
 GlContextExtensions GlxContext::contextExtensions() const
 {
 	GlContextExtensions ret;
-	if(GLAD_GLX_EXT_swap_control) ret |= GlContextExtension::swapControl;
+	if(ext::hasSwapControl) ret |= GlContextExtension::swapControl;
 	// if(GLAD_GLX_EXT_swap_control_tear) ret |= GlContextExtension::swapControlTear;
 	return ret;
 }
@@ -399,7 +474,7 @@ bool GlxContext::swapInterval(int interval, std::error_code& ec) const
 	// TODO: check for interval < 0 and tear extensions not supported.
 	ec.clear();
 
-	if(!GLAD_GLX_EXT_swap_control || !glXSwapIntervalEXT) {
+	if(!ext::hasSwapControl || !ext::swapIntervalEXT) {
 		ec = {GlContextErrc::extensionNotSupported};
 		return false;
 	}
@@ -413,7 +488,7 @@ bool GlxContext::swapInterval(int interval, std::error_code& ec) const
 		return false;
 	}
 
-	::glXSwapIntervalEXT(xDisplay(), currentGlxSurface->xDrawable(), interval);
+	ext::swapIntervalEXT(xDisplay(), currentGlxSurface->xDrawable(), interval);
 
 	// TODO: handle possible error into ec
 	return true;

@@ -16,7 +16,7 @@ option(Debug "Include debug symbols" on)
 option(DependOnNytl "Make ny depend on nytl. Developement option" on)
 
 # to disable ninja byproduct warning
-cmake_policy(SET CMP0058 NEW)
+# cmake_policy(SET CMP0058 NEW)
 
 # include dirs
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include") # public headers
