@@ -9,6 +9,7 @@
 #include <mutex> // std::mutex
 #include <unordered_map> // std::unordered_map
 #include <algorithm> // std::reverse
+#include <cstring> // std::strstr
 
 // This is a rather complex construct regarding synchronization, excpetion safety, sharing and
 // making context/surface combinations current. Therefore it should only be altered if the
@@ -78,7 +79,8 @@ GlConfigID glConfigID(const std::uintmax_t& number)
 unsigned int rate(const GlConfig& config)
 {
 	// just some first ideas - feel free to edit/propose changes
-	// depth or stencil values of 0 are better than e.g. a value of 344 or 13
+	// remember depth or stencil values of 0 are better than e.g. a value of 344 or -42
+	// that is why even 0 gets some rating points
 
 	auto ret = 1u;
 
@@ -105,8 +107,29 @@ unsigned int rate(const GlConfig& config)
 	else if(config.alpha == 1) ret += 1;
 
 	if(config.doublebuffer) ret = (ret + 10) * 2;
+	if(config.transparent) ret *= 2;
 
 	return ret;
+}
+
+bool glExtensionStringContains(nytl::StringParam extString, nytl::StringParam extension)
+{
+	auto it = extString.data();
+	while(true) {
+        auto loc = std::strstr(it, extension);
+        if(!loc)
+			return false;
+
+        auto terminator = loc + std::strlen(extension);
+		bool blankBefore = (loc == extString || *(loc - 1) == ' ');
+		bool blankAfter = (*terminator == ' ' || *terminator == '\0');
+		if(blankBefore && blankAfter)
+			return true;
+
+        it = terminator;
+	}
+
+	return false;
 }
 
 std::error_condition make_error_condition(GlContextErrc code)

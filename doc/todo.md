@@ -6,6 +6,8 @@
 	- link e.g. core egl statically?
 	- is there any need to load gl libs dynamically? why isn't egl/glx/wgl ProcAddr enough?
 		- should be!
+	- apientryp needed for pointer declarations?
+- glconfig transparent flag
 - fix examples
 	- remove unneeded ones
 - fix WindowSettings handling for backends
@@ -147,17 +149,8 @@ wayland backend:
 winapi backend:
 ---------------
 
-- egl backend (see egl.cpp)
-	- optional instead of wgl
-	- check if available, use wgl instead
-	- should be easy to implement
-	- might be more efficient (ANGLE) than using wgl
-- ime input? at least check if it is needed
 - assure/recheck unicode handling for title, window class name etc.
-- native widgets (for all backends relevant)
-- wgl api reparse [loader, swap control tear]
 - rethink WinapiWindowContext::cursor implementation.
-- Set a cursor when moving the window (beginMove)? windows 10 does not do it
 - initial mouse focus (see KeyboardContext handler inconsistency)
 - better documentation about layered window, make it optional. Move doc out of the source.
 - dnd/clipboard improvements
@@ -172,3 +165,13 @@ winapi backend:
 	- cannot differentiate to windows created not by ny
 - com: correct refadd/release? check with destructor log!
 - WC: cursor and icon: respect/handle/take care of system metrics
+
+- Set a cursor when moving the window (beginMove)? windows 10 does not do it
+- native widgets rethink (for all backends relevant)
+	- at least dialogs are something (-> see window types)
+- ime input? at least check if it is needed
+- egl backend (see egl.cpp)
+	- optional instead of wgl
+	- check if available, use wgl instead
+	- should be easy to implement
+	- might be more efficient (ANGLE) than using wgl

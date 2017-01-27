@@ -40,7 +40,7 @@ int main()
 
 	ny::WindowSettings settings;
 	settings.surface = ny::SurfaceType::gl;
-	settings.transparent = true;
+	settings.transparent = false;
 	settings.gl.storeSurface = &glSurface;
 
 	auto wc = ac->createWindowContext(settings);

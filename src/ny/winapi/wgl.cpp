@@ -6,23 +6,147 @@
 #include <ny/winapi/windowContext.hpp>
 #include <ny/winapi/appContext.hpp>
 #include <ny/winapi/util.hpp>
-#include <ny/winapi/wglApi.h>
+// #include <ny/winapi/wglApi.h>
 
 #include <ny/surface.hpp>
 #include <ny/log.hpp>
 
 #include <nytl/scope.hpp>
 
+#include <Wingdi.h>
+
 #include <thread>
+#include <mutex>
+
+// we assume that the wgl* function pointers are the same for all
+// contexts and pixel formats. This assumption might not be correct in all
+// cases but there is NO sane way to assume something else.
+
+// TODO: add support for implementation that do not support choosePixelFormatARB?
+// see git history for (rather bad) implementation
 
 namespace ny {
-namespace {
+namespace ext {
 
-// needed for function loading callbacks
-thread_local WglSetup* gWglSetup;
-void* wglLoadFunc(const char* name) { return gWglSetup->procAddr(name); }
+// Extension functions typedefs
+using PfnWglCreateContextAttribsARB = HGLRC (*)(HDC, HGLRC, const int*);
+using PfnWglSwapIntervalEXT = BOOL (*)(int);
+using PfnWglGetExtensionStringARB = const char* (*)(HDC);
+using PfnWglGetPixelFormatAttribivARB = BOOL(*)(HDC, int, int, UINT, const int*, int*);
+using PfnWglChoosePixelFormatARB =  BOOL (*)(HDC, const int*,
+	const FLOAT*, UINT, int*, UINT*);
 
-} // anonymous util namespace
+// Extension function pointers
+// loaded exactly once in a threadsafe manner
+PfnWglGetExtensionStringARB getExtensionStringARB {};
+PfnWglChoosePixelFormatARB choosePixelFormatARB {};
+PfnWglGetPixelFormatAttribivARB getPixelFormatAttribivARB {};
+PfnWglCreateContextAttribsARB createContextAttribsARB {};
+PfnWglSwapIntervalEXT swapIntervalEXT {};
+
+// all supported extensions string
+const char* extensions;
+
+// bool flags only for extensions that have to functions pointers
+bool hasMultisample;
+bool hasSwapControlTear;
+bool hasProfileES;
+
+/// Tries to load the needed setup function pointers
+/// Returns false if initialization fails
+/// Will only initialize the functions pointer once in a threadsafe manner
+/// Expects a wgl context to be current for the given hdc.
+bool loadExtensions(HDC hdc)
+{
+	static std::once_flag of {};
+	static bool valid {};
+
+	// simply fail if the basic extensions are not supported
+	// they usually are, even on ancient implementations
+	std::call_once(of, [&] {
+		auto ptr = ::wglGetProcAddress("wglGetExtensionsStringARB");
+		if(!ptr) {
+			warning("ny::Wgl::initChoosePixelFormat: could not load wglGetExtensionsString");
+			return;
+		}
+
+		getExtensionStringARB = reinterpret_cast<PfnWglGetExtensionStringARB>(ptr);
+		extensions = getExtensionStringARB(hdc);
+
+		auto pixelFormat = glExtensionStringContains(extensions, "WGL_ARB_pixel_format");
+		auto contextAttribs = glExtensionStringContains(extensions, "WGL_ARB_create_context");
+		auto swapControl = glExtensionStringContains(extensions, "WGL_EXT_swap_control");
+
+		hasMultisample = glExtensionStringContains(extensions, "GLX_ARB_multisample");
+		hasSwapControlTear = glExtensionStringContains(extensions, "GLX_ARB_swap_control_tear");
+		hasProfileES = glExtensionStringContains(extensions, "WGL_EXT_create_context_es2_profile");
+
+		using PfnVoid = void (*)();
+		struct LoadFunc {
+			const char* name;
+			PfnVoid& func;
+			bool load {true};
+		} funcs[] = {
+			{"wglChoosePixelFormatARB", (PfnVoid&) choosePixelFormatARB, pixelFormat},
+			{"wglGetPixelFormatAttribivARB", (PfnVoid&) getPixelFormatAttribivARB, pixelFormat},
+			{"wglCeateContextAttribsARB", (PfnVoid&) createContextAttribsARB, contextAttribs},
+			{"wglSwapIntervalEXT", (PfnVoid&) swapIntervalEXT, swapControl},
+		};
+
+		for(const auto& f : funcs)
+			f.func = f.load ? reinterpret_cast<PfnVoid>(::wglGetProcAddress(f.name)) : nullptr;
+
+		valid = true;
+	});
+
+	return valid;
+}
+
+#define WGL_CONTEXT_DEBUG_BIT_ARB 0x00000001
+#define WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB 0x00000002
+#define WGL_CONTEXT_ES2_PROFILE_BIT_EXT	0x00000004
+#define WGL_CONTEXT_MAJOR_VERSION_ARB 0x2091
+#define WGL_CONTEXT_MINOR_VERSION_ARB 0x2092
+#define WGL_CONTEXT_LAYER_PLANE_ARB 0x2093
+#define WGL_CONTEXT_FLAGS_ARB 0x2094
+#define ERROR_INVALID_VERSION_ARB 0x2095
+#define WGL_CONTEXT_PROFILE_MASK_ARB 0x9126
+#define WGL_CONTEXT_CORE_PROFILE_BIT_ARB 0x00000001
+#define WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB 0x00000002
+#define ERROR_INVALID_PROFILE_ARB 0x2096
+#define WGL_SAMPLE_BUFFERS_ARB 0x2041
+#define WGL_SAMPLES_ARB 0x2042
+#define WGL_NUMBER_PIXEL_FORMATS_ARB 0x2000
+#define WGL_DRAW_TO_WINDOW_ARB 0x2001
+#define WGL_DRAW_TO_BITMAP_ARB 0x2002
+#define WGL_ACCELERATION_ARB 0x2003
+#define WGL_TRANSPARENT_ARB 0x200A
+#define WGL_SHARE_DEPTH_ARB 0x200C
+#define WGL_SHARE_STENCIL_ARB 0x200D
+#define WGL_SHARE_ACCUM_ARB 0x200E
+#define WGL_SUPPORT_GDI_ARB 0x200F
+#define WGL_SUPPORT_OPENGL_ARB 0x2010
+#define WGL_DOUBLE_BUFFER_ARB 0x2011
+#define WGL_STEREO_ARB 0x2012
+#define WGL_PIXEL_TYPE_ARB 0x2013
+#define WGL_COLOR_BITS_ARB 0x2014
+#define WGL_RED_BITS_ARB 0x2015
+#define WGL_RED_SHIFT_ARB 0x2017
+#define WGL_GREEN_BITS_ARB 0x2017
+#define WGL_GREEN_SHIFT_ARB 0x2018
+#define WGL_BLUE_BITS_ARB 0x2019
+#define WGL_BLUE_SHIFT_ARB 0x201A
+#define WGL_ALPHA_BITS_ARB 0x201B
+#define WGL_ALPHA_SHIFT_ARB 0x201C
+#define WGL_DEPTH_BITS_ARB 0x2022
+#define WGL_STENCIL_BITS_ARB 0x2023
+#define WGL_AUX_BUFFERS_ARB 0x2024
+#define WGL_NO_ACCELERATION_ARB 0x2025
+#define WGL_GENERIC_ACCELERATION_ARB 0x2026
+#define WGL_FULL_ACCELERATION_ARB 0x2027
+#define WGL_TYPE_RGBA_ARB 0x202B
+
+} // namespace ext
 
 //WglSetup
 WglSetup::WglSetup(HWND dummy) : dummyWindow_(dummy)
@@ -61,158 +185,98 @@ WglSetup::WglSetup(HWND dummy) : dummyWindow_(dummy)
 	if(!dummyContext)
 		throw winapi::lastErrorException("ny::WglSetup: unable to create dummy context");
 
-	gWglSetup = this; // needed by wglLoadFunc
-	wglMakeCurrent(dummyDC_, dummyContext);
-	gladLoadWGLLoader(wglLoadFunc, dummyDC_);
-	wglMakeCurrent(nullptr, nullptr);
-	gWglSetup = nullptr;
+	{
+		::wglMakeCurrent(dummyDC_, dummyContext);
+		auto notCurrentGuard = nytl::makeScopeGuard([&]{
+			::wglMakeCurrent(nullptr, nullptr);
+			::wglDeleteContext(dummyContext);
+		});
 
-	// function to rate a GlConfig
+		if(!ext::loadExtensions(dummyDC_))
+			throw std::runtime_error("ny::WglSetup: failed ot load wglChoosePixelFormat");
+	}
+
+	// we require the pixel format extensions
+	// should be supported everywhere
+	if(!ext::choosePixelFormatARB || !ext::getPixelFormatAttribivARB)
+		throw std::runtime_error("ny::WglSetup: pixel_format wgl extension is required");
 
 	// now enumerate all gl configs
 	// if the extension is available retrieve all formats with the required attributes
 	// otherwise just retrieve and parse parse a few formats
-	if(GLAD_WGL_ARB_pixel_format) {
-		int pfAttribs[] = {
-			WGL_DRAW_TO_WINDOW_ARB, true,
-			WGL_SUPPORT_OPENGL_ARB, true,
-			0, 0
-		};
+	int pfAttribs[] = {
+		WGL_DRAW_TO_WINDOW_ARB, true,
+		WGL_SUPPORT_OPENGL_ARB, true,
+		0, 0
+	};
 
-		int formats[1024] {};
-		UINT nformats = 0;
-		bool ret = wglChoosePixelFormatARB(dummyDC_, pfAttribs, nullptr, 1024, formats, &nformats);
+	int formats[1024] {};
+	UINT nformats = 0;
+	bool ret = ext::choosePixelFormatARB(dummyDC_, pfAttribs, nullptr, 1024, formats, &nformats);
 
-		if(ret && nformats) {
-			std::vector<int> attribs = {
-				WGL_ACCELERATION_ARB,
-				WGL_RED_BITS_ARB,
-				WGL_GREEN_BITS_ARB,
-				WGL_BLUE_BITS_ARB,
-				WGL_ALPHA_BITS_ARB,
-				WGL_DEPTH_BITS_ARB,
-				WGL_STENCIL_BITS_ARB,
-				WGL_DOUBLE_BUFFER_ARB // count: 7
-			};
-
-			if(GLAD_WGL_ARB_multisample) {
-				attribs.push_back(WGL_SAMPLE_BUFFERS_ARB);
-				attribs.push_back(WGL_SAMPLES_ARB); // count: 9
-			}
-
-			configs_.reserve(nformats);
-
-			std::vector<int> values;
-			values.resize(attribs.size());
-
-			auto bestRating = 0u;
-			for(auto& format : nytl::Span<int>(formats, nformats)) {
-				auto succ = wglGetPixelFormatAttribivARB(dummyDC_, format, PFD_MAIN_PLANE,
-					attribs.size(), attribs.data(), values.data());
-				if(!succ) {
-					warning(winapi::errorMessage("ny::WglSetup: wglGetPixelFormatAttrib"));
-					continue;
-				}
-
-				configs_.emplace_back();
-				configs_.back().id = reinterpret_cast<GlConfigID>(format);
-				configs_.back().red = values[1];
-				configs_.back().green = values[2];
-				configs_.back().blue = values[3];
-				configs_.back().alpha = values[4];
-				configs_.back().depth = values[5];
-				configs_.back().stencil = values[6];
-				configs_.back().doublebuffer = values[7];
-
-				if(GLAD_WGL_ARB_multisample && values[8]) configs_.back().samples = values[9];
-
-				auto rating = rate(configs_.back()) + values[0] * 50;
-				if(rating >= bestRating) {
-					bestRating = rating;
-					defaultConfig_ = &configs_.back(); //configs_ wont reallocate
-				}
-			}
-		} else {
-			warning(winapi::errorMessage("ny::WglSetup: wglChoosePixelFormat"));
-		}
-	} else {
-		warning("ny::WglSetup: extension WGL_ARB_pixel_format could not be loaded.");
+	if(!ret || nformats == 0) {
+		auto message = winapi::errorMessage("ny::WglSetup: wglChoosePixelFormat");
+		throw std::runtime_error(message);
 	}
 
-	if(!defaultConfig_) {
-		auto pixelformat = 0;
-		auto bestRating = 0u;
+	std::vector<int> attribs = {
+		WGL_ACCELERATION_ARB,
+		WGL_RED_BITS_ARB,
+		WGL_GREEN_BITS_ARB,
+		WGL_BLUE_BITS_ARB,
+		WGL_ALPHA_BITS_ARB,
+		WGL_DEPTH_BITS_ARB,
+		WGL_STENCIL_BITS_ARB,
+		WGL_DOUBLE_BUFFER_ARB,
+		WGL_TRANSPARENT_ARB // id: 8
+	};
 
-		PIXELFORMATDESCRIPTOR pfd {};
-		pfd.nSize = sizeof(pfd);
-		pfd.nVersion = 1;
-		pfd.iLayerType = PFD_MAIN_PLANE;
-		pfd.iPixelType = PFD_TYPE_RGBA;
+	if(ext::hasMultisample) {
+		attribs.push_back(WGL_SAMPLE_BUFFERS_ARB);
+		attribs.push_back(WGL_SAMPLES_ARB); // id: 10
+	}
 
-		auto testFormat = [&](int color, int depth, int stencil, bool db) {
-			pfd.cColorBits = color;
-			pfd.cDepthBits = depth;
-			pfd.cStencilBits = stencil;
-			pfd.cAlphaBits = color - 24;
+	configs_.reserve(nformats);
 
-			if(db) pfd.dwFlags |= PFD_DOUBLEBUFFER;
-			else pfd.dwFlags &= ~PFD_DOUBLEBUFFER;
+	std::vector<int> values;
+	values.resize(attribs.size());
 
-			// We do not check for acceleration here since this function should
-			// always choose the accelerated one if it is available
-			pixelformat = ::ChoosePixelFormat(dummyDC_, &pfd);
-			if(!pixelformat) return; //dont error here - its ok
+	auto bestRating = 0u;
+	for(auto& format : nytl::Span<int>(formats, nformats)) {
+		auto succ = ext::getPixelFormatAttribivARB(dummyDC_, format, PFD_MAIN_PLANE,
+			attribs.size(), attribs.data(), values.data());
 
-			// first check that we dont already have this format
-			auto pixelformatu = static_cast<unsigned int>(pixelformat);
-			for(auto& fmt : configs_)
-				if(glConfigNumber(fmt.id) == pixelformatu) return;
+		if(!succ) {
+			warning(winapi::errorMessage("ny::WglSetup: wglGetPixelFormatAttrib"));
+			continue;
+		}
 
-			// check the actual values since ChoosePixelFormat returns only the closest format
-			PIXELFORMATDESCRIPTOR realPfd {};
-			::DescribePixelFormat(dummyDC_, pixelformat, sizeof(realPfd), &realPfd);
+		configs_.emplace_back();
+		configs_.back().id = reinterpret_cast<GlConfigID>(format);
+		configs_.back().red = values[1];
+		configs_.back().green = values[2];
+		configs_.back().blue = values[3];
+		configs_.back().alpha = values[4];
+		configs_.back().depth = values[5];
+		configs_.back().stencil = values[6];
+		configs_.back().doublebuffer = values[7];
+		configs_.back().transparent = values[8];
 
-			GlConfig config;
-			config.depth = realPfd.cDepthBits;
-			config.stencil = realPfd.cStencilBits;
-			config.red = (realPfd.cColorBits - realPfd.cAlphaBits) / 3;
-			config.green = (realPfd.cColorBits - realPfd.cAlphaBits) / 3;
-			config.blue = realPfd.cColorBits - (config.red + config.green);
-			config.alpha = realPfd.cAlphaBits;
-			config.doublebuffer = realPfd.dwFlags & PFD_DOUBLEBUFFER;
-			glConfigNumber(config.id) = pixelformat;
+		if(ext::hasMultisample && values[9])
+			configs_.back().samples = values[10];
 
-			configs_.push_back(config);
-
-			auto rating = rate(config);
-			if(rating > bestRating) {
-				bestRating = rating;
-				defaultConfig_ = &configs_.back();
-			}
-		};
-
-		int colors[] = {24, 32};
-		int depth[] = {16, 24, 32};
-		int stencil[] = {0, 8};
-		bool doubleBuffer[] = {true, false};
-
-		configs_.reserve(2 * 3 * 2 * 2); // the possible number of configs
-
-		// TODO: some kind of fallback (ANY config is better than no config at all)
-		// would be nice
-
-		// test all usual configs
-		for(auto c : colors)
-			for(auto d : depth)
-				for(auto s : stencil)
-					for(auto db : doubleBuffer)
-						testFormat(c, d, s, db);
+		auto rating = rate(configs_.back()) + values[0] * 50;
+		if(rating >= bestRating) {
+			bestRating = rating;
+			defaultConfig_ = &configs_.back(); // configs_ won't ever reallocate
+		}
 	}
 }
 
 WglSetup::~WglSetup()
 {
-	if(dummyWindow_ && dummyDC_) ::ReleaseDC(dummyWindow_, dummyDC_);
+	if(dummyWindow_ && dummyDC_)
+		::ReleaseDC(dummyWindow_, dummyDC_);
 }
 
 WglSetup::WglSetup(WglSetup&& other) noexcept
@@ -284,14 +348,14 @@ WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 {
 	::SetLastError(0);
 
-	// test for logic errors
+	// test for conig errors
 	bool gles = (settings.version.api != GlApi::gl);
+	if(gles && settings.forceVersion && (!ext::hasProfileES || !ext::createContextAttribsARB))
+		throw std::runtime_error("ny::WglContext: cannot create gles context");
 
 	auto major = settings.version.major;
 	auto minor = settings.version.minor;
-
-	if(major < 1 || major > 4 || minor > 5)
-		throw GlContextError(GlContextErrc::invalidVersion, "ny::WglContext");
+	auto api = settings.version.api;
 
 	// we create our own dummyDC that is compatibly to the default dummy dc
 	// and then select the chosen config (pixel format) into the dc
@@ -323,7 +387,7 @@ WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 
 	::SetLastError(0);
 
-	if(GLAD_WGL_ARB_create_context) {
+	if(ext::createContextAttribsARB) {
 		std::vector<int> attributes;
 		attributes.reserve(20);
 
@@ -377,7 +441,7 @@ WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 		attributes.push_back(0);
 		attributes.push_back(0);
 
-		wglContext_ = ::wglCreateContextAttribsARB(dummyDC, share, attributes.data());
+		wglContext_ = ext::createContextAttribsARB(dummyDC, share, attributes.data());
 
 		// those versions will be tried to create when the version specified in
 		// the passed settings fails and the passed version should not be forced.
@@ -387,7 +451,7 @@ WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 				attributes[1] = p.first;
 				attributes[3] = p.second;
 
-				wglContext_ = ::wglCreateContextAttribsARB(dummyDC, share, attributes.data());
+				wglContext_ = ext::createContextAttribsARB(dummyDC, share, attributes.data());
 				if(!wglContext_ && ::GetLastError() == ERROR_INVALID_VERSION_ARB) continue;
 				break;
 			}
@@ -395,8 +459,9 @@ WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 	}
 
 	// try legacy version for gl api
-	if(!gles && !wglContext_ && !settings.forceVersion) {
+	if(!wglContext_ && !settings.forceVersion) {
 		wglContext_ = ::wglCreateContext(dummyDC);
+		api = GlApi::gl;
 		if(share && !::wglShareLists(share, wglContext_)) {
 			::wglDeleteContext(wglContext_);
 			throw winapi::lastErrorException("ny::WglContext: wglShareLists failed");
@@ -406,7 +471,7 @@ WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 	if(!wglContext_)
 		throw winapi::lastErrorException("ny::WglContext: failed to create context");
 
-	GlContext::initContext(settings.version.api, config_, settings.share);
+	GlContext::initContext(api, config_, settings.share);
 }
 
 WglContext::~WglContext()
@@ -452,19 +517,19 @@ bool WglContext::makeNotCurrentImpl(std::error_code& ec)
 GlContextExtensions WglContext::contextExtensions() const
 {
 	GlContextExtensions ret;
-	if(GLAD_WGL_EXT_swap_control) ret |= GlContextExtension::swapControl;
-	// if(GLAD_WGL_EXT_swap_control_tear) ret |= GlContextExtension::swapControlTear;
+	if(ext::swapIntervalEXT) ret |= GlContextExtension::swapControl;
+	if(ext::hasSwapControlTear) ret |= GlContextExtension::swapControlTear;
 	return ret;
 }
 
 bool WglContext::swapInterval(int interval, std::error_code& ec) const
 {
-	if(!GLAD_WGL_EXT_swap_control || !::wglSwapIntervalEXT) {
+	if(!ext::swapIntervalEXT) {
 		ec = {GlContextErrc::extensionNotSupported};
 		return false;
 	}
 
-	if(!::wglSwapIntervalEXT(interval)) {
+	if(!ext::swapIntervalEXT(interval)) {
 		ec = winapi::lastErrorCode();
 		return false;
 	}

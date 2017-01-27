@@ -183,6 +183,7 @@ int main()
 
 	ny::WindowSettings settings;
 	settings.title = "Ayy sick shit";
+	settings.droppable = true;
 	settings.listener = &listener;
 	settings.surface = ny::SurfaceType::buffer;
 	settings.buffer.storeSurface = &bufferSurface;

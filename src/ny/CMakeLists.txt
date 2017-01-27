@@ -33,7 +33,7 @@ if(WithWinapi)
 	list(APPEND ny_libs gdi32 gdiplus Dwmapi Shlwapi)
 
 	if(WithGl)
-		list(APPEND ny_src winapi/wgl.cpp winapi/wglApi.c)
+		list(APPEND ny_src winapi/wgl.cpp)
 	endif()
 
 	if(WithVulkan)

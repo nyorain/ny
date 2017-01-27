@@ -11,10 +11,15 @@
 #include <ny/library.hpp>
 #include <ny/common/gl.hpp>
 
+#include <unordered_map>
+
 namespace ny {
 
 /// Wgl GlSetup implementation
 class WglSetup : public GlSetup {
+public:
+	struct Api;
+
 public:
 	WglSetup() = default;
 	WglSetup(HWND dummy);

@@ -51,6 +51,7 @@ struct GlConfig {
 	unsigned int alpha {};
 
 	bool doublebuffer {};
+	bool transparent {};
 
 	GlConfigID id {};
 };
@@ -63,11 +64,16 @@ struct GlConfig {
 /// Returns some value in the range 1 - 100;
 unsigned int rate(const GlConfig& config);
 
+/// Returns whether the given extension string that lists extensions sepertaed by
+/// whitespace contains the given extensions.
+bool glExtensionStringContains(nytl::StringParam extString, nytl::StringParam extension);
+
 /// Describe the settings for a created gl context.
 /// Note that if version 4.0 specified, the context might have any version >= 4.0.
 /// If forceVersion is set to true, context creation will fail if a context with at least
 /// the given version can be created for sure. Otherwise a context with a version
-/// below the requested one will be returned.
+/// below the requested one will be returned. If forceVersion is false, even a context
+/// with a different api (i.e. gl instead of gles or vice-versa) may be created.
 /// For legacy contexts the compatibility, forwardCompatible and debug flags do not matter.
 /// The shared GlContext must be set to nullptr or a GlContext that was created from the
 /// same implementation. The returned context will be shared with the given share context and

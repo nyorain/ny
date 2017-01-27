@@ -27,9 +27,9 @@ namespace ext {
 bool hasCreateContext = false;
 bool hasSwapControl = false;
 
-using PfnGlxSwapIntervalEXT = void (APIENTRYP)(Display* dpy, GLXDrawable drawable, int interval);
-using PfnGlxCreateContextAttribsARB = GLXContext(APIENTRYP)(Display* dpy, GLXFBConfig config,
-	GLXContext share_context, Bool direct, const int* attrib_list);
+using PfnGlxSwapIntervalEXT = void (APIENTRYP)(Display*, GLXDrawable, int);
+using PfnGlxCreateContextAttribsARB = GLXContext(APIENTRYP)(Display*, GLXFBConfig,
+	GLXContext, Bool, const int*);
 
 PfnGlxSwapIntervalEXT swapIntervalEXT;
 PfnGlxCreateContextAttribsARB createContextAttribsARB;
@@ -187,17 +187,22 @@ GlxSetup::GlxSetup(const X11AppContext& ac, unsigned int screenNum) : xDisplay_(
 	auto highestRating = 0u;
 	for(auto& config : nytl::Span<GLXFBConfig>(*fbconfigs, fbcount)) {
 		GlConfig glconf;
-		int r, g, b, a, id, depth, stencil, doubleBuffer;
+		int r, g, b, a, id, depth, stencil, doubleBuffer, transparent;
 
 		::glXGetFBConfigAttrib(xDisplay_, config, GLX_FBCONFIG_ID, &id);
 		::glXGetFBConfigAttrib(xDisplay_, config, GLX_STENCIL_SIZE, &stencil);
 		::glXGetFBConfigAttrib(xDisplay_, config, GLX_DEPTH_SIZE, &depth);
 		::glXGetFBConfigAttrib(xDisplay_, config, GLX_DOUBLEBUFFER, &doubleBuffer);
+		::glXGetFBConfigAttrib(xDisplay_, config, GLX_TRANSPARENT_TYPE, &transparent);
 
 		::glXGetFBConfigAttrib(xDisplay_, config, GLX_RED_SIZE, &r);
 		::glXGetFBConfigAttrib(xDisplay_, config, GLX_GREEN_SIZE, &g);
 		::glXGetFBConfigAttrib(xDisplay_, config, GLX_BLUE_SIZE, &b);
 		::glXGetFBConfigAttrib(xDisplay_, config, GLX_ALPHA_SIZE, &a);
+
+		auto visual32 = false;
+		auto visual = visualID(glConfigID(id));
+		if(visual && findVisualDepth(ac, visual) == 32) visual32 == true;
 
 		glconf.depth = depth;
 		glconf.stencil = stencil;
@@ -207,17 +212,11 @@ GlxSetup::GlxSetup(const X11AppContext& ac, unsigned int screenNum) : xDisplay_(
 		glconf.alpha = a;
 		glconf.id = glConfigID(id);
 		glconf.doublebuffer = doubleBuffer;
+		glconf.transparent = (transparent == GLX_TRANSPARENT_RGB) && visual32;
 
 		configs_.push_back(glconf);
-		auto visual = visualID(glconf.id);
-		if(!visual) continue;
-
-		auto xvDepth = findVisualDepth(ac, visual);
 
 		auto rating = rate(configs_.back());
-
-		if(xvDepth == 24) rating = 2;
-		else if(xvDepth == 32) rating = 3;
 		if(rating > highestRating) {
 			highestRating = rating;
 			defaultConfig_ = &configs_.back(); // configs_ will never be reallocated
@@ -230,8 +229,8 @@ GlxSetup::GlxSetup(const X11AppContext& ac, unsigned int screenNum) : xDisplay_(
 		// log("visual: ", visualID(glconf.id));
 	}
 
-	log("alpha: ", defaultConfig_->alpha);
-	log("depth: ", findVisualDepth(ac, visualID(defaultConfig_->id)));
+	// log("alpha: ", defaultConfig_->alpha);
+	// log("depth: ", findVisualDepth(ac, visualID(defaultConfig_->id)));
 	::XFree(fbconfigs);
 }
 

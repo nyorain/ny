@@ -16,7 +16,9 @@ option(Debug "Include debug symbols" on)
 option(DependOnNytl "Make ny depend on nytl. Developement option" on)
 
 # to disable ninja byproduct warning
-# cmake_policy(SET CMP0058 NEW)
+if(${CMAKE_VERSION} GREATER 3.1)
+	cmake_policy(SET CMP0058 NEW)
+endif()
 
 # include dirs
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include") # public headers
@@ -76,8 +78,7 @@ cmake_dependent_option(WithGl
 
 cmake_dependent_option(WithEgl
 	"Built ny with EGL support. Requires GL" on
-	"WithGl" off)
-	# "WithGl;EGL_FOUND" off)
+	"WithGl;EGL_FOUND" off)
 
 cmake_dependent_option(WithVulkan
 	"Build ny with Vulkan support" on
