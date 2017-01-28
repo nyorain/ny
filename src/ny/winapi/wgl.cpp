@@ -281,11 +281,10 @@ WglSetup::~WglSetup()
 WglSetup::WglSetup(WglSetup&& other) noexcept
 {
 	configs_ = std::move(other.configs_);
-	glLibrary_ = std::move(other.glLibrary_);
-
 	dummyWindow_ = other.dummyWindow_;
 	dummyDC_ = other.dummyDC_;
 	defaultConfig_ = other.defaultConfig_;
+	defaultTransparentConfig_ = other.defaultTransparentConfig_;
 
 	other.dummyWindow_ = {};
 	other.dummyDC_ = {};
@@ -297,11 +296,10 @@ WglSetup& WglSetup::operator=(WglSetup&& other) noexcept
 	if(dummyWindow_ && dummyDC_) ::ReleaseDC(dummyWindow_, dummyDC_);
 
 	configs_ = std::move(other.configs_);
-	glLibrary_ = std::move(other.glLibrary_);
-
 	dummyWindow_ = other.dummyWindow_;
 	dummyDC_ = other.dummyDC_;
 	defaultConfig_ = other.defaultConfig_;
+	defaultTransparentConfig_ = other.defaultTransparentConfig_;
 
 	other.dummyWindow_ = {};
 	other.dummyDC_ = {};

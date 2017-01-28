@@ -105,6 +105,9 @@ bool loadExtensions(Display& dpy)
 
 namespace {
 
+// TODO: check/differentiate expected & unexpected errors in the handler
+// output better/detailed warning if unexpected for better ny & application debugging
+
 // This error handler might be signaled when glx context creation fails
 // We will test various gl api versions, so we install this handler that
 // the application does not end for the expected error
@@ -120,7 +123,7 @@ int ctxErrorHandler(Display* display, XErrorEvent* event)
 
 	auto code = static_cast<int>(event->error_code);
 	auto msg = x11::errorMessage(*display, code);
-	log("ny::GlxContext: Error occured during context creation: ", code, ": ", msg);
+	debug("ny::GlxContext: Expected error occured during context creation: ", code, ": ", msg);
 	return 0;
 }
 
@@ -164,8 +167,6 @@ GlxSetup::GlxSetup(const X11AppContext& ac, unsigned int screenNum) : xDisplay_(
 	auto highestTransparentRating = 0u;
 
 	for(auto& config : nytl::Span<GLXFBConfig>(*fbconfigs, fbcount)) {
-		if(!config) continue;
-
 		// TODO: transparency: also query/handle GLX_TRANSPARENT_TYPE?
 		// in addition to 32 bit visual querying
 		// was invalid on tested platforms though...
@@ -216,6 +217,7 @@ GlxSetup::GlxSetup(GlxSetup&& other) noexcept
 {
 	xDisplay_ = other.xDisplay_;
 	defaultConfig_ = other.defaultConfig_;
+	defaultTransparentConfig_ = other.defaultTransparentConfig_;
 	configs_ = std::move(other.configs_);
 
 	other.xDisplay_ = {};
@@ -226,6 +228,7 @@ GlxSetup& GlxSetup::operator=(GlxSetup&& other) noexcept
 {
 	xDisplay_ = other.xDisplay_;
 	defaultConfig_ = other.defaultConfig_;
+	defaultTransparentConfig_ = other.defaultTransparentConfig_;
 	configs_ = std::move(other.configs_);
 
 	other.xDisplay_ = {};
@@ -527,8 +530,11 @@ GlxWindowContext::GlxWindowContext(X11AppContext& ac, const GlxSetup& setup,
 
 	auto configid = settings.gl.config;
 	if(!configid) {
-		if(!settings.transparent) configid = setup.defaultConfig().id;
-		else configid = setup.defaultTransparentConfig().id;
+		if(settings.transparent) configid = setup.defaultTransparentConfig().id;
+		if(!configid) {
+			if(settings.transparent) warning("ny::GlxWindowContext: no transparent config");
+			configid = setup.defaultConfig().id;
+		}
 	}
 
 	auto config = setup.config(configid);
