@@ -29,20 +29,6 @@ public:
 	std::string message(int code) const override;
 };
 
-// Needed to load the egl api using glad
-thread_local EglSetup* gLoaderSetup;
-std::once_flag loadEglFlag;
-
-extern "C" void* loadEglProcAddr(const char* name)
-{
-	if(!gLoaderSetup) {
-		warning("ny::Egl::loadEglProcAddr: called while gLoaderSetup == nullptr");
-		return nullptr;
-	}
-
-	return gLoaderSetup->eglLibrary().symbol(name);
-}
-
 } // anonymous util namespace
 
 // EglSetup

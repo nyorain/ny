@@ -7,7 +7,6 @@
 #include <ny/x11/include.hpp>
 #include <ny/x11/windowContext.hpp>
 #include <ny/common/gl.hpp>
-#include <ny/library.hpp>
 #include <nytl/vec.hpp>
 
 // prototypes to not include glx.h
@@ -17,9 +16,9 @@ typedef struct __GLXFBConfigRec* GLXFBConfig;
 namespace ny {
 
 //TODO: for glx calls: correct error handling
-//TODO: api loading, glLibrary, context extensions, swapInterval, screen number
+//TODO: correct screen number everywhere
 
-/// Glx GlSetup implementation
+/// Glx GlSetup implementation.
 class GlxSetup : public GlSetup {
 public:
 	GlxSetup() = default;
@@ -29,7 +28,9 @@ public:
 	GlxSetup(GlxSetup&&) noexcept;
 	GlxSetup& operator=(GlxSetup&&) noexcept;
 
-	GlConfig defaultConfig() const override { return *defaultConfig_; }
+	GlConfig defaultConfig() const override { return defaultConfig_; }
+	GlConfig defaultTransparentConfig() const { return defaultTransparentConfig_; }
+
 	std::vector<GlConfig> configs() const override { return configs_; }
 
 	std::unique_ptr<GlContext> createContext(const GlContextSettings& = {}) const override;
@@ -43,12 +44,10 @@ public:
 
 protected:
 	Display* xDisplay_ {};
-
 	std::vector<GlConfig> configs_;
-	GlConfig* defaultConfig_ {};
 
-	// TODO
-	Library glLibrary_;
+	GlConfig defaultConfig_ {};
+	GlConfig defaultTransparentConfig_ {};
 };
 
 /// Glx GlSurface implementation

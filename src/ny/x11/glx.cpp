@@ -24,83 +24,64 @@
 namespace ny {
 namespace ext {
 
-bool hasCreateContext = false;
-bool hasSwapControl = false;
-
 using PfnGlxSwapIntervalEXT = void (APIENTRYP)(Display*, GLXDrawable, int);
 using PfnGlxCreateContextAttribsARB = GLXContext(APIENTRYP)(Display*, GLXFBConfig,
 	GLXContext, Bool, const int*);
 
+// extensions function pointers
 PfnGlxSwapIntervalEXT swapIntervalEXT;
 PfnGlxCreateContextAttribsARB createContextAttribsARB;
 
-void queryExtensions(Display& dpy)
-{
-	static std::once_flag cof;
-	std::call_once(cof, [&]{
-		log("called");
-		struct {
-			const char* name;
-			bool& value;
-		} query[] = {
-			{"GLX_ARB_create_context", hasCreateContext},
-			{"GLX_EXT_swap_control", hasSwapControl}
-		};
+// bool flags for extensions without functions
+bool hasSwapControlTear = false;
+bool hasProfile = false;
+bool hasProfileES = false;
 
-	    auto exts = ::glXGetClientString(&dpy, GLX_EXTENSIONS);
-	    if(!exts) {
-			warning("ny::Glx::queryExtensions: failed to query extensions");
+bool loadExtensions(Display& dpy)
+{
+	static std::once_flag cof {};
+	static bool valid {};
+
+	std::call_once(cof, [&]{
+		// we call both since they are different on some platforms
+		auto client = ::glXGetClientString(&dpy, GLX_EXTENSIONS);
+		auto exts = ::glXQueryExtensionsString(&dpy, 0);
+
+		if(!client || !exts) {
+			warning("ny::Glx::loadExtensions: failed to retrieve extension string");
 			return;
 		}
 
-	    for(auto ext : query) {
-			auto extensions = exts;
-			ext.value = false;
-			while(true) {
-		        auto loc = std::strstr(extensions, ext.name);
-		        if(!loc) break;
+		std::string extensions;
+		if(client) extensions += client;
+		if(exts) extensions += exts;
 
-		        auto terminator = loc + std::strlen(ext.name);
-				bool blankBefore = loc == extensions || *(loc - 1) == ' ';
-				bool blankAfter = *terminator == ' ' || *terminator == '\0';
-				if(blankBefore && blankAfter) {
-					ext.value = true;
-					break;
-		        }
+		auto swapControl = glExtensionStringContains(extensions, "GLX_ARB_swap_control");
+		auto createContext = glExtensionStringContains(extensions, "GLX_ARB_create_context");
 
-		        extensions = terminator;
-			}
-	    }
-	});
+		hasSwapControlTear = glExtensionStringContains(extensions, "GLX_ARB_swap_control_tear");
+		hasProfile = glExtensionStringContains(extensions, "GLX_EXT_create_context_profile");
+		hasProfileES = glExtensionStringContains(extensions, "GLX_EXT_create_context_es2_profile");
 
-	log("createContext: ", hasCreateContext);
-	log("swapControl: ", hasSwapControl);
-}
-
-void loadExtensions()
-{
-	using PfnVoid = void(*)();
-	static std::once_flag cof;
-
-	std::call_once(cof, [&]{
-		struct {
-			bool extension;
+		using PfnVoid = void (*)();
+		struct LoadFunc {
 			const char* name;
-			PfnVoid& pointer;
+			PfnVoid& func;
+			bool load {true};
 		} funcs[] = {
-			{hasCreateContext, "glXCreateContextAttribsARB", (PfnVoid&)createContextAttribsARB},
-			{hasSwapControl, "glXSwapIntervalEXT", (PfnVoid&)(swapIntervalEXT)}
+			{"glXCreateContextAttribsARB", (PfnVoid&) createContextAttribsARB, createContext},
+			{"glXSwapIntervalEXT", (PfnVoid&) swapIntervalEXT, swapControl},
 		};
 
-		for(auto& func : funcs) {
-			if(!func.extension) continue;
-			auto name = reinterpret_cast<const unsigned char*>(func.name);
-			func.pointer = ::glXGetProcAddress(name);
+		for(const auto& f : funcs) {
+			auto data = reinterpret_cast<const unsigned char*>(f.name);
+			f.func = f.load ? reinterpret_cast<PfnVoid>(::glXGetProcAddress(data)) : nullptr;
 		}
+
+		valid = true;
 	});
 
-	log("createContext: ", createContextAttribsARB);
-	log("swapControl: ", swapIntervalEXT);
+	return valid;
 }
 
 // TODO: use constexpr
@@ -170,39 +151,40 @@ GlxSetup::GlxSetup(const X11AppContext& ac, unsigned int screenNum) : xDisplay_(
 	if(major < 1 || (major == 1 && minor < 3))
 		throw std::runtime_error("ny::GlxSetup: glx 1.3 not supported");
 
-	// query configs
-	constexpr int attribs[] = {
-		GLX_RENDER_TYPE, GLX_RGBA_BIT,
-		GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT,
-		0
-	};
+	if(!ext::loadExtensions(*xDisplay()))
+		throw std::runtime_error("ny::GlxSetup: failed to load extensions");
 
 	int fbcount = 0;
-	// GLXFBConfig* fbconfigs = ::glXChooseFBConfig(xDisplay_, screenNum, attribs, &fbcount);
 	GLXFBConfig* fbconfigs = ::glXGetFBConfigs(xDisplay_, screenNum, &fbcount);
 	if(!fbconfigs || !fbcount)
 		throw std::runtime_error("ny::GlxSetup: could not retrieve any fb configs");
 
 	configs_.reserve(fbcount);
 	auto highestRating = 0u;
+	auto highestTransparentRating = 0u;
+
 	for(auto& config : nytl::Span<GLXFBConfig>(*fbconfigs, fbcount)) {
+		if(!config) continue;
+
+		// TODO: transparency: also query/handle GLX_TRANSPARENT_TYPE?
+		// in addition to 32 bit visual querying
+		// was invalid on tested platforms though...
+
 		GlConfig glconf;
-		int r, g, b, a, id, depth, stencil, doubleBuffer, transparent;
+		int r, g, b, a, id, depth, stencil, doubleBuffer, visual;
 
 		::glXGetFBConfigAttrib(xDisplay_, config, GLX_FBCONFIG_ID, &id);
 		::glXGetFBConfigAttrib(xDisplay_, config, GLX_STENCIL_SIZE, &stencil);
 		::glXGetFBConfigAttrib(xDisplay_, config, GLX_DEPTH_SIZE, &depth);
 		::glXGetFBConfigAttrib(xDisplay_, config, GLX_DOUBLEBUFFER, &doubleBuffer);
-		::glXGetFBConfigAttrib(xDisplay_, config, GLX_TRANSPARENT_TYPE, &transparent);
+		::glXGetFBConfigAttrib(xDisplay_, config, GLX_VISUAL_ID, &visual);
 
 		::glXGetFBConfigAttrib(xDisplay_, config, GLX_RED_SIZE, &r);
 		::glXGetFBConfigAttrib(xDisplay_, config, GLX_GREEN_SIZE, &g);
 		::glXGetFBConfigAttrib(xDisplay_, config, GLX_BLUE_SIZE, &b);
 		::glXGetFBConfigAttrib(xDisplay_, config, GLX_ALPHA_SIZE, &a);
 
-		auto visual32 = false;
-		auto visual = visualID(glConfigID(id));
-		if(visual && findVisualDepth(ac, visual) == 32) visual32 == true;
+		auto visual32 = (findVisualDepth(ac, visual) == 32);
 
 		glconf.depth = depth;
 		glconf.stencil = stencil;
@@ -212,25 +194,21 @@ GlxSetup::GlxSetup(const X11AppContext& ac, unsigned int screenNum) : xDisplay_(
 		glconf.alpha = a;
 		glconf.id = glConfigID(id);
 		glconf.doublebuffer = doubleBuffer;
-		glconf.transparent = (transparent == GLX_TRANSPARENT_RGB) && visual32;
+		glconf.transparent = visual32;
 
 		configs_.push_back(glconf);
-
-		auto rating = rate(configs_.back());
+		auto rating = rate(glconf);
 		if(rating > highestRating) {
 			highestRating = rating;
-			defaultConfig_ = &configs_.back(); // configs_ will never be reallocated
+			defaultConfig_ = glconf;
 		}
 
-		// log("alpha1: ", glconf.alpha);
-		// auto ddepth = findVisualDepth(ac, visualID(glconf.id));
-		// if(ddepth < 32) continue;
-		// log("depth1: ", ddepth);
-		// log("visual: ", visualID(glconf.id));
+		if(glconf.transparent && rating > highestTransparentRating) {
+			highestTransparentRating = rating;
+			defaultTransparentConfig_ = glconf;
+		}
 	}
 
-	// log("alpha: ", defaultConfig_->alpha);
-	// log("depth: ", findVisualDepth(ac, visualID(defaultConfig_->id)));
 	::XFree(fbconfigs);
 }
 
@@ -238,9 +216,7 @@ GlxSetup::GlxSetup(GlxSetup&& other) noexcept
 {
 	xDisplay_ = other.xDisplay_;
 	defaultConfig_ = other.defaultConfig_;
-
 	configs_ = std::move(other.configs_);
-	glLibrary_ = std::move(other.glLibrary_);
 
 	other.xDisplay_ = {};
 	other.defaultConfig_ = {};
@@ -250,9 +226,7 @@ GlxSetup& GlxSetup::operator=(GlxSetup&& other) noexcept
 {
 	xDisplay_ = other.xDisplay_;
 	defaultConfig_ = other.defaultConfig_;
-
 	configs_ = std::move(other.configs_);
-	glLibrary_ = std::move(other.glLibrary_);
 
 	other.xDisplay_ = {};
 	other.defaultConfig_ = {};
@@ -274,17 +248,21 @@ void* GlxSetup::procAddr(nytl::StringParam name) const
 
 GLXFBConfig GlxSetup::glxConfig(GlConfigID id) const
 {
-	int configCount;
-	int configAttribs[] = {GLX_FBCONFIG_ID, static_cast<int>(glConfigNumber(id)), 0};
+	int fbcount {};
+	auto* fbconfigs = ::glXGetFBConfigs(xDisplay_, 0, &fbcount);
+	if(!fbconfigs || !fbcount) return nullptr;
 
-	// TODO: don't just assume a screen number
-	auto screenNumber = 0;
+	GLXFBConfig ret {};
+	for(auto& config : nytl::Span<GLXFBConfig>(*fbconfigs, fbcount)) {
+		int getid {};
+		::glXGetFBConfigAttrib(xDisplay_, config, GLX_FBCONFIG_ID, &getid);
+		if(getid == static_cast<int>(glConfigNumber(id))) {
+			ret = config;
+			break;
+		}
+	}
 
-	auto configs = ::glXChooseFBConfig(xDisplay_, screenNumber, configAttribs, &configCount);
-	if(!configs) return nullptr;
-
-	auto ret = *configs;
-	::XFree(configs);
+	::XFree(fbconfigs);
 	return ret;
 }
 
@@ -325,21 +303,18 @@ GlxContext::GlxContext(const GlxSetup& setup, GLXContext context, const GlConfig
 GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 	: setup_(&setup)
 {
+	// test for config errors
 	auto major = settings.version.major;
 	auto minor = settings.version.minor;
+	auto api = settings.version.api;
 
-	if(major == 0 && minor == 0) {
-		major = 4;
-		minor = 5;
+	if(settings.forceVersion && !ext::createContextAttribsARB)
+		throw std::runtime_error("ny::WglContext: need createContext ext to force version");
+
+	if(api == GlApi::gl && !ext::hasProfileES) {
+		if(!settings.forceVersion) api = GlApi::gl;
+		else throw std::runtime_error("ny::WglContext: cannot force gles context");
 	}
-
-	// XXX: must be changed if supporting gles
-	// test for logical errors
-	if(settings.version.api != GlApi::gl)
-		throw GlContextError(GlContextErrc::invalidApi, "ny::GlxContext");
-
-	if(major < 1 || major > 4 || minor > 5)
-		throw GlContextError(GlContextErrc::invalidVersion, "ny::GlxContext");
 
 	// config
 	GlConfig glConfig;
@@ -367,50 +342,74 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 	}
 
 	// test for extensions
-	ext::queryExtensions(*xDisplay());
-	ext::loadExtensions();
 
 	// set a new error handler
 	auto oldErrorHandler = ::XSetErrorHandler(&ctxErrorHandler);
-	if(ext::hasCreateContext && ext::createContextAttribsARB) {
-		std::vector<int> contextAttribs;
+	if(ext::createContextAttribsARB) {
+		std::vector<int> attributes;
+		std::vector<std::pair<unsigned int, unsigned int>> versionPairs;
+
+		// switch default versions and checked version pairs
+		// also perform version sanity checks
+		if(api == GlApi::gles) {
+			if(major == 0 && minor == 0) {
+				major = 3;
+				minor = 2;
+			}
+
+			versionPairs = {{3, 2}, {3, 1}, {3, 0}, {2, 0}, {1, 1}, {1, 0}};
+			if(major < 1 || major > 3 || minor > 2)
+				throw GlContextError(GlContextErrc::invalidVersion, "ny::GlxContext");
+
+		} else {
+			if(major == 0 && minor == 0) {
+				major = 4;
+				minor = 5;
+			}
+
+			versionPairs = {{4, 5}, {3, 3}, {3, 2}, {3, 1}, {3, 0}, {1, 2}, {1, 0}};
+			if(major < 1 || major > 4 || minor > 5)
+				throw GlContextError(GlContextErrc::invalidVersion, "ny::GlxContext");
+		}
 
 		// profile
-		contextAttribs.push_back(GLX_CONTEXT_PROFILE_MASK_ARB);
-		if(!settings.compatibility) contextAttribs.push_back(GLX_CONTEXT_CORE_PROFILE_BIT_ARB);
-		else contextAttribs.push_back(GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB);
+		if(ext::hasProfile) {
+			attributes.push_back(GLX_CONTEXT_PROFILE_MASK_ARB);
+
+			if(ext::hasProfileES && api == GlApi::gles)
+				attributes.push_back(GLX_CONTEXT_ES2_PROFILE_BIT_EXT);
+			else if(settings.compatibility)
+				attributes.push_back(GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB);
+			else
+				attributes.push_back(GLX_CONTEXT_CORE_PROFILE_BIT_ARB);
+		}
 
 		// forward compatible, debug
 		auto flags = 0u;
 		if(settings.forwardCompatible) flags |= GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB;
 		if(settings.debug) flags |= GLX_CONTEXT_DEBUG_BIT_ARB;
 
-		contextAttribs.push_back(GLX_CONTEXT_FLAGS_ARB);
-		contextAttribs.push_back(flags);
+		attributes.push_back(GLX_CONTEXT_FLAGS_ARB);
+		attributes.push_back(flags);
 
 		// version
-		contextAttribs.push_back(GLX_CONTEXT_MAJOR_VERSION_ARB);
-		contextAttribs.push_back(major);
-		contextAttribs.push_back(GLX_CONTEXT_MINOR_VERSION_ARB);
-		contextAttribs.push_back(minor);
+		attributes.push_back(GLX_CONTEXT_MAJOR_VERSION_ARB);
+		attributes.push_back(major);
+		attributes.push_back(GLX_CONTEXT_MINOR_VERSION_ARB);
+		attributes.push_back(minor);
 
-		// end
-		contextAttribs.push_back(0);
+		// null-terminated
+		attributes.push_back(0);
 
 		glxContext_ = ext::createContextAttribsARB(xDisplay(), glxConfig, glxShareContext,
-			true, contextAttribs.data());
-
-		// those versions will be tried to create when the version specified in
-		// the passed settings fails and the passed version should not be forced.
-		constexpr std::pair<unsigned int, unsigned int> versionPairs[] =
-			{{4, 5}, {3, 3}, {3, 2}, {3, 1}, {3, 0}, {1, 2}, {1, 0}};
+			true, attributes.data());
 
 		if(!glxContext_ && !settings.forceVersion) {
 			for(const auto& p : versionPairs) {
-				contextAttribs[contextAttribs.size() - 4] = p.first;
-				contextAttribs[contextAttribs.size() - 2] = p.second;
+				attributes[attributes.size() - 4] = p.first;
+				attributes[attributes.size() - 2] = p.second;
 				glxContext_ = ext::createContextAttribsARB(xDisplay(), glxConfig, glxShareContext,
-					true, contextAttribs.data());
+					true, attributes.data());
 
 				if(glxContext_) break;
 			}
@@ -463,8 +462,8 @@ bool GlxContext::compatible(const GlSurface& surface) const
 GlContextExtensions GlxContext::contextExtensions() const
 {
 	GlContextExtensions ret;
-	if(ext::hasSwapControl) ret |= GlContextExtension::swapControl;
-	// if(GLAD_GLX_EXT_swap_control_tear) ret |= GlContextExtension::swapControlTear;
+	if(ext::swapIntervalEXT) ret |= GlContextExtension::swapControl;
+	if(ext::hasSwapControlTear) ret |= GlContextExtension::swapControlTear;
 	return ret;
 }
 
@@ -473,7 +472,7 @@ bool GlxContext::swapInterval(int interval, std::error_code& ec) const
 	// TODO: check for interval < 0 and tear extensions not supported.
 	ec.clear();
 
-	if(!ext::hasSwapControl || !ext::swapIntervalEXT) {
+	if(!ext::swapIntervalEXT) {
 		ec = {GlContextErrc::extensionNotSupported};
 		return false;
 	}
@@ -527,7 +526,10 @@ GlxWindowContext::GlxWindowContext(X11AppContext& ac, const GlxSetup& setup,
 	appContext_ = &ac;
 
 	auto configid = settings.gl.config;
-	if(!configid) configid = setup.defaultConfig().id;
+	if(!configid) {
+		if(!settings.transparent) configid = setup.defaultConfig().id;
+		else configid = setup.defaultTransparentConfig().id;
+	}
 
 	auto config = setup.config(configid);
 	visualID_ = setup.visualID(configid);

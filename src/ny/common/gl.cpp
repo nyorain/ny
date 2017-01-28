@@ -107,7 +107,6 @@ unsigned int rate(const GlConfig& config)
 	else if(config.alpha == 1) ret += 1;
 
 	if(config.doublebuffer) ret = (ret + 10) * 2;
-	if(config.transparent) ret *= 2;
 
 	return ret;
 }

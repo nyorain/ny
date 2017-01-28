@@ -32,6 +32,7 @@ namespace ext {
 using PfnWglCreateContextAttribsARB = HGLRC (*)(HDC, HGLRC, const int*);
 using PfnWglSwapIntervalEXT = BOOL (*)(int);
 using PfnWglGetExtensionStringARB = const char* (*)(HDC);
+		hasProfile = glExtensionStringContains(extensions, "WGL_EXT_create_context_profile");
 using PfnWglGetPixelFormatAttribivARB = BOOL(*)(HDC, int, int, UINT, const int*, int*);
 using PfnWglChoosePixelFormatARB =  BOOL (*)(HDC, const int*,
 	const FLOAT*, UINT, int*, UINT*);
@@ -79,6 +80,7 @@ bool loadExtensions(HDC hdc)
 
 		hasMultisample = glExtensionStringContains(extensions, "GLX_ARB_multisample");
 		hasSwapControlTear = glExtensionStringContains(extensions, "GLX_ARB_swap_control_tear");
+		hasProfile = glExtensionStringContains(extensions, "WGL_EXT_create_context_profile");
 		hasProfileES = glExtensionStringContains(extensions, "WGL_EXT_create_context_es2_profile");
 
 		using PfnVoid = void (*)();
@@ -171,16 +173,6 @@ WglSetup::WglSetup(HWND dummy) : dummyWindow_(dummy)
 	int pf = ::ChoosePixelFormat(dummyDC_, &pfd);
 	::SetPixelFormat(dummyDC_, pf, &pfd);
 
-	// try to find/open the opengl library
-	glLibrary_ = {"opengl32"};
-	if(!glLibrary_) glLibrary_ = {"openglsf"};
-	if(!glLibrary_) glLibrary_ = {"GL"};
-	if(!glLibrary_) glLibrary_ = {"OpenGL"};
-	if(!glLibrary_) glLibrary_ = {"wgl"};
-	if(!glLibrary_) glLibrary_ = {"WGL"};
-
-	if(!glLibrary_) throw std::runtime_error("ny::WglSetup: Failed to load opengl library");
-
 	HGLRC dummyContext = ::wglCreateContext(dummyDC_);
 	if(!dummyContext)
 		throw winapi::lastErrorException("ny::WglSetup: unable to create dummy context");
@@ -242,6 +234,8 @@ WglSetup::WglSetup(HWND dummy) : dummyWindow_(dummy)
 	values.resize(attribs.size());
 
 	auto bestRating = 0u;
+	auto bestTransparentRating = 0u;
+
 	for(auto& format : nytl::Span<int>(formats, nformats)) {
 		auto succ = ext::getPixelFormatAttribivARB(dummyDC_, format, PFD_MAIN_PLANE,
 			attribs.size(), attribs.data(), values.data());
@@ -266,9 +260,14 @@ WglSetup::WglSetup(HWND dummy) : dummyWindow_(dummy)
 			configs_.back().samples = values[10];
 
 		auto rating = rate(configs_.back()) + values[0] * 50;
-		if(rating >= bestRating) {
+		if(rating > bestRating) {
 			bestRating = rating;
-			defaultConfig_ = &configs_.back(); // configs_ won't ever reallocate
+			defaultConfig_ = configs_.back();
+		}
+
+		if(configs_.back().transparent && rating > bestTransparentRating) {
+			bestTransparentRating = rating;
+			defaultTransparentConfig_ = configs.back();
 		}
 	}
 }
@@ -311,11 +310,6 @@ WglSetup& WglSetup::operator=(WglSetup&& other) noexcept
 	return *this;
 }
 
-GlConfig WglSetup::defaultConfig() const
-{
-	return *defaultConfig_;
-}
-
 std::unique_ptr<GlContext> WglSetup::createContext(const GlContextSettings& settings) const
 {
 	return std::make_unique<WglContext>(*this, settings);
@@ -348,14 +342,18 @@ WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 {
 	::SetLastError(0);
 
-	// test for conig errors
-	bool gles = (settings.version.api != GlApi::gl);
-	if(gles && settings.forceVersion && (!ext::hasProfileES || !ext::createContextAttribsARB))
-		throw std::runtime_error("ny::WglContext: cannot create gles context");
-
+	// test for config errors
 	auto major = settings.version.major;
 	auto minor = settings.version.minor;
 	auto api = settings.version.api;
+
+	if(settings.forceVersion && !ext::createContextAttribsARB)
+		throw std::runtime_error("ny::WglContext: need createContext ext to force version");
+
+	if(api == GlApi::gl && !ext::hasProfileES) {
+		if(!settings.forceVersion) api = GlApi::gl;
+		else throw std::runtime_error("ny::WglContext: cannot force gles context");
+	}
 
 	// we create our own dummyDC that is compatibly to the default dummy dc
 	// and then select the chosen config (pixel format) into the dc
@@ -395,7 +393,7 @@ WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 
 		// switch default versions and checked version pairs
 		// also perform version sanity checks
-		if(gles) {
+		if(api == GlApi::gles) {
 			if(major == 0 && minor == 0) {
 				major = 3;
 				minor = 2;
@@ -421,12 +419,15 @@ WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 		attributes.push_back(WGL_CONTEXT_MINOR_VERSION_ARB);
 		attributes.push_back(minor);
 
-		if(!gles && settings.compatibility) {
+		if(ext::hasProfile) {
 			attributes.push_back(WGL_CONTEXT_PROFILE_MASK_ARB);
-			attributes.push_back(WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB);
-		} else if(gles) {
-			attributes.push_back(WGL_CONTEXT_PROFILE_MASK_ARB);
-			attributes.push_back(WGL_CONTEXT_ES2_PROFILE_BIT_EXT);
+
+			if(ext::hasProfileES && api == GlApi::gles)
+				attributes.push_back(WGL_CONTEXT_ES2_PROFILE_BIT_EXT);
+			else if(settings.compatibility)
+				attributes.push_back(WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB);
+			else
+				attributes.push_back(GLX_CONTEXT_CORE_PROFILE_BIT_ARB);
 		}
 
 		auto flags = 0;
@@ -438,6 +439,7 @@ WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 			attributes.push_back(flags);
 		}
 
+		// double null-terminated
 		attributes.push_back(0);
 		attributes.push_back(0);
 
@@ -461,7 +463,6 @@ WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 	// try legacy version for gl api
 	if(!wglContext_ && !settings.forceVersion) {
 		wglContext_ = ::wglCreateContext(dummyDC);
-		api = GlApi::gl;
 		if(share && !::wglShareLists(share, wglContext_)) {
 			::wglDeleteContext(wglContext_);
 			throw winapi::lastErrorException("ny::WglContext: wglShareLists failed");
@@ -557,8 +558,16 @@ WglWindowContext::WglWindowContext(WinapiAppContext& ac, WglSetup& setup,
 	WinapiWindowContext::showWindow(settings);
 
 	hdc_ = ::GetDC(handle());
-	auto pixelformat = glConfigNumber(settings.gl.config);
-	if(!settings.gl.config) pixelformat = glConfigNumber(setup.defaultConfig().id);
+
+	auto config = GlConfig {};
+	if(!settings.gl.config) {
+		if(!settings.transparent) config = setup.defaultConfig();
+		else config.setup.defaultTransparentConfig();
+	} else {
+		config = settings.config(glConfigID(config));
+	}
+
+	auto pixelformat = glConfigNumber(config.id);
 
 	PIXELFORMATDESCRIPTOR pfd {};
 	if(!::DescribePixelFormat(hdc_, pixelformat, sizeof(pfd), &pfd))
@@ -567,7 +576,7 @@ WglWindowContext::WglWindowContext(WinapiAppContext& ac, WglSetup& setup,
 	if(!::SetPixelFormat(hdc_, pixelformat, &pfd))
 		throw winapi::lastErrorException("ny::WglWC: failed to set pixel format");
 
-	surface_.reset(new WglSurface(hdc_, setup.config(glConfigID(pixelformat))));
+	surface_.reset(new WglSurface(hdc_, config));
 	if(settings.gl.storeSurface) *settings.gl.storeSurface = surface_.get();
 }
 

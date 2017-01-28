@@ -139,9 +139,13 @@ class GlSetup {
 public:
 	virtual ~GlSetup() = default;
 
-	virtual GlConfig defaultConfig() const = 0; /// Retunrns the default config
 	virtual std::vector<GlConfig> configs() const = 0; /// Returns all available configs
 	virtual GlConfig config(GlConfigID id) const; /// Returns the config for the given id
+
+	/// Returns the default GlConfig.
+	/// Is expected to be roughly chosen by useful attributes like depth, stencil, format,
+	/// hardware acceleration or doublebuffering.
+	virtual GlConfig defaultConfig() const = 0;
 
 	/// Constructs and returns a new opengl implementation object. Implementations
 	/// should always return a valid unique_ptr and throw an excpetion on error.

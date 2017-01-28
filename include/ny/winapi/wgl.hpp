@@ -7,19 +7,12 @@
 #include <ny/winapi/include.hpp>
 #include <ny/winapi/windowContext.hpp>
 #include <ny/winapi/windows.hpp>
-
-#include <ny/library.hpp>
 #include <ny/common/gl.hpp>
-
-#include <unordered_map>
 
 namespace ny {
 
 /// Wgl GlSetup implementation
 class WglSetup : public GlSetup {
-public:
-	struct Api;
-
 public:
 	WglSetup() = default;
 	WglSetup(HWND dummy);
@@ -28,7 +21,9 @@ public:
 	WglSetup(WglSetup&& other) noexcept;
 	WglSetup& operator=(WglSetup&& other) noexcept;
 
-	GlConfig defaultConfig() const override;
+	GlConfig defaultConfig() const override { return defaultConfig_; }
+	GlConfig defaultTransparentConfig() const { return defaultTransparentConfig_; }
+
 	std::vector<GlConfig> configs() const override { return configs_; }
 	std::unique_ptr<GlContext> createContext(const GlContextSettings& = {}) const override;
 	void* procAddr(nytl::StringParam name) const;
@@ -40,8 +35,6 @@ public:
 protected:
 	std::vector<GlConfig> configs_;
 	GlConfig* defaultConfig_ {};
-	Library glLibrary_;
-
 	HWND dummyWindow_ {};
 	HDC dummyDC_ {};
 };

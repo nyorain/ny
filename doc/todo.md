@@ -29,6 +29,8 @@
 		- make sure icccm and ewmh are found (are they available everywhere?)
 	- test wayland config
 		- wayland without egl, wayland without cursor library
+- gl setup create context:
+	- extra {easier} function to create context for surface
 
 ### later; general; rework needed
 
