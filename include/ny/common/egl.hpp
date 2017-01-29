@@ -35,7 +35,8 @@ public:
 	EglSetup(EglSetup&& other) noexcept;
 	EglSetup& operator=(EglSetup&& other) noexcept;
 
-	GlConfig defaultConfig() const override { return *defaultConfig_; }
+	GlConfig defaultConfig() const override { return defaultConfig_; }
+	GlConfig defaultTransparentConfig() const { return defaultTransparentConfig_; }
 	std::vector<GlConfig> configs() const override { return configs_; }
 
 	std::unique_ptr<GlContext> createContext(const GlContextSettings& = {}) const override;
@@ -48,19 +49,12 @@ public:
 
 	bool valid() const { return (eglDisplay_); }
 
-	const Library& eglLibrary() const { return eglLibrary_; }
-	const Library& glLibrary() const { return glLibrary_; }
-	const Library& glesLibrary() const { return glesLibrary_; }
-
 protected:
 	EGLDisplay eglDisplay_ {};
 
 	std::vector<GlConfig> configs_;
-	GlConfig* defaultConfig_ {};
-
-	Library glLibrary_;
-	Library glesLibrary_;
-	Library eglLibrary_;
+	GlConfig defaultConfig_ {};
+	GlConfig defaultTransparentConfig_ {};
 };
 
 /// EGL GlSurface implementation

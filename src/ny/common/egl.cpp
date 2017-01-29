@@ -6,6 +6,9 @@
 #include <ny/log.hpp>
 
 #include <EGL/egl.h>
+#ifndef EGL_VERSION_1_4
+	#error "EGL Version 1.4 is required at compile time!"
+#endif
 
 #include <stdexcept>
 #include <cstring>
@@ -31,50 +34,39 @@ public:
 
 } // anonymous util namespace
 
+namespace ext {
+
+bool hasCreateContext = false;
+bool hasAllProcAddresses = false;
+
+void loadExtensions(EGLDisplay display, bool has15)
+{
+	auto exts = eglQueryString(display, EGL_EXTENSIONS);
+	if(has15) {
+		hasCreateContext = true;
+		hasAllProcAddresses = true;
+		return;
+	}
+
+	hasCreateContext = glExtensionStringContains(exts, "EGL_KHR_create_context");
+	hasAllProcAddresses = glExtensionStringContains(exts, "EGL_KHR_get_all_proc_addresses");
+}
+
+#ifndef EGL_VERSION_1_5
+	#define EGL_CONTEXT_MAJOR_VERSION 0x3098
+	#define EGL_CONTEXT_MINOR_VERSION 0x30FB
+	#define EGL_CONTEXT_OPENGL_PROFILE_MASK 0x30FD
+	#define EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT 0x00000001
+	#define EGL_CONTEXT_OPENGL_COMPATIBILITY_PROFILE_BIT 0x00000002
+	#define EGL_CONTEXT_OPENGL_DEBUG 0x31B0
+	#define EGL_CONTEXT_OPENGL_FORWARD_COMPATIBLE 0x31B1
+#endif
+
+} // namespace ext
+
 // EglSetup
 EglSetup::EglSetup(void* nativeDisplay)
 {
-	// try to open suited egl libraries
-	constexpr const char* eglNames[] = {"EGL", "egl", "libEGL.dll"};
-	for(auto n : eglNames) {
-		eglLibrary_ = {n};
-		if(eglLibrary_) break;
-	}
-
-	if(!eglLibrary_)
-		throw std::runtime_error("ny::EglSetup: could not find EGL library");
-
-	std::call_once(loadEglFlag, [=]{
-		gLoaderSetup = this;
-		gladLoadEGLLoader(&loadEglProcAddr);
-		gLoaderSetup = nullptr;
-	});
-
-	// some dummy tests
-	if(!eglGetDisplay || !eglInitialize || !eglCreateContext || !eglCreateWindowSurface)
-		throw std::runtime_error("ny::EglSetup: Failed to load the egl api");
-
-	// XXX: is it a critical error if no gl/gles library can be found?
-	// they are only needed for the procAddr function
-	constexpr const char* glNames[] = {"GL", "gl", "opengl", "OpenGL"};
-	constexpr const char* glesNames[] = {"GLESV2", "GLESv2", "GLES", "gles", "libGLESV2.dll"};
-
-	for(auto n : glNames) {
-		glLibrary_ = {n};
-		if(glLibrary_) break;
-	}
-
-	if(!glLibrary_)
-		warning("ny::EglSetup: Could not find and load any gl library");
-
-	for(auto n : glesNames) {
-		glesLibrary_ = {n};
-		if(glesLibrary_) break;
-	}
-
-	if(!glesLibrary_)
-		warning("ny::EglSetup: Could not find and load any gles library");
-
 	// It does not matter if NativeDisplayType here is not the real NativeDisplayType that
 	// was passed to this function. If multiple platforms are supported, the egl implementation
 	// will treat it as void* anyways.
@@ -91,20 +83,19 @@ EglSetup::EglSetup(void* nativeDisplay)
 		throw std::runtime_error("ny::EglSetup: egl 1.4 not supported");
 	}
 
+	ext::loadExtensions(eglDisplay_, major > 1 || (major == 1 && minor > 4));
+	if(!ext::hasAllProcAddresses)
+		warning("ny::EglSetup: old egl library, procAddr may not function correctly");
+
 	// query all available configs
-	// change this to only hold really required attributes
 	constexpr EGLint attribs[] = {
 		EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-		EGL_RED_SIZE, 8,
-		EGL_GREEN_SIZE, 8,
-		EGL_BLUE_SIZE, 8,
 		EGL_NONE
 	};
 
 	int configSize;
 	EGLConfig configs[512] {};
 
-	// it might really fail here on some platforms
 	if(!::eglChooseConfig(eglDisplay_, attribs, configs, 512, &configSize))
 		throw EglErrorCategory::exception("ny::EglSetup: eglChooseConfig failed");
 
@@ -112,10 +103,12 @@ EglSetup::EglSetup(void* nativeDisplay)
 		throw std::runtime_error("ny::EglSetup: could not retrieve any egl configs");
 
 	configs_.reserve(configSize);
-	auto highestRating = 0u;
+	auto bestRating = 0u;
+	auto bestTransparentRating = 0u;
+
 	for(auto& config : nytl::Span<EGLConfig>(*configs, configSize)) {
 		GlConfig glconf;
-		int r, g, b, a, id, depth, stencil, sampleBuffers, samples;
+		int r, g, b, a, id, depth, stencil, sampleBuffers, samples, transparent;
 
 		::eglGetConfigAttrib(eglDisplay_, config, EGL_RED_SIZE, &r);
 		::eglGetConfigAttrib(eglDisplay_, config, EGL_GREEN_SIZE, &g);
@@ -126,6 +119,7 @@ EglSetup::EglSetup(void* nativeDisplay)
 		::eglGetConfigAttrib(eglDisplay_, config, EGL_STENCIL_SIZE, &stencil);
 		::eglGetConfigAttrib(eglDisplay_, config, EGL_SAMPLE_BUFFERS, &sampleBuffers);
 		::eglGetConfigAttrib(eglDisplay_, config, EGL_SAMPLES, &samples);
+		::eglGetConfigAttrib(eglDisplay_, config, EGL_TRANSPARENT_TYPE, &transparent);
 
 		glconf.depth = depth;
 		glconf.stencil = stencil;
@@ -134,16 +128,22 @@ EglSetup::EglSetup(void* nativeDisplay)
 		glconf.blue = b;
 		glconf.alpha = a;
 		glconf.id = glConfigID(id);
-		glconf.doublebuffer = true; // cannot be queried by config, but should always be possible
+		glconf.doublebuffer = true; // should always be possible
+		glconf.transparent = (transparent == EGL_TRANSPARENT_RGB);
 
 		if(sampleBuffers) glconf.samples = samples;
 
 		configs_.push_back(glconf);
 
-		auto rating = rate(configs_.back());
-		if(rating > highestRating) {
-			highestRating = rating;
-			defaultConfig_ = &configs_.back(); // configs_ will never be reallocated
+		auto rating = rate(glconf);
+		if(rating > bestRating) {
+			bestRating = rating;
+			defaultConfig_ = glconf;
+		}
+
+		if(glconf.transparent && rating > bestTransparentRating) {
+			bestTransparentRating = rating;
+			defaultTransparentConfig_ = glconf;
 		}
 	}
 }
@@ -160,11 +160,7 @@ EglSetup::EglSetup(EglSetup&& other) noexcept
 {
 	eglDisplay_ = other.eglDisplay_;
 	defaultConfig_ = other.defaultConfig_;
-
 	configs_ = std::move(other.configs_);
-	glLibrary_ = std::move(other.glLibrary_);
-	glesLibrary_ = std::move(other.glesLibrary_);
-	eglLibrary_ = std::move(other.eglLibrary_);
 
 	other.eglDisplay_ = {};
 	other.defaultConfig_ = {};
@@ -176,11 +172,7 @@ EglSetup& EglSetup::operator=(EglSetup&& other) noexcept
 
 	eglDisplay_ = other.eglDisplay_;
 	defaultConfig_ = other.defaultConfig_;
-
 	configs_ = std::move(other.configs_);
-	glLibrary_ = std::move(other.glLibrary_);
-	glesLibrary_ = std::move(other.glesLibrary_);
-	eglLibrary_ = std::move(other.eglLibrary_);
 
 	other.eglDisplay_ = {};
 	other.defaultConfig_ = {};
@@ -195,16 +187,7 @@ std::unique_ptr<GlContext> EglSetup::createContext(const GlContextSettings& sett
 
 void* EglSetup::procAddr(nytl::StringParam name) const
 {
-	auto ret = eglLibrary().symbol(name);
-	if(!ret) ret = reinterpret_cast<void*>(::eglGetProcAddress(name));
-
-	if(!ret) {
-		auto current = GlContext::current();
-		if(current && current->api() == GlApi::gl) ret = glLibrary().symbol(name);
-		else if(current) ret = glesLibrary().symbol(name);
-	}
-
-	return ret;
+	return reinterpret_cast<void*>(::eglGetProcAddress(name));
 }
 
 EGLConfig EglSetup::eglConfig(GlConfigID id) const

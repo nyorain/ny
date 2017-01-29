@@ -826,6 +826,8 @@ bool X11DataManager::processDndEvent(const xcb_generic_event_t& ev)
 
 		default: break;
 	}
+
+	return false;
 }
 
 bool X11DataManager::clipboard(std::unique_ptr<DataSource>&& dataSource)
