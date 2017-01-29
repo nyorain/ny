@@ -22,19 +22,16 @@ public:
 	WglSetup& operator=(WglSetup&& other) noexcept;
 
 	GlConfig defaultConfig() const override { return defaultConfig_; }
-	GlConfig defaultTransparentConfig() const { return defaultTransparentConfig_; }
-
 	std::vector<GlConfig> configs() const override { return configs_; }
 	std::unique_ptr<GlContext> createContext(const GlContextSettings& = {}) const override;
 	void* procAddr(nytl::StringParam name) const;
 
-	const Library& glLibrary() const { return glLibrary_; }
 	HDC dummyDC() const { return dummyDC_; }
 	bool valid() const { return (dummyDC_); }
 
 protected:
 	std::vector<GlConfig> configs_;
-	GlConfig* defaultConfig_ {};
+	GlConfig defaultConfig_ {};
 	HWND dummyWindow_ {};
 	HDC dummyDC_ {};
 };

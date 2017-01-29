@@ -142,7 +142,7 @@ std::error_code make_error_code(GlContextErrc code)
 }
 
 // GlContextError
-GlContextError::GlContextError(std::error_code code, const char* msg) : logic_error("")
+GlContextError::GlContextError(std::error_code code, nytl::StringParam msg) : logic_error("")
 {
 	std::string whatMsg;
 	if(msg) whatMsg.append(msg).append(": ");

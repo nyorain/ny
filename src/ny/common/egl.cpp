@@ -37,19 +37,16 @@ public:
 namespace ext {
 
 bool hasCreateContext = false;
-bool hasAllProcAddresses = false;
 
 void loadExtensions(EGLDisplay display, bool has15)
 {
 	auto exts = eglQueryString(display, EGL_EXTENSIONS);
 	if(has15) {
 		hasCreateContext = true;
-		hasAllProcAddresses = true;
 		return;
 	}
 
 	hasCreateContext = glExtensionStringContains(exts, "EGL_KHR_create_context");
-	hasAllProcAddresses = glExtensionStringContains(exts, "EGL_KHR_get_all_proc_addresses");
 }
 
 #ifndef EGL_VERSION_1_5
@@ -84,8 +81,6 @@ EglSetup::EglSetup(void* nativeDisplay)
 	}
 
 	ext::loadExtensions(eglDisplay_, major > 1 || (major == 1 && minor > 4));
-	if(!ext::hasAllProcAddresses)
-		warning("ny::EglSetup: old egl library, procAddr may not function correctly");
 
 	// query all available configs
 	constexpr EGLint attribs[] = {

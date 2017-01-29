@@ -6,14 +6,13 @@
 #include <ny/winapi/windowContext.hpp>
 #include <ny/winapi/appContext.hpp>
 #include <ny/winapi/util.hpp>
-// #include <ny/winapi/wglApi.h>
 
 #include <ny/surface.hpp>
 #include <ny/log.hpp>
 
 #include <nytl/scope.hpp>
 
-#include <Wingdi.h>
+#include <Wingdi.h> // wgl functions
 
 #include <thread>
 #include <mutex>
@@ -32,7 +31,6 @@ namespace ext {
 using PfnWglCreateContextAttribsARB = HGLRC (*)(HDC, HGLRC, const int*);
 using PfnWglSwapIntervalEXT = BOOL (*)(int);
 using PfnWglGetExtensionStringARB = const char* (*)(HDC);
-		hasProfile = glExtensionStringContains(extensions, "WGL_EXT_create_context_profile");
 using PfnWglGetPixelFormatAttribivARB = BOOL(*)(HDC, int, int, UINT, const int*, int*);
 using PfnWglChoosePixelFormatARB =  BOOL (*)(HDC, const int*,
 	const FLOAT*, UINT, int*, UINT*);
@@ -51,6 +49,7 @@ const char* extensions;
 // bool flags only for extensions that have to functions pointers
 bool hasMultisample;
 bool hasSwapControlTear;
+bool hasProfile;
 bool hasProfileES;
 
 /// Tries to load the needed setup function pointers
@@ -219,13 +218,12 @@ WglSetup::WglSetup(HWND dummy) : dummyWindow_(dummy)
 		WGL_ALPHA_BITS_ARB,
 		WGL_DEPTH_BITS_ARB,
 		WGL_STENCIL_BITS_ARB,
-		WGL_DOUBLE_BUFFER_ARB,
-		WGL_TRANSPARENT_ARB // id: 8
+		WGL_DOUBLE_BUFFER_ARB, // id: 7
 	};
 
 	if(ext::hasMultisample) {
 		attribs.push_back(WGL_SAMPLE_BUFFERS_ARB);
-		attribs.push_back(WGL_SAMPLES_ARB); // id: 10
+		attribs.push_back(WGL_SAMPLES_ARB); // id: 9
 	}
 
 	configs_.reserve(nformats);
@@ -234,8 +232,6 @@ WglSetup::WglSetup(HWND dummy) : dummyWindow_(dummy)
 	values.resize(attribs.size());
 
 	auto bestRating = 0u;
-	auto bestTransparentRating = 0u;
-
 	for(auto& format : nytl::Span<int>(formats, nformats)) {
 		auto succ = ext::getPixelFormatAttribivARB(dummyDC_, format, PFD_MAIN_PLANE,
 			attribs.size(), attribs.data(), values.data());
@@ -254,20 +250,21 @@ WglSetup::WglSetup(HWND dummy) : dummyWindow_(dummy)
 		configs_.back().depth = values[5];
 		configs_.back().stencil = values[6];
 		configs_.back().doublebuffer = values[7];
-		configs_.back().transparent = values[8];
 
-		if(ext::hasMultisample && values[9])
-			configs_.back().samples = values[10];
+		// no working way to query transparence
+		// should work with WGL_TRANSPARENT_ARB but that returns always false
+		// since rendering on transparent windows work always on windows, just
+		// set this to true
+		configs_.back().transparent = true;
 
+		if(ext::hasMultisample && values[8])
+			configs_.back().samples = values[9];
+
+		// additionally rate hardware acceleration really high
 		auto rating = rate(configs_.back()) + values[0] * 50;
 		if(rating > bestRating) {
 			bestRating = rating;
 			defaultConfig_ = configs_.back();
-		}
-
-		if(configs_.back().transparent && rating > bestTransparentRating) {
-			bestTransparentRating = rating;
-			defaultTransparentConfig_ = configs.back();
 		}
 	}
 }
@@ -284,7 +281,6 @@ WglSetup::WglSetup(WglSetup&& other) noexcept
 	dummyWindow_ = other.dummyWindow_;
 	dummyDC_ = other.dummyDC_;
 	defaultConfig_ = other.defaultConfig_;
-	defaultTransparentConfig_ = other.defaultTransparentConfig_;
 
 	other.dummyWindow_ = {};
 	other.dummyDC_ = {};
@@ -299,7 +295,6 @@ WglSetup& WglSetup::operator=(WglSetup&& other) noexcept
 	dummyWindow_ = other.dummyWindow_;
 	dummyDC_ = other.dummyDC_;
 	defaultConfig_ = other.defaultConfig_;
-	defaultTransparentConfig_ = other.defaultTransparentConfig_;
 
 	other.dummyWindow_ = {};
 	other.dummyDC_ = {};
@@ -315,9 +310,7 @@ std::unique_ptr<GlContext> WglSetup::createContext(const GlContextSettings& sett
 
 void* WglSetup::procAddr(nytl::StringParam name) const
 {
-	auto ret = glLibrary_.symbol(name);
-	if(!ret) ret = reinterpret_cast<void*>(::wglGetProcAddress(name));
-	return ret;
+	return reinterpret_cast<void*>(::wglGetProcAddress(name));
 }
 
 // WglSurface
@@ -425,7 +418,7 @@ WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 			else if(settings.compatibility)
 				attributes.push_back(WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB);
 			else
-				attributes.push_back(GLX_CONTEXT_CORE_PROFILE_BIT_ARB);
+				attributes.push_back(WGL_CONTEXT_CORE_PROFILE_BIT_ARB);
 		}
 
 		auto flags = 0;
@@ -557,22 +550,20 @@ WglWindowContext::WglWindowContext(WinapiAppContext& ac, WglSetup& setup,
 
 	hdc_ = ::GetDC(handle());
 
-	auto config = GlConfig {};
-	if(!settings.gl.config) {
-		if(!settings.transparent) config = setup.defaultConfig();
-		else config.setup.defaultTransparentConfig();
-	} else {
-		config = settings.config(glConfigID(config));
-	}
+	auto configid = settings.gl.config;
+	if(!configid) configid = setup.defaultConfig().id;
 
-	auto pixelformat = glConfigNumber(config.id);
+	auto pixelformat = glConfigNumber(configid);
+	auto config = setup.config(configid);
 
 	PIXELFORMATDESCRIPTOR pfd {};
-	if(!::DescribePixelFormat(hdc_, pixelformat, sizeof(pfd), &pfd))
-		throw GlContextError(GlContextErrc::invalidConfig, "ny::WglWC");
+	if(!::DescribePixelFormat(hdc_, pixelformat, sizeof(pfd), &pfd)) {
+		auto msg = winapi::errorMessage("ny::WglWindowContext: DescribePixelFormat");
+		throw GlContextError(GlContextErrc::invalidConfig, msg.c_str());
+	}
 
 	if(!::SetPixelFormat(hdc_, pixelformat, &pfd))
-		throw winapi::lastErrorException("ny::WglWC: failed to set pixel format");
+		throw winapi::lastErrorException("ny::WglWindowContext: failed to set pixel format");
 
 	surface_.reset(new WglSurface(hdc_, config));
 	if(settings.gl.storeSurface) *settings.gl.storeSurface = surface_.get();

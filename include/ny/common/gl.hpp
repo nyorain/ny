@@ -127,7 +127,7 @@ enum class GlContextErrc : unsigned int {
 /// Is usually thrown for arguments or situations that result in some critical logic error.
 class GlContextError : public std::logic_error {
 public:
-	GlContextError(std::error_code, const char* msg = nullptr);
+	GlContextError(std::error_code, nytl::StringParam msg = {});
 	const std::error_code& code() const { return code_; }
 
 protected:
@@ -154,7 +154,7 @@ public:
 	/// invalid api, version or config.
 	virtual std::unique_ptr<GlContext> createContext(const GlContextSettings& = {}) const = 0;
 
-	/// Returns the proc address for the given function name.
+	/// Returns the proc address for the given opengl extension function name.
 	/// If nullptr is returned, the function could not be found. Can be used to query
 	/// core and extensions or platform-specific opengl functions.
 	/// Note that some specifications (namely, windows wgl) state that the returned
