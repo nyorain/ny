@@ -3,13 +3,12 @@
 ### priority
 
 - egl/wgl/glx library loading (dynamically load opengl)
-	- link e.g. core egl statically?
-	- is there any need to load gl libs dynamically? why isn't egl/glx/wgl ProcAddr enough?
-		- should be!
+	- should GlSetup::procAddr be able to query gl core functions?
+	- fix egl (check in context creation if extension/egl 1.5 available)
 	- apientryp needed for pointer declarations?
-- glconfig transparent flag
 - fix examples
-	- remove unneeded ones
+	- rework useful ones
+	- see src/examples/old
 - fix WindowSettings handling for backends
 - fix WindowCapabilites for backends
 	- make return value dependent on child or toplevel window
