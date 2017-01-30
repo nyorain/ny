@@ -118,9 +118,9 @@ endif()
 
 # egl
 if(WithEgl)
-	list(APPEND ny_src common/egl.cpp common/eglApi.c)
-	# list(APPEND ny_libs ${EGL_LIBRARIES})
-	# list(APPEND ny_include ${EGL_INCLUDE_DIRS})
+	list(APPEND ny_src common/egl.cpp)
+	list(APPEND ny_libs ${EGL_LIBRARIES})
+	list(APPEND ny_include ${EGL_INCLUDE_DIRS})
 endif()
 
 # vulkan

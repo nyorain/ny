@@ -4,15 +4,6 @@
 #include <ny/common/gl.hpp>
 #include <GL/gl.h>
 
-// We load the 2 needed gl functions ourself because everything involving the opengl public
-// interface is a mess.
-// Note that ny does not load the gl functions, use your preferred dynamic gl loader for this.
-// constexpr unsigned int GL_COLOR_BUFFER_BIT = 0x00004000;
-// using PfnClearColor = void(*)(float, float, float, float);
-// using PfnClear = void(*)(unsigned int);
-// PfnClearColor gl_clearColor;
-// PfnClear gl_clear;
-
 class MyWindowListener : public ny::WindowListener {
 public:
 	ny::GlSurface* glSurface;
@@ -41,7 +32,7 @@ int main()
 
 	ny::WindowSettings settings;
 	settings.surface = ny::SurfaceType::gl;
-	settings.transparent = true;
+	settings.transparent = false;
 	settings.gl.storeSurface = &glSurface;
 
 	auto wc = ac->createWindowContext(settings);
@@ -52,20 +43,6 @@ int main()
 	auto glContext = ac->glSetup()->createContext({glSurface->config().id});
 	glContext->makeCurrent(*glSurface);
 
-	// load the needed gl functions manually
-	// gl_clearColor = reinterpret_cast<PfnClearColor>(ac->glSetup()->procAddr("glClearColor"));
-	// gl_clear = reinterpret_cast<PfnClear>(ac->glSetup()->procAddr("glClear"));
-
-	// check that the functions could be loaded
-	// if(!gl_clearColor || !gl_clear) {
-		// ny::warning("Could not get the required gl functions");
-		// return EXIT_FAILURE;
-	// }
-
-	// With this object we can stop the dispatchLoop called below from inside.
-	// We construct the EventHandler with a reference to it and when it receives an event that
-	// the WindowContext was closed, it will stop the dispatchLoop, which will end this
-	// program.
 	ny::LoopControl control;
 	MyWindowListener listener;
 	listener.glSurface = glSurface;
@@ -73,8 +50,6 @@ int main()
 	listener.windowContext = wc.get();
 	listener.loopControl = &control;
 
-	// This call registers our EventHandler to receive the WindowContext related events from
-	// the dispatchLoop.
 	wc->listener(listener);
 	wc->refresh();
 
