@@ -9,7 +9,13 @@
 - fix examples
 	- rework useful ones
 	- see src/examples/old
+- better WindowSettings surface/draw namings
+	- WindowSettings::buffer is a rather bad/unintuitive name
+- make position vecs (e.g. for mouseButton, mouseMove) Vec2ui instead of Vec2i
+	- when could it be negative?
 - fix WindowSettings handling for backends
+- send state and size events on windowContext creation?
+	- general way to query size from windowContext?
 - fix WindowCapabilites for backends
 	- make return value dependent on child or toplevel window
 	- query server caps if possible
