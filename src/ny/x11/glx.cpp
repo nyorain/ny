@@ -105,15 +105,16 @@ bool loadExtensions(Display& dpy)
 
 namespace {
 
-// TODO: check/differentiate expected & unexpected errors in the handler
-// output better/detailed warning if unexpected for better ny & application debugging
+// error code used to signal invalid api versions
+constexpr auto glxBadFBConfig = 178u;
+thread_local int lastErrorCode;
 
 // This error handler might be signaled when glx context creation fails
 // We will test various gl api versions, so we install this handler that
 // the application does not end for the expected error
 // Will output GlxBadFBConfig for api version testings
 // otherwise a "real" (i.e. unexpected) error might ocurr,
-// context creation is rather error prone
+// context creation is generally rather error prone
 int ctxErrorHandler(Display* display, XErrorEvent* event)
 {
 	if(!display || !event) {
@@ -121,24 +122,16 @@ int ctxErrorHandler(Display* display, XErrorEvent* event)
 		return 0;
 	}
 
+	// we expect the glxBadFBConfig error since we test the various supported
+	// gl api versions which will produce this error if not supported.
 	auto code = static_cast<int>(event->error_code);
-	auto msg = x11::errorMessage(*display, code);
-	debug("ny::GlxContext: Expected error occured during context creation: ", code, ": ", msg);
-	return 0;
-}
-
-// Returns the depth on bits for a given visual id.
-// Returns zero for invalid/unknown visuals.
-unsigned int findVisualDepth(const X11AppContext& ac, unsigned int visualID)
-{
-	auto depthi = xcb_screen_allowed_depths_iterator(&ac.xDefaultScreen());
-	for(; depthi.rem; xcb_depth_next(&depthi)) {
-		auto visuali = xcb_depth_visuals_iterator(depthi.data);
-		for(; visuali.rem; xcb_visualtype_next(&visuali))
-			if(visuali.data->visual_id == visualID) return depthi.data->depth;
+	if(code != glxBadFBConfig) {
+		auto msg = x11::errorMessage(*display, code);
+		warning("ny::GlxConext: unexpected error durin context creation: ", code, ": ", msg);
 	}
 
-	return 0u;
+	lastErrorCode = code;
+	return 0;
 }
 
 } // anonymous util namespace
@@ -185,7 +178,7 @@ GlxSetup::GlxSetup(const X11AppContext& ac, unsigned int screenNum) : xDisplay_(
 		::glXGetFBConfigAttrib(xDisplay_, config, GLX_BLUE_SIZE, &b);
 		::glXGetFBConfigAttrib(xDisplay_, config, GLX_ALPHA_SIZE, &a);
 
-		auto visual32 = (findVisualDepth(ac, visual) == 32);
+		auto visual32 = (x11::visualDepth(ac.xDefaultScreen(), visual) == 32);
 
 		glconf.depth = depth;
 		glconf.stencil = stencil;
@@ -311,12 +304,14 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 	auto minor = settings.version.minor;
 	auto api = settings.version.api;
 
-	if(settings.forceVersion && !ext::createContextAttribsARB)
-		throw std::runtime_error("ny::WglContext: need createContext ext to force version");
+	if(settings.forceVersion && !ext::createContextAttribsARB) {
+		constexpr auto msg = "ny::GlxContext: no createContextAttribsARB, cannot force version";
+		throw GlContextError(GlContextErrc::invalidVersion, msg);
+	}
 
 	if(api == GlApi::gl && !ext::hasProfileES) {
 		if(!settings.forceVersion) api = GlApi::gl;
-		else throw std::runtime_error("ny::WglContext: cannot force gles context");
+		else throw GlContextError(GlContextErrc::invalidApi, "ny::GlxContext: ES no supported");
 	}
 
 	// config
@@ -416,6 +411,14 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 
 				if(glxContext_) break;
 			}
+
+			if(!glxContext_) {
+				warning("ny::GlxContext: could not create context for any tried version");
+				if(lastErrorCode == glxBadFBConfig)
+					warning("ny::GlxContext: context creation failed with glxbadfbconfig");
+			}
+		} else if(!glxContext_) {
+			warning("ny::GlxContext: could not create context for forced version");
 		}
 	}
 
@@ -435,10 +438,10 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 	::XSetErrorHandler(oldErrorHandler);
 
 	if(!glxContext_)
-		throw std::runtime_error("ny::GlxContext: failed to create glx Context in any way.");
+		throw std::runtime_error("ny::GlxContext: failed to create glx context in any way.");
 
 	if(!::glXIsDirect(xDisplay(), glxContext_))
-		warning("ny::GlxContext: could only create indirect gl context -> worse performance");
+		warning("ny::GlxContext: could only create indirect gl context");
 
 	GlContext::initContext(GlApi::gl, glConfig, settings.share);
 }
@@ -472,10 +475,15 @@ GlContextExtensions GlxContext::contextExtensions() const
 
 bool GlxContext::swapInterval(int interval, std::error_code& ec) const
 {
-	// TODO: check for interval < 0 and tear extensions not supported.
 	ec.clear();
 
 	if(!ext::swapIntervalEXT) {
+		ec = {GlContextErrc::extensionNotSupported};
+		return false;
+	}
+
+	if(!ext::hasSwapControlTear && interval < 0) {
+		warning("ny::GlxContext::swapInterval: negative interval, no swap_control_tear");
 		ec = {GlContextErrc::extensionNotSupported};
 		return false;
 	}
@@ -539,7 +547,7 @@ GlxWindowContext::GlxWindowContext(X11AppContext& ac, const GlxSetup& setup,
 
 	auto config = setup.config(configid);
 	visualID_ = setup.visualID(configid);
-	depth_ = findVisualDepth(ac, visualID_);
+	depth_ = x11::visualDepth(ac.xDefaultScreen(), visualID_);
 
 	X11WindowContext::create(ac, settings);
 

@@ -155,8 +155,18 @@ GlContextError::GlContextError(std::error_code code, nytl::StringParam msg) : lo
 GlConfig GlSetup::config(GlConfigID id) const
 {
 	auto cfgs = configs();
-	for(auto& cfg : cfgs) if(cfg.id == id) return cfg;
+	for(auto& cfg : cfgs)
+		if(cfg.id == id)
+			return cfg;
+
 	return {};
+}
+
+std::unique_ptr<GlContext> GlSetup::createContext(const GlSurface& surface,
+	GlContextSettings settings) const
+{
+	settings.config = surface.config().id;
+	return createContext(settings);
 }
 
 // GlSurface

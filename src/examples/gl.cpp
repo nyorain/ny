@@ -38,9 +38,9 @@ int main()
 	auto wc = ac->createWindowContext(settings);
 
 	// Create the opengl context
-	// Important to pass the surfaces gl config here to make sure
-	// we can use the context to render onto the surface
-	auto glContext = ac->glSetup()->createContext({glSurface->config().id});
+	// we pass our created surface to the function to make sure
+	// it will be created compatible to the surface.
+	auto glContext = ac->glSetup()->createContext(*glSurface);
 	glContext->makeCurrent(*glSurface);
 
 	ny::LoopControl control;

@@ -83,11 +83,12 @@ void MyWindowListener::key(const ny::KeyEvent& keyEvent)
 		auto keycode = keyEvent.keycode;
 		if(keycode == ny::Keycode::f) {
 			ny::log("f pressed. Toggling fullscreen");
-			if(toplevelState == ny::ToplevelState::fullscreen) {
+			if(toplevelState != ny::ToplevelState::fullscreen) {
 				windowContext->fullscreen();
 				toplevelState = ny::ToplevelState::fullscreen;
 			} else {
 				windowContext->normalState();
+				toplevelState = ny::ToplevelState::normal;
 			}
 		} else if(keycode == ny::Keycode::n) {
 			ny::log("n pressed. Resetting window to normal state");
@@ -97,14 +98,16 @@ void MyWindowListener::key(const ny::KeyEvent& keyEvent)
 			loopControl->stop();
 		} else if(keycode == ny::Keycode::m) {
 			ny::log("m pressed. Toggle window maximize");
-			if(toplevelState == ny::ToplevelState::maximized) {
+			if(toplevelState != ny::ToplevelState::maximized) {
 				windowContext->maximize();
 				toplevelState = ny::ToplevelState::maximized;
 			} else {
 				windowContext->normalState();
+				toplevelState = ny::ToplevelState::normal;
 			}
 		} else if(keycode == ny::Keycode::i) {
 			ny::log("i pressed, Minimizing window");
+			toplevelState = ny::ToplevelState::minimized;
 			windowContext->minimize();
 		} else if(keycode == ny::Keycode::d) {
 			ny::log("d pressed. Trying to toggle decorations");
@@ -147,7 +150,6 @@ void MyWindowListener::mouseButton(const ny::MouseButtonEvent& event)
 		}
 	}
 }
-
 
 void MyWindowListener::state(const ny::StateEvent& stateEvent)
 {

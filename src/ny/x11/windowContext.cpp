@@ -297,7 +297,7 @@ void X11WindowContext::maximize()
 
 void X11WindowContext::minimize()
 {
-	// TODO: use xcb/some modern api here
+	// TODO: use xcb/some modern api here (?)
 
 	// icccm not working on gnome
 	// xcb_icccm_wm_hints_t hints;
@@ -323,10 +323,16 @@ void X11WindowContext::fullscreen()
 
 void X11WindowContext::normalState()
 {
+	// set nomrla wm hints state
 	xcb_icccm_wm_hints_t hints;
 	hints.flags = XCB_ICCCM_WM_HINT_STATE;
 	hints.initial_state = XCB_ICCCM_WM_STATE_NORMAL;
 	xcb_icccm_set_wm_hints(&xConnection(), xWindow_, &hints);
+
+	// remove fullscreen, maximized state
+	removeStates(ewmhConnection()._NET_WM_STATE_FULLSCREEN);
+	removeStates(ewmhConnection()._NET_WM_STATE_MAXIMIZED_VERT,
+		ewmhConnection()._NET_WM_STATE_MAXIMIZED_HORZ);
 }
 
 void X11WindowContext::beginMove(const EventData* ev)

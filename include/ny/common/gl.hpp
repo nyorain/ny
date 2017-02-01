@@ -135,12 +135,21 @@ protected:
 };
 
 /// Abstract base class for querying gl configs and creating opengl contexts.
+/// An implementation can be retrieved by an AppContext implementation if it
+/// is supported.
 class GlSetup {
 public:
 	virtual ~GlSetup() = default;
 
-	virtual std::vector<GlConfig> configs() const = 0; /// Returns all available configs
-	virtual GlConfig config(GlConfigID id) const; /// Returns the config for the given id
+	/// Returns all available configs
+	virtual std::vector<GlConfig> configs() const = 0;
+
+	/// Returns the config for the given id.
+	/// The default implementation will just call configs() and then search
+	/// for the config with the given id.
+	/// Should return an empty config (i.e. with no config id) if the given config
+	/// could not be found.
+	virtual GlConfig config(GlConfigID id) const;
 
 	/// Returns the default GlConfig.
 	/// Is expected to be roughly chosen by useful attributes like depth, stencil, format,
@@ -153,6 +162,17 @@ public:
 	/// \exception GlContextError For invalid or incompatible share context,
 	/// invalid api, version or config.
 	virtual std::unique_ptr<GlContext> createContext(const GlContextSettings& = {}) const = 0;
+
+	/// Creates a context with the given settings that can for sure be used to
+	/// render on the given surface. Will ignore the given glConfig setting.
+	/// Will use the glConfig of the given surface. The GlSurface must be retrieved
+	/// from the same backend as this setup.
+	/// \exception GlContextError If the context cannot be created ().
+	/// Internally calls the createContext implementation.
+	/// Passing an invalid surface results in undefined behvaiour, implementations
+	/// may override this function and throw in this case.
+	virtual std::unique_ptr<GlContext> createContext(const GlSurface& surface,
+		GlContextSettings = {}) const;
 
 	/// Returns the proc address for the given opengl extension function name.
 	/// If nullptr is returned, the function could not be found. Can be used to query
@@ -169,7 +189,8 @@ public:
 };
 
 /// Abstract base class for some kind of openGL(ES) surface that can be drawn on.
-/// Surfaces are usually native windows or pixel buffers.
+/// Surfaces are usually native windows or pixel buffers, something that can be
+/// drawn on using gl.
 class GlSurface : public nytl::NonMovable {
 public:
 	virtual ~GlSurface() = default;

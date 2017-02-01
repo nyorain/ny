@@ -2,20 +2,26 @@
 
 ### priority
 
+- glx error handling
 - egl/wgl/glx library loading (dynamically load opengl)
 	- should GlSetup::procAddr be able to query gl core functions?
 	- fix egl (check in context creation if extension/egl 1.5 available)
 	- apientryp needed for pointer declarations?
 - fix examples
-	- rework useful ones
 	- see src/examples/old
+		- provide vulkan example (basic)
+		- provide software rendering example
+			- show how the handle the returned mutable image
+		- cairo/skia
 - better WindowSettings surface/draw namings
 	- WindowSettings::buffer is a rather bad/unintuitive name
 - make position vecs (e.g. for mouseButton, mouseMove) Vec2ui instead of Vec2i
 	- when could it be negative?
 - fix WindowSettings handling for backends
-- send state and size events on windowContext creation?
+- send state and size events on windowContext creation? (other important values?)
 	- general way to query size from windowContext?
+	- query other values? against event flow but currently things like
+		toggling fullscreen are hard/partly impossible
 - fix WindowCapabilites for backends
 	- make return value dependent on child or toplevel window
 	- query server caps if possible
@@ -27,15 +33,15 @@
 		throw on critical errors!
 	- or is it ok this way? applications ususually can't do much about critical errors...
 		and to modify where ny logs it, they can just change the log streams
-- fix config:
+- fix building config:
 	- which cmake version is needed?
 	- see: gl linkin/building
 	- better find xcb cmake script
 		- make sure icccm and ewmh are found (are they available everywhere?)
 	- test wayland config
 		- wayland without egl, wayland without cursor library
-- gl setup create context:
-	- extra {easier} function to create context for surface
+- abolish WindowContextPtr, AppContextPtr
+	- names like UniqueWindowContext more acceptable (?)
 
 ### later; general; rework needed
 
