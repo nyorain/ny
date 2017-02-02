@@ -8,6 +8,8 @@
 	- fix egl (check in context creation if extension/egl 1.5 available)
 	- apientryp needed for pointer declarations?
 	- does the force version flag really makes sense?
+		- version setting at all? are there some (real) cases where a
+			specific opengl version is needed?
 	- fix egl/wgl error handling
 		- GlContextErrc::contextNotCurrent (e.g. swapInterval)
 	- query gl context version as attribute
