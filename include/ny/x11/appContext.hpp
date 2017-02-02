@@ -43,7 +43,7 @@ public:
     int xDefaultScreenNumber() const { return xDefaultScreenNumber_; }
     xcb_screen_t& xDefaultScreen() const { return *xDefaultScreen_; }
 	xcb_window_t xDummyWindow() const { return xDummyWindow_; }
-	const X11ErrorCategory& errorCategory() const;
+	X11ErrorCategory& errorCategory() const;
 
 	GlxSetup* glxSetup() const;
 	X11DataManager& dataManager() const;

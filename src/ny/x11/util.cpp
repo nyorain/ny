@@ -6,6 +6,7 @@
 #include <ny/log.hpp>
 #include <ny/mouseContext.hpp>
 #include <ny/mouseButton.hpp>
+#include <nytl/scope.hpp>
 
 #include <X11/Xlib.h>
 
@@ -49,20 +50,20 @@ std::unordered_map<Display*, X11ErrorCategory*> errorCategories;
 std::shared_timed_mutex errorCategoriesMutex; // TODO: C++17
 
 int xlibErrorHandler(Display* display, XErrorEvent* event) {
+	if(!event) {
+		warning("ny::x11::xlibErrorHandler: invalid event parameter");
+		return 0;
+	}
+
 	errorCategoriesMutex.lock_shared();
+	auto lockGuard = nytl::makeScopeGuard([&]{ errorCategoriesMutex.unlock_shared(); });
 	auto it = errorCategories.find(display);
 	if(it == errorCategories.end()) {
 		warning("ny::x11::xlibErrorHandler: invalid display!");
 		return 0;
 	}
 
-	if(!event) {
-		warning("ny::x11::xlibErrorHandler: invalid event parameter");
-		return 0;
-	}
-
 	it->second->lastXlibError(event->error_code);
-	errorCategoriesMutex.unlock_shared();
 	return 0;
 }
 
@@ -74,9 +75,9 @@ X11ErrorCategory::X11ErrorCategory(Display& dpy, xcb_connection_t& conn)
 {
 	// TODO: handle old error handler (?)
 	::XSetErrorHandler(&xlibErrorHandler);
-	std::lock_guard<std::shared_timed_mutex> lock(errorCategoriesMutex);
 
-	insert it into error categories and stuff
+	std::lock_guard<std::shared_timed_mutex> lock(errorCategoriesMutex);
+	errorCategories[&dpy] = this;
 }
 
 X11ErrorCategory::X11ErrorCategory(X11ErrorCategory&& other)
@@ -88,8 +89,18 @@ X11ErrorCategory::X11ErrorCategory(X11ErrorCategory&& other)
 
 X11ErrorCategory& X11ErrorCategory::operator=(X11ErrorCategory&& other)
 {
+	if(xDisplay_) {
+		std::lock_guard<std::shared_timed_mutex> lock(errorCategoriesMutex);
+		errorCategories[xDisplay_] = nullptr;
+	}
+
 	xDisplay_ = other.xDisplay_;
 	xConnection_ = other.xConnection_;
+
+	if(xDisplay_) {
+		std::lock_guard<std::shared_timed_mutex> lock(errorCategoriesMutex);
+		errorCategories[xDisplay_] = this;
+	}
 
 	other.xDisplay_ = {};
 	other.xConnection_ = {};
@@ -97,8 +108,17 @@ X11ErrorCategory& X11ErrorCategory::operator=(X11ErrorCategory&& other)
 	return *this;
 }
 
+X11ErrorCategory::~X11ErrorCategory()
+{
+	if(xDisplay_) {
+		std::lock_guard<std::shared_timed_mutex> lock(errorCategoriesMutex);
+		errorCategories[xDisplay_] = nullptr;
+	}
+}
+
 std::string X11ErrorCategory::message(int code) const
 {
+	if(code == 0) return "Unknown/no error (error code 0)";
 	return x11::errorMessage(*xDisplay_, code);
 }
 

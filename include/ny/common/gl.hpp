@@ -114,6 +114,7 @@ enum class GlContextErrc : unsigned int {
 	contextAlreadyCurrent, // not critical, context was current before makeCurrent
 	contextAlreadyNotCurrent, // not critical, context was not current before makeNotCurernt
 	contextCurrentInAnotherThread, // context is already current in another thread
+	contextNotCurrent, // function requires context to be current at the moment
 
 	surfaceAlreadyCurrent, // surface current on another context in other thread
 	invalidSurface, // the given surface is invalid
@@ -191,6 +192,7 @@ public:
 /// Abstract base class for some kind of openGL(ES) surface that can be drawn on.
 /// Surfaces are usually native windows or pixel buffers, something that can be
 /// drawn on using gl.
+/// By design NonMovable since it may be referenced as current surface.
 class GlSurface : public nytl::NonMovable {
 public:
 	virtual ~GlSurface() = default;
@@ -213,6 +215,7 @@ public:
 /// with egl, glx or wgl. With the static current() function one can get the current context
 /// for the calling thread.
 /// Implementations should remember to make the context not current in the destructor.
+/// By design NonMovable since it may be referenced as current context.
 class GlContext : public nytl::NonMovable {
 public:
 	using Extension = GlContextExtension;
@@ -274,8 +277,12 @@ public:
 
 	// - Extension specific, might not be available -
 
-	/// Default implementations implement them as not supported.
+	/// Calls the backend-specific swapInterval function with the given interval.
+	/// Note that this function will set the swap interval on the surface that
+	/// is current for this context.
+	/// Default implementations implement it as not supported.
 	/// \excpetion GlContextError If the extensions needed for this function is not available
+	/// or there is no current surface for this context.
 	/// \excpetion std::system_error If calling the native function failed
 	virtual void swapInterval(int interval) const;
 	virtual bool swapInterval(int interval, std::error_code&) const;

@@ -7,6 +7,8 @@
 	- should GlSetup::procAddr be able to query gl core functions?
 	- fix egl (check in context creation if extension/egl 1.5 available)
 	- apientryp needed for pointer declarations?
+	- fix egl/wgl error handling
+		- GlContextErrc::contextNotCurrent (e.g. swapInterval)
 - fix examples
 	- see src/examples/old
 		- provide vulkan example (basic)
