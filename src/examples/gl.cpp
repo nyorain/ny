@@ -30,17 +30,22 @@ int main()
 	// for gets destructed.
 	ny::GlSurface* glSurface {};
 
-	ny::WindowSettings settings;
-	settings.surface = ny::SurfaceType::gl;
-	settings.transparent = false;
-	settings.gl.storeSurface = &glSurface;
+	ny::WindowSettings windowSettings;
+	windowSettings.surface = ny::SurfaceType::gl;
+	windowSettings.transparent = true;
+	windowSettings.gl.storeSurface = &glSurface;
 
-	auto wc = ac->createWindowContext(settings);
+	auto wc = ac->createWindowContext(windowSettings);
 
 	// Create the opengl context
 	// we pass our created surface to the function to make sure
 	// it will be created compatible to the surface.
-	auto glContext = ac->glSetup()->createContext(*glSurface);
+	// we can also specify additional settings but just go with the defaults here
+	ny::GlContextSettings contextSettings;
+	contextSettings.version.major = 4;
+	contextSettings.version.minor = 4;
+	contextSettings.forceVersion = true;
+	auto glContext = ac->glSetup()->createContext(*glSurface, contextSettings);
 	glContext->makeCurrent(*glSurface);
 
 	ny::LoopControl control;

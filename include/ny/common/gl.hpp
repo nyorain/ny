@@ -79,7 +79,8 @@ bool glExtensionStringContains(nytl::StringParam extString, nytl::StringParam ex
 /// same implementation. The returned context will be shared with the given share context and
 /// all context the share context is already shared with.
 /// If the given version is 0.0, the context will be created with the highest version possible.
-/// If the config id is not changed, the default config will be used.
+/// This is what is usually needed.
+/// If no specific config id is set, the default config is used.
 struct GlContextSettings {
 	GlConfigID config {};
 	GlVersion version {};

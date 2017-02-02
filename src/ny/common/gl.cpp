@@ -481,7 +481,7 @@ std::string GlErrorCategory::message(int code) const
 		case Error::invalidConfig: return "Given config id is invalid";
 		case Error::invalidSharedContext: return "Given share context is invalid/incompatible";
 		case Error::invalidApi: return "Cannot create context with the given api value";
-		case Error::invalidVersion: return "The given version is not a valid gl(es) version";
+		case Error::invalidVersion: return "The given api version is invalid";
 
 		case Error::contextAlreadyCurrent: return "GlContext was already current";
 		case Error::contextAlreadyNotCurrent: return "GlContext was already not current";

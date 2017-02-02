@@ -413,8 +413,10 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 		}
 	}
 
+	if(!glxContext_ && settings.forceVersion)
+		throw std::runtime_error("ny::GlxContext: could not create context for forced version");
 
-	if(!glxContext_ && !settings.forceVersion) {
+	if(!glxContext_) {
 		errorCat.resetLastXlibError();
 		log("ny::GlxContext: could not create modern context, trying legacy version");
 		glxContext_ = ::glXCreateNewContext(&xDisplay(), glxConfig, GLX_RGBA_TYPE,
@@ -424,7 +426,7 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 			warning("ny::GlxContext: glxCreateNewContext: ", errorCat.lastXlibError().message());
 	}
 
-	if(!glxContext_ && !settings.forceVersion) {
+	if(!glxContext_) {
 		errorCat.resetLastXlibError();
 		glxContext_ = ::glXCreateNewContext(&xDisplay(), glxConfig, GLX_RGBA_TYPE,
 			glxShareContext, false);
