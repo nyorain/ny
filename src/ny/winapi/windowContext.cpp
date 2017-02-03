@@ -234,6 +234,11 @@ void WinapiWindowContext::customDecorated(bool set)
 	}
 
 	customDecorated_ = set;
+	
+	SizeEvent se;
+	auto extents = clientExtents();
+	se.size = extents.size;
+	listener().resize(se);
 }
 
 void WinapiWindowContext::size(nytl::Vec2ui size)
