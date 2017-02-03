@@ -32,7 +32,7 @@ int main()
 
 	ny::WindowSettings windowSettings;
 	windowSettings.surface = ny::SurfaceType::gl;
-	windowSettings.transparent = false;
+	windowSettings.transparent = true;
 	windowSettings.gl.storeSurface = &glSurface;
 
 	auto wc = ac->createWindowContext(windowSettings);
@@ -42,6 +42,8 @@ int main()
 	// it will be created compatible to the surface.
 	// we can also specify additional settings but just go with the defaults here
 	ny::GlContextSettings contextSettings {};
+	contextSettings.api = ny::GlApi::gles;
+
 	auto glContext = ac->glSetup()->createContext(*glSurface, contextSettings);
 	glContext->makeCurrent(*glSurface);
 

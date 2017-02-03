@@ -31,14 +31,6 @@ enum class GlApi : unsigned int { none, gl, gles, };
 /// Opaque GlConfig id. Is used by backends as pointer or unsigned int.
 using GlConfigID = struct GlConfigIDType*;
 
-/// Represents a general gl or glsl version.
-/// Note that e.g. glsl version 330 is represented by major=3, minor=3
-struct GlVersion {
-	GlApi api;
-	unsigned int major = 0;
-	unsigned int minor = 0;
-};
-
 /// Describes a possible opengl context and surface configuration.
 struct GlConfig {
 	unsigned int depth {};
@@ -328,10 +320,6 @@ GlConfigID glConfigID(const std::uintptr_t& number);
 /// Therefore the function has to use this naming.
 std::error_condition make_error_condition(GlContextErrc);
 std::error_code make_error_code(GlContextErrc);
-
-// The usual name the gl libraries have on various platforms.
-// Ordered by relevance. Tries to load by the backends in this order to retrieve
-// function pointers.
 
 } // namespace ny
 

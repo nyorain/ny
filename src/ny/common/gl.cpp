@@ -49,13 +49,6 @@ std::mutex& contextShareMutex()
 } // anonymous util namespace
 
 // gl version to stirng
-std::string name(const GlVersion& v)
-{
-	auto ret = std::to_string(v.major) + "." + std::to_string(v.minor * 10);
-	if(v.api == GlApi::gles) ret += " ES";
-	return ret;
-}
-
 std::uintptr_t& glConfigNumber(GlConfigID& id)
 {
 	return reinterpret_cast<std::uintptr_t&>(id);
