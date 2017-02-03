@@ -96,11 +96,10 @@ EglSetup::EglSetup(void* nativeDisplay)
 
 	configs_.reserve(configSize);
 	auto bestRating = 0u;
-	auto bestTransparentRating = 0u;
 
 	for(auto& config : nytl::Span<EGLConfig>(*configs, configSize)) {
 		GlConfig glconf;
-		int r, g, b, a, id, depth, stencil, sampleBuffers, samples, transparent;
+		int r, g, b, a, id, depth, stencil, sampleBuffers, samples;
 
 		::eglGetConfigAttrib(eglDisplay_, config, EGL_RED_SIZE, &r);
 		::eglGetConfigAttrib(eglDisplay_, config, EGL_GREEN_SIZE, &g);
@@ -111,7 +110,6 @@ EglSetup::EglSetup(void* nativeDisplay)
 		::eglGetConfigAttrib(eglDisplay_, config, EGL_STENCIL_SIZE, &stencil);
 		::eglGetConfigAttrib(eglDisplay_, config, EGL_SAMPLE_BUFFERS, &sampleBuffers);
 		::eglGetConfigAttrib(eglDisplay_, config, EGL_SAMPLES, &samples);
-		::eglGetConfigAttrib(eglDisplay_, config, EGL_TRANSPARENT_TYPE, &transparent);
 
 		glconf.depth = depth;
 		glconf.stencil = stencil;
@@ -121,7 +119,7 @@ EglSetup::EglSetup(void* nativeDisplay)
 		glconf.alpha = a;
 		glconf.id = glConfigID(id);
 		glconf.doublebuffer = true; // should always be possible
-		glconf.transparent = (transparent == EGL_TRANSPARENT_RGB);
+		glconf.transparent = true; // EGL_TRANSPARENT_TYPE usually wrong
 
 		if(sampleBuffers) glconf.samples = samples;
 
@@ -131,11 +129,6 @@ EglSetup::EglSetup(void* nativeDisplay)
 		if(rating > bestRating) {
 			bestRating = rating;
 			defaultConfig_ = glconf;
-		}
-
-		if(glconf.transparent && rating > bestTransparentRating) {
-			bestTransparentRating = rating;
-			defaultTransparentConfig_ = glconf;
 		}
 	}
 }

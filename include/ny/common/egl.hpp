@@ -35,7 +35,6 @@ public:
 	EglSetup& operator=(EglSetup&& other) noexcept;
 
 	GlConfig defaultConfig() const override { return defaultConfig_; }
-	GlConfig defaultTransparentConfig() const { return defaultTransparentConfig_; }
 	std::vector<GlConfig> configs() const override { return configs_; }
 
 	std::unique_ptr<GlContext> createContext(const GlContextSettings& = {}) const override;
@@ -50,10 +49,8 @@ public:
 
 protected:
 	EGLDisplay eglDisplay_ {};
-
 	std::vector<GlConfig> configs_;
 	GlConfig defaultConfig_ {};
-	GlConfig defaultTransparentConfig_ {};
 };
 
 /// EGL GlSurface implementation

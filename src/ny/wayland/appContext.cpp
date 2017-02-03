@@ -369,7 +369,7 @@ WindowContextPtr WaylandAppContext::createWindowContext(const WindowSettings& se
 				"ny was built without vulkan support and can not create a Vulkan surface");
 		#endif
 	} else if(settings.surface == SurfaceType::gl) {
-		#ifdef NY_WithEGl
+		#ifdef NY_WithEgl
 			static constexpr auto eglFailed = "ny::WaylandAppContext::createWindowContext: "
 				"initializing egl failed, therefore no gl surfaces can be created";
 

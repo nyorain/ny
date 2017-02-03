@@ -38,9 +38,18 @@ Backend& Backend::choose()
 	auto* envBackend = std::getenv("NY_BACKEND");
 
 	auto bestScore = -1;
+	auto envFound = false;
 	Backend* best = nullptr;
+
 	for(auto& backend : backends()) {
-		if(!backend->available()) continue;
+		if(!backend->available()) {
+			if(envBackend && std::strcmp(backend->name(), envBackend) == 0) {
+				warning("ny::Backend: requested env NY_BACKEND", envBackend, " not available");
+				envFound = true;
+			}
+
+			continue;
+		}
 		if(envBackend && !std::strcmp(backend->name(), envBackend)) return *backend;
 
 		// score is chosen this way since there might be x servers on winapi
@@ -57,8 +66,8 @@ Backend& Backend::choose()
 		}
 	}
 
-	if(envBackend && (!best || std::strcmp(best->name(), envBackend)))
-		warning("ny::Backend: requested backend (env NY_BACKEND) ", envBackend, " not available!");
+	if(envBackend && !envFound)
+		warning("ny::Backend: requested env NY_BACKEND ", envBackend, " not found!");
 
 	if(!best) throw std::runtime_error("ny::Backend: no backend available.");
 	return *best;

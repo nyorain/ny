@@ -71,7 +71,6 @@ WaylandWindowContext::WaylandWindowContext(WaylandAppContext& ac,
 	}
 
 	cursor(settings.cursor);
-	if(settings.show) show();
 }
 
 WaylandWindowContext::~WaylandWindowContext()
@@ -176,6 +175,7 @@ void WaylandWindowContext::createXdgSurfaceV6(const WaylandWindowSettings& ws)
 	// wants the application to choose the size we need this call to actually choose it.
 	// how to handle this? somehow parse the configure events we get and react to it
 	// zxdg_surface_v6_set_window_geometry(xdgSurfaceV6_.surface, 0, 0, size_.x, size_.y);
+	zxdg_surface_v6_set_window_geometry(xdgSurfaceV6_.surface, 0, 0, size().x, size().y);
 
 	zxdg_surface_v6_add_listener(xdgSurfaceV6_.surface, &xdgSurfaceListener, this);
 	zxdg_toplevel_v6_add_listener(xdgSurfaceV6_.toplevel, &xdgToplevelListener, this);

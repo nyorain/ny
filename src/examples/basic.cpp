@@ -132,9 +132,9 @@ void MyWindowListener::mouseButton(const ny::MouseButtonEvent& event)
 
 		ny::WindowEdges resizeEdges = ny::WindowEdge::none;
 		if(event.position.x < 100)
-			resizeEdges |= ny::WindowEdge::right;
-		else if(static_cast<unsigned int>(event.position.x) > windowSize.x - 100)
 			resizeEdges |= ny::WindowEdge::left;
+		else if(static_cast<unsigned int>(event.position.x) > windowSize.x - 100)
+			resizeEdges |= ny::WindowEdge::right;
 
 		if(event.position.y < 100)
 			resizeEdges |= ny::WindowEdge::top;
