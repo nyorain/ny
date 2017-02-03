@@ -76,7 +76,6 @@ void MyWindowListener::draw(const ny::DrawEvent&)
 	auto guard = bufferSurface->buffer();
 	auto image = guard.get();
 	auto size = ny::dataSize(image);
-	ny::log("draw: ", image.size, " -- ", size);
 	std::memset(image.data, 0xFF, size); // opaque white
 }
 
