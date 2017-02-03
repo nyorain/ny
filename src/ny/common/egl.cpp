@@ -77,7 +77,7 @@ EglSetup::EglSetup(void* nativeDisplay)
 		throw std::runtime_error("ny::EglSetup: egl 1.4 not supported");
 	}
 
-	ext::loadExtensions(eglDisplay_, major > 1 || (major == 1 && minor > 4));
+	loadExtensions(eglDisplay_, major > 1 || (major == 1 && minor > 4));
 
 	// query all available configs
 	constexpr EGLint attribs[] = {
@@ -269,8 +269,8 @@ EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 	else if(api == GlApi::gl) apiName = EGL_OPENGL_API;
 
 	if(api == GlApi::none) {
-		if(::eglBindApi(EGL_OPENGL_API)) api = GlApi::gl;
-		else if(::glBindApi(EGL_OPENGL_ES_API)) api = GlApi::gles;
+		if(::eglBindAPI(EGL_OPENGL_API)) api = GlApi::gl;
+		else if(::eglBindAPI(EGL_OPENGL_ES_API)) api = GlApi::gles;
 		else throw std::runtime_error("ny::EglContext: egl does not support gl or gles");
 	} else if(!::eglBindAPI(apiName)) {
 		throw std::runtime_error("ny::EglContext: requested api is not supported!");
@@ -286,6 +286,7 @@ EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 		else versionPairs = {{4, 5}, {3, 3}, {3, 2}, {3, 1}, {3, 0}, {1, 2}, {1, 0}};
 
 		if(api == GlApi::gl) {
+			// profile
 			attributes.push_back(EGL_CONTEXT_OPENGL_PROFILE_MASK);
 			if(!settings.compatibility) attributes.push_back(EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT);
 			else attributes.push_back(EGL_CONTEXT_OPENGL_COMPATIBILITY_PROFILE_BIT);
@@ -298,8 +299,8 @@ EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 
 		// debug
 		attributes.push_back(EGL_CONTEXT_OPENGL_DEBUG);
-		if(settings.debug) contextAttribs.push_back(EGL_TRUE);
-		else contextAttribs.push_back(EGL_FALSE);
+		if(settings.debug) attributes.push_back(EGL_TRUE);
+		else attributes.push_back(EGL_FALSE);
 
 		// version set later
 		attributes.push_back(EGL_CONTEXT_MAJOR_VERSION);
@@ -325,28 +326,35 @@ EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 		}
 
 		if(!eglContext_) {
-			auto msg = EglErrorCategory::error_code().message();
+			auto msg = EglErrorCategory::errorCode().message();
 			warning("ny::EglContext: could not create context for any request version: ", msg);
 		}
 	} else {
-		if(settings.version.api == GlApi::gles) {
-			EGLint attributes[3] = {EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
-			eglContext_ = ::eglCreateContext(eglDisplay, eglConfig, eglShareContext, &none);
+		warning("ny::EglContext: create_context extension and egl 1.5 not available");
+
+		if(api == GlApi::gles) {
+			EGLint attribs[3] = {EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
+			eglContext_ = ::eglCreateContext(eglDisplay, eglConfig, eglShareContext, attribs);
 
 			if(!eglContext_) {
-				attributes[1] = 1;
-				eglContext_ = ::eglCreateContext(eglDisplay, eglConfig, eglShareContext, &none);
+				attribs[1] = 1;
+				eglContext_ = ::eglCreateContext(eglDisplay, eglConfig, eglShareContext, attribs);
 			}
 		} else {
 			auto none = EGL_NONE;
 			eglContext_ = ::eglCreateContext(eglDisplay, eglConfig, eglShareContext, &none);
+		}
+
+		if(!eglContext_) {
+			auto msg = EglErrorCategory::errorCode().message();
+			warning("ny::EglContext: could not create legacy context: ", msg);
 		}
 	}
 
 	if(!eglContext_)
 		throw std::runtime_error("ny::EglContext: failed to create egl context");
 
-	GlContext::initContext(settings.version.api, glConfig, settings.share);
+	GlContext::initContext(api, glConfig, settings.share);
 }
 
 EglContext::~EglContext()
@@ -411,6 +419,11 @@ GlContextExtensions EglContext::contextExtensions() const
 
 bool EglContext::swapInterval(int interval, std::error_code& ec) const
 {
+	if(!isCurrent()) {
+		ec = GlContextErrc::contextNotCurrent;
+		return false;
+	}
+
 	if(!::eglSwapInterval(eglDisplay(), interval)) {
 		ec = EglErrorCategory::errorCode();
 		return false;

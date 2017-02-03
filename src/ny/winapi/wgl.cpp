@@ -445,11 +445,7 @@ bool WglContext::swapInterval(int interval, std::error_code& ec) const
 		return false;
 	}
 
-	const GlSurface* currentSurface;
-	GlContext::current(&currentSurface);
-
-	auto currentWglSurface = dynamic_cast<const WglSurface*>(currentSurface);
-	if(!isCurrent() || !currentWglSurface) {
+	if(!isCurrent()) {
 		ec = {GlContextErrc::contextNotCurrent};
 		return false;
 	}
