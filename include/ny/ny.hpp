@@ -16,7 +16,6 @@
 #include <ny/image.hpp>
 #include <ny/key.hpp>
 #include <ny/keyboardContext.hpp>
-#include <ny/library.hpp>
 #include <ny/log.hpp>
 #include <ny/loopControl.hpp>
 #include <ny/mouseButton.hpp>

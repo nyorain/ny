@@ -2,11 +2,32 @@
 
 ### priority
 
+- glx error handling
 - egl/wgl/glx library loading (dynamically load opengl)
-	- link e.g. core egl statically?
+	- should GlSetup::procAddr be able to query gl core functions?
+	- fix egl (check in context creation if extension/egl 1.5 available)
+	- apientryp needed for pointer declarations?
+	- does the force version flag really makes sense?
+		- version setting at all? are there some (real) cases where a
+			specific opengl version is needed?
+	- fix egl/wgl error handling
+		- GlContextErrc::contextNotCurrent (e.g. swapInterval)
+	- query gl context version as attribute
 - fix examples
-	- remove unneeded ones
+	- see src/examples/old
+		- provide vulkan example (basic)
+		- provide software rendering example
+			- show how the handle the returned mutable image
+		- cairo/skia
+- better WindowSettings surface/draw namings
+	- WindowSettings::buffer is a rather bad/unintuitive name
+- make position vecs (e.g. for mouseButton, mouseMove) Vec2ui instead of Vec2i
+	- when could it be negative?
 - fix WindowSettings handling for backends
+- send state and size events on windowContext creation? (other important values?)
+	- general way to query size from windowContext?
+	- query other values? against event flow but currently things like
+		toggling fullscreen are hard/partly impossible
 - fix WindowCapabilites for backends
 	- make return value dependent on child or toplevel window
 	- query server caps if possible
@@ -18,13 +39,15 @@
 		throw on critical errors!
 	- or is it ok this way? applications ususually can't do much about critical errors...
 		and to modify where ny logs it, they can just change the log streams
-- fix config:
+- fix building config:
 	- which cmake version is needed?
 	- see: gl linkin/building
 	- better find xcb cmake script
 		- make sure icccm and ewmh are found (are they available everywhere?)
 	- test wayland config
 		- wayland without egl, wayland without cursor library
+- abolish WindowContextPtr, AppContextPtr
+	- names like UniqueWindowContext more acceptable (?)
 
 ### later; general; rework needed
 
@@ -145,17 +168,11 @@ wayland backend:
 winapi backend:
 ---------------
 
-- egl backend (see egl.cpp)
-	- optional instead of wgl
-	- check if available, use wgl instead
-	- should be easy to implement
-	- might be more efficient (ANGLE) than using wgl
-- ime input? at least check if it is needed
+- SetCapture/ReleaseCapture on mouse button down/release
+	- needed to make sure that mouse button release events are sent even
+		outside the window (is required for usual button press/release handling e.g.)
 - assure/recheck unicode handling for title, window class name etc.
-- native widgets (for all backends relevant)
-- wgl api reparse [loader, swap control tear]
 - rethink WinapiWindowContext::cursor implementation.
-- Set a cursor when moving the window (beginMove)? windows 10 does not do it
 - initial mouse focus (see KeyboardContext handler inconsistency)
 - better documentation about layered window, make it optional. Move doc out of the source.
 - dnd/clipboard improvements
@@ -170,3 +187,13 @@ winapi backend:
 	- cannot differentiate to windows created not by ny
 - com: correct refadd/release? check with destructor log!
 - WC: cursor and icon: respect/handle/take care of system metrics
+
+- Set a cursor when moving the window (beginMove)? windows 10 does not do it
+- native widgets rethink (for all backends relevant)
+	- at least dialogs are something (-> see window types)
+- ime input? at least check if it is needed
+- egl backend (see egl.cpp)
+	- optional instead of wgl
+	- check if available, use wgl instead
+	- should be easy to implement
+	- might be more efficient (ANGLE) than using wgl

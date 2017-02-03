@@ -172,7 +172,7 @@ void ShmBuffer::create()
 	if(!stride_) throw std::runtime_error("ny::wayland::ShmBuffer invalid stride");
 
 	auto* shm = appContext_->wlShm();
-	if(!shm) throw std::runtime_error("ny::wayland::ShmBuffer: wlAC has no wl_shm");
+	if(!shm) throw std::runtime_error("ny::wayland::ShmBuffer: appContext has no wl_shm");
 
 	auto vecSize = stride_ * size_.y;
 	shmSize_ = std::max(vecSize, shmSize_);

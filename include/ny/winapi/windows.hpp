@@ -10,7 +10,7 @@
 #include <winuser.h>
 #include <windowsx.h>
 
-// undefine the shittiest of the pulled macros
+// undefine the shittiest macros
 // holy fuck microsoft...
 #undef near
 #undef far

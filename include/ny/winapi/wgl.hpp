@@ -7,8 +7,6 @@
 #include <ny/winapi/include.hpp>
 #include <ny/winapi/windowContext.hpp>
 #include <ny/winapi/windows.hpp>
-
-#include <ny/library.hpp>
 #include <ny/common/gl.hpp>
 
 namespace ny {
@@ -23,20 +21,17 @@ public:
 	WglSetup(WglSetup&& other) noexcept;
 	WglSetup& operator=(WglSetup&& other) noexcept;
 
-	GlConfig defaultConfig() const override;
+	GlConfig defaultConfig() const override { return defaultConfig_; }
 	std::vector<GlConfig> configs() const override { return configs_; }
 	std::unique_ptr<GlContext> createContext(const GlContextSettings& = {}) const override;
 	void* procAddr(nytl::StringParam name) const;
 
-	const Library& glLibrary() const { return glLibrary_; }
 	HDC dummyDC() const { return dummyDC_; }
 	bool valid() const { return (dummyDC_); }
 
 protected:
 	std::vector<GlConfig> configs_;
-	GlConfig* defaultConfig_ {};
-	Library glLibrary_;
-
+	GlConfig defaultConfig_ {};
 	HWND dummyWindow_ {};
 	HDC dummyDC_ {};
 };

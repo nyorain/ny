@@ -62,12 +62,11 @@ class Surface;
 class BufferSurface;
 class BufferGuard;
 
-using GlConfigID = struct GlConfigIDType*; //opaque, see common/gl.hpp
 class GlSetup;
 class GlContext;
 class GlSurface;
 
-struct GlVersion;
+using GlConfigID = struct GlConfigIDType*; //opaque, see common/gl.hpp
 struct GlConfig;
 
 class EglSetup;

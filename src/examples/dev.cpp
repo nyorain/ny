@@ -183,6 +183,7 @@ int main()
 
 	ny::WindowSettings settings;
 	settings.title = "Ayy sick shit";
+	settings.droppable = true;
 	settings.listener = &listener;
 	settings.surface = ny::SurfaceType::buffer;
 	settings.buffer.storeSurface = &bufferSurface;
@@ -210,8 +211,6 @@ CustomDataSource::CustomDataSource()
 
 	auto it = reinterpret_cast<std::uint32_t*>(image_.data.get());
 	std::fill(it, it + (32 * 32), color);
-
-	// std::memset(image_.data.get(), 0xCC, 32 * 32 * 4);
 }
 
 std::any CustomDataSource::data(const ny::DataFormat& format) const

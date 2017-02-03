@@ -34,7 +34,7 @@ BufferGuard WaylandBufferSurface::buffer()
 		b.use();
 		active_ = &b;
 		auto format = waylandToImageFormat(b.format());
-		return {*this, {&b.data(), size, format, b.stride()}};
+		return {*this, {&b.data(), size, format, b.stride() * 8}};
 	}
 
 	// create new buffer if none is unused

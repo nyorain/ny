@@ -26,18 +26,10 @@
 namespace ny {
 
 /// Possible opengl apis a context can have
-enum class GlApi : unsigned int { gl, gles, };
+enum class GlApi : unsigned int { none, gl, gles, };
 
 /// Opaque GlConfig id. Is used by backends as pointer or unsigned int.
 using GlConfigID = struct GlConfigIDType*;
-
-/// Represents a general gl or glsl version.
-/// Note that e.g. glsl version 330 is represented by major=3, minor=3
-struct GlVersion {
-	GlApi api;
-	unsigned int major = 0;
-	unsigned int minor = 0;
-};
 
 /// Describes a possible opengl context and surface configuration.
 struct GlConfig {
@@ -51,6 +43,7 @@ struct GlConfig {
 	unsigned int alpha {};
 
 	bool doublebuffer {};
+	bool transparent {};
 
 	GlConfigID id {};
 };
@@ -63,24 +56,23 @@ struct GlConfig {
 /// Returns some value in the range 1 - 100;
 unsigned int rate(const GlConfig& config);
 
-/// Describe the settings for a created gl context.
-/// Note that if version 4.0 specified, the context might have any version >= 4.0.
-/// If forceVersion is set to true, context creation will fail if a context with at least
-/// the given version can be created for sure. Otherwise a context with a version
-/// below the requested one will be returned.
-/// For legacy contexts the compatibility, forwardCompatible and debug flags do not matter.
+/// Returns whether the given extension string that lists extensions sepertaed by
+/// whitespace contains the given extensions.
+bool glExtensionStringContains(nytl::StringParam extString, nytl::StringParam extension);
+
+/// Describes the settings for a created gl context.
 /// The shared GlContext must be set to nullptr or a GlContext that was created from the
-/// same implementation. The returned context will be shared with the given share context and
-/// all context the share context is already shared with.
-/// If the given version is 0.0, the context will be created with the highest version possible.
-/// If the config id is not changed, the default config will be used.
+/// same setup implementation. The returned context will be shared with the given
+/// share context and all context the share context is already shared with.
+/// If no specific config id is set, the default config is used.
+/// Api specifies the api the context should have. Context creation will fail if the
+/// api could not be used. Can be set to GlApi::none to just choose any available api.
 struct GlContextSettings {
 	GlConfigID config {};
-	GlVersion version {};
 	bool compatibility {};
 	bool forwardCompatible {};
 	bool debug {};
-	bool forceVersion {};
+	GlApi api {};
 
 	GlContext* share {};
 };
@@ -108,6 +100,7 @@ enum class GlContextErrc : unsigned int {
 	contextAlreadyCurrent, // not critical, context was current before makeCurrent
 	contextAlreadyNotCurrent, // not critical, context was not current before makeNotCurernt
 	contextCurrentInAnotherThread, // context is already current in another thread
+	contextNotCurrent, // function requires context to be current at the moment
 
 	surfaceAlreadyCurrent, // surface current on another context in other thread
 	invalidSurface, // the given surface is invalid
@@ -121,7 +114,7 @@ enum class GlContextErrc : unsigned int {
 /// Is usually thrown for arguments or situations that result in some critical logic error.
 class GlContextError : public std::logic_error {
 public:
-	GlContextError(std::error_code, const char* msg = nullptr);
+	GlContextError(std::error_code, nytl::StringParam msg = {});
 	const std::error_code& code() const { return code_; }
 
 protected:
@@ -129,13 +122,26 @@ protected:
 };
 
 /// Abstract base class for querying gl configs and creating opengl contexts.
+/// An implementation can be retrieved by an AppContext implementation if it
+/// is supported.
 class GlSetup {
 public:
 	virtual ~GlSetup() = default;
 
-	virtual GlConfig defaultConfig() const = 0; /// Retunrns the default config
-	virtual std::vector<GlConfig> configs() const = 0; /// Returns all available configs
-	virtual GlConfig config(GlConfigID id) const; /// Returns the config for the given id
+	/// Returns all available configs
+	virtual std::vector<GlConfig> configs() const = 0;
+
+	/// Returns the config for the given id.
+	/// The default implementation will just call configs() and then search
+	/// for the config with the given id.
+	/// Should return an empty config (i.e. with no config id) if the given config
+	/// could not be found.
+	virtual GlConfig config(GlConfigID id) const;
+
+	/// Returns the default GlConfig.
+	/// Is expected to be roughly chosen by useful attributes like depth, stencil, format,
+	/// hardware acceleration or doublebuffering.
+	virtual GlConfig defaultConfig() const = 0;
 
 	/// Constructs and returns a new opengl implementation object. Implementations
 	/// should always return a valid unique_ptr and throw an excpetion on error.
@@ -144,7 +150,18 @@ public:
 	/// invalid api, version or config.
 	virtual std::unique_ptr<GlContext> createContext(const GlContextSettings& = {}) const = 0;
 
-	/// Returns the proc address for the given function name.
+	/// Creates a context with the given settings that can for sure be used to
+	/// render on the given surface. Will ignore the given glConfig setting.
+	/// Will use the glConfig of the given surface. The GlSurface must be retrieved
+	/// from the same backend as this setup.
+	/// \exception GlContextError If the context cannot be created ().
+	/// Internally calls the createContext implementation.
+	/// Passing an invalid surface results in undefined behvaiour, implementations
+	/// may override this function and throw in this case.
+	virtual std::unique_ptr<GlContext> createContext(const GlSurface& surface,
+		GlContextSettings = {}) const;
+
+	/// Returns the proc address for the given opengl extension function name.
 	/// If nullptr is returned, the function could not be found. Can be used to query
 	/// core and extensions or platform-specific opengl functions.
 	/// Note that some specifications (namely, windows wgl) state that the returned
@@ -159,7 +176,9 @@ public:
 };
 
 /// Abstract base class for some kind of openGL(ES) surface that can be drawn on.
-/// Surfaces are usually native windows or pixel buffers.
+/// Surfaces are usually native windows or pixel buffers, something that can be
+/// drawn on using gl.
+/// By design NonMovable since it may be referenced as current surface.
 class GlSurface : public nytl::NonMovable {
 public:
 	virtual ~GlSurface() = default;
@@ -182,6 +201,7 @@ public:
 /// with egl, glx or wgl. With the static current() function one can get the current context
 /// for the calling thread.
 /// Implementations should remember to make the context not current in the destructor.
+/// By design NonMovable since it may be referenced as current context.
 class GlContext : public nytl::NonMovable {
 public:
 	using Extension = GlContextExtension;
@@ -243,8 +263,12 @@ public:
 
 	// - Extension specific, might not be available -
 
-	/// Default implementations implement them as not supported.
+	/// Calls the backend-specific swapInterval function with the given interval.
+	/// Note that this function will set the swap interval on the surface that
+	/// is current for this context.
+	/// Default implementations implement it as not supported.
 	/// \excpetion GlContextError If the extensions needed for this function is not available
+	/// or there is no current surface for this context.
 	/// \excpetion std::system_error If calling the native function failed
 	virtual void swapInterval(int interval) const;
 	virtual bool swapInterval(int interval, std::error_code&) const;

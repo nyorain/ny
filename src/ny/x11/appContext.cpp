@@ -525,7 +525,7 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev)
 }
 
 x11::EwmhConnection& X11AppContext::ewmhConnection() const { return impl_->ewmhConnection; }
-const X11ErrorCategory& X11AppContext::errorCategory() const { return impl_->errorCategory; }
+X11ErrorCategory& X11AppContext::errorCategory() const { return impl_->errorCategory; }
 const x11::Atoms& X11AppContext::atoms() const { return impl_->atoms; }
 X11DataManager& X11AppContext::dataManager() const { return impl_->dataManager; }
 

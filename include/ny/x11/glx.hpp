@@ -7,7 +7,6 @@
 #include <ny/x11/include.hpp>
 #include <ny/x11/windowContext.hpp>
 #include <ny/common/gl.hpp>
-#include <ny/library.hpp>
 #include <nytl/vec.hpp>
 
 // prototypes to not include glx.h
@@ -17,9 +16,9 @@ typedef struct __GLXFBConfigRec* GLXFBConfig;
 namespace ny {
 
 //TODO: for glx calls: correct error handling
-//TODO: api loading, glLibrary, context extensions, swapInterval, screen number
+//TODO: correct screen number everywhere
 
-/// Glx GlSetup implementation
+/// Glx GlSetup implementation.
 class GlxSetup : public GlSetup {
 public:
 	GlxSetup() = default;
@@ -29,7 +28,9 @@ public:
 	GlxSetup(GlxSetup&&) noexcept;
 	GlxSetup& operator=(GlxSetup&&) noexcept;
 
-	GlConfig defaultConfig() const override { return *defaultConfig_; }
+	GlConfig defaultConfig() const override { return defaultConfig_; }
+	GlConfig defaultTransparentConfig() const { return defaultTransparentConfig_; }
+
 	std::vector<GlConfig> configs() const override { return configs_; }
 
 	std::unique_ptr<GlContext> createContext(const GlContextSettings& = {}) const override;
@@ -37,24 +38,24 @@ public:
 
 	GLXFBConfig glxConfig(GlConfigID id) const;
 	unsigned int visualID(GlConfigID id) const;
-	Display* xDisplay() const { return xDisplay_; }
 
-	bool valid() const { return (xDisplay_); }
+	const X11AppContext& appContext() const { return *appContext_; }
+	Display& xDisplay() const;
+
+	bool valid() const { return (appContext_); }
 
 protected:
-	Display* xDisplay_ {};
-
+	const X11AppContext* appContext_ {};
 	std::vector<GlConfig> configs_;
-	GlConfig* defaultConfig_ {};
 
-	// TODO
-	Library glLibrary_;
+	GlConfig defaultConfig_ {};
+	GlConfig defaultTransparentConfig_ {};
 };
 
 /// Glx GlSurface implementation
 class GlxSurface : public GlSurface {
 public:
-	GlxSurface(Display& xdpy, unsigned int xDrawable, const GlConfig& config);
+	GlxSurface(const GlxSetup&, unsigned int xDrawable, const GlConfig&);
 	~GlxSurface() = default;
 
 	NativeHandle nativeHandle() const override { return {xDrawable_}; }
@@ -62,10 +63,13 @@ public:
 	bool apply(std::error_code&) const override;
 
 	unsigned int xDrawable() const { return xDrawable_; }
-	Display* xDisplay() const { return xDisplay_; }
+
+	const GlxSetup& setup() const { return setup_; }
+	const X11AppContext& appContext() const { return setup().appContext(); }
+	Display& xDisplay() const { return setup().xDisplay(); }
 
 protected:
-	Display* xDisplay_ {};
+	const GlxSetup& setup_;
 	unsigned int xDrawable_ {};
 	GlConfig config_ {};
 };
@@ -82,7 +86,9 @@ public:
 	GlContextExtensions contextExtensions() const override;
 	bool swapInterval(int interval, std::error_code&) const override;
 
-	Display* xDisplay() const { return (setup_) ? setup_->xDisplay() : nullptr; }
+	const GlxSetup& setup() const { return setup_; }
+	const X11AppContext& appContext() const { return setup().appContext(); }
+	Display& xDisplay() const { return setup().xDisplay(); }
 	GLXContext glxContext() const { return glxContext_; }
 
 protected:
@@ -90,7 +96,7 @@ protected:
 	virtual bool makeNotCurrentImpl(std::error_code&) override;
 
 protected:
-	const GlxSetup* setup_ {};
+	const GlxSetup& setup_;
 	GLXContext glxContext_ {};
 };
 

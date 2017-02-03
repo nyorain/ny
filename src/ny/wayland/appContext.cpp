@@ -273,6 +273,7 @@ WaylandAppContext::~WaylandAppContext()
 	// therefor, we e.g. explicitly reset the egl unique ptrs
 	if(eventfd_) close(eventfd_);
 	if(wlCursorTheme_) wl_cursor_theme_destroy(wlCursorTheme_);
+	if(wlRoundtripQueue_) wl_event_queue_destroy(wlRoundtripQueue_);
 
 	dataDevice_.reset();
 	keyboardContext_.reset();
@@ -369,7 +370,7 @@ WindowContextPtr WaylandAppContext::createWindowContext(const WindowSettings& se
 				"ny was built without vulkan support and can not create a Vulkan surface");
 		#endif
 	} else if(settings.surface == SurfaceType::gl) {
-		#ifdef NY_WithGl
+		#ifdef NY_WithEgl
 			static constexpr auto eglFailed = "ny::WaylandAppContext::createWindowContext: "
 				"initializing egl failed, therefore no gl surfaces can be created";
 

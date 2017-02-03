@@ -1,16 +1,8 @@
+//  This example is a basic example on how to use ny with opengl[es].
+
 #include <ny/ny.hpp>
 #include <ny/common/gl.hpp>
-
-//XXX: This example is a basic example on how to use ny with opengl[es].
-
-//We load the 2 needed gl functions ourself because everything involving the opengl public
-//interface is a mess.
-//Note that ny does not load the gl functions, use your preferred dynamic gl loader for this.
-constexpr unsigned int GL_COLOR_BUFFER_BIT = 0x00004000;
-using PfnClearColor = void(*)(float, float, float, float);
-using PfnClear = void(*)(unsigned int);
-PfnClearColor gl_clearColor;
-PfnClear gl_clear;
+#include <GL/gl.h>
 
 class MyWindowListener : public ny::WindowListener {
 public:
@@ -38,31 +30,21 @@ int main()
 	// for gets destructed.
 	ny::GlSurface* glSurface {};
 
-	ny::WindowSettings settings;
-	settings.surface = ny::SurfaceType::gl;
-	settings.gl.storeSurface = &glSurface;
+	ny::WindowSettings windowSettings;
+	windowSettings.surface = ny::SurfaceType::gl;
+	windowSettings.transparent = true;
+	windowSettings.gl.storeSurface = &glSurface;
 
-	auto wc = ac->createWindowContext(settings);
+	auto wc = ac->createWindowContext(windowSettings);
 
 	// Create the opengl context
-	// Here, we just use the default config and settings
-	auto glContext = ac->glSetup()->createContext();
+	// we pass our created surface to the function to make sure
+	// it will be created compatible to the surface.
+	// we can also specify additional settings but just go with the defaults here
+	ny::GlContextSettings contextSettings {};
+	auto glContext = ac->glSetup()->createContext(*glSurface, contextSettings);
 	glContext->makeCurrent(*glSurface);
 
-	//load the needed gl functions manually
-	gl_clearColor = reinterpret_cast<PfnClearColor>(ac->glSetup()->procAddr("glClearColor"));
-	gl_clear = reinterpret_cast<PfnClear>(ac->glSetup()->procAddr("glClear"));
-
-	//check that the functions could be loaded
-	if(!gl_clearColor || !gl_clear) {
-		ny::warning("Could not get the required gl functions");
-		return EXIT_FAILURE;
-	}
-
-	///With this object we can stop the dispatchLoop called below from inside.
-	///We construct the EventHandler with a reference to it and when it receives an event that
-	///the WindowContext was closed, it will stop the dispatchLoop, which will end this
-	///program.
 	ny::LoopControl control;
 	MyWindowListener listener;
 	listener.glSurface = glSurface;
@@ -70,12 +52,10 @@ int main()
 	listener.windowContext = wc.get();
 	listener.loopControl = &control;
 
-	///This call registers our EventHandler to receive the WindowContext related events from
-	///the dispatchLoop.
 	wc->listener(listener);
 	wc->refresh();
 
-	ny::debug("Entering main loop");
+	ny::log("Entering main loop");
 	ac->dispatchLoop(control);
 }
 
@@ -96,8 +76,8 @@ void MyWindowListener::draw(const ny::DrawEvent&)
 
 	// note that you usually would have to set the viewport correctly
 	// but since we only clear here, it does not matter.
-	gl_clearColor(0.6, 0.5, 0.3, 0.5);
-	gl_clear(GL_COLOR_BUFFER_BIT);
+	glClearColor(0.6, 0.5, 0.8, 0.5);
+	glClear(GL_COLOR_BUFFER_BIT);
 
 	// Finally, swap the buffers/apply the content
 	glSurface->apply();

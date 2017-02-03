@@ -9,6 +9,7 @@
 #include <mutex> // std::mutex
 #include <unordered_map> // std::unordered_map
 #include <algorithm> // std::reverse
+#include <cstring> // std::strstr
 
 // This is a rather complex construct regarding synchronization, excpetion safety, sharing and
 // making context/surface combinations current. Therefore it should only be altered if the
@@ -48,13 +49,6 @@ std::mutex& contextShareMutex()
 } // anonymous util namespace
 
 // gl version to stirng
-std::string name(const GlVersion& v)
-{
-	auto ret = std::to_string(v.major) + "." + std::to_string(v.minor * 10);
-	if(v.api == GlApi::gles) ret += " ES";
-	return ret;
-}
-
 std::uintptr_t& glConfigNumber(GlConfigID& id)
 {
 	return reinterpret_cast<std::uintptr_t&>(id);
@@ -78,7 +72,8 @@ GlConfigID glConfigID(const std::uintmax_t& number)
 unsigned int rate(const GlConfig& config)
 {
 	// just some first ideas - feel free to edit/propose changes
-	// depth or stencil values of 0 are better than e.g. a value of 344 or 13
+	// remember depth or stencil values of 0 are better than e.g. a value of 344 or -42
+	// that is why even 0 gets some rating points
 
 	auto ret = 1u;
 
@@ -109,6 +104,26 @@ unsigned int rate(const GlConfig& config)
 	return ret;
 }
 
+bool glExtensionStringContains(nytl::StringParam extString, nytl::StringParam extension)
+{
+	auto it = extString.data();
+	while(true) {
+        auto loc = std::strstr(it, extension);
+        if(!loc)
+			return false;
+
+        auto terminator = loc + std::strlen(extension);
+		bool blankBefore = (loc == extString || *(loc - 1) == ' ');
+		bool blankAfter = (*terminator == ' ' || *terminator == '\0');
+		if(blankBefore && blankAfter)
+			return true;
+
+        it = terminator;
+	}
+
+	return false;
+}
+
 std::error_condition make_error_condition(GlContextErrc code)
 {
 	return {static_cast<int>(code), GlErrorCategory::instance()};
@@ -120,7 +135,7 @@ std::error_code make_error_code(GlContextErrc code)
 }
 
 // GlContextError
-GlContextError::GlContextError(std::error_code code, const char* msg) : logic_error("")
+GlContextError::GlContextError(std::error_code code, nytl::StringParam msg) : logic_error("")
 {
 	std::string whatMsg;
 	if(msg) whatMsg.append(msg).append(": ");
@@ -133,8 +148,18 @@ GlContextError::GlContextError(std::error_code code, const char* msg) : logic_er
 GlConfig GlSetup::config(GlConfigID id) const
 {
 	auto cfgs = configs();
-	for(auto& cfg : cfgs) if(cfg.id == id) return cfg;
+	for(auto& cfg : cfgs)
+		if(cfg.id == id)
+			return cfg;
+
 	return {};
+}
+
+std::unique_ptr<GlContext> GlSetup::createContext(const GlSurface& surface,
+	GlContextSettings settings) const
+{
+	settings.config = surface.config().id;
+	return createContext(settings);
 }
 
 // GlSurface
@@ -449,7 +474,7 @@ std::string GlErrorCategory::message(int code) const
 		case Error::invalidConfig: return "Given config id is invalid";
 		case Error::invalidSharedContext: return "Given share context is invalid/incompatible";
 		case Error::invalidApi: return "Cannot create context with the given api value";
-		case Error::invalidVersion: return "The given version is not a valid gl(es) version";
+		case Error::invalidVersion: return "The given api version is invalid";
 
 		case Error::contextAlreadyCurrent: return "GlContext was already current";
 		case Error::contextAlreadyNotCurrent: return "GlContext was already not current";
