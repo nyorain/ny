@@ -19,7 +19,7 @@ WaylandVulkanWindowContext::WaylandVulkanWindowContext(WaylandAppContext& ac,
 		throw std::logic_error("ny::WaylandVulkanWindowContext: given VkInstance is invalid");
 
 	VkWaylandSurfaceCreateInfoKHR info {};
-	info.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
+	info.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
 	info.display = &wlDisplay();
 	info.surface = &wlSurface();
 
