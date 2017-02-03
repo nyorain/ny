@@ -280,20 +280,17 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 {
 	// error code used to signal invalid api versions
 	constexpr auto glxBadFBConfig = 178u;
+	auto api = settings.api;
 
 	// test for config errors
-	auto major = settings.version.major;
-	auto minor = settings.version.minor;
-	auto api = settings.version.api;
-
-	if(settings.forceVersion && !ext::createContextAttribsARB) {
-		constexpr auto msg = "ny::GlxContext: no createContextAttribsARB, cannot force version";
+	if(!ext::createContextAttribsARB) {
+		constexpr auto msg = "ny::GlxContext: no createContextAttribsARB ext, using legacy version";
 		throw GlContextError(GlContextErrc::invalidVersion, msg);
 	}
 
-	if(api == GlApi::gl && !ext::hasProfileES) {
-		if(!settings.forceVersion) api = GlApi::gl;
-		else throw GlContextError(GlContextErrc::invalidApi, "ny::GlxContext: ES no supported");
+	if(api == GlApi::gles && !ext::hasProfileES) {
+		constexpr auto msg = "ny::GlxContext: no profile_es2 ext, cannot create gles context";
+		throw GlContextError(GlContextErrc::invalidApi, msg);
 	}
 
 	// config
@@ -330,26 +327,8 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 
 		// switch default versions and checked version pairs
 		// also perform version sanity checks
-		if(api == GlApi::gles) {
-			if(major == 0 && minor == 0) {
-				major = 3;
-				minor = 2;
-			}
-
-			versionPairs = {{3, 2}, {3, 1}, {3, 0}, {2, 0}, {1, 1}, {1, 0}};
-			if(major < 1 || major > 3 || minor > 2)
-				throw GlContextError(GlContextErrc::invalidVersion, "ny::GlxContext");
-
-		} else {
-			if(major == 0 && minor == 0) {
-				major = 4;
-				minor = 5;
-			}
-
-			versionPairs = {{4, 5}, {3, 3}, {3, 2}, {3, 1}, {3, 0}, {1, 2}, {1, 0}};
-			if(major < 1 || major > 4 || minor > 5)
-				throw GlContextError(GlContextErrc::invalidVersion, "ny::GlxContext");
-		}
+		if(api == GlApi::gles) versionPairs = {{3, 2}, {3, 1}, {3, 0}, {2, 0}, {1, 1}, {1, 0}};
+		else versionPairs = {{4, 5}, {3, 3}, {3, 2}, {3, 1}, {3, 0}, {1, 2}, {1, 0}};
 
 		// profile
 		if(ext::hasProfile) {
@@ -372,49 +351,38 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 		attributes.push_back(flags);
 
 		// version
+		// will be set later, during the testing loop
 		attributes.push_back(GLX_CONTEXT_MAJOR_VERSION_ARB);
-		attributes.push_back(major);
+		attributes.push_back(0);
 		attributes.push_back(GLX_CONTEXT_MINOR_VERSION_ARB);
-		attributes.push_back(minor);
+		attributes.push_back(0);
 
 		// null-terminated
 		attributes.push_back(0);
 
-		errorCat.resetLastXlibError();
-		glxContext_ = ext::createContextAttribsARB(&xDisplay(), glxConfig, glxShareContext,
-			true, attributes.data());
+		for(const auto& p : versionPairs) {
+			attributes[attributes.size() - 4] = p.first;
+			attributes[attributes.size() - 2] = p.second;
 
-		auto errorCode = errorCat.lastXlibError();
-		if(errorCode.value() != glxBadFBConfig)
-			warning("ny::GlxContext: unexpected error: ", errorCode.message());
-
-		if(!glxContext_ && !settings.forceVersion) {
 			errorCat.resetLastXlibError();
-			for(const auto& p : versionPairs) {
-				attributes[attributes.size() - 4] = p.first;
-				attributes[attributes.size() - 2] = p.second;
-				glxContext_ = ext::createContextAttribsARB(&xDisplay(), glxConfig, glxShareContext,
-					true, attributes.data());
-
-				if(glxContext_) break;
-			}
+			glxContext_ = ext::createContextAttribsARB(&xDisplay(), glxConfig, glxShareContext,
+				true, attributes.data());
 
 			auto errorCode = errorCat.lastXlibError();
-			if(errorCode.value() != glxBadFBConfig)
+			if(errorCode && errorCode.value() != glxBadFBConfig)
 				warning("ny::GlxContext: unexpected error: ", errorCode.message());
 
-			if(!glxContext_) {
-				warning("ny::GlxContext: could not create context for any tried version");
-				if(errorCode.value() == glxBadFBConfig)
-					warning("ny::GlxContext: context creation failed with glxBadFBConfig");
-			}
-		} else if(!glxContext_) {
-			warning("ny::GlxContext: could not create context for forced version");
+			if(glxContext_)
+				break;
+		}
+
+		auto errorCode = errorCat.lastXlibError();
+		if(!glxContext_) {
+			warning("ny::GlxContext: could not create context for any tried version");
+			if(errorCode.value() == glxBadFBConfig)
+				warning("ny::GlxContext: context creation failed with glxBadFBConfig");
 		}
 	}
-
-	if(!glxContext_ && settings.forceVersion)
-		throw std::runtime_error("ny::GlxContext: could not create context for forced version");
 
 	if(!glxContext_) {
 		errorCat.resetLastXlibError();

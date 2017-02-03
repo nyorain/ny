@@ -42,9 +42,6 @@ int main()
 	// it will be created compatible to the surface.
 	// we can also specify additional settings but just go with the defaults here
 	ny::GlContextSettings contextSettings;
-	contextSettings.version.major = 4;
-	contextSettings.version.minor = 4;
-	contextSettings.forceVersion = true;
 	auto glContext = ac->glSetup()->createContext(*glSurface, contextSettings);
 	glContext->makeCurrent(*glSurface);
 

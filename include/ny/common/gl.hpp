@@ -26,7 +26,7 @@
 namespace ny {
 
 /// Possible opengl apis a context can have
-enum class GlApi : unsigned int { gl, gles, };
+enum class GlApi : unsigned int { none, gl, gles, };
 
 /// Opaque GlConfig id. Is used by backends as pointer or unsigned int.
 using GlConfigID = struct GlConfigIDType*;
@@ -68,26 +68,19 @@ unsigned int rate(const GlConfig& config);
 /// whitespace contains the given extensions.
 bool glExtensionStringContains(nytl::StringParam extString, nytl::StringParam extension);
 
-/// Describe the settings for a created gl context.
-/// Note that if version 4.0 specified, the context might have any version >= 4.0.
-/// If forceVersion is set to true, context creation will fail if a context with at least
-/// the given version can be created for sure. Otherwise a context with a version
-/// below the requested one will be returned. If forceVersion is false, even a context
-/// with a different api (i.e. gl instead of gles or vice-versa) may be created.
-/// For legacy contexts the compatibility, forwardCompatible and debug flags do not matter.
+/// Describes the settings for a created gl context.
 /// The shared GlContext must be set to nullptr or a GlContext that was created from the
-/// same implementation. The returned context will be shared with the given share context and
-/// all context the share context is already shared with.
-/// If the given version is 0.0, the context will be created with the highest version possible.
-/// This is what is usually needed.
+/// same setup implementation. The returned context will be shared with the given
+/// share context and all context the share context is already shared with.
 /// If no specific config id is set, the default config is used.
+/// Api specifies the api the context should have. Context creation will fail if the
+/// api could not be used. Can be set to GlApi::none to just choose any available api.
 struct GlContextSettings {
 	GlConfigID config {};
-	GlVersion version {};
 	bool compatibility {};
 	bool forwardCompatible {};
 	bool debug {};
-	bool forceVersion {};
+	GlApi api {};
 
 	GlContext* share {};
 };
