@@ -11,7 +11,6 @@
 	#error ny was built without egl. Do not include this header.
 #endif
 
-#include <ny/library.hpp>
 #include <ny/common/gl.hpp>
 
 #include <string>

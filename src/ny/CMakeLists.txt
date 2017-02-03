@@ -15,8 +15,7 @@ set(ny_src
 	dataExchange.cpp
 	key.cpp
 	mouseButton.cpp
-	backend.cpp
-	library.cpp)
+	backend.cpp)
 
 # =======================================================================================
 # Winapi backend
@@ -65,7 +64,7 @@ if(WithX11)
 	list(APPEND ny_libs X11 xcb xcb-icccm xcb-ewmh X11-xcb pthread)
 
 	if(WithGl)
-		list(APPEND ny_src x11/glx.cpp x11/glxApi.c)
+		list(APPEND ny_src x11/glx.cpp)
 	endif()
 
 	if(WithVulkan)

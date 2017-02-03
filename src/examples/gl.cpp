@@ -32,7 +32,7 @@ int main()
 
 	ny::WindowSettings windowSettings;
 	windowSettings.surface = ny::SurfaceType::gl;
-	windowSettings.transparent = true;
+	windowSettings.transparent = false;
 	windowSettings.gl.storeSurface = &glSurface;
 
 	auto wc = ac->createWindowContext(windowSettings);
@@ -41,7 +41,7 @@ int main()
 	// we pass our created surface to the function to make sure
 	// it will be created compatible to the surface.
 	// we can also specify additional settings but just go with the defaults here
-	ny::GlContextSettings contextSettings;
+	ny::GlContextSettings contextSettings {};
 	auto glContext = ac->glSetup()->createContext(*glSurface, contextSettings);
 	glContext->makeCurrent(*glSurface);
 
@@ -55,7 +55,7 @@ int main()
 	wc->listener(listener);
 	wc->refresh();
 
-	ny::debug("Entering main loop");
+	ny::log("Entering main loop");
 	ac->dispatchLoop(control);
 }
 

@@ -32,10 +32,7 @@ public:
 	std::string message(int code) const override;
 };
 
-} // anonymous util namespace
-
-namespace ext {
-
+// specifies whether extended egl createContext functionality can be used
 bool hasCreateContext = false;
 
 void loadExtensions(EGLDisplay display, bool has15)
@@ -50,16 +47,16 @@ void loadExtensions(EGLDisplay display, bool has15)
 }
 
 #ifndef EGL_VERSION_1_5
-	#define EGL_CONTEXT_MAJOR_VERSION 0x3098
-	#define EGL_CONTEXT_MINOR_VERSION 0x30FB
-	#define EGL_CONTEXT_OPENGL_PROFILE_MASK 0x30FD
-	#define EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT 0x00000001
-	#define EGL_CONTEXT_OPENGL_COMPATIBILITY_PROFILE_BIT 0x00000002
-	#define EGL_CONTEXT_OPENGL_DEBUG 0x31B0
-	#define EGL_CONTEXT_OPENGL_FORWARD_COMPATIBLE 0x31B1
+	constexpr auto EGL_CONTEXT_MAJOR_VERSION = 0x3098;
+	constexpr auto EGL_CONTEXT_MINOR_VERSION = 0x30FB;
+	constexpr auto EGL_CONTEXT_OPENGL_PROFILE_MASK = 0x30FD;
+	constexpr auto EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT = 0x00000001;
+	constexpr auto EGL_CONTEXT_OPENGL_COMPATIBILITY_PROFILE_BIT = 0x00000002;
+	constexpr auto EGL_CONTEXT_OPENGL_DEBUG = 0x31B0;
+	constexpr auto EGL_CONTEXT_OPENGL_FORWARD_COMPATIBLE = 0x31B1;
 #endif
 
-} // namespace ext
+} // anonymous util namespace
 
 // EglSetup
 EglSetup::EglSetup(void* nativeDisplay)
@@ -238,11 +235,10 @@ bool EglSurface::apply(std::error_code& ec) const
 EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 	: setup_(&setup)
 {
-	auto major = settings.version.major;
-	auto minor = settings.version.minor;
-
 	auto eglDisplay = setup.eglDisplay();
+	auto api = settings.api;
 
+	// get config
 	GlConfig glConfig;
 	EGLConfig eglConfig;
 
@@ -257,6 +253,7 @@ EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 	if(!eglConfig)
 		throw GlContextError(GlContextErrc::invalidConfig, "ny::EglContext");
 
+	// share
 	EGLContext eglShareContext = nullptr;
 	if(settings.share) {
 		auto shareCtx = dynamic_cast<EglContext*>(settings.share);
@@ -266,80 +263,88 @@ EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 		eglShareContext = shareCtx->eglContext();
 	}
 
-	std::vector<std::pair<unsigned int, unsigned int>> versionPairs;
-	std::vector<int> contextAttribs;
+	// context attributes
+	auto apiName = 0u;
+	if(api == GlApi::gles) apiName = EGL_OPENGL_ES_API;
+	else if(api == GlApi::gl) apiName = EGL_OPENGL_API;
 
-	versionPairs.reserve(16);
-	contextAttribs.reserve(16);
-
-	if(settings.version.api == GlApi::gles) {
-		if(major == 0 && minor == 0) {
-			major = 3;
-			minor = 2;
-		}
-
-		if(major < 1 || major > 3 || minor > 2)
-			throw GlContextError(GlContextErrc::invalidVersion, "ny::EglContext");
-
-		versionPairs = {{3, 2}, {3, 1}, {3, 0}, {2, 0}, {1, 1}, {1, 0}};
-		eglBindAPI(EGL_OPENGL_ES_API);
-	} else if(settings.version.api == GlApi::gl) {
-		if(major == 0 && minor == 0) {
-			major = 3;
-			minor = 2;
-		}
-
-		if(major < 1 || major > 4 || minor > 5)
-			throw GlContextError(GlContextErrc::invalidVersion, "ny::EglContext");
-
-		versionPairs = {{4, 5}, {3, 3}, {3, 2}, {3, 1}, {3, 0}, {1, 2}, {1, 0}};
-		eglBindAPI(EGL_OPENGL_API);
-
-		// profile
-		contextAttribs.push_back(EGL_CONTEXT_OPENGL_PROFILE_MASK);
-		if(!settings.compatibility) contextAttribs.push_back(EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT);
-		else contextAttribs.push_back(EGL_CONTEXT_OPENGL_COMPATIBILITY_PROFILE_BIT);
-
-		// forward compatible
-		contextAttribs.push_back(EGL_CONTEXT_OPENGL_FORWARD_COMPATIBLE);
-		if(settings.forwardCompatible) contextAttribs.push_back(EGL_TRUE);
-		else contextAttribs.push_back(EGL_FALSE);
-	} else {
-		throw GlContextError(GlContextErrc::invalidApi, "ny::EglContext");
+	if(api == GlApi::none) {
+		if(::eglBindApi(EGL_OPENGL_API)) api = GlApi::gl;
+		else if(::glBindApi(EGL_OPENGL_ES_API)) api = GlApi::gles;
+		else throw std::runtime_error("ny::EglContext: egl does not support gl or gles");
+	} else if(!::eglBindAPI(apiName)) {
+		throw std::runtime_error("ny::EglContext: requested api is not supported!");
 	}
 
-	// debug
-	contextAttribs.push_back(EGL_CONTEXT_OPENGL_DEBUG);
-	if(settings.debug) contextAttribs.push_back(EGL_TRUE);
-	else contextAttribs.push_back(EGL_FALSE);
+	// additional flags
+	if(hasCreateContext) {
+		std::vector<int> attributes;
+		attributes.reserve(20);
+		std::vector<std::pair<unsigned int, unsigned int>> versionPairs;
 
-	contextAttribs.push_back(EGL_CONTEXT_MAJOR_VERSION);
-	contextAttribs.push_back(major);
+		if(api == GlApi::gles) versionPairs = {{3, 2}, {3, 1}, {3, 0}, {2, 0}, {1, 1}, {1, 0}};
+		else versionPairs = {{4, 5}, {3, 3}, {3, 2}, {3, 1}, {3, 0}, {1, 2}, {1, 0}};
 
-	contextAttribs.push_back(EGL_CONTEXT_MINOR_VERSION);
-	contextAttribs.push_back(minor);
+		if(api == GlApi::gl) {
+			attributes.push_back(EGL_CONTEXT_OPENGL_PROFILE_MASK);
+			if(!settings.compatibility) attributes.push_back(EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT);
+			else attributes.push_back(EGL_CONTEXT_OPENGL_COMPATIBILITY_PROFILE_BIT);
 
-	contextAttribs.push_back(EGL_NONE);
+			// forward compatible
+			attributes.push_back(EGL_CONTEXT_OPENGL_FORWARD_COMPATIBLE);
+			if(settings.forwardCompatible) attributes.push_back(EGL_TRUE);
+			else attributes.push_back(EGL_FALSE);
+		}
 
-	eglContext_ = ::eglCreateContext(eglDisplay, eglConfig, eglShareContext, contextAttribs.data());
+		// debug
+		attributes.push_back(EGL_CONTEXT_OPENGL_DEBUG);
+		if(settings.debug) contextAttribs.push_back(EGL_TRUE);
+		else contextAttribs.push_back(EGL_FALSE);
 
-	// if(!eglContext_ && ::eglGetError() == EGL_BAD_MATCH && !settings.forceVersion) {
-	if(!eglContext_ && !settings.forceVersion) {
-		log("try again");
-		for(const auto& p : versionPairs) {
-			contextAttribs[contextAttribs.size() - 4] = p.first;
-			contextAttribs[contextAttribs.size() - 2] = p.second;
-			eglContext_ = ::eglCreateContext(eglDisplay, eglConfig, eglShareContext,
-				contextAttribs.data());
+		// version set later
+		attributes.push_back(EGL_CONTEXT_MAJOR_VERSION);
+		attributes.push_back(0);
+		attributes.push_back(EGL_CONTEXT_MINOR_VERSION);
+		attributes.push_back(0);
 
-			// if(!eglContext_ && ::eglGetError() == EGL_BAD_MATCH) continue;
-			if(!eglContext_) continue;
-			break;
+		attributes.push_back(EGL_NONE);
+
+		::eglGetError();
+		for(const auto p : versionPairs) {
+			attributes[attributes.size() - 4] = p.first;
+			attributes[attributes.size() - 2] = p.second;
+
+			if(p.first < 3 && api == GlApi::gl)
+				attributes[3] = EGL_FALSE;
+
+			auto attribData = attributes.data();
+			eglContext_ = ::eglCreateContext(eglDisplay, eglConfig, eglShareContext, attribData);
+
+			if(eglContext_)
+				break;
+		}
+
+		if(!eglContext_) {
+			auto msg = EglErrorCategory::error_code().message();
+			warning("ny::EglContext: could not create context for any request version: ", msg);
+		}
+	} else {
+		if(settings.version.api == GlApi::gles) {
+			EGLint attributes[3] = {EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
+			eglContext_ = ::eglCreateContext(eglDisplay, eglConfig, eglShareContext, &none);
+
+			if(!eglContext_) {
+				attributes[1] = 1;
+				eglContext_ = ::eglCreateContext(eglDisplay, eglConfig, eglShareContext, &none);
+			}
+		} else {
+			auto none = EGL_NONE;
+			eglContext_ = ::eglCreateContext(eglDisplay, eglConfig, eglShareContext, &none);
 		}
 	}
 
 	if(!eglContext_)
-		throw EglErrorCategory::exception("ny::EglContext: eglCreateContext");
+		throw std::runtime_error("ny::EglContext: failed to create egl context");
 
 	GlContext::initContext(settings.version.api, glConfig, settings.share);
 }

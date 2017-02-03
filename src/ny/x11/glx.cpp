@@ -6,13 +6,13 @@
 #include <ny/x11/windowContext.hpp>
 #include <ny/x11/appContext.hpp>
 #include <ny/x11/util.hpp>
+#include <ny/x11/glxApi.hpp>
 #include <ny/surface.hpp>
 #include <ny/log.hpp>
 
 #include <nytl/span.hpp>
 
 #include <xcb/xcb.h>
-#include <GL/glx.h>
 
 #include <algorithm>
 #include <mutex>
@@ -22,20 +22,7 @@
 // glx fb config.
 
 namespace ny {
-namespace ext {
-
-using PfnGlxSwapIntervalEXT = void (APIENTRYP)(Display*, GLXDrawable, int);
-using PfnGlxCreateContextAttribsARB = GLXContext(APIENTRYP)(Display*, GLXFBConfig,
-	GLXContext, Bool, const int*);
-
-// extensions function pointers
-PfnGlxSwapIntervalEXT swapIntervalEXT;
-PfnGlxCreateContextAttribsARB createContextAttribsARB;
-
-// bool flags for extensions without functions
-bool hasSwapControlTear = false;
-bool hasProfile = false;
-bool hasProfileES = false;
+namespace {
 
 bool loadExtensions(Display& dpy)
 {
@@ -84,24 +71,7 @@ bool loadExtensions(Display& dpy)
 	return valid;
 }
 
-// TODO: use constexpr
-#define GLX_CONTEXT_DEBUG_BIT_ARB 0x00000001
-#define GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB 0x00000002
-#define GLX_CONTEXT_MAJOR_VERSION_ARB 0x2091
-#define GLX_CONTEXT_MINOR_VERSION_ARB 0x2092
-#define GLX_CONTEXT_FLAGS_ARB 0x2094
-#define GLX_CONTEXT_CORE_PROFILE_BIT_ARB 0x00000001
-#define GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB 0x00000002
-#define GLX_CONTEXT_PROFILE_MASK_ARB 0x9126
-#define GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB 0x20B2
-#define GLX_SAMPLE_BUFFERS_ARB 100000
-#define GLX_SAMPLES_ARB 100001
-#define GLX_CONTEXT_ES2_PROFILE_BIT_EXT 0x00000004
-#define GLX_CONTEXT_ES_PROFILE_BIT_EXT 0x00000004
-#define GLX_SWAP_INTERVAL_EXT 0x20F1
-#define GLX_MAX_SWAP_INTERVAL_EXT 0x20F2
-
-} // namespace ext
+} // namespace glx
 
 // GlxSetup
 GlxSetup::GlxSetup(const X11AppContext& ac, unsigned int screenNum) : appContext_(&ac)
@@ -114,7 +84,7 @@ GlxSetup::GlxSetup(const X11AppContext& ac, unsigned int screenNum) : appContext
 	if(major < 1 || (major == 1 && minor < 3))
 		throw std::runtime_error("ny::GlxSetup: glx 1.3 not supported");
 
-	if(!ext::loadExtensions(xDisplay()))
+	if(!glx::loadExtensions(xDisplay()))
 		throw std::runtime_error("ny::GlxSetup: failed to load extensions");
 
 	int fbcount = 0;
@@ -280,18 +250,16 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 {
 	// error code used to signal invalid api versions
 	constexpr auto glxBadFBConfig = 178u;
+
+	// test config
 	auto api = settings.api;
-
-	// test for config errors
-	if(!ext::createContextAttribsARB) {
-		constexpr auto msg = "ny::GlxContext: no createContextAttribsARB ext, using legacy version";
-		throw GlContextError(GlContextErrc::invalidVersion, msg);
-	}
-
-	if(api == GlApi::gles && !ext::hasProfileES) {
+	if(api == GlApi::gles && !glx::hasProfileES) {
 		constexpr auto msg = "ny::GlxContext: no profile_es2 ext, cannot create gles context";
 		throw GlContextError(GlContextErrc::invalidApi, msg);
 	}
+
+	if(api == GlApi::none)
+		api = GlApi::gl;
 
 	// config
 	GlConfig glConfig;
@@ -321,20 +289,20 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 	// set a new error handler
 	auto& errorCat = appContext().errorCategory();
 
-	if(ext::createContextAttribsARB) {
-		std::vector<int> attributes;
+	if(glx::createContextAttribsARB) {
 		std::vector<std::pair<unsigned int, unsigned int>> versionPairs;
+		std::vector<int> attributes;
+		attributes.reserve(16);
 
 		// switch default versions and checked version pairs
-		// also perform version sanity checks
 		if(api == GlApi::gles) versionPairs = {{3, 2}, {3, 1}, {3, 0}, {2, 0}, {1, 1}, {1, 0}};
 		else versionPairs = {{4, 5}, {3, 3}, {3, 2}, {3, 1}, {3, 0}, {1, 2}, {1, 0}};
 
 		// profile
-		if(ext::hasProfile) {
+		if(glx::hasProfile) {
 			attributes.push_back(GLX_CONTEXT_PROFILE_MASK_ARB);
 
-			if(ext::hasProfileES && api == GlApi::gles)
+			if(glx::hasProfileES && api == GlApi::gles)
 				attributes.push_back(GLX_CONTEXT_ES2_PROFILE_BIT_EXT);
 			else if(settings.compatibility)
 				attributes.push_back(GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB);
@@ -365,25 +333,22 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 			attributes[attributes.size() - 2] = p.second;
 
 			errorCat.resetLastXlibError();
-			glxContext_ = ext::createContextAttribsARB(&xDisplay(), glxConfig, glxShareContext,
+			glxContext_ = glx::createContextAttribsARB(&xDisplay(), glxConfig, glxShareContext,
 				true, attributes.data());
 
 			auto errorCode = errorCat.lastXlibError();
-			if(errorCode && errorCode.value() != glxBadFBConfig)
+			if(errorCode && errorCode.value() != glxBadFBConfig) {
 				warning("ny::GlxContext: unexpected error: ", errorCode.message());
+				break;
+			}
 
 			if(glxContext_)
 				break;
 		}
-
-		auto errorCode = errorCat.lastXlibError();
-		if(!glxContext_) {
-			warning("ny::GlxContext: could not create context for any tried version");
-			if(errorCode.value() == glxBadFBConfig)
-				warning("ny::GlxContext: context creation failed with glxBadFBConfig");
-		}
 	}
 
+	// try legacy version
+	// direct
 	if(!glxContext_) {
 		errorCat.resetLastXlibError();
 		log("ny::GlxContext: could not create modern context, trying legacy version");
@@ -394,6 +359,7 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 			warning("ny::GlxContext: glxCreateNewContext: ", errorCat.lastXlibError().message());
 	}
 
+	// indirect
 	if(!glxContext_) {
 		errorCat.resetLastXlibError();
 		glxContext_ = ::glXCreateNewContext(&xDisplay(), glxConfig, GLX_RGBA_TYPE,
@@ -436,8 +402,8 @@ bool GlxContext::compatible(const GlSurface& surface) const
 GlContextExtensions GlxContext::contextExtensions() const
 {
 	GlContextExtensions ret;
-	if(ext::swapIntervalEXT) ret |= GlContextExtension::swapControl;
-	if(ext::hasSwapControlTear) ret |= GlContextExtension::swapControlTear;
+	if(glx::swapIntervalEXT) ret |= GlContextExtension::swapControl;
+	if(glx::hasSwapControlTear) ret |= GlContextExtension::swapControlTear;
 	return ret;
 }
 
@@ -445,12 +411,12 @@ bool GlxContext::swapInterval(int interval, std::error_code& ec) const
 {
 	ec.clear();
 
-	if(!ext::swapIntervalEXT) {
+	if(!glx::swapIntervalEXT) {
 		ec = {GlContextErrc::extensionNotSupported};
 		return false;
 	}
 
-	if(!ext::hasSwapControlTear && interval < 0) {
+	if(!glx::hasSwapControlTear && interval < 0) {
 		warning("ny::GlxContext::swapInterval: negative interval, no swap_control_tear");
 		ec = {GlContextErrc::extensionNotSupported};
 		return false;
@@ -468,7 +434,7 @@ bool GlxContext::swapInterval(int interval, std::error_code& ec) const
 	auto& errorCat = appContext().errorCategory();
 	errorCat.resetLastXlibError();
 
-	ext::swapIntervalEXT(&xDisplay(), currentGlxSurface->xDrawable(), interval);
+	glx::swapIntervalEXT(&xDisplay(), currentGlxSurface->xDrawable(), interval);
 	if(errorCat.lastXlibError()) {
 		ec = errorCat.lastXlibError();
 		return false;
