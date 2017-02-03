@@ -237,7 +237,7 @@ void WinapiWindowContext::customDecorated(bool set)
 	
 	SizeEvent se;
 	auto extents = clientExtents();
-	se.size = extents.size;
+	se.size = static_cast<nytl::Vec2ui>(extents.size);
 	listener().resize(se);
 }
 
