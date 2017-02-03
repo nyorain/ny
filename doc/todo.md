@@ -168,6 +168,9 @@ wayland backend:
 winapi backend:
 ---------------
 
+- SetCapture/ReleaseCapture on mouse button down/release
+	- needed to make sure that mouse button release events are sent even
+		outside the window (is required for usual button press/release handling e.g.)
 - assure/recheck unicode handling for title, window class name etc.
 - rethink WinapiWindowContext::cursor implementation.
 - initial mouse focus (see KeyboardContext handler inconsistency)
