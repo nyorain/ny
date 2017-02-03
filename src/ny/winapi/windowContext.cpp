@@ -235,6 +235,8 @@ void WinapiWindowContext::customDecorated(bool set)
 
 	customDecorated_ = set;
 	
+	::SetWindowPos(handle(), HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_ASYNCWINDOWPOS);
+	
 	SizeEvent se;
 	auto extents = clientExtents();
 	se.size = static_cast<nytl::Vec2ui>(extents.size);
