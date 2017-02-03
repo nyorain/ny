@@ -171,7 +171,7 @@ protected:
     };
 
 	// current toplevel state for xdg toplevel windows
-	ToplevelState currentXdgState_;
+	ToplevelState currentXdgState_ {ToplevelState::normal};
 
 	wayland::ShmBuffer shmCursorBuffer_ {}; // only needed when cursor is custom image
 

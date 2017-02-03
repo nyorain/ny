@@ -273,6 +273,7 @@ WaylandAppContext::~WaylandAppContext()
 	// therefor, we e.g. explicitly reset the egl unique ptrs
 	if(eventfd_) close(eventfd_);
 	if(wlCursorTheme_) wl_cursor_theme_destroy(wlCursorTheme_);
+	if(wlRoundtripQueue_) wl_event_queue_destroy(wlRoundtripQueue_);
 
 	dataDevice_.reset();
 	keyboardContext_.reset();

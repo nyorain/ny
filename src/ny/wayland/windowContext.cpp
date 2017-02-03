@@ -55,6 +55,7 @@ WaylandWindowContext::WaylandWindowContext(WaylandAppContext& ac,
 		auto& parent = *reinterpret_cast<wl_surface*>(settings.parent.pointer());
 		createSubsurface(parent, settings);
 	} else {
+		// we prefer xdg shell v6 > v5 > wlShell
 		if(ac.xdgShellV6()) createXdgSurfaceV6(settings);
 		else if(ac.xdgShellV5()) createXdgSurfaceV5(settings);
 		else if(ac.wlShell()) createShellSurface(settings);
@@ -112,7 +113,7 @@ void WaylandWindowContext::createShellSurface(const WaylandWindowSettings& ws)
 	wl_shell_surface_add_listener(wlShellSurface_, &shellSurfaceListener, this);
 
 	wl_shell_surface_set_title(wlShellSurface_, ws.title.c_str());
-	wl_shell_surface_set_class(wlShellSurface_, "ny::application"); //TODO: AppContextSettings
+	wl_shell_surface_set_class(wlShellSurface_, "ny::application"); // TODO: AppContextSettings
 }
 
 void WaylandWindowContext::createXdgSurfaceV5(const WaylandWindowSettings& ws)
@@ -266,13 +267,14 @@ void WaylandWindowContext::refresh()
 {
 	// if there is an active frameCallback just set the flag that we want to refresh
 	// as soon as possible
-	if(frameCallback_ || !xdgSurfaceV6_.configured) {
+	if(frameCallback_ || (xdgSurfaceV6() && !xdgSurfaceV6_.configured)) {
 		refreshFlag_ = true;
 		return;
 	}
 
 	// otherwise send a draw event.
 	DrawEvent de {};
+	refreshFlag_ = false;
 	listener().draw(de);
 }
 
@@ -522,7 +524,7 @@ xdg_popup* WaylandWindowContext::xdgPopupV5() const
 zxdg_surface_v6* WaylandWindowContext::xdgSurfaceV6() const
 {
 	if(role_ == WaylandSurfaceRole::xdgToplevelV6 || role_ == WaylandSurfaceRole::xdgPopupV6)
-	return xdgSurfaceV6_.surface;
+		return xdgSurfaceV6_.surface;
 
 	return nullptr;
 }
@@ -657,9 +659,10 @@ void WaylandWindowContext::handleXdgSurfaceV6Configure(zxdg_surface_v6*, uint32_
 	// if not, dont send size event and redraw
 	xdgSurfaceV6_.configured = true;
 	zxdg_surface_v6_ack_configure(xdgSurfaceV6(), serial);
+	zxdg_surface_v6_set_window_geometry(xdgSurfaceV6_.surface, 0, 0, size().x, size().y);
 
 	SizeEvent se;
-	se.size = size_;;
+	se.size = size_;
 	listener().resize(se);
 
 	refresh();
