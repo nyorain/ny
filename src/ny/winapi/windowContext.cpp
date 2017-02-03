@@ -207,7 +207,7 @@ void WinapiWindowContext::refresh()
 
 void WinapiWindowContext::show()
 {
-	::ShowWindowAsync(handle_, SW_SHOWDEFAULT);
+	::ShowWindowAsync(handle_, SW_SHOW);
 }
 void WinapiWindowContext::hide()
 {
