@@ -20,6 +20,7 @@
 #cmakedefine NY_WithVulkan
 #cmakedefine NY_WithXkbCommon
 
+#cmakedefine NY_WithAndroid
 #cmakedefine NY_WithX11
 #cmakedefine NY_WithWayland
 #cmakedefine NY_WithWinapi
@@ -29,6 +30,7 @@ namespace ny {
 // Use the following functions to determine whether the ny library your application
 // is dynamically linked to was built with the given features.
 
+bool builtWithAndroid();
 bool builtWithX11();
 bool builtWithWayland();
 bool builtWithWinapi();

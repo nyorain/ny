@@ -101,6 +101,26 @@ if(WithWayland)
 	endif()
 endif()
 
+# =======================================================================================
+# android backend
+if(Android)
+	list(APPEND ny_src
+		android/appContext.cpp
+		android/backend.cpp
+		android/bufferSurface.cpp
+		android/windowContext.cpp)
+
+	list(APPEND ny_libs android)
+
+	if(WithEgl)
+		list(APPEND ny_src android/egl.cpp)
+	endif()
+
+	if(WithVulkan)
+		list(APPEND ny_src android/vulkan.cpp)
+	endif()
+endif()
+
 # xkbcommon, unix
 if(WithX11 OR WithWayland)
 	list(APPEND ny_src common/xkb.cpp common/unix.cpp)

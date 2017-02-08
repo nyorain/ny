@@ -6,6 +6,15 @@
 
 namespace ny {
 
+bool builtWithAndroid()
+{
+	#ifdef NY_WithAndroid
+		return true;
+	#else
+		return false;
+	#endif
+}
+
 bool builtWithWayland()
 {
 	#ifdef NY_WithWayland

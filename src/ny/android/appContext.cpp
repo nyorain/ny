@@ -1,3 +1,7 @@
+// Copyright (c) 2017 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #include <ny/android/appContext.hpp>
 #include <ny/log.hpp>
 
@@ -5,28 +9,36 @@
  #define VK_USE_PLATFORM_ANDROID_KHR
  #include <ny/android/vulkan.hpp>
  #include <vulkan/vulkan.h>
-#endif //Vulkan
+#endif // Vulkan
 
-#ifdef NY_WithEGL
+#ifdef NY_WithEgl
  #include <ny/common/egl.hpp>
  #include <ny/android/egl.hpp>
-#endif //GL
+#endif // Egl
 
-namespace ny
-{
+namespace ny {
 
-struct AndroidAppContext::Impl
-{
-#ifdef NY_WithEGL
-	bool eglFailed;
-	EglSetup eglSetup;
-#endif //WithEGL
+struct AndroidAppContext::Impl {
+// #ifdef NY_WithEgl
+// 	bool eglFailed;
+// 	EglSetup eglSetup;
+// #endif //WithEGL
 };
 
-//AndroidAppContext
+// AndroidAppContext
 AndroidAppContext::AndroidAppContext()
 {
 	impl_ = std::make_unique<Impl>();
+}
+
+AndroidAppContext::~AndroidAppContext()
+{
+
+}
+
+WindowContextPtr AndroidAppContext::createWindowContext(const WindowSettings& ws)
+{
+    return {};
 }
 
 std::vector<const char*> AndroidAppContext::vulkanExtensions() const
@@ -40,19 +52,21 @@ std::vector<const char*> AndroidAppContext::vulkanExtensions() const
 
 GlSetup* AndroidAppContext::glSetup() const
 {
-	return eglSetup();
+	#ifdef NY_WithEgl
+		return eglSetup();
+	#else
+		return nullptr;
+	#endif // WithEgl
 }
 
 EglSetup* AndroidAppContext::eglSetup() const
 {
-	#ifdef NY_WithEGL
+	#ifdef NY_WithEgl
 		if(impl_->eglFailed) return nullptr;
 
-		if(!impl_->eglSetup.valid())
-		{
+		if(!impl_->eglSetup.valid()) {
 			try { impl_->eglSetup = {nullptr}; }
-			catch(const std::exception& error)
-			{
+			catch(const std::exception& error) {
 				warning("WaylandAppContext::eglSetup: creating failed: ", error.what());
 				impl_->eglFailed_ = true;
 				impl_->eglFailed_ = {};
@@ -67,4 +81,4 @@ EglSetup* AndroidAppContext::eglSetup() const
 	#endif
 }
 
-}
+} // namespace ny

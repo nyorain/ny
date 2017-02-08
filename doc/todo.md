@@ -3,6 +3,8 @@
 ### priority
 
 - glx error handling
+- fix log.cpp codestyle
+- add image.cpp <cmath> include
 - egl/wgl/glx library loading (dynamically load opengl)
 	- should GlSetup::procAddr be able to query gl core functions?
 	- fix egl (check in context creation if extension/egl 1.5 available)

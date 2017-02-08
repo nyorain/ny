@@ -1,0 +1,10 @@
+# compiling for android is currently only working on linux (for me)
+# pull requests appreciated
+# use the official ndk toolchain file (the newest version) and cmake 3.6 (3.7 does not work somehow)
+# also use clang and the clang stl since we need c++17 support (clang 3.8 is ok)
+# work in progress
+
+cmake -G Ninja ../.. \
+	-DCMAKE_TOOLCHAIN_FILE=/opt/android-ndk-beta/build/cmake/android.toolchain.cmake \
+	-DANDROID_TOOLCHAIN=clang -DAndroid=1 -DDependOnNytl=0 -DANDROID_STL=c++_static \
+	-DANDROID_ALLOW_UNDEFINED_SYMBOLS=1

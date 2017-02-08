@@ -45,11 +45,13 @@ public:
 	void resize(const ny::SizeEvent&) override;
 };
 
-int main()
+int main(int, char**)
 {
 	// The same setup as in the first (intro) example
 	auto& backend = ny::Backend::choose();
 	auto ac = backend.createAppContext();
+	return 0;
+
 	auto listener = MyWindowListener {};
 
 	ny::BufferSurface* bufferSurface {};

@@ -2,7 +2,7 @@
 # Distributed under the Boost Software License, Version 1.0.
 # See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
-cmake_minimum_required (VERSION 2.8)
+cmake_minimum_required (VERSION 3.6.0)
 project(ny)
 
 # increase this version on a new release
@@ -14,11 +14,19 @@ set(vpatch 0)
 option(BuildExamples "Build the ny examples" off)
 option(Debug "Include debug symbols" on)
 option(DependOnNytl "Make ny depend on nytl. Developement option" on)
+option(Android "Build nytl for android. Experimental at the moment. Requires ndk" off)
 
 # to disable ninja byproduct warning
 if(${CMAKE_VERSION} GREATER 3.1)
 	cmake_policy(SET CMP0058 NEW)
 endif()
+
+# load android toolchain if building for android
+# if(Android)
+# endif()
+
+# set(CMAKE_CXX_COMPILER "${CMAKE_BINARY_DIR}/tmp/my-android-toolchain/bin/clang++")
+# set(CMAKE_C_COMPILER "${CMAKE_BINARY_DIR}/tmp/my-android-toolchain/bin/clang")
 
 # include dirs
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include") # public headers
@@ -32,7 +40,7 @@ link_directories("${CMAKE_BINARY_DIR}/external/install/lib")
 # cmake build options
 # set(CMAKE_CXX_STANDARD 14)
 # set(CMAKE_CXX_STANDARD_REQUIRED on)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1z")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/src/cmake")
@@ -101,7 +109,7 @@ cmake_dependent_option(WithWinapi
 	"WIN32" off)
 
 # warn if no built-in backends can be compiled
-if(NOT WithWayland AND NOT WithX11 AND NOT WithWinapi)
+if(NOT WithWayland AND NOT WithX11 AND NOT WithWinapi AND NOT Android)
 	message(WARNING "Could not find any backend to build ny with")
 endif()
 
@@ -110,25 +118,25 @@ endif()
 set(nytl_location "own")
 set(nytl_own true)
 
-include(ExternalProject)
-set(ExternalProjectCMakeArgs
-	-DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}/external/install
-	-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
-	-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
-
-ExternalProject_Add(nytl_ep
-	PREFIX ${CMAKE_CURRENT_BINARY_DIR}/nytl
-	GIT_REPOSITORY https://github.com/nyorain/nytl.git
-	GIT_TAG master
-	INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/external/install
-	CMAKE_ARGS ${ExternalProjectCMakeArgs})
-
-ExternalProject_Add_Step(nytl_ep
-	forceinstall
-	DEPENDEES configure
-	DEPENDERS install
-	ALWAYS 1)
+# include(ExternalProject)
+# set(ExternalProjectCMakeArgs
+# 	-DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}/external/install
+# 	-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+# 	-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+# 	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
+#
+# ExternalProject_Add(nytl_ep
+# 	PREFIX ${CMAKE_CURRENT_BINARY_DIR}/nytl
+# 	GIT_REPOSITORY https://github.com/nyorain/nytl.git
+# 	GIT_TAG master
+# 	INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/external/install
+# 	CMAKE_ARGS ${ExternalProjectCMakeArgs})
+#
+# ExternalProject_Add_Step(nytl_ep
+# 	forceinstall
+# 	DEPENDEES configure
+# 	DEPENDERS install
+# 	ALWAYS 1)
 
 # install nytl as well since public ny headers depend on them
 install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/external/install/." DESTINATION .)
@@ -140,6 +148,7 @@ set(NY_WithEgl ${WithEgl})
 set(NY_WithVulkan ${WithVulkan})
 set(NY_WithXkbCommon ${WithXkbCommon})
 
+set(NY_WithAndroid ${Android})
 set(NY_WithWinapi ${WithWinapi})
 set(NY_WithX11 ${WithX11})
 set(NY_WithWayland ${WithWayland})
@@ -166,6 +175,10 @@ if(BuildExamples)
 	add_subdirectory(src/examples)
 endif()
 
+if(Android)
+	add_subdirectory(src/examples/android)
+endif()
+
 # uninstall target
 # this makes it possible to uninstall ny ('ninja uninstall') after it has been installed
 configure_file(
@@ -188,6 +201,7 @@ function(normalize arg)
 	endif()
 endfunction()
 
+normalize(Android)
 normalize(WithGl)
 normalize(WithEgl)
 normalize(WithVulkan)
@@ -200,6 +214,7 @@ normalize(BuildExamples)
 # print configuratoin
 message("\t\nFinal Configuration:\n")
 
+message("\tAndroid:\t\t" ${Android})
 message("\tWithWinapi:\t\t" ${WithWinapi})
 message("\tWithWayland:\t\t" ${WithWayland})
 message("\tWithX11:\t\t" ${WithX11})

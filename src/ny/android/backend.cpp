@@ -1,14 +1,31 @@
+// Copyright (c) 2017 nyorain
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+
 #include <ny/android/backend.hpp>
 #include <ny/android/appContext.hpp>
+#include <nytl/tmpUtil.hpp>
 
-namespace ny
-{
+#include <android/native_activity.h>
+#include <thread>
+#include <string>
+
+namespace ny {
 
 AndroidBackend AndroidBackend::instance_;
 
-AppContextPtr AndroidBackend::createAppContext()
+// AndroidBackend
+bool AndroidBackend::available() const
 {
-	return AndroidAppContext();
+	return (nativeActivity);
 }
 
+AppContextPtr AndroidBackend::createAppContext()
+{
+	if(!nativeActiviy)
+		throw std::logic_error("ny::AndroidBackend::createAppContext: no native activity");
+
+	return std::make_unique<AndroidAppContext>();
 }
+
+} // namespace ny
