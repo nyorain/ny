@@ -11,7 +11,7 @@
 
 namespace ny {
 
-///Android AppContext implementation.
+/// Android AppContext implementation.
 class AndroidAppContext : public AppContext {
 public:
 	AndroidAppContext();
@@ -21,8 +21,8 @@ public:
 	MouseContext* mouseContext() override { return nullptr; }
 	KeyboardContext* keyboardContext() override { return nullptr; }
 
-	bool dispatchEvents() override { return true; }
-	bool dispatchLoop(LoopControl&) override { return true; }
+	bool dispatchEvents() override;
+	bool dispatchLoop(LoopControl&) override;
 
 	bool clipboard(std::unique_ptr<DataSource>&& dataSource) override { return false; }
 	DataOffer* clipboard() override { return nullptr; }
@@ -36,10 +36,21 @@ public:
 	ANativeActivity& naitveActivity() const { return *nativeActivity_; }
 
 protected:
+	friend class android::Acitivity;
+	void windowFocusChanges(bool gained);
+	void windowResized();
+	void windowRedrawNeeded();
+	void windowDestroyed();
+	void activityDestroyed();
+
+protected:
+	android::Activity& activity_ {};
 	ANativeActivity* nativeActivity_ {};
+	AndroidWindowContext* windowContext_ {};
 
 	struct Impl;
 	std::unique_ptr<Impl> impl_;
+
 };
 
 } // namespace ny

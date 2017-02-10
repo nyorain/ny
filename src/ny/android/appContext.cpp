@@ -38,7 +38,18 @@ AndroidAppContext::~AndroidAppContext()
 
 WindowContextPtr AndroidAppContext::createWindowContext(const WindowSettings& ws)
 {
-    return {};
+	if(!acitivty_.window())
+		throw std::runtime_error("ny::AndroidAppContext::createWindowContext: no window");
+}
+
+bool AndroidAppContext::dispatchEvents()
+{
+
+}
+
+bool AndroidAppContext::dispatchLoop(LoopControl& loopControl)
+{
+
 }
 
 std::vector<const char*> AndroidAppContext::vulkanExtensions() const

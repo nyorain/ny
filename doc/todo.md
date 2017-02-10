@@ -2,7 +2,10 @@
 
 ### priority
 
-- glx error handling
+- fix loopControl synchronization
+	- make sure that impl isnt changed during operation on it?!
+		- mutex in loopControl?
+		- use shared ptr?
 - fix log.cpp codestyle
 - add image.cpp <cmath> include
 - egl/wgl/glx library loading (dynamically load opengl)
@@ -199,3 +202,15 @@ winapi backend:
 	- check if available, use wgl instead
 	- should be easy to implement
 	- might be more efficient (ANGLE) than using wgl
+
+android
+=======
+
+- redirect log to the android log (warning,error as well?!)
+- android/activity: error handling for unexpected situations
+	- e.g. multiple windows/queue
+	- invalid native activities
+		- at least output warning in retrieveActivity?
+	- there are (theoretically) a few threadunsafe calls
+		in Activity (e.g. the appContext checks)
+		- rather use mutex for synchro
