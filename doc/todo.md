@@ -2,10 +2,15 @@
 
 ### priority
 
-- fix loopControl synchronization
+- easier image rework? (old format impl?)
+- fix loopControl [synchronization]
 	- make sure that impl isnt changed during operation on it?!
 		- mutex in loopControl?
+			- use shared mutex (C++17)
 		- use shared ptr?
+	- make LoopInterface class movable (and default ctor protected)
+		- useful for late initialization
+			- needed?
 - fix log.cpp codestyle
 - add image.cpp <cmath> include
 - egl/wgl/glx library loading (dynamically load opengl)
