@@ -6,6 +6,7 @@
 
 #include <bitset> // std::bitset
 #include <algorithm> // std::reverse
+#include <cmath>
 
 namespace ny {
 
