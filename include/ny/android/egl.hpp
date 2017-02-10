@@ -14,7 +14,7 @@ public:
 	AndroidEglWindowContext(AndroidAppContext&, EglSetup&, const AndroidWindowSettings&);
 	~AndroidEglWindowContext() = default;
 
-	Surface surface() override noexcept;
+	Surface surface() override;
 	EglSurface& eglSurface() const { return *surface_; }
 
 protected:

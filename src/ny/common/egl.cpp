@@ -188,8 +188,9 @@ EGLConfig EglSetup::eglConfig(GlConfigID id) const
 }
 
 // EglSurface
-EglSurface::EglSurface(EGLDisplay dpy, void* nw, GlConfigID configid, const EglSetup& setup)
-	: EglSurface(dpy, nw, configid ? setup.config(configid) : setup.defaultConfig(),
+EglSurface::EglSurface(const EglSetup& setup, void* nw, GlConfigID configid)
+	: EglSurface(setup.eglDisplay(), nw,
+		configid ? setup.config(configid) : setup.defaultConfig(),
 		configid ? setup.eglConfig(configid) : setup.eglConfig(setup.defaultConfig().id))
 {
 }

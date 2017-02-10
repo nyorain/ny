@@ -43,8 +43,8 @@ protected:
 	inline virtual ~LoopInterface();
 
 private:
-	LoopInterface();
-	LoopControl* control_;
+	LoopInterface() = default;
+	LoopControl* control_ {};
 };
 
 

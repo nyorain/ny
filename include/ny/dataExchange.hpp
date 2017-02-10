@@ -153,7 +153,7 @@ template<>
 struct hash<ny::DataFormat> {
 	auto operator()(const ny::DataFormat& format) const noexcept
 	{
-		static const std::hash<std::string> hasher;
+		static const std::hash<std::string> hasher {};
 		return hasher(format.name);
 	}
 };

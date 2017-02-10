@@ -22,12 +22,40 @@ public:
 	AndroidWindowContext(AndroidAppContext& ac, const AndroidWindowSettings& settings);
 	~AndroidWindowContext();
 
-	// - android specific -
+	WindowCapabilities capabilities() const override;
 	Surface surface() override;
-	ANativeWindow& nativeWindow() const { return *nativeWindow_; }
+	NativeHandle nativeHandle() const override { return nativeWindow(); }
+
+	void show() override;
+	void hide() override;
+
+	void minSize(nytl::Vec2ui minSize) override;
+	void maxSize(nytl::Vec2ui maxSize) override;
+
+	void size(nytl::Vec2ui size) override;
+	void position(nytl::Vec2i position) override;
+
+	void cursor(const Cursor& c) override;
+	void refresh() override;
+
+	void maximize() override;
+	void minimize() override;
+	void fullscreen() override;
+	void normalState() override;
+
+	void beginMove(const EventData*) override;
+	void beginResize(const EventData* event, WindowEdges edges) override;
+
+	void title(nytl::StringParam name) override;
+	void icon(const Image& newicon) override;
+	void customDecorated(bool set) override;
+	bool customDecorated() const override { return false; }
+
+	ANativeWindow& nativeWindow() const { return nativeWindow_; }
 
 protected:
-	ANativeWindow* nativeWindow_;
+	AndroidAppContext& appContext_;
+	ANativeWindow& nativeWindow_;
 };
 
 } // namespace ny

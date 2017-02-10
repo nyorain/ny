@@ -15,7 +15,8 @@ set(ny_src
 	dataExchange.cpp
 	key.cpp
 	mouseButton.cpp
-	backend.cpp)
+	backend.cpp
+	common/gl.cpp)
 
 # =======================================================================================
 # Winapi backend
@@ -106,11 +107,13 @@ endif()
 if(Android)
 	list(APPEND ny_src
 		android/appContext.cpp
+		android/activity.cpp
 		android/backend.cpp
 		android/bufferSurface.cpp
 		android/windowContext.cpp)
 
-	list(APPEND ny_libs android)
+	find_library(android-log log)
+	list(APPEND ny_libs android ${android-log})
 
 	if(WithEgl)
 		list(APPEND ny_src android/egl.cpp)
@@ -130,7 +133,6 @@ endif()
 
 # gl
 if(WithGl)
-	list(APPEND ny_src common/gl.cpp)
 	list(APPEND ny_libs ${OPENGL_LIBRARY})
 	list(APPEND ny_include ${OPENGL_INCLUDE_DIR})
 endif()

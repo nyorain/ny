@@ -11,15 +11,12 @@
 	#include <windows.h>
 #endif //WithWinapi
 
-namespace ny
-{
-
-namespace
-{
-	const auto defaultOutBuf = std::cout.rdbuf();
-	const auto defaultErrBuf = std::cerr.rdbuf();
-	const auto defaultLogBuf = std::clog.rdbuf();
-}
+namespace ny {
+namespace {
+	// const auto defaultOutBuf = std::cout.rdbuf();
+	// const auto defaultErrBuf = std::cerr.rdbuf();
+	// const auto defaultLogBuf = std::clog.rdbuf();
+} // anonymous util namespace
 
 void writeStream(std::ostream& os, const std::string& text)
 {
@@ -83,4 +80,4 @@ std::unique_ptr<LoggerBase>& debugLogger()
 #endif
 }
 
-}
+} // namespace ny

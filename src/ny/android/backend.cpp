@@ -17,15 +17,15 @@ AndroidBackend AndroidBackend::instance_;
 // AndroidBackend
 bool AndroidBackend::available() const
 {
-	return (nativeActivity);
+	return android::Activity::instance();
 }
 
 AppContextPtr AndroidBackend::createAppContext()
 {
-	if(!nativeActiviy)
+	if(!android::Activity::instance())
 		throw std::logic_error("ny::AndroidBackend::createAppContext: no native activity");
 
-	return std::make_unique<AndroidAppContext>();
+	return std::make_unique<AndroidAppContext>(*android::Activity::instance());
 }
 
 } // namespace ny

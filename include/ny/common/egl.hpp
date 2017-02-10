@@ -56,7 +56,7 @@ protected:
 /// EGL GlSurface implementation
 class EglSurface : public GlSurface {
 public:
-	EglSurface(EGLDisplay, void* nativeWindow, GlConfigID, const EglSetup&);
+	EglSurface(const EglSetup&, void* nativeWindow, GlConfigID);
 	EglSurface(EGLDisplay, void* nativeWindow, const GlConfig&, EGLConfig eglConfig);
 	virtual ~EglSurface();
 

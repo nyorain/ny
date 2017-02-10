@@ -5,12 +5,6 @@
 #pragma once
 
 #include <ny/fwd.hpp>
-#include <ny/config.hpp>
-
-#ifndef NY_WithGl
-	#error ny was built without gl. Do not include this header.
-#endif
-
 #include <ny/nativeHandle.hpp>
 
 #include <nytl/nonCopyable.hpp>

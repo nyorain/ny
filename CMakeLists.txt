@@ -21,13 +21,6 @@ if(${CMAKE_VERSION} GREATER 3.1)
 	cmake_policy(SET CMP0058 NEW)
 endif()
 
-# load android toolchain if building for android
-# if(Android)
-# endif()
-
-# set(CMAKE_CXX_COMPILER "${CMAKE_BINARY_DIR}/tmp/my-android-toolchain/bin/clang++")
-# set(CMAKE_C_COMPILER "${CMAKE_BINARY_DIR}/tmp/my-android-toolchain/bin/clang")
-
 # include dirs
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include") # public headers
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src") # private src headers
@@ -47,13 +40,14 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/src/cmake")
 
 # enable all sane warnings
 # for msvc we first check if some level is set by default and replace it
+set(is_clang CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 if(MSVC)
-if(CMAKE_CXX_FLAGS MATCHES "/W[0-4]")
-	string(REGEX REPLACE "/W[0-4]" "/W4" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-else()
-	list(APPEND CMAKE_CXX_FLAGS "/W4")
-endif()
-elseif(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
+	if(CMAKE_CXX_FLAGS MATCHES "/W[0-4]")
+		string(REGEX REPLACE "/W[0-4]" "/W4" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+	else()
+		list(APPEND CMAKE_CXX_FLAGS "/W4")
+	endif()
+elseif(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX OR is_clang)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-long-long -Wextra -Wpedantic")
 endif()
 
@@ -80,13 +74,9 @@ endif()
 # dependent options
 include(CMakeDependentOption)
 
-cmake_dependent_option(WithGl
-	"Build ny with OpenGL/OpenGL ES support" on
-	"OPENGL_FOUND" off)
-
 cmake_dependent_option(WithEgl
 	"Built ny with EGL support. Requires GL" on
-	"WithGl;EGL_FOUND" off)
+	"EGL_FOUND" off)
 
 cmake_dependent_option(WithVulkan
 	"Build ny with Vulkan support" on
@@ -108,6 +98,11 @@ cmake_dependent_option(WithWinapi
 	"Build ny with a winapi backend" on
 	"WIN32" off)
 
+cmake_dependent_option(WithGl
+	"Build ny with wgl/glx support" on
+	"WithX11 OR WithWinapi;OPENGL_FOUND" off)
+
+
 # warn if no built-in backends can be compiled
 if(NOT WithWayland AND NOT WithX11 AND NOT WithWinapi AND NOT Android)
 	message(WARNING "Could not find any backend to build ny with")
@@ -118,25 +113,25 @@ endif()
 set(nytl_location "own")
 set(nytl_own true)
 
-# include(ExternalProject)
-# set(ExternalProjectCMakeArgs
-# 	-DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}/external/install
-# 	-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
-# 	-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-# 	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
-#
-# ExternalProject_Add(nytl_ep
-# 	PREFIX ${CMAKE_CURRENT_BINARY_DIR}/nytl
-# 	GIT_REPOSITORY https://github.com/nyorain/nytl.git
-# 	GIT_TAG master
-# 	INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/external/install
-# 	CMAKE_ARGS ${ExternalProjectCMakeArgs})
-#
-# ExternalProject_Add_Step(nytl_ep
-# 	forceinstall
-# 	DEPENDEES configure
-# 	DEPENDERS install
-# 	ALWAYS 1)
+include(ExternalProject)
+set(ExternalProjectCMakeArgs
+	-DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}/external/install
+	-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+	-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+	-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
+
+ExternalProject_Add(nytl_ep
+	PREFIX ${CMAKE_CURRENT_BINARY_DIR}/nytl
+	GIT_REPOSITORY https://github.com/nyorain/nytl.git
+	GIT_TAG master
+	INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/external/install
+	CMAKE_ARGS ${ExternalProjectCMakeArgs})
+
+ExternalProject_Add_Step(nytl_ep
+	forceinstall
+	DEPENDEES configure
+	DEPENDERS install
+	ALWAYS 1)
 
 # install nytl as well since public ny headers depend on them
 install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/external/install/." DESTINATION .)
@@ -175,9 +170,9 @@ if(BuildExamples)
 	add_subdirectory(src/examples)
 endif()
 
-if(Android)
-	add_subdirectory(src/examples/android)
-endif()
+# if(Android)
+# 	add_subdirectory(src/examples/android)
+# endif()
 
 # uninstall target
 # this makes it possible to uninstall ny ('ninja uninstall') after it has been installed

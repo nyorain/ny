@@ -2,6 +2,11 @@
 
 ### priority
 
+- fix reinterpret_cast (vulkanWindowContext destructor) for backends (clang error)
+	- make sure casts are everywhere correct
+	- only tested with 64 bit
+		- some handles are differently (i.e. no pointer) defined on 32 bit platforms
+			so that reinterpret_cast will not work
 - easier image rework? (old format impl?)
 - fix loopControl [synchronization]
 	- make sure that impl isnt changed during operation on it?!
@@ -11,8 +16,6 @@
 	- make LoopInterface class movable (and default ctor protected)
 		- useful for late initialization
 			- needed?
-- fix log.cpp codestyle
-- add image.cpp <cmath> include
 - egl/wgl/glx library loading (dynamically load opengl)
 	- should GlSetup::procAddr be able to query gl core functions?
 	- fix egl (check in context creation if extension/egl 1.5 available)
@@ -219,3 +222,5 @@ android
 	- there are (theoretically) a few threadunsafe calls
 		in Activity (e.g. the appContext checks)
 		- rather use mutex for synchro
+- call the main thread function from a c function (compiled with a c compiler)
+	because calling main in c++ is not allowed (it is in C)

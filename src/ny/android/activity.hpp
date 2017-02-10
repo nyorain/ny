@@ -29,9 +29,9 @@ public:
 	static Activity* instance();
 
 public:
-	ANativeActivity& nativeAcitivy() const { return *activity_; }
-	ANativeWindow* nativeWidnow() const { return window_; }
-	AInputQueue* inputQueue() const { return queue_; }
+	ANativeActivity& nativeActivity() const { return *activity_.load(); }
+	ANativeWindow* nativeWindow() const { return window_.load(); }
+	AInputQueue* inputQueue() const { return queue_.load(); }
 	const std::thread& mainThread() const { return mainThread_; }
 
 private:
@@ -41,7 +41,7 @@ private:
 	void init(ANativeActivity&);
 	void destroy();
 
-	bool valid() const { return acitivty.load(); };
+	bool valid() const { return activity_.load(); };
 	void mainThreadFunction();
 
 private:
@@ -69,7 +69,7 @@ private:
 	std::atomic<AndroidAppContext*> appContext_ {};
 	std::thread mainThread_ {};
 
-	friend void ANativeActivity_onCreate(ANativeActivity*, void*, size_t);
+	friend void ::ANativeActivity_onCreate(ANativeActivity*, void*, size_t);
 };
 
 /// Retrieves the associated Activity object from a ANativeActivity.

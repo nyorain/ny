@@ -1,11 +1,13 @@
 -I./include
 -I./src
+-I./build/android2/include
 -I./build/include
 -I./build/external/install/include
 -I./build/linux/include
 -I./build/linux/external/install/include
 -I./build/win/include
 -I./build/win/external/install/include
+-I/opt/android-ndk/platforms/android-24/arch-arm64/usr/include/
 -Wall
 -Wextra
 -Wpedantic

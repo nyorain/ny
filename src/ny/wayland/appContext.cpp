@@ -71,7 +71,7 @@ namespace {
 /// The class has additionally an atomic bool that will be set to false when the
 /// loop was stopped.
 /// The eventfd is only used to wake the polling up, it does not transmit any useful information.
-class WaylandLoopImpl : public ny::LoopInterfaceGuard {
+class WaylandLoopImpl : public ny::LoopInterface {
 public:
 	std::atomic<bool> run {true};
 
@@ -81,14 +81,14 @@ public:
 
 public:
 	WaylandLoopImpl(LoopControl& lc, unsigned int evfd)
-		: LoopInterfaceGuard(lc), eventfd(evfd) {}
+		: LoopInterface(lc), eventfd(evfd) {}
 
 	bool stop() override
 	{
 		run.store(false);
 		wakeup();
 		return true;
-	};
+	}
 
 	bool call(std::function<void()> function) override
 	{

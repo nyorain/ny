@@ -50,6 +50,7 @@ int main(int, char**)
 	// The same setup as in the first (intro) example
 	auto& backend = ny::Backend::choose();
 	auto ac = backend.createAppContext();
+	ny::log("ny::basic: hello world");
 	return 0;
 
 	auto listener = MyWindowListener {};
