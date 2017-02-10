@@ -11,8 +11,7 @@ namespace ny {
 AndroidWindowContext::AndroidWindowContext(AndroidAppContext& ac, const AndroidWindowSettings& ws)
 	: appContext_(ac), nativeWindow_(ac.nativeWindow())
 {
-	// TODO
-	nytl::unused(ws);
+	if(ws.listener) listener(*ws.listener);
 }
 
 AndroidWindowContext::~AndroidWindowContext()
@@ -64,7 +63,7 @@ void AndroidWindowContext::cursor(const Cursor&)
 }
 void AndroidWindowContext::refresh()
 {
-	// TODO: implement
+	listener().draw({});
 }
 
 void AndroidWindowContext::maximize()

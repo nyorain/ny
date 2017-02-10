@@ -8,7 +8,7 @@
 		- some handles are differently (i.e. no pointer) defined on 32 bit platforms
 			so that reinterpret_cast will not work
 - easier image rework? (old format impl?)
-- fix loopControl [synchronization]
+- fix loopControl [synchronization] [pretty much done, fix for backends]
 	- make sure that impl isnt changed during operation on it?!
 		- mutex in loopControl?
 			- use shared mutex (C++17)
@@ -61,6 +61,9 @@
 		- wayland without egl, wayland without cursor library
 - abolish WindowContextPtr, AppContextPtr
 	- names like UniqueWindowContext more acceptable (?)
+- dataExchange: use std::variant instead of std::any
+	- the possible types are known
+	- further are custom types really bad
 
 ### later; general; rework needed
 
@@ -214,7 +217,6 @@ winapi backend:
 android
 =======
 
-- redirect log to the android log (warning,error as well?!)
 - android/activity: error handling for unexpected situations
 	- e.g. multiple windows/queue
 	- invalid native activities
@@ -224,3 +226,8 @@ android
 		- rather use mutex for synchro
 - call the main thread function from a c function (compiled with a c compiler)
 	because calling main in c++ is not allowed (it is in C)
+- correct window recreation
+	- make WindowContext, AndroidEglSurface, ... recreate themselves
+- make sure callbacks function can NEVER throw
+- better main thread throw handling
+	- application just closes without anything atm (can it be done better?)

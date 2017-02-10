@@ -64,7 +64,7 @@ std::uintptr_t glConfigNumber(const GlConfigID& id)
 	return reinterpret_cast<const std::uintmax_t&>(id);
 }
 
-GlConfigID glConfigID(const std::uintmax_t& number)
+GlConfigID glConfigID(const std::uintptr_t& number)
 {
 	return reinterpret_cast<const GlConfigID&>(number);
 }

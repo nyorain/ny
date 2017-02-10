@@ -4,6 +4,7 @@
 
 #include <ny/android/appContext.hpp>
 #include <ny/android/windowContext.hpp>
+#include <ny/android/bufferSurface.hpp>
 #include <ny/log.hpp>
 #include <ny/loopControl.hpp>
 
@@ -90,6 +91,10 @@ AndroidAppContext::AndroidAppContext(android::Activity& activity) : activity_(ac
 {
 	impl_ = std::make_unique<Impl>();
 	looper_ = ALooper_prepare(0);
+	inputQueue_ = activity_.inputQueue();
+
+	if(!inputQueue_)
+		throw std::runtime_error("ny::AndroidAppContext: no inputQueue");
 }
 
 AndroidAppContext::~AndroidAppContext()
@@ -111,6 +116,24 @@ WindowContextPtr AndroidAppContext::createWindowContext(const WindowSettings& se
 
 	if(ws) androidSettings = *ws;
 	else androidSettings.WindowSettings::operator=(settings);
+
+	if(settings.surface == SurfaceType::vulkan) {
+		#ifdef NY_WithVulkan
+			return std::make_unique<AndroidVulkanWindowContext>(*this, androidSettings);
+		#else
+			throw std::logic_error(func + "ny was built without vulkan support");
+		#endif
+	} else if(settings.surface == SurfaceType::gl) {
+		#ifdef NY_WithEgl
+			if(!eglSetup()) throw std::runtime_error(func + "initializing egl failed");
+			return std::make_unique<AndroidEglWindowContext>(*this, *eglSetup(), androidSettings);
+		#else
+			throw std::logic_error(func + "ny was built without egl support");
+		#endif
+	} else if(settings.surface == SurfaceType::buffer) {
+		return std::make_unique<AndroidBufferWindowContext>(*this, androidSettings);
+	}
+
 
 	return std::make_unique<AndroidWindowContext>(*this, androidSettings);
 }
@@ -179,6 +202,30 @@ EglSetup* AndroidAppContext::eglSetup() const
 	#else
 		return nullptr;
 	#endif
+}
+
+void AndroidAppContext::windowFocusChanged(bool gained)
+{
+	nytl::unused(gained);
+}
+void AndroidAppContext::windowResized()
+{
+
+}
+void AndroidAppContext::windowRedrawNeeded()
+{
+	if(!windowContext_)
+		return;
+
+	windowContext_->listener().draw({});
+}
+void AndroidAppContext::windowDestroyed()
+{
+
+}
+void AndroidAppContext::activityDestroyed()
+{
+
 }
 
 } // namespace ny

@@ -56,18 +56,22 @@ Activity& Activity::instanceUnchecked()
 void Activity::onStart(ANativeActivity*)
 {
 	// not interesting atm
+	log("activity::onStart");
 }
 void Activity::onResume(ANativeActivity*)
 {
 	// not interesting atm
+	log("activity::onResume");
 }
 void Activity::onPause(ANativeActivity*)
 {
 	// not interesting atm
+	log("activity::onPause");
 }
 void Activity::onStop(ANativeActivity*)
 {
 	// not interesting atm
+	log("activity::onStop");
 }
 void Activity::onDestroy(ANativeActivity* nativeActivity)
 {
@@ -86,8 +90,13 @@ void Activity::onWindowFocusChanged(ANativeActivity* nativeActivity, int hasFocu
 void Activity::onNativeWindowCreated(ANativeActivity* nativeActivity,
 	ANativeWindow* window)
 {
-	log("native window created");
 	auto& activity = retrieveActivity(*nativeActivity);
+	if(activity.window_) {
+		warning("onNativeWindowCreated: already has window");
+		return;
+	}
+
+	log("native window created");
 	activity.window_ = window;
 
 	// now we start the main thread

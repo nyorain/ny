@@ -41,17 +41,19 @@ public:
 
 protected:
 	friend class android::Activity;
-	void windowFocusChanged(bool gained) {}
-	void windowResized() {}
-	void windowRedrawNeeded() {}
-	void windowDestroyed() {}
-	void activityDestroyed() {}
+	void windowFocusChanged(bool gained);
+	void windowResized();
+	void windowRedrawNeeded();
+	void windowDestroyed();
+	void activityDestroyed();
 
 protected:
 	android::Activity& activity_;
+	AndroidWindowContext* windowContext_ {};
+
 	ANativeActivity* nativeActivity_ {};
 	ALooper* looper_ {};
-	AndroidWindowContext* windowContext_ {};
+	AInputQueue* inputQueue_ {};
 
 	struct Impl;
 	std::unique_ptr<Impl> impl_;
