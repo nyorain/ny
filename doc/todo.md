@@ -2,13 +2,9 @@
 
 ### priority
 
-- fix reinterpret_cast (vulkanWindowContext destructor) for backends (clang error)
-	- make sure casts are everywhere correct
-	- only tested with 64 bit
-		- some handles are differently (i.e. no pointer) defined on 32 bit platforms
-			so that reinterpret_cast will not work
-- easier image rework? (old format impl?)
 - fix loopControl [synchronization] [pretty much done, fix for backends]
+- easier image rework? (old format impl?)
+- fix loopControl [synchronization]
 	- make sure that impl isnt changed during operation on it?!
 		- mutex in loopControl?
 			- use shared mutex (C++17)
@@ -217,6 +213,10 @@ winapi backend:
 android
 =======
 
+<<<<<<< HEAD
+=======
+- redirect log to the android log (warning,error as well?!)
+>>>>>>> master
 - android/activity: error handling for unexpected situations
 	- e.g. multiple windows/queue
 	- invalid native activities
@@ -224,6 +224,7 @@ android
 	- there are (theoretically) a few threadunsafe calls
 		in Activity (e.g. the appContext checks)
 		- rather use mutex for synchro
+<<<<<<< HEAD
 - call the main thread function from a c function (compiled with a c compiler)
 	because calling main in c++ is not allowed (it is in C)
 - correct window recreation
@@ -231,3 +232,5 @@ android
 - make sure callbacks function can NEVER throw
 - better main thread throw handling
 	- application just closes without anything atm (can it be done better?)
+=======
+>>>>>>> master
