@@ -9,6 +9,9 @@
 
 namespace ny {
 
+// TODO: same problem as vulkan; -> Surface events (see todo)
+
+/// Android WindowContext implementation that creates an egl surface.
 class AndroidEglWindowContext : public AndroidWindowContext {
 public:
 	AndroidEglWindowContext(AndroidAppContext&, EglSetup&, const AndroidWindowSettings&);
@@ -16,6 +19,9 @@ public:
 
 	Surface surface() override;
 	EglSurface& eglSurface() const { return *surface_; }
+
+protected:
+	void nativeWindow(ANativeWindow*) override;
 
 protected:
 	std::unique_ptr<EglSurface> surface_;
