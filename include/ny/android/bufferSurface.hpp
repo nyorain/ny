@@ -21,11 +21,21 @@ public:
 	~AndroidBufferSurface() = default;
 
 	BufferGuard buffer() override;
+
+protected:
 	void apply(const BufferGuard&) noexcept override;
 
 protected:
 	AndroidWindowContext& windowContext_;
-	ANativeWindow_Buffer buffer_;
+	ANativeWindow_Buffer buffer_ {};
+
+	// TODO: alternative implementatoin handling?
+	// we can use AndroidBufferWC::nativeWindow(ANativeWindow) override
+
+	// is nullptr or the current window for which the format was applied
+	// stored because the window might be changed and then the format must
+	// again be applied
+	ANativeWindow* formatApplied_ {};
 };
 
 /// Android WindowContext implementation that holds a BufferSurface.

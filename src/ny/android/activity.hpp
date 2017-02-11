@@ -8,9 +8,8 @@
 #include <android/native_activity.h>
 
 #include <thread>
-#include <mutex>
-#include <condition_variable>
 #include <atomic>
+#include <mutex>
 
 namespace ny::android {
 
@@ -20,7 +19,9 @@ namespace ny::android {
 /// Cannot be manually created.
 /// Cannot be changed from the outside once created valid.
 /// Can be read from multiple threads at the same time.
-/// Uses internally atomic variables.
+/// Will exist before an AppContext is created and store the native objects
+/// retrieved by callbacks so the AppContext can use it no matter
+/// when it will be created.
 class Activity final {
 public:
 	/// Returns the Activity singleton or nullptr if there is none.
@@ -29,10 +30,22 @@ public:
 	static Activity* instance();
 
 public:
-	ANativeActivity& nativeActivity() const { return *activity_.load(); }
-	ANativeWindow* nativeWindow() const { return window_.load(); }
-	AInputQueue* inputQueue() const { return queue_.load(); }
-	const std::thread& mainThread() const { return mainThread_; }
+	/// Can be used to get the retrieved native objects.
+	/// The mutex returned by mutex() must be locked while retrieving and
+	/// using them since otherwise they may become invalid.
+	ANativeActivity* nativeActivity() const { return activity_; }
+	ANativeWindow* nativeWindow() const { return window_; }
+	AInputQueue* inputQueue() const { return queue_; }
+
+	/// Returns the std::thread handle to the created main thread.
+	const std::thread& mainThread() const;
+
+	/// Returns the internal synchronization mutex.
+	/// This is locked everytime the internal native variables are accesed
+	/// and can be locked from the outside to assure that those variables
+	/// don't change (e.g. to keep the window alive until unlocked).
+	/// Note that no blocking operations should be done while locking the mutex.
+	std::mutex& mutex() const { return mutex_; }
 
 private:
 	Activity() = default; // constructs invalid
@@ -41,7 +54,7 @@ private:
 	void init(ANativeActivity&);
 	void destroy();
 
-	bool valid() const { return activity_.load(); };
+	bool valid() const;
 	void mainThreadFunction();
 
 private:
@@ -49,32 +62,73 @@ private:
 	/// Does not check if it is valid (needed for initialization).
 	static Activity& instanceUnchecked();
 
-	static void onStart(ANativeActivity*);
-	static void onResume(ANativeActivity*);
-	static void onPause(ANativeActivity*);
-	static void onStop(ANativeActivity*);
-	static void onDestroy(ANativeActivity*);
-	static void onWindowFocusChanged(ANativeActivity*, int hasFocus);
-	static void onNativeWindowCreated(ANativeActivity*, ANativeWindow*);
-	static void onNativeWindowResized(ANativeActivity*, ANativeWindow*);
-	static void onNativeWindowRedrawNeeded(ANativeActivity*, ANativeWindow*);
-	static void onNativeWindowDestroyed(ANativeActivity*, ANativeWindow*);
-	static void onInputQueueCreated(ANativeActivity*, AInputQueue*);
-	static void onInputQueueDestroyed(ANativeActivity*, AInputQueue*);
+	// native activity callback functions
+	// will receive the Activity singleton and change it or
+	// dispatch events to the event queue of the associated appContext
+	static void onStart(ANativeActivity*) noexcept;
+	static void onResume(ANativeActivity*) noexcept;
+	static void onPause(ANativeActivity*) noexcept;
+	static void onStop(ANativeActivity*) noexcept;
+	static void onDestroy(ANativeActivity*) noexcept;
+	static void onWindowFocusChanged(ANativeActivity*, int hasFocus) noexcept;
+	static void onNativeWindowCreated(ANativeActivity*, ANativeWindow*) noexcept;
+	static void onNativeWindowResized(ANativeActivity*, ANativeWindow*) noexcept;
+	static void onNativeWindowRedrawNeeded(ANativeActivity*, ANativeWindow*) noexcept;
+	static void onNativeWindowDestroyed(ANativeActivity*, ANativeWindow*) noexcept;
+	static void onInputQueueCreated(ANativeActivity*, AInputQueue*) noexcept;
+	static void onInputQueueDestroyed(ANativeActivity*, AInputQueue*) noexcept;
 
 private:
-	std::atomic<ANativeActivity*> activity_ {};
-	std::atomic<ANativeWindow*> window_ {};
-	std::atomic<AInputQueue*> queue_ {};
-	std::atomic<AndroidAppContext*> appContext_ {};
-	std::thread mainThread_ {};
+	ANativeActivity* activity_ {};
+	ANativeWindow* window_ {};
+	AInputQueue* queue_ {};
 
+	AndroidAppContext* appContext_ {};
+	std::thread mainThread_ {};
+	mutable std::mutex mutex_ {};
+
+	friend class ny::AndroidAppContext;
 	friend void ::ANativeActivity_onCreate(ANativeActivity*, void*, size_t);
+};
+
+/// The type of an activity event sent from a callback
+/// in the activity thread to the main event thread.
+enum class ActivityEventType {
+	windowDestroyed,
+	windowCreated,
+	windowFocusChanged,
+	windowRedraw,
+	windowResize,
+	windowFocus,
+	queueCreated,
+	queueDestroyed,
+	start,
+	pause,
+	resume,
+	stop,
+	destroy
+};
+
+/// Event coming directly from the activity callbacks.
+/// Used for the AppContexts
+struct ActivityEvent {
+	// the type of the event
+	ActivityEventType type {};
+
+	// possibility to transmit event-specific data
+	// interpretation dependent on the event type
+	uint8_t data[8] {};
+
+	// if this is not nullptr, the main thread will
+	// call notify_one on the eventQueueCV when
+	// finishing to handle the event and will
+	// set the atomic bool to true
+	std::atomic<bool>* signalCV {};
 };
 
 /// Retrieves the associated Activity object from a ANativeActivity.
 /// Undefined behvaiour if no Activity was associated to it or it
 /// was already deleted (should never happen).
-Activity& retrieveActivity(const ANativeActivity& nativeActivity);
+Activity& retrieveActivity(const ANativeActivity& nativeActivity) noexcept;
 
 } // namespace ny::android

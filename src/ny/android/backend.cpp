@@ -22,10 +22,11 @@ bool AndroidBackend::available() const
 
 AppContextPtr AndroidBackend::createAppContext()
 {
-	if(!android::Activity::instance())
+	auto instance = android::Activity::instance();
+	if(!instance)
 		throw std::logic_error("ny::AndroidBackend::createAppContext: no native activity");
 
-	return std::make_unique<AndroidAppContext>(*android::Activity::instance());
+	return std::make_unique<AndroidAppContext>(*instance);
 }
 
 } // namespace ny

@@ -11,12 +11,13 @@ namespace ny {
 AndroidWindowContext::AndroidWindowContext(AndroidAppContext& ac, const AndroidWindowSettings& ws)
 	: appContext_(ac), nativeWindow_(ac.nativeWindow())
 {
-	if(ws.listener) listener(*ws.listener);
+	if(ws.listener)
+		listener(*ws.listener);
 }
 
 AndroidWindowContext::~AndroidWindowContext()
 {
-
+	appContext_.windowContextDestroyed();
 }
 
 Surface AndroidWindowContext::surface()
@@ -26,7 +27,7 @@ Surface AndroidWindowContext::surface()
 
 WindowCapabilities AndroidWindowContext::capabilities() const
 {
-	return WindowCapability::none;
+	return WindowCapability::serverDecoration;
 }
 
 void AndroidWindowContext::show()
@@ -63,6 +64,11 @@ void AndroidWindowContext::cursor(const Cursor&)
 }
 void AndroidWindowContext::refresh()
 {
+	if(!nativeWindow_) {
+		warning("ny::AndroidWindowContext::refresh: no native window");
+		return;
+	}
+
 	listener().draw({});
 }
 
@@ -103,6 +109,17 @@ void AndroidWindowContext::icon(const Image&)
 void AndroidWindowContext::customDecorated(bool)
 {
 	warning("ny::AndroidWindowContext::customDecorated: has no capability");
+}
+
+void AndroidWindowContext::nativeWindow(ANativeWindow* nativeWindow)
+{
+	if(nativeWindow_ && nativeWindow)
+		warning("ny::AndroidWindowContext::nativeWindow: already has native window");
+
+	nativeWindow_ = nativeWindow;
+
+	if(nativeWindow_)
+		refresh();
 }
 
 } // namespace ny

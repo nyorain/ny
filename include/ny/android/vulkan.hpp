@@ -16,6 +16,9 @@
 
 namespace ny {
 
+// TODO: the nativeWindow(ANativeWindow) implementation recreates the vulkan surface.
+// this will lead to serious problems... another/better implementation possible?
+
 /// Wayland WindowContext implementation that also creates a VkSurfaceKHR.
 class AndroidVulkanWindowContext : public AndroidWindowContext {
 public:
@@ -26,6 +29,9 @@ public:
 
 	VkInstance vkInstance() const { return vkInstance_; }
 	std::uintptr_t vkSurface() const { return vkSurface_; }
+
+protected:
+	void nativeWindow(ANativeWindow*) override;
 
 protected:
 	VkInstance vkInstance_ {};

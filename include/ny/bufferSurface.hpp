@@ -23,11 +23,16 @@ public:
 	/// If this function is called when there is already an active BufferGuard for
 	/// this surface or constructing one fails in any other way, this function should
 	/// throw an exception.
+	/// It is not allowed to dispatch events while a BufferGuard is alive, this
+	/// means that if one if received during an event callback it must be
+	/// destructed before the callback returns.
 	/// \sa BufferGuard
 	virtual BufferGuard	buffer() = 0;
 
 	//TODO: some way to query (if) currently active BufferGuard?
-	//TODO: some way to query size? just pass an Image with the surface contents directly?
+	//TODO: some way to query size?
+	//TODO: just pass an Image with the surface contents directly?
+	//			could be even safer in some cases since it can be directly applied
 
 protected:
 	/// Called from the BufferGuard destructor and should apply the contents
@@ -37,8 +42,13 @@ protected:
 	friend class BufferGuard;
 };
 
+// TODO: some way to make this nonmovable?
+// would generally forbid to manage its lifetime manually
+
 /// Manages a drawable buffer in form of an ImageData object.
 /// When this Guard object is destructed, it will apply the buffer it holds.
+/// Should generally be used as scope guards and not with manual managed lifetime like
+/// e.g. when wrapped in a smart pointer.
 class BufferGuard : public nytl::NonCopyable {
 public:
 	BufferGuard(BufferSurface& surf, const MutableImage& img) : surface_(surf), img_(img) {}
@@ -51,6 +61,8 @@ public:
 	/// buffer it holds will be applied to the associated surface.
 	/// Note that the format of this image data buffer may vary on different backends and must
 	/// be taken into account to achieve correct color values.
+	/// Can only be called on lvalues since calling it on temporaries does not make sense.
+	/// The object must not be used any longer after the BufferGuard goes out of scope.
 	/// \sa BasicImageData
 	/// \sa convertFormat
 	/// \sa BufferSurface

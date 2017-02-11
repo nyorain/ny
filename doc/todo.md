@@ -2,9 +2,10 @@
 
 ### priority
 
+- SurfaceEvent[s] that e.g. signal recreated surfaces
+	- SurfaceDestroy & SurfaceCreate events?
+	- see the android egl/vulkan design problem for window recreation
 - fix loopControl [synchronization] [pretty much done, fix for backends]
-- easier image rework? (old format impl?)
-- fix loopControl [synchronization]
 	- make sure that impl isnt changed during operation on it?!
 		- mutex in loopControl?
 			- use shared mutex (C++17)
@@ -63,10 +64,14 @@
 
 ### later; general; rework needed
 
+- easier image rework? (old format impl?)
+	- then fix android bufferSurface format query (dont assume rgba8888)
 - C++17 update:
 	- use extended aggregate initialization for Event class
 		- update for backends (not create explicit structs before calling listener)
 - fix/clean up TODO marks in code
+- bufferSurface: dirtyBounds parameter for buffer function
+- glsurface::apply: dirtyBound parameter
 - DataOffer: methods const? they do not change the state of the object (interface)
 	- may not be threadsafe in implementation; should not be required (should it?)
 	- also: really pass it as unique ptr in WindowListener::drop
@@ -213,10 +218,6 @@ winapi backend:
 android
 =======
 
-<<<<<<< HEAD
-=======
-- redirect log to the android log (warning,error as well?!)
->>>>>>> master
 - android/activity: error handling for unexpected situations
 	- e.g. multiple windows/queue
 	- invalid native activities
@@ -224,7 +225,6 @@ android
 	- there are (theoretically) a few threadunsafe calls
 		in Activity (e.g. the appContext checks)
 		- rather use mutex for synchro
-<<<<<<< HEAD
 - call the main thread function from a c function (compiled with a c compiler)
 	because calling main in c++ is not allowed (it is in C)
 - correct window recreation
@@ -232,5 +232,10 @@ android
 - make sure callbacks function can NEVER throw
 - better main thread throw handling
 	- application just closes without anything atm (can it be done better?)
-=======
->>>>>>> master
+- AndroidWindowSettings (for buffer surface)
+	- give the possibility to choose format (rgba, rgbx, rgb565)
+- make activity.hpp private header
+	- really error prone to use, should not be from interest for the application
+		- application can simply use AppContext
+- toggle fullscreen per window flags (?!)
+- AppContext: expose keyboard show/hide functions

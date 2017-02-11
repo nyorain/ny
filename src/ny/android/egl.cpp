@@ -11,7 +11,7 @@ namespace ny {
 AndroidEglWindowContext::AndroidEglWindowContext(AndroidAppContext& ac, EglSetup& setup,
 	const AndroidWindowSettings& ws) : AndroidWindowContext(ac, ws)
 {
-	auto androidnwindow = static_cast<void*>(&nativeWindow());
+	auto androidnwindow = static_cast<void*>(nativeWindow());
 	surface_ = std::make_unique<EglSurface>(setup, androidnwindow, ws.gl.config);
 
 	if(ws.gl.storeSurface) *ws.gl.storeSurface = surface_.get();

@@ -331,8 +331,7 @@ bool WaylandAppContext::dispatchLoop(LoopControl& control)
 	if(!checkErrorWarn()) return false;
 	WaylandLoopImpl loopImpl(control, eventfd_);
 
-	while(loopImpl.run.load())
-	{
+	while(loopImpl.run.load()) {
 		// call pending callback & dispatch functions
 		while(auto func = loopImpl.popFunction()) func();
 
@@ -356,6 +355,7 @@ MouseContext* WaylandAppContext::mouseContext()
 
 WindowContextPtr WaylandAppContext::createWindowContext(const WindowSettings& settings)
 {
+	static const std::string func = "ny::WaylandAppContext::createWindowContext: ";
 	WaylandWindowSettings waylandSettings;
 	const auto* ws = dynamic_cast<const WaylandWindowSettings*>(&settings);
 
@@ -366,19 +366,14 @@ WindowContextPtr WaylandAppContext::createWindowContext(const WindowSettings& se
 		#ifdef NY_WithVulkan
 			return std::make_unique<WaylandVulkanWindowContext>(*this, waylandSettings);
 		#else
-			throw std::logic_error("ny::WaylandAppContext::createWindowContext: "
-				"ny was built without vulkan support and can not create a Vulkan surface");
+			throw std::logic_error(func + "ny was built without vulkan support");
 		#endif
 	} else if(settings.surface == SurfaceType::gl) {
 		#ifdef NY_WithEgl
-			static constexpr auto eglFailed = "ny::WaylandAppContext::createWindowContext: "
-				"initializing egl failed, therefore no gl surfaces can be created";
-
-			if(!eglSetup()) throw std::runtime_error(eglFailed);
+			if(!eglSetup()) throw std::runtime_error(func + "initializing egl failed");
 			return std::make_unique<WaylandEglWindowContext>(*this, *eglSetup(), waylandSettings);
 		#else
-			throw std::logic_error("ny::WaylandAppContext::createWindowContext: "
-				"ny was built without gl/egl support and can therefore not create a gl Surface");
+			throw std::logic_error(func + "ny was built without egl support")
 		#endif
 	} else if(settings.surface == SurfaceType::buffer) {
 		return std::make_unique<WaylandBufferWindowContext>(*this, waylandSettings);

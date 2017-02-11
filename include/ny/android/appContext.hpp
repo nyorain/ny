@@ -14,6 +14,8 @@
 namespace ny {
 
 /// Android AppContext implementation.
+/// Manages the ALooper event dispatching, communicates with the activity
+/// thread and handles its activity events.
 class AndroidAppContext : public AppContext {
 public:
 	AndroidAppContext(android::Activity& activity);
@@ -36,16 +38,28 @@ public:
 	// - android specific -
 	EglSetup* eglSetup() const;
 	android::Activity& activity() const { return activity_; }
-	ANativeActivity& nativeActivity() const { return *nativeActivity_; }
-	ANativeWindow& nativeWindow() const { return *activity().nativeWindow(); }
+	ANativeActivity* nativeActivity() const { return nativeActivity_; }
+	ANativeWindow* nativeWindow() const;
 
 protected:
-	friend class android::Activity;
+	void handleActivityEvents();
+	void inputReceived();
+	void initQueue();
+
 	void windowFocusChanged(bool gained);
-	void windowResized();
-	void windowRedrawNeeded();
+	void windowCreated(ANativeWindow&);
+	void inputQueueCreated(AInputQueue&);
+	void windowResized(nytl::Vec2i32 size);
+	void inputQueueDestroyed();
 	void windowDestroyed();
-	void activityDestroyed();
+	void windowRedrawNeeded();
+
+	friend class android::Activity;
+	void pushEvent(const android::ActivityEvent& ev) noexcept;
+	void pushEventWait(android::ActivityEvent ev) noexcept;
+
+	friend class AndroidWindowContext;
+	void windowContextDestroyed();
 
 protected:
 	android::Activity& activity_;

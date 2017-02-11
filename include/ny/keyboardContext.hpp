@@ -19,7 +19,7 @@ public:
 	/// here a key might appear press although the application has not yet received (and maybe will
 	/// never receive) a matching KeyEvent.
 	/// \exception std::logic_error for invalid keycodes.
-	virtual bool pressed(Keycode keycode) const = 0;
+	virtual bool pressed(Keycode) const = 0;
 
 	/// Converts the given Keycode to its default utf8 encoded characters.
 	/// If the Keycode cannot be represented using unicode (e.g. leftshift or escape) or it

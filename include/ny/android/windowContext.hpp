@@ -13,10 +13,13 @@ namespace ny {
 
 struct AndroidWindowSettings : public WindowSettings {};
 
-///Android WindowContext implementation.
-///Cannot implement many of the desktop-orientated functions correctly, i.e. has
-///few capabilities.
-///Wrapper around ANativeWindow functionality.
+/// Android WindowContext implementation.
+/// Cannot implement many of the desktop-orientated functions correctly, i.e. has
+/// few capabilities.
+/// Note that it might be an empty wrapper when there is currently no native
+/// window for the activity.
+/// The reference native window (and therefore its native handle) might also
+/// change during its lifetime.
 class AndroidWindowContext : public WindowContext {
 public:
 	AndroidWindowContext(AndroidAppContext& ac, const AndroidWindowSettings& settings);
@@ -51,11 +54,23 @@ public:
 	void customDecorated(bool set) override;
 	bool customDecorated() const override { return false; }
 
-	ANativeWindow& nativeWindow() const { return nativeWindow_; }
+	// - android specific -
+	ANativeWindow* nativeWindow() const { return nativeWindow_; }
+
+protected:
+	/// Resets the associated native window.
+	/// Called when the native window is destroyed or a new one is created.
+	/// Will set the nativeWindow_ member to nullptr.
+	/// Derived implementations must make sure that the previous
+	/// native window or resources created for it are no longer accessed or
+	/// create new resources.
+	/// Might be nullptr if the native window is destroyed.
+	virtual void nativeWindow(ANativeWindow*);
+	friend class AndroidAppContext;
 
 protected:
 	AndroidAppContext& appContext_;
-	ANativeWindow& nativeWindow_;
+	ANativeWindow* nativeWindow_;
 };
 
 } // namespace ny

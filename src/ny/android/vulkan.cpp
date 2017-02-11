@@ -20,7 +20,7 @@ AndroidVulkanWindowContext::AndroidVulkanWindowContext(AndroidAppContext& ac,
 
 	VkAndroidSurfaceCreateInfoKHR info {};
 	info.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
-	info.window = &nativeWindow();
+	info.window = nativeWindow();
 
 	auto* allocCbs = ws.vulkan.allocationCallbacks;
 	if(allocCbs) allocationCallbacks_ = std::make_unique<VkAllocationCallbacks>(*allocCbs);

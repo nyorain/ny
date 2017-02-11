@@ -8,16 +8,12 @@
 #include <nytl/tmpUtil.hpp>
 
 #include <android/log.h>
+#include <cstring> // std::memcpy
 
 // NOTE: we will never throw from inside the callbacks
 // since this might end badly considering android general
 // poor c++ exception support
 // Logging the message is the best we can do
-
-// NOTE: we wait until the native window is created until
-// we create and start the main thread to make sure we will
-// never have to create a WindowContext in AppContext without
-// having the native window retrieved yet
 
 // External main declaration
 // implemented by application
@@ -53,90 +49,130 @@ Activity& Activity::instanceUnchecked()
 	return singleton;
 }
 
-void Activity::onStart(ANativeActivity*)
-{
-	// not interesting atm
-	log("activity::onStart");
-}
-void Activity::onResume(ANativeActivity*)
-{
-	// not interesting atm
-	log("activity::onResume");
-}
-void Activity::onPause(ANativeActivity*)
-{
-	// not interesting atm
-	log("activity::onPause");
-}
-void Activity::onStop(ANativeActivity*)
-{
-	// not interesting atm
-	log("activity::onStop");
-}
-void Activity::onDestroy(ANativeActivity* nativeActivity)
-{
-	// make sure the NativeActivity is accessed no longer
-	auto& activity = retrieveActivity(*nativeActivity);
-	activity.destroy();
-}
-void Activity::onWindowFocusChanged(ANativeActivity* nativeActivity, int hasFocus)
+void Activity::onStart(ANativeActivity* nativeActivity) noexcept
 {
 	auto& activity = retrieveActivity(*nativeActivity);
-	auto appContext = activity.appContext_.load();
+	std::lock_guard<std::mutex> lock(activity.mutex_);
+	auto appContext = activity.appContext_;
 
 	if(appContext)
-		appContext->windowFocusChanged(hasFocus);
+		appContext->pushEvent({ActivityEventType::start});
+}
+void Activity::onResume(ANativeActivity* nativeActivity) noexcept
+{
+	auto& activity = retrieveActivity(*nativeActivity);
+	std::lock_guard<std::mutex> lock(activity.mutex_);
+	auto appContext = activity.appContext_;
+
+	if(appContext)
+		appContext->pushEvent({ActivityEventType::resume});
+}
+void Activity::onPause(ANativeActivity* nativeActivity) noexcept
+{
+	auto& activity = retrieveActivity(*nativeActivity);
+	std::lock_guard<std::mutex> lock(activity.mutex_);
+	auto appContext = activity.appContext_;
+
+	if(appContext)
+		appContext->pushEvent({ActivityEventType::pause});
+}
+void Activity::onStop(ANativeActivity* nativeActivity) noexcept
+{
+	auto& activity = retrieveActivity(*nativeActivity);
+	std::lock_guard<std::mutex> lock(activity.mutex_);
+	auto appContext = activity.appContext_;
+
+	if(appContext)
+		appContext->pushEvent({ActivityEventType::stop});
+}
+void Activity::onDestroy(ANativeActivity* nativeActivity) noexcept
+{
+	// TODO: may not work as intended
+
+	auto& activity = retrieveActivity(*nativeActivity);
+	std::lock_guard<std::mutex> lock(activity.mutex_);
+	activity.destroy();
+	if(activity.appContext_)
+		activity.appContext_->pushEventWait({ActivityEventType::destroy});
+}
+void Activity::onWindowFocusChanged(ANativeActivity* nativeActivity, int hasFocus) noexcept
+{
+	auto& activity = retrieveActivity(*nativeActivity);
+	std::lock_guard<std::mutex> lock(activity.mutex_);
+	if(activity.appContext_) {
+		ActivityEvent ae;
+		ae.type = ActivityEventType::windowFocus;
+		ae.data[0] = hasFocus;
+		activity.appContext_->pushEvent(ae);
+	}
 }
 void Activity::onNativeWindowCreated(ANativeActivity* nativeActivity,
-	ANativeWindow* window)
+	ANativeWindow* window) noexcept
 {
 	auto& activity = retrieveActivity(*nativeActivity);
-	if(activity.window_) {
-		warning("onNativeWindowCreated: already has window");
-		return;
-	}
-
-	log("native window created");
+	std::lock_guard<std::mutex> lock(activity.mutex_);
 	activity.window_ = window;
-
-	// now we start the main thread
-	auto mainWrapper = [&]{ activity.mainThreadFunction(); };
-	activity.mainThread_ = std::thread(mainWrapper);
+	if(activity.appContext_) {
+		ActivityEvent ae;
+		ae.type = ActivityEventType::windowCreated;
+		std::memcpy(ae.data, &window, sizeof(window));
+		activity.appContext_->pushEvent(ae);
+	}
 }
 void Activity::onNativeWindowResized(ANativeActivity* nativeActivity,
-	ANativeWindow*)
+	ANativeWindow* window) noexcept
 {
 	auto& activity = retrieveActivity(*nativeActivity);
-	auto appContext = activity.appContext_.load();
-	if(appContext)
-		appContext->windowResized();
+	std::lock_guard<std::mutex> lock(activity.mutex_);
+	if(activity.appContext_) {
+		ActivityEvent ae;
+		ae.type = ActivityEventType::windowResize;
+
+		auto width = ANativeWindow_getWidth(window);
+		auto height = ANativeWindow_getHeight(window);
+		std::memcpy(&ae.data[0], &width, 4);
+		std::memcpy(&ae.data[4], &height, 4);
+
+		activity.appContext_->pushEvent(ae);
+	}
 }
 void Activity::onNativeWindowRedrawNeeded(ANativeActivity* nativeActivity,
-	ANativeWindow*)
+	ANativeWindow*) noexcept
 {
 	auto& activity = retrieveActivity(*nativeActivity);
-	auto appContext = activity.appContext_.load();
-	if(appContext)
-		appContext->windowRedrawNeeded();
+	std::lock_guard<std::mutex> lock(activity.mutex_);
+	if(activity.appContext_)
+		activity.appContext_->pushEventWait({ActivityEventType::windowRedraw});
 }
 void Activity::onNativeWindowDestroyed(ANativeActivity* nativeActivity,
-	ANativeWindow*)
+	ANativeWindow*) noexcept
 {
 	auto& activity = retrieveActivity(*nativeActivity);
-	auto appContext = activity.appContext_.load();
-	if(appContext)
-		appContext->windowDestroyed();
+	std::lock_guard<std::mutex> lock(activity.mutex_);
+	activity.window_ = nullptr;
+	if(activity.appContext_)
+		activity.appContext_->pushEventWait({ActivityEventType::windowDestroyed});
 }
 void Activity::onInputQueueCreated(ANativeActivity* nativeActivity,
-	AInputQueue* queue)
+	AInputQueue* queue) noexcept
 {
 	auto& activity = retrieveActivity(*nativeActivity);
-	activity.queue_.store(queue);
+	std::lock_guard<std::mutex> lock(activity.mutex_);
+	activity.queue_ = queue;
+	if(activity.appContext_) {
+		ActivityEvent ae;
+		ae.type = ActivityEventType::queueCreated;
+		std::memcpy(ae.data, &queue, sizeof(queue));
+		activity.appContext_->pushEvent(ae);
+	}
 }
-void Activity::onInputQueueDestroyed(ANativeActivity* nativeActivity, AInputQueue*)
+void Activity::onInputQueueDestroyed(ANativeActivity* nativeActivity, AInputQueue*) noexcept
 {
 	auto& activity = retrieveActivity(*nativeActivity);
-	activity.queue_.store(nullptr);
+	std::lock_guard<std::mutex> lock(activity.mutex_);
+	activity.queue_ = nullptr;
+	if(activity.appContext_)
+		activity.appContext_->pushEventWait({ActivityEventType::queueDestroyed});
 }
 
 // Activity
@@ -144,7 +180,7 @@ Activity::~Activity()
 {
 	if(valid()) {
 		ny::log("ny::android::~Activity: destroy not called");
-		activity_.load()->instance = nullptr;
+		activity_->instance = nullptr;
 	}
 
 	mainThread_.join();
@@ -158,10 +194,10 @@ void Activity::init(ANativeActivity& nativeActivity)
 	warningLogger() = std::make_unique<AndroidLogger>(ANDROID_LOG_WARN, "ny::warning");
 	errorLogger() = std::make_unique<AndroidLogger>(ANDROID_LOG_ERROR, "ny::error");
 
-	ny::log("ny::android: initialized");
+	log("ny::android: initialized");
 
 	// set all needed callbacks
-	activity_.store(&nativeActivity);
+	activity_ = &nativeActivity;
 	nativeActivity.instance = this;
 
 	auto& cb = *nativeActivity.callbacks;
@@ -177,27 +213,29 @@ void Activity::init(ANativeActivity& nativeActivity)
 	cb.onNativeWindowResized = &Activity::onNativeWindowResized;
 	cb.onInputQueueCreated = &Activity::onInputQueueCreated;
 	cb.onInputQueueDestroyed = &Activity::onInputQueueDestroyed;
+
+	// start the main thread
+	auto mainWrapper = [&]{ this->mainThreadFunction(); };
+	mainThread_ = std::thread(mainWrapper);
 }
 
 void Activity::destroy()
 {
 	if(!valid()) {
-		ny::warning("ny::android::Acitivity::destroy: not valid");
+		warning("ny::android::Activity::destroy: not valid");
 		return;
 	}
 
-	// signal the appContext
-	// it should access the activity no further and
-	// signal that it cannot be longer used
-	auto appContext = appContext_.load();
-	if(appContext)
-		appContext->activityDestroyed();
-
 	// cleanup
-	activity_.store(nullptr);
-	window_.store(nullptr);
-	queue_.store(nullptr);
-	appContext_.store(nullptr);
+	activity_ = {};
+	window_ = {};
+	queue_ = {};
+}
+
+bool Activity::valid() const
+{
+	std::lock_guard<std::mutex> lock(mutex());
+	return (activity_);
 }
 
 void Activity::mainThreadFunction()
@@ -207,23 +245,23 @@ void Activity::mainThreadFunction()
 	// we always have to call ANativeActivity_stop
 	try {
 		::main(0, nullptr);
-	} catch(const std::exception& error) {
-		ny::error("ny::android: main function exception: ", error.what());
+	} catch(const std::exception& err) {
+		error("ny::android: main function exception: ", err.what());
 	} catch(...) {
-		ny::error("ny::android: main function threw unknown exception object");
+		error("ny::android: main function threw unknown exception object");
 	}
 
-	ny::log("ny::android: Exiting main thread, finishing activity");
+	log("ny::android: Exiting main thread, finishing activity");
 
 	// stop the native activity
 	// this makes the application quit
 	// needed since we run main not in the main thread
 	// the main thread belongs to the activity
-	ANativeActivity_finish(activity_.load());
+	ANativeActivity_finish(activity_);
 }
 
 // utility
-Activity& retrieveActivity(const ANativeActivity& nativeActivity)
+Activity& retrieveActivity(const ANativeActivity& nativeActivity) noexcept
 {
 	return *static_cast<Activity*>(nativeActivity.instance);
 }

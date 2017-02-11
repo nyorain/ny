@@ -13,15 +13,15 @@
 
 namespace ny {
 
-///Wayland MouseContext implementation
+/// Wayland MouseContext implementation
 class WaylandMouseContext : public MouseContext, public nytl::NonMovable {
 public:
-	WaylandMouseContext(WaylandAppContext& ac, wl_seat& seat);
+	WaylandMouseContext(WaylandAppContext&, wl_seat&);
 	~WaylandMouseContext();
 
 	// MouseContext
 	nytl::Vec2i position() const override { return position_; }
-	bool pressed(MouseButton button) const override;
+	bool pressed(MouseButton) const override;
 	WindowContext* over() const override;
 
 	// - wayland specific -
@@ -66,10 +66,10 @@ protected:
 /// Wayland KeyboardContext implementation
 class WaylandKeyboardContext : public XkbKeyboardContext {
 public:
-	WaylandKeyboardContext(WaylandAppContext& ac, wl_seat& seat);
+	WaylandKeyboardContext(WaylandAppContext&, wl_seat&);
 	~WaylandKeyboardContext();
 
-	bool pressed(Keycode key) const override;
+	bool pressed(Keycode) const override;
 	WindowContext* focus() const override { return focus_; }
 
 	// - wayland specific -

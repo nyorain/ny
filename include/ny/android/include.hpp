@@ -11,6 +11,13 @@
 	#error ny was built without android. Do not include this header file!
 #endif //Android
 
+// android fwd decl
+using AInputEvent = struct AInputEvent;
+using ANativeWindow = struct ANativeWindow;
+
+struct ANativeWindow_Buffer;
+struct ANativeActivity;
+
 namespace ny {
 	class AndroidBackend;
 	class AndroidAppContext;
