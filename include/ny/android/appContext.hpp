@@ -39,7 +39,7 @@ public:
 	EglSetup* eglSetup() const;
 	android::Activity& activity() const { return activity_; }
 	ANativeActivity* nativeActivity() const { return nativeActivity_; }
-	ANativeWindow* nativeWindow() const;
+	ANativeWindow* nativeWindow() const { return nativeWindow_; }
 
 protected:
 	void handleActivityEvents();
@@ -66,6 +66,7 @@ protected:
 	AndroidWindowContext* windowContext_ {};
 
 	ANativeActivity* nativeActivity_ {};
+	ANativeWindow* nativeWindow_ {};
 	ALooper* looper_ {};
 	AInputQueue* inputQueue_ {};
 

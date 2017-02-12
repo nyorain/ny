@@ -19,7 +19,7 @@ protected:
 	AppContextPtr createAppContext() override;
 	const char* name() const override { return "android"; }
 
-	bool gl() const override { return builtWithGl(); }
+	bool gl() const override { return builtWithEgl(); }
 	bool vulkan() const override { return builtWithVulkan(); }
 
 protected:

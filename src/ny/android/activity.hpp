@@ -10,6 +10,7 @@
 #include <thread>
 #include <atomic>
 #include <mutex>
+#include <condition_variable>
 
 namespace ny::android {
 
@@ -30,15 +31,14 @@ public:
 	static Activity* instance();
 
 public:
+	~Activity();
+
 	/// Can be used to get the retrieved native objects.
 	/// The mutex returned by mutex() must be locked while retrieving and
 	/// using them since otherwise they may become invalid.
 	ANativeActivity* nativeActivity() const { return activity_; }
 	ANativeWindow* nativeWindow() const { return window_; }
 	AInputQueue* inputQueue() const { return queue_; }
-
-	/// Returns the std::thread handle to the created main thread.
-	const std::thread& mainThread() const;
 
 	/// Returns the internal synchronization mutex.
 	/// This is locked everytime the internal native variables are accesed
@@ -48,19 +48,15 @@ public:
 	std::mutex& mutex() const { return mutex_; }
 
 private:
-	Activity() = default; // constructs invalid
-	~Activity();
+	Activity(ANativeActivity&);
 
-	void init(ANativeActivity&);
-	void destroy();
-
-	bool valid() const;
 	void mainThreadFunction();
+	void initMainThread();
 
 private:
 	/// The Activity singleton.
 	/// Does not check if it is valid (needed for initialization).
-	static Activity& instanceUnchecked();
+	static std::unique_ptr<Activity>& instanceUnchecked();
 
 	// native activity callback functions
 	// will receive the Activity singleton and change it or
@@ -84,7 +80,8 @@ private:
 	AInputQueue* queue_ {};
 
 	AndroidAppContext* appContext_ {};
-	std::thread mainThread_ {};
+	std::condition_variable mainThreadCV_ {};
+	std::atomic<bool> mainRunning_ {};
 	mutable std::mutex mutex_ {};
 
 	friend class ny::AndroidAppContext;

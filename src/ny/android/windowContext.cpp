@@ -117,9 +117,6 @@ void AndroidWindowContext::nativeWindow(ANativeWindow* nativeWindow)
 		warning("ny::AndroidWindowContext::nativeWindow: already has native window");
 
 	nativeWindow_ = nativeWindow;
-
-	if(nativeWindow_)
-		refresh();
 }
 
 } // namespace ny

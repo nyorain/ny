@@ -34,15 +34,11 @@ public:
 
 // specifies whether extended egl createContext functionality can be used
 bool hasCreateContext = false;
+bool has15 = false;
 
-void loadExtensions(EGLDisplay display, bool has15)
+void loadExtensions(EGLDisplay display)
 {
 	auto exts = eglQueryString(display, EGL_EXTENSIONS);
-	if(has15) {
-		hasCreateContext = true;
-		return;
-	}
-
 	hasCreateContext = glExtensionStringContains(exts, "EGL_KHR_create_context");
 }
 
@@ -54,6 +50,12 @@ void loadExtensions(EGLDisplay display, bool has15)
 	constexpr auto EGL_CONTEXT_OPENGL_COMPATIBILITY_PROFILE_BIT = 0x00000002;
 	constexpr auto EGL_CONTEXT_OPENGL_DEBUG = 0x31B0;
 	constexpr auto EGL_CONTEXT_OPENGL_FORWARD_COMPATIBLE = 0x31B1;
+#endif
+
+#ifndef EGL_CONTEXT_FLAGS_KHR
+	constexpr auto EGL_CONTEXT_FLAGS_KHR = 0x30FC;
+	constexpr auto EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR = 0x00000001;
+	constexpr auto EGL_CONTEXT_OPENGL_FORWARD_COMPATIBLE_BIT_KHR = 0x00000002;
 #endif
 
 } // anonymous util namespace
@@ -77,7 +79,8 @@ EglSetup::EglSetup(void* nativeDisplay)
 		throw std::runtime_error("ny::EglSetup: egl 1.4 not supported");
 	}
 
-	loadExtensions(eglDisplay_, major > 1 || (major == 1 && minor > 4));
+	has15 = major > 1 || (major == 1 && minor > 4);
+	loadExtensions(eglDisplay_);
 
 	// query all available configs
 	constexpr EGLint attribs[] = {
@@ -271,7 +274,7 @@ EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 	}
 
 	// additional flags
-	if(hasCreateContext) {
+	if(hasCreateContext || has15) {
 		std::vector<int> attributes;
 		attributes.reserve(20);
 		std::vector<std::pair<unsigned int, unsigned int>> versionPairs;
@@ -279,22 +282,36 @@ EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 		if(api == GlApi::gles) versionPairs = {{3, 2}, {3, 1}, {3, 0}, {2, 0}, {1, 1}, {1, 0}};
 		else versionPairs = {{4, 5}, {3, 3}, {3, 2}, {3, 1}, {3, 0}, {1, 2}, {1, 0}};
 
+		// profile
 		if(api == GlApi::gl) {
-			// profile
 			attributes.push_back(EGL_CONTEXT_OPENGL_PROFILE_MASK);
 			if(!settings.compatibility) attributes.push_back(EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT);
 			else attributes.push_back(EGL_CONTEXT_OPENGL_COMPATIBILITY_PROFILE_BIT);
-
-			// forward compatible
-			attributes.push_back(EGL_CONTEXT_OPENGL_FORWARD_COMPATIBLE);
-			if(settings.forwardCompatible) attributes.push_back(EGL_TRUE);
-			else attributes.push_back(EGL_FALSE);
 		}
 
-		// debug
-		attributes.push_back(EGL_CONTEXT_OPENGL_DEBUG);
-		if(settings.debug) attributes.push_back(EGL_TRUE);
-		else attributes.push_back(EGL_FALSE);
+		// there are a few differences between egl 1.5. context creation and the
+		// create_context extension... *sigh*
+		if(has15) {
+			// forward compatible
+			if(api == GlApi::gl) {
+				attributes.push_back(EGL_CONTEXT_OPENGL_FORWARD_COMPATIBLE);
+				if(settings.forwardCompatible) attributes.push_back(EGL_TRUE);
+				else attributes.push_back(EGL_FALSE);
+			}
+
+			// debug
+			attributes.push_back(EGL_CONTEXT_OPENGL_DEBUG);
+			if(settings.debug) attributes.push_back(EGL_TRUE);
+			else attributes.push_back(EGL_FALSE);
+		} else {
+			auto flags = 0u;
+			if(settings.debug) flags |= EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR;
+			if(api == GlApi::gl && settings.forwardCompatible)
+				flags |= EGL_CONTEXT_OPENGL_FORWARD_COMPATIBLE_BIT_KHR;
+
+			attributes.push_back(EGL_CONTEXT_FLAGS_KHR);
+			attributes.push_back(flags);
+		}
 
 		// version set later
 		attributes.push_back(EGL_CONTEXT_MAJOR_VERSION);
@@ -309,8 +326,11 @@ EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 			attributes[attributes.size() - 4] = p.first;
 			attributes[attributes.size() - 2] = p.second;
 
-			if(p.first < 3 && api == GlApi::gl)
-				attributes[3] = EGL_FALSE;
+			// unset forward compatible for versions < 3.0
+			if(p.first < 3 && api == GlApi::gl) {
+				if(has15) attributes[3] = EGL_FALSE;
+				else attributes[3] &= ~EGL_CONTEXT_OPENGL_FORWARD_COMPATIBLE_BIT_KHR;
+			}
 
 			auto attribData = attributes.data();
 			eglContext_ = ::eglCreateContext(eglDisplay, eglConfig, eglShareContext, attribData);
@@ -321,11 +341,14 @@ EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 
 		if(!eglContext_) {
 			auto msg = EglErrorCategory::errorCode().message();
-			warning("ny::EglContext: could not create context for any request version: ", msg);
+			warning("ny::EglContext: could not create context for any version: ", msg);
 		}
 	} else {
 		warning("ny::EglContext: create_context extension and egl 1.5 not available");
+	}
 
+	// try (again) if extension is not present or creation failed
+	if(!eglContext_) {
 		if(api == GlApi::gles) {
 			EGLint attribs[3] = {EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
 			eglContext_ = ::eglCreateContext(eglDisplay, eglConfig, eglShareContext, attribs);

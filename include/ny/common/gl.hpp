@@ -182,8 +182,8 @@ public:
 
 	/// Returns whether the surface is current in the calling thread.
 	/// If so and a non-null GlContext** parameter was given, sets it to the current context.
-	virtual bool isCurrent(const GlContext** currentContext = nullptr) const;
-	virtual bool isCurrentInAnyThread(const GlContext** currentContext = nullptr) const;
+	virtual bool isCurrent(GlContext** currentContext = nullptr) const;
+	virtual bool isCurrentInAnyThread(GlContext** currentContext = nullptr) const;
 
 	/// Applies the pending contents of the surface, swaps buffers for multibuffered surfaces.
 	/// \excpetion std::system_error If calling the native function fails.

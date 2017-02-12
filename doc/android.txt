@@ -39,3 +39,7 @@ android update project -t android-24 --name ny-android --path .
 ant debug
 ndk-build && ant debug && adb install -r bin/ny-android-debug.apk && adb logcat
 # start the app on the connected smartphone
+
+
+# shortform, run in build/test
+ninja -C .. ny && cp ../src/ny/libny.so jni/libny.so && ndk-build && ant debug && adb install -r bin/ny-android-debug.apk && adb logcat

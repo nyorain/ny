@@ -163,7 +163,7 @@ std::unique_ptr<GlContext> GlSetup::createContext(const GlSurface& surface,
 }
 
 // GlSurface
-bool GlSurface::isCurrent(const GlContext** currentContext) const
+bool GlSurface::isCurrent(GlContext** currentContext) const
 {
 	std::mutex* mutex;
 	auto& map = contextCurrentMap(mutex);
@@ -176,7 +176,7 @@ bool GlSurface::isCurrent(const GlContext** currentContext) const
 	return true;
 }
 
-bool GlSurface::isCurrentInAnyThread(const GlContext** currentContext) const
+bool GlSurface::isCurrentInAnyThread(GlContext** currentContext) const
 {
 
 	std::mutex* mutex;

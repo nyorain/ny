@@ -89,6 +89,7 @@ void AndroidBufferWindowContext::nativeWindow(ANativeWindow* window)
 	if(window) {
 		bufferSurface_ = std::make_unique<AndroidBufferSurface>(*window);
 		SurfaceCreatedEvent sce;
+		sce.surface = {*bufferSurface_};
 		listener().surfaceCreated(sce);
 	}
 }

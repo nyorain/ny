@@ -101,6 +101,9 @@ struct AndroidAppContext::Impl {
 #endif //WithEGL
 };
 
+// TODO; replace nativeActivity_ rather with a running flag or something?
+// that is what it is used for in the end
+
 // AndroidAppContext
 AndroidAppContext::AndroidAppContext(android::Activity& activity) : activity_(activity)
 {
@@ -121,6 +124,7 @@ AndroidAppContext::AndroidAppContext(android::Activity& activity) : activity_(ac
 
 		activity_.appContext_ = this;
 		nativeActivity_ = activity_.nativeActivity();
+		nativeWindow_ = activity_.nativeWindow();
 		inputQueue_ = activity_.inputQueue();
 	}
 
@@ -131,14 +135,15 @@ AndroidAppContext::~AndroidAppContext()
 {
 	// clear the event queue
 	// this will also unblock the activity thread
-	std::unique_lock<std::mutex> lock(impl_->eventQueueMutex);
-	while(!impl_->activityEvents.empty()) {
-		auto event = impl_->activityEvents.front();
-		impl_->activityEvents.pop();
-		lock.unlock();
+	{
+		std::lock_guard<std::mutex> lock(impl_->eventQueueMutex);
+		while(!impl_->activityEvents.empty()) {
+			auto event = impl_->activityEvents.front();
+			impl_->activityEvents.pop();
 
-		if(event.signalCV)
-			event.signalCV->store(true);
+			if(event.signalCV)
+				event.signalCV->store(true);
+		}
 	}
 
 	// notify waiting activity thread
@@ -216,13 +221,14 @@ bool AndroidAppContext::dispatchLoop(LoopControl& loopControl)
 	int outFd, outEvents;
 	void* outData;
 
-	while(loopImpl.run.load() && nativeActivity_) {
-		log("dispatchLoop");
+	while(loopImpl.run.load()) {
 		handleActivityEvents();
 		while(auto func = loopImpl.popFunction())
 			func();
 
-		log("begin infinite poll");
+		if(!nativeActivity_)
+			break;
+
 		auto ret = ALooper_pollAll(-1, &outFd, &outEvents, &outData);
 		if(ret == ALOOPER_POLL_ERROR)
 			warning("ny::AndroidAppContext::dispatchLoop: ALooper_pollAll returned error");
@@ -283,7 +289,7 @@ void AndroidAppContext::inputReceived()
 	while((ret = AInputQueue_hasEvents(inputQueue_)) > 0) {
 		AInputEvent* event {};
 		ret = AInputQueue_getEvent(inputQueue_, &event);
-		if(ret <= 0) {
+		if(ret < 0) {
 			warning(funcName, "getEvent failed with error code ", ret);
 			continue;
 		}
@@ -314,7 +320,7 @@ void AndroidAppContext::handleActivityEvents()
 	using android::ActivityEventType;
 
 	std::unique_lock<std::mutex> lock(impl_->eventQueueMutex);
-	while(!impl_->activityEvents.empty()) {
+	while(!impl_->activityEvents.empty() && nativeActivity_) {
 		auto event = impl_->activityEvents.front();
 		impl_->activityEvents.pop();
 		lock.unlock();
@@ -322,6 +328,8 @@ void AndroidAppContext::handleActivityEvents()
 		ANativeWindow* window;
 		AInputQueue* queue;
 		nytl::Vec2i32 size;
+
+		// TODO: handle (e.g. expose public callbacks) for start/stop/pause/resume functions
 
 		switch(event.type) {
 			case ActivityEventType::windowCreated:
@@ -347,6 +355,10 @@ void AndroidAppContext::handleActivityEvents()
 			case ActivityEventType::windowResize:
 				std::memcpy(&size, event.data, sizeof(size));
 				windowResized(size);
+				break;
+			case ActivityEventType::destroy:
+				log("destroy Event received dude!");
+				nativeActivity_ = {};
 				break;
 			default:
 				break;
@@ -439,19 +451,20 @@ void AndroidAppContext::windowRedrawNeeded()
 }
 void AndroidAppContext::windowCreated(ANativeWindow& window)
 {
-	log("ny::AndroidAppContext::windowCreated: ", (void*) &window, " -- ", windowContext_);
+	nativeWindow_ = &window;
 	if(windowContext_)
 		windowContext_->nativeWindow(&window);
 }
 void AndroidAppContext::windowDestroyed()
 {
-	log("ny::AndroidAppContext::windowDestroyed: !");
+	nativeWindow_ = nullptr;
 	if(windowContext_)
 		windowContext_->nativeWindow(nullptr);
 }
 void AndroidAppContext::inputQueueCreated(AInputQueue& queue)
 {
 	inputQueue_ = &queue;
+	initQueue();
 }
 void AndroidAppContext::inputQueueDestroyed()
 {
@@ -462,12 +475,6 @@ void AndroidAppContext::inputQueueDestroyed()
 
 	AInputQueue_detachLooper(inputQueue_);
 	inputQueue_ = nullptr;
-}
-
-ANativeWindow* AndroidAppContext::nativeWindow() const
-{
-	std::lock_guard<std::mutex> lock(activity().mutex());
-	return activity().nativeWindow();
 }
 
 } // namespace ny

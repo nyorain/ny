@@ -37,6 +37,14 @@ void AndroidEglWindowContext::nativeWindow(ANativeWindow* window)
 	if(surface_) {
 		SurfaceDestroyedEvent sde;
 		listener().surfaceDestroyed(sde);
+
+		// TODO: what when the surface is current in another thread?
+		// this has to be handled!
+
+		GlContext* ctx;
+		if(surface_->isCurrent(&ctx))
+			ctx->makeNotCurrent();
+
 		surface_.reset();
 	}
 
