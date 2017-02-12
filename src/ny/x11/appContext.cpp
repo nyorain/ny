@@ -53,7 +53,7 @@ namespace {
 /// X11 LoopInterface implementation.
 /// Wakes up a blocking xcb_connection by simply sending a client message to
 /// a dummy window.
-class X11LoopImpl : public ny::LoopInterfaceGuard {
+class X11LoopImpl : public ny::LoopInterface {
 public:
 	xcb_connection_t& xConnection;
 	xcb_window_t xDummyWindow {};
@@ -64,7 +64,7 @@ public:
 
 public:
 	X11LoopImpl(LoopControl& control, xcb_connection_t& conn, xcb_window_t win)
-		:  LoopInterfaceGuard(control), xConnection(conn), xDummyWindow(win) {}
+		:  LoopInterface(control), xConnection(conn), xDummyWindow(win) {}
 
 	bool stop() override
 	{

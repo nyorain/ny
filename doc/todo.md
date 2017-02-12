@@ -5,6 +5,8 @@
 - SurfaceEvent[s] that e.g. signal recreated surfaces
 	- SurfaceDestroy & SurfaceCreate events?
 	- see the android egl/vulkan design problem for window recreation
+- WindowListener::surfaceDestroyed: output warning on default implementation
+	- it was not overriden which can/will lead to serious problems.
 - fix loopControl [synchronization] [pretty much done, fix for backends]
 	- make sure that impl isnt changed during operation on it?!
 		- mutex in loopControl?
@@ -13,6 +15,7 @@
 	- make LoopInterface class movable (and default ctor protected)
 		- useful for late initialization
 			- needed?
+	- testing; code review!
 - egl/wgl/glx library loading (dynamically load opengl)
 	- should GlSetup::procAddr be able to query gl core functions?
 	- fix egl (check in context creation if extension/egl 1.5 available)

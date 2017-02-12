@@ -5,6 +5,7 @@
 #include <ny/android/vulkan.hpp>
 #include <ny/android/appContext.hpp>
 #include <ny/surface.hpp>
+#include <ny/log.hpp>
 
 #define VK_USE_PLATFORM_ANDROID_KHR
 #include <vulkan/vulkan.h>
@@ -18,31 +19,75 @@ AndroidVulkanWindowContext::AndroidVulkanWindowContext(AndroidAppContext& ac,
 	if(!vkInstance_)
 		throw std::logic_error("ny::AndroidVulkanWindowContext: given VkInstance is invalid");
 
+	if(!nativeWindow()) {
+		warning("ny::AndroidVulkanWindowContext: no native window");
+		if(ws.vulkan.storeSurface) *ws.vulkan.storeSurface = 0u;
+		return;
+	}
+
 	VkAndroidSurfaceCreateInfoKHR info {};
 	info.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
 	info.window = nativeWindow();
 
 	auto* allocCbs = ws.vulkan.allocationCallbacks;
-	if(allocCbs) allocationCallbacks_ = std::make_unique<VkAllocationCallbacks>(*allocCbs);
+	if(allocCbs) allocCbs_ = std::make_unique<VkAllocationCallbacks>(*allocCbs);
 
-	auto& surface = reinterpret_cast<VkSurfaceKHR&>(vkSurface_);
-	auto res = vkCreateAndroidSurfaceKHR(vkInstance_, &info, allocationCallbacks_.get(), &surface);
-	if(res != VK_SUCCESS)
-		throw std::runtime_error("ny::AndroidVulkanWindowContext: failed to create vulkan surface");
+	VkSurfaceKHR vkSurface;
+	auto res = vkCreateAndroidSurfaceKHR(vkInstance_, &info, allocCbs_.get(), &vkSurface);
+	if(res != VK_SUCCESS) {
+		std::string msg = "ny::AndroidVulkanWindowContext: ";
+		msg += "vkCreateAndroidSurfaceKHR error code ";
+		msg += std::to_string(res);
+		throw std::runtime_error(msg);
+	}
 
-	if(ws.vulkan.storeSurface) *ws.vulkan.storeSurface = vkSurface_;
+	std::memcpy(&vkSurface_, &vkSurface, sizeof(vkSurface));
+	if(ws.vulkan.storeSurface)
+		*ws.vulkan.storeSurface = vkSurface_;
 }
 
 AndroidVulkanWindowContext::~AndroidVulkanWindowContext()
 {
-	auto surface = (VkSurfaceKHR)vkSurface_;
-	if(vkInstance_ && surface)
-		vkDestroySurfaceKHR(vkInstance_, surface, allocationCallbacks_.get());
+	if(vkSurface_)
+		vkDestroySurfaceKHR(vkInstance_, (VkSurfaceKHR) vkSurface_, allocCbs_.get());
 }
 
 Surface AndroidVulkanWindowContext::surface()
 {
 	return {vkSurface_};
+}
+
+void AndroidVulkanWindowContext::nativeWindow(ANativeWindow* window)
+{
+	AndroidWindowContext::nativeWindow(window);
+
+	if(vkSurface_) {
+		SurfaceDestroyedEvent sde;
+		listener().surfaceDestroyed(sde);
+
+		vkDestroySurfaceKHR(vkInstance_, (VkSurfaceKHR) vkSurface_, allocCbs_.get());
+		vkSurface_ = {};
+	}
+
+	if(window) {
+		VkSurfaceKHR vkSurface;
+		VkAndroidSurfaceCreateInfoKHR info {};
+		info.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
+		info.window = nativeWindow();
+
+		auto res = vkCreateAndroidSurfaceKHR(vkInstance_, &info, allocCbs_.get(), &vkSurface);
+		if(res != VK_SUCCESS) {
+			std::string msg = "ny::AndroidVulkanWindowContext::nativeWindow: ";
+			msg += "vkCreateAndroidSurfaceKHR error code ";
+			msg += std::to_string(res);
+			warning(msg);
+		} else {
+			std::memcpy(&vkSurface_, &vkSurface, sizeof(vkSurface));
+			SurfaceCreatedEvent sce;
+			sce.surface = {vkSurface_};
+			listener().surfaceCreated(sce);
+		}
+	}
 }
 
 } // namespace ny

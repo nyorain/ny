@@ -42,7 +42,7 @@ namespace ny {
 namespace {
 
 // LoopInterface implementation
-class WinapiLoopImpl : public ny::LoopInterfaceGuard {
+class WinapiLoopImpl : public ny::LoopInterface {
 public:
 	DWORD threadHandle;
 
@@ -51,7 +51,7 @@ public:
 	std::mutex mutex;
 
 public:
-	WinapiLoopImpl(LoopControl& lc) : LoopInterfaceGuard(lc)
+	WinapiLoopImpl(LoopControl& lc) : LoopInterface(lc)
 	{
 		threadHandle = ::GetCurrentThreadId();
 	}

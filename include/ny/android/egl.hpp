@@ -9,8 +9,6 @@
 
 namespace ny {
 
-// TODO: same problem as vulkan; -> Surface events (see todo)
-
 /// Android WindowContext implementation that creates an egl surface.
 class AndroidEglWindowContext : public AndroidWindowContext {
 public:
@@ -20,11 +18,14 @@ public:
 	Surface surface() override;
 	EglSurface& eglSurface() const { return *surface_; }
 
+	using AndroidWindowContext::nativeWindow;
+
 protected:
 	void nativeWindow(ANativeWindow*) override;
 
 protected:
 	std::unique_ptr<EglSurface> surface_;
+	GlConfigID glConfig_;
 };
 
 } // namespace ny

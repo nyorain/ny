@@ -209,8 +209,6 @@ bool AndroidAppContext::dispatchEvents()
 
 bool AndroidAppContext::dispatchLoop(LoopControl& loopControl)
 {
-	static bool refreshed = false; // XXX
-
 	if(!nativeActivity_)
 		return false;
 
@@ -228,12 +226,6 @@ bool AndroidAppContext::dispatchLoop(LoopControl& loopControl)
 		auto ret = ALooper_pollAll(-1, &outFd, &outEvents, &outData);
 		if(ret == ALOOPER_POLL_ERROR)
 			warning("ny::AndroidAppContext::dispatchLoop: ALooper_pollAll returned error");
-
-		if(!refreshed && windowContext_ && windowContext_->nativeWindow()) {
-			log("REFRESH!!!");
-			windowContext_->refresh();
-			refreshed = true;
-		}
 	}
 
 	return (nativeActivity_);
@@ -320,9 +312,7 @@ void AndroidAppContext::inputReceived()
 void AndroidAppContext::handleActivityEvents()
 {
 	using android::ActivityEventType;
-	static const std::string funcName = "ny::AndroidAppContext::handleActivityEvents: ";
 
-	log("handleActivityEvents");
 	std::unique_lock<std::mutex> lock(impl_->eventQueueMutex);
 	while(!impl_->activityEvents.empty()) {
 		auto event = impl_->activityEvents.front();
@@ -332,8 +322,6 @@ void AndroidAppContext::handleActivityEvents()
 		ANativeWindow* window;
 		AInputQueue* queue;
 		nytl::Vec2i32 size;
-
-		log("event! type ", (int) event.type);
 
 		switch(event.type) {
 			case ActivityEventType::windowCreated:

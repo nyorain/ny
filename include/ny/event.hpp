@@ -5,6 +5,7 @@
 #pragma once
 
 #include <ny/fwd.hpp>
+#include <ny/surface.hpp> // ny::Surface
 #include <nytl/vec.hpp> // nytl::Vec
 #include <nytl/flags.hpp> // ny::WindowEdges (nytl::Flags)
 #include <nytl/clone.hpp> // nytl::Cloneable
@@ -118,5 +119,28 @@ struct DrawEvent : public Event {};
 
 /// Event for a window that should be closed.
 struct CloseEvent : public Event {};
+
+/// Event for a destroyed associated surface.
+/// Sent if e.g. the retrieved buffer, egl or vulkan surface can no
+/// longer be used.
+/// It must not be further accessed and all associated resources destroyed after
+/// the callback listener for this function returns.
+/// Will not be sent on WindowContext destruction.
+/// This might happen e.g. for the android backend when the native window
+/// is temporarily closed.
+struct SurfaceDestroyedEvent : public Event {};
+
+/// This event is sent when a new buffer, egl or vulkan surface is created.
+/// Will only be sent after a SurfaceDestroyedEvent was sent.
+/// Can be used to directly retrieve the new surface which can be used
+/// until the associated WindowContext is destroyed or the next SurfaceDestroyedEvent
+/// is received. Will not be sent on WindowContext creation.
+/// The surface is guaranteed to hold a valid implementation of the surface type
+/// the WindowContext was created with.
+/// This might happen e.g. for the android backend when the native window
+/// is restored after beeing closed.
+struct SurfaceCreatedEvent : public Event {
+	Surface surface;
+};
 
 } // namespace ny

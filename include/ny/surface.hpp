@@ -22,29 +22,27 @@ enum class SurfaceType : unsigned int {
 /// Can be used to get the associated hardware acceleration surface or a raw
 /// memory image buffer into which can be drawn to display context on the
 /// associated Window.
-/// Note that it is not (and should not be) possible to get a raw memory buffer
-/// for hardware accelerated Windows (i.e. if a vulkan/opengl surface was created for them).
-/// Example: ```cpp
+/// Note that vulkan surface are stored as uintptr (and can be casted to
+/// VkSurfaceKHR if not null).
+/// Make sure to correctly implement the surfaceDestroyed and surfaceCreated callback
+/// in your window listener to be notified when the surface must no longer be used.
+/// Example:
+/// ```cpp
 /// auto surface = ny::surface(windowContext);
-/// if(surface.type == ny::SurfaceType::buffer)
-/// {
-/// 	//Render into a raw color buffer.
-/// 	//e.g. set the first color value of the first pixel to 255.
+/// if(surface.type == ny::SurfaceType::buffer) {
+/// 	// Render into a raw color buffer.
+/// 	// e.g. set the first color value of the first pixel to 255.
 /// 	auto bufferGuard = surface->buffer->get();
 /// 	bufferGuard.get().data[0] = 255;
-/// }
-/// else if(surface.type == ny::SurfaceType::gl)
-/// {
-/// 	//Make the gl context current and render using opengl
+/// } else if(surface.type == ny::SurfaceType::gl) {
+/// 	// Make the gl context current and render using opengl
 /// 	auto glSurface = surface.gl;
 /// 	glContext->makeCurrent(*glSurface);
 /// 	glClearColor(1.f, 0.f, 0.f, 1.f);
 /// 	glClear(GL_COLOR_BUFFER_BIT);
-/// }
-/// else if(surface.type == ny::SurfaceType::vulkan)
-/// {
-/// 	//Use a swapchain to render on the given VkSurfaceKHR
-/// 	auto swapChain = createSwapChain(surface.vulkan->surface);
+/// } else if(surface.type == ny::SurfaceType::vulkan) {
+/// 	// Use a swapchain to render on the given VkSurfaceKHR
+/// 	auto swapChain = createSwapChain(reinterpret_cast<VkSurfaeKHR>(surface.vulkan->surface));
 /// 	renderOnSwapChain(swapChain);
 /// }
 /// ```

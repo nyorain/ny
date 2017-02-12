@@ -17,8 +17,8 @@ namespace ny {
 /// Android BufferSurface implementatoin.
 class AndroidBufferSurface : public BufferSurface {
 public:
-	AndroidBufferSurface(AndroidWindowContext&);
-	~AndroidBufferSurface() = default;
+	AndroidBufferSurface(ANativeWindow&);
+	~AndroidBufferSurface();
 
 	BufferGuard buffer() override;
 
@@ -26,16 +26,8 @@ protected:
 	void apply(const BufferGuard&) noexcept override;
 
 protected:
-	AndroidWindowContext& windowContext_;
+	ANativeWindow& nativeWindow_;
 	ANativeWindow_Buffer buffer_ {};
-
-	// TODO: alternative implementatoin handling?
-	// we can use AndroidBufferWC::nativeWindow(ANativeWindow) override
-
-	// is nullptr or the current window for which the format was applied
-	// stored because the window might be changed and then the format must
-	// again be applied
-	ANativeWindow* formatApplied_ {};
 };
 
 /// Android WindowContext implementation that holds a BufferSurface.
@@ -45,9 +37,13 @@ public:
 	~AndroidBufferWindowContext() = default;
 
 	Surface surface() noexcept override;
+	using AndroidWindowContext::nativeWindow;
 
 protected:
-	AndroidBufferSurface bufferSurface_;
+	void nativeWindow(ANativeWindow*) override;
+
+protected:
+	std::unique_ptr<AndroidBufferSurface> bufferSurface_;
 };
 
 } // namespace ny

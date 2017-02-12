@@ -60,6 +60,9 @@ public:
 	virtual void mouseWheel(const MouseWheelEvent&) {} /// Mouse wheel rotated over window
 	virtual void mouseCross(const MouseCrossEvent&) {} /// Mouse entered/left window
 
+	virtual void surfaceDestroyed(const SurfaceDestroyedEvent&) {} /// Associated surface destroyed
+	virtual void surfaceCreated(const SurfaceCreatedEvent&) {} /// New surface created
+
 protected:
 	WindowListener() = default;
 	virtual ~WindowListener() = default;
