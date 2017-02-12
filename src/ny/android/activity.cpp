@@ -19,9 +19,19 @@
 //   main thread. This will minimize the change to create a WindowContext
 //   without native window which may trigger application bugs.
 
-// External main declaration
-// implemented by application
-extern int main(int, char**);
+// NOTE: there can actually be mulitple ny::android::Activity objects at
+//   the same time when a new app process is stared before the other one ended.
+//   Since they partly share storage (somehow) we must handle this case in Activity
+//   and especially care about the global instances.
+//   The Activity::instance singleton will always hold the last created activity
+//   since the older activity will probably we destructed in the next time.
+
+// TODO: should be maybe join the main thread instead of detaching it?
+
+// Proxy to main compiled in a seperate C unit
+// calls the main function since its only allowed in C code
+// See mainProxy.c for the implementation
+extern "C" int mainProxyC(int argc, char** argv);
 
 namespace ny::android {
 
@@ -42,13 +52,12 @@ protected:
 // Activity - static
 Activity* Activity::instance()
 {
-	return instanceUnchecked().get();
-	return nullptr;
+	return instanceRef().load();
 }
 
-std::unique_ptr<Activity>& Activity::instanceUnchecked()
+std::atomic<Activity*>& Activity::instanceRef()
 {
-	static std::unique_ptr<Activity> singleton;
+	static std::atomic<Activity*> singleton {nullptr};
 	return singleton;
 }
 
@@ -91,7 +100,6 @@ void Activity::onStop(ANativeActivity* nativeActivity) noexcept
 void Activity::onDestroy(ANativeActivity* nativeActivity) noexcept
 {
 	auto& activity = retrieveActivity(*nativeActivity);
-	log("ny::android: onDestroy");
 
 	// send the destroy event to the app context and wait for processing
 	// this will end any event processing by app context
@@ -101,9 +109,14 @@ void Activity::onDestroy(ANativeActivity* nativeActivity) noexcept
 			activity.appContext_->pushEventWait({ActivityEventType::destroy});
 	}
 
+	// if this activity is currently set at the global instance (usually the case)
+	// we first set it to nullptr using an atomic compare_exchange
+	Activity* ptr = &activity;
+	Activity::instanceRef().compare_exchange_strong(ptr, nullptr);
+
 	// delete the Activity global
 	// this will wait for the main thread to finish
-	instanceUnchecked().reset();
+	delete &activity;
 }
 void Activity::onWindowFocusChanged(ANativeActivity* nativeActivity, int hasFocus) noexcept
 {
@@ -120,7 +133,6 @@ void Activity::onNativeWindowCreated(ANativeActivity* nativeActivity,
 	ANativeWindow* window) noexcept
 {
 	auto& activity = retrieveActivity(*nativeActivity);
-	log("ny::android: native window created");
 
 	{
 		std::lock_guard<std::mutex> lock(activity.mutex_);
@@ -225,8 +237,6 @@ Activity::Activity(ANativeActivity& nativeActivity)
 
 Activity::~Activity()
 {
-	log("ny::android::~Activity: reached");
-
 	// assure main thread terminates
 	if(mainRunning_.load()) {
 		std::unique_lock<std::mutex> lock(mutex_);
@@ -234,7 +244,7 @@ Activity::~Activity()
 	}
 
 	activity_->instance = nullptr;
-	log("ny::android::~Activity: reached");
+	log("ny::android::~Activity: activity destroyed");
 }
 
 void Activity::initMainThread()
@@ -252,19 +262,19 @@ void Activity::initMainThread()
 		mainThreadCV_.wait(lock, [&]{ return mainRunning_.load(); });
 	}
 
-	log("ny::android::Activity: main thread started");
+	log("ny::android::Activity::initMainThread: main thread started");
 }
 
 void Activity::mainThreadFunction()
 {
-	log("ny::android::Activity: Starting main thread");
 	mainRunning_.store(true);
 	mainThreadCV_.notify_one();
 
 	// call the applications main method
 	// since this is the main thread function we output exceptions
+	int ret = 0u;
 	try {
-		::main(0, nullptr);
+		ret = ::mainProxyC(0, nullptr);
 	} catch(const std::exception& err) {
 		error("ny::android: main function exception: ", err.what());
 	} catch(...) {
@@ -273,7 +283,7 @@ void Activity::mainThreadFunction()
 
 	mainRunning_.store(false);
 	mainThreadCV_.notify_one();
-	log("ny::android::Activity: Exiting main thread");
+	log("ny::android::Activity: main returned ", ret ,". Exiting main thread.");
 }
 
 // utility
@@ -297,20 +307,7 @@ extern "C"
 void ANativeActivity_onCreate(ANativeActivity* activity, void* savedState, size_t savedStateSize)
 {
 	using ny::android::Activity;
-	// if(Activity::instance()) {
-	// 	ny::warning("there is already an instance...");
-	// 	// ANativeActivity_finish(Activity::instance()->activity_);
-	// 	Activity::onDestroy(Activity::instance()->activity_);
-	//
-	// 	if(Activity::instance() && Activity::instance()->mainRunning_) {
-	// 		std::unique_lock<std::mutex> lock(Activity::instance()->mutex_);
-	// 		Activity::instance()->mainThreadCV_.wait(lock, [&]{ return Activity::instance() == nullptr || !Activity::instance()->mainRunning_.load(); });
-	// 		ny::warning("finished waiting...");
-	// 	}
-	// }
 
-	Activity::instanceUnchecked().release();
 	nytl::unused(savedState, savedStateSize);
-	Activity::instanceUnchecked().reset(new Activity(*activity));
-	// Activity::instance()->initMainThread();
+	Activity::instanceRef().store(new Activity(*activity));
 }

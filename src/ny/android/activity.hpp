@@ -56,7 +56,7 @@ private:
 private:
 	/// The Activity singleton.
 	/// Does not check if it is valid (needed for initialization).
-	static std::unique_ptr<Activity>& instanceUnchecked();
+	static std::atomic<Activity*>& instanceRef();
 
 	// native activity callback functions
 	// will receive the Activity singleton and change it or

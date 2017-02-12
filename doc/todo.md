@@ -141,16 +141,17 @@ low prio, for later:
 - LoopControl: callIn implementation (combines timer and function call)
 	- can be merged with call function by using `now` as special time value
 - touch support (TouchContext and touch events)
+	- maybe just translate them into pointer evens?
+	- more general events that cover touch and pointer input,
+		- they are conceptually the same, some backends make little difference
+		- maybe just add more information to pointer events and associated
+			them with a pointer id that allows for multiple pointer handling?
 - BufferSurfaceSettings, things like preferred strideAlign or format
 	- double buffers setting
 	- cairo/skia integration mockups
 	- rewrite/fix cairo/skia examples
 - noexcept specifications (especially for interfaces!)
-- rework glx/egl/wgl api loading (glad without loader)
-	- make egl loading totally dynamic, so it can e.g. be used on windows with ANGLE
-	- better gl proc addr loading
-		- i.e. use gl/gles Library members correctly
-- mir, osx, android support
+- mir, osx support
 
 Backend stuff
 =============
@@ -242,3 +243,5 @@ android
 		- application can simply use AppContext
 - toggle fullscreen per window flags (?!)
 - AppContext: expose keyboard show/hide functions
+- android:egl:
+	- make sure to apply the egl config format to the native window

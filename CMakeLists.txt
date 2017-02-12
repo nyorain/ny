@@ -170,9 +170,9 @@ if(BuildExamples)
 	add_subdirectory(src/examples)
 endif()
 
-# if(Android)
-# 	add_subdirectory(src/examples/android)
-# endif()
+if(Android)
+	add_subdirectory(src/examples/android/cmake)
+endif()
 
 # uninstall target
 # this makes it possible to uninstall ny ('ninja uninstall') after it has been installed

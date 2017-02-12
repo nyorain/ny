@@ -6,6 +6,7 @@
 
 #include <ny/android/include.hpp>
 #include <ny/android/activity.hpp>
+#include <ny/android/input.hpp>
 #include <ny/appContext.hpp>
 
 #include <android/native_activity.h>
@@ -22,8 +23,8 @@ public:
 	~AndroidAppContext();
 
 	WindowContextPtr createWindowContext(const WindowSettings& settings) override;
-	MouseContext* mouseContext() override { return nullptr; }
-	KeyboardContext* keyboardContext() override { return nullptr; }
+	MouseContext* mouseContext() override { return &mouseContext_; }
+	KeyboardContext* keyboardContext() override { return &keyboardContext_; }
 
 	bool dispatchEvents() override;
 	bool dispatchLoop(LoopControl&) override;
@@ -40,6 +41,10 @@ public:
 	android::Activity& activity() const { return activity_; }
 	ANativeActivity* nativeActivity() const { return nativeActivity_; }
 	ANativeWindow* nativeWindow() const { return nativeWindow_; }
+	AndroidWindowContext* windowContext() const { return windowContext_; }
+
+	bool showKeyboard() const;
+	bool hideKeyboard() const;
 
 protected:
 	void handleActivityEvents();
@@ -69,6 +74,9 @@ protected:
 	ANativeWindow* nativeWindow_ {};
 	ALooper* looper_ {};
 	AInputQueue* inputQueue_ {};
+
+	AndroidMouseContext mouseContext_;
+	AndroidKeyboardContext keyboardContext_;
 
 	struct Impl;
 	std::unique_ptr<Impl> impl_;

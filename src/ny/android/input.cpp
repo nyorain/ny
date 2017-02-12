@@ -2,10 +2,17 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
-#include <ny/android/util.hpp>
+#include <ny/android/input.hpp>
+#include <ny/android/appContext.hpp>
+#include <ny/android/windowContext.hpp>
+#include <ny/mouseButton.hpp>
+#include <ny/event.hpp>
 #include <ny/key.hpp>
 
+#include <nytl/vec.hpp>
+
 #include <android/keycodes.h>
+#include <android/input.h>
 
 namespace ny {
 namespace {
@@ -13,7 +20,7 @@ namespace {
 constexpr struct {
 	unsigned int android;
 	Keycode keycode;
-} mappings[] {
+} keyMappings[] {
 	{AKEYCODE_0, Keycode::k0},
 	{AKEYCODE_1, Keycode::k1},
 	{AKEYCODE_2, Keycode::k2},
@@ -125,11 +132,24 @@ constexpr struct {
 	{AKEYCODE_NUMPAD_EQUALS, Keycode::kpequals},
 };
 
+constexpr struct {
+	unsigned int android;
+	KeyboardModifier modifier;
+} modifierMappings[] = {
+	{AMETA_ALT_ON, KeyboardModifier::alt},
+	{AMETA_SHIFT_ON, KeyboardModifier::shift},
+	{AMETA_CTRL_ON, KeyboardModifier::ctrl},
+	{AMETA_META_ON, KeyboardModifier::super},
+	{AMETA_CAPS_LOCK_ON, KeyboardModifier::capsLock},
+	{AMETA_NUM_LOCK_ON, KeyboardModifier::numLock}
+};
+
 } // anonymous util namespace
 
+// util functions
 Keycode androidToKeycode(unsigned int code)
 {
-	for(const auto& mapping : mappings) {
+	for(const auto& mapping : keyMappings) {
 		if(mapping.android == code)
 			return mapping.keycode;
 	}
@@ -139,12 +159,204 @@ Keycode androidToKeycode(unsigned int code)
 
 unsigned int keycodeToAndroid(Keycode keycode)
 {
-	for(const auto& mapping : mappings) {
+	for(const auto& mapping : keyMappings) {
 		if(mapping.keycode == keycode)
 			return mapping.android;
 	}
 
 	return AKEYCODE_UNKNOWN;
+}
+
+KeyboardModifiers androidToModifiers(unsigned int mask)
+{
+	KeyboardModifiers ret {};
+	for(const auto& mapping : modifierMappings) {
+		if(mask & mapping.android)
+			ret |= mapping.modifier;
+	}
+
+	return ret;
+}
+
+unsigned int modifiersToAndroid(KeyboardModifiers mask)
+{
+	unsigned int ret {};
+	for(const auto& mapping : modifierMappings) {
+		if(mask & mapping.modifier)
+			ret |= mapping.android;
+	}
+
+	return ret;
+}
+
+// KeyboardContext
+bool AndroidKeyboardContext::pressed(Keycode key) const
+{
+	auto keyInt = static_cast<unsigned int>(key);
+	if(keyInt >= 255)
+		return false;
+
+	return keyStates_[keyInt];
+}
+
+WindowContext* AndroidKeyboardContext::focus() const
+{
+	return appContext_.windowContext();
+}
+
+KeyboardModifiers AndroidKeyboardContext::modifiers() const
+{
+	return modifiers_;
+}
+
+std::string AndroidKeyboardContext::utf8(Keycode) const
+{
+	// TODO: can be done using JniEnv (in process function as well)
+	return "";
+}
+
+bool AndroidKeyboardContext::process(const AInputEvent& event)
+{
+	auto wc = appContext_.windowContext();
+
+	AndroidEventData eventData;
+	eventData.inputEvent = &event;
+
+	auto action = AKeyEvent_getAction(&event);
+	auto metaState = AKeyEvent_getMetaState(&event);
+	modifiers_ = androidToModifiers(metaState);
+
+	auto akeycode = AKeyEvent_getKeyCode(&event);
+
+	// we skip this keycode so that is handled by android
+	// the application can't handle it anyways (at the moment - TODO?!)
+	if(akeycode == AKEYCODE_BACK)
+		return false;
+
+	if(action == AKEY_EVENT_ACTION_DOWN || action == AKEY_EVENT_ACTION_UP) {
+		bool pressed = (action == AKEY_EVENT_ACTION_DOWN);
+		auto keycode = androidToKeycode(akeycode);
+
+		// skip button we don't know
+		// TODO: merge this with back keycode check?
+		if(keycode == Keycode::none)
+			return false;
+
+		std::string utf8 = ""; // TODO! can be done using JniEnv
+
+		if(wc) {
+			KeyEvent keyEvent;
+			keyEvent.pressed = pressed;
+			keyEvent.keycode = keycode;
+			keyEvent.utf8 = utf8;
+			keyEvent.modifiers = modifiers_;
+			keyEvent.eventData = &eventData;
+			wc->listener().key(keyEvent);
+		}
+
+		auto intCode = static_cast<unsigned int>(keycode);
+		keyStates_[intCode] = pressed;
+		onKey(*this, keycode, utf8, pressed);
+
+		return true;
+	}
+
+	return false;
+}
+
+// MouseContext [or rather touch context]
+// TODO!
+nytl::Vec2i AndroidMouseContext::position() const
+{
+	return {};
+}
+bool AndroidMouseContext::pressed(MouseButton) const
+{
+	return false;
+}
+WindowContext* AndroidMouseContext::over() const
+{
+	return appContext_.windowContext();
+}
+
+bool AndroidMouseContext::process(const AInputEvent& event)
+{
+	// TODO!
+	if(!appContext_.windowContext())
+		return false;
+
+	auto& wc = *appContext_.windowContext();
+	AndroidEventData eventData;
+	eventData.inputEvent = &event;
+
+	// TODO: query more than 1 pointer event
+	// auto pointerCount = AMotionEvent_getPointerCount(&event);
+
+	// query general information
+	nytl::Vec2i pos;
+	pos.x = AMotionEvent_getX(&event, 0);
+	pos.y = AMotionEvent_getY(&event, 0);
+
+	// TODO: handle real buttons
+	// TODO: call callbacks
+
+	// switch the actions
+	auto action = AMotionEvent_getAction(&event);
+	switch(action) {
+		case AMOTION_EVENT_ACTION_DOWN:
+		case AMOTION_EVENT_ACTION_POINTER_DOWN: {
+			MouseButtonEvent mbe;
+			mbe.position = pos;
+			mbe.eventData = &eventData;
+			mbe.button = MouseButton::left;
+			mbe.pressed = true;
+			wc.listener().mouseButton(mbe);
+			break;
+		} case AMOTION_EVENT_ACTION_POINTER_UP:
+		case AMOTION_EVENT_ACTION_UP: {
+			MouseButtonEvent mbe;
+			mbe.position = pos;
+			mbe.eventData = &eventData;
+			mbe.button = MouseButton::left;
+			mbe.pressed = false;
+			wc.listener().mouseButton(mbe);
+			break;
+		} case AMOTION_EVENT_ACTION_MOVE: {
+			MouseMoveEvent mme;
+			mme.position = pos;
+			mme.eventData = &eventData;
+			wc.listener().mouseMove(mme);
+			break;
+		} case AMOTION_EVENT_ACTION_CANCEL: {
+			// TODO
+			break;
+		} case AMOTION_EVENT_ACTION_HOVER_MOVE: {
+			MouseMoveEvent mme;
+			mme.position = pos;
+			mme.eventData = &eventData;
+			wc.listener().mouseMove(mme);
+			break;
+		} case AMOTION_EVENT_ACTION_SCROLL: {
+			MouseWheelEvent mwe;
+			mwe.eventData = &eventData;
+			mwe.value = AMotionEvent_getAxisValue(&event, AMOTION_EVENT_AXIS_VSCROLL, 0);
+			wc.listener().mouseWheel(mwe);
+			break;
+		} case AMOTION_EVENT_ACTION_HOVER_ENTER: {
+			MouseCrossEvent mce;
+			mce.entered = true;
+			wc.listener().mouseCross(mce);
+			break;
+		} case AMOTION_EVENT_ACTION_HOVER_EXIT: {
+			MouseCrossEvent mce;
+			mce.entered = true;
+			wc.listener().mouseCross(mce);
+			break;
+		} default:
+			return false;
+	}
+
+	return true;
 }
 
 } // namespace ny

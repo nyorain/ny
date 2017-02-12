@@ -42,6 +42,7 @@ void loadExtensions(EGLDisplay display)
 	hasCreateContext = glExtensionStringContains(exts, "EGL_KHR_create_context");
 }
 
+// needed version 1.5 values
 #ifndef EGL_VERSION_1_5
 	constexpr auto EGL_CONTEXT_MAJOR_VERSION = 0x3098;
 	constexpr auto EGL_CONTEXT_MINOR_VERSION = 0x30FB;
@@ -52,6 +53,7 @@ void loadExtensions(EGLDisplay display)
 	constexpr auto EGL_CONTEXT_OPENGL_FORWARD_COMPATIBLE = 0x31B1;
 #endif
 
+// needed create_context extension values
 #ifndef EGL_CONTEXT_FLAGS_KHR
 	constexpr auto EGL_CONTEXT_FLAGS_KHR = 0x30FC;
 	constexpr auto EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR = 0x00000001;

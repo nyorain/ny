@@ -101,11 +101,9 @@ struct AndroidAppContext::Impl {
 #endif //WithEGL
 };
 
-// TODO; replace nativeActivity_ rather with a running flag or something?
-// that is what it is used for in the end
-
 // AndroidAppContext
-AndroidAppContext::AndroidAppContext(android::Activity& activity) : activity_(activity)
+AndroidAppContext::AndroidAppContext(android::Activity& activity)
+	: activity_(activity), mouseContext_(*this), keyboardContext_(*this)
 {
 	static const std::string funcName = "ny::AndroidAppContext: ";
 	impl_ = std::make_unique<Impl>();
@@ -277,6 +275,24 @@ EglSetup* AndroidAppContext::eglSetup() const
 	#endif // WithEgl
 }
 
+bool AndroidAppContext::showKeyboard() const
+{
+	if(!nativeActivity_)
+		return false;
+
+	ANativeActivity_showSoftInput(nativeActivity_, ANATIVEACTIVITY_SHOW_SOFT_INPUT_IMPLICIT);
+	return true;
+}
+
+bool AndroidAppContext::hideKeyboard() const
+{
+	if(!nativeActivity_)
+		return false;
+
+	ANativeActivity_hideSoftInput(nativeActivity_, ANATIVEACTIVITY_HIDE_SOFT_INPUT_NOT_ALWAYS);
+	return true;
+}
+
 void AndroidAppContext::inputReceived()
 {
 	static const std::string funcName = "ny::AndroidAppContext::inputReceived: ";
@@ -301,9 +317,9 @@ void AndroidAppContext::inputReceived()
 		auto handled = false;
 		auto type = AInputEvent_getType(event);
 		if(type == AINPUT_EVENT_TYPE_KEY) {
-			// TODO
+			handled = keyboardContext_.process(*event);
 		} else if(type == AINPUT_EVENT_TYPE_MOTION) {
-			// TODO
+			handled = mouseContext_.process(*event);
 		}
 
 		AInputQueue_finishEvent(inputQueue_, event, handled);

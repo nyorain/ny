@@ -110,7 +110,9 @@ if(Android)
 		android/activity.cpp
 		android/backend.cpp
 		android/bufferSurface.cpp
-		android/windowContext.cpp)
+		android/windowContext.cpp
+		android/input.cpp
+		android/mainProxy.c)
 
 	find_library(android-log log)
 	list(APPEND ny_libs android ${android-log})

@@ -13,6 +13,7 @@ namespace ny {
 /// Prefer these over checking whether the associated keys are pressed since
 /// there might or might not be multiple keys for the same modifier on different keyboard.
 enum class KeyboardModifier : unsigned int {
+	none = (1 << 0),
 	shift = (1 << 1),
 	ctrl = (1 << 2),
 	alt = (1 << 3),
