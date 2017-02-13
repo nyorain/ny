@@ -1,34 +1,30 @@
-set(ANDROID_API_LEVEL 24)
-set(ARM_TARGET armeabi)
-set(ANDROID_NAME ny-android)
-
-add_library(ny-android SHARED gl.cpp)
-target_link_libraries(ny-android ny GLESv2)
-
-set(ANDROID_LIBS
-	"$<TARGET_FILE:ny-android>"
-	"$<TARGET_FILE:ny>")
+add_library(ny-basic SHARED gl.cpp)
+target_link_libraries(ny-basic ny GLESv2)
 
 # we know ANDROID_ABI from the android toolchain file
-foreach(value ${ANDROID_LIBS})
-	add_custom_command(TARGET ${ANDROID_NAME}
-		POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E copy
-			${value}
-			"${CMAKE_CURRENT_BINARY_DIR}/libs/${ANDROID_ABI}")
-endforeach()
+string(REGEX REPLACE "^android-" "" apk_api ${ANDROID_PLATFORM})
+# set(apk_api ${ANDROID_PLATFORM})
+set(apk_abi ${ANDROID_ABI})
+set(apk_name ny-basic)
+set(apk_dir ${CMAKE_CURRENT_BINARY_DIR})
+set(apk_libs
+	"$<TARGET_FILE:ny-basic>"
+	"$<TARGET_FILE:ny>")
 
-add_custom_command(TARGET ny-android
+include("apk.cmake" REQUIRED)
+
+create_apk()
+add_dependencies(ny-basic-apk ny-basic)
+
+# copy the AndroidManifest file
+add_custom_command(TARGET ny-basic-apk
+	PRE_BUILD
 	COMMAND ${CMAKE_COMMAND} -E copy
 		"${CMAKE_CURRENT_SOURCE_DIR}/AndroidManifest.xml"
 		"${CMAKE_CURRENT_BINARY_DIR}/AndroidManifest.xml")
 
-add_custom_command(TARGET ny-android
-	COMMAND android update project
-		-t android-${ANDROID_API_LEVEL}
-		--name ${ANDROID_NAME}
-		--path ${CMAKE_CURRENT_BINARY_DIR})
-
-add_custom_command(TARGET ny-android
-	COMMAND ant debug
-	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+add_custom_command(TARGET ny-basic-apk
+	PRE_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy_directory
+		"${CMAKE_CURRENT_SOURCE_DIR}/src"
+		"${CMAKE_CURRENT_BINARY_DIR}/src")

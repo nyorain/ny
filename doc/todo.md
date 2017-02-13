@@ -2,12 +2,9 @@
 
 ### priority
 
-- SurfaceEvent[s] that e.g. signal recreated surfaces
-	- SurfaceDestroy & SurfaceCreate events?
-	- see the android egl/vulkan design problem for window recreation
-- WindowListener::surfaceDestroyed: output warning on default implementation
+- WindowListener::surfaceDestroyed: output warning on default implementation?
 	- it was not overriden which can/will lead to serious problems.
-- fix loopControl [synchronization] [pretty much done, fix for backends]
+- fix loopControl [synchronization] [pretty much done, fix for backends needed]
 	- make sure that impl isnt changed during operation on it?!
 		- mutex in loopControl?
 			- use shared mutex (C++17)
@@ -222,26 +219,28 @@ winapi backend:
 android
 =======
 
-- android/activity: error handling for unexpected situations
+- android/activity: more error handling for unexpected situations
+	- at least output a warning or something so its debuggable
+		- even for situations that indicate android bug
 	- e.g. multiple windows/queue
 	- invalid native activities
 		- at least output warning in retrieveActivity?
 	- there are (theoretically) a few threadunsafe calls
 		in Activity (e.g. the appContext checks)
 		- rather use mutex for synchro
-- call the main thread function from a c function (compiled with a c compiler)
-	because calling main in c++ is not allowed (it is in C)
-- correct window recreation
-	- make WindowContext, AndroidEglSurface, ... recreate themselves
-- make sure callbacks function can NEVER throw
-- better main thread throw handling
+- make sure activity callbacks function can not throw
+	- this will kill the process
+- better handling of exception out of ::main function
 	- application just closes without anything atm (can it be done better?)
 - AndroidWindowSettings (for buffer surface)
 	- give the possibility to choose format (rgba, rgbx, rgb565)
-- make activity.hpp private header
+- make activity.hpp private header ?
+	- might be useful to some applications though (really?)
 	- really error prone to use, should not be from interest for the application
 		- application can simply use AppContext
 - toggle fullscreen per window flags (?!)
-- AppContext: expose keyboard show/hide functions
-- android:egl:
-	- make sure to apply the egl config format to the native window
+- possibility to save state/ retrieve saved state
+	- don't store them all the time might be much data
+	- sth like only store it / make it retrievable until no AppContext was created yet
+- activity:redrawNeeded: check if size changed/capture premature refresh
+	- see function todos

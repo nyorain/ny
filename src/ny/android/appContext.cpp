@@ -5,6 +5,7 @@
 #include <ny/android/appContext.hpp>
 #include <ny/android/windowContext.hpp>
 #include <ny/android/bufferSurface.hpp>
+#include <ny/android/input.hpp>
 #include <ny/log.hpp>
 #include <ny/loopControl.hpp>
 
@@ -18,6 +19,10 @@
  #include <ny/common/egl.hpp>
  #include <ny/android/egl.hpp>
 #endif // Egl
+
+#include <android/native_activity.h>
+#include <android/input.h>
+#include <jni.h>
 
 #include <queue>
 #include <mutex>
@@ -96,14 +101,14 @@ struct AndroidAppContext::Impl {
 	std::condition_variable eventQueueCV;
 
 #ifdef NY_WithEgl
-	bool eglFailed;
-	EglSetup eglSetup;
+	bool eglFailed {};
+	EglSetup eglSetup {};
 #endif //WithEGL
 };
 
 // AndroidAppContext
 AndroidAppContext::AndroidAppContext(android::Activity& activity)
-	: activity_(activity), mouseContext_(*this), keyboardContext_(*this)
+	: activity_(activity)
 {
 	static const std::string funcName = "ny::AndroidAppContext: ";
 	impl_ = std::make_unique<Impl>();
@@ -125,6 +130,22 @@ AndroidAppContext::AndroidAppContext(android::Activity& activity)
 		nativeWindow_ = activity_.nativeWindow();
 		inputQueue_ = activity_.inputQueue();
 	}
+
+	// attach this thread to the java vm to get
+	// the JNIEnv object for making java calls
+	JavaVMAttachArgs attachArgs;
+	attachArgs.version = JNI_VERSION_1_6;
+	attachArgs.name = "NativeThread:ny";
+	attachArgs.group = NULL;
+
+	auto result = nativeActivity_->vm->AttachCurrentThread(&jniEnv_, &attachArgs);
+	if(result == JNI_ERR) {
+		warning(funcName + "attaching the thread to the java vm failed.");
+		jniEnv_ = nullptr;
+	}
+
+	mouseContext_ = std::make_unique<AndroidMouseContext>(*this);
+	keyboardContext_ = std::make_unique<AndroidKeyboardContext>(*this);
 
 	initQueue();
 }
@@ -150,6 +171,17 @@ AndroidAppContext::~AndroidAppContext()
 	{
 		std::lock_guard<std::mutex>(activity_.mutex());
 		activity_.appContext_ = nullptr;
+	}
+
+	keyboardContext_ = {};
+	mouseContext_ = {};
+
+	if(jniEnv_) {
+		if(!nativeActivity_) {
+			warning("ny::~AndroidAppContext: jniEnv_ but not no native activity.");
+		} else {
+			nativeActivity_->vm->DetachCurrentThread();
+		}
 	}
 
 	if(inputQueue_)
@@ -193,17 +225,28 @@ WindowContextPtr AndroidAppContext::createWindowContext(const WindowSettings& se
 	return std::move(ret);
 }
 
+KeyboardContext* AndroidAppContext::keyboardContext()
+{
+	return keyboardContext_.get();
+}
+
+MouseContext* AndroidAppContext::mouseContext()
+{
+	return mouseContext_.get();
+}
+
 bool AndroidAppContext::dispatchEvents()
 {
 	if(!nativeActivity_)
 		return false;
 
-	// TODO: does this really dispatch all pending events or just once?
+	handleActivityEvents();
+	if(!nativeActivity_)
+		return false;
 
 	int outFd, outEvents;
 	void* outData;
-	handleActivityEvents();
-	auto ret = ALooper_pollOnce(0, &outFd, &outEvents, &outData);
+	auto ret = ALooper_pollAll(0, &outFd, &outEvents, &outData);
 	if(ret == ALOOPER_POLL_ERROR)
 		warning("ny::AndroidAppContext::dispatchEvents: ALooper_pollOnce returned error");
 
@@ -221,11 +264,11 @@ bool AndroidAppContext::dispatchLoop(LoopControl& loopControl)
 
 	while(loopImpl.run.load()) {
 		handleActivityEvents();
-		while(auto func = loopImpl.popFunction())
-			func();
-
 		if(!nativeActivity_)
 			break;
+
+		while(auto func = loopImpl.popFunction())
+			func();
 
 		auto ret = ALooper_pollAll(-1, &outFd, &outEvents, &outData);
 		if(ret == ALOOPER_POLL_ERROR)
@@ -301,6 +344,11 @@ void AndroidAppContext::inputReceived()
 		return;
 	}
 
+	if(!nativeActivity_) {
+		warning(funcName, "no native activity. This should not happen");
+		return;
+	}
+
 	auto ret = 0;
 	while((ret = AInputQueue_hasEvents(inputQueue_)) > 0) {
 		AInputEvent* event {};
@@ -317,9 +365,9 @@ void AndroidAppContext::inputReceived()
 		auto handled = false;
 		auto type = AInputEvent_getType(event);
 		if(type == AINPUT_EVENT_TYPE_KEY) {
-			handled = keyboardContext_.process(*event);
+			handled = keyboardContext_->process(*event);
 		} else if(type == AINPUT_EVENT_TYPE_MOTION) {
-			handled = mouseContext_.process(*event);
+			handled = mouseContext_->process(*event);
 		}
 
 		AInputQueue_finishEvent(inputQueue_, event, handled);
@@ -373,8 +421,7 @@ void AndroidAppContext::handleActivityEvents()
 				windowResized(size);
 				break;
 			case ActivityEventType::destroy:
-				log("destroy Event received dude!");
-				nativeActivity_ = {};
+				activityDestroyed();
 				break;
 			default:
 				break;
@@ -491,6 +538,23 @@ void AndroidAppContext::inputQueueDestroyed()
 
 	AInputQueue_detachLooper(inputQueue_);
 	inputQueue_ = nullptr;
+}
+void AndroidAppContext::activityDestroyed()
+{
+	debug("ny::AndroidAppContext::activityDestroyed");
+	if(!nativeActivity_) {
+		warning("ny::AndroidAppContext::activityDestroyed: there is no activity");
+		return;
+	}
+
+	if(jniEnv_) {
+		nativeActivity_->vm->DetachCurrentThread();
+		jniEnv_ = nullptr;
+	}
+
+	nativeActivity_ = nullptr;
+	mouseContext_ = {};
+	keyboardContext_ = {};
 }
 
 } // namespace ny

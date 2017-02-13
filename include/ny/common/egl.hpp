@@ -97,4 +97,19 @@ protected:
 	EGLContext eglContext_ {};
 };
 
+/// EGL std::error_category implementation.
+/// Used to provide error codes for the possibly failing implementation functions.
+/// Implemented at the bottom of this file.
+class EglErrorCategory : public std::error_category {
+public:
+	static EglErrorCategory& instance();
+
+	static std::system_error exception(nytl::StringParam msg = "");
+	static std::error_code errorCode();
+
+public:
+	const char* name() const noexcept override { return "ny::EglErrorCategory"; }
+	std::string message(int code) const override;
+};
+
 } // namespace ny

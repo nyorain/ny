@@ -28,8 +28,6 @@ WaylandEglWindowContext::WaylandEglWindowContext(WaylandAppContext& ac, const Eg
 
 	auto eglDisplay = setup.eglDisplay();
 	auto eglnwindow = static_cast<void*>(wlEglWindow_);
-	auto config = ws.gl.config;
-	if(!config) config = setup.defaultConfig().id;
 
 	surface_ = std::make_unique<EglSurface>(eglDisplay, eglnwindow, ws.gl.config, setup);
 	if(ws.gl.storeSurface) *ws.gl.storeSurface = surface_.get();

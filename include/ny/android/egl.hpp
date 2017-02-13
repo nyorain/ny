@@ -25,7 +25,8 @@ protected:
 
 protected:
 	std::unique_ptr<EglSurface> surface_;
-	GlConfigID glConfig_;
+	int format_ {};
+	GlConfigID glConfig_ {};
 };
 
 } // namespace ny

@@ -16,8 +16,12 @@ namespace ny {
 /// Android KeyboardContext implementation.
 class AndroidKeyboardContext : public KeyboardContext {
 public:
-	AndroidKeyboardContext(AndroidAppContext& ac) : appContext_(ac) {}
+	AndroidKeyboardContext();
+	AndroidKeyboardContext(AndroidAppContext& ac);
 	~AndroidKeyboardContext() = default;
+
+	AndroidKeyboardContext(AndroidKeyboardContext&&) noexcept = default;
+	AndroidKeyboardContext& operator=(AndroidKeyboardContext&&) noexcept = default;
 
 	bool pressed(Keycode) const override;
 	std::string utf8(Keycode) const override;
@@ -28,11 +32,17 @@ public:
 	/// Proccess the given key event.
 	/// Return true if was processed.
 	bool process(const AInputEvent& event);
+	AndroidAppContext& appContext() const { return appContext_; }
+	std::string utf8(unsigned int aKeycode, unsigned int aMetaState) const;
 
 protected:
 	AndroidAppContext& appContext_;
 	std::bitset<255> keyStates_;
 	KeyboardModifiers modifiers_;
+
+	jclass jniKeyEvent_ {};
+	jmethodID jniKeyEventConstructor_ {};
+	jmethodID jniGetUnicodeChar_ {};
 };
 
 /// Android MouseContext implementation.
@@ -40,8 +50,12 @@ protected:
 /// mouse events until further mouse/touch work in ny base.
 class AndroidMouseContext : public MouseContext {
 public:
-	AndroidMouseContext(AndroidAppContext& ac) : appContext_(ac) {}
+	AndroidMouseContext() = default;
+	AndroidMouseContext(AndroidAppContext& ac);
 	~AndroidMouseContext() = default;
+
+	AndroidMouseContext(AndroidMouseContext&& other) noexcept = default;
+	AndroidMouseContext& operator=(AndroidMouseContext&& other) noexcept = default;
 
 	nytl::Vec2i position() const override;
 	bool pressed(MouseButton button) const override;
@@ -51,9 +65,12 @@ public:
 	/// Proccess the given motion event.
 	/// Return true if was processed.
 	bool process(const AInputEvent& event);
+	AndroidAppContext& appContext() const { return appContext_; }
 
 protected:
 	AndroidAppContext& appContext_;
+	nytl::Vec2i position_;
+	bool pressed_ {};
 };
 
 /// Conerts the given android keycode (from android/keycodes.h) to

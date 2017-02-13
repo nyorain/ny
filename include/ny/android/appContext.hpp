@@ -6,11 +6,7 @@
 
 #include <ny/android/include.hpp>
 #include <ny/android/activity.hpp>
-#include <ny/android/input.hpp>
 #include <ny/appContext.hpp>
-
-#include <android/native_activity.h>
-#include <android/looper.h>
 
 namespace ny {
 
@@ -23,8 +19,8 @@ public:
 	~AndroidAppContext();
 
 	WindowContextPtr createWindowContext(const WindowSettings& settings) override;
-	MouseContext* mouseContext() override { return &mouseContext_; }
-	KeyboardContext* keyboardContext() override { return &keyboardContext_; }
+	MouseContext* mouseContext() override;
+	KeyboardContext* keyboardContext() override;
 
 	bool dispatchEvents() override;
 	bool dispatchLoop(LoopControl&) override;
@@ -42,9 +38,17 @@ public:
 	ANativeActivity* nativeActivity() const { return nativeActivity_; }
 	ANativeWindow* nativeWindow() const { return nativeWindow_; }
 	AndroidWindowContext* windowContext() const { return windowContext_; }
+	JNIEnv* jniEnv() const { return jniEnv_; }
 
+	// shows/hides the soft input
+	// see the native_activity documentation
 	bool showKeyboard() const;
 	bool hideKeyboard() const;
+
+	// returns the apps data paths
+	// see the native_activity documentation
+	const char* internalPath() const;
+	const char* externalPath() const;
 
 protected:
 	void handleActivityEvents();
@@ -58,6 +62,7 @@ protected:
 	void inputQueueDestroyed();
 	void windowDestroyed();
 	void windowRedrawNeeded();
+	void activityDestroyed();
 
 	friend class android::Activity;
 	void pushEvent(const android::ActivityEvent& ev) noexcept;
@@ -74,9 +79,10 @@ protected:
 	ANativeWindow* nativeWindow_ {};
 	ALooper* looper_ {};
 	AInputQueue* inputQueue_ {};
+	JNIEnv* jniEnv_ {};
 
-	AndroidMouseContext mouseContext_;
-	AndroidKeyboardContext keyboardContext_;
+	std::unique_ptr<AndroidMouseContext> mouseContext_;
+	std::unique_ptr<AndroidKeyboardContext> keyboardContext_;
 
 	struct Impl;
 	std::unique_ptr<Impl> impl_;

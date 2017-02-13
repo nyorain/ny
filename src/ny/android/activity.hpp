@@ -5,12 +5,15 @@
 #pragma once
 
 #include <ny/android/include.hpp>
-#include <android/native_activity.h>
 
 #include <thread>
 #include <atomic>
 #include <mutex>
 #include <condition_variable>
+
+/// Fwd decl, imlpemented in activity.cpp.
+/// Needed for Activity friend declaration.
+extern "C" void ANativeActivity_onCreate(ANativeActivity*, void*, size_t);
 
 namespace ny::android {
 

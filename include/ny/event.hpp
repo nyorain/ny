@@ -125,6 +125,7 @@ struct CloseEvent : public Event {};
 /// longer be used.
 /// It must not be further accessed and all associated resources destroyed after
 /// the callback listener for this function returns.
+/// The handler must also make sure that e.g. gl surfaces are made uncurrent.
 /// Will not be sent on WindowContext destruction.
 /// This might happen e.g. for the android backend when the native window
 /// is temporarily closed.

@@ -11,9 +11,9 @@ set(vminor 1)
 set(vpatch 0)
 
 # general building options
-option(BuildExamples "Build the ny examples" off)
+option(Examples "Build the ny examples" off)
 option(Debug "Include debug symbols" on)
-option(DependOnNytl "Make ny depend on nytl. Developement option" on)
+option(Depend "Make ny depend on nytl. Developement option" on)
 option(Android "Build nytl for android. Experimental at the moment. Requires ndk" off)
 
 # to disable ninja byproduct warning
@@ -166,13 +166,14 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/ny.pc" DESTINATION lib/pkgconfig)
 add_subdirectory(src/ny)
 add_subdirectory(include)
 
-if(BuildExamples)
-	add_subdirectory(src/examples)
+if(Examples)
+	if(Android)
+		add_subdirectory(src/examples/android/cmake)
+	else()
+		add_subdirectory(src/examples)
+	endif()
 endif()
 
-if(Android)
-	add_subdirectory(src/examples/android/cmake)
-endif()
 
 # uninstall target
 # this makes it possible to uninstall ny ('ninja uninstall') after it has been installed

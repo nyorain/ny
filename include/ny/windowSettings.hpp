@@ -149,13 +149,12 @@ public:
 	bool droppable = false; ///< Whether the window can handle drop events
 
 	/// Can be used to specify if and which context should be created for the window.
-	/// Specifies which union member is active.
 	SurfaceType surface = SurfaceType::none;
-	union {
-		GlSurfaceSettings gl {};
-		VulkanSurfaceSettings vulkan;
-		BufferSurfaceSettings buffer;
-	};
+
+	/// Only the member associated with the set SurfaceType will be respected.
+	GlSurfaceSettings gl {};
+	VulkanSurfaceSettings vulkan {};
+	BufferSurfaceSettings buffer {};
 
 public:
 	// Constructor Needed because of the union.

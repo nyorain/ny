@@ -8,6 +8,8 @@
 #include <nytl/tmpUtil.hpp>
 
 #include <android/log.h>
+#include <android/native_activity.h>
+
 #include <cstring> // std::memcpy
 
 // NOTE: we will never throw from inside the callbacks
@@ -166,12 +168,29 @@ void Activity::onNativeWindowResized(ANativeActivity* nativeActivity,
 	}
 }
 void Activity::onNativeWindowRedrawNeeded(ANativeActivity* nativeActivity,
-	ANativeWindow*) noexcept
+	ANativeWindow* window) noexcept
 {
 	auto& activity = retrieveActivity(*nativeActivity);
 	std::lock_guard<std::mutex> lock(activity.mutex_);
-	if(activity.appContext_)
+	if(activity.appContext_) {
+		// The redraw event is usually triggered by screen rotation
+		// in which case the window size changes (width <-> height) but
+		// we don't receive a size event. Therefore we manually handle it here
+		// TODO: check if size really changed (i.e. store in WindowContext)
+		// 	  or check this generally in AppContext? somewhere!
+		ActivityEvent ae;
+		ae.type = ActivityEventType::windowResize;
+
+		auto width = ANativeWindow_getWidth(window);
+		auto height = ANativeWindow_getHeight(window);
+		std::memcpy(&ae.data[0], &width, 4);
+		std::memcpy(&ae.data[4], &height, 4);
+		activity.appContext_->pushEvent(ae);
+
+		// TODO: some applications might already redraw when receiving the
+		// size event. Caputure this somehow and then not send the extra redraw event...
 		activity.appContext_->pushEventWait({ActivityEventType::windowRedraw});
+	}
 }
 void Activity::onNativeWindowDestroyed(ANativeActivity* nativeActivity,
 	ANativeWindow*) noexcept
@@ -280,6 +299,9 @@ void Activity::mainThreadFunction()
 	} catch(...) {
 		error("ny::android: main function threw unknown exception object");
 	}
+
+	// this is needed if main ends before the onDestroy callback
+	ANativeActivity_finish(activity_);
 
 	mainRunning_.store(false);
 	mainThreadCV_.notify_one();

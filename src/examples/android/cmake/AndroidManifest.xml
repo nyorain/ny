@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.ny"
+    package="com.example.ny.basic"
     android:versionCode="1"
     android:versionName="1.0" >
 
     <uses-sdk android:minSdkVersion="9"
-              android:targetSdkVersion="24" />
+              android:targetSdkVersion="23" />
 
     <application android:label="ny-android-label"
-                 android:hasCode="false"
+                 android:hasCode="true"
                  android:allowBackup="true">
 
-    <activity android:name="android.app.NativeActivity"
+    <activity android:name="com.example.ny.basic.MyActivity"
               android:label="ny-android"
               android:configChanges="keyboardHidden|orientation|screenSize">
 
-		<meta-data android:name="android.app.lib_name" android:value="ny-android"/>
+		<meta-data android:name="android.app.lib_name" android:value="ny-basic"/>
         <intent-filter>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />

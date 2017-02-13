@@ -14,13 +14,26 @@
 // android fwd decl
 using AInputEvent = struct AInputEvent;
 using ANativeWindow = struct ANativeWindow;
+using ALooper = struct ALooper;
+using AInputQueue = struct AInputQueue;
 
 struct ANativeWindow_Buffer;
 struct ANativeActivity;
 
+// jni fwd decl
+using JNIEnv = struct _JNIEnv;
+using JavaVM = struct _JavaVM;
+
+using jclass = class _jclass*;
+using jmethodID = class _jmethodID*;
+
 namespace ny {
-	class AndroidBackend;
-	class AndroidAppContext;
-	class AndroidWindowContext;
-	class AndroidBufferSurface;
-}
+
+class AndroidBackend;
+class AndroidAppContext;
+class AndroidWindowContext;
+class AndroidBufferSurface;
+class AndroidMouseContext;
+class AndroidKeyboardContext;
+
+} // namespace ny

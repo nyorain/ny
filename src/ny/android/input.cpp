@@ -8,9 +8,12 @@
 #include <ny/mouseButton.hpp>
 #include <ny/event.hpp>
 #include <ny/key.hpp>
+#include <ny/log.hpp>
 
 #include <nytl/vec.hpp>
+#include <nytl/utf.hpp>
 
+#include <jni.h>
 #include <android/keycodes.h>
 #include <android/input.h>
 
@@ -190,6 +193,26 @@ unsigned int modifiersToAndroid(KeyboardModifiers mask)
 }
 
 // KeyboardContext
+AndroidKeyboardContext::AndroidKeyboardContext(AndroidAppContext& ac) : appContext_(ac)
+{
+	if(!ac.jniEnv()) {
+		warning("ny::AndroidKeyboardContext: no AppContext jniEnv");
+		return;
+	}
+
+	auto& jniEnv = *ac.jniEnv();
+	jniKeyEvent_ = jniEnv.FindClass("android/view/KeyEvent");
+	jniGetUnicodeChar_ = jniEnv.GetMethodID(jniKeyEvent_, "getUnicodeChar", "(I)I");
+    jniKeyEventConstructor_ = jniEnv.GetMethodID(jniKeyEvent_, "<init>", "(II)V");
+
+	if(!jniKeyEvent_ || !jniGetUnicodeChar_ || !jniKeyEventConstructor_) {
+		warning("ny::AndroidKeyboardCotnext: could not load all jni symbols");
+		jniKeyEvent_ = nullptr;
+		jniGetUnicodeChar_ = nullptr;
+		jniKeyEventConstructor_ = nullptr;
+	}
+}
+
 bool AndroidKeyboardContext::pressed(Keycode key) const
 {
 	auto keyInt = static_cast<unsigned int>(key);
@@ -209,10 +232,24 @@ KeyboardModifiers AndroidKeyboardContext::modifiers() const
 	return modifiers_;
 }
 
-std::string AndroidKeyboardContext::utf8(Keycode) const
+std::string AndroidKeyboardContext::utf8(Keycode keycode) const
 {
-	// TODO: can be done using JniEnv (in process function as well)
-	return "";
+	return utf8(keycodeToAndroid(keycode), 0);
+}
+
+std::string AndroidKeyboardContext::utf8(unsigned int aKeycode, unsigned int aMetaState) const
+{
+	auto jniEnv = appContext().jniEnv();
+	if(!jniKeyEvent_ || !jniEnv) {
+		warning("ny::AndroidKeyboardContext::utf8: jni not initialized");
+		return "";
+	}
+
+	auto eventObj = jniEnv->NewObject(jniKeyEvent_,
+		jniKeyEventConstructor_, AKEY_EVENT_ACTION_DOWN, aKeycode);
+	auto unicode = jniEnv->CallIntMethod(eventObj, jniGetUnicodeChar_, aMetaState);
+	auto unicodeChar = static_cast<char32_t>(unicode);
+	return nytl::toUtf8(&unicodeChar);
 }
 
 bool AndroidKeyboardContext::process(const AInputEvent& event)
@@ -242,7 +279,7 @@ bool AndroidKeyboardContext::process(const AInputEvent& event)
 		if(keycode == Keycode::none)
 			return false;
 
-		std::string utf8 = ""; // TODO! can be done using JniEnv
+		std::string utf8 = this->utf8(akeycode, metaState);
 
 		if(wc) {
 			KeyEvent keyEvent;
@@ -264,15 +301,19 @@ bool AndroidKeyboardContext::process(const AInputEvent& event)
 	return false;
 }
 
+// TODO: needs some more love...
 // MouseContext [or rather touch context]
-// TODO!
+AndroidMouseContext::AndroidMouseContext(AndroidAppContext& ac) : appContext_(ac)
+{
+}
+
 nytl::Vec2i AndroidMouseContext::position() const
 {
-	return {};
+	return position_;
 }
 bool AndroidMouseContext::pressed(MouseButton) const
 {
-	return false;
+	return pressed_;
 }
 WindowContext* AndroidMouseContext::over() const
 {
@@ -291,13 +332,16 @@ bool AndroidMouseContext::process(const AInputEvent& event)
 
 	// TODO: query more than 1 pointer event
 	// auto pointerCount = AMotionEvent_getPointerCount(&event);
+	// -> ny base touch/mouse [re]work
 
 	// query general information
 	nytl::Vec2i pos;
 	pos.x = AMotionEvent_getX(&event, 0);
 	pos.y = AMotionEvent_getY(&event, 0);
 
-	// TODO: handle real buttons
+	position_ = pos;
+
+	// TODO: handle real mouse buttons
 	// TODO: call callbacks
 
 	// switch the actions
@@ -309,7 +353,7 @@ bool AndroidMouseContext::process(const AInputEvent& event)
 			mbe.position = pos;
 			mbe.eventData = &eventData;
 			mbe.button = MouseButton::left;
-			mbe.pressed = true;
+			mbe.pressed = pressed_ = true;
 			wc.listener().mouseButton(mbe);
 			break;
 		} case AMOTION_EVENT_ACTION_POINTER_UP:
@@ -318,7 +362,7 @@ bool AndroidMouseContext::process(const AInputEvent& event)
 			mbe.position = pos;
 			mbe.eventData = &eventData;
 			mbe.button = MouseButton::left;
-			mbe.pressed = false;
+			mbe.pressed = pressed_ = false;
 			wc.listener().mouseButton(mbe);
 			break;
 		} case AMOTION_EVENT_ACTION_MOVE: {

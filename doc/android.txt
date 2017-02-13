@@ -14,6 +14,12 @@ cmake -G Ninja ../.. \
     -DANDROID_ALLOW_UNDEFINED_SYMBOLS=1 -DANDROID_CPP_FEATURES="rtti exceptions" \
 	-DANDROID_PLATFORM=android-24
 
+# e.g. for chromebook:
+cmake -G Ninja ../.. \
+    -DCMAKE_TOOLCHAIN_FILE=/opt/android-ndk/build/cmake/android.toolchain.cmake \
+    -DAndroid=1 -DDepend=0 -DANDROID_STL=c++_static \
+    -DANDROID_ALLOW_UNDEFINED_SYMBOLS=1 -DANDROID_CPP_FEATURES="rtti exceptions" \
+        -DANDROID_PLATFORM=android-24 -DANDROID_ABI=x86_64 -DExamples=1
 
 # it is additionally needed (as for most compiler toolchain setups atm) to manually copy
 # an any header file implementation into an include path
