@@ -158,7 +158,7 @@ target_include_directories(ny PUBLIC ${ny_include})
 target_compile_definitions(ny PRIVATE ${ny_defs})
 
 # nytl build dep
-if(nytl_own AND DependOnNytl)
+if(nytl_own AND Depend)
 	add_dependencies(ny nytl_ep)
 endif()
 
