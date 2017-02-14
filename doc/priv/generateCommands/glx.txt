@@ -1,1 +1,0 @@
-glad --api="glx=1.4" --generator="c" --spec="glx" --no-loader --extensions="GLX_ARB_create_context,GLX_ARB_create_context_profile,GLX_ARB_framebuffer_sRGB,GLX_ARB_multisample,GLX_EXT_create_context_es2_profile,GLX_EXT_create_context_es_profile,GLX_EXT_swap_control"

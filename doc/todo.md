@@ -2,6 +2,10 @@
 
 ### priority
 
+- move the cpp examples out of android folder
+	- use mainlined examples (fix them to work for ALL (android!) platforms)
+	- possibility to even unify cmake?
+		- maybe just if(Android) section that add apk.cmake stuff (?!)
 - WindowListener::surfaceDestroyed: output warning on default implementation?
 	- it was not overriden which can/will lead to serious problems.
 - gl impl: use shared mutex for glCurrentMap

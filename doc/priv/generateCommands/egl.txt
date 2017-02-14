@@ -1,1 +1,0 @@
-glad --api="egl=1.5" --generator="c" --spec="egl" --no-loader --extensions="EGL_EXT_buffer_age,EGL_EXT_device_enumeration,EGL_EXT_platform_base,EGL_KHR_image,EGL_KHR_image_base,EGL_KHR_platform_android,EGL_KHR_platform_gbm,EGL_KHR_platform_wayland,EGL_KHR_platform_x11,EGL_KHR_surfaceless_context,EGL_KHR_swap_buffers_with_damage,EGL_MESA_drm_image"

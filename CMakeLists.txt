@@ -168,7 +168,7 @@ add_subdirectory(include)
 
 if(Examples)
 	if(Android)
-		add_subdirectory(src/examples/android/cmake)
+		add_subdirectory(src/examples/android)
 	else()
 		add_subdirectory(src/examples)
 	endif()
