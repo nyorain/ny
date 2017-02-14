@@ -40,6 +40,7 @@
 
 #include <cstring>
 #include <mutex>
+#include <atomic>
 #include <queue>
 
 namespace ny {

@@ -167,11 +167,7 @@ add_subdirectory(src/ny)
 add_subdirectory(include)
 
 if(Examples)
-	if(Android)
-		add_subdirectory(src/examples/android)
-	else()
-		add_subdirectory(src/examples)
-	endif()
+	add_subdirectory(src/examples)
 endif()
 
 

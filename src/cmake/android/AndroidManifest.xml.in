@@ -15,9 +15,9 @@ ${xml_gen_warning}
                  android:allowBackup="true"
 				 android:debuggable="${apk_debug_value}">
 	    <activity android:name="${apk_domain}.LoaderActivity"
-	              android:label="${apk_name}-activity"
-	              android:configChanges="keyboardHidden|orientation|screenSize">
-			<meta-data android:name="android.app.lib_name" android:value="${apk_name}"/>
+	        	android:label="${apk_name}-activity"
+				android:configChanges="keyboardHidden|orientation|screenSize">
+			<meta-data android:name="android.app.lib_name" android:value="${apk_main_name}"/>
 	        <intent-filter>
 	            <action android:name="android.intent.action.MAIN" />
 	            <category android:name="android.intent.category.LAUNCHER" />

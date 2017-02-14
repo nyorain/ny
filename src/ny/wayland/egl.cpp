@@ -26,10 +26,8 @@ WaylandEglWindowContext::WaylandEglWindowContext(WaylandAppContext& ac, const Eg
 	if(!wlEglWindow_)
 		throw std::runtime_error("ny::WaylandEglWindowContext: wl_egl_window_create failed");
 
-	auto eglDisplay = setup.eglDisplay();
 	auto eglnwindow = static_cast<void*>(wlEglWindow_);
-
-	surface_ = std::make_unique<EglSurface>(eglDisplay, eglnwindow, ws.gl.config, setup);
+	surface_ = std::make_unique<EglSurface>(setup, eglnwindow, ws.gl.config);
 	if(ws.gl.storeSurface) *ws.gl.storeSurface = surface_.get();
 }
 

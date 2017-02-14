@@ -2,17 +2,20 @@
 
 #include <ny/ny.hpp>
 #include <ny/common/gl.hpp>
-#include <GL/gl.h>
+#include <GLES2/gl2.h>
 
 class MyWindowListener : public ny::WindowListener {
 public:
 	ny::GlSurface* glSurface;
-	ny::GlContext* glContext;
+	std::unique_ptr<ny::GlContext> glContext;
 	ny::LoopControl* loopControl;
 	ny::WindowContext* windowContext;
+	ny::AppContext* appContext;
 
 	void draw(const ny::DrawEvent&) override;
 	void close(const ny::CloseEvent&) override;
+	void surfaceCreated(const ny::SurfaceCreatedEvent&) override;
+	void surfaceDestroyed(const ny::SurfaceDestroyedEvent&) override;
 };
 
 int main()
@@ -37,20 +40,16 @@ int main()
 
 	auto wc = ac->createWindowContext(windowSettings);
 
-	// Create the opengl context
-	// we pass our created surface to the function to make sure
-	// it will be created compatible to the surface.
-	// we can also specify additional settings but just go with the defaults here
-	ny::GlContextSettings contextSettings {};
-	auto glContext = ac->glSetup()->createContext(*glSurface, contextSettings);
-	glContext->makeCurrent(*glSurface);
-
 	ny::LoopControl control;
 	MyWindowListener listener;
 	listener.glSurface = glSurface;
-	listener.glContext = glContext.get();
+	listener.appContext = ac.get();
 	listener.windowContext = wc.get();
 	listener.loopControl = &control;
+
+	ny::GlContextSettings glsettings;
+	if(glSurface)
+		listener.glContext = ac->glSetup()->createContext(*glSurface);
 
 	wc->listener(listener);
 	wc->refresh();
@@ -67,6 +66,9 @@ void MyWindowListener::close(const ny::CloseEvent&)
 
 void MyWindowListener::draw(const ny::DrawEvent&)
 {
+	if(!glSurface)
+		ny::log("draw without gl surface");
+
 	// First, we make the gl context current.
 	// we do not make it notCurrent and the end of this function since we only
 	// deal with one context and it can stay current all the time.
@@ -81,4 +83,19 @@ void MyWindowListener::draw(const ny::DrawEvent&)
 
 	// Finally, swap the buffers/apply the content
 	glSurface->apply();
+}
+
+void MyWindowListener::surfaceCreated(const ny::SurfaceCreatedEvent& surfaceEvent)
+{
+	glSurface = surfaceEvent.surface.gl;
+
+	if(!glContext)
+		glContext = appContext->glSetup()->createContext(*glSurface);
+
+	windowContext->refresh();
+}
+
+void MyWindowListener::surfaceDestroyed(const ny::SurfaceDestroyedEvent&)
+{
+	glSurface = nullptr;
 }

@@ -103,21 +103,7 @@ void Activity::onDestroy(ANativeActivity* nativeActivity) noexcept
 {
 	auto& activity = retrieveActivity(*nativeActivity);
 
-	// send the destroy event to the app context and wait for processing
-	// this will end any event processing by app context
-	{
-		std::lock_guard<std::mutex> lock(activity.mutex_);
-		if(activity.appContext_)
-			activity.appContext_->pushEventWait({ActivityEventType::destroy});
-	}
-
-	// if this activity is currently set at the global instance (usually the case)
-	// we first set it to nullptr using an atomic compare_exchange
-	Activity* ptr = &activity;
-	Activity::instanceRef().compare_exchange_strong(ptr, nullptr);
-
-	// delete the Activity global
-	// this will wait for the main thread to finish
+	// we simply delete the Activity global, this will perform needed actions
 	delete &activity;
 }
 void Activity::onWindowFocusChanged(ANativeActivity* nativeActivity, int hasFocus) noexcept
@@ -251,19 +237,31 @@ Activity::Activity(ANativeActivity& nativeActivity)
 	cb.onInputQueueDestroyed = &Activity::onInputQueueDestroyed;
 
 	mainRunning_.store(false);
-	log("ny::android::Activity: initialized");
 }
 
 Activity::~Activity()
 {
+	// send the destroy event to the app context and wait for processing
+	// this will end any event processing by app context
+	{
+		std::lock_guard<std::mutex> lock(mutex_);
+		if(appContext_)
+			appContext_->pushEventWait({ActivityEventType::destroy});
+	}
+
+	// if this activity is currently set at the global instance (usually the case)
+	// we first set it to nullptr using an atomic compare_exchange
+	Activity* ptr = this;
+	Activity::instanceRef().compare_exchange_strong(ptr, nullptr);
+
 	// assure main thread terminates
 	if(mainRunning_.load()) {
 		std::unique_lock<std::mutex> lock(mutex_);
 		mainThreadCV_.wait(lock, [&]{ return !mainRunning_.load(); });
 	}
 
+	// assure this object is no longer accessed
 	activity_->instance = nullptr;
-	log("ny::android::~Activity: activity destroyed");
 }
 
 void Activity::initMainThread()
@@ -280,8 +278,6 @@ void Activity::initMainThread()
 		std::unique_lock<std::mutex> lock(mutex_);
 		mainThreadCV_.wait(lock, [&]{ return mainRunning_.load(); });
 	}
-
-	log("ny::android::Activity::initMainThread: main thread started");
 }
 
 void Activity::mainThreadFunction()
@@ -305,7 +301,7 @@ void Activity::mainThreadFunction()
 
 	mainRunning_.store(false);
 	mainThreadCV_.notify_one();
-	log("ny::android::Activity: main returned ", ret ,". Exiting main thread.");
+	debug("ny::android::Activity: main returned ", ret ,". Exiting main thread.");
 }
 
 // utility

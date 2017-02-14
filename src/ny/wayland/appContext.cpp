@@ -42,6 +42,7 @@
 #include <queue>
 #include <cstring>
 #include <sstream>
+#include <atomic>
 
 // TODO: is the wakeup_ flag really needed? see dispatchDisplay
 

@@ -63,7 +63,7 @@ public:
 
 	/// Stops the loop, i.e. asks it to return as soon as possible.
 	/// Returns false if this loop object is invalid or stopping it failed somehow.
-	bool stop();
+	inline bool stop();
 
 	/// Asks the loop to run the given function from within.
 	/// Especially useful for synchronization. The function is not guaranteed to be called
@@ -71,7 +71,7 @@ public:
 	/// Functions are guaranteed to be called in the order they are queued here.
 	/// Returns false if this LoopControl object is invalid or queueing the function failed.
 	/// Will not wait for the function to be executed or finish.
-	bool call(std::function<void()> func);
+	inline bool call(std::function<void()> func);
 
 	/// Returns whether this object is valied, i.e. whether it member functions will
 	/// have any effect.

@@ -99,6 +99,8 @@
 - general keydown/keyup unicode value specificiation (cross-platform, differents atm)
 	- which event should contain the utf8 member set?
 - AppContext settings
+	- for android: make the log name dependent on it
+		- really useful when multiple ny application running
 	- esp. useful wayland/x11 for app name
 	- could also be used for different logger (ny/log.hpp) initializations
 		- e.g. something like a --log or --verbose flag for ny itself

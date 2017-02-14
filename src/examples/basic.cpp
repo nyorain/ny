@@ -43,6 +43,8 @@ public:
 	void state(const ny::StateEvent&) override;
 	void close(const ny::CloseEvent&) override;
 	void resize(const ny::SizeEvent&) override;
+	void surfaceCreated(const ny::SurfaceCreatedEvent&) override;
+	void surfaceDestroyed(const ny::SurfaceDestroyedEvent&) override;
 };
 
 int main(int, char**)
@@ -50,8 +52,6 @@ int main(int, char**)
 	// The same setup as in the first (intro) example
 	auto& backend = ny::Backend::choose();
 	auto ac = backend.createAppContext();
-	ny::log("ny::basic: hello world");
-	return 0;
 
 	auto listener = MyWindowListener {};
 
@@ -68,14 +68,17 @@ int main(int, char**)
 	listener.windowContext = wc.get();
 	listener.bufferSurface = bufferSurface;
 
-	wc->refresh();
-
 	ny::log("Entering main loop");
 	ac->dispatchLoop(control);
 }
 
 void MyWindowListener::draw(const ny::DrawEvent&)
 {
+	if(!bufferSurface) {
+		ny::log("draw: no bufferSurface");
+		return;
+	}
+
 	auto guard = bufferSurface->buffer();
 	auto image = guard.get();
 	auto size = ny::dataSize(image);
@@ -129,6 +132,7 @@ void MyWindowListener::close(const ny::CloseEvent&)
 
 void MyWindowListener::mouseButton(const ny::MouseButtonEvent& event)
 {
+	ny::log("mouseButton at ", event.position);
 	if(event.pressed && event.button == ny::MouseButton::left) {
 		if(event.position.x < 0 || event.position.y < 0 ||
 			static_cast<unsigned int>(event.position.x) > windowSize.x ||
@@ -146,10 +150,11 @@ void MyWindowListener::mouseButton(const ny::MouseButtonEvent& event)
 		else if(static_cast<unsigned int>(event.position.y) > windowSize.y - 100)
 			resizeEdges |= ny::WindowEdge::bottom;
 
-		if(resizeEdges != ny::WindowEdge::none) {
+		auto caps = windowContext->capabilities();
+		if(resizeEdges != ny::WindowEdge::none && caps & ny::WindowCapability::beginResize) {
 			ny::log("Starting to resize window");
 			windowContext->beginResize(event.eventData, resizeEdges);
-		} else {
+		} else if(caps & ny::WindowCapability::beginMove) {
 			ny::log("Starting to move window");
 			windowContext->beginMove(event.eventData);
 		}
@@ -165,4 +170,15 @@ void MyWindowListener::state(const ny::StateEvent& stateEvent)
 void MyWindowListener::resize(const ny::SizeEvent& sizeEvent)
 {
 	windowSize = sizeEvent.size;
+}
+
+void MyWindowListener::surfaceCreated(const ny::SurfaceCreatedEvent& surfaceEvent)
+{
+	bufferSurface = surfaceEvent.surface.buffer;
+	windowContext->refresh();
+}
+
+void MyWindowListener::surfaceDestroyed(const ny::SurfaceDestroyedEvent&)
+{
+	bufferSurface = nullptr;
 }

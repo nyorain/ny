@@ -261,9 +261,6 @@ GlxContext::GlxContext(const GlxSetup& setup, GLXContext context, const GlConfig
 GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 	: setup_(setup)
 {
-	// error code used to signal invalid api versions
-	constexpr auto glxBadFBConfig = 178u;
-
 	// test config
 	auto api = settings.api;
 	if(api == GlApi::gles && !hasProfileES) {
@@ -350,10 +347,8 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 				true, attributes.data());
 
 			auto errorCode = errorCat.lastXlibError();
-			if(errorCode && errorCode.value() != glxBadFBConfig) {
+			if(errorCode && errorCode.message() != "GLXBadFBConfig")
 				warning("ny::GlxContext: unexpected error: ", errorCode.message());
-				break;
-			}
 
 			if(glxContext_)
 				break;

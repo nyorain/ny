@@ -33,6 +33,7 @@
 #include <cstring>
 #include <mutex>
 #include <condition_variable>
+#include <atomic>
 #include <queue>
 
 // NOTE: we never actually call TranslateMessage since we translate keycodes manually
