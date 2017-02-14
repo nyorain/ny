@@ -175,7 +175,7 @@ public:
 /// By design NonMovable since it may be referenced as current surface.
 class GlSurface : public nytl::NonMovable {
 public:
-	virtual ~GlSurface() = default;
+	virtual ~GlSurface();
 
 	virtual NativeHandle nativeHandle() const = 0; /// The native surface handle
 	virtual GlConfig config() const = 0; /// The config this surface was created with
@@ -183,7 +183,8 @@ public:
 	/// Returns whether the surface is current in the calling thread.
 	/// If so and a non-null GlContext** parameter was given, sets it to the current context.
 	virtual bool isCurrent(GlContext** currentContext = nullptr) const;
-	virtual bool isCurrentInAnyThread(GlContext** currentContext = nullptr) const;
+	virtual bool isCurrentInAnyThread(GlContext** currentContext = nullptr,
+		std::thread::id* currentThread = nullptr) const;
 
 	/// Applies the pending contents of the surface, swaps buffers for multibuffered surfaces.
 	/// \excpetion std::system_error If calling the native function fails.
@@ -237,7 +238,8 @@ public:
 
 	/// Returns whether the context is current in any thread.
 	/// If so and a non-null GlSurface** parameter was given, sets it to the associated surface.
-	virtual bool isCurrentInAnyThread(const GlSurface** currentSurface = nullptr) const;
+	virtual bool isCurrentInAnyThread(const GlSurface** currentSurface = nullptr,
+		std::thread::id* currentThread = nullptr) const;
 
 	virtual GlApi api() const { return api_; } /// The api of this context
 	virtual GlConfig config() const { return config_; } /// The associated config

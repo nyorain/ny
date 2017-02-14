@@ -51,14 +51,6 @@ void AndroidEglWindowContext::nativeWindow(ANativeWindow* window)
 	if(surface_) {
 		SurfaceDestroyedEvent sde;
 		listener().surfaceDestroyed(sde);
-
-		// the surfaceDestroyed handler must make the surface not
-		// current, we just check here for debugging purposes
-		if(surface_->isCurrent()) {
-			constexpr auto funcName = "ny::AndroidEglWindowContext::nativeWindow";
-			error(funcName, "surfaceDestroyed handler did not make the surface not current");
-		}
-
 		surface_.reset();
 	}
 

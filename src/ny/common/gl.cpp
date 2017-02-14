@@ -163,6 +163,41 @@ std::unique_ptr<GlContext> GlSetup::createContext(const GlSurface& surface,
 }
 
 // GlSurface
+GlSurface::~GlSurface()
+{
+	// same as ~GlContext:
+	// we ignore it and simply unregister it anyways
+	// either the implementation is leaking or destroyed the context without making
+	// it not current (in which case - if it did not raise an error - we can try to ignore it).
+	GlContext* context {};
+	if(isCurrent(&context)) {
+		warning("ny::~GlSurface: current in calling thread!");
+
+		std::mutex* mutex;
+		auto& map = contextCurrentMap(mutex);
+
+		{
+			std::lock_guard<std::mutex> lock(*mutex);
+			map[std::this_thread::get_id()] = {nullptr, nullptr};
+		}
+	}
+
+	// check if it is current in any thread
+	// we cannot use isCurrentInAnyThread since the checking/removing has
+	// to be in one critical section, it has to be atomic (regarding the current map mutex)
+	std::mutex* mutex;
+	auto& map = contextCurrentMap(mutex);
+
+	std::lock_guard<std::mutex> lock(*mutex);
+
+	for(auto& entry : map) {
+		if(entry.second.second == this) {
+			error("ny::~GlSurface: current in another thread. Just removing it");
+			entry.second = {nullptr, nullptr};
+		}
+	}
+}
+
 bool GlSurface::isCurrent(GlContext** currentContext) const
 {
 	std::mutex* mutex;
@@ -176,7 +211,8 @@ bool GlSurface::isCurrent(GlContext** currentContext) const
 	return true;
 }
 
-bool GlSurface::isCurrentInAnyThread(GlContext** currentContext) const
+bool GlSurface::isCurrentInAnyThread(GlContext** currentContext,
+	std::thread::id* currentThread) const
 {
 
 	std::mutex* mutex;
@@ -187,6 +223,7 @@ bool GlSurface::isCurrentInAnyThread(GlContext** currentContext) const
 	for(auto& entry : map) {
 		if(entry.second.second == this) {
 			if(currentContext) *currentContext = entry.second.first;
+			if(currentThread) *currentThread = entry.first;
 			return true;
 		}
 	}
@@ -217,7 +254,7 @@ GlContext* GlContext::current(const GlSurface** currentSurface)
 // GlContext
 GlContext::~GlContext()
 {
-	// if current we ignore it and simply unregister it anyways
+	// we ignore it and simply unregister it anyways
 	// either the implementation is leaking or destroyed the context without making
 	// it not current (in which case - if it did not raise an error - we can try to ignore it).
 	if(isCurrent()) {
@@ -232,6 +269,24 @@ GlContext::~GlContext()
 		}
 	}
 
+	// check if it is current in any thread
+	// we cannot use isCurrentInAnyThread since the checking/removing has
+	// to be in one critical section, it has to be atomic (regarding the current map mutex)
+	{
+		std::mutex* mutex;
+		auto& map = contextCurrentMap(mutex);
+
+		std::lock_guard<std::mutex> lock(*mutex);
+
+		for(auto& entry : map) {
+			if(entry.second.first == this) {
+				error("ny::~GlContext: current in another thread. Just removing it");
+				entry.second = {nullptr, nullptr};
+			}
+		}
+	}
+
+	// signal the shared contexts
 	{
 		std::lock_guard<std::mutex> lock(contextShareMutex());
 		for(auto& c : shared_) {
@@ -385,7 +440,8 @@ bool GlContext::isCurrent(const GlSurface** currentSurface) const
 	return true;
 }
 
-bool GlContext::isCurrentInAnyThread(const GlSurface** currentSurface) const
+bool GlContext::isCurrentInAnyThread(const GlSurface** currentSurface,
+	std::thread::id* currentThread) const
 {
 	std::mutex* mutex;
 	auto& map = contextCurrentMap(mutex);
@@ -395,6 +451,7 @@ bool GlContext::isCurrentInAnyThread(const GlSurface** currentSurface) const
 	for(auto& entry : map) {
 		if(entry.second.first == this) {
 			if(currentSurface) *currentSurface = entry.second.second;
+			if(currentThread) *currentThread = entry.first;
 			return true;
 		}
 	}

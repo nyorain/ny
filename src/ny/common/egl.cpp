@@ -200,7 +200,20 @@ EglSurface::EglSurface(EGLDisplay dpy, void* nativeWindow, const GlConfig& confi
 
 EglSurface::~EglSurface()
 {
-	if(eglDisplay_ && eglSurface_) ::eglDestroySurface(eglDisplay_, eglSurface_);
+	GlContext* context;
+	if(isCurrent(&context)) {
+		debug("ny::~EglContext: still current in calling thread. Making not current");
+
+		std::error_code ec;
+		if(!context->makeNotCurrent(ec))
+			warning("ny::~EglContext: failed not make not current: ", ec.message());
+	}
+
+	if(isCurrentInAnyThread())
+		error("ny::~EglContext: still current in a thread. Can't do much about it");
+
+	if(eglDisplay_ && eglSurface_)
+		::eglDestroySurface(eglDisplay_, eglSurface_);
 }
 
 bool EglSurface::apply(std::error_code& ec) const
@@ -367,6 +380,9 @@ EglContext::~EglContext()
 		std::error_code ec;
 		if(!makeNotCurrent(ec))
 			warning("ny::~EglContext: failed to make the context not current: ", ec.message());
+
+		if(isCurrentInAnyThread())
+			error("ny::~EglContext: still current in a thread. Can't do much about it");
 
 		::eglDestroyContext(eglDisplay(), eglContext_);
 	}

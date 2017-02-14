@@ -4,6 +4,9 @@
 
 - WindowListener::surfaceDestroyed: output warning on default implementation?
 	- it was not overriden which can/will lead to serious problems.
+- gl impl: use shared mutex for glCurrentMap
+	- most locks are probably read access
+	- combine with SharedLockGuard (in nytl?)
 - fix loopControl [synchronization] [pretty much done, fix for backends needed]
 	- make sure that impl isnt changed during operation on it?!
 		- mutex in loopControl?
@@ -244,3 +247,7 @@ android
 	- sth like only store it / make it retrievable until no AppContext was created yet
 - activity:redrawNeeded: check if size changed/capture premature refresh
 	- see function todos
+- fix gl example, android/egl nativeWindow impl
+	- make egl surface not current on destruction
+		- output warning in nativeWindow but try to recover at least
+			- check if same thread or not. What if not?
