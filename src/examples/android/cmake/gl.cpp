@@ -56,6 +56,7 @@ int main()
 
 	ny::log("Entering main loop");
 	ac->dispatchLoop(control);
+	ny::debug("Exiting -- ");
 }
 
 void MyWindowListener::close(const ny::CloseEvent&)

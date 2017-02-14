@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+${xml_gen_warning}
+
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="${apk_domain}"
+    android:versionCode="1"
+    android:versionName="1.0" >
+
+    <uses-sdk android:minSdkVersion="${apk_min_api}"
+              android:targetSdkVersion="${apk_api}" />
+
+    <application android:label="${apk_name}-app"
+                 android:hasCode="true"
+                 android:allowBackup="true"
+				 android:debuggable="${apk_debug_value}">
+	    <activity android:name="${apk_domain}.LoaderActivity"
+	              android:label="${apk_name}-activity"
+	              android:configChanges="keyboardHidden|orientation|screenSize">
+			<meta-data android:name="android.app.lib_name" android:value="${apk_name}"/>
+	        <intent-filter>
+	            <action android:name="android.intent.action.MAIN" />
+	            <category android:name="android.intent.category.LAUNCHER" />
+	        </intent-filter>
+	    </activity>
+    </application>
+</manifest>
