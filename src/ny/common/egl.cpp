@@ -202,15 +202,13 @@ EglSurface::~EglSurface()
 {
 	GlContext* context;
 	if(isCurrent(&context)) {
-		debug("ny::~EglContext: still current in calling thread. Making not current");
-
 		std::error_code ec;
 		if(!context->makeNotCurrent(ec))
-			warning("ny::~EglContext: failed not make not current: ", ec.message());
+			warning("ny::~EglSurface: failed not make not current: ", ec.message());
 	}
 
 	if(isCurrentInAnyThread())
-		error("ny::~EglContext: still current in a thread. Can't do much about it");
+		error("ny::~EglSurface: still current in a thread. Can't do much about it");
 
 	if(eglDisplay_ && eglSurface_)
 		::eglDestroySurface(eglDisplay_, eglSurface_);

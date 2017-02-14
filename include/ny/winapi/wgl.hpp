@@ -40,7 +40,7 @@ protected:
 class WglSurface : public GlSurface {
 public:
 	WglSurface(HDC hdc, const GlConfig& config) : hdc_(hdc), config_(config) {}
-	~WglSurface() = default;
+	~WglSurface();
 
 	NativeHandle nativeHandle() const override { return {hdc_}; }
 	GlConfig config() const override { return config_; }

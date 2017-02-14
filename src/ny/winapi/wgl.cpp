@@ -244,6 +244,19 @@ void* WglSetup::procAddr(nytl::StringParam name) const
 }
 
 // WglSurface
+WglSurface::~WglSurface()
+{
+	GlContext* context;
+	if(isCurrent(&context)) {
+		std::error_code ec;
+		if(!context->makeNotCurrent(ec))
+			warning("ny::~WglSurface: failed not make not current: ", ec.message());
+	}
+
+	if(isCurrentInAnyThread())
+		error("ny::~WglSurface: still current in a thread. Can't do much about it");
+}
+
 bool WglSurface::apply(std::error_code& ec) const
 {
 	ec.clear();
@@ -387,6 +400,9 @@ WglContext::~WglContext()
 		std::error_code ec;
 		if(!makeNotCurrent(ec))
 			warning("ny::~WglContext: failed to make the context not current: ", ec.message());
+
+		if(isCurrentInAnyThread())
+			error("ny::~WglContext: still current in a thread. Can't do much about it");
 
 		::wglDeleteContext(wglContext_);
 	}

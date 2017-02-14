@@ -173,6 +173,7 @@ x11 backend:
 - send correct StateEvents (check for change in configure events?)
 - customDecorated: query current de/window manager to guess if they support motif
 	- any other (better) way to query this?
+- glx screen number fix (don't assume it, store the value from the appcontext)
 
 wayland backend:
 ---------------

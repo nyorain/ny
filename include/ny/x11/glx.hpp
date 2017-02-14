@@ -15,7 +15,6 @@ typedef struct __GLXFBConfigRec* GLXFBConfig;
 
 namespace ny {
 
-//TODO: for glx calls: correct error handling
 //TODO: correct screen number everywhere
 
 /// Glx GlSetup implementation.
@@ -56,7 +55,7 @@ protected:
 class GlxSurface : public GlSurface {
 public:
 	GlxSurface(const GlxSetup&, unsigned int xDrawable, const GlConfig&);
-	~GlxSurface() = default;
+	~GlxSurface();
 
 	NativeHandle nativeHandle() const override { return {xDrawable_}; }
 	GlConfig config() const override { return config_; }

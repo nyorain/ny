@@ -223,6 +223,19 @@ GlxSurface::GlxSurface(const GlxSetup& setup, unsigned int xDrawable, const GlCo
 {
 }
 
+GlxSurface::~GlxSurface()
+{
+	GlContext* context;
+	if(isCurrent(&context)) {
+		std::error_code ec;
+		if(!context->makeNotCurrent(ec))
+			warning("ny::~GlxSurface: failed not make not current: ", ec.message());
+	}
+
+	if(isCurrentInAnyThread())
+		error("ny::~GlxSurface: still current in a thread. Can't do much about it");
+}
+
 bool GlxSurface::apply(std::error_code& ec) const
 {
 	ec.clear();
@@ -386,6 +399,9 @@ GlxContext::~GlxContext()
 		std::error_code ec;
 		if(!makeNotCurrent(ec))
 			warning("ny::~GlxContext: failed to make the context not current: ", ec.message());
+
+		if(isCurrentInAnyThread())
+			error("ny::~GlxContext: still current in a thread. Can't do much about it");
 
 		::glXDestroyContext(&xDisplay(), glxContext_);
 	}
