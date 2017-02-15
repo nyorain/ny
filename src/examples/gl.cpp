@@ -2,7 +2,12 @@
 
 #include <ny/ny.hpp>
 #include <ny/common/gl.hpp>
-#include <GLES2/gl2.h>
+
+#ifdef NY_WithAndroid
+	#include <GLES2/gl2.h>
+#else
+	#include <GL/gl.h>
+#endif
 
 class MyWindowListener : public ny::WindowListener {
 public:
@@ -35,7 +40,7 @@ int main()
 
 	ny::WindowSettings windowSettings;
 	windowSettings.surface = ny::SurfaceType::gl;
-	windowSettings.transparent = true;
+	windowSettings.transparent = false;
 	windowSettings.gl.storeSurface = &glSurface;
 
 	auto wc = ac->createWindowContext(windowSettings);
