@@ -358,6 +358,12 @@ void AndroidAppContext::stateSaver(const std::function<void*(std::size_t&)>& sav
 	stateSaver_ = saver;
 }
 
+std::vector<uint8_t> AndroidAppContext::savedState()
+{
+	std::lock_guard<std::mutex> lock(activity().mutex());
+	return std::move(activity().savedState_);
+}
+
 // private interface
 void AndroidAppContext::inputReceived()
 {

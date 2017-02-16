@@ -258,3 +258,8 @@ android
 	- make egl surface not current on destruction
 		- output warning in nativeWindow but try to recover at least
 			- check if same thread or not. What if not?
+- AppContext: some call in destructor to release ALooper after ALooper_prepare?
+- rethink android::Activity protection
+	- the class is already private interface should it really use private members
+		and friend declarations? its probably somewhat overdesigned...
+- activity: join thread?

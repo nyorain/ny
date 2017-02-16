@@ -40,6 +40,22 @@ public:
 	JNIEnv* jniEnv() const { return jniEnv_; }
 	android::Activity& activity() const { return activity_; }
 
+	/// Sets the function that implements the state save.
+	/// The saved state can than be retrieved on startup from the Android
+	/// backend. The saver must return data allocated using alloc (new should work)
+	/// and set the passed size parameter to the size of the returned data.
+	/// It may return nullptr and set the size to 0.
+	void stateSaver(const std::function<void*(std::size_t&)>& saver);
+
+	/// Returns the saved state that was previously saved by the application
+	/// using the state saver functionality.
+	/// Note that the returned vector might be empty.
+	/// The first time this is called, the saved state is moved into
+	/// the returned vector, so any call after the first one will
+	/// definietly receive an empty vector.
+	std::vector<uint8_t> savedState();
+
+	// - direct native activity wrappers for convinience -
 	// shows/hides the soft input
 	// see the native_activity documentation
 	// Will return false if it cannot be executed since
@@ -53,13 +69,6 @@ public:
 	// activity was already destroyed
 	const char* internalPath() const;
 	const char* externalPath() const;
-
-	// Sets the function that implements the state save.
-	// The saved state can than be retrieved on startup from the Android
-	// backend. The saver must return data allocated using alloc (new should work)
-	// and set the passed size parameter to the size of the returned data.
-	// It may return nullptr and set the size to 0.
-	void stateSaver(const std::function<void*(std::size_t&)>& saver);
 
 protected:
 	void handleActivityEvents();

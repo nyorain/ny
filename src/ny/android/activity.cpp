@@ -226,8 +226,13 @@ void* Activity::onSaveInstance(ANativeActivity* nativeActivity, std::size_t* siz
 }
 
 // Activity
-Activity::Activity(ANativeActivity& nativeActivity)
+// this function is called from within the onCreate callback
+Activity::Activity(ANativeActivity& nativeActivity, void* state, std::size_t stateSize)
 {
+	// store saved state
+	savedState_.resize(stateSize);
+	std::memcpy(state, savedState_.data(), stateSize);
+
 	// init the logs to use android-log
 	debugLogger() = std::make_unique<AndroidLogger>(ANDROID_LOG_DEBUG, "ny");
 	logLogger() = std::make_unique<AndroidLogger>(ANDROID_LOG_INFO, "ny");
@@ -256,6 +261,7 @@ Activity::Activity(ANativeActivity& nativeActivity)
 	mainRunning_.store(false);
 }
 
+// called from within the onDestroy callback
 Activity::~Activity()
 {
 	// send the destroy event to the app context and wait for processing
@@ -281,6 +287,7 @@ Activity::~Activity()
 	activity_->instance = nullptr;
 }
 
+// called from wihtin the onNativeWindowCreated callback
 void Activity::initMainThread()
 {
 	if(mainRunning_.load())
@@ -297,6 +304,7 @@ void Activity::initMainThread()
 	}
 }
 
+// initializes the main thread and runs the main function
 void Activity::mainThreadFunction()
 {
 	mainRunning_.store(true);
@@ -344,5 +352,5 @@ void ANativeActivity_onCreate(ANativeActivity* activity, void* savedState, size_
 	using ny::android::Activity;
 
 	nytl::unused(savedState, savedStateSize);
-	Activity::instanceRef().store(new Activity(*activity));
+	Activity::instanceRef().store(new Activity(*activity, savedState, savedStateSize));
 }

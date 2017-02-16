@@ -7,6 +7,7 @@
 #include <ny/android/include.hpp>
 
 #include <cstdint>
+#include <vector>
 #include <thread>
 #include <atomic>
 #include <mutex>
@@ -52,7 +53,7 @@ public:
 	std::mutex& mutex() const { return mutex_; }
 
 private:
-	Activity(ANativeActivity&);
+	Activity(ANativeActivity&, void* state, std::size_t stateSize);
 
 	void mainThreadFunction();
 	void initMainThread();
@@ -84,6 +85,7 @@ private:
 	ANativeWindow* window_ {};
 	AInputQueue* queue_ {};
 
+	std::vector<uint8_t> savedState_ {};
 	AndroidAppContext* appContext_ {};
 	std::condition_variable mainThreadCV_ {};
 	std::atomic<bool> mainRunning_ {};
