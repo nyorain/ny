@@ -33,19 +33,23 @@ public:
 
 	// - android specific -
 	EglSetup* eglSetup() const;
-	android::Activity& activity() const { return activity_; }
 	ANativeActivity* nativeActivity() const { return nativeActivity_; }
 	ANativeWindow* nativeWindow() const { return nativeWindow_; }
 	AndroidWindowContext* windowContext() const { return windowContext_; }
 	JNIEnv* jniEnv() const { return jniEnv_; }
+	android::Activity& activity() const { return activity_; }
 
 	// shows/hides the soft input
 	// see the native_activity documentation
+	// Will return false if it cannot be executed since
+	// the native activity was already destroyed
 	bool showKeyboard() const;
 	bool hideKeyboard() const;
 
 	// returns the apps data paths
 	// see the native_activity documentation
+	// returns just an empty string if the native
+	// activity was already destroyed
 	const char* internalPath() const;
 	const char* externalPath() const;
 

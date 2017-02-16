@@ -337,6 +337,22 @@ bool AndroidAppContext::hideKeyboard() const
 	return true;
 }
 
+const char* AndroidAppContext::internalPath() const
+{
+	if(!nativeActivity_)
+		return "";
+
+	return nativeActivity_->internalDataPath;
+}
+
+const char* AndroidAppContext::externalPath() const
+{
+	if(!nativeActivity_)
+		return "";
+
+	return nativeActivity_->externalDataPath;
+}
+
 void AndroidAppContext::inputReceived()
 {
 	static const std::string funcName = "ny::AndroidAppContext::inputReceived: ";
