@@ -6,6 +6,7 @@
 
 #include <ny/android/include.hpp>
 #include <ny/appContext.hpp>
+#include <functional>
 
 namespace ny {
 
@@ -53,6 +54,13 @@ public:
 	const char* internalPath() const;
 	const char* externalPath() const;
 
+	// Sets the function that implements the state save.
+	// The saved state can than be retrieved on startup from the Android
+	// backend. The saver must return data allocated using alloc (new should work)
+	// and set the passed size parameter to the size of the returned data.
+	// It may return nullptr and set the size to 0.
+	void stateSaver(const std::function<void*(std::size_t&)>& saver);
+
 protected:
 	void handleActivityEvents();
 	void inputReceived();
@@ -86,6 +94,7 @@ protected:
 
 	std::unique_ptr<AndroidMouseContext> mouseContext_;
 	std::unique_ptr<AndroidKeyboardContext> keyboardContext_;
+	std::function<void*(std::size_t&)> stateSaver_;
 
 	struct Impl;
 	std::unique_ptr<Impl> impl_;

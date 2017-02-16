@@ -6,6 +6,7 @@
 
 #include <ny/android/include.hpp>
 
+#include <cstdint>
 #include <thread>
 #include <atomic>
 #include <mutex>
@@ -76,6 +77,7 @@ private:
 	static void onNativeWindowDestroyed(ANativeActivity*, ANativeWindow*) noexcept;
 	static void onInputQueueCreated(ANativeActivity*, AInputQueue*) noexcept;
 	static void onInputQueueDestroyed(ANativeActivity*, AInputQueue*) noexcept;
+	static void* onSaveInstance(ANativeActivity*, std::size_t*) noexcept;
 
 private:
 	ANativeActivity* activity_ {};
@@ -102,6 +104,7 @@ enum class ActivityEventType {
 	windowFocus,
 	queueCreated,
 	queueDestroyed,
+	saveState,
 	start,
 	pause,
 	resume,
@@ -117,7 +120,8 @@ struct ActivityEvent {
 
 	// possibility to transmit event-specific data
 	// interpretation dependent on the event type
-	uint8_t data[8] {};
+	// has size for 2 pointers (more is not needed)
+	uint8_t data[sizeof(void*) * 2] {};
 
 	// if this is not nullptr, the main thread will
 	// call notify_one on the eventQueueCV when

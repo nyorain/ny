@@ -353,6 +353,12 @@ const char* AndroidAppContext::externalPath() const
 	return nativeActivity_->externalDataPath;
 }
 
+void AndroidAppContext::stateSaver(const std::function<void*(std::size_t&)>& saver)
+{
+	stateSaver_ = saver;
+}
+
+// private interface
 void AndroidAppContext::inputReceived()
 {
 	static const std::string funcName = "ny::AndroidAppContext::inputReceived: ";
@@ -409,6 +415,8 @@ void AndroidAppContext::handleActivityEvents()
 		ANativeWindow* window;
 		AInputQueue* queue;
 		nytl::Vec2i32 size;
+		void** dataPtr;
+		std::size_t* sizePtr;
 
 		// TODO: handle (e.g. expose public callbacks) for start/stop/pause/resume functions
 
@@ -439,6 +447,12 @@ void AndroidAppContext::handleActivityEvents()
 				break;
 			case ActivityEventType::destroy:
 				activityDestroyed();
+				break;
+			case ActivityEventType::saveState:
+				std::memcpy(&dataPtr, event.data, sizeof(dataPtr));
+				std::memcpy(&sizePtr, event.data + sizeof(dataPtr), sizeof(sizePtr));
+				if(!dataPtr || !sizePtr) warning("ny::AndroidAppContext:: invalid stateSave aev");
+				else if(stateSaver_) *dataPtr = stateSaver_(*sizePtr);
 				break;
 			default:
 				break;

@@ -208,6 +208,22 @@ void Activity::onInputQueueDestroyed(ANativeActivity* nativeActivity, AInputQueu
 	if(activity.appContext_)
 		activity.appContext_->pushEventWait({ActivityEventType::queueDestroyed});
 }
+void* Activity::onSaveInstance(ANativeActivity* nativeActivity, std::size_t* size) noexcept
+{
+	auto& activity = retrieveActivity(*nativeActivity);
+	void* data = nullptr;
+	std::lock_guard<std::mutex> lock(activity.mutex_);
+	if(activity.appContext_) {
+		ActivityEvent ae;
+		ae.type = ActivityEventType::saveState;
+		auto address = &data;
+		std::memcpy(ae.data, &address, sizeof(data));
+		std::memcpy(ae.data + sizeof(data), &size, sizeof(size));
+		activity.appContext_->pushEventWait(ae);
+	}
+
+	return data;
+}
 
 // Activity
 Activity::Activity(ANativeActivity& nativeActivity)
@@ -235,6 +251,7 @@ Activity::Activity(ANativeActivity& nativeActivity)
 	cb.onNativeWindowResized = &Activity::onNativeWindowResized;
 	cb.onInputQueueCreated = &Activity::onInputQueueCreated;
 	cb.onInputQueueDestroyed = &Activity::onInputQueueDestroyed;
+	cb.onSaveInstanceState = &Activity::onSaveInstance;
 
 	mainRunning_.store(false);
 }
