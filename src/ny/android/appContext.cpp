@@ -38,6 +38,11 @@
 ///   Therefore the impl structure holds an interal event queue, mutex and condition variable.
 ///   For some events, we also have to make sure to not return until the event
 ///   was processed. There we use the condition variable and an atomic flag.
+///
+/// It is rather important to NOT lock the activity mutex in any functions
+///    that might be called by the application. Otherwise it might be locked
+///    during initialization which would result in a deadlock since the activity thread
+///    waits during that phase that we process its events. See e.g. savedState().
 
 namespace ny {
 namespace {
@@ -360,7 +365,11 @@ void AndroidAppContext::stateSaver(const std::function<void*(std::size_t&)>& sav
 
 std::vector<uint8_t> AndroidAppContext::savedState()
 {
-	std::lock_guard<std::mutex> lock(activity().mutex());
+	// we can safely access (even move from) this since it is only touched on
+	// activity creation by someone else than this thread
+	// it is important on the other hand to not use a mutex here
+	// since this function might be called while the activity thread is
+	// waiting for us to process its events
 	return std::move(activity().savedState_);
 }
 
