@@ -6,6 +6,7 @@
 #include <ny/android/windowContext.hpp>
 #include <ny/android/bufferSurface.hpp>
 #include <ny/android/input.hpp>
+#include <ny/android/activity.hpp>
 #include <ny/log.hpp>
 #include <ny/loopControl.hpp>
 

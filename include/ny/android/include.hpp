@@ -36,4 +36,9 @@ class AndroidBufferSurface;
 class AndroidMouseContext;
 class AndroidKeyboardContext;
 
+namespace android {
+class Activity;
+struct ActivityEvent;	
+}
+
 } // namespace ny

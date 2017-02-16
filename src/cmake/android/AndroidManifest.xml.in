@@ -10,12 +10,12 @@ ${xml_gen_warning}
     <uses-sdk android:minSdkVersion="${apk_min_api}"
               android:targetSdkVersion="${apk_api}" />
 
-    <application android:label="${apk_name}-app"
+    <application android:label="${apk_name}"
                  android:hasCode="true"
                  android:allowBackup="true"
 				 android:debuggable="${apk_debug_value}">
 	    <activity android:name="${apk_domain}.LoaderActivity"
-	        	android:label="${apk_name}-activity"
+	        	android:label="${apk_name}"
 				android:configChanges="keyboardHidden|orientation|screenSize">
 			<meta-data android:name="android.app.lib_name" android:value="${apk_main_name}"/>
 	        <intent-filter>

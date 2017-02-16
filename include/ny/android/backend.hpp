@@ -5,6 +5,7 @@
 #pragma once
 
 #include <ny/android/include.hpp>
+#include <ny/android/activity.hpp>
 #include <ny/backend.hpp>
 
 namespace ny {
