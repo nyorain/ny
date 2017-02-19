@@ -14,8 +14,8 @@ namespace ny {
 ///X11 AppContext implementation.
 class X11AppContext : public AppContext {
 public:
-    X11AppContext();
-    ~X11AppContext();
+	X11AppContext();
+	~X11AppContext();
 
 	// - AppContext -
 	KeyboardContext* keyboardContext() override;
@@ -33,37 +33,37 @@ public:
 	GlSetup* glSetup() const override;
 
 	// - x11 specific -
-    void processEvent(const x11::GenericEvent& xEvent);
-    X11WindowContext* windowContext(xcb_window_t);
+	void processEvent(const x11::GenericEvent& xEvent);
+	X11WindowContext* windowContext(xcb_window_t);
 	bool checkErrorWarn();
 
-    Display& xDisplay() const { return *xDisplay_; }
+	Display& xDisplay() const { return *xDisplay_; }
 	xcb_connection_t& xConnection() const { return *xConnection_; }
 	x11::EwmhConnection& ewmhConnection() const;
-    int xDefaultScreenNumber() const { return xDefaultScreenNumber_; }
-    xcb_screen_t& xDefaultScreen() const { return *xDefaultScreen_; }
+	int xDefaultScreenNumber() const { return xDefaultScreenNumber_; }
+	xcb_screen_t& xDefaultScreen() const { return *xDefaultScreen_; }
 	xcb_window_t xDummyWindow() const { return xDummyWindow_; }
 	X11ErrorCategory& errorCategory() const;
 
 	GlxSetup* glxSetup() const;
 	X11DataManager& dataManager() const;
 
-    void registerContext(xcb_window_t xWindow, X11WindowContext& context);
-    void unregisterContext(xcb_window_t xWindow);
+	void registerContext(xcb_window_t xWindow, X11WindowContext& context);
+	void unregisterContext(xcb_window_t xWindow);
 	void bell();
 
 	xcb_atom_t atom(const std::string& name);
 	const x11::Atoms& atoms() const;
 
 protected:
-    Display* xDisplay_  = nullptr;
+	Display* xDisplay_  = nullptr;
 	xcb_connection_t* xConnection_ = nullptr;
 	xcb_window_t xDummyWindow_ = {};
 
-    int xDefaultScreenNumber_ = 0;
-    xcb_screen_t* xDefaultScreen_ = nullptr;
+	int xDefaultScreenNumber_ = 0;
+	xcb_screen_t* xDefaultScreen_ = nullptr;
 
-    std::map<xcb_window_t, X11WindowContext*> contexts_;
+	std::map<xcb_window_t, X11WindowContext*> contexts_;
 	std::map<std::string, xcb_atom_t> additionalAtoms_;
 
 	std::unique_ptr<X11MouseContext> mouseContext_;

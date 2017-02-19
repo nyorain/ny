@@ -134,20 +134,20 @@ void MyWindowListener::mouseButton(const ny::MouseButtonEvent& event)
 {
 	ny::log("mouseButton at ", event.position);
 	if(event.pressed && event.button == ny::MouseButton::left) {
-		if(event.position.x < 0 || event.position.y < 0 ||
-			static_cast<unsigned int>(event.position.x) > windowSize.x ||
-			static_cast<unsigned int>(event.position.y) > windowSize.y)
+		if(event.position[0] < 0 || event.position[1] < 0 ||
+			static_cast<unsigned int>(event.position[0]) > windowSize[0] ||
+			static_cast<unsigned int>(event.position[1]) > windowSize[1])
 				return;
 
 		ny::WindowEdges resizeEdges = ny::WindowEdge::none;
-		if(event.position.x < 100)
+		if(event.position[0] < 100)
 			resizeEdges |= ny::WindowEdge::left;
-		else if(static_cast<unsigned int>(event.position.x) > windowSize.x - 100)
+		else if(static_cast<unsigned int>(event.position[0]) > windowSize[0] - 100)
 			resizeEdges |= ny::WindowEdge::right;
 
-		if(event.position.y < 100)
+		if(event.position[1] < 100)
 			resizeEdges |= ny::WindowEdge::top;
-		else if(static_cast<unsigned int>(event.position.y) > windowSize.y - 100)
+		else if(static_cast<unsigned int>(event.position[1]) > windowSize[1] - 100)
 			resizeEdges |= ny::WindowEdge::bottom;
 
 		auto caps = windowContext->capabilities();

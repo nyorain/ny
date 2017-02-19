@@ -48,7 +48,10 @@ if(MSVC)
 		list(APPEND CMAKE_CXX_FLAGS "/W4")
 	endif()
 elseif(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX OR is_clang)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-long-long -Wextra -Wpedantic")
+	set(CMAKE_CXX_FLAGS
+		"${CMAKE_CXX_FLAGS} \
+		-Wall -Wextra -Wpedantic \
+		-Wno-missing-braces -Wno-unused-const-variable")
 endif()
 
 # build type

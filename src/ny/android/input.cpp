@@ -203,7 +203,7 @@ AndroidKeyboardContext::AndroidKeyboardContext(AndroidAppContext& ac) : appConte
 	auto& jniEnv = *ac.jniEnv();
 	jniKeyEvent_ = jniEnv.FindClass("android/view/KeyEvent");
 	jniGetUnicodeChar_ = jniEnv.GetMethodID(jniKeyEvent_, "getUnicodeChar", "(I)I");
-    jniKeyEventConstructor_ = jniEnv.GetMethodID(jniKeyEvent_, "<init>", "(II)V");
+	jniKeyEventConstructor_ = jniEnv.GetMethodID(jniKeyEvent_, "<init>", "(II)V");
 
 	if(!jniKeyEvent_ || !jniGetUnicodeChar_ || !jniKeyEventConstructor_) {
 		warning("ny::AndroidKeyboardCotnext: could not load all jni symbols");

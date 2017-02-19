@@ -263,3 +263,4 @@ android
 	- the class is already private interface should it really use private members
 		and friend declarations? its probably somewhat overdesigned...
 - activity: join thread?
+- handle activity pause/resume/stop

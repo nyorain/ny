@@ -15,11 +15,11 @@ namespace ny {
 
 /// Specifies the different roles a WaylandWindowContext can have.
 enum class WaylandSurfaceRole : unsigned int {
-    none,
-    shell,
-    sub,
-    xdgSurfaceV5,
-    xdgPopupV5,
+	none,
+	shell,
+	sub,
+	xdgSurfaceV5,
+	xdgPopupV5,
 	xdgToplevelV6,
 	xdgPopupV6
 };
@@ -34,51 +34,51 @@ public:
 	using Role = WaylandSurfaceRole;
 
 public:
-    WaylandWindowContext(WaylandAppContext& ac, const WaylandWindowSettings& s = {});
-    virtual ~WaylandWindowContext();
+	WaylandWindowContext(WaylandAppContext& ac, const WaylandWindowSettings& s = {});
+	virtual ~WaylandWindowContext();
 
-    void refresh() override;
-    void show() override;
-    void hide() override;
+	void refresh() override;
+	void show() override;
+	void hide() override;
 
-    void minSize(nytl::Vec2ui minSize) override;
-    void maxSize(nytl::Vec2ui maxSize) override;
+	void minSize(nytl::Vec2ui minSize) override;
+	void maxSize(nytl::Vec2ui maxSize) override;
 
-    void size(nytl::Vec2ui minSize) override;
-    void position(nytl::Vec2i position) override;
+	void size(nytl::Vec2ui minSize) override;
+	void position(nytl::Vec2i position) override;
 
-    void cursor(const Cursor& c) override;
+	void cursor(const Cursor& c) override;
 	NativeHandle nativeHandle() const override;
 
 	WindowCapabilities capabilities() const override;
 	Surface surface() override;
 
-    //toplevel
-    void maximize() override;
-    void minimize() override;
-    void fullscreen() override;
-    void normalState() override;
+	//toplevel
+	void maximize() override;
+	void minimize() override;
+	void fullscreen() override;
+	void normalState() override;
 
-    void beginMove(const EventData* ev) override;
-    void beginResize(const EventData* event, WindowEdges edges) override;
+	void beginMove(const EventData* ev) override;
+	void beginResize(const EventData* event, WindowEdges edges) override;
 
-    void title(nytl::StringParam name) override;
+	void title(nytl::StringParam name) override;
 	void icon(const Image&) override {}
 
 	void customDecorated(bool) override {}
 	bool customDecorated() const override { return true; }
 
-    // - wayland specific -
-    wl_surface& wlSurface() const { return *wlSurface_; };
+	// - wayland specific -
+	wl_surface& wlSurface() const { return *wlSurface_; };
 	wl_callback* frameCallback() const { return frameCallback_; }
 	WaylandSurfaceRole surfaceRole() const { return role_; }
 	nytl::Vec2ui size() const { return size_; }
 
 	//return nullptr if this object has another role
-    wl_shell_surface* wlShellSurface() const;
-    wl_subsurface* wlSubsurface() const;
-    xdg_surface* xdgSurfaceV5() const;
-    xdg_popup* xdgPopupV5() const;
+	wl_shell_surface* wlShellSurface() const;
+	wl_subsurface* wlSubsurface() const;
+	xdg_surface* xdgSurfaceV5() const;
+	xdg_popup* xdgPopupV5() const;
 
 	zxdg_surface_v6* xdgSurfaceV6() const;
 	zxdg_popup_v6* xdgPopupV6() const;
@@ -105,12 +105,12 @@ protected:
 	void reparseState(const wl_array& states);
 
 	// init helpers
-    void createShellSurface(const WaylandWindowSettings& ws);
-    void createXdgSurfaceV5(const WaylandWindowSettings& ws);
-    void createXdgSurfaceV6(const WaylandWindowSettings& ws);
+	void createShellSurface(const WaylandWindowSettings& ws);
+	void createXdgSurfaceV5(const WaylandWindowSettings& ws);
+	void createXdgSurfaceV6(const WaylandWindowSettings& ws);
 	void createXdgPopupV5(const WaylandWindowSettings& ws);
 	void createXdgPopupV6(const WaylandWindowSettings& ws);
-    void createSubsurface(wl_surface& parent, const WaylandWindowSettings& ws);
+	void createSubsurface(wl_surface& parent, const WaylandWindowSettings& ws);
 
 	// listeners
 	void handleFrameCallback(wl_callback*, uint32_t);
@@ -130,19 +130,19 @@ protected:
 
 protected:
 	WaylandAppContext* appContext_ {};
-    wl_surface* wlSurface_ {};
+	wl_surface* wlSurface_ {};
 	nytl::Vec2ui size_ {};
 
 	// if this is == nullptr, the window is ready to be redrawn.
 	// otherwise waiting for the callback to be called
-    wl_callback* frameCallback_ {};
+	wl_callback* frameCallback_ {};
 
 	// stores if the window has a pending refresh request, i.e. if it should refresh
 	// as soon as possible
 	// flag will be set by refresh() and trigger a DrawEvent when frameEvent is called
-    bool refreshFlag_ = false;
+	bool refreshFlag_ = false;
 
-    // stores which kinds of surface this context holds
+	// stores which kinds of surface this context holds
 	WaylandSurfaceRole role_ = WaylandSurfaceRole::none;
 
 	// when the wl_surface has a xdg_surface role, we can give this xdg_surface its
@@ -160,15 +160,15 @@ protected:
 	// the different surface roles this surface can have.
 	// the union will be activated depending on role_
 	// xdg roles are preferred over the plain wl ones if available
-    union {
-        wl_shell_surface* wlShellSurface_ = nullptr;
-        wl_subsurface* wlSubsurface_;
+	union {
+		wl_shell_surface* wlShellSurface_ = nullptr;
+		wl_subsurface* wlSubsurface_;
 
-        xdg_surface* xdgSurfaceV5_;
-        xdg_popup* xdgPopupV5_;
+		xdg_surface* xdgSurfaceV5_;
+		xdg_popup* xdgPopupV5_;
 
 		XdgSurfaceV6 xdgSurfaceV6_;
-    };
+	};
 
 	// current toplevel state for xdg toplevel windows
 	ToplevelState currentXdgState_ {ToplevelState::normal};

@@ -15,7 +15,7 @@ namespace eventType
 	constexpr auto key = 25u;
 	constexpr auto focus = 26u;
 
-    constexpr auto dataOffer = 31u;
+	constexpr auto dataOffer = 31u;
 
 	namespace wayland
 	{
@@ -37,7 +37,7 @@ namespace dataType
 
 	constexpr auto raw = 2u; //std:vector<std::uint8_t>, raw unspecified data buffer
 	constexpr auto text = 3u; //std::string encoded utf8
-    constexpr auto filePaths = 4u; //std::vector<c++17 ? std::path : std::string>
+	constexpr auto filePaths = 4u; //std::vector<c++17 ? std::path : std::string>
 	constexpr auto image = 5u; //ny::ImageData
 
 	constexpr auto timePoint = 6u; //std::chrono::high_resolution_clock::time_point

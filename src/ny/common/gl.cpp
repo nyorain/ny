@@ -108,17 +108,17 @@ bool glExtensionStringContains(nytl::StringParam extString, nytl::StringParam ex
 {
 	auto it = extString.data();
 	while(true) {
-        auto loc = std::strstr(it, extension);
-        if(!loc)
+		auto loc = std::strstr(it, extension);
+		if(!loc)
 			return false;
 
-        auto terminator = loc + std::strlen(extension);
+		auto terminator = loc + std::strlen(extension);
 		bool blankBefore = (loc == extString || *(loc - 1) == ' ');
 		bool blankAfter = (*terminator == ' ' || *terminator == '\0');
 		if(blankBefore && blankAfter)
 			return true;
 
-        it = terminator;
+		it = terminator;
 	}
 
 	return false;

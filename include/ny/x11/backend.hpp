@@ -15,16 +15,16 @@ public:
 	static X11Backend& instance(){ return instance_; }
 
 public:
-    bool available() const override;
-    AppContextPtr createAppContext() override;
+	bool available() const override;
+	AppContextPtr createAppContext() override;
 	const char* name() const override { return "x11"; }
 
 	bool gl() const override;
 	bool vulkan() const override;
 
 protected:
-    static X11Backend instance_;
-    X11Backend();
+	static X11Backend instance_;
+	X11Backend();
 };
 
 } // namespace ny

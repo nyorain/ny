@@ -113,12 +113,12 @@ public:
 ///Part of WindowListener
 class WindowListener
 {
-    ...
+	...
 
 	///This callback is called for backend-specific events that might be interesting for
 	///the applications. This function should only be used by applications that want to offer
-    ///platform-specific features.
-    ///It can then check whether a certain backend is used and cast the received BackendEvent
+	///platform-specific features.
+	///It can then check whether a certain backend is used and cast the received BackendEvent
 	///to the derived BackendEvent types of the specific backend.
 	virtual void backendEvent(const BackendEvent&) {};
 };
@@ -129,7 +129,7 @@ class WindowListener
 class BackendEvent
 {
 public:
-    virtual ~BackendEvent() = default;
+	virtual ~BackendEvent() = default;
 };
 ```
 

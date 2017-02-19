@@ -21,9 +21,9 @@ the undefined symbols are needed for the extern main decl (cant this done better
 
 ```
 cmake -G Ninja ../.. \
-    -DCMAKE_TOOLCHAIN_FILE=/opt/android-ndk/build/cmake/android.toolchain.cmake \
-    -DAndroid=1 -DDepend=0 -DANDROID_STL=c++_static \
-    -DANDROID_ALLOW_UNDEFINED_SYMBOLS=1 -DANDROID_CPP_FEATURES="rtti exceptions" \
+	-DCMAKE_TOOLCHAIN_FILE=/opt/android-ndk/build/cmake/android.toolchain.cmake \
+	-DAndroid=1 -DDepend=0 -DANDROID_STL=c++_static \
+	-DANDROID_ALLOW_UNDEFINED_SYMBOLS=1 -DANDROID_CPP_FEATURES="rtti exceptions" \
 	-DANDROID_PLATFORM=android-24 -DExamples=1
 ```
 
