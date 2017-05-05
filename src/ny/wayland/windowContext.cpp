@@ -175,8 +175,7 @@ void WaylandWindowContext::createXdgSurfaceV6(const WaylandWindowSettings& ws)
 	// a tiling window manager which is not what we want. But otherwise if the compositor
 	// wants the application to choose the size we need this call to actually choose it.
 	// how to handle this? somehow parse the configure events we get and react to it
-	// zxdg_surface_v6_set_window_geometry(xdgSurfaceV6_.surface, 0, 0, size_.x, size_.y);
-	zxdg_surface_v6_set_window_geometry(xdgSurfaceV6_.surface, 0, 0, size().x, size().y);
+	zxdg_surface_v6_set_window_geometry(xdgSurfaceV6_.surface, 0, 0, size()[0], size()[1]);
 
 	zxdg_surface_v6_add_listener(xdgSurfaceV6_.surface, &xdgSurfaceListener, this);
 	zxdg_toplevel_v6_add_listener(xdgSurfaceV6_.toplevel, &xdgToplevelListener, this);
@@ -200,7 +199,7 @@ void WaylandWindowContext::createXdgPopupV5(const WaylandWindowSettings& ws)
 	unsigned int serial {};
 	if(position == defaultPosition) position = fallbackPosition;
 	xdgPopupV5_ = xdg_shell_get_xdg_popup(appContext().xdgShellV5(), &wlSurface(), parent,
-		appContext().wlSeat(), serial, position.x, position.y);
+		appContext().wlSeat(), serial, position[0], position[1]);
 
 	if(!xdgPopupV5_)
 		throw std::runtime_error("ny::WaylandWindowContext: failed to create xdg_popup v5");
@@ -237,7 +236,7 @@ void WaylandWindowContext::createXdgPopupV6(const WaylandWindowSettings& ws)
 	unsigned int serial {};
 
 	xdgPopupV5_ = xdg_shell_get_xdg_popup(appContext().xdgShellV5(), &wlSurface(), parent,
-		appContext().wlSeat(), serial, position.x, position.y);
+		appContext().wlSeat(), serial, position[0], position[1]);
 
 	if(!xdgSurfaceV6_.popup)
 		throw std::runtime_error("ny::WaylandWindowContext: failed to create xdg_popup v5");
@@ -298,7 +297,7 @@ void WaylandWindowContext::position(nytl::Vec2i position)
 {
 	// TODO: support xdg v6 positioner
 	if(wlSubsurface()) {
-		wl_subsurface_set_position(wlSubsurface_, position.x, position.y);
+		wl_subsurface_set_position(wlSubsurface_, position[0], position[1]);
 	} else {
 		warning("ny::WaylandWindowContext::position: wayland does not support custom positions");
 	}
@@ -344,11 +343,11 @@ void WaylandWindowContext::cursor(const Cursor& cursor)
 
 		cursorBuffer_ = wl_cursor_image_get_buffer(img);
 
-		cursorHotspot_.x = img->hotspot_y;
-		cursorHotspot_.x = img->hotspot_x;
+		cursorHotspot_[0] = img->hotspot_y;
+		cursorHotspot_[0] = img->hotspot_x;
 
-		cursorSize_.x = img->width;
-		cursorSize_.y = img->height;
+		cursorSize_[0] = img->width;
+		cursorSize_[1] = img->height;
 	}
 
 	// update the cursor if needed
@@ -553,7 +552,7 @@ void WaylandWindowContext::attachCommit(wl_buffer* buffer)
 
 	frameCallback_ = wl_surface_frame(wlSurface_);
 	wl_callback_add_listener(frameCallback_, &frameListener, this);
-	wl_surface_damage(wlSurface_, 0, 0, size_.x, size_.y);
+	wl_surface_damage(wlSurface_, 0, 0, size_[0], size_[1]);
 	wl_surface_attach(wlSurface_, buffer, 0, 0);
 
 	wl_surface_commit(wlSurface_);
@@ -607,7 +606,7 @@ void WaylandWindowContext::handleShellSurfaceConfigure(wl_shell_surface*, uint32
 {
 	nytl::unused(edges); // TODO?
 
-	auto newSize = nytl::Vec2ui(width, height);
+	auto newSize = nytl::Vec2ui{static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
 
 	SizeEvent se;
 	se.size = newSize;
@@ -630,7 +629,7 @@ void WaylandWindowContext::handleXdgSurfaceV5Configure(xdg_surface*, int32_t wid
 	if(!width || !height) return;
 	reparseState(*states);
 
-	auto newSize = nytl::Vec2ui(width, height);
+	auto newSize = nytl::Vec2ui{static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
 
 	SizeEvent se;
 	se.size = newSize;
@@ -659,7 +658,7 @@ void WaylandWindowContext::handleXdgSurfaceV6Configure(zxdg_surface_v6*, uint32_
 	// if not, dont send size event and redraw
 	xdgSurfaceV6_.configured = true;
 	zxdg_surface_v6_ack_configure(xdgSurfaceV6(), serial);
-	zxdg_surface_v6_set_window_geometry(xdgSurfaceV6_.surface, 0, 0, size().x, size().y);
+	zxdg_surface_v6_set_window_geometry(xdgSurfaceV6_.surface, 0, 0, size()[0], size()[1]);
 
 	SizeEvent se;
 	se.size = size_;
@@ -693,7 +692,7 @@ void WaylandWindowContext::handleXdgPopupV6Configure(zxdg_popup_v6*, int32_t x, 
 	if(!width || !height) return;
 	nytl::unused(x, y);
 
-	auto newSize = nytl::Vec2ui(width, height);
+	auto newSize = nytl::Vec2ui{static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
 
 	SizeEvent se;
 	se.size = newSize;

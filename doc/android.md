@@ -32,3 +32,10 @@ for custom architectures, use -DANDROID_ABI from the android toolchain:
 - default (automatically chosen) -DANDROID_ABI=armeabi
 - x86 (e.g. chromebook): -DANDROID_ABI=x86
 - 64 bit (only for new devices): -DANDROID_ABI=arm64-v8a
+
+
+.clang-complete
+===============
+
+-I/opt/android-ndk/platforms/android-24/arch-arm64/usr/include/
+-I./build/android/include

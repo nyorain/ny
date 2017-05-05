@@ -32,25 +32,20 @@ const DataFormat DataFormat::image {"image/x-ny-data", {"ny::Image"}};
 std::vector<uint8_t> serialize(const Image& image)
 {
 	std::vector<uint8_t> ret;
-	auto stride = bitStride(image);
 
-	//width, height, stride stored as uint32_t
-	//format: for each channel: colorchannel 8 bits, bit size 8 bits
-	ret.resize((3 * 4) + image.format.size() * 2);
+	// format
+	ret.resize(2 * 4u + 4 + 4); // size, stride, format
 	reinterpret_cast<uint32_t&>(ret[0]) = image.size[0];
 	reinterpret_cast<uint32_t&>(ret[4]) = image.size[1];
-	reinterpret_cast<uint32_t&>(ret[8]) = stride;
+	reinterpret_cast<uint32_t&>(ret[8]) = image.stride;
+	reinterpret_cast<uint32_t&>(ret[12]) = static_cast<uint32_t>(image.format);
 
-	auto it = &ret[12];
-	for(auto& channel : image.format) {
-		*(it++) = static_cast<uint8_t>(channel.first);
-		*(it++) = channel.second;
-	}
-
-	//total size of data
+	// total size of data
 	auto start = ret.size();
 	auto dsize = dataSize(image);
 	ret.resize(ret.size() + dsize);
+
+	// data
 	std::memcpy(&ret[start], image.data, dsize);
 
 	return ret;
@@ -59,7 +54,7 @@ std::vector<uint8_t> serialize(const Image& image)
 UniqueImage deserializeImage(nytl::Span<const uint8_t> buffer)
 {
 	UniqueImage image;
-	auto headerSize = 9u + image.format.size() * 2u;
+	auto headerSize = 2 * 4u + 4 + 4; // size, stride, format
 
 	// check for invaliad heaer/empty data
 	if(buffer.size() < headerSize) {
@@ -67,15 +62,10 @@ UniqueImage deserializeImage(nytl::Span<const uint8_t> buffer)
 		return {};
 	}
 
-	image.size.x = reinterpret_cast<const uint32_t&>(buffer[0]);
-	image.size.y = reinterpret_cast<const uint32_t&>(buffer[4]);
+	image.size[0] = reinterpret_cast<const uint32_t&>(buffer[0]);
+	image.size[1] = reinterpret_cast<const uint32_t&>(buffer[4]);
 	image.stride = reinterpret_cast<const uint32_t&>(buffer[8]);
-
-	auto it = &buffer[12];
-	for(auto& channel : image.format) {
-		channel.first = static_cast<ColorChannel>(*(it++));
-		channel.second = *(it++);
-	}
+	image.format = static_cast<ImageFormat>(reinterpret_cast<const uint32_t&>(buffer[12]));
 
 	auto dSize = dataSize(image);
 
@@ -111,8 +101,7 @@ std::string encodeUriList(const std::vector<std::string>& uris)
 			} else {
 				auto last = 0u;
 				for(auto i = 0u; i < chars.size(); ++i) if(chars[i]) last = i;
-				for(auto i = 0u; i <= last; ++i)
-				{
+				for(auto i = 0u; i <= last; ++i) {
 					unsigned int ci = static_cast<unsigned char>(chars[i]);
 					std::ostringstream sstream;
 					sstream << std::hex << ci;

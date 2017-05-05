@@ -63,7 +63,7 @@ protected:
 	/// and en empty connection will be returned.
 	/// Otherwise the connection guard for a callback into the given request that will
 	/// be triggered when the requested data is received will be returned.
-	nytl::ConnectionGuard registerDataRequest(const DataFormat& format,
+	nytl::UniqueConnection registerDataRequest(const DataFormat& format,
 		AsyncRequestImpl<std::any>& request);
 
 	/// Converts and adds the given target atom format to the supported formats.

@@ -98,7 +98,7 @@ public:
 		auto bufferGuard = surface->buffer();
 		auto buffer = bufferGuard.get();
 		auto size = dataSize(buffer);
-		std::memset(buffer.data, 0xCC, size);
+		std::memset(buffer.data, 0x00, size);
 	}
 
 	void mouseButton(const ny::MouseButtonEvent& ev) override
@@ -107,11 +107,11 @@ public:
 
 		// initiate a dnd operation with the CustomDataSource
 		auto pos = ev.position;
-		if(pos.x < 100 && pos.y < 100) {
+		if(pos[0] < 100 && pos[1] < 100) {
 			auto src = std::make_unique<CustomDataSource>();
 			auto ret = ac->startDragDrop(std::move(src));
 			ny::log("Starting a dnd operation: ", ret);
-		} else if(pos.x > 400 && pos.y > 400) {
+		} else if(pos[0] > 400 && pos[1] > 400) {
 			wc->beginResize(ev.eventData, ny::WindowEdge::bottomRight);
 		} else {
 			wc->beginMove(ev.eventData);
@@ -126,7 +126,7 @@ public:
 	ny::DataFormat dndMove(const ny::DndMoveEvent& ev) override
 	{
 		auto pos = ev.position;
-		if(pos.x > 100 && pos.y > 100 && pos.x < 700 && pos.y < 400) {
+		if(pos[0] > 100 && pos[1] > 100 && pos[0] < 700 && pos[1] < 400) {
 			auto formatsReq = ev.offer->formats();
 			if(!formatsReq->wait()) {
 				ny::warning("AppContext broke while waiting for formats! Exiting.");
@@ -203,7 +203,7 @@ int main()
 CustomDataSource::CustomDataSource()
 {
 	image_.data = std::make_unique<std::uint8_t[]>(32 * 32 * 4);
-	image_.format = ny::imageFormats::argb8888;
+	image_.format = ny::ImageFormat::argb8888;
 	image_.size = {32u, 32u};
 
 	// light transparent red

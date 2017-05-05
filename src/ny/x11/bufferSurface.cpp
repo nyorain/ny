@@ -31,8 +31,8 @@
 
 // When not using the shm version, we should have to check not to exceed the maximum
 // request length, but since this is usually pretty low (even with big requests extensions
-// somewhere around 4MB on test machine) but putting the image onto the window works
-// nontheless and xcb-util-image does not check/split as well, we don't check for
+// somewhere around 4MB on test machine) band putting the image onto the window works
+// nontheless (somehow?!) and xcb-util-image does not check/split as well, so we don't check for
 // request length exceeding.
 
 namespace ny {
@@ -65,7 +65,7 @@ X11BufferSurface::X11BufferSurface(X11WindowContext& wc) : windowContext_(&wc)
 		throw std::runtime_error("ny::X11BufferSurface: couldn't query depth format bpp");
 
 	format_ = x11::visualToFormat(*windowContext().xVisualType(), fmt->bits_per_pixel);
-	if(format_ == imageFormats::none)
+	if(format_ == ImageFormat::none)
 		throw std::runtime_error("ny::X11BufferSurface: couldn't parse visual format");
 
 	// check if the server has shm suport
@@ -97,7 +97,7 @@ BufferGuard X11BufferSurface::buffer()
 
 	//check if resize is needed
 	auto size = windowContext().size();
-	auto newBytes = std::ceil(size.x * size.y * bitSize(format_) / 8.0); //the needed size
+	auto newBytes = std::ceil(size[0] * size[1] * bitSize(format_) / 8.0); //the needed size
 	if(newBytes > byteSize_) {
 		// we alloc more than is really needed because this will
 		// speed up (especially the shm version) resizes. We don't have to reallocated
@@ -127,7 +127,7 @@ BufferGuard X11BufferSurface::buffer()
 	size_ = size;
 	active_ = true;
 
-	return {*this, {data_, {size_.x, size_.y}, format_, size_.x * bitSize(format_)}};
+	return {*this, {data_, {size_[0], size_[1]}, format_, size_[0] * bitSize(format_)}};
 }
 
 void X11BufferSurface::apply(const BufferGuard&) noexcept
@@ -147,13 +147,13 @@ void X11BufferSurface::apply(const BufferGuard&) noexcept
 	auto depth = windowContext().visualDepth();
 	auto window = windowContext().xWindow();
 	if(shm_) {
-		auto cookie = xcb_shm_put_image_checked(&xConnection(), window, gc_, size_.x, size_.y,
-			0, 0, size_.x, size_.y, 0, 0, depth, XCB_IMAGE_FORMAT_Z_PIXMAP, 0, shmseg_, 0);
+		auto cookie = xcb_shm_put_image_checked(&xConnection(), window, gc_, size_[0], size_[1],
+			0, 0, size_[0], size_[1], 0, 0, depth, XCB_IMAGE_FORMAT_Z_PIXMAP, 0, shmseg_, 0);
 		windowContext().errorCategory().checkWarn(cookie, "ny::X11BufferSurface: shm_put_image");
 	} else {
-		auto length = std::ceil(size_.x * size_.y * bitSize(format_) / 8.0);
+		auto length = std::ceil(size_[0] * size_[1] * bitSize(format_) / 8.0);
 		auto cookie = xcb_put_image_checked(&xConnection(), XCB_IMAGE_FORMAT_Z_PIXMAP, window,
-			gc_, size_.x, size_.y, 0, 0, 0, depth, length, data_);
+			gc_, size_[0], size_[1], 0, 0, 0, depth, length, data_);
 		windowContext().errorCategory().checkWarn(cookie, "ny::X11BufferSurface: put_image");
 	}
 }

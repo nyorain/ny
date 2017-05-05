@@ -15,13 +15,13 @@
 #include <ny/loopControl.hpp>
 
 #ifdef NY_WithGl
-#include <ny/winapi/wgl.hpp>
+	#include <ny/winapi/wgl.hpp>
 #endif //Gl
 
 #ifdef NY_WithVulkan
-#define VK_USE_PLATFORM_WIN32_KHR
-#include <ny/winapi/vulkan.hpp>
-#include <vulkan/vulkan.h>
+	#define VK_USE_PLATFORM_WIN32_KHR
+	#include <ny/winapi/vulkan.hpp>
+	#include <vulkan/vulkan.h>
 #endif //Vulkan
 
 #include <nytl/utf.hpp>
@@ -353,7 +353,7 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 		case WM_SIZE: {
 			SizeEvent se;
 			se.eventData = &eventData;
-			se.size = nytl::Vec2ui(LOWORD(lparam), HIWORD(lparam));
+			se.size = nytl::Vec2ui{LOWORD(lparam), HIWORD(lparam)};
 			se.edges = WindowEdge::none;
 			wc->listener().resize(se);
 			break;
@@ -373,7 +373,7 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 					auto cursor = sizeCursorFromEdge(edge);
 					wc->cursor(cursor);
 
-				result = ::DefWindowProc(window, message, wparam, lparam);
+					result = ::DefWindowProc(window, message, wparam, lparam);
 					::SetClassLongPtr(wc->handle(), -12, currentCursor);
 
 					break;

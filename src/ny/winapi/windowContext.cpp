@@ -133,8 +133,8 @@ void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 		wndClassName_.c_str(),
 		titleW.c_str(),
 		style_,
-		position.x, position.y,
-		size.x, size.y,
+		position[0], position[1],
+		size[0], size[1],
 		parent, nullptr, hinstance, this);
 
 	if(!handle_)
@@ -216,34 +216,41 @@ void WinapiWindowContext::hide()
 
 void WinapiWindowContext::customDecorated(bool set)
 {
+	// /*
+
 	auto style = ::GetWindowLong(handle(), GWL_STYLE);
 	auto exStyle = ::GetWindowLong(handle(), GWL_EXSTYLE);
 
 	if(set) {
-		style &= ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU);
+		style &= ~WS_OVERLAPPEDWINDOW;
+		style |= WS_POPUP;
 		::SetWindowLong(handle(), GWL_STYLE, style);
 
-		exStyle &= ~(WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
+		exStyle &= ~(WS_EX_DLGMODALFRAME | WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
 		::SetWindowLong(handle(), GWL_EXSTYLE, exStyle);
 	} else {
-		style |= (WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU);
+		style |= WS_OVERLAPPEDWINDOW;
+		style &= ~WS_POPUP;
 		::SetWindowLong(handle(), GWL_STYLE, style);
 
-		exStyle |= (WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
+		exStyle |= (WS_EX_DLGMODALFRAME | WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
 		::SetWindowLong(handle(), GWL_EXSTYLE, exStyle);
 	}
 
 	customDecorated_ = set;
-	::SetWindowPos(handle(), HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_ASYNCWINDOWPOS);
+	::SetWindowPos(handle(), HWND_TOP, 0, 0, 0, 0,
+		SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_ASYNCWINDOWPOS);
 }
 
 void WinapiWindowContext::size(nytl::Vec2ui size)
 {
-	::SetWindowPos(handle_, HWND_TOP, 0, 0, size.x, size.y, SWP_NOMOVE | SWP_ASYNCWINDOWPOS);
+	::SetWindowPos(handle_, HWND_TOP, 0, 0,
+		size[0], size[1], SWP_NOMOVE | SWP_ASYNCWINDOWPOS | SWP_NOZORDER);
 }
 void WinapiWindowContext::position(nytl::Vec2i position)
 {
-	::SetWindowPos(handle_, HWND_TOP, position.x, position.y, 0, 0, SWP_NOSIZE | SWP_ASYNCWINDOWPOS);
+	::SetWindowPos(handle_, HWND_TOP, position[0], position[1],
+		0, 0, SWP_NOSIZE | SWP_ASYNCWINDOWPOS | SWP_NOZORDER);
 }
 
 void WinapiWindowContext::cursor(const Cursor& cursor)
@@ -253,7 +260,7 @@ void WinapiWindowContext::cursor(const Cursor& cursor)
 	if(cursor.type() == CursorType::image) {
 		auto img = cursor.image();
 		auto bitmap = winapi::toBitmap(img);
-		auto mask = ::CreateBitmap(img.size.x, img.size.y, 1, 1, nullptr);
+		auto mask = ::CreateBitmap(img.size[0], img.size[1], 1, 1, nullptr);
 
 		auto bitmapsGuard = nytl::makeScopeGuard([&]{
 			if(bitmap) ::DeleteObject(bitmap);
@@ -268,8 +275,8 @@ void WinapiWindowContext::cursor(const Cursor& cursor)
 		const auto& hs = cursor.imageHotspot();
 		ICONINFO iconinfo;
 		iconinfo.fIcon = false;
-		iconinfo.xHotspot = hs.x;
-		iconinfo.yHotspot = hs.y;
+		iconinfo.xHotspot = hs[0];
+		iconinfo.yHotspot = hs[1];
 		iconinfo.hbmMask = mask;
 		iconinfo.hbmColor = bitmap;
 
@@ -355,8 +362,8 @@ void WinapiWindowContext::unsetFullscreen()
 		auto& rect = savedState_.extents;
 		SetWindowLong(handle(), GWL_STYLE, savedState_.style);
 		SetWindowLong(handle(), GWL_EXSTYLE, savedState_.exstyle);
-		SetWindowPos(handle(), nullptr, rect.position.x, rect.position.y,
-			rect.size.x, rect.size.y, SWP_ASYNCWINDOWPOS | SWP_FRAMECHANGED);
+		SetWindowPos(handle(), nullptr, rect.position[0], rect.position[1],
+			rect.size[0], rect.size[1], SWP_ASYNCWINDOWPOS | SWP_FRAMECHANGED);
 		fullscreen_ = false;
 	}
 }
@@ -413,15 +420,13 @@ void WinapiWindowContext::icon(const Image& img)
 		return;
 	}
 
-	constexpr static auto reqFormat = imageFormats::argb8888;
+	constexpr static auto reqFormat = ImageFormat::argb8888;
 	auto uniqueImage = convertFormat(img, reqFormat);
 
-	bool alpha = false;
-	for(auto& channel : img.format) if(channel.first == ColorChannel::alpha) alpha = true;
-	if(alpha) premultiply(uniqueImage);
+	premultiply(uniqueImage);
 
 	auto pixelsData = data(uniqueImage);
-	icon_ = ::CreateIcon(hinstance(), img.size.x, img.size.y, 1, 32, nullptr, pixelsData);
+	icon_ = ::CreateIcon(hinstance(), img.size[0], img.size[1], 1, 32, nullptr, pixelsData);
 	if(!icon_) {
 		warning(winapi::errorMessage("ny::WinapiWindowContext::icon: CreateIcon failed"));
 		return;

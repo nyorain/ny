@@ -86,7 +86,7 @@ void XkbKeyboardContext::updateKey(unsigned int code, bool pressed)
 
 void XkbKeyboardContext::updateState(nytl::Vec3ui mods, nytl::Vec3ui layouts)
 {
-	xkb_state_update_mask(xkbState_, mods.x, mods.y, mods.z, layouts.x, layouts.y, layouts.z);
+	xkb_state_update_mask(xkbState_, mods[0], mods[1], mods[2], layouts[0], layouts[1], layouts[2]);
 }
 
 std::string XkbKeyboardContext::utf8(Keycode key) const

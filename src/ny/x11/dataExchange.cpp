@@ -62,7 +62,7 @@ template<typename T>
 class X11DataOffer::AsyncRequestImpl : public DefaultAsyncRequest<T> {
 public:
 	using DefaultAsyncRequest<T>::DefaultAsyncRequest;
-	nytl::ConnectionGuard connection;
+	nytl::UniqueConnection connection;
 };
 
 // X11AsyncRequest derivate that will be used for data requests that first have to wait
@@ -141,7 +141,7 @@ X11DataOffer::FormatsRequest X11DataOffer::formats()
 
 X11DataOffer::DataRequest X11DataOffer::data(const DataFormat& fmt)
 {
-	// if we did not even retrieved the supported formats we actually have to create
+	// if we did not even retrieve the supported formats we actually have to create
 	// an extra request for the format
 	if(!formatsRetrieved_) {
 		auto ret = std::make_unique<DataFormatRequestImpl>(appContext());
@@ -169,7 +169,7 @@ X11DataOffer::DataRequest X11DataOffer::data(const DataFormat& fmt)
 	return ret;
 }
 
-nytl::ConnectionGuard X11DataOffer::registerDataRequest(const DataFormat& format,
+nytl::UniqueConnection X11DataOffer::registerDataRequest(const DataFormat& format,
 	AsyncRequestImpl<std::any>& request)
 {
 	// check if the requested format is supported at all and query the associated
@@ -655,7 +655,7 @@ bool X11DataManager::processClientMessage(const xcb_client_message_event_t& clie
 			return true;
 		}
 
-		nytl::Vec2i pos(reply->dst_x, reply->dst_y);
+		nytl::Vec2i pos{reply->dst_x, reply->dst_y};
 		free(reply);
 
 		DndMoveEvent dme;
@@ -706,8 +706,8 @@ bool X11DataManager::processClientMessage(const xcb_client_message_event_t& clie
 		// do not generate dndDrop listener event in this case?
 
 		nytl::Vec2i pos {};
-		pos.x = clientm.data.data32[2] >> 16;
-		pos.y = clientm.data.data32[2] & 0xffff;
+		pos[0] = clientm.data.data32[2] >> 16;
+		pos[1] = clientm.data.data32[2] & 0xffff;
 
 		dndOffers_.push_back(dndOffer_.offer.get());
 		dndOffer_.offer->unregister();
@@ -1018,7 +1018,7 @@ void X11DataManager::xdndSendPosition(nytl::Vec2i rootPos)
 	clientev.type = atoms().xdndPosition;
 	clientev.data.data32[0] = dndSrc_.sourceWindow;
 	clientev.data.data32[1] = 0u; // reserved
-	clientev.data.data32[2] = (rootPos.x << 16) | rootPos.y;
+	clientev.data.data32[2] = (rootPos[0] << 16) | rootPos[1];
 	clientev.data.data32[3] = XCB_CURRENT_TIME;
 	clientev.data.data32[4] = atoms().xdndActionCopy;
 

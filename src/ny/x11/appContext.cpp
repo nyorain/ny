@@ -478,7 +478,7 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev)
 		case XCB_CONFIGURE_NOTIFY: {
 			auto& configure = reinterpret_cast<const xcb_configure_notify_event_t&>(ev);
 
-			auto nsize = nytl::Vec2ui(configure.width, configure.height);
+			auto nsize = nytl::Vec2ui{configure.width, configure.height};
 			// auto npos = nytl::Vec2i(configure.x, configure.y);
 
 			auto wc = windowContext(configure.window);

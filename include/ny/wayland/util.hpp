@@ -34,7 +34,7 @@ public:
 	ShmBuffer& operator=(ShmBuffer&& other);
 
 	nytl::Vec2ui size() const { return size_; }
-	unsigned int dataSize() const { return stride_ * size_.y; }
+	unsigned int dataSize() const { return stride_ * size_[1]; }
 	unsigned int format() const { return format_; }
 	unsigned int stride() const { return stride_; }
 	uint8_t& data(){ return *data_; }
@@ -229,12 +229,10 @@ public:
 	nytl::ConnectionID highestID;
 
 public:
-	bool disconnect(nytl::ConnectionID id) override
+	bool disconnect(const nytl::ConnectionID& id) override
 	{
-		for(auto it = items.begin(); it != items.end(); ++it)
-		{
-			if(it->clID_ == id)
-			{
+		for(auto it = items.begin(); it != items.end(); ++it) {
+			if(it->clID_ == id) {
 				items.erase(it);
 				return true;
 			}

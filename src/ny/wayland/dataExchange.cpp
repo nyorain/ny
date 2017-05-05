@@ -31,7 +31,7 @@ namespace ny {
 class WaylandDataOffer::PendingRequest {
 public:
 	std::vector<WaylandDataOffer::DataRequestImpl*> requests;
-	nytl::ConnectionGuard fdConnection;
+	nytl::UniqueConnection fdConnection;
 };
 
 // /Small DefaultAsyncRequest addition that allows to unregister itself on desctruction.
@@ -334,10 +334,10 @@ void WaylandDataSource::action(wl_data_source*, uint32_t action)
 	auto* img = cursor->images[0];
 	auto buffer = wl_cursor_image_get_buffer(img);
 
-	auto hotspot = nytl::Vec2i(img->hotspot_x, img->hotspot_y);
-	auto size = nytl::Vec2ui(img->width, img->height);
+	auto hs = nytl::Vec2ui{img->hotspot_x, img->hotspot_y};
+	auto size = nytl::Vec2ui{img->width, img->height};
 
-	appContext_.waylandMouseContext()->cursorBuffer(buffer, hotspot, size);
+	appContext_.waylandMouseContext()->cursorBuffer(buffer, static_cast<nytl::Vec2i>(hs), size);
 }
 
 void WaylandDataSource::dndPerformed(wl_data_source*)
@@ -398,7 +398,7 @@ void WaylandDataDevice::enter(wl_data_device*, uint32_t serial, wl_surface* surf
 	wl_fixed_t x, wl_fixed_t y, wl_data_offer* offer)
 {
 	WaylandEventData eventData(serial);
-	nytl::Vec2i pos(wl_fixed_to_int(x), wl_fixed_to_int(y));
+	nytl::Vec2i pos{wl_fixed_to_int(x), wl_fixed_to_int(y)};
 
 	// find the associated dataOffer and cache it as dndOffer_
 	for(auto& o : offers_) {
@@ -458,7 +458,7 @@ void WaylandDataDevice::motion(wl_data_device*, uint32_t time, wl_fixed_t x, wl_
 {
 	// debug("motion");
 	nytl::unused(time); //time param needed for CompFunc since it would be stored in x otherwise
-	nytl::Vec2i pos(wl_fixed_to_int(x), wl_fixed_to_int(y));
+	nytl::Vec2i pos{wl_fixed_to_int(x), wl_fixed_to_int(y)};
 
 	DndMoveEvent dme;
 	dme.position = pos;

@@ -33,7 +33,7 @@ BufferGuard WinapiBufferSurface::buffer()
 	size_ = currSize;
 	active_ = true;
 
-	return {*this, {data_.get(), size_, imageFormats::argb8888, size_[0] * 32}};
+	return {*this, {data_.get(), size_, ImageFormat::argb8888, size_[0] * 32}};
 }
 void WinapiBufferSurface::apply(const BufferGuard& bufferGuard) noexcept
 {

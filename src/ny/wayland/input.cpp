@@ -80,7 +80,7 @@ void WaylandMouseContext::handleMotion(wl_pointer*, uint32_t time, wl_fixed_t x,
 void WaylandMouseContext::handleEnter(wl_pointer*, uint32_t serial, wl_surface* surface,
 	wl_fixed_t x, wl_fixed_t y)
 {
-	nytl::Vec2i pos(wl_fixed_to_int(x), wl_fixed_to_int(y));
+	auto pos = nytl::Vec2i {wl_fixed_to_int(x), wl_fixed_to_int(y)};
 
 	lastSerial_ = serial;
 	cursorSerial_ = serial;
@@ -188,10 +188,10 @@ void WaylandMouseContext::handleAxisDiscrete(wl_pointer*, uint32_t axis, int32_t
 
 void WaylandMouseContext::cursorBuffer(wl_buffer* buf, nytl::Vec2i hs, nytl::Vec2ui size) const
 {
-	wl_pointer_set_cursor(wlPointer_, cursorSerial_, wlCursorSurface_, hs.x, hs.y);
+	wl_pointer_set_cursor(wlPointer_, cursorSerial_, wlCursorSurface_, hs[0], hs[1]);
 
 	wl_surface_attach(wlCursorSurface_, buf, 0, 0);
-	wl_surface_damage(wlCursorSurface_, 0, 0, size.x, size.y);
+	wl_surface_damage(wlCursorSurface_, 0, 0, size[0], size[1]);
 	wl_surface_commit(wlCursorSurface_);
 }
 

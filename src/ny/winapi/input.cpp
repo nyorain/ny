@@ -21,7 +21,7 @@ nytl::Vec2i WinapiMouseContext::position() const
 	if(!::GetCursorPos(&p)) return {};
 	if(!::ScreenToClient(over_->handle(), &p)) return {};
 
-	return nytl::Vec2i(p.x, p.y);
+	return {p.x, p.y};
 }
 
 bool WinapiMouseContext::pressed(MouseButton button) const
@@ -53,7 +53,7 @@ bool WinapiMouseContext::processEvent(const WinapiEventData& eventData, LRESULT&
 
 	switch(message) {
 		case WM_MOUSEMOVE: {
-			nytl::Vec2i pos(GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
+			nytl::Vec2i pos{GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
 
 			// check for implicit mouse over change
 			// windows does not send any mouse enter events, we have to detect them this way
@@ -125,7 +125,7 @@ bool WinapiMouseContext::processEvent(const WinapiEventData& eventData, LRESULT&
 			MouseWheelEvent mwe;
 			mwe.eventData = &eventData;
 			mwe.value = GET_WHEEL_DELTA_WPARAM(wparam) / 120.0;
-			mwe.position = nytl::Vec2i(screenPos.x, screenPos.y);
+			mwe.position = {screenPos.x, screenPos.y};
 			wc->listener().mouseWheel(mwe);
 			onWheel(*this, mwe.value);
 			break;
@@ -233,7 +233,9 @@ bool WinapiKeyboardContext::processEvent(const WinapiEventData& eventData, LRESU
 			break;
 		}
 
-		case WM_KEYDOWN: keyPressed = true;
+		case WM_KEYDOWN:
+			keyPressed = true;
+			[[fallthrough]];
 		case WM_KEYUP: {
 			auto vkcode = wparam;
 			auto scancode = HIWORD(lparam);

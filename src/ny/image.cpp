@@ -4,46 +4,88 @@
 
 #include <ny/image.hpp>
 
-#include <bitset> // std::bitset
-#include <algorithm> // std::reverse
-#include <cmath>
+#include <array> // std::array
+#include <cmath> // std::ceil
+
+// NOTE on implementation:
+// Due to the wanted simplicity of ny/image most of the functions here
+// are implemented with hardcoded format switches.
+// Most functions must be changed when additional formats are introduced.
+// There exist a (rather complex) ny/image implementation (removed 02.05.2017) that
+// implements the functions only by a meta-description of formats, which was removed
+// due to being over-designed for the needs of ny, rather error-prone and not well tested.
+//
+// Functions to be changed when adding a new format include
+// - toggleWordOrder
+// - {bit,byte}Size
+// - {read/write}Pixel (only the bitOffset versions)
+//   - may need huge changed for not bit or byte aligned formats
+// - norm
+//
+// When functions with a color precision higher than 8 bits are added, the
+// parameters of all color taking or returning functions must be changed to a higher
+// value (32 or 64 bits).
 
 namespace ny {
 
 bool littleEndian()
 {
+	// Runtime test checking for little endianess.
 	constexpr uint32_t dummy = 1u;
 	return ((reinterpret_cast<const uint8_t*>(&dummy))[0] == 1);
 }
 
-unsigned int bitSize(const ImageFormat& format)
+unsigned int bitSize(ImageFormat format)
 {
-	auto ret = 0u;
-	for(auto& channel : format) ret += channel.second;
-	return ret;
+	using Format = ImageFormat;
+	switch(format) {
+		case Format::rgba8888:
+		case Format::argb8888:
+		case Format::abgr8888:
+		case Format::bgra8888:
+			return 32u;
+
+		case Format::rgb888:
+		case Format::bgr888:
+			return 24u;
+
+		case Format::a8:
+			return 8u;
+
+		case Format::a1:
+			return 1u;
+
+		case Format::none: return 0u;
+	}
+
+	// should not be reached
+	return 0u;
 }
 
-unsigned int byteSize(const ImageFormat& format)
+unsigned int byteSize(ImageFormat format)
 {
 	return std::ceil(bitSize(format) / 8.0);
 }
 
-ImageFormat toggleByteWordOrder(const ImageFormat& format)
+ImageFormat toggleByteWordOrder(ImageFormat format)
 {
 	if(!littleEndian()) return format;
 
-	auto copy = format;
-	auto begin = copy.begin();
-	auto end = copy.end();
+	using Format = ImageFormat;
+	switch(format) {
+		case Format::rgba8888: return Format::abgr8888;
+		case Format::argb8888: return Format::bgra8888;
+		case Format::abgr8888: return Format::rgba8888;
+		case Format::bgra8888: return Format::argb8888;
+		case Format::rgb888: return Format::bgr888;
+		case Format::bgr888: return Format::rgb888;
+		case Format::a8:
+		case Format::a1:
+		case Format::none: return format;
+	}
 
-	// ignore "empty" channels (channels with size of 0)
-	// otherwise toggles formats would maybe begin with x empty channels
-	// which would be valid but really ugly
-	while((begin != end) && (!begin->second)) ++begin;
-	while((end != (begin + 1) && (!(end - 1)->second))) --end;
-
-	std::reverse(begin, end);
-	return copy;
+	// should not be reached
+	return Format::none;
 }
 
 unsigned int pixelBit(const Image& image, nytl::Vec2ui pos)
@@ -51,198 +93,86 @@ unsigned int pixelBit(const Image& image, nytl::Vec2ui pos)
 	return image.stride * pos[1] + bitSize(image.format) * pos[0];
 }
 
-nytl::Vec4u64 readPixel(const uint8_t& pixel, const ImageFormat& format, unsigned int bitOffset)
+nytl::Vec4u8 readPixel(const uint8_t& pixel, ImageFormat format, unsigned int bitOffset)
 {
-	const uint8_t* iter = &pixel;
-	nytl::Vec4u64 rgba {};
+	unsigned int bytesToLoad = byteSize(format); // NOTE: must be changed for [2,7]-bit formats
+	std::array<uint8_t, 4> bytes {};
 
-	for(auto i = 0u; i < format.size(); ++i) {
-		// for little endian channel order is inversed
-		auto channel = (littleEndian()) ? format[format.size() - (i + 1)] : format[i];
-		if(!channel.second) continue;
+	// logical word-order bytes
+	bytes[0] = *(&pixel + (littleEndian() ? bytesToLoad - 1 : 0));
+	if(bytesToLoad > 1) bytes[1] = *(&pixel + (littleEndian() ? bytesToLoad - 2 : 1));
+	if(bytesToLoad > 2) bytes[2] = *(&pixel + (littleEndian() ? bytesToLoad - 3 : 2));
+	if(bytesToLoad > 3) bytes[3] = *(&pixel + (littleEndian() ? bytesToLoad - 4 : 3));
 
-		uint64_t* val {};
-		switch(channel.first) {
-			case ColorChannel::red: val = &rgba[0]; break;
-			case ColorChannel::green: val = &rgba[1]; break;
-			case ColorChannel::blue: val = &rgba[2]; break;
-			case ColorChannel::alpha: val = &rgba[3]; break;
-			case ColorChannel::none:
-				iter += (bitOffset + channel.second) / 8;
-				bitOffset = (bitOffset + channel.second) % 8;
-				continue;
-		}
+	using Format = ImageFormat;
+	switch(format) {
+		case Format::rgba8888: return {bytes[0], bytes[1], bytes[2], bytes[3]};
+		case Format::argb8888: return {bytes[1], bytes[2], bytes[3], bytes[0]};
+		case Format::abgr8888: return {bytes[3], bytes[2], bytes[1], bytes[0]};
+		case Format::bgra8888: return {bytes[2], bytes[1], bytes[0], bytes[3]};
 
-		// the bitset should store least significant bits/bytes (with data) first
-		std::bitset<64> bitset {};
-		*val = {};
+		case Format::rgb888: return {bytes[0], bytes[1], bytes[2], 0};
+		case Format::bgr888: return {bytes[2], bytes[1], bytes[0], 0};
 
-		// we simply iterate over all bytes/bits and copy them into the bitset
-		// we have to respect byte endianess here
-		if(littleEndian()) {
-			// for little endian we can simply copy the bits into the bitset bit by bit
-			// the first bytes are the least significant ones, exactly as in the bitset
-			for(auto i = 0u; i < channel.second; ++i) {
-				// note that this does NOT extract the bit as position bitOffset but rather
-				// the bitOffset-significant bit, i.e. we don't have to care about
-				// bit-endianess in any way. We want less significant bits first and this is
-				// what we get here (i.e. bitOffset will always only grow, therefore the
-				// extracted bits will get more significant)
-				bitset[i] = (*iter & (1 << bitOffset));
-
-				++bitOffset;
-				if(bitOffset >= 8) {
-					++iter;
-					bitOffset = 0;
-				}
-			}
-		} else {
-			// for big endian we have to swap the order in which we read bytes
-			// we start at the most significant byte we have data for (since 0xFF should
-			// result in 0xFF and not 0x000...00FF) and from there go backwards, i.e.
-			// less significant byte-wise.
-			// Bit-wise we still get more significant during each byte inside the loop.
-			// The extra check (i == chanell.second) for the next byte is needed because
-			// we only want to write the first (8 - bitOffset (from beginnig)) bits of
-			// the first byte.
-			//
-			// Example for channel.second=14, bitOffset=3.
-			// the resulting bitset and the iteration i that set the bitset value:
-			// <6 7 8 9 10 11 12 13 | 0 1 2 3 4 5 - - | (here are 48 untouched bits)>
-			// note how i=5 is the most significant bit for the color channel here.
-
-			auto bit = channel.second - (channel.second % 8);
-			for(auto i = 0; i < channel.second; ++i) {
-				// const auto bit = channel.second - (currentByte * 8) + (8 - bitOffset);
-				bitset[bit] = (*iter & (1 << bitOffset));
-
-				++bitOffset;
-				++bit;
-				if(bitOffset >= 8 || i == (channel.second % 8) - 1) {
-					++iter;
-					bit -= 8;
-					bitOffset = 0;
-				}
-			}
-		}
-
-		// to_ullong returns an unsigned long long that has the first bits from the
-		// bitset as least significant bits and the last bits from the bitset as most
-		// significant bits
-		*val = bitset.to_ullong();
+		case Format::a8: return {0, 0, 0, bytes[0]};
+		case Format::a1: return {0, 0, 0, static_cast<uint8_t>(bytes[0] & (1 << (8 - bitOffset)))};
+		case Format::none: return {};
 	}
 
-	return rgba;
+	// should not be reached
+	return {};
 }
 
-void writePixel(uint8_t& pixel, const ImageFormat& format, nytl::Vec4u64 color,
-	unsigned int bitOffset)
+void writePixel(uint8_t& pixel, ImageFormat format, nytl::Vec4u8 color, unsigned int bitOffset)
 {
-	uint8_t* iter = &pixel;
+	unsigned int bytesToWrite = byteSize(format); // NOTE: must be changed for [2,7]-bit formats
+	std::array<uint8_t, 4> bytes {}; // word-order bytes to write
 
-	for(auto i = 0u; i < format.size(); ++i) {
-		// for little endian channel order is inversed
-		auto channel = (littleEndian()) ? format[format.size() - (i + 1)] : format[i];
-		if(!channel.second) continue;
-		std::bitset<64> bitset;
+	using Format = ImageFormat;
+	switch(format) {
+		case Format::rgba8888: bytes = {color[0], color[1], color[2], color[3]}; break;
+		case Format::argb8888: bytes = {color[3], color[0], color[1], color[2]}; break;
+		case Format::abgr8888: bytes = {color[3], color[2], color[1], color[0]}; break;
+		case Format::bgra8888: bytes = {color[2], color[1], color[0], color[3]}; break;
 
-		switch(channel.first) {
-			case ColorChannel::red: bitset = color[0]; break;
-			case ColorChannel::green: bitset = color[1]; break;
-			case ColorChannel::blue: bitset = color[2]; break;
-			case ColorChannel::alpha: bitset = color[3]; break;
-			case ColorChannel::none:
-				iter += (bitOffset + channel.second) / 8;
-				bitOffset = (bitOffset + channel.second) % 8;
-				continue;
-		}
+		case Format::rgb888: bytes = {color[0], color[1], color[2], 0}; break;
+		case Format::bgr888: bytes = {color[2], color[1], color[0], 0}; break;
 
-		// this is exactly like readPixel but in the opposite direction
-		if(littleEndian()) {
-			for(auto i = 0u; i < channel.second; ++i)
-			{
-				if(bitset[i]) *iter |= (1 << bitOffset);
-				else *iter &= ~(1 << bitOffset);
-
-				++bitOffset;
-				if(bitOffset >= 8u) {
-					bitOffset = 0u;
-					++iter;
-				}
-			}
-		} else {
-			auto bit = channel.second - (channel.second % 8);
-			for(auto i = 0; i < channel.second; i++) {
-				if(bitset[channel.second - i]) *iter |= (1 << bitOffset);
-				else *iter &= ~(1 << bitOffset);
-
-				++bitOffset;
-				++bit;
-				if(bitOffset >= 8u || i == (channel.second % 8) - 1) {
-					bitOffset = 0u;
-					bit -= 8;
-					++iter;
-				}
-			}
-		}
+		case Format::a8: bytes[3] = color[4]; break;
+		case Format::a1:
+			bytes[0] = pixel & ~(1 << (8 - bitOffset));
+		 	bytes[0] |= (color[3] & (1 << 8)) >> bitOffset;
+			break;
+		case Format::none: bytes = {};
 	}
+
+	*(&pixel + 0) = bytes[littleEndian() ? bytesToWrite - 1 : 0];
+	if(bytesToWrite > 1) *(&pixel + 1) = bytes[littleEndian() ? bytesToWrite - 2 : 1];
+	if(bytesToWrite > 2) *(&pixel + 2) = bytes[littleEndian() ? bytesToWrite - 3 : 2];
+	if(bytesToWrite > 3) *(&pixel + 3) = bytes[littleEndian() ? bytesToWrite - 4 : 3];
 }
 
-nytl::Vec4u64 readPixel(const Image& img, nytl::Vec2ui pos)
+nytl::Vec4u8 readPixel(const Image& img, nytl::Vec2ui pos)
 {
 	auto bit = pixelBit(img, pos);
 	return readPixel(*(img.data + bit / 8), img.format, bit % 8);
 }
 
-void writePixel(const MutableImage& img, nytl::Vec2ui pos, nytl::Vec4u64 color)
+void writePixel(const MutableImage& img, nytl::Vec2ui pos, nytl::Vec4u8 color)
 {
 	auto bit = pixelBit(img, pos);
 	return writePixel(*(img.data + bit / 8), img.format, color, bit % 8);
 }
 
-nytl::Vec4f norm(nytl::Vec4u64 color, const ImageFormat& format)
+nytl::Vec4f norm(nytl::Vec4u8 color, ImageFormat format)
 {
 	auto ret = static_cast<nytl::Vec4f>(color);
 
-	for(auto& channel : format) {
-		if(!channel.second) continue;
-
-		switch(channel.first) {
-			case ColorChannel::red: ret[0] /= std::exp2(channel.second) - 1; break;
-			case ColorChannel::green: ret[1] /= std::exp2(channel.second) - 1; break;
-			case ColorChannel::blue: ret[2] /= std::exp2(channel.second) - 1; break;
-			case ColorChannel::alpha: ret[3] /= std::exp2(channel.second) - 1; break;
-			case ColorChannel::none: continue;
-		}
-	}
-
-	return ret;
+	if(format == ImageFormat::a1 || format == ImageFormat::none) return ret;
+	return (1 / 255.f) * ret;
 }
 
-nytl::Vec4u64 downscale(nytl::Vec4u64 color, const ImageFormat& format)
-{
-	// find the smallest factor, i.e. the one we have to divide with
-	auto factor = 1.0;
-	for(auto channel : format) {
-		auto value = 0u;
-		switch(channel.first) {
-			case ColorChannel::red: value = color[0]; break;
-			case ColorChannel::green: value = color[1]; break;
-			case ColorChannel::blue: value = color[2]; break;
-			case ColorChannel::alpha: value = color[3]; break;
-			case ColorChannel::none: continue;
-		}
-
-		if(!value) continue;
-		auto highest = std::exp2(channel.second) - 1;
-		factor = std::min(highest / value, factor);
-	}
-
-	return static_cast<nytl::Vec4u64>(factor * color);
-}
-
-bool satisfiesRequirements(const Image& img, const ImageFormat& format,
-	unsigned int strideAlign)
+bool satisfiesRequirements(const Image& img, ImageFormat format, unsigned int strideAlign)
 {
 	auto smallestStride = img.size[0] * bitSize(format);
 	if(strideAlign) smallestStride = align(smallestStride, strideAlign);
@@ -276,26 +206,48 @@ void convertFormat(const Image& img, ImageFormat to, uint8_t& into, unsigned int
 
 	for(auto y = 0u; y < img.size[1]; ++y) {
 		for(auto x = 0u; x < img.size[0]; ++x) {
-			auto color = downscale(readPixel(img, {x, y}), to);
+			auto color = readPixel(img, {x, y});
 			auto bit = y * newStride + x * bitSize(to);
 			writePixel(*(&into + bit / 8), to, color, bit % 8);
 		}
 	}
 }
 
-void premultiply(const MutableImage& img)
+bool alphaComponent(ImageFormat format)
 {
-	auto alpha = false;
-	for(auto& channel : img.format) if(channel.first == ColorChannel::alpha) alpha = true;
-	if(!alpha) return;
+	using Format = ImageFormat;
+	switch(format) {
+		case Format::argb8888:
+		case Format::rgba8888:
+		case Format::abgr8888:
+		case Format::bgra8888:
+			return true;
+
+		case Format::rgb888:
+		case Format::bgr888:
+		case Format::a8:
+		case Format::a1:
+		case Format::none:
+			return false;
+	}
+
+	// should not be reached
+	return false;
+}
+
+void premultiply(const MutableImage& img, bool resetAlpha)
+{
+	if(!alphaComponent(img.format))
+		return;
 
 	for(auto y = 0u; y < img.size[1]; ++y) {
 		for(auto x = 0u; x < img.size[0]; ++x) {
 			auto color = readPixel(img, {x, y});
-			auto alpha = norm(color, img.format).w;
+			auto alpha = norm(color, img.format)[3];
 			color[0] *= alpha;
 			color[1] *= alpha;
 			color[2] *= alpha;
+			if(resetAlpha) color[3] = 0;
 			writePixel(img, {x, y}, color);
 		}
 	}

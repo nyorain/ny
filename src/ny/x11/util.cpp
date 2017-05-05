@@ -225,57 +225,39 @@ std::string errorMessage(Display& dpy, unsigned int error)
 
 ImageFormat visualToFormat(const xcb_visualtype_t& v, unsigned int depth)
 {
-	// the visual does only have an alpha channel if its depth is 32 bits
-	auto alphaMask = 0u;
-	if(depth == 32) alphaMask = 0xFFFFFFFFu & ~(v.red_mask | v.green_mask | v.blue_mask);
+	using Format = ImageFormat;
+	if(depth != 24 && depth != 32) return Format::none;
 
-	// represents a color mask channel
-	struct Channel {
-		ColorChannel color;
-		unsigned int offset;
-		unsigned int size;
-	} channels[4];
+	//XXX: the map could use some love; error/special case handling.
+	//A simple format map that maps the rgb[a] mask values of the visualtype to a format
+	//Note that only the rgb[a] masks of some visuals will result in a valid format,
+	//usually ImageDataFormat::none is returned
+	struct
+	{
+		std::uint32_t r, g, b, a;
+		Format format;
+	} static formats[] =
+	{
+		{ 0xFF000000u, 0x00FF0000u, 0x0000FF00u, 0x000000FFu, Format::rgba8888 },
+		{ 0x0000FF00u, 0x00FF0000u, 0xFF000000u, 0x000000FFu, Format::bgra8888 },
+		{ 0x00FF0000u, 0x0000FF00u, 0x000000FFu, 0xFF000000u, Format::argb8888 },
+		{ 0x00FF0000u, 0x0000FF00u, 0x000000FFu, 0u, Format::rgb888 },
+		{ 0x000000FFu, 0x0000FF00u, 0x00FF0000u, 0u, Format::bgr888 },
 
-	// converts a given mask to a Channel struct
-	auto parseMask = [](ColorChannel color, unsigned int mask) {
-		auto active = false;
-		Channel ret {color, 0u, 0u};
-
-		for(auto i = 0u; i < 32; ++i) {
-			if(mask & (1 << i)) {
-				if(!active) ret.offset = i;
-				ret.size++;
-			}
-			else if(active) {
-				break;
-			}
-		}
-
-		return ret;
+		{ 0xFF000000u, 0u, 0u, 0u, Format::a8 },
+		{ 0x000000FFu, 0u, 0u, 0u, Format::a8 },
+		{ 0x0u, 0u, 0u, 0xFF000000u, Format::a8 },
+		{ 0x0u, 0u, 0u, 0x000000FFu, Format::a8 }
 	};
 
-	// parse the color masks
-	channels[0] = parseMask(ColorChannel::red, v.red_mask);
-	channels[1] = parseMask(ColorChannel::green, v.green_mask);
-	channels[2] = parseMask(ColorChannel::blue, v.blue_mask);
-	channels[3] = parseMask(ColorChannel::alpha, alphaMask);
+	auto a = 0u;
+	if(depth == 32) a = 0xFFFFFFFFu & ~(v.red_mask | v.green_mask | v.blue_mask);
 
-	// sort them by the order they appear
-	std::sort(std::begin(channels), std::end(channels),
-		[](auto& a, auto& b){ return a.offset < b.offset; });
+	for(auto& f : formats)
+		if(v.red_mask == f.r && v.green_mask == f.g && v.blue_mask == f.b && a == f.a)
+			return f.format;
 
-	// insert them (with offsets if needed) into the returned ImageFormat
-	ImageFormat ret {};
-
-	auto prev = 0u;
-	auto it = ret.begin();
-	for(auto channel : channels) {
-		if(channel.offset > prev + 1) *(it++) = {ColorChannel::none, channel.offset - (prev + 1)};
-		*(it++) = {channel.color, channel.size};
-		prev = channel.offset + channel.size;
-	}
-
-	return ret;
+	return Format::none;
 }
 
 unsigned int visualDepth(xcb_screen_t& screen, unsigned int visualID)

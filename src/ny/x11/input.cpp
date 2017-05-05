@@ -13,11 +13,24 @@
 
 #include <xcb/xcb.h>
 
+// note that all these gcc-specific stuff also works for
+// other gcc-compatible compilers (e.g. clang)
+// don't generate a warning for the explicit macro
+#ifdef __GNUC__
+	#pragma GCC diagnostic push
+	#pragma GCC diagnostic ignored "-Wkeyword-macro"
+#endif
+
 // i'm really sorry for this...
 // the xkb header is not very c++ friendly
 #define explicit explicit_
 	#include <xcb/xkb.h>
 #undef explicit
+
+// pop ignored warning for explicit
+#ifdef __GNUC__
+	#pragma GCC diagnostic pop
+#endif
 
 #include <xkbcommon/xkbcommon-x11.h>
 #include <xkbcommon/xkbcommon-compose.h>
@@ -33,7 +46,7 @@ bool X11MouseContext::processEvent(const x11::GenericEvent& ev)
 	switch(responseType) {
 		case XCB_MOTION_NOTIFY: {
 			auto& motion = reinterpret_cast<const xcb_motion_notify_event_t&>(ev);
-			auto pos = nytl::Vec2i(motion.event_x, motion.event_y);
+			auto pos = nytl::Vec2i{motion.event_x, motion.event_y};
 
 			if(pos == lastPosition_) break;
 			auto delta = pos - lastPosition_;
@@ -61,7 +74,7 @@ bool X11MouseContext::processEvent(const x11::GenericEvent& ev)
 			else if(button.detail == 5) scroll = -1;
 
 			auto wc = appContext().windowContext(button.event);
-			auto pos = nytl::Vec2i(button.event_x, button.event_y);
+			auto pos = nytl::Vec2i{button.event_x, button.event_y};
 
 			if(scroll) {
 				MouseWheelEvent mwe;
@@ -99,7 +112,7 @@ bool X11MouseContext::processEvent(const x11::GenericEvent& ev)
 
 			auto wc = appContext().windowContext(button.event);
 			if(wc) {
-				auto pos = nytl::Vec2i(button.event_x, button.event_y);
+				auto pos = nytl::Vec2i{button.event_x, button.event_y};
 				MouseButtonEvent mbe;
 				mbe.pressed = false;
 				mbe.position = pos;
@@ -120,7 +133,7 @@ bool X11MouseContext::processEvent(const x11::GenericEvent& ev)
 			}
 
 			if(wc) {
-				auto pos = nytl::Vec2i(enter.event_x, enter.event_y);
+				auto pos = nytl::Vec2i{enter.event_x, enter.event_y};
 				MouseCrossEvent mce;
 				mce.eventData = &eventData;
 				mce.entered = true;
@@ -141,7 +154,7 @@ bool X11MouseContext::processEvent(const x11::GenericEvent& ev)
 			}
 
 			if(wc) {
-				auto pos = nytl::Vec2i(leave.event_x, leave.event_y);
+				auto pos = nytl::Vec2i{leave.event_x, leave.event_y};
 				MouseCrossEvent mce;
 				mce.eventData = &eventData;
 				mce.entered = false;
@@ -173,7 +186,7 @@ nytl::Vec2i X11MouseContext::position() const
 		return {};
 	}
 
-	auto pos = nytl::Vec2i(reply->win_x, reply->win_y);
+	auto pos = nytl::Vec2i{reply->win_x, reply->win_y};
 	free(reply);
 	return pos;
 }

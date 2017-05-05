@@ -168,13 +168,13 @@ ShmBuffer& ShmBuffer::operator=(ShmBuffer&& other)
 void ShmBuffer::create()
 {
 	destroy();
-	if(!size_.x || !size_.y) throw std::runtime_error("ny::wayland::ShmBuffer invalid size");
+	if(!size_[0] || !size_[1]) throw std::runtime_error("ny::wayland::ShmBuffer invalid size");
 	if(!stride_) throw std::runtime_error("ny::wayland::ShmBuffer invalid stride");
 
 	auto* shm = appContext_->wlShm();
 	if(!shm) throw std::runtime_error("ny::wayland::ShmBuffer: appContext has no wl_shm");
 
-	auto vecSize = stride_ * size_.y;
+	auto vecSize = stride_ * size_[1];
 	shmSize_ = std::max(vecSize, shmSize_);
 
 	auto fd = osCreateAnonymousFile(shmSize_);
@@ -189,7 +189,7 @@ void ShmBuffer::create()
 
 	data_ = reinterpret_cast<std::uint8_t*>(ptr);
 	pool_ = wl_shm_create_pool(shm, fd, shmSize_);
-	buffer_ = wl_shm_pool_create_buffer(pool_, 0, size_.x, size_.y, stride_, format_);
+	buffer_ = wl_shm_pool_create_buffer(pool_, 0, size_[0], size_[1], stride_, format_);
 
 	static constexpr wl_buffer_listener listener {
 		memberCallback<decltype(&ShmBuffer::released), &ShmBuffer::released>
@@ -211,9 +211,9 @@ bool ShmBuffer::size(nytl::Vec2ui size, unsigned int stride)
 	stride_ = stride;
 
 	if(!stride_) stride_ = size[0] * 4;
-	unsigned int vecSize = stride_ * size_.y;
+	unsigned int vecSize = stride_ * size_[1];
 
-	if(!size_.x || !size_.y) throw std::runtime_error("ny::wayland::ShmBuffer invalid size");
+	if(!size_[0] || !size_[1]) throw std::runtime_error("ny::wayland::ShmBuffer invalid size");
 	if(!stride_) throw std::runtime_error("ny::wayland::ShmBuffer invalid stride");
 
 	if(vecSize > shmSize_) {
@@ -221,7 +221,7 @@ bool ShmBuffer::size(nytl::Vec2ui size, unsigned int stride)
 		return true;
 	} else {
 		wl_buffer_destroy(buffer_);
-		buffer_ = wl_shm_pool_create_buffer(pool_, 0, size_.x, size_.y, stride_, format_);
+		buffer_ = wl_shm_pool_create_buffer(pool_, 0, size_[0], size_[1], stride_, format_);
 		return false;
 	}
 }
@@ -282,14 +282,15 @@ void Output::geometry(wl_output*, int32_t x, int32_t y, int32_t phwidth, int32_t
 	information_.model = model;
 	information_.transform = transform;
 	information_.position = {x, y};
-	information_.physicalSize = nytl::Vec2ui(phwidth, phheight);
+	information_.physicalSize = {static_cast<uint32_t>(phwidth), static_cast<uint32_t>(phheight)};
 	information_.subpixel = subpixel;
 }
 
 void Output::mode(wl_output*, uint32_t flags, int32_t width, int32_t height, int32_t refresh)
 {
 	unsigned int urefresh = refresh;
-	information_.modes.push_back({nytl::Vec2ui(width, height), flags, urefresh});
+	information_.modes.push_back({{}, flags, urefresh});
+	information_.modes.back().size = {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
 }
 
 void Output::done(wl_output*)
@@ -318,11 +319,13 @@ constexpr struct FormatConversion {
 	ImageFormat imageFormat;
 	unsigned int shmFormat;
 } formatConversions[] {
-	{imageFormats::argb8888, WL_SHM_FORMAT_ARGB8888},
-	{imageFormats::xrgb8888, WL_SHM_FORMAT_XRGB8888},
-	{imageFormats::rgba8888, WL_SHM_FORMAT_RGBA8888},
-	{imageFormats::bgr888, WL_SHM_FORMAT_BGR888},
-	{imageFormats::rgb888, WL_SHM_FORMAT_RGB888},
+	{ImageFormat::argb8888, WL_SHM_FORMAT_ARGB8888},
+	{ImageFormat::argb8888, WL_SHM_FORMAT_XRGB8888},
+	{ImageFormat::rgba8888, WL_SHM_FORMAT_RGBA8888},
+	{ImageFormat::bgra8888, WL_SHM_FORMAT_BGRA8888},
+	{ImageFormat::abgr8888, WL_SHM_FORMAT_ABGR8888},
+	{ImageFormat::bgr888, WL_SHM_FORMAT_BGR888},
+	{ImageFormat::rgb888, WL_SHM_FORMAT_RGB888},
 };
 
 int imageFormatToWayland(const ImageFormat& format)
@@ -334,7 +337,7 @@ int imageFormatToWayland(const ImageFormat& format)
 ImageFormat waylandToImageFormat(unsigned int shmFormat)
 {
 	for(auto& fc : formatConversions) if(fc.shmFormat == shmFormat) return fc.imageFormat;
-	return imageFormats::none;
+	return ImageFormat::none;
 }
 
 unsigned int stateToWayland(ToplevelState state)

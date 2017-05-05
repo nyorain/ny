@@ -134,13 +134,13 @@ constexpr struct KeycodeConversion {
 	{Keycode::rightctrl, VK_RCONTROL},
 	{Keycode::leftalt, VK_LMENU},
 	{Keycode::rightalt, VK_RMENU},
-	//XXX: some browser keys after this. not sure
+	// XXX: some browser keys after this. not sure about it
 	{Keycode::mute, VK_VOLUME_MUTE},
 	{Keycode::volumedown, VK_VOLUME_DOWN},
 	{Keycode::volumeup, VK_VOLUME_UP},
 	{Keycode::nextsong, VK_MEDIA_NEXT_TRACK},
 	{Keycode::previoussong, VK_MEDIA_PREV_TRACK},
-	{Keycode::stopcd, VK_MEDIA_STOP}, //XXX: or keycode::stop?
+	{Keycode::stopcd, VK_MEDIA_STOP}, // XXX: or keycode::stop?
 	{Keycode::playpause, VK_MEDIA_PLAY_PAUSE},
 	{Keycode::mail, VK_LAUNCH_MAIL},
 
@@ -317,14 +317,14 @@ std::system_error lastErrorException(nytl::StringParam msg)
 
 HBITMAP toBitmap(const Image& img)
 {
-	auto copy = convertFormat(img, imageFormats::argb8888);
+	auto copy = convertFormat(img, ImageFormat::argb8888);
 	premultiply(copy);
 
 	BITMAPV5HEADER header {};
 	header.bV5Size = sizeof(header);
-	header.bV5Width = copy.size.x;
-	header.bV5Height = -copy.size.y;
-	header.bV5SizeImage = copy.size.y * copy.stride;
+	header.bV5Width = copy.size[0];
+	header.bV5Height = -copy.size[1];
+	header.bV5SizeImage = copy.size[1] * copy.stride;
 	header.bV5Planes = 1;
 	header.bV5BitCount = 32;
 	header.bV5Compression = BI_RGB;
@@ -371,7 +371,7 @@ UniqueImage toImage(HBITMAP hbitmap)
 	UniqueImage ret;
 	ret.data = std::move(buffer);
 	ret.size = {width, height};
-	ret.format = imageFormats::argb8888;
+	ret.format = ImageFormat::argb8888;
 	ret.stride = stride;
 
 	return ret;

@@ -122,8 +122,8 @@ void X11WindowContext::createWindow(const X11WindowSettings& settings)
 	std::uint32_t valuemask = XCB_CW_COLORMAP | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
 
 	auto window = xcb_generate_id(&xconn);
-	cookie = xcb_create_window_checked(&xconn, depth_, window, xparent, pos.x, pos.y,
-		size.x, size.y, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT, vid, valuemask, valuelist);
+	cookie = xcb_create_window_checked(&xconn, depth_, window, xparent, pos[0], pos[1],
+		size[0], size[1], 0, XCB_WINDOW_CLASS_INPUT_OUTPUT, vid, valuemask, valuelist);
 	errorCategory().checkThrow(cookie, "ny::X11WindowContext: create_window failed");
 	xWindow_ = window;
 }
@@ -164,12 +164,12 @@ void X11WindowContext::initVisual(const X11WindowSettings& settings)
 
 		auto highestScore = 0u;
 		auto score = [](const ImageFormat& f) {
-			if(f == imageFormats::argb8888) return 3u;
-			else if(f == imageFormats::rgba8888) return 2u;
-			else if(f == imageFormats::bgra8888) return 1u;
+			if(f == ImageFormat::argb8888) return 3u;
+			else if(f == ImageFormat::rgba8888) return 2u;
+			else if(f == ImageFormat::bgra8888) return 1u;
 
-			else if(f == imageFormats::rgb888) return 2u;
-			else if(f == imageFormats::bgr888) return 1u;
+			else if(f == ImageFormat::rgb888) return 2u;
+			else if(f == ImageFormat::bgr888) return 1u;
 			return 1u;
 		};
 
@@ -235,8 +235,8 @@ void X11WindowContext::size(nytl::Vec2ui size)
 void X11WindowContext::position(nytl::Vec2i position)
 {
 	std::uint32_t data[2];
-	data[0] = position.x;
-	data[1] = position.y;
+	data[0] = position[0];
+	data[1] = position[1];
 
 	xcb_configure_window(&xConnection(), xWindow(),
 		XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, data);
@@ -263,12 +263,12 @@ void X11WindowContext::cursor(const Cursor& curs)
 	} else if(curs.type() == CursorType::image) {
 		auto img = curs.image();
 
-		auto xcimage = XcursorImageCreate(img.size.x, img.size.y);
-		xcimage->xhot = curs.imageHotspot().x;
-		xcimage->yhot = curs.imageHotspot().y;
+		auto xcimage = XcursorImageCreate(img.size[0], img.size[1]);
+		xcimage->xhot = curs.imageHotspot()[0];
+		xcimage->yhot = curs.imageHotspot()[1];
 
 		auto pixels = reinterpret_cast<std::uint8_t*>(xcimage->pixels);
-		convertFormat(img, imageFormats::argb8888, *pixels, 8u);
+		convertFormat(img, ImageFormat::argb8888, *pixels, 8u);
 		if(xCursor_) xcb_free_cursor(&xConnection(), xCursor_);
 
 		xCursor_ = XcursorImageLoadCursor(&xdpy, xcimage);
@@ -381,13 +381,13 @@ void X11WindowContext::beginResize(const EventData* ev, WindowEdges edge)
 void X11WindowContext::icon(const Image& img)
 {
 	if(img.data) {
-		auto reqFormat = imageFormats::rgba8888;
-		auto neededSize = img.size.x * img.size.y;
+		auto reqFormat = ImageFormat::rgba8888;
+		auto neededSize = img.size[0] * img.size[1];
 		auto ownedData = std::make_unique<std::uint32_t[]>(2 + neededSize);
 
 		//the first two ints are width and height
-		ownedData[0] = img.size.x;
-		ownedData[1] = img.size.y;
+		ownedData[0] = img.size[0];
+		ownedData[1] = img.size[1];
 
 		auto size = 2 + neededSize;
 		auto imgData = reinterpret_cast<std::uint8_t*>(ownedData.get() + 2);
@@ -416,8 +416,8 @@ NativeHandle X11WindowContext::nativeHandle() const
 void X11WindowContext::minSize(nytl::Vec2ui size)
 {
 	xcb_size_hints_t hints {};
-	hints.min_width = size.x;
-	hints.min_height = size.y;
+	hints.min_width = size[0];
+	hints.min_height = size[1];
 	hints.flags = XCB_ICCCM_SIZE_HINT_P_MIN_SIZE;
 	xcb_icccm_set_wm_normal_hints(&xConnection(), xWindow(), &hints);
 }
@@ -425,8 +425,8 @@ void X11WindowContext::minSize(nytl::Vec2ui size)
 void X11WindowContext::maxSize(nytl::Vec2ui size)
 {
 	xcb_size_hints_t hints {};
-	hints.max_width = size.x;
-	hints.max_height = size.y;
+	hints.max_width = size[0];
+	hints.max_height = size[1];
 	hints.flags = XCB_ICCCM_SIZE_HINT_P_MAX_SIZE;
 	xcb_icccm_set_wm_normal_hints(&xConnection(), xWindow(), &hints);
 }
@@ -562,7 +562,7 @@ nytl::Vec2ui X11WindowContext::size() const
 {
 	auto cookie = xcb_get_geometry(&xConnection(), xWindow());
 	auto geometry = xcb_get_geometry_reply(&xConnection(), cookie, nullptr);
-	auto ret = nytl::Vec2ui(geometry->width, geometry->height);
+	auto ret = nytl::Vec2ui{geometry->width, geometry->height};
 	std::free(geometry);
 	return ret;
 }

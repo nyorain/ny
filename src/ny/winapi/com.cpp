@@ -179,7 +179,7 @@ HRESULT DropTargetImpl::DragEnter(IDataObject* data, DWORD keyState, POINTL scre
 	offer_ = {*data};
 
 	::ScreenToClient(windowContext().handle(), &windowPos);
-	auto position = nytl::Vec2i(windowPos.x, windowPos.y);
+	auto position = nytl::Vec2i{windowPos.x, windowPos.y};
 
 	DndEnterEvent dee;
 	dee.eventData = nullptr;
@@ -218,7 +218,7 @@ HRESULT DropTargetImpl::DragOver(DWORD keyState, POINTL screenPos, DWORD* effect
 
 	DndMoveEvent dme;
 	dme.eventData = nullptr;
-	dme.position = nytl::Vec2i(windowPos.x, windowPos.y);
+	dme.position = nytl::Vec2i{windowPos.x, windowPos.y};
 	dme.offer = &offer_;
 	auto format = windowContext().listener().dndMove(dme);
 
@@ -262,7 +262,7 @@ HRESULT DropTargetImpl::Drop(IDataObject* data, DWORD keyState, POINTL screenPos
 	}
 
 	::ScreenToClient(windowContext().handle(), &windowPos);
-	auto position = nytl::Vec2i(windowPos.x, windowPos.y);
+	auto position = nytl::Vec2i{windowPos.x, windowPos.y};
 
 	DndMoveEvent dme;
 	dme.eventData = nullptr;
@@ -322,8 +322,8 @@ DataObjectImpl::DataObjectImpl(std::unique_ptr<DataSource> source) : source_(std
 		auto bitmap = winapi::toBitmap(img);
 
 		SHDRAGIMAGE sdi {};
-		sdi.sizeDragImage.cx = img.size.x;
-		sdi.sizeDragImage.cy = img.size.y;
+		sdi.sizeDragImage.cx = img.size[0];
+		sdi.sizeDragImage.cy = img.size[1];
 		sdi.hbmpDragImage = bitmap;
 		sdi.crColorKey = 0xFFFFFFFF;
 		sdi.ptOffset = {};
@@ -679,7 +679,7 @@ STGMEDIUM toStgMedium(const DataFormat& from, const FORMATETC& to, const std::an
 			filesstring.append(narrow(path));
 		}
 
-		filesstring.append('\0'); // must be double null terminated
+		filesstring.append("\0\0"); // must be double null terminated
 
 		DROPFILES dropfiles {};
 		dropfiles.pFiles = sizeof(dropfiles);
