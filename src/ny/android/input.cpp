@@ -336,8 +336,8 @@ bool AndroidMouseContext::process(const AInputEvent& event)
 
 	// query general information
 	nytl::Vec2i pos;
-	pos.x = AMotionEvent_getX(&event, 0);
-	pos.y = AMotionEvent_getY(&event, 0);
+	pos[0] = AMotionEvent_getX(&event, 0);
+	pos[1] = AMotionEvent_getY(&event, 0);
 
 	position_ = pos;
 

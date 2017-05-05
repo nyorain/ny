@@ -38,7 +38,7 @@ BufferGuard AndroidBufferSurface::buffer()
 	// util func: androidToFormat?
 
 	constexpr auto format = imageFormats::rgba8888;
-	auto size = nytl::Vec2ui(buffer_.width, buffer_.height);
+	auto size = nytl::Vec2ui{buffer_.width, buffer_.height};
 	auto data = reinterpret_cast<unsigned char*>(buffer_.bits);
 	auto stride = static_cast<unsigned int>(buffer_.stride) * 32u; // pixel size : 32 bits
 	return {*this, {data, size, format, stride}};
