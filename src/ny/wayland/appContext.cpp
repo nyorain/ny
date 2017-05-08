@@ -280,6 +280,9 @@ WaylandAppContext::~WaylandAppContext()
 	keyboardContext_.reset();
 	mouseContext_.reset();
 
+	clipboardSource_.reset();
+	dndSource_.reset();
+
 	if(xdgShellV5()) xdg_shell_destroy(xdgShellV5());
 	if(xdgShellV6()) zxdg_shell_v6_destroy(xdgShellV6());
 
@@ -387,12 +390,9 @@ bool WaylandAppContext::clipboard(std::unique_ptr<DataSource>&& dataSource)
 {
 	if(!waylandDataDevice()) return false;
 
-	// see wayland/data.hpp WaylandDataSource documentation for a reason why <new> is used here.
-	// this is not a leak, WaylandDataSource self-manages its lifetime since it will be
-	// destroyed by the compositor when no longer needed
-	auto src = new WaylandDataSource(*this, std::move(dataSource), false);
-	wl_data_device_set_selection(&dataDevice_->wlDataDevice(), &src->wlDataSource(),
-		keyboardContext_->lastSerial());
+	clipboardSource_ = std::make_unique<WaylandDataSource>(*this, std::move(dataSource), false);
+	wl_data_device_set_selection(&dataDevice_->wlDataDevice(),
+		&clipboardSource_->wlDataSource(), keyboardContext_->lastSerial());
 	return true;
 }
 
@@ -409,23 +409,20 @@ bool WaylandAppContext::startDragDrop(std::unique_ptr<DataSource>&& dataSource)
 	auto over = mouseContext_->over();
 	if(!over) return false;
 
-	// see wayland/data.hpp WaylandDataSource documentation for a reason why <new> is used here.
-	// this is not a leak, WaylandDataSource self-manages its lifetime
-	WaylandDataSource* src {};
 	try {
-		src = new WaylandDataSource(*this, std::move(dataSource), true);
+		dndSource_ = std::make_unique<WaylandDataSource>(*this, std::move(dataSource), true);
 	} catch(const std::exception& error) {
 		warning("ny::WaylandAppContext::startDragDrop: WaylandDataSource threw: ", error.what());
 		return false;
 	}
 
 	auto surf = &static_cast<WaylandWindowContext*>(over)->wlSurface();
-	wl_data_device_start_drag(&dataDevice_->wlDataDevice(), &src->wlDataSource(), surf,
-		src->dragSurface(), mouseContext_->lastSerial());
+	wl_data_device_start_drag(&dataDevice_->wlDataDevice(), &dndSource_->wlDataSource(), surf,
+		dndSource_->dragSurface(), mouseContext_->lastSerial());
 
 	// only now we can attach a buffer to the surface since now it has the
 	// dnd surface role.
-	src->drawSurface();
+	dndSource_->drawSurface();
 	return true;
 }
 
@@ -541,6 +538,13 @@ nytl::Connection WaylandAppContext::fdCallback(int fd, unsigned int events,
 	const FdCallbackFuncConn& func)
 {
 	return impl_->fdCallbacks.add({fd, events, func});
+}
+
+void WaylandAppContext::destroyDataSource(const WaylandDataSource& src)
+{
+	if(&src == dndSource_.get()) dndSource_.reset();
+	else if(&src == clipboardSource_.get()) dndSource_.reset();
+	else warning("ny::WaylandAppContext::destroyDataSource: invalid data source");
 }
 
 bool WaylandAppContext::dispatchDisplay()

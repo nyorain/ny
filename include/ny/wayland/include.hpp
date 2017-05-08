@@ -66,6 +66,8 @@ class WaylandErrorCategory;
 class WaylandBufferWindowContext;
 class WaylandEglWindowContext;
 class WaylandVulkanContext;
+class WaylandDataSource;
+class WaylandDataOffer;
 
 namespace wayland {
 

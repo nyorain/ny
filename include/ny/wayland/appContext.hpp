@@ -88,6 +88,8 @@ public:
 	EglSetup* eglSetup() const;
 	const char* appName() const { return "ny::app"; } // TODO: AppContextSettings
 
+	void destroyDataSource(const WaylandDataSource& dataSource);
+
 protected:
 	/// Modified version of wl_dispatch_display that performs the same operations but
 	/// does also poll for the registered fds.
@@ -124,6 +126,10 @@ protected:
 	std::unique_ptr<WaylandDataDevice> dataDevice_;
 	std::unique_ptr<WaylandKeyboardContext> keyboardContext_;
 	std::unique_ptr<WaylandMouseContext> mouseContext_;
+
+	// stored to make sure we never leak them
+	std::unique_ptr<WaylandDataSource> clipboardSource_;
+	std::unique_ptr<WaylandDataSource> dndSource_;
 
 	bool wakeup_ {false}; // Set from the eventfd callback, causes dispatchDisplay to return
 

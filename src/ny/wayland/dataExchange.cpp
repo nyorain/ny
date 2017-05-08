@@ -269,6 +269,7 @@ WaylandDataSource::WaylandDataSource(WaylandAppContext& ac, std::unique_ptr<Data
 
 WaylandDataSource::~WaylandDataSource()
 {
+	if(dragSurface_) wl_surface_destroy(dragSurface_);
 	if(wlDataSource_) wl_data_source_destroy(wlDataSource_);
 }
 
@@ -351,7 +352,7 @@ void WaylandDataSource::cancelled(wl_data_source*)
 	// destroy self here since this object is no longer needed
 	// for dnd sources this means the dnd session ended unsuccesfully
 	// for clipboard source this means that it was replaced
-	delete this;
+	appContext_.destroyDataSource(*this);
 }
 
 void WaylandDataSource::dndFinished(wl_data_source*)
@@ -359,7 +360,7 @@ void WaylandDataSource::dndFinished(wl_data_source*)
 	// destroy self here since this object is no longer needed
 	// the dnd session ended succesful and this object will no longer be
 	// accessed
-	delete this;
+	appContext_.destroyDataSource(*this);
 }
 
 //WaylandDataDevice

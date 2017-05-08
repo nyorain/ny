@@ -85,6 +85,7 @@ protected:
 class WaylandDataSource {
 public:
 	WaylandDataSource(WaylandAppContext&, std::unique_ptr<DataSource>&&, bool dnd);
+	~WaylandDataSource();
 
 	wl_data_source& wlDataSource() const { return *wlDataSource_; }
 	DataSource& dataSource() const { return *source_; }
@@ -107,8 +108,6 @@ protected:
 	wayland::ShmBuffer dragBuffer_ {};
 
 protected:
-	~WaylandDataSource();
-
 	void target(wl_data_source*, const char* mimeType);
 	void send(wl_data_source*, const char* mimeType, int32_t fd);
 	void dndPerformed(wl_data_source*);
