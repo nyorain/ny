@@ -321,7 +321,7 @@ void WaylandDataSource::send(wl_data_source*, const char* mimeType, int32_t fd)
 void WaylandDataSource::action(wl_data_source*, uint32_t action)
 {
 	// change the cursor in response to the action if there is a mouseContext
-	if(!appContext_.waylandMouseContext()) return;
+	if(!appContext_.waylandMouseContext() || !dnd_) return;
 
 	const char* cursorName = nullptr;
 	switch(action) {

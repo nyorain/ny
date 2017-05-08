@@ -98,7 +98,7 @@ public:
 		auto bufferGuard = surface->buffer();
 		auto buffer = bufferGuard.get();
 		auto size = dataSize(buffer);
-		std::memset(buffer.data, 0x00, size);
+		std::memset(buffer.data, 0xFF, size);
 	}
 
 	void mouseButton(const ny::MouseButtonEvent& ev) override

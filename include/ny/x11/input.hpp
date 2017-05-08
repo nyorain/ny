@@ -32,8 +32,8 @@ public:
 protected:
 	X11AppContext& appContext_;
 	X11WindowContext* over_ = nullptr;
-	std::bitset<8> buttonStates_;
-	nytl::Vec2i lastPosition_; //synced position
+	std::bitset<8> buttonStates_ {};
+	nytl::Vec2i lastPosition_ {}; //synced position
 };
 
 
