@@ -11,16 +11,14 @@ constexpr unsigned long mwmDecoTitle = (1L << 3);
 constexpr unsigned long mwmDecomenu = (1L << 4);
 constexpr unsigned long mwmDecominimize = (1L << 5);
 constexpr unsigned long mwmDecomaximize = (1L << 5);
-constexpr unsigned long mwmDecoAll =
-	mwmDecoBorder | mwmDecoResize | mwmDecoTitle | mwmDecomenu | mwmDecominimize | mwmDecomaximize;
+constexpr unsigned long mwmDecoAll = 1u;
 
 constexpr unsigned long mwmFuncResize = mwmDecoBorder;
 constexpr unsigned long mwmFuncmove = mwmDecoResize;
 constexpr unsigned long mwmFuncminimize = mwmDecoTitle;
 constexpr unsigned long mwmFuncmaximize = mwmDecomenu;
 constexpr unsigned long mwmFuncClose = mwmDecominimize;
-constexpr unsigned long mwmFuncAll =
-	mwmFuncResize | mwmFuncmove | mwmFuncmaximize | mwmFuncminimize | mwmFuncClose;
+constexpr unsigned long mwmFuncAll = 1u;
 
 constexpr unsigned long mwmHintsFunc = (1L << 0);
 constexpr unsigned long mwmHintsDeco = mwmDecoBorder;

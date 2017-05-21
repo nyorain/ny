@@ -120,6 +120,7 @@ void MyWindowListener::key(const ny::KeyEvent& keyEvent)
 		} else if(keycode == ny::Keycode::d) {
 			ny::log("d pressed. Trying to toggle decorations");
 			windowContext->customDecorated(!windowContext->customDecorated());
+			windowContext->refresh();
 		}
 	}
 }
