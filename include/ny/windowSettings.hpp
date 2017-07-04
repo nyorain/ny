@@ -13,6 +13,7 @@
 #include <nytl/vec.hpp> // nytl::Vec
 
 #include <limits> // std::numeric_limits
+#include <string> // std::string
 
 namespace ny {
 

@@ -44,13 +44,15 @@ Backend& Backend::choose()
 	for(auto& backend : backends()) {
 		if(!backend->available()) {
 			if(envBackend && std::strcmp(backend->name(), envBackend) == 0) {
-				warning("ny::Backend: requested env NY_BACKEND", envBackend, " not available");
+				ny_warn("::Backend::choose"_src, "requested NY_BACKEND '{}' (env) not available", envBackend);
 				envFound = true;
 			}
 
 			continue;
 		}
-		if(envBackend && !std::strcmp(backend->name(), envBackend)) return *backend;
+
+		if(envBackend && !std::strcmp(backend->name(), envBackend))
+			return *backend;
 
 		// score is chosen this way since there might be x servers on winapi
 		// but no winapi on linux and we always want the native backend
@@ -67,7 +69,7 @@ Backend& Backend::choose()
 	}
 
 	if(envBackend && !envFound)
-		warning("ny::Backend: requested env NY_BACKEND ", envBackend, " not found!");
+		ny_warn("::Backend::choose"_src, "requested env NY_BACKEND ", envBackend, " not found!");
 
 	if(!best) throw std::runtime_error("ny::Backend: no backend available.");
 	return *best;

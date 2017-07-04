@@ -181,7 +181,7 @@ nytl::Vec2i X11MouseContext::position() const
 
 	if(error) {
 		auto msg = x11::errorMessage(appContext_.xDisplay(), error->error_code);
-		warning("ny::X11MouseContext::position: xcb_query_pointer failed: ", msg);
+		ny_warn("::X11MouseContext::position"_src, "xcb_query_pointer: {}", msg);
 		free(error);
 		return {};
 	}

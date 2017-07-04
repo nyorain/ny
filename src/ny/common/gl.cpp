@@ -171,7 +171,7 @@ GlSurface::~GlSurface()
 	// it not current (in which case - if it did not raise an error - we can try to ignore it).
 	GlContext* context {};
 	if(isCurrent(&context)) {
-		warning("ny::~GlSurface: current in calling thread!");
+		ny_warn("~GlSurface"_scope, "current in calling thread!");
 
 		std::mutex* mutex;
 		auto& map = contextCurrentMap(mutex);
@@ -192,7 +192,7 @@ GlSurface::~GlSurface()
 
 	for(auto& entry : map) {
 		if(entry.second.second == this) {
-			error("ny::~GlSurface: current in another thread. Just removing it");
+			ny_error("~GlSurface"_scope, "current in another thread");
 			entry.second = {nullptr, nullptr};
 		}
 	}
@@ -258,7 +258,7 @@ GlContext::~GlContext()
 	// either the implementation is leaking or destroyed the context without making
 	// it not current (in which case - if it did not raise an error - we can try to ignore it).
 	if(isCurrent()) {
-		warning("ny::~GlContext: context is current on destruction");
+		ny_warn("~GlContext"_scope, "context is current on destruction");
 
 		std::mutex* mutex;
 		auto& map = contextCurrentMap(mutex);
@@ -280,7 +280,7 @@ GlContext::~GlContext()
 
 		for(auto& entry : map) {
 			if(entry.second.first == this) {
-				error("ny::~GlContext: current in another thread. Just removing it");
+				ny_error("~GlContext"_scope, "current in another thread");
 				entry.second = {nullptr, nullptr};
 			}
 		}
@@ -291,7 +291,7 @@ GlContext::~GlContext()
 		std::lock_guard<std::mutex> lock(contextShareMutex());
 		for(auto& c : shared_) {
 			if(!c->removeShared(*this))
-				warning("ny::~GlContext: context->removeShared(*this) failed - data inconsistency");
+				ny_warn("~GlContext"_scope, "context->removeShared(*this) failed - expect data inconsistency");
 		}
 	}
 }
@@ -511,7 +511,7 @@ GlCurrentGuard::~GlCurrentGuard()
 	try {
 		context.makeNotCurrent();
 	} catch(const std::exception& exception) {
-		warning("ny::~GlCurrentGuard: ", exception.what());
+		ny_warn("~GlCurrentGuard"_scope, "makeNotCurrent failed: {}", exception.what());
 	}
 }
 

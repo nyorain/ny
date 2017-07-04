@@ -18,7 +18,7 @@ WaylandBufferSurface::WaylandBufferSurface(WaylandWindowContext& wc) : windowCon
 
 WaylandBufferSurface::~WaylandBufferSurface()
 {
-	if(active_) warning("ny::~WaylandBufferSurface: there is still an active BufferGuard");
+	if(active_) ny_warn("~WlBufferSurface"_scope, "there is still an active BufferGuard");
 }
 
 BufferGuard WaylandBufferSurface::buffer()
@@ -43,7 +43,7 @@ BufferGuard WaylandBufferSurface::buffer()
 	active_ = &buffers_.back();
 	auto format = waylandToImageFormat(buffers_.back().format());
 	if(format == ImageFormat::none)
-		throw std::runtime_error("ny::WaylandBufferSurface: failed to parse shm buffer format");
+		throw std::runtime_error("ny::WlBufferSurface: failed to parse shm buffer format");
 
 	return {*this, {&buffers_.back().data(), size, format, buffers_.back().stride() * 8}};
 }
@@ -51,7 +51,7 @@ BufferGuard WaylandBufferSurface::buffer()
 void WaylandBufferSurface::apply(const BufferGuard& buffer) noexcept
 {
 	if(!active_ || buffer.get().data != &active_->data()) {
-		warning("ny::WaylandBufferSurface::apply: invalid BufferGuard given");
+		ny_warn("::WlBufferSurface::apply"_src, "invalid BufferGuard given");
 		return;
 	}
 

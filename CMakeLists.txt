@@ -136,6 +136,22 @@ ExternalProject_Add_Step(nytl_ep
 	DEPENDERS install
 	ALWAYS 1)
 
+ExternalProject_Add(dlg_ep
+	PREFIX ${CMAKE_CURRENT_BINARY_DIR}/dlg
+	GIT_REPOSITORY https://github.com/nyorain/dlg.git
+	GIT_TAG master
+	INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/external/install
+	CMAKE_ARGS ${ExternalProjectCMakeArgs})
+
+ExternalProject_Add_Step(dlg_ep
+	forceinstall
+	DEPENDEES configure
+	DEPENDERS install
+	ALWAYS 1)
+
+add_definitions(-DDLG_BASE_PATH="${CMAKE_SOURCE_DIR}")
+add_definitions(-DDLG_HEADER_ONLY=0)
+
 # install nytl as well since public ny headers depend on them
 install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/external/install/." DESTINATION .)
 
@@ -203,24 +219,24 @@ normalize(WithVulkan)
 normalize(WithWinapi)
 normalize(WithX11)
 normalize(WithWayland)
-normalize(WithXkbCommon)
-normalize(BuildExamples)
+normalize(Examples)
 
 # print configuratoin
-message("\t\nFinal Configuration:\n")
+message("\tFinal Configuration:")
+message(" ")
 
-message("\tAndroid:\t\t" ${Android})
-message("\tWithWinapi:\t\t" ${WithWinapi})
-message("\tWithWayland:\t\t" ${WithWayland})
-message("\tWithX11:\t\t" ${WithX11})
-message("\tWithGl:\t\t\t" ${WithGl})
-message("\tWithEgl:\t\t" ${WithEgl})
-message("\tWithVulkan:\t\t" ${WithVulkan})
-message("\tWithXkbCommon:\t\t" ${WithXkbCommon})
-message("\n")
+message("\tAndroid:         " ${Android})
+message("\tWithWinapi:      " ${WithWinapi})
+message("\tWithWayland:     " ${WithWayland})
+message("\tWithX11:         " ${WithX11})
+message("\tWithGl:          " ${WithGl})
+message("\tWithEgl:         " ${WithEgl})
+message("\tWithVulkan:      " ${WithVulkan})
+message(" ")
 
-message("\tUsed nytl:\t\t" ${nytl_location})
-message("\tExamples:\t\t" ${BuildExamples})
+message("\tUsed nytl:       " ${nytl_location})
+message("\tExamples:        " ${Examples})
 
-message("\n\tVersion:\t\t" ${vmajor} "." ${vminor} "." ${vpatch})
-message("\n")
+message(" ")
+message("\tVersion:       " ${vmajor} "." ${vminor} "." ${vpatch})
+message(" ")

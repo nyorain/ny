@@ -35,7 +35,7 @@ bool loadExtensions(Display& dpy)
 		auto exts = ::glXQueryExtensionsString(&dpy, 0);
 
 		if(!client || !exts) {
-			warning("ny::Glx::loadExtensions: failed to retrieve extension string");
+			ny_warn("::glx::loadExtensions:"_src, "failed to retrieve extension string");
 			return;
 		}
 
@@ -202,7 +202,7 @@ unsigned int GlxSetup::visualID(GlConfigID id) const
 {
 	auto glxfbc = glxConfig(id);
 	if(!glxfbc) {
-		warning("ny::GlxSetup::visualID: invalid gl config id");
+		ny_warn("::GlxSetup::visualID"_src, "invalid gl config id");
 		return 0u;
 	}
 
@@ -229,11 +229,11 @@ GlxSurface::~GlxSurface()
 	if(isCurrent(&context)) {
 		std::error_code ec;
 		if(!context->makeNotCurrent(ec))
-			warning("ny::~GlxSurface: failed not make not current: ", ec.message());
+			ny_warn("~GlxSurface"_scope, "failed not make not current: {}", ec.message());
 	}
 
 	if(isCurrentInAnyThread())
-		error("ny::~GlxSurface: still current in a thread. Can't do much about it");
+		ny_error("~GlxSurface:"_scope, "still current in another thread");
 }
 
 bool GlxSurface::apply(std::error_code& ec) const
@@ -261,6 +261,8 @@ GlxContext::GlxContext(const GlxSetup& setup, GLXContext context, const GlConfig
 GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 	: setup_(setup)
 {
+	dlg::SourceGuard sourceGuard("GlxContext"_scope);
+
 	// test config
 	auto api = settings.api;
 	if(api == GlApi::gles && !hasProfileES) {
@@ -348,7 +350,7 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 
 			auto errorCode = errorCat.lastXlibError();
 			if(errorCode && errorCode.message() != "GLXBadFBConfig")
-				warning("ny::GlxContext: unexpected error: ", errorCode.message());
+				ny_warn("unexpected error: {}", errorCode.message());
 
 			if(glxContext_)
 				break;
@@ -359,12 +361,12 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 	// direct
 	if(!glxContext_) {
 		errorCat.resetLastXlibError();
-		log("ny::GlxContext: could not create modern context, trying legacy version");
+		ny_info("could not create modern context, trying legacy version");
 		glxContext_ = ::glXCreateNewContext(&xDisplay(), glxConfig, GLX_RGBA_TYPE,
 			glxShareContext, true);
 
 		if(!glxContext_)
-			warning("ny::GlxContext: glxCreateNewContext: ", errorCat.lastXlibError().message());
+			ny_warn("glxCreateNewContext: ", errorCat.lastXlibError().message());
 	}
 
 	// indirect
@@ -374,7 +376,7 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 			glxShareContext, false);
 
 		if(!glxContext_)
-			warning("ny::GlxContext: glxCreateNewContext: ", errorCat.lastXlibError().message());
+			ny_warn("glxCreateNewContext failed: {}", errorCat.lastXlibError().message());
 	}
 
 	::XSync(&xDisplay(), false);
@@ -383,7 +385,7 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 		throw std::runtime_error("ny::GlxContext: failed to create glx context in any way.");
 
 	if(!::glXIsDirect(&xDisplay(), glxContext_))
-		log("ny::GlxContext: could only create indirect gl context");
+		ny_info("could only create indirect gl context");
 
 	GlContext::initContext(GlApi::gl, glConfig, settings.share);
 }
@@ -393,10 +395,10 @@ GlxContext::~GlxContext()
 	if(glxContext_) {
 		std::error_code ec;
 		if(!makeNotCurrent(ec))
-			warning("ny::~GlxContext: failed to make the context not current: ", ec.message());
+			ny_warn("~GlxContext"_scope, "failed to make context not current: {}", ec.message());
 
 		if(isCurrentInAnyThread())
-			error("ny::~GlxContext: still current in a thread. Can't do much about it");
+			ny_error("~GlxContext"_scope, "still current in a thread. Can't do much about it");
 
 		::glXDestroyContext(&xDisplay(), glxContext_);
 	}
@@ -428,7 +430,7 @@ bool GlxContext::swapInterval(int interval, std::error_code& ec) const
 	}
 
 	if(!hasSwapControlTear && interval < 0) {
-		warning("ny::GlxContext::swapInterval: negative interval, no swap_control_tear");
+		ny_warn("::glx::swapInterval"_src, "negative interval, no swap_control_tear");
 		ec = {GlContextErrc::extensionNotSupported};
 		return false;
 	}
@@ -493,7 +495,8 @@ GlxWindowContext::GlxWindowContext(X11AppContext& ac, const GlxSetup& setup,
 	if(!configid) {
 		if(settings.transparent) configid = setup.defaultTransparentConfig().id;
 		if(!configid) {
-			if(settings.transparent) warning("ny::GlxWindowContext: no transparent config");
+			if(settings.transparent)
+				ny_warn("::glx::WindowContext"_src, "no transparent config");
 			configid = setup.defaultConfig().id;
 		}
 	}

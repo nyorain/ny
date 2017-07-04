@@ -5,6 +5,7 @@
 #include <ny/windowListener.hpp> // ny::WindowListener
 #include <ny/windowSettings.hpp> // ny::WindowSettings
 #include <ny/loopControl.hpp> // ny::LoopControl
+#include <ny/keyboardContext.hpp> // ny::KeyboardContext
 #include <ny/bufferSurface.hpp> // ny::BufferSurface
 #include <ny/log.hpp> // ny::log
 #include <ny/key.hpp> // ny::Keycode
@@ -31,6 +32,7 @@
 class MyWindowListener : public ny::WindowListener {
 public:
 	ny::LoopControl* loopControl;
+	ny::AppContext* appContext;
 	ny::WindowContext* windowContext;
 	ny::BufferSurface* bufferSurface;
 	ny::ToplevelState toplevelState;
@@ -67,15 +69,16 @@ int main(int, char**)
 	listener.loopControl = &control;
 	listener.windowContext = wc.get();
 	listener.bufferSurface = bufferSurface;
+	listener.appContext = ac.get();
 
-	ny::log("Entering main loop");
+	dlg_info("Entering main loop");
 	ac->dispatchLoop(control);
 }
 
 void MyWindowListener::draw(const ny::DrawEvent&)
 {
 	if(!bufferSurface) {
-		ny::log("draw: no bufferSurface");
+		dlg_info("draw: no bufferSurface");
 		return;
 	}
 
@@ -87,10 +90,22 @@ void MyWindowListener::draw(const ny::DrawEvent&)
 
 void MyWindowListener::key(const ny::KeyEvent& keyEvent)
 {
+	std::string name = "<unknown>";
+	if(appContext->keyboardContext()) {
+		auto utf8 = appContext->keyboardContext()->utf8(keyEvent.keycode);
+		if(!utf8.empty()) name = utf8;
+		else name = "<unprintable>";
+	}
+
+	std::string_view utf8 = keyEvent.utf8.empty() ? "<unprintable>" : keyEvent.utf8;
+	dlg_info("Key {} with keycode ({}: {}) {}, generating: {}", name,
+		(unsigned int) keyEvent.keycode, ny::keycodeName(keyEvent.keycode),
+		keyEvent.pressed ? "pressed" : "released", utf8);
+
 	if(keyEvent.pressed) {
 		auto keycode = keyEvent.keycode;
 		if(keycode == ny::Keycode::f) {
-			ny::log("f pressed. Toggling fullscreen");
+			dlg_info("Toggling fullscreen");
 			if(toplevelState != ny::ToplevelState::fullscreen) {
 				windowContext->fullscreen();
 				toplevelState = ny::ToplevelState::fullscreen;
@@ -99,13 +114,13 @@ void MyWindowListener::key(const ny::KeyEvent& keyEvent)
 				toplevelState = ny::ToplevelState::normal;
 			}
 		} else if(keycode == ny::Keycode::n) {
-			ny::log("n pressed. Resetting window to normal state");
+			dlg_info("Resetting window to normal state");
 			windowContext->normalState();
 		} else if(keycode == ny::Keycode::escape) {
-			ny::log("escape pressed. Closing window and exiting");
+			dlg_info("Closing window and exiting");
 			loopControl->stop();
 		} else if(keycode == ny::Keycode::m) {
-			ny::log("m pressed. Toggle window maximize");
+			dlg_info("Toggle window maximize");
 			if(toplevelState != ny::ToplevelState::maximized) {
 				windowContext->maximize();
 				toplevelState = ny::ToplevelState::maximized;
@@ -114,11 +129,11 @@ void MyWindowListener::key(const ny::KeyEvent& keyEvent)
 				toplevelState = ny::ToplevelState::normal;
 			}
 		} else if(keycode == ny::Keycode::i) {
-			ny::log("i pressed, Minimizing window");
+			dlg_info("Minimizing window");
 			toplevelState = ny::ToplevelState::minimized;
 			windowContext->minimize();
 		} else if(keycode == ny::Keycode::d) {
-			ny::log("d pressed. Trying to toggle decorations");
+			dlg_info("Trying to toggle decorations");
 			windowContext->customDecorated(!windowContext->customDecorated());
 			windowContext->refresh();
 		}
@@ -127,13 +142,13 @@ void MyWindowListener::key(const ny::KeyEvent& keyEvent)
 
 void MyWindowListener::close(const ny::CloseEvent&)
 {
-	ny::log("Window was closed by server side. Exiting");
+	dlg_info("Window was closed by server side. Exiting");
 	loopControl->stop();
 }
 
 void MyWindowListener::mouseButton(const ny::MouseButtonEvent& event)
 {
-	ny::log("mouseButton at ", event.position);
+	dlg_info("mouseButton at {}", event.position);
 	if(event.pressed && event.button == ny::MouseButton::left) {
 		if(event.position[0] < 0 || event.position[1] < 0 ||
 			static_cast<unsigned int>(event.position[0]) > windowSize[0] ||
@@ -153,10 +168,10 @@ void MyWindowListener::mouseButton(const ny::MouseButtonEvent& event)
 
 		auto caps = windowContext->capabilities();
 		if(resizeEdges != ny::WindowEdge::none && caps & ny::WindowCapability::beginResize) {
-			ny::log("Starting to resize window");
+			dlg_info("Starting to resize window");
 			windowContext->beginResize(event.eventData, resizeEdges);
 		} else if(caps & ny::WindowCapability::beginMove) {
-			ny::log("Starting to move window");
+			dlg_info("Starting to move window");
 			windowContext->beginMove(event.eventData);
 		}
 	}

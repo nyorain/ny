@@ -130,9 +130,8 @@ void X11WindowContext::createWindow(const X11WindowSettings& settings)
 
 void X11WindowContext::initVisual(const X11WindowSettings& settings)
 {
-	static constexpr auto novis = "ny::X11WindowContext::initVisual: no 24 or 32 bit visuals";
-	static constexpr auto no32vis = "ny::X11WindowContext::initVisual: no 32 bit visuals";
-	static constexpr auto no24vis = "ny::X11WindowContext::initVisual: no 24 bit visuals";
+	dlg::SourceGuard sourceGuard("::xwc::initVisual"_src);
+	static constexpr auto novis = "ny::X11WindowContext::initVisual: ny no 24 or 32 bit visuals";
 	static constexpr auto nofound = "ny::X11WindowContext::initVisual: no matching visuals";
 
 	visualID_ = 0u;
@@ -152,9 +151,12 @@ void X11WindowContext::initVisual(const X11WindowSettings& settings)
 		}
 	}
 
-	if(avDepth == 0u) throw std::runtime_error(novis);
-	else if(settings.transparent && avDepth == 24) warning(no32vis);
-	else if(!settings.transparent && avDepth == 32) warning(no24vis);
+	if(avDepth == 0u)
+		throw std::runtime_error(novis);
+	else if(settings.transparent && avDepth == 24)
+		ny_warn("transparent window but no 32 bit visual");
+	else if(!settings.transparent && avDepth == 32)
+		ny_info("not-transparent window, but only 32 bits visuals");
 
 	// argb > rgba > bgra for 32
 	// rgb > bgr for 24
@@ -253,7 +255,7 @@ void X11WindowContext::cursor(const Cursor& curs)
 		auto xname = cursorToXName(curs.type());
 		if(!xname) {
 			auto cname = name(curs.type());
-			warning("ny::X11WindowContext::cursor: ", cname, " not supported");
+			ny_warn("::xwc::cursor"_src "{} not supported", cname);
 			return;
 		}
 
@@ -341,35 +343,31 @@ void X11WindowContext::beginMove(const EventData* ev)
 	// we could figure the current mouse position out
 
 	auto* xbev = dynamic_cast<const X11EventData*>(ev);
-	if(!xbev) return;
+	if(!xbev) {
+		ny_warn("::xwc::beginMove"_src, "no event data given");
+		return;
+	}
+
 	auto& xev = reinterpret_cast<const xcb_button_press_event_t&>(xbev->event);
 
-	// auto index = static_cast<xcb_button_index_t>(xev.detail);
-	// xcb_ewmh_request_wm_moveresize(&ewmhConnection(), 0, xWindow(), xev.root_x, xev.root_y,
-	// 	XCB_EWMH_WM_MOVERESIZE_MOVE, {}, {});
-	// xcb_flush(&xConnection());
+	XEvent event;
+	memset(&event, 0, sizeof(event));
+	event.xclient.type = ClientMessage;
+	event.xclient.display = &appContext().xDisplay();
+	event.xclient.window = xWindow();
+	event.xclient.message_type = ewmhConnection()._NET_WM_MOVERESIZE;
+	event.xclient.format = 32;
+	event.xclient.data.l[0] = xev.root_x;
+	event.xclient.data.l[1] = xev.root_y;
+	event.xclient.data.l[2] = XCB_EWMH_WM_MOVERESIZE_MOVE;
+	event.xclient.data.l[3] = xev.detail;
+	event.xclient.data.l[4] = 0;
 
-	ny::log(xev.root_x, " ", xev.root_y);
-	ny::log(ewmhConnection()._NET_WM_MOVERESIZE);
-
-  XEvent event;
-  memset(&event, 0, sizeof(event));
-  event.xclient.type = ClientMessage;
-  event.xclient.display = &appContext().xDisplay();
-  event.xclient.window = xWindow();
-  event.xclient.message_type = ewmhConnection()._NET_WM_MOVERESIZE;
-  event.xclient.format = 32;
-  event.xclient.data.l[0] = xev.root_x;
-  event.xclient.data.l[1] = xev.root_y;
-  event.xclient.data.l[2] = XCB_EWMH_WM_MOVERESIZE_MOVE;
-  event.xclient.data.l[3] = xev.detail;
-  event.xclient.data.l[4] = 0;
-
-  auto root = DefaultRootWindow(&appContext().xDisplay());
-  XSendEvent(&appContext().xDisplay(), root, False,
-             SubstructureRedirectMask | SubstructureNotifyMask,
-             &event);
-  XSync(&appContext().xDisplay(), 1);
+	auto root = DefaultRootWindow(&appContext().xDisplay());
+	XSendEvent(&appContext().xDisplay(), root, False,
+	     SubstructureRedirectMask | SubstructureNotifyMask,
+	     &event);
+	XFlush(&appContext().xDisplay());
 }
 
 void X11WindowContext::beginResize(const EventData* ev, WindowEdges edge)
@@ -461,78 +459,23 @@ void X11WindowContext::reparentEvent()
 
 void X11WindowContext::customDecorated(bool set)
 {
-	/*
-	auto mwmHintsAtom = appContext().atoms().motifWmHints;
+	typedef struct {
+		unsigned long flags;
+		unsigned long functions;
+		unsigned long decorations;
+		long input_mode;
+		unsigned long status;
+	} MotifWmHints;
 
-	// auto prop = x11::readProperty(xConnection(), xWindow(), mwmHintsAtom);
-	// auto& hints = reinterpret_cast<const x11::MwmHints&>(*prop.data.data());
+	MotifWmHints motif_hints {};
+	motif_hints.flags = 2u;
+	motif_hints.decorations = set ? 0u : 1u;
 
-	// ny::log("size: ", prop.data.size());
-	// ny::log("hints.deco: ", hints.decorations);
-
-	x11::MwmHints mhints {};
 	customDecorated_ = set;
 
-	auto prop = x11::readProperty(xConnection(), xWindow(), mwmHintsAtom);
-	if(prop.data.size() != 0) {
-		mhints = *reinterpret_cast<x11::MwmHints*>(prop.data.data());
-	}
-
-	if(set) {
-		mhints.decorations = 1u;
-	} else {
-		xcb_generic_error_t* errorPtr;
-		auto cookie = xcb_get_property(&xConnection(), 1, xWindow(), mwmHintsAtom, mwmHintsAtom, 0, sizeof(x11::MwmHints) / 4);
-		auto reply = xcb_get_property_reply(&xConnection(), cookie, &errorPtr);
-
-		auto& hints = *reinterpret_cast<x11::MwmHints*>(xcb_get_property_value(reply));
-		ny::log("hints: ", hints.decorations);
-		ny::log("size: ", xcb_get_property_value_length(reply));
-		free(reply);
-		return;
-
-		mhints.decorations = (1L << 1);
-	}
-
-	mhints.flags = x11::mwmHintsDeco;
-	xcb_change_property(&xConnection(), XCB_PROP_MODE_REPLACE, xWindow(),
-		mwmHintsAtom, mwmHintsAtom, 32, sizeof(x11::MwmHints) / 4,
-		reinterpret_cast<std::uint32_t*>(&mhints));
-	*/
-
-	typedef struct {
-	    unsigned long flags;
-	    unsigned long functions;
-	    unsigned long decorations;
-	    long input_mode;
-	    unsigned long status;
-	  } MotifWmHints;
-
-	  MotifWmHints motif_hints;
-	  std::memset(&motif_hints, 0, sizeof(motif_hints));
-
-	  // Signals that the reader of the _MOTIF_WM_HINTS property should pay
-	  // attention to the value of |decorations|.
-	  motif_hints.flags = (1L << 1);
-	  motif_hints.decorations = set ? 0 : 1;
-
-	  customDecorated_ = set;
-
-	  //auto hint_atom = GetAtom("_MOTIF_WM_HINTS");
-	  auto hint_atom = appContext().atoms().motifWmHints;
-	//   XChangeProperty(&appContext().xDisplay(),
-	// 		  xWindow(),
-	// 		  hint_atom,
-	// 		  hint_atom,
-	// 		  32,
-	// 		  PropModeReplace,
-	// 		  reinterpret_cast<unsigned char*>(&motif_hints),
-	// 		  sizeof(MotifWmHints)/sizeof(long));
-
-	xcb_change_property(&xConnection(), XCB_PROP_MODE_REPLACE, xWindow(),
-		hint_atom, hint_atom, 32, sizeof(MotifWmHints) / sizeof(long),
-		reinterpret_cast<unsigned char*>(&motif_hints));
-	xcb_flush(&xConnection());
+	auto hint_atom = appContext().atoms().motifWmHints;
+	XChangeProperty(&appContext().xDisplay(), xWindow(), hint_atom, hint_atom, 32, PropModeReplace,
+		reinterpret_cast<unsigned char*>(&motif_hints), sizeof(MotifWmHints)/sizeof(long));
 }
 
 bool X11WindowContext::customDecorated() const

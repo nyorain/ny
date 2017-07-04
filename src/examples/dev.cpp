@@ -22,12 +22,12 @@ bool handleDataOffer(ny::DataOffer& dataOffer)
 {
 	auto formatsRequest = dataOffer.formats();
 	if(!formatsRequest) {
-		ny::warning("could not retrieve formats request");
+		dlg_warn("could not retrieve formats request");
 		return true;
 	}
 
 	if(!formatsRequest->wait()) {
-		ny::warning("AppContext broke while waiting for formats! Exiting.");
+		dlg_warn("AppContext broke while waiting for formats! Exiting.");
 		return false;
 	}
 
@@ -35,7 +35,7 @@ bool handleDataOffer(ny::DataOffer& dataOffer)
 
 	ny::DataFormat dataFormat {};
 	for(const auto& fmt : formats) {
-		ny::log("clipboard type ", fmt.name);
+		dlg_info("clipboard type {}", fmt.name);
 		if(fmt == ny::DataFormat::text) {
 			dataFormat = fmt;
 			break;
@@ -45,33 +45,34 @@ bool handleDataOffer(ny::DataOffer& dataOffer)
 	}
 
 	if(dataFormat == ny::DataFormat::none) {
-		ny::log("no supported clipboard format!");
+		dlg_info("no supported clipboard format!");
 		return true;
 	}
 
 	// trying to retrieve the data in text form and outputting it if successful
 	auto dataRequest = dataOffer.data(dataFormat);
 	if(!dataRequest) {
-		ny::warning("could not retrieve data request");
+		dlg_warn("could not retrieve data request");
 		return true;
 	}
 
 	if(!dataRequest->wait()) {
-		ny::warning("AppContext broke while waiting for data! Exiting.");
+		dlg_warn("AppContext broke while waiting for data! Exiting.");
 		return false;
 	}
 
 	auto data = dataRequest->get();
 	if(!data.has_value()) {
-		ny::warning("invalid text clipboard data offer");
+		dlg_warn("invalid text clipboard data offer");
 		return true;
 	}
 
 	if(dataFormat == ny::DataFormat::text) {
-		ny::log("Received offer text data: ", std::any_cast<const std::string&>(data));
+		dlg_info("Received offer text data: {}", std::any_cast<const std::string&>(data));
 	} else if(dataFormat == ny::DataFormat::uriList) {
 		auto uriList = std::any_cast<const std::vector<std::string>&>(data);
-		for(auto& uri : uriList) ny::log("Received offer uri: ", uri);
+		for(auto& uri : uriList)
+			dlg_info("Received offer uri: {}", uri);
 	}
 
 	return true;
@@ -87,7 +88,7 @@ public:
 public:
 	void close(const ny::CloseEvent&) override
 	{
-		ny::log("Recevied closed event. Exiting");
+		dlg_info("Recevied closed event. Exiting");
 		lc->stop();
 	}
 
@@ -110,7 +111,7 @@ public:
 		if(pos[0] < 100 && pos[1] < 100) {
 			auto src = std::make_unique<CustomDataSource>();
 			auto ret = ac->startDragDrop(std::move(src));
-			ny::log("Starting a dnd operation: ", ret);
+			dlg_info("Starting a dnd operation: {}", ret);
 		} else if(pos[0] > 400 && pos[1] > 400) {
 			wc->beginResize(ev.eventData, ny::WindowEdge::bottomRight);
 		} else {
@@ -120,7 +121,7 @@ public:
 
 	void mouseWheel(const ny::MouseWheelEvent& ev) override
 	{
-		ny::log("Mouse Wheel rotated: value=", ev.value);
+		dlg_info("Mouse Wheel rotated: value={}", ev.value);
 	}
 
 	ny::DataFormat dndMove(const ny::DndMoveEvent& ev) override
@@ -129,7 +130,7 @@ public:
 		if(pos[0] > 100 && pos[1] > 100 && pos[0] < 700 && pos[1] < 400) {
 			auto formatsReq = ev.offer->formats();
 			if(!formatsReq->wait()) {
-				ny::warning("AppContext broke while waiting for formats! Exiting.");
+				dlg_warn("AppContext broke while waiting for formats! Exiting.");
 				lc->stop();
 				return ny::DataFormat::none;
 			}
@@ -154,20 +155,20 @@ public:
 		if(!ev.pressed) return;
 
 		if(ev.keycode == ny::Keycode::escape) {
-			ny::log("Escape pressed, exiting");
+			dlg_info("Escape pressed, exiting");
 			lc->stop();
 			return;
 		} else if(ev.keycode == ny::Keycode::c) {
-			ny::log("setting clipboard... ");
-			if(ac->clipboard(std::make_unique<CustomDataSource>())) ny::log("\tsuccesful!");
-			else ny::log("\tunsuccesful");
+			dlg_info("setting clipboard... ");
+			if(ac->clipboard(std::make_unique<CustomDataSource>())) dlg_info("\tsuccesful!");
+			else dlg_info("\tunsuccesful");
 		}
 		if(ev.keycode == ny::Keycode::v)
 		{
-			ny::log("reading clipboard... ");
+			dlg_info("reading clipboard... ");
 			auto dataOffer = ac->clipboard();
 
-			if(!dataOffer) ny::log("Backend does not support clipboard operations...");
+			if(!dataOffer) dlg_info("Backend does not support clipboard operations...");
 			else if(!handleDataOffer(*dataOffer)) lc->stop();
 		}
 	}
@@ -196,7 +197,7 @@ int main()
 	listener.wc = wc.get();
 	listener.surface = bufferSurface;
 
-	ny::log("Entering main loop");
+	dlg_info("Entering main loop");
 	ac->dispatchLoop(control);
 }
 

@@ -279,12 +279,12 @@ void WaylandWindowContext::refresh()
 
 void WaylandWindowContext::show()
 {
-	warning("ny::WaylandWindowContext::show: not supported");
+	ny_warn("::wlwc::show"_src, "not supported");
 }
 
 void WaylandWindowContext::hide()
 {
-	warning("ny::WaylandWindowContext::hide: not supported");
+	ny_warn("::wlwc::hide"_src, "not supported");
 }
 
 void WaylandWindowContext::size(nytl::Vec2ui size)
@@ -299,7 +299,7 @@ void WaylandWindowContext::position(nytl::Vec2i position)
 	if(wlSubsurface()) {
 		wl_subsurface_set_position(wlSubsurface_, position[0], position[1]);
 	} else {
-		warning("ny::WaylandWindowContext::position: wayland does not support custom positions");
+		ny_warn("::wlwc::position"_src, "wayland does not support custom positions");
 	}
 }
 
@@ -307,14 +307,14 @@ void WaylandWindowContext::cursor(const Cursor& cursor)
 {
 	auto wmc = appContext().waylandMouseContext();
 	if(!wmc) {
-		warning("ny::WaylandWindowContext::cursor: no WaylandMouseContext");
+		ny_warn("::wlwc::cursor"_src, "no WaylandMouseContext");
 		return;
 	}
 
 	if(cursor.type() == Cursor::Type::image) {
 		auto img = cursor.image();
 		if(!img.data) {
-			warning("ny::WaylandWindowContext::cursor: invalid image cursor");
+			ny_warn("::wlwc::cursor"_src, "invalid image cursor");
 			return;
 		}
 
@@ -334,7 +334,7 @@ void WaylandWindowContext::cursor(const Cursor& cursor)
 		auto cursorTheme = appContext().wlCursorTheme();
 		auto* wlCursor = wl_cursor_theme_get_cursor(cursorTheme, cursorName);
 		if(!wlCursor) {
-			warning("ny::WaylandWindowContext::cursor: failed to retrieve cursor ", cursorName);
+			ny_warn("::wlwc::cursor"_src, "failed to retrieve cursor ", cursorName);
 			return;
 		}
 
@@ -358,12 +358,12 @@ void WaylandWindowContext::cursor(const Cursor& cursor)
 void WaylandWindowContext::minSize(nytl::Vec2ui size)
 {
 	if(xdgToplevelV6()) zxdg_toplevel_v6_set_min_size(xdgSurfaceV6_.toplevel, size[0], size[1]);
-	else warning("ny::WaylandWindowContext::maxSize: wayland has no capability for size limits");
+	else ny_warn("::wlwc::maxSize"_src, "wayland has no capability for size limits");
 }
 void WaylandWindowContext::maxSize(nytl::Vec2ui size)
 {
 	if(xdgToplevelV6()) zxdg_toplevel_v6_set_max_size(xdgSurfaceV6_.toplevel, size[0], size[1]);
-	else warning("ny::WaylandWindowContext::maxSize: wayland has no capability for size limits");
+	else ny_warn("::wlwc::maxSize"_src, "wayland has no capability for size limits");
 }
 
 NativeHandle WaylandWindowContext::nativeHandle() const
@@ -402,7 +402,7 @@ void WaylandWindowContext::maximize()
 	if(wlShellSurface()) wl_shell_surface_set_maximized(wlShellSurface_, nullptr);
 	else if(xdgSurfaceV5()) xdg_surface_set_maximized(xdgSurfaceV5_);
 	else if(xdgToplevelV6()) zxdg_toplevel_v6_set_maximized(xdgSurfaceV6_.toplevel);
-	else warning("ny::WaylandWindowContext::maximize: role cannot be maximized");
+	else ny_warn("::wlwc::maximize"_src, "role cannot be maximized");
 }
 
 void WaylandWindowContext::fullscreen()
@@ -416,14 +416,14 @@ void WaylandWindowContext::fullscreen()
 		xdg_surface_set_fullscreen(xdgSurfaceV5_, nullptr);
 	else if(xdgToplevelV6())
 		zxdg_toplevel_v6_set_fullscreen(xdgSurfaceV6_.toplevel, nullptr);
-	else warning("ny::WaylandWindowContext::fullscreen: role does not support fullscreen");
+	else ny_warn("::wlwc::fullscreen"_src, "role does not support fullscreen");
 }
 
 void WaylandWindowContext::minimize()
 {
 	if(xdgSurfaceV5()) xdg_surface_set_minimized(xdgSurfaceV5_);
 	else if(xdgToplevelV6()) zxdg_toplevel_v6_set_minimized(xdgSurfaceV6_.toplevel);
-	else warning("ny::WaylandWindowContext::minimize: role cannot be minimized");
+	else ny_warn("::wlwc::minimize"_src, "role cannot be minimized");
 }
 void WaylandWindowContext::normalState()
 {
@@ -436,19 +436,19 @@ void WaylandWindowContext::normalState()
 		zxdg_toplevel_v6_unset_fullscreen(xdgSurfaceV6_.toplevel);
 		zxdg_toplevel_v6_unset_maximized(xdgSurfaceV6_.toplevel);
 	} else {
-		warning("ny::WaylandWindowContext::normalState: invalid surface role");
+		ny_warn("::wlwc::normalState"_src ,"invalid surface role");
 	}
 }
 void WaylandWindowContext::beginMove(const EventData* ev)
 {
 	if(!appContext().wlSeat()) {
-		warning("ny::WaylandWindowContext:beginMove: failed: app context has no seat");
+		ny_warn("::wlwc:beginMove"_src, "failed: app context has no seat");
 		return;
 	}
 
 	auto* data = dynamic_cast<const WaylandEventData*>(ev);
 	if(!data || !data->serial) {
-		warning("ny::WaylandWindowContext::beginMove: failed: invalid event data");
+		ny_warn("::wlwc::beginMove"_src, "failed: invalid event data");
 		return;
 	}
 
@@ -458,19 +458,19 @@ void WaylandWindowContext::beginMove(const EventData* ev)
 		xdg_surface_move(xdgSurfaceV5_, appContext().wlSeat(), data->serial);
 	else if(xdgToplevelV6())
 		zxdg_toplevel_v6_move(xdgSurfaceV6_.toplevel, appContext().wlSeat(), data->serial);
-	else warning("ny::WaylandWindowContext::beginMove: role cannot be moved");
+	else ny_warn("::wlwc::beginMove"_src, "role cannot be moved");
 }
 
 void WaylandWindowContext::beginResize(const EventData* ev, WindowEdges edge)
 {
 	if(!appContext().wlSeat()) {
-		warning("ny::WaylandWindowContext:beginResize failed: app context has no seat");
+		ny_warn("::wlwc:beginResize"_src, "app context has no seat");
 		return;
 	}
 
 	auto* data = dynamic_cast<const WaylandEventData*>(ev);
 	if(!data || !data->serial) {
-		warning("ny::WaylandWindowContext::beginResize failed: invalid event data");
+		ny_warn("::wlwc::beginResize"_src, "invalid event data");
 		return;
 	}
 
@@ -479,7 +479,7 @@ void WaylandWindowContext::beginResize(const EventData* ev, WindowEdges edge)
 	auto serial = data->serial;
 
 	if(!wlEdge) {
-		warning("ny::WaylandWindowContext::beginReisze: no/invalid edge given");
+		ny_warn("::wlwc::beginReisze"_src, "no/invalid edge given");
 		return;
 	}
 
@@ -489,7 +489,7 @@ void WaylandWindowContext::beginResize(const EventData* ev, WindowEdges edge)
 		xdg_surface_resize(xdgSurfaceV5_, appContext().wlSeat(), serial, wlEdge);
 	else if(xdgToplevelV6())
 		zxdg_toplevel_v6_resize(xdgSurfaceV6_.toplevel, appContext().wlSeat(), serial, wlEdge);
-	else warning("ny::WaylandWindowContext::beginResize: role cannot be resized");
+	else ny_warn("::wlwc::beginResize"_src, "role cannot be resized");
 }
 
 void WaylandWindowContext::title(nytl::StringParam titlestring)
@@ -497,7 +497,7 @@ void WaylandWindowContext::title(nytl::StringParam titlestring)
 	if(wlShellSurface()) wl_shell_surface_set_title(wlShellSurface_, titlestring);
 	else if(xdgSurfaceV5()) xdg_surface_set_title(xdgSurfaceV5_, titlestring);
 	else if(xdgToplevelV6()) zxdg_toplevel_v6_set_title(xdgSurfaceV6_.toplevel, titlestring);
-	else warning("ny::WaylandWindowContext::title: role cannot change title");
+	else ny_warn("::wlwc::title"_src, "role cannot change title");
 }
 
 wl_shell_surface* WaylandWindowContext::wlShellSurface() const

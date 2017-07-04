@@ -58,7 +58,7 @@ UniqueImage deserializeImage(nytl::Span<const uint8_t> buffer)
 
 	// check for invaliad heaer/empty data
 	if(buffer.size() < headerSize) {
-		warning("ny::deserializeImage: invalid header");
+		ny_warn("deserializeImage"_scope, "invalid header");
 		return {};
 	}
 
@@ -71,7 +71,7 @@ UniqueImage deserializeImage(nytl::Span<const uint8_t> buffer)
 
 	//check for invalid data size
 	if(buffer.size() < dSize + headerSize) {
-		warning("ny::deserializeImage: invalid data size");
+		ny_warn("deserializeImage"_scope, "invalid data size");
 		return {};
 	}
 

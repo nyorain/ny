@@ -2,5 +2,6 @@ build/
 private/
 obj/
 bin/
+.vscode/
 *.swp
 config.hpp

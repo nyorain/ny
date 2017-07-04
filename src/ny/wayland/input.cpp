@@ -117,7 +117,7 @@ void WaylandMouseContext::handleLeave(wl_pointer*, uint32_t serial, wl_surface* 
 	WaylandEventData eventData(serial);
 
 	auto wc = appContext_.windowContext(*surface);
-	if(wc != over_) warning("ny::WaylandMouseContext::handleLeave: over inconsistency");
+	if(wc != over_) ny_warn("::WlMouseContext::handleLeave"_src, "'over_' inconsistency");
 
 	if(over_) onFocus(*this, over_, nullptr);
 	if(wc) {
@@ -237,18 +237,20 @@ bool WaylandKeyboardContext::withKeymap()
 }
 void WaylandKeyboardContext::handleKeymap(wl_keyboard*, uint32_t format, int32_t fd, uint32_t size)
 {
+	dlg::SourceGuard sourceGuard("::WlKeyboardContext::handleKeymap"_src);
+
 	// always close the give fd
 	auto fdGuard = nytl::makeScopeGuard([=]{ if(fd) close(fd); });
 
 	if(format == WL_KEYBOARD_KEYMAP_FORMAT_NO_KEYMAP) return;
 	if(format != WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1) {
-		log("WaylandKeyboardContext: invalid keymap format");
+		ny_warn("invalid keymap format");
 		return;
 	}
 
 	auto buf = mmap(nullptr, size, PROT_READ, MAP_SHARED, fd, 0);
 	if(buf == MAP_FAILED) {
-		log("WaylandKeyboardContext: cannot map keymap");
+		ny_warn("Wl: cannot mmap keymap");
 		return;
 	}
 
@@ -265,14 +267,14 @@ void WaylandKeyboardContext::handleKeymap(wl_keyboard*, uint32_t format, int32_t
 		XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
 
 	if(!xkbKeymap_) {
-		log("WaylandKeyboardContext: failed to compile the xkb keymap from compositor.");
+		ny_warn("failed to compile the xkb keymap from compositor.");
 		return;
 	}
 
 	xkbState_ = xkb_state_new(xkbKeymap_);
 
 	if(!xkbState_) {
-		log("WaylandKeyboardContext: failed to create the xkbState from mapped keymap buffer");
+		ny_warn("failed to create the xkbState from mapped keymap buffer");
 		return;
 	}
 }
@@ -312,7 +314,7 @@ void WaylandKeyboardContext::handleLeave(wl_keyboard*, uint32_t serial, wl_surfa
 	WaylandEventData eventData(serial);
 
 	auto* wc = appContext_.windowContext(*surface);
-	if(wc != focus_) warning("ny::WaylandKeyboardContext::handleLeave: focus inconsistency");
+	if(wc != focus_) ny_warn("::WlKeyboardContext::handleLeave"_src, "'focus_' inconsistency");
 
 	if(wc) {
 		onFocus(*this, wc, nullptr);

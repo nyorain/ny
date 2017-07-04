@@ -62,7 +62,7 @@ EglSetup::EglSetup(void* nativeDisplay)
 		throw EglErrorCategory::exception("ny::EglSetup: eglInitialize failed");
 
 	if(major < 1 || (major == 1 && minor < 4)) {
-		error("ny::EglSetup: only egl version ", major, ".", minor, " supported");
+		ny_error("::egl::EglSetup()"_src, "only egl version {}.{} supported", major, minor);
 		throw std::runtime_error("ny::EglSetup: egl 1.4 not supported");
 	}
 
@@ -204,11 +204,11 @@ EglSurface::~EglSurface()
 	if(isCurrent(&context)) {
 		std::error_code ec;
 		if(!context->makeNotCurrent(ec))
-			warning("ny::~EglSurface: failed not make not current: ", ec.message());
+			ny_warn("~EglSurface"_scope, "failed not make not current: {}", ec.message());
 	}
 
 	if(isCurrentInAnyThread())
-		error("ny::~EglSurface: still current in a thread. Can't do much about it");
+		ny_error("~EglSurface"_scope, "still current in another thread.");
 
 	if(eglDisplay_ && eglSurface_)
 		::eglDestroySurface(eglDisplay_, eglSurface_);
@@ -219,7 +219,7 @@ bool EglSurface::apply(std::error_code& ec) const
 	ec.clear();
 	if(!::eglSwapBuffers(eglDisplay_, eglSurface_)) {
 		ec = EglErrorCategory::errorCode();
-		warning("ny::EglSurface::apply (eglSwapBuffers) failed: ", ec.message());
+		ny_warn("::EglSurface::apply"_src, "eglSwapBuffers failed: {}", ec.message());
 		return false;
 	}
 
@@ -230,6 +230,8 @@ bool EglSurface::apply(std::error_code& ec) const
 EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 	: setup_(&setup)
 {
+	dlg::SourceGuard sourceGuard("EglContext"_scope);
+
 	auto eglDisplay = setup.eglDisplay();
 	auto api = settings.api;
 
@@ -339,10 +341,10 @@ EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 
 		if(!eglContext_) {
 			auto msg = EglErrorCategory::errorCode().message();
-			warning("ny::EglContext: could not create context for any version: ", msg);
+			ny_warn("could not create context for any version: {}", msg);
 		}
 	} else {
-		warning("ny::EglContext: create_context extension and egl 1.5 not available");
+		ny_info("create_context extension and egl 1.5 not available");
 	}
 
 	// try (again) if extension is not present or creation failed
@@ -362,7 +364,7 @@ EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 
 		if(!eglContext_) {
 			auto msg = EglErrorCategory::errorCode().message();
-			warning("ny::EglContext: could not create legacy context: ", msg);
+			ny_warn("could not create legacy context: {}", msg);
 		}
 	}
 
@@ -377,10 +379,10 @@ EglContext::~EglContext()
 	if(eglContext_) {
 		std::error_code ec;
 		if(!makeNotCurrent(ec))
-			warning("ny::~EglContext: failed to make the context not current: ", ec.message());
+			ny_warn("~EglContext"_scope, "failed to make context not current: {}", ec.message());
 
 		if(isCurrentInAnyThread())
-			error("ny::~EglContext: still current in a thread. Can't do much about it");
+			ny_error("~EglContext"_scope, "still current in another thread");
 
 		::eglDestroyContext(eglDisplay(), eglContext_);
 	}
@@ -393,7 +395,7 @@ bool EglContext::makeCurrentImpl(const GlSurface& surface, std::error_code& ec)
 	auto eglSurface = dynamic_cast<const EglSurface*>(&surface)->eglSurface();
 	if(!eglMakeCurrent(eglDisplay(), eglSurface, eglSurface, eglContext())) {
 		ec = EglErrorCategory::errorCode();
-		warning("ny::EglContext::makeCurrent (eglMakeCurrent) failed: ", ec.message());
+		ny_warn("::EglContext::makeCurrent"_src, "eglMakeCurrent failed: {}", ec.message());
 		return false;
 	}
 
@@ -406,7 +408,7 @@ bool EglContext::makeNotCurrentImpl(std::error_code& ec)
 
 	if(!::eglMakeCurrent(eglDisplay(), nullptr, nullptr, nullptr)) {
 		ec = EglErrorCategory::errorCode();
-		warning("ny::EglContext::makeNotCurrent (eglMakeCurrent) failed: ", ec.message());
+		ny_warn("::EglContext::makeNotCurrent"_src, "eglMakeCurrent failed: {}", ec.message());
 		return false;
 	}
 

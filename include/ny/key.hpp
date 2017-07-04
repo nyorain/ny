@@ -526,6 +526,8 @@ enum class Keycode : unsigned int {
 static_assert(static_cast<unsigned int>(Keycode::micmute) == 248, "Wrong enum numbering!");
 static_assert(static_cast<unsigned int>(Keycode::data) == 0x275, "Wrong enum numbering!");
 
+// TODO: rename to just 'name'? was handled this way in cursor.hpp...
+
 /// Returns the name of a keycode.
 /// Basically just transforms the enumeration value into a string.
 /// Returns an empty ("") name for Keycode::none or invalid keycodes.

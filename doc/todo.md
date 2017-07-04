@@ -6,12 +6,13 @@
 	- use mainlined examples (fix them to work for ALL (android!) platforms)
 	- possibility to even unify cmake?
 		- maybe just if(Android) section that add apk.cmake stuff (?!)
+- fix x11 backend (see backend todo)
 - WindowListener::surfaceDestroyed: output warning on default implementation?
 	- it was not overriden which can/will lead to serious problems.
 - gl impl: use shared mutex for glCurrentMap
 	- most locks are probably read access
 	- combine with SharedLockGuard (in nytl?)
-- fix loopControl [synchronization] [pretty much done, fix for backends needed]
+- fix loopControl [synchronization] [pretty much done, fix for backends maybe needed]
 	- make sure that impl isnt changed during operation on it?!
 		- mutex in loopControl?
 			- use shared mutex (C++17)
@@ -165,6 +166,10 @@ Backend stuff
 x11 backend:
 ------------
 
+- fix windowContext operations/implementation
+	- customDecorated/beginMove/beginResize
+	- https://github.com/nwjs/chromium.src/blob/45886148c94c59f45f14a9dc7b9a60624cfa626a/ui/base/x/x11_util.cc
+- rething dependency on xcb-ewmh and xcb-icccm (really makes sense?)
 - selections and xdnd improvements (see x11/dataExchange header/source TODO)
 	- X11DataSource constructor: check for uri list one file -> filename target format
 	- dnd image window

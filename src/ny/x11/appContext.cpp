@@ -220,7 +220,7 @@ X11AppContext::X11AppContext()
 			continue;
 		} else if(error) {
 			auto msg = x11::errorMessage(xDisplay(), error->error_code);
-			warning("ny::X11AppContext: Failed to load atom ", atomNames[i].name, ": ", msg);
+			ny_warn("Failed to load atom ", atomNames[i].name, ": ", msg);
 			free(error);
 		}
 	}
@@ -369,7 +369,7 @@ GlxSetup* X11AppContext::glxSetup() const
 			try {
 				impl_->glxSetup = {*this};
 			} catch(const std::exception& error) {
-				warning("ny::X11AppContext::glxSetup: initialization failed: ", error.what());
+				ny_warn("initialization failed: {}", error.what());
 				impl_->glxFailed = true;
 				impl_->glxSetup = {};
 				return nullptr;
@@ -406,7 +406,7 @@ bool X11AppContext::checkErrorWarn()
 {
 	auto err = xcb_connection_has_error(xConnection_);
 	if(err) {
-		error("ny::X11AppContext: xcb_connection has critical error ", err);
+		ny_error("xcb_connection has critical error ", err);
 		return false;
 	}
 
@@ -422,7 +422,7 @@ xcb_atom_t X11AppContext::atom(const std::string& name)
 		auto reply = xcb_intern_atom_reply(xConnection_, cookie, &error);
 		if(error) {
 			auto msg = x11::errorMessage(xDisplay(), error->error_code);
-			warning("ny::X11AppContext::atom: failed to retrieve atom ", name, ": ", msg);
+			ny_warn("::xac::atom"_scope, "failed to retrieve atom ", name, ": ", msg);
 			free(error);
 			return 0u;
 		}
@@ -510,7 +510,7 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev)
 	case 0u: {
 			int code = reinterpret_cast<const xcb_generic_error_t&>(ev).error_code;
 			auto errorMsg = x11::errorMessage(xDisplay(), code);
-			warning("ny::X11AppContext::processEvent: retrieved error code ", code, ": ", errorMsg);
+			ny_warn("::xac::processEvent"_src, "retrieved error code {}, {}", code, errorMsg);
 
 			break;
 		}

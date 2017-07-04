@@ -128,11 +128,13 @@ WaylandDataOffer::FormatsRequest WaylandDataOffer::formats()
 
 WaylandDataOffer::DataRequest WaylandDataOffer::data(const DataFormat& format)
 {
+	dlg::SourceGuard("::WaylandDataOffer::data"_src);
+
 	// find the associated wayland format string
 	std::pair<DataFormat, std::string> reqfmt {};
 	for(auto& supported : formats_) if(format == supported.first) reqfmt = supported;
 	if(reqfmt.second.empty()) {
-		warning("ny::WaylandDataOffer::data: unsupported format ", format.name);
+		ny_warn("unsupported format {}", format.name);
 		return {};
 	}
 
@@ -143,7 +145,7 @@ WaylandDataOffer::DataRequest WaylandDataOffer::data(const DataFormat& format)
 		int fds[2];
 		auto ret = pipe2(fds, O_CLOEXEC);
 		if(ret < 0) {
-			warning("ny::WaylandDataOffer::data: pipe2 failed: ", std::strerror(errno));
+			ny_warn("pipe2 failed: {}", std::strerror(errno));
 			return {};
 		}
 
@@ -213,13 +215,13 @@ void WaylandDataOffer::removeDataRequest(const std::string& format, DataRequestI
 {
 	auto it = requests_.find(format);
 	if(it == requests_.end()) {
-		warning("ny::WaylandDataOffer::removeDataRequest: invalid format");
+		ny_warn("::WaylandDataOffer::removeDataRequest"_src, "invalid format");
 		return;
 	}
 
 	auto it2 = std::find(it->second.requests.begin(), it->second.requests.end(), &request);
 	if(it2 == it->second.requests.end()) {
-		warning("ny::WaylandDataOffer::removeDataRequest: invalid request");
+		ny_warn("::WaylandDataOffer::removeDataRequest"_src ,"invalid request");
 		return;
 	}
 
@@ -288,6 +290,8 @@ void WaylandDataSource::target(wl_data_source*, const char* mimeType)
 }
 void WaylandDataSource::send(wl_data_source*, const char* mimeType, int32_t fd)
 {
+	dlg::SourceGuard sourceGuard("::WaylandDataSource::send"_src);
+
 	// close the fd no matter what happens here
 	auto fdGuard = nytl::makeScopeGuard([=]{ close(fd); });
 
@@ -297,13 +301,13 @@ void WaylandDataSource::send(wl_data_source*, const char* mimeType, int32_t fd)
 	for(auto& format : formats) if(match(format, mimeType)) dataFormat = &format;
 
 	if(!dataFormat) {
-		log("ny::WaylandDataSource::send: invalid/unsupported mimeType: ", mimeType);
+		ny_warn("invalid/unsupported mimeType: {}", mimeType);
 		return;
 	}
 
 	auto data = source_->data(*dataFormat);
 	if(!data.has_value()) {
-		warning("ny::WaylandDataSource::send: failed to retrieve data object via DataSource::data");
+		ny_warn("failed to retrieve data object via DataSource::data");
 		return;
 	}
 
@@ -316,7 +320,7 @@ void WaylandDataSource::send(wl_data_source*, const char* mimeType, int32_t fd)
 	auto sigpipeGuard = nytl::makeScopeGuard([=] { signal(SIGPIPE, prev); });
 
 	auto ret = write(fd, buffer.data(), buffer.size());
-	if(ret < 0) warning("ny::WaylandDataSource::send: write failed: ", std::strerror(errno));
+	if(ret < 0) ny_warn("write failed: {}", std::strerror(errno));
 }
 
 void WaylandDataSource::action(wl_data_source*, uint32_t action)
@@ -410,13 +414,13 @@ void WaylandDataDevice::enter(wl_data_device*, uint32_t serial, wl_surface* surf
 	}
 
 	if(!dndOffer_) {
-		log("ny::WaylandDataDevice::enter: invalid wl_data_offer given");
+		ny_info("::WaylandDataDevice::enter"_src, "invalid wl_data_offer given");
 		return;
 	}
 
 	dndWC_ = appContext_->windowContext(*surface);
 	if(!dndWC_) {
-		log("ny::WaylandDataDevice::enter: invalid wl_surface given");
+		ny_info("::WaylandDataDevice::enter:"_src, "invalid wl_surface given");
 		dndOffer_ = {};
 		return;
 	}
@@ -486,7 +490,7 @@ void WaylandDataDevice::drop(wl_data_device*)
 	// debug("ny::WaylandDataDevice::drop");
 
 	if(!dndOffer_ || !dndWC_) {
-		log("ny::WaylandDataDevice::drop: invalid current dnd session.");
+		ny_info("::WaylandDataDevice::drop"_src, "invalid current dnd session");
 		return;
 	}
 
@@ -507,10 +511,10 @@ void WaylandDataDevice::drop(wl_data_device*)
 			dde.offer = std::move(ownedDndOffer);
 			dndWC_->listener().dndDrop(dde);
 		} else {
-			warning("ny::WaylandDataDevice::drop: no current dnd WindowContext");
+			ny_warn("::WaylandDataDevice::drop"_src, "no current dnd WindowContext");
 		}
 	} else {
-		warning("ny::WaylandDataDevice::drop: invalid current cached dnd offer");
+		ny_warn("::WaylandDataDevice::drop"_src, "invalid current cached dnd offer");
 	}
 
 	dndOffer_ = {};
@@ -535,7 +539,7 @@ void WaylandDataDevice::selection(wl_data_device*, wl_data_offer* offer)
 		}
 	}
 
-	warning("ny::WaylandDataDevice::selection: unkown offer argument");
+	ny_warn("::WaylandDataDevice::selection"_src, "unkown offer argument");
 }
 
 } // namespace ny

@@ -148,7 +148,7 @@ void logHandler(const char* format, va_list vlist)
 	std::vsnprintf(&lastLogMessage[0], lastLogMessage.size(), format, vlistcopy);
 	va_end(vlistcopy);
 
-	log("ny::wayland::logHandler: ", lastLogMessage);
+	ny_info("wayland"_module, "logHandler: {}", lastLogMessage);
 }
 
 // Listener entry to implement custom fd polling callbacks in WaylandAppContext.
@@ -188,6 +188,8 @@ struct WaylandAppContext::Impl {
 
 WaylandAppContext::WaylandAppContext()
 {
+	dlg::SourceGuard sourceGuard("wlac"_module, "wlac()"_scope);
+
 	// listeners
 	using WAC = WaylandAppContext;
 	constexpr static wl_registry_listener registryListener = {
@@ -200,7 +202,7 @@ WaylandAppContext::WaylandAppContext()
 	wlDisplay_ = wl_display_connect(nullptr);
 
 	if(!wlDisplay_) {
-		std::string msg = "ny::WaylandAppContext: could not connect to display";
+		std::string msg = "ny::WaylandAppContext(): could not connect to display";
 		msg += strerror(errno);
 		throw std::runtime_error(msg);
 	}
@@ -235,7 +237,7 @@ WaylandAppContext::WaylandAppContext()
 	// note that if it is not there now it simply does not exist on the server since
 	// we rountripped above
 	if(!impl_->wlCompositor)
-		throw std::runtime_error("ny::WaylandAppContext: could not get compositor");
+		throw std::runtime_error("ny::WaylandAppContext(): could not get compositor");
 
 	// create eventfd needed to wake up polling
 	// register a fd poll callback that just resets the eventfd and sets wakeup_
@@ -249,12 +251,11 @@ WaylandAppContext::WaylandAppContext()
 	});
 
 	// warn if features are missing
-	if(!wlSeat()) warning("ny::WaylandAppContext: wl_seat not available, no input events");
-	if(!wlSubcompositor()) warning("ny::WaylandAppContext: wl_subcomposirot not available");
-	if(!wlShm()) warning("ny::WaylandAppContext: wl_shm not available");
-	if(!wlDataManager()) warning("ny::WaylandAppContext: wl_data_manager not available");
-	if(!wlShell() && !xdgShellV5() && !xdgShellV6())
-		warning("ny::WaylandAppContext: no supported shell available");
+	if(!wlSeat()) ny_warn("wl_seat not available, no input events");
+	if(!wlSubcompositor()) ny_warn("wl_subcompositor not available");
+	if(!wlShm()) ny_warn("wl_shm not available");
+	if(!wlDataManager()) ny_warn("wl_data_manager not available");
+	if(!wlShell() && !xdgShellV5() && !xdgShellV6()) ny_warn("no supported shell available");
 
 	// init secondary resources
 	if(wlSeat() && wlDataManager()) dataDevice_ = std::make_unique<WaylandDataDevice>(*this);
@@ -320,7 +321,7 @@ bool WaylandAppContext::dispatchEvents()
 		// otherwise handle the error
 		if(errno != EAGAIN) {
 			auto msg = std::strerror(errno);
-			warning("ny::WaylandAppContext::dispatchEvents: wl_display_flush: ", msg);
+			ny_warn("::wlac::dispatchEvents"_src, "wl_display_flush: {}", msg);
 		}
 	} else {
 		wl_display_read_events(wlDisplay_);
@@ -412,7 +413,7 @@ bool WaylandAppContext::startDragDrop(std::unique_ptr<DataSource>&& dataSource)
 	try {
 		dndSource_ = std::make_unique<WaylandDataSource>(*this, std::move(dataSource), true);
 	} catch(const std::exception& error) {
-		warning("ny::WaylandAppContext::startDragDrop: WaylandDataSource threw: ", error.what());
+		ny_warn("::wlac::startDragDrop"_src, "WaylandDataSource threw: {}", error.what());
 		return false;
 	}
 
@@ -453,7 +454,7 @@ EglSetup* WaylandAppContext::eglSetup() const
 			try {
 				impl_->eglSetup = {static_cast<void*>(&wlDisplay())};
 			} catch(const std::exception& error) {
-				warning("ny::WaylandAppContext::eglSetup: initialization failed: ", error.what());
+				ny_warn("::wlac::eglSetup"_src, "initialization failed: ", error.what());
 				impl_->eglFailed = true;
 				impl_->eglSetup = {};
 				return nullptr;
@@ -508,19 +509,19 @@ bool WaylandAppContext::checkErrorWarn() const
 	auto* wlCategory = dynamic_cast<const WaylandErrorCategory*>(&ec.category());
 	if(wlCategory) {
 		std::stringstream message;
-		message << "ny::WaylandAppContext: display has protocol error <" << msg;
+		message << "Wayland display has protocol error <" << msg;
 		message << "> in interface <" << wlCategory->interface().name << ">.\n\t";
 		message << "Last log output in this thread: " << lastLogMessage << "\n\t";
 		message << "The display and WaylandAppContext should not longer be used.";
 
-		error(message.str());
+		ny_warn(message.str());
 	} else {
 		std::stringstream message;
-		message << "ny::WaylandAppContext: display has non-protocol error <" << msg << ">\n\t";
+		message << "Wayland display has non-protocol error <" << msg << ">\n\t";
 		message << "Last log output in this thread: " << lastLogMessage << "\n\t";
 		message << "The display and WaylandAppContext should not longer be used.";
 
-		error(message.str());
+		ny_error(message.str());
 	}
 
 	impl_->errorOutputted = true;
@@ -544,7 +545,7 @@ void WaylandAppContext::destroyDataSource(const WaylandDataSource& src)
 {
 	if(&src == dndSource_.get()) dndSource_.reset();
 	else if(&src == clipboardSource_.get()) dndSource_.reset();
-	else warning("ny::WaylandAppContext::destroyDataSource: invalid data source");
+	else ny_warn("::wlac::destroyDataSource"_src, "invalid data source");
 }
 
 bool WaylandAppContext::dispatchDisplay()
@@ -623,7 +624,7 @@ int WaylandAppContext::pollFds(short wlDisplayEvents, int timeout)
 
 	auto ret = noSigPoll(*fds.data(), fds.size(), timeout);
 	if(ret < 0) {
-		log("ny::WaylandAppContext::pollFds: poll failed: ", std::strerror(errno));
+		ny_info("::wlac::pollFds"_src, "poll failed: {}", std::strerror(errno));
 		return ret;
 	}
 
@@ -756,7 +757,7 @@ void WaylandAppContext::handleSeatCapabilities(wl_seat*, uint32_t caps)
 	if((caps & WL_SEAT_CAPABILITY_POINTER) && !mouseContext_) {
 		mouseContext_ = std::make_unique<WaylandMouseContext>(*this, *wlSeat());
 	} else if (!(caps & WL_SEAT_CAPABILITY_POINTER) && mouseContext_) {
-		log("ny::WaylandAppContext: lost wl_pointer");
+		ny_info("wlac"_module, "lost wl_pointer");
 		mouseContext_.reset();
 	}
 
@@ -764,7 +765,7 @@ void WaylandAppContext::handleSeatCapabilities(wl_seat*, uint32_t caps)
 	if((caps & WL_SEAT_CAPABILITY_KEYBOARD) && !keyboardContext_) {
 		keyboardContext_ = std::make_unique<WaylandKeyboardContext>(*this, *wlSeat());
 	} else if(!(caps & WL_SEAT_CAPABILITY_KEYBOARD) && keyboardContext_) {
-		log("ny::WaylandAppContext: lost wl_keyboard");
+		ny_info("wlac"_module, "lost wl_keyboard");
 		keyboardContext_.reset();
 	}
 }

@@ -75,12 +75,12 @@ X11BufferSurface::X11BufferSurface(X11WindowContext& wc) : windowContext_(&wc)
 
 	shm_ = (reply);
 	if(reply) free(reply);
-	if(!shm_) warning("ny::X11BufferSurface: shm server does not support shm extension");
+	if(!shm_) ny_warn("::X11BufferSurface"_src, "shm server does not support shm extension");
 }
 
 X11BufferSurface::~X11BufferSurface()
 {
-	if(active_) warning("ny::~X11BufferSurface: there is still an active BufferGuard");
+	if(active_) ny_warn("::~X11BufferSurface"_src, "there is still an active BufferGuard");
 	if(gc_) xcb_free_gc(&xConnection(), gc_);
 
 	if(shmseg_) {
@@ -133,7 +133,7 @@ BufferGuard X11BufferSurface::buffer()
 void X11BufferSurface::apply(const BufferGuard&) noexcept
 {
 	if(!active_) {
-		warning("ny::X11BufferSurface::apply: no currently active BufferGuard");
+		ny_warn("::X11BufferSurface::apply"_src, "no currently active BufferGuard");
 		return;
 	}
 
