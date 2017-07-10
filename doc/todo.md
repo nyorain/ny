@@ -31,6 +31,7 @@
 	- fix egl/wgl error handling
 		- GlContextErrc::contextNotCurrent (e.g. swapInterval)
 	- query gl context version as attribute
+- make log.hpp a private header?
 - fix examples
 	- see src/examples/old
 		- provide vulkan example (basic)
