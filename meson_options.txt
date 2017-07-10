@@ -1,0 +1,5 @@
+option('enable_x11', type: 'boolean', value: 'true')
+option('enable_wayland', type: 'boolean', value: 'true')
+option('enable_winapi', type: 'boolean', value: 'true')
+option('enable_gl', type: 'boolean', value: 'true')
+option('enable_vulkan', type: 'boolean', value: 'true')

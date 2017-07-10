@@ -1,0 +1,164 @@
+ny_include = []
+ny_defs = []
+ny_libs = []
+
+ny_src = [
+	'log.cpp',
+	'config.cpp',
+	'cursor.cpp',
+	'image.cpp',
+	'dataExchange.cpp',
+	'key.cpp',
+	'mouseButton.cpp',
+	'backend.cpp',
+	'common/gl.cpp']
+
+# =======================================================================================
+# Winapi backend
+if enable_winapi
+	ny_src += [
+		'winapi/appContext.cpp',
+		'winapi/backend.cpp',
+		'winapi/bufferSurface.cpp',
+		'winapi/com.cpp',
+		'winapi/input.cpp',
+		'winapi/util.cpp',
+		'winapi/windowContext.cpp']
+
+	ny_libs += ['gdi32', 'gdiplus', 'Dwmapi', 'Shlwapi']
+
+	if enable_gl
+		ny_src += ['winapi/wgl.cpp']
+	endif
+
+	if enable_vulkan
+		ny_src += ['winapi/vulkan.cpp']
+	endif
+endif)
+
+# =======================================================================================
+# X11 backend
+if enable_x11
+	ny_src += [
+		'x11/appContext.cpp',
+		'x11/backend.cpp',
+		'x11/bufferSurface.cpp',
+		'x11/dataExchange.cpp',
+		'x11/input.cpp',
+		'x11/util.cpp',
+		'x11/windowContext.cpp']
+
+	ny_libs += [
+		${XCB_LIBRARIES}
+		${X11_LIBRARIES}
+		${X11_Xcursor_LIB})
+	list(APPEND ny_include
+		${XCB_INCLUDE_DIRS}
+		${X11_XCB_INCLUDE_DIR}
+		${X11_Xcursor_INCLUDE_PATH})
+
+	list(APPEND ny_libs X11 xcb xcb-icccm xcb-ewmh X11-xcb pthread)
+
+	if(WithGl)
+		list(APPEND ny_src x11/glx.cpp)
+	endif()
+
+	if(WithVulkan)
+		list(APPEND ny_src x11/vulkan.cpp)
+	endif()
+endif()
+
+# =======================================================================================
+# Wayland backend
+if(WithWayland)
+	list(APPEND ny_src
+		wayland/appContext.cpp
+		wayland/backend.cpp
+		wayland/bufferSurface.cpp
+		wayland/dataExchange.cpp
+		wayland/input.cpp
+		wayland/util.cpp
+		wayland/windowContext.cpp
+
+		wayland/protocols/xdg-shell-v5.c
+		wayland/protocols/xdg-shell-v6.c)
+
+	list(APPEND ny_libs ${WAYLAND_CLIENT_LIBRARIES} ${WAYLAND_CURSOR_LIBRARIES})
+	list(APPEND ny_include ${WAYLAND_CLIENT_INCLUDE_DIRS} ${WAYLAND_CURSOR_INCLUDE_DIRS})
+
+	if(WithEgl)
+		list(APPEND ny_src wayland/egl.cpp)
+		list(APPEND ny_libs ${WAYLAND_EGL_LIBRARIES})
+		list(APPEND ny_include ${WAYLAND_EGLT_INCLUDE_DIRS})
+	endif()
+
+	if(WithVulkan)
+		list(APPEND ny_src wayland/vulkan.cpp)
+	endif()
+endif()
+
+# =======================================================================================
+# android backend
+if(Android)
+	list(APPEND ny_src
+		android/appContext.cpp
+		android/activity.cpp
+		android/backend.cpp
+		android/bufferSurface.cpp
+		android/windowContext.cpp
+		android/input.cpp
+		android/mainProxy.c)
+
+	find_library(android-log log)
+	list(APPEND ny_libs android ${android-log})
+
+	if(WithEgl)
+		list(APPEND ny_src android/egl.cpp)
+	endif()
+
+	if(WithVulkan)
+		list(APPEND ny_src android/vulkan.cpp)
+	endif()
+endif()
+
+# xkbcommon, unix
+if(WithX11 OR WithWayland)
+	list(APPEND ny_src common/xkb.cpp common/unix.cpp)
+	list(APPEND ny_libs ${XKBCOMMON_LIBRARIES})
+	list(APPEND ny_include ${XKBCOMMON_INCLUDE_DIRS})
+endif()
+
+# gl
+if(WithGl)
+	list(APPEND ny_libs ${OPENGL_LIBRARY})
+	list(APPEND ny_include ${OPENGL_INCLUDE_DIR})
+endif()
+
+# egl
+if(WithEgl)
+	list(APPEND ny_src common/egl.cpp)
+	list(APPEND ny_libs ${EGL_LIBRARIES})
+	list(APPEND ny_include ${EGL_INCLUDE_DIRS})
+endif()
+
+# vulkan
+if(WithVulkan)
+	list(APPEND ny_libs ${Vulkan_LIBRARY})
+	list(APPEND ny_include ${Vulkan_INCLUDE_DIR})
+endif()
+
+add_library(ny SHARED ${ny_src})
+target_link_libraries(ny ${ny_libs})
+target_include_directories(ny PUBLIC ${ny_include})
+target_compile_definitions(ny PRIVATE ${ny_defs})
+
+# nytl build dep
+if(nytl_own AND Depend)
+	add_dependencies(ny nytl_ep)
+endif()
+
+#install
+install (TARGETS ny
+	ARCHIVE DESTINATION lib
+	LIBRARY DESTINATION lib
+	RUNTIME DESTINATION bin)
