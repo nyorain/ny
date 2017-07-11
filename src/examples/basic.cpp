@@ -45,6 +45,7 @@ public:
 	void state(const ny::StateEvent&) override;
 	void close(const ny::CloseEvent&) override;
 	void resize(const ny::SizeEvent&) override;
+	void focus(const ny::FocusEvent&) override;
 	void surfaceCreated(const ny::SurfaceCreatedEvent&) override;
 	void surfaceDestroyed(const ny::SurfaceDestroyedEvent&) override;
 };
@@ -176,6 +177,11 @@ void MyWindowListener::mouseButton(const ny::MouseButtonEvent& event)
 			windowContext->beginMove(event.eventData);
 		}
 	}
+}
+
+void MyWindowListener::focus(const ny::FocusEvent& ev)
+{
+	dlg_info("focus: {}", ev.gained);
 }
 
 void MyWindowListener::state(const ny::StateEvent& stateEvent)
