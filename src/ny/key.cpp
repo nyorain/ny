@@ -10,69 +10,70 @@ namespace ny {
 constexpr struct Mapping {
 	Keycode keycode;
 	const char* name;
+	bool nonSpecial {};
 } mappings[] =
 {
 	{Keycode::escape, "escape"},
 
-	{Keycode::k1, "1"},
-	{Keycode::k2, "2"},
-	{Keycode::k3, "3"},
-	{Keycode::k4, "4"},
-	{Keycode::k5, "5"},
-	{Keycode::k6, "6"},
-	{Keycode::k7, "7"},
-	{Keycode::k8, "8"},
-	{Keycode::k9, "9"},
-	{Keycode::k0, "0"},
-	{Keycode::minus, "minus"},
-	{Keycode::equals, "equals"},
+	{Keycode::k1, "1", true},
+	{Keycode::k2, "2", true},
+	{Keycode::k3, "3", true},
+	{Keycode::k4, "4", true},
+	{Keycode::k5, "5", true},
+	{Keycode::k6, "6", true},
+	{Keycode::k7, "7", true},
+	{Keycode::k8, "8", true},
+	{Keycode::k9, "9", true},
+	{Keycode::k0, "0", true},
+	{Keycode::minus, "minus", true},
+	{Keycode::equals, "equals", true},
 	{Keycode::backspace, "backspace"},
-	{Keycode::tab, "tab"},
+	{Keycode::tab, "tab", true},
 
-	{Keycode::q, "q"},
-	{Keycode::w, "w"},
-	{Keycode::e, "e"},
-	{Keycode::r, "r"},
-	{Keycode::t, "t"},
-	{Keycode::y, "y"},
-	{Keycode::u, "u"},
-	{Keycode::i, "i"},
-	{Keycode::o, "o"},
-	{Keycode::p, "p"},
-	{Keycode::leftbrace, "leftbrace"},
-	{Keycode::rightbrace, "rightbrace"},
+	{Keycode::q, "q", true},
+	{Keycode::w, "w", true},
+	{Keycode::e, "e", true},
+	{Keycode::r, "r", true},
+	{Keycode::t, "t", true},
+	{Keycode::y, "y", true},
+	{Keycode::u, "u", true},
+	{Keycode::i, "i", true},
+	{Keycode::o, "o", true},
+	{Keycode::p, "p", true},
+	{Keycode::leftbrace, "leftbrace", true},
+	{Keycode::rightbrace, "rightbrace", true},
 	{Keycode::enter, "enter"},
 	{Keycode::leftctrl, "leftctrl"},
 
-	{Keycode::a, "a"},
-	{Keycode::s, "s"},
-	{Keycode::d, "d"},
-	{Keycode::f, "f"},
-	{Keycode::g, "g"},
-	{Keycode::h, "h"},
-	{Keycode::j, "j"},
-	{Keycode::k, "k"},
-	{Keycode::l, "l"},
-	{Keycode::semicolon, "semicolon"},
-	{Keycode::apostrophe, "apostrophe"},
-	{Keycode::grave, "grave"},
+	{Keycode::a, "a", true},
+	{Keycode::s, "s", true},
+	{Keycode::d, "d", true},
+	{Keycode::f, "f", true},
+	{Keycode::g, "g", true},
+	{Keycode::h, "h", true},
+	{Keycode::j, "j", true},
+	{Keycode::k, "k", true},
+	{Keycode::l, "l", true},
+	{Keycode::semicolon, "semicolon", true},
+	{Keycode::apostrophe, "apostrophe", true},
+	{Keycode::grave, "grave", true},
 	{Keycode::leftshift, "leftshift"},
-	{Keycode::backslash, "backslash"},
+	{Keycode::backslash, "backslash", true},
 
-	{Keycode::x, "x"},
-	{Keycode::z, "z"},
-	{Keycode::c, "c"},
-	{Keycode::v, "v"},
-	{Keycode::b, "b"},
-	{Keycode::m, "m"},
-	{Keycode::n, "n"},
-	{Keycode::comma, "comma"},
-	{Keycode::period, "period"},
-	{Keycode::slash, "slash"},
+	{Keycode::x, "x", true},
+	{Keycode::z, "z", true},
+	{Keycode::c, "c", true},
+	{Keycode::v, "v", true},
+	{Keycode::b, "b", true},
+	{Keycode::m, "m", true},
+	{Keycode::n, "n", true},
+	{Keycode::comma, "comma", true},
+	{Keycode::period, "period", true},
+	{Keycode::slash, "slash", true},
 	{Keycode::rightshift, "rightshift"},
-	{Keycode::kpmultiply, "kpmultiply"},
+	{Keycode::kpmultiply, "kpmultiply", true},
 	{Keycode::leftalt, "leftalt"},
-	{Keycode::space, "space"},
+	{Keycode::space, "space", true},
 	{Keycode::capslock, "capslock"},
 
 	{Keycode::f1, "f1"},
@@ -88,19 +89,19 @@ constexpr struct Mapping {
 	{Keycode::numlock, "numlock"},
 	{Keycode::scrollock, "scrolllock"},
 
-	{Keycode::kp7, "kp7"},
-	{Keycode::kp8, "kp8"},
-	{Keycode::kp9, "kp9"},
-	{Keycode::kpminus, "kpminus"},
-	{Keycode::kp4, "kp4"},
-	{Keycode::kp5, "kp5"},
-	{Keycode::kp6, "kp6"},
-	{Keycode::kpplus, "kpplus"},
-	{Keycode::kp1, "kp1"},
-	{Keycode::kp2, "kp2"},
-	{Keycode::kp3, "kp3"},
-	{Keycode::kp0, "kp0"},
-	{Keycode::kpperiod, "kpperiod"},
+	{Keycode::kp7, "kp7", true},
+	{Keycode::kp8, "kp8", true},
+	{Keycode::kp9, "kp9", true},
+	{Keycode::kpminus, "kpminus", true},
+	{Keycode::kp4, "kp4", true},
+	{Keycode::kp5, "kp5", true},
+	{Keycode::kp6, "kp6", true},
+	{Keycode::kpplus, "kpplus", true},
+	{Keycode::kp1, "kp1", true},
+	{Keycode::kp2, "kp2", true},
+	{Keycode::kp3, "kp3", true},
+	{Keycode::kp0, "kp0", true},
+	{Keycode::kpperiod, "kpperiod", true},
 
 	{Keycode::zenkakuhankaku, "zenkakuhankaku"},
 	{Keycode::nonushash, "nonushash"},
@@ -274,16 +275,22 @@ constexpr struct Mapping {
 	{Keycode::micmute, "micmute"},
 };
 
-const char* keycodeName(Keycode keycode)
+const char* name(Keycode keycode)
 {
 	for(auto m : mappings) if(m.keycode == keycode) return m.name;
-	return "";
+	return "<unknown>";
 }
 
 Keycode keycodeFromName(nytl::StringParam name)
 {
 	for(auto m : mappings) if(name == m.name) return m.keycode;
 	return Keycode::none;
+}
+
+bool specialKey(Keycode keycode)
+{
+	for(auto m : mappings) if(keycode == m.keycode) return !m.nonSpecial;
+	return false;
 }
 
 } // namespace ny

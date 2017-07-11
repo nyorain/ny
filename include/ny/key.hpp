@@ -526,13 +526,18 @@ enum class Keycode : unsigned int {
 static_assert(static_cast<unsigned int>(Keycode::micmute) == 248, "Wrong enum numbering!");
 static_assert(static_cast<unsigned int>(Keycode::data) == 0x275, "Wrong enum numbering!");
 
-// TODO: rename to just 'name'? was handled this way in cursor.hpp...
-
 /// Returns the name of a keycode.
 /// Basically just transforms the enumeration value into a string.
 /// Returns an empty ("") name for Keycode::none or invalid keycodes.
 /// \sa keycodeFromName
-const char* keycodeName(Keycode keycode);
+const char* name(Keycode keycode);
+
+/// Returns whehter the given keycode is usually a special (i.e. non input) input key.
+/// Will return false for e.g. keycodes like a,5,],+,space or the keypad keys,
+/// and false for meta keys like shift, alt, ctrl, pageUp, f12, etc. Note however
+/// that this check may be wrong and the best way is usually to check
+/// the resulting utf-8 for validity.
+bool specialKey(Keycode keycode);
 
 /// Constructs a keycode value from a given name string.
 /// Returns the correspondingly named Keycode value or Keycode::none if there is no such value.

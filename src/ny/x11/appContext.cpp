@@ -220,7 +220,7 @@ X11AppContext::X11AppContext()
 			continue;
 		} else if(error) {
 			auto msg = x11::errorMessage(xDisplay(), error->error_code);
-			ny_warn("Failed to load atom ", atomNames[i].name, ": ", msg);
+			ny_warn("Failed to load atom {} : {}", atomNames[i].name, msg);
 			free(error);
 		}
 	}
@@ -406,7 +406,7 @@ bool X11AppContext::checkErrorWarn()
 {
 	auto err = xcb_connection_has_error(xConnection_);
 	if(err) {
-		ny_error("xcb_connection has critical error ", err);
+		ny_error("xcb_connection has critical error {}", err);
 		return false;
 	}
 
@@ -422,7 +422,7 @@ xcb_atom_t X11AppContext::atom(const std::string& name)
 		auto reply = xcb_intern_atom_reply(xConnection_, cookie, &error);
 		if(error) {
 			auto msg = x11::errorMessage(xDisplay(), error->error_code);
-			ny_warn("::xac::atom"_scope, "failed to retrieve atom ", name, ": ", msg);
+			ny_warn("::xac::atom"_scope, "failed to retrieve atom {}: {}", name, msg);
 			free(error);
 			return 0u;
 		}

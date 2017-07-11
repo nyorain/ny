@@ -31,6 +31,8 @@ std::vector<Backend*> Backend::backendsFunc(Backend* reg, bool remove)
 
 Backend& Backend::choose()
 {
+	dlg_source("Backend"_module, "choose"_scope);
+
 	static const std::string waylandString = "wayland";
 	static const std::string x11String = "x11";
 	static const std::string winapiString = "winapi";
@@ -44,7 +46,7 @@ Backend& Backend::choose()
 	for(auto& backend : backends()) {
 		if(!backend->available()) {
 			if(envBackend && std::strcmp(backend->name(), envBackend) == 0) {
-				ny_warn("::Backend::choose"_src, "requested NY_BACKEND '{}' (env) not available", envBackend);
+				ny_warn("requested NY_BACKEND '{}' (env) found, not available", envBackend);
 				envFound = true;
 			}
 
@@ -69,7 +71,7 @@ Backend& Backend::choose()
 	}
 
 	if(envBackend && !envFound)
-		ny_warn("::Backend::choose"_src, "requested env NY_BACKEND ", envBackend, " not found!");
+		ny_warn("requested env NY_BACKEND {} not found", envBackend);
 
 	if(!best) throw std::runtime_error("ny::Backend: no backend available.");
 	return *best;

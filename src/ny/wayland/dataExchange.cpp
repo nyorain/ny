@@ -128,7 +128,7 @@ WaylandDataOffer::FormatsRequest WaylandDataOffer::formats()
 
 WaylandDataOffer::DataRequest WaylandDataOffer::data(const DataFormat& format)
 {
-	dlg::SourceGuard("::WaylandDataOffer::data"_src);
+	dlg_source("wldo"_module, "data"_scope);
 
 	// find the associated wayland format string
 	std::pair<DataFormat, std::string> reqfmt {};
@@ -290,7 +290,7 @@ void WaylandDataSource::target(wl_data_source*, const char* mimeType)
 }
 void WaylandDataSource::send(wl_data_source*, const char* mimeType, int32_t fd)
 {
-	dlg::SourceGuard sourceGuard("::WaylandDataSource::send"_src);
+	dlg_source("wlds"_module, "send"_scope);
 
 	// close the fd no matter what happens here
 	auto fdGuard = nytl::makeScopeGuard([=]{ close(fd); });

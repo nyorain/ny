@@ -93,13 +93,14 @@ void MyWindowListener::key(const ny::KeyEvent& keyEvent)
 	std::string name = "<unknown>";
 	if(appContext->keyboardContext()) {
 		auto utf8 = appContext->keyboardContext()->utf8(keyEvent.keycode);
-		if(!utf8.empty()) name = utf8;
+		if(!utf8.empty() && !ny::specialKey(keyEvent.keycode)) name = utf8;
 		else name = "<unprintable>";
 	}
 
-	std::string_view utf8 = keyEvent.utf8.empty() ? "<unprintable>" : keyEvent.utf8;
+	std::string_view utf8 = (keyEvent.utf8.empty() || ny::specialKey(keyEvent.keycode)) ?
+		"<unprintable>" : keyEvent.utf8;
 	dlg_info("Key {} with keycode ({}: {}) {}, generating: {}", name,
-		(unsigned int) keyEvent.keycode, ny::keycodeName(keyEvent.keycode),
+		(unsigned int) keyEvent.keycode, ny::name(keyEvent.keycode),
 		keyEvent.pressed ? "pressed" : "released", utf8);
 
 	if(keyEvent.pressed) {

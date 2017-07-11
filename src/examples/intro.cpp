@@ -67,7 +67,7 @@ int main()
 
 	// ny::log can be used to easily output application information.
 	// There are also other output methods, see ny/log.hpp.
-	ny::log("Entering main loop");
+	dlg_info("Entering main loop");
 
 	// We call the main dispatch loop, which will just wait for new events and process them
 	// until a critical error occurs or we stop the loop using the passed LoopControl.
@@ -85,6 +85,6 @@ void MyWindowListener::close(const ny::CloseEvent&)
 	// We output that we received the close event and then call the stop function
 	// on the loop control that controls the main dispatch loop on the AppContext.
 	// This will cause the main loop to end and our program to exit gracefully.
-	ny::log("Received an closed event - exiting");
+	dlg_info("Received an closed event - exiting");
 	lc->stop();
 }

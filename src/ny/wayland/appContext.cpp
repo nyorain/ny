@@ -188,7 +188,7 @@ struct WaylandAppContext::Impl {
 
 WaylandAppContext::WaylandAppContext()
 {
-	dlg::SourceGuard sourceGuard("wlac"_module, "wlac()"_scope);
+	dlg_source("wlac"_module, "wlac()"_scope);
 
 	// listeners
 	using WAC = WaylandAppContext;
@@ -454,7 +454,7 @@ EglSetup* WaylandAppContext::eglSetup() const
 			try {
 				impl_->eglSetup = {static_cast<void*>(&wlDisplay())};
 			} catch(const std::exception& error) {
-				ny_warn("::wlac::eglSetup"_src, "initialization failed: ", error.what());
+				ny_warn("::wlac::eglSetup"_src, "initialization failed: {}", error.what());
 				impl_->eglFailed = true;
 				impl_->eglSetup = {};
 				return nullptr;

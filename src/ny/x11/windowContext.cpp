@@ -130,7 +130,7 @@ void X11WindowContext::createWindow(const X11WindowSettings& settings)
 
 void X11WindowContext::initVisual(const X11WindowSettings& settings)
 {
-	dlg::SourceGuard sourceGuard("::xwc::initVisual"_src);
+	dlg_source("xwc"_module, "initVisual"_scope);
 	static constexpr auto novis = "ny::X11WindowContext::initVisual: ny no 24 or 32 bit visuals";
 	static constexpr auto nofound = "ny::X11WindowContext::initVisual: no matching visuals";
 

@@ -230,7 +230,7 @@ bool EglSurface::apply(std::error_code& ec) const
 EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 	: setup_(&setup)
 {
-	dlg::SourceGuard sourceGuard("EglContext"_scope);
+	dlg_source("EglContext()"_scope);
 
 	auto eglDisplay = setup.eglDisplay();
 	auto api = settings.api;
