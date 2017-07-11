@@ -6,6 +6,7 @@
 
 #include <ny/fwd.hpp>
 #include <ny/surface.hpp> // ny::Surface
+#include <ny/dataExchange.hpp> // ny::DataOffer
 #include <nytl/vec.hpp> // nytl::Vec
 #include <nytl/flags.hpp> // ny::WindowEdges (nytl::Flags)
 #include <nytl/clone.hpp> // nytl::Cloneable
