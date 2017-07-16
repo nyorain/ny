@@ -106,19 +106,19 @@ unsigned int rate(const GlConfig& config)
 
 bool glExtensionStringContains(std::string_view extString, std::string_view extension)
 {
-	auto it = extString.data();
+	auto it = extString;
 	while(true) {
-		auto loc = std::strstr(it, extension);
-		if(!loc)
+		auto loc = it.find(extension);
+		if(loc == it.npos)
 			return false;
 
-		auto terminator = loc + std::strlen(extension);
-		bool blankBefore = (loc == extString || *(loc - 1) == ' ');
-		bool blankAfter = (*terminator == ' ' || *terminator == '\0');
+		auto terminator = extString[loc + extension.length()];
+		bool blankBefore = (loc == 0 || extString[loc - 1] == ' ');
+		bool blankAfter = (terminator == ' ' || terminator == '\0');
 		if(blankBefore && blankAfter)
 			return true;
 
-		it = terminator;
+		it.remove_prefix(loc);
 	}
 
 	return false;
@@ -138,7 +138,8 @@ std::error_code make_error_code(GlContextErrc code)
 GlContextError::GlContextError(std::error_code code, std::string_view msg) : logic_error("")
 {
 	std::string whatMsg;
-	if(msg) whatMsg.append(msg).append(": ");
+	if(!msg.empty())
+		whatMsg.append(msg).append(": ");
 	whatMsg.append(code.message());
 
 	std::logic_error::operator=(std::logic_error(whatMsg));

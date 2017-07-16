@@ -12,10 +12,11 @@
 namespace ny {
 namespace {
 
-bool sameBeginning(nytl::SizedStringParam a, nytl::SizedStringParam b)
+bool sameBeginning(std::string_view a, std::string_view b)
 {
-	if(a.size() == 0 || b.size() == 0) return false;
-	return !std::strncmp(a, b, std::min(a.size(), b.size()));
+	if(a.size() == 0 || b.size() == 0)
+		return false;
+	return !std::strncmp(a.data(), b.data(), std::min(a.size(), b.size()));
 }
 
 } // anoymous util namespace

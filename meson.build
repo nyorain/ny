@@ -44,15 +44,36 @@ endif
 
 dep_nytl = dependency('nytl', fallback: ['nytl', 'nytl_dep'])
 
-deps = [dep_threads, dep_xkbcommon, dep_vulkan, dep_gl, dep_egl, dep_dlg, dep_nytl]
+deps = [
+	dep_threads,
+	dep_xkbcommon,
+	dep_vulkan,
+	dep_gl,
+	dep_egl,
+	dep_dlg,
+	dep_nytl]
 
 if enable_x11
 	dep_x11 = dependency('x11')
+	dep_x11xcb = dependency('x11-xcb')
 	dep_xcursor = dependency('xcursor')
 	dep_xcb = dependency('xcb')
 	dep_xcbewmh = dependency('xcb-ewmh')
 	dep_xcbicccm = dependency('xcb-icccm')
-	deps += [dep_x11, dep_xcb, dep_xcbewmh, dep_xcbicccm]
+	dep_xcbshm = dependency('xcb-shm')
+	dep_xcbxkb = dependency('xcb-xkb')
+	dep_xkbcommonx11 = dependency('xkbcommon-x11', required: req_xkbcommon)
+
+	deps += [
+		dep_x11,
+		dep_x11xcb,
+		dep_xcursor,
+		dep_xcb,
+		dep_xcbewmh,
+		dep_xcbicccm,
+		dep_xcbshm,
+		dep_xcbxkb,
+		dep_xkbcommonx11]
 endif
 
 if enable_wayland
@@ -72,13 +93,14 @@ ny_inc_private = include_directories('src')
 subdir('include/ny')
 subdir('src/ny')
 
-# TODO: not working yet
-if examples
-	subdir('src/examples')
-endif
-
 # dependency
 ny_dep = declare_dependency(
 	include_directories: ny_inc,
-	depdencies: deps,
+	dependencies: deps,
 	link_with: ny_lib)
+
+# examples
+# must come after dependency
+if examples
+	subdir('src/examples')
+endif

@@ -3,7 +3,6 @@ ny_defs = []
 ny_libs = []
 
 ny_src = [
-	'log.cpp',
 	'config.cpp',
 	'cursor.cpp',
 	'image.cpp',

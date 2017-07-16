@@ -157,8 +157,12 @@ bool X11ErrorCategory::checkWarn(xcb_void_cookie_t cookie, std::string_view msg)
 	if(e) {
 		auto errorMsg = x11::errorMessage(*xDisplay_, e->error_code);
 
-		if(msg) ny_warn("x11"_module, "error code {}, {}: {}", (int) e->error_code, errorMsg, msg);
-		else ny_warn("x11"_module, "error code {}, {}", (int) e->error_code, errorMsg);
+		if(!msg.empty()) {
+			ny_warn("x11"_module, "error code {}, {}: {}",
+				(int) e->error_code, errorMsg, msg);
+		} else {
+			ny_warn("x11"_module, "error code {}, {}", (int) e->error_code, errorMsg);
+		}
 
 		free(e);
 		return false;
@@ -170,7 +174,7 @@ bool X11ErrorCategory::checkWarn(xcb_void_cookie_t cookie, std::string_view msg)
 void X11ErrorCategory::checkThrow(xcb_void_cookie_t cookie, std::string_view msg) const
 {
 	std::error_code ec;
-	if(!check(cookie, ec)) throw std::system_error(ec, msg);
+	if(!check(cookie, ec)) throw std::system_error(ec, std::string(msg));
 }
 
 namespace x11 {

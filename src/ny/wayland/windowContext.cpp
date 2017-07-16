@@ -494,9 +494,10 @@ void WaylandWindowContext::beginResize(const EventData* ev, WindowEdges edge)
 
 void WaylandWindowContext::title(std::string_view titlestring)
 {
-	if(wlShellSurface()) wl_shell_surface_set_title(wlShellSurface_, titlestring);
-	else if(xdgSurfaceV5()) xdg_surface_set_title(xdgSurfaceV5_, titlestring);
-	else if(xdgToplevelV6()) zxdg_toplevel_v6_set_title(xdgSurfaceV6_.toplevel, titlestring);
+	std::string ntitle {titlestring};
+	if(wlShellSurface()) wl_shell_surface_set_title(wlShellSurface_, ntitle.c_str());
+	else if(xdgSurfaceV5()) xdg_surface_set_title(xdgSurfaceV5_, ntitle.c_str());
+	else if(xdgToplevelV6()) zxdg_toplevel_v6_set_title(xdgSurfaceV6_.toplevel, ntitle.c_str());
 	else ny_warn("::wlwc::title"_src, "role cannot change title");
 }
 

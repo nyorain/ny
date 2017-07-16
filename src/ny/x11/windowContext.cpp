@@ -427,7 +427,7 @@ void X11WindowContext::icon(const Image& img)
 
 void X11WindowContext::title(std::string_view title)
 {
-	xcb_ewmh_set_wm_name(&ewmhConnection(), xWindow(), std::strlen(title), title);
+	xcb_ewmh_set_wm_name(&ewmhConnection(), xWindow(), title.size(), title.data());
 }
 
 NativeHandle X11WindowContext::nativeHandle() const

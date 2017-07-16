@@ -4,6 +4,7 @@
 
 #include <ny/common/egl.hpp>
 #include <ny/log.hpp>
+#include <nytl/span.hpp>
 
 #include <EGL/egl.h>
 #ifndef EGL_VERSION_1_4
@@ -162,7 +163,8 @@ std::unique_ptr<GlContext> EglSetup::createContext(const GlContextSettings& sett
 
 void* EglSetup::procAddr(std::string_view name) const
 {
-	return reinterpret_cast<void*>(::eglGetProcAddress(name));
+	std::string nname {name};
+	return reinterpret_cast<void*>(::eglGetProcAddress(nname.c_str()));
 }
 
 EGLConfig EglSetup::eglConfig(GlConfigID id) const
@@ -488,7 +490,7 @@ std::string EglErrorCategory::message(int code) const
 
 std::system_error EglErrorCategory::exception(std::string_view msg)
 {
-	return std::system_error(errorCode(), msg);
+	return std::system_error(errorCode(), std::string(msg));
 }
 
 std::error_code EglErrorCategory::errorCode()
