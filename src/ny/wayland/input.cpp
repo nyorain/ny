@@ -237,7 +237,7 @@ bool WaylandKeyboardContext::withKeymap()
 }
 void WaylandKeyboardContext::handleKeymap(wl_keyboard*, uint32_t format, int32_t fd, uint32_t size)
 {
-	dlg::SourceGuard sourceGuard("::WlKeyboardContext::handleKeymap"_src);
+	dlg_source("wlkc"_module, "handleKeymap"_scope);
 
 	// always close the give fd
 	auto fdGuard = nytl::ScopeGuard([=]{ if(fd) close(fd); });

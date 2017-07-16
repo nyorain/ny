@@ -334,7 +334,7 @@ void WaylandWindowContext::cursor(const Cursor& cursor)
 		auto cursorTheme = appContext().wlCursorTheme();
 		auto* wlCursor = wl_cursor_theme_get_cursor(cursorTheme, cursorName);
 		if(!wlCursor) {
-			ny_warn("::wlwc::cursor"_src, "failed to retrieve cursor ", cursorName);
+			ny_warn("::wlwc::cursor"_src, "failed to retrieve cursor {}", cursorName);
 			return;
 		}
 

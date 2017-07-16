@@ -114,7 +114,8 @@ void X11WindowContext::createWindow(const X11WindowSettings& settings)
 	std::uint32_t eventmask =
 		XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_STRUCTURE_NOTIFY | XCB_EVENT_MASK_KEY_PRESS |
 		XCB_EVENT_MASK_KEY_RELEASE | XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE |
-		XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_LEAVE_WINDOW | XCB_EVENT_MASK_POINTER_MOTION;
+		XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_LEAVE_WINDOW | XCB_EVENT_MASK_POINTER_MOTION |
+		XCB_EVENT_MASK_FOCUS_CHANGE;
 
 	// Setting the background pixel here may introduce flicker but may fix issues
 	// with creating opengl windows.
@@ -130,7 +131,7 @@ void X11WindowContext::createWindow(const X11WindowSettings& settings)
 
 void X11WindowContext::initVisual(const X11WindowSettings& settings)
 {
-	dlg::SourceGuard sourceGuard("::xwc::initVisual"_src);
+	dlg_source("xwc"_module, "initVisual"_scope);
 	static constexpr auto novis = "ny::X11WindowContext::initVisual: ny no 24 or 32 bit visuals";
 	static constexpr auto nofound = "ny::X11WindowContext::initVisual: no matching visuals";
 

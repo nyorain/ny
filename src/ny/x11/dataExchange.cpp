@@ -42,7 +42,7 @@ unsigned int xdndAware(X11AppContext& ac, xcb_window_t window)
 	if(error.error_code || prop.data.size() < 4 || prop.type != XCB_ATOM_ATOM) {
 		if(error.error_code) {
 			auto msg = x11::errorMessage(ac.xDisplay(), error.error_code);
-			ny_warn("::x11::xdndAware"_src, "x11::readProperty: ", msg);
+			ny_warn("::x11::xdndAware"_src, "x11::readProperty: {}", msg);
 			return 0u;
 		}
 
@@ -210,11 +210,11 @@ nytl::UniqueConnection X11DataOffer::registerDataRequest(const DataFormat& forma
 
 void X11DataOffer::notify(const xcb_selection_notify_event_t& notify)
 {
-	auto scopeSource = "::X11DataOffer::notify"_src;
+	dlg_source("x11do"_module, "notify"_scope);
 
 	// if the property is 0 the request failed
 	if(notify.property == 0) {
-		ny_info(scopeSource, "request failed (property == 0)");
+		ny_info("request failed (property == 0)");
 		return;
 	}
 
@@ -225,7 +225,7 @@ void X11DataOffer::notify(const xcb_selection_notify_event_t& notify)
 	if(error.error_code || prop.data.empty()) {
 		auto msg = std::string("No property data was returned");
 		if(error.error_code) msg = x11::errorMessage(appContext().xDisplay(), error.error_code);
-		ny_info(scopeSource, "failed to read the target property: ", msg);
+		ny_info("failed to read the target property: {}", msg);
 		return;
 	}
 
@@ -239,7 +239,7 @@ void X11DataOffer::notify(const xcb_selection_notify_event_t& notify)
 		//the property must be set to a list of atoms which have 32 bit length
 		//so if the format is not 32, the property/selectionEvent is invalid
 		if(prop.format != 32 || prop.data.empty()) {
-			ny_info(scopeSource, "received targets notify with invalid property data");
+			ny_info("received targets notify with invalid property data");
 			return;
 		}
 
@@ -260,7 +260,7 @@ void X11DataOffer::notify(const xcb_selection_notify_event_t& notify)
 		auto target = notify.target;
 		auto it = pendingDataRequests_.find(target);
 		if(it == pendingDataRequests_.end()) {
-			ny_info(scopeSource, "received notify with unkown/not requested target");
+			ny_info("received notify with unkown/not requested target");
 			return;
 		}
 
@@ -274,7 +274,7 @@ void X11DataOffer::notify(const xcb_selection_notify_event_t& notify)
 		}
 
 		if(*format == DataFormat::none) {
-			ny_warn(scopeSource, "format not supported - internal inconsistency");
+			ny_warn("format not supported - internal inconsistency");
 			it->second({}); // was invalid all the time? how could this happen?
 			return;
 		}
@@ -319,11 +319,11 @@ void X11DataOffer::addFormats(nytl::Span<const xcb_atom_t> targets)
 
 		if(error) {
 			auto msg = x11::errorMessage(appContext().xDisplay(), error->error_code);
-			ny_warn("::X11DataOffer::addFormats"_src, "get_atom_name_reply failed: {}", msg);
+			ny_warn("::x11do::addFormats"_src, "get_atom_name_reply failed: {}", msg);
 			free(error);
 			continue;
 		} else if(!nameReply) {
-			ny_warn("::X11DataOffer::addFormats"_src, "get_atom_name_reply failed: without error");
+			ny_warn("::x11do::addFormats"_src, "get_atom_name_reply failed: without error");
 			continue;
 		}
 
@@ -392,7 +392,7 @@ X11DataSource::X11DataSource(X11AppContext& ac, std::unique_ptr<DataSource> src)
 			continue;
 		} else if(error) {
 			auto msg = x11::errorMessage(appContext().xDisplay(), error->error_code);
-			ny_warn("X11DataSource"_scope, "Failed to load atom for {}", cookie.first->name);
+			ny_warn("::x11ds::x11ds()"_src, "Failed to load atom for {}", cookie.first->name);
 			free(error);
 		}
 	}
@@ -410,6 +410,7 @@ X11DataSource::X11DataSource(X11AppContext& ac, std::unique_ptr<DataSource> src)
 void X11DataSource::answerRequest(const xcb_selection_request_event_t& request)
 {
 	// TODO: correctly implement all (reasonable parts) of icccm
+	dlg_source("x11ds"_module, "answerRequest"_scope);
 
 	auto property = request.property;
 	if(!property) property = request.target;
@@ -429,13 +430,13 @@ void X11DataSource::answerRequest(const xcb_selection_request_event_t& request)
 		}
 
 		if(!format) {
-			ny_info("::X11DataSource::answerRequest"_src, "unsupported target request");
+			ny_info("unsupported target request");
 			property = 0u;
 		} else {
 			// request the data in the associated DataFormat from the source
 			auto any = dataSource_->data(*format);
 			if(!any.has_value()) {
-				ny_warn("::X11DataSource::answerRequest"_src, "data source could not provide data");
+				ny_warn("data source could not provide data");
 				// TODO: set property and break here or sth.
 			}
 
@@ -471,7 +472,7 @@ X11DataManager::X11DataManager(X11AppContext& ac) : appContext_(&ac)
 
 bool X11DataManager::processEvent(const xcb_generic_event_t& ev)
 {
-	auto scopeSource = "::X11DataManager::processEvent"_src;
+	dlg_source("x11dm"_module, "processEvent"_scope);
 	X11EventData eventData {ev};
 
 	auto responseType = ev.response_type & ~0x80;
@@ -484,7 +485,7 @@ bool X11DataManager::processEvent(const xcb_generic_event_t& ev)
 			auto& atoms = appContext().atoms();
 
 			if(notify.requestor != appContext().xDummyWindow()) {
-				ny_info(scopeSource, "received selection notify for invalid window");
+				ny_info("received selection notify for invalid window");
 				return true;
 			}
 
@@ -508,7 +509,7 @@ bool X11DataManager::processEvent(const xcb_generic_event_t& ev)
 			}
 
 			if(dataOffer) dataOffer->notify(notify);
-			else ny_info(scopeSource, "received selection notify for invalid selection");
+			else ny_info("received selection notify for invalid selection");
 
 			return true;
 		}
@@ -529,7 +530,7 @@ bool X11DataManager::processEvent(const xcb_generic_event_t& ev)
 			} else {
 				//if the request cannot be handled, simply send an event to the client
 				//that notifies him the request failed.
-				ny_info(scopeSource, "received unknown selection request");
+				ny_info("received unknown selection request");
 
 				xcb_selection_notify_event_t notifyEvent {};
 				notifyEvent.response_type = XCB_SELECTION_NOTIFY;
@@ -551,7 +552,7 @@ bool X11DataManager::processEvent(const xcb_generic_event_t& ev)
 			// query the associated data source and unset it
 			auto& clear = reinterpret_cast<const xcb_selection_clear_event_t&>(ev);
 			if(clear.owner != xDummyWindow()) {
-				ny_info(scopeSource, "received selection clear event for invalid window");
+				ny_info("received selection clear event for invalid window");
 				return true;
 			}
 
@@ -580,7 +581,8 @@ bool X11DataManager::processEvent(const xcb_generic_event_t& ev)
 bool X11DataManager::processClientMessage(const xcb_client_message_event_t& clientm,
 	const EventData& eventData)
 {
-	auto scopeSource = "::X11DataManager::processClientMessage"_src;
+	dlg_source("x11dm"_module, "processClientMessage"_scope);
+
 	if(clientm.type == atoms().xdndEnter) {
 		auto* data = clientm.data.data32;
 
@@ -605,7 +607,7 @@ bool X11DataManager::processClientMessage(const xcb_client_message_event_t& clie
 
 			if(error.error_code) {
 				auto msg = x11::errorMessage(appContext().xDisplay(), error.error_code);
-				ny_info(scopeSource, "reading xdndTypeList property failed: ", msg);
+				ny_info("reading xdndTypeList property failed: {}", msg);
 				return true;
 			}
 
@@ -617,7 +619,7 @@ bool X11DataManager::processClientMessage(const xcb_client_message_event_t& clie
 		// getting the associated WindowContext
 		auto windowContext = appContext().windowContext(clientm.window);
 		if(!windowContext) {
-			ny_info(scopeSource, "xdndEnter for invalid x window");
+			ny_info("xdndEnter for invalid x window");
 			return true;
 		}
 
@@ -640,7 +642,7 @@ bool X11DataManager::processClientMessage(const xcb_client_message_event_t& clie
 
 	} else if(clientm.type == atoms().xdndPosition) {
 		if(!dndOffer_.windowContext || !dndOffer_.offer) {
-			ny_info(scopeSource, "xdndPosition event without current xdnd session");
+			ny_info("xdndPosition event without current xdnd session");
 			return true;
 		}
 
@@ -654,7 +656,7 @@ bool X11DataManager::processClientMessage(const xcb_client_message_event_t& clie
 		auto reply = xcb_translate_coordinates_reply(&xConnection(), cookie, &error);
 		if(error) {
 			auto msg = x11::errorMessage(appContext().xDisplay(), error->error_code);
-			ny_info(scopeSource, "xdndPosition: xcb_translate_coordinates: ", msg);
+			ny_info("xdndPosition: xcb_translate_coordinates: {}", msg);
 			free(error);
 			return true;
 		}
@@ -688,7 +690,7 @@ bool X11DataManager::processClientMessage(const xcb_client_message_event_t& clie
 		xcb_flush(&xConnection());
 	} else if(clientm.type == atoms().xdndLeave) {
 		if(!dndOffer_.windowContext || !dndOffer_.offer) {
-			ny_info(scopeSource, "xdndLeave event without current xdnd session");
+			ny_info("xdndLeave event without current xdnd session");
 		} else {
 			DndLeaveEvent dle;
 			dle.eventData = &eventData;
@@ -702,7 +704,7 @@ bool X11DataManager::processClientMessage(const xcb_client_message_event_t& clie
 		// generate a data offer event
 		// push the current data offer into the vector vector with old ones
 		if(!dndOffer_.windowContext || !dndOffer_.offer) {
-			ny_info(scopeSource, "xdndDrop event without current xdnd session");
+			ny_info("xdndDrop event without current xdnd session");
 			return true;
 		}
 
@@ -749,7 +751,7 @@ bool X11DataManager::processClientMessage(const xcb_client_message_event_t& clie
 
 bool X11DataManager::processDndEvent(const xcb_generic_event_t& ev)
 {
-	dlg::SourceGuard("::X11DataManager::processDndEvent"_src);
+	dlg_source("x11dm"_module, "processDndEvent"_scope);
 	auto responseType = ev.response_type & ~0x80;
 	switch(responseType) {
 		case XCB_MOTION_NOTIFY: {
@@ -770,7 +772,7 @@ bool X11DataManager::processDndEvent(const xcb_generic_event_t& ev)
 
 				if(error) {
 					auto msg = x11::errorMessage(appContext().xDisplay(), error->error_code);
-					ny_warn("xcb_query_pointer failed: ", msg);
+					ny_warn("xcb_query_pointer failed: {}", msg);
 					free(error);
 					break;
 				}
@@ -872,6 +874,7 @@ DataOffer* X11DataManager::clipboard()
 bool X11DataManager::startDragDrop(std::unique_ptr<DataSource> src)
 {
 	// TODO: better check, give up xdndselection ownership on fail
+	dlg_source("x11dm"_module, "startDnd"_scope);
 
 	// check if currently over window
 	if(!appContext().mouseContext()->over()) return false;
@@ -899,7 +902,7 @@ bool X11DataManager::startDragDrop(std::unique_ptr<DataSource> src)
 	auto grabReply = xcb_grab_pointer_reply(&xConnection(), grabCookie, &errorPtr);
 	if(errorPtr) {
 		auto msg = x11::errorMessage(appContext().xDisplay(), errorPtr->error_code);
-		ny_warn("ny::X11DataManager: xcb_grab_pointer error :", msg);
+		ny_warn("xcb_grab_pointer error: {}", msg);
 		free(errorPtr);
 		return false;
 	}
@@ -908,7 +911,7 @@ bool X11DataManager::startDragDrop(std::unique_ptr<DataSource> src)
 	free(grabReply);
 
 	if(result != XCB_GRAB_STATUS_SUCCESS) {
-		ny_warn("::X11DataManager::startDragDrop"_src, "grabbing cursor returned {}", result);
+		ny_warn("grabbing cursor returned {}", result);
 		return false;
 	}
 
@@ -939,7 +942,7 @@ xcb_window_t X11DataManager::selectionOwner(xcb_atom_t selection)
 	xcb_window_t owner {};
 	if(error) {
 		auto msg = x11::errorMessage(appContext().xDisplay(), error->error_code);
-		ny_warn("::X11DataManager::selectionOwner"_src, "xcb_get_selection_owner: ", msg);
+		ny_warn("::x11dm::selectionOwner"_src, "xcb_get_selection_owner: {}", msg);
 		free(error);
 	}
 	else if(reply) {
@@ -954,7 +957,7 @@ void X11DataManager::unregisterDataOffer(const X11DataOffer& offer)
 {
 	auto end = std::remove(dndOffers_.begin(), dndOffers_.end(), &offer);
 	if(dndOffers_.end() == end) {
-		ny_warn("::X11DataManager::unregisterDataOffer"_src, "invalid offer given");
+		ny_warn("::x11dm::unregisterDataOffer"_src, "invalid offer {} given", (void*) &offer);
 		return;
 	}
 

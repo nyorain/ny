@@ -29,7 +29,7 @@ int main()
 	auto ac = backend.createAppContext();
 
 	if(!backend.gl() || !ac->glSetup()) {
-		ny::error("The ny library was built without gl or failed to init it!");
+		dlg_error("The ny library was built without gl or failed to init it!");
 		return EXIT_FAILURE;
 	}
 
@@ -59,20 +59,20 @@ int main()
 	wc->listener(listener);
 	wc->refresh();
 
-	ny::log("Entering main loop");
+	dlg_info("Entering main loop");
 	ac->dispatchLoop(control);
 }
 
 void MyWindowListener::close(const ny::CloseEvent&)
 {
-	ny::log("Window closed from server side. Exiting.");
+	dlg_info("Window closed from server side. Exiting.");
 	loopControl->stop();
 }
 
 void MyWindowListener::draw(const ny::DrawEvent&)
 {
 	if(!glSurface)
-		ny::log("draw without gl surface");
+		dlg_warn("draw without gl surface");
 
 	// First, we make the gl context current.
 	// we do not make it notCurrent and the end of this function since we only

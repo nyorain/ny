@@ -261,7 +261,7 @@ GlxContext::GlxContext(const GlxSetup& setup, GLXContext context, const GlConfig
 GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 	: setup_(setup)
 {
-	dlg::SourceGuard sourceGuard("GlxContext"_scope);
+	dlg_source("GlxContext()"_scope);
 
 	// test config
 	auto api = settings.api;
@@ -366,7 +366,7 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 			glxShareContext, true);
 
 		if(!glxContext_)
-			ny_warn("glxCreateNewContext: ", errorCat.lastXlibError().message());
+			ny_warn("glxCreateNewContext: {}", errorCat.lastXlibError().message());
 	}
 
 	// indirect

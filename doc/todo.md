@@ -2,6 +2,7 @@
 
 ### priority
 
+- move to std::string_view (instead of nytl::StringParam)
 - move the cpp examples out of android folder
 	- use mainlined examples (fix them to work for ALL (android!) platforms)
 	- possibility to even unify cmake?
