@@ -52,7 +52,7 @@ public:
 	bool customDecorated() const override { return customDecorated_; };
 
 	void icon(const Image& img) override;
-	void title(nytl::StringParam title) override;
+	void title(std::string_view title) override;
 
 	WinapiAppContext& appContext() const { return *appContext_; } ///The associated AppContext
 	HINSTANCE hinstance() const; ///The associated HINSTANCE

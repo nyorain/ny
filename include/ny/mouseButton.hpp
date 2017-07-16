@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <nytl/stringParam.hpp> // nytl::StringParam
+#include <string_view> // std::string_view
 
 namespace ny {
 
@@ -34,6 +34,6 @@ const char* mouseButtonName(MouseButton);
 
 /// Returns a MouseButton enumeration value for its name.
 /// Returns MouseButton::none for unknown names.
-MouseButton mouseButtonFromName(nytl::StringParam name);
+MouseButton mouseButtonFromName(std::string_view name);
 
 } // namespace ny

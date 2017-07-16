@@ -8,13 +8,13 @@
 #include <ny/image.hpp> // ny::Image
 
 #include <nytl/callback.hpp> // nytl::Callback
-#include <nytl/stringParam.hpp> // nytl::StringPram
 #include <nytl/span.hpp> // nytl::Span
 
 #include <vector> // std::vector
 #include <memory> // std::unique_ptr
 #include <functional> // std::function
 #include <any> // std::any
+#include <string_view> // std::string_view
 
 namespace ny {
 
@@ -136,13 +136,13 @@ std::vector<uint8_t> unwrap(std::any any, const DataFormat& format);
 
 /// Checks whether the given format string matches the given DataFormat, i.e. if it one
 /// of the descriptions/names of dataFormat.
-bool match(const DataFormat& dataFormat, nytl::StringParam formatName);
+bool match(const DataFormat& dataFormat, std::string_view formatName);
 bool match(const DataFormat& a, const DataFormat& b);
 
 // TODO: with additional parameter (e.g. charset) parsing?
 // text/plain might have other charsets then utf8 that should be handled as well...
-// std::any wrap(nytl::Span<uint8_t> rawBuffer, nytl::StringParam formatName);
-// std::vector<uint8_t> unwrap(const std::any& any, nytl::StringParam formatName);
+// std::any wrap(nytl::Span<uint8_t> rawBuffer, std::string_view formatName);
+// std::vector<uint8_t> unwrap(const std::any& any, std::string_view formatName);
 
 } // namespace ny
 

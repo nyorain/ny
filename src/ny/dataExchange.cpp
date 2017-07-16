@@ -159,7 +159,7 @@ std::vector<std::string> decodeUriList(const std::string& escaped, bool removeCo
 	return ret;
 }
 
-bool match(const DataFormat& dataFormat, nytl::StringParam formatName)
+bool match(const DataFormat& dataFormat, std::string_view formatName)
 {
 	if(sameBeginning(dataFormat.name, formatName.data())) return true;
 	for(auto name : dataFormat.additionalNames)

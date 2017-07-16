@@ -240,7 +240,7 @@ void WaylandKeyboardContext::handleKeymap(wl_keyboard*, uint32_t format, int32_t
 	dlg::SourceGuard sourceGuard("::WlKeyboardContext::handleKeymap"_src);
 
 	// always close the give fd
-	auto fdGuard = nytl::makeScopeGuard([=]{ if(fd) close(fd); });
+	auto fdGuard = nytl::ScopeGuard([=]{ if(fd) close(fd); });
 
 	if(format == WL_KEYBOARD_KEYMAP_FORMAT_NO_KEYMAP) return;
 	if(format != WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1) {
@@ -255,7 +255,7 @@ void WaylandKeyboardContext::handleKeymap(wl_keyboard*, uint32_t format, int32_t
 	}
 
 	//always unmap the buffer
-	auto mapGuard = nytl::makeScopeGuard([=]{ munmap(buf, size); });
+	auto mapGuard = nytl::ScopeGuard([=]{ munmap(buf, size); });
 
 	keymap_ = true;
 

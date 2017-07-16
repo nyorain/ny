@@ -27,7 +27,7 @@ const char* cursorToXName(CursorType cursor)
 	}
 }
 
-CursorType xNameToCursor(nytl::StringParam name)
+CursorType xNameToCursor(std::string_view name)
 {
 	if(name == "left_ptr") return CursorType::leftPtr;
 	if(name == "right_ptr") return CursorType::rightPtr;

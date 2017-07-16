@@ -160,7 +160,7 @@ std::unique_ptr<GlContext> EglSetup::createContext(const GlContextSettings& sett
 	return std::make_unique<EglContext>(*this, settings);
 }
 
-void* EglSetup::procAddr(nytl::StringParam name) const
+void* EglSetup::procAddr(std::string_view name) const
 {
 	return reinterpret_cast<void*>(::eglGetProcAddress(name));
 }
@@ -486,7 +486,7 @@ std::string EglErrorCategory::message(int code) const
 	}
 }
 
-std::system_error EglErrorCategory::exception(nytl::StringParam msg)
+std::system_error EglErrorCategory::exception(std::string_view msg)
 {
 	return std::system_error(errorCode(), msg);
 }

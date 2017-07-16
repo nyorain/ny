@@ -15,15 +15,15 @@
 
 // these macros can be used to check which parts are built in to ny.
 // all ny header files include the parsed config.hpp
-#cmakedefine NY_WithGl
-#cmakedefine NY_WithEgl
-#cmakedefine NY_WithVulkan
-#cmakedefine NY_WithXkbCommon
+#mesondefine NY_WithGl
+#mesondefine NY_WithEgl
+#mesondefine NY_WithVulkan
+#mesondefine NY_WithXkbcommon
 
-#cmakedefine NY_WithAndroid
-#cmakedefine NY_WithX11
-#cmakedefine NY_WithWayland
-#cmakedefine NY_WithWinapi
+#mesondefine NY_WithAndroid
+#mesondefine NY_WithX11
+#mesondefine NY_WithWayland
+#mesondefine NY_WithWinapi
 
 namespace ny {
 
@@ -34,7 +34,7 @@ bool builtWithAndroid();
 bool builtWithX11();
 bool builtWithWayland();
 bool builtWithWinapi();
-bool builtWithXkbCommon();
+bool builtWithXkbcommon();
 
 bool builtWithEgl();
 bool builtWithGl();

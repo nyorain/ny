@@ -13,7 +13,6 @@ ny_src = [
 	'backend.cpp',
 	'common/gl.cpp']
 
-# =======================================================================================
 # Winapi backend
 if enable_winapi
 	ny_src += [
@@ -34,9 +33,8 @@ if enable_winapi
 	if enable_vulkan
 		ny_src += ['winapi/vulkan.cpp']
 	endif
-endif)
+endif
 
-# =======================================================================================
 # X11 backend
 if enable_x11
 	ny_src += [
@@ -48,117 +46,80 @@ if enable_x11
 		'x11/util.cpp',
 		'x11/windowContext.cpp']
 
-	ny_libs += [
-		${XCB_LIBRARIES}
-		${X11_LIBRARIES}
-		${X11_Xcursor_LIB})
-	list(APPEND ny_include
-		${XCB_INCLUDE_DIRS}
-		${X11_XCB_INCLUDE_DIR}
-		${X11_Xcursor_INCLUDE_PATH})
+	if enable_gl
+		ny_src += ['x11/glx.cpp']
+	endif
 
-	list(APPEND ny_libs X11 xcb xcb-icccm xcb-ewmh X11-xcb pthread)
+	if enable_vulkan
+		ny_src += ['x11/vulkan.cpp']
+	endif
+endif
 
-	if(WithGl)
-		list(APPEND ny_src x11/glx.cpp)
-	endif()
-
-	if(WithVulkan)
-		list(APPEND ny_src x11/vulkan.cpp)
-	endif()
-endif()
-
-# =======================================================================================
 # Wayland backend
-if(WithWayland)
-	list(APPEND ny_src
-		wayland/appContext.cpp
-		wayland/backend.cpp
-		wayland/bufferSurface.cpp
-		wayland/dataExchange.cpp
-		wayland/input.cpp
-		wayland/util.cpp
-		wayland/windowContext.cpp
+if enable_wayland
+	ny_src += [
+		'wayland/appContext.cpp',
+		'wayland/backend.cpp',
+		'wayland/bufferSurface.cpp',
+		'wayland/dataExchange.cpp',
+		'wayland/input.cpp',
+		'wayland/util.cpp',
+		'wayland/windowContext.cpp',
 
-		wayland/protocols/xdg-shell-v5.c
-		wayland/protocols/xdg-shell-v6.c)
+		'wayland/protocols/xdg-shell-v5.c',
+		'wayland/protocols/xdg-shell-v6.c']
 
-	list(APPEND ny_libs ${WAYLAND_CLIENT_LIBRARIES} ${WAYLAND_CURSOR_LIBRARIES})
-	list(APPEND ny_include ${WAYLAND_CLIENT_INCLUDE_DIRS} ${WAYLAND_CURSOR_INCLUDE_DIRS})
+	if enable_gl
+		ny_src += ['wayland/egl.cpp']
+	endif
 
-	if(WithEgl)
-		list(APPEND ny_src wayland/egl.cpp)
-		list(APPEND ny_libs ${WAYLAND_EGL_LIBRARIES})
-		list(APPEND ny_include ${WAYLAND_EGLT_INCLUDE_DIRS})
-	endif()
+	if enable_vulkan
+		ny_src += ['wayland/vulkan.cpp']
+	endif
+endif
 
-	if(WithVulkan)
-		list(APPEND ny_src wayland/vulkan.cpp)
-	endif()
-endif()
-
-# =======================================================================================
 # android backend
-if(Android)
-	list(APPEND ny_src
-		android/appContext.cpp
-		android/activity.cpp
-		android/backend.cpp
-		android/bufferSurface.cpp
-		android/windowContext.cpp
-		android/input.cpp
-		android/mainProxy.c)
+# TODO
+if false
+	ny_src += [
+		'android/appContext.cpp',
+		'android/activity.cpp',
+		'android/backend.cpp',
+		'android/bufferSurface.cpp',
+		'android/windowContext.cpp',
+		'android/input.cpp',
+		'android/mainProxy.c']
 
-	find_library(android-log log)
-	list(APPEND ny_libs android ${android-log})
+	# find_library(android-log log)
+	# list(APPEND ny_libs android ${android-log})
 
-	if(WithEgl)
-		list(APPEND ny_src android/egl.cpp)
-	endif()
+	if enable_egl
+		ny_src += ['android/egl.cpp']
+	endif
 
-	if(WithVulkan)
-		list(APPEND ny_src android/vulkan.cpp)
-	endif()
-endif()
-
-# xkbcommon, unix
-if(WithX11 OR WithWayland)
-	list(APPEND ny_src common/xkb.cpp common/unix.cpp)
-	list(APPEND ny_libs ${XKBCOMMON_LIBRARIES})
-	list(APPEND ny_include ${XKBCOMMON_INCLUDE_DIRS})
-endif()
+	if enable_vulkan
+		ny_src += ['android/vulkan.cpp']
+	endif
+endif
 
 # gl
-if(WithGl)
-	list(APPEND ny_libs ${OPENGL_LIBRARY})
-	list(APPEND ny_include ${OPENGL_INCLUDE_DIR})
-endif()
+if enable_gl
+	ny_src += ['common/gl.cpp']
+endif
 
-# egl
-if(WithEgl)
-	list(APPEND ny_src common/egl.cpp)
-	list(APPEND ny_libs ${EGL_LIBRARIES})
-	list(APPEND ny_include ${EGL_INCLUDE_DIRS})
-endif()
+if req_egl
+	ny_src += ['common/egl.cpp']
+endif
 
-# vulkan
-if(WithVulkan)
-	list(APPEND ny_libs ${Vulkan_LIBRARY})
-	list(APPEND ny_include ${Vulkan_INCLUDE_DIR})
-endif()
+if req_xkbcommon
+	ny_src += ['common/xkb.cpp']
+endif
 
-add_library(ny SHARED ${ny_src})
-target_link_libraries(ny ${ny_libs})
-target_include_directories(ny PUBLIC ${ny_include})
-target_compile_definitions(ny PRIVATE ${ny_defs})
+if enable_wayland or enable_x11
+	ny_src += ['common/unix.cpp']
+endif
 
-# nytl build dep
-if(nytl_own AND Depend)
-	add_dependencies(ny nytl_ep)
-endif()
-
-#install
-install (TARGETS ny
-	ARCHIVE DESTINATION lib
-	LIBRARY DESTINATION lib
-	RUNTIME DESTINATION bin)
+ny_lib = library('ny',
+	sources: ny_src,
+	dependencies: deps,
+	include_directories: [ny_inc, ny_inc_private])

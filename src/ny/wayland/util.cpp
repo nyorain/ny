@@ -182,7 +182,7 @@ void ShmBuffer::create()
 
 	// the fd is not needed here anymore AFTER the pool was created
 	// our access to the file is represented by the pool
-	auto fdGuard = nytl::makeScopeGuard([&]{ close(fd); });
+	auto fdGuard = nytl::ScopeGuard([&]{ close(fd); });
 
 	auto ptr = mmap(nullptr, shmSize_, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	if(ptr == MAP_FAILED) throw std::runtime_error("ny::wayland::ShmBuffer: could not mmap file");

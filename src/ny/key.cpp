@@ -280,7 +280,7 @@ const char* keycodeName(Keycode keycode)
 	return "";
 }
 
-Keycode keycodeFromName(nytl::StringParam name)
+Keycode keycodeFromName(std::string_view name)
 {
 	for(auto m : mappings) if(name == m.name) return m.keycode;
 	return Keycode::none;

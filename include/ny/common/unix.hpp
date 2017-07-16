@@ -5,14 +5,14 @@
 #pragma once
 
 #include <ny/fwd.hpp>
-#include <nytl/stringParam.hpp>
+#include <string_view>
 
 namespace ny {
 
 // Converts between values of the CursorType enum and the matching x11 cursor names
 // Note that wayland uses the same names since it uses x cursor themes.
 const char* cursorToXName(CursorType);
-CursorType x11NameToCursor(nytl::StringParam name);
+CursorType x11NameToCursor(std::string_view name);
 
 // Converts the given Keycode to the keycode defined in linux/input.h
 // At the moment, the Keycode enum matches the linux keycodes, so that it just casts the

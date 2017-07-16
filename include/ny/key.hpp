@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include <nytl/stringParam.hpp> // nytl::StringParam
 #include <nytl/flags.hpp> // nytl::Flags
+#include <string_view> // std::string_view
 
 namespace ny {
 
@@ -537,6 +537,6 @@ const char* keycodeName(Keycode keycode);
 /// Constructs a keycode value from a given name string.
 /// Returns the correspondingly named Keycode value or Keycode::none if there is no such value.
 /// \sa keycodeName
-Keycode keycodeFromName(nytl::StringParam name);
+Keycode keycodeFromName(std::string_view name);
 
 } // namespace nytl

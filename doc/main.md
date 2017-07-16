@@ -329,7 +329,7 @@ simply reason-agnostic scope guard:
 
 ```cpp
 auto fd = open("somefile", O_RDONLY);
-auto scopeGuard = nytl::makeScopeGuard([]{ close(fd); });
+auto scopeGuard = nytl::ScopeGuard([]{ close(fd); });
 appContext.dispatchEvents();
 ```
 

@@ -683,7 +683,7 @@ void WaylandAppContext::handleRegistryAdd(wl_registry*, uint32_t id, const char*
 	static constexpr auto dataDeviceManagerVersion = 3u;
 	static constexpr auto seatVersion = 5u;
 
-	const nytl::StringParam interface = cinterface; // equal comparison using ==
+	const std::string_view interface = cinterface; // equal comparison using ==
 	// debug("ny::WaylandAppContext::handleRegistryAdd: interface ", interface);
 
 	// check for the various supported interfaces/protocols

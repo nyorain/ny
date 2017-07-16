@@ -39,7 +39,7 @@ const char* mouseButtonName(MouseButton button)
 	return "";
 }
 
-MouseButton mouseButtonFromName(nytl::StringParam name)
+MouseButton mouseButtonFromName(std::string_view name)
 {
 	for(auto m : mappings) if(m.name == name) return m.button;
 	return MouseButton::none;

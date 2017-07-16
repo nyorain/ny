@@ -98,7 +98,7 @@ void AndroidWindowContext::beginResize(const EventData*, WindowEdges)
 	warning("ny::AndroidWindowContext::beginResize: has no capability");
 }
 
-void AndroidWindowContext::title(nytl::StringParam)
+void AndroidWindowContext::title(std::string_view)
 {
 	warning("ny::AndroidWindowContext::title: has no capability");
 }

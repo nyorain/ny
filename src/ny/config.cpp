@@ -42,9 +42,9 @@ bool builtWithX11()
 	#endif
 }
 
-bool builtWithXkbCommon()
+bool builtWithXkbcommon()
 {
-	#ifdef NY_WithXkbCommon
+	#ifdef NY_WithXkbcommon
 		return true;
 	#else
 		return false;

@@ -7,7 +7,7 @@
 #include <ny/fwd.hpp>
 #include <ny/config.hpp>
 
-#ifndef NY_WithXkbCommon
+#ifndef NY_WithXkbcommon
 	#error ny was built without xkbcommon. Do not include this header.
 #endif
 

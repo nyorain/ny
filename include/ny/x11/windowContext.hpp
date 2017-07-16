@@ -49,7 +49,7 @@ public:
 	void beginMove(const EventData*) override;
 	void beginResize(const EventData* ev, WindowEdges edges) override;
 
-	void title(nytl::StringParam title) override;
+	void title(std::string_view title) override;
 	void icon(const Image& img) override;
 
 	void customDecorated(bool set) override;

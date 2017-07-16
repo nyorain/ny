@@ -1,7 +1,9 @@
 build/
+mbuild/
 private/
 obj/
 bin/
 .vscode/
 *.swp
+subprojects/*/
 config.hpp

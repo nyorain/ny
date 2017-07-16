@@ -80,7 +80,7 @@ public:
 		LoopControl localControl;
 		if(!lc) lc = &localControl;
 		topControl_ = lc;
-		auto controlGuard = nytl::makeScopeGuard([&]{ topControl_ = {}; });
+		auto controlGuard = nytl::ScopeGuard([&]{ topControl_ = {}; });
 
 		return appContext_->dispatchLoop(*lc);
 	}

@@ -56,7 +56,7 @@ int xlibErrorHandler(Display* display, XErrorEvent* event) {
 	}
 
 	errorCategoriesMutex.lock_shared();
-	auto lockGuard = nytl::makeScopeGuard([&]{ errorCategoriesMutex.unlock_shared(); });
+	auto lockGuard = nytl::ScopeGuard([&]{ errorCategoriesMutex.unlock_shared(); });
 	auto it = errorCategories.find(display);
 	if(it == errorCategories.end()) {
 		ny_warn("::x11::xlibErrorHandler"_src, "invalid display");
@@ -151,7 +151,7 @@ bool X11ErrorCategory::check(xcb_void_cookie_t cookie, std::error_code& ec) cons
 	return true;
 }
 
-bool X11ErrorCategory::checkWarn(xcb_void_cookie_t cookie, nytl::StringParam msg) const
+bool X11ErrorCategory::checkWarn(xcb_void_cookie_t cookie, std::string_view msg) const
 {
 	auto e = xcb_request_check(xConnection_, cookie);
 	if(e) {
@@ -167,7 +167,7 @@ bool X11ErrorCategory::checkWarn(xcb_void_cookie_t cookie, nytl::StringParam msg
 	return true;
 }
 
-void X11ErrorCategory::checkThrow(xcb_void_cookie_t cookie, nytl::StringParam msg) const
+void X11ErrorCategory::checkThrow(xcb_void_cookie_t cookie, std::string_view msg) const
 {
 	std::error_code ec;
 	if(!check(cookie, ec)) throw std::system_error(ec, msg);

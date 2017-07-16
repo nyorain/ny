@@ -277,7 +277,7 @@ WinapiErrorCategory& WinapiErrorCategory::instance()
 	return ret;
 }
 
-std::system_error WinapiErrorCategory::exception(nytl::StringParam msg)
+std::system_error WinapiErrorCategory::exception(std::string_view msg)
 {
 	if(!msg) msg = "ny::Winapi: an error without message occurred";
 	return std::system_error(std::error_code(::GetLastError(), instance()), msg);
@@ -310,7 +310,7 @@ std::error_code lastErrorCode()
 	return {static_cast<int>(::GetLastError()), WinapiErrorCategory::instance()};
 }
 
-std::system_error lastErrorException(nytl::StringParam msg)
+std::system_error lastErrorException(std::string_view msg)
 {
 	return WinapiErrorCategory::exception(msg);
 }
@@ -330,7 +330,7 @@ HBITMAP toBitmap(const Image& img)
 	header.bV5Compression = BI_RGB;
 
 	auto hdc = ::GetDC(nullptr);
-	auto hdcGuard = nytl::makeScopeGuard([&]{ ::ReleaseDC(nullptr, hdc); });
+	auto hdcGuard = nytl::ScopeGuard([&]{ ::ReleaseDC(nullptr, hdc); });
 
 	void* bitmapData {};
 	auto& info = reinterpret_cast<BITMAPINFO&>(header);
@@ -343,7 +343,7 @@ HBITMAP toBitmap(const Image& img)
 UniqueImage toImage(HBITMAP hbitmap)
 {
 	auto hdc = ::GetDC(nullptr);
-	auto hdcGuard = nytl::makeScopeGuard([&]{ ::ReleaseDC(nullptr, hdc); });
+	auto hdcGuard = nytl::ScopeGuard([&]{ ::ReleaseDC(nullptr, hdc); });
 
 	::BITMAPINFO bminfo {};
 	bminfo.bmiHeader.biSize = sizeof(bminfo.bmiHeader);
@@ -377,7 +377,7 @@ UniqueImage toImage(HBITMAP hbitmap)
 	return ret;
 }
 
-std::string errorMessage(unsigned int code, nytl::StringParam msg)
+std::string errorMessage(unsigned int code, std::string_view msg)
 {
 	std::string ret;
 	if(msg) ret += msg;
@@ -394,7 +394,7 @@ std::string errorMessage(unsigned int code, nytl::StringParam msg)
 	return ret;
 }
 
-std::string errorMessage(nytl::StringParam msg)
+std::string errorMessage(std::string_view msg)
 {
 	return errorMessage(::GetLastError(), msg);
 }

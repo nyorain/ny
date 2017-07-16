@@ -1,9 +1,7 @@
 project('wlroots', 'c',
-    license: 'MIT',
-    default_options: ['c_std=c11', 'cpp_std=c++17'])
-
-# default arrguments
-add_project_arguments('-Wall', '-Wextra', '-Wno-unused-parameter', '-Werror', language: ['c', 'cpp'])
+    license: 'BSL',
+		version: '0.1.0',
+    default_options: ['cpp_std=c++1z', 'c_std=c11'])
 
 # options
 enable_x11 = get_option('enable_x11')
@@ -11,14 +9,42 @@ enable_wayland = get_option('enable_wayland')
 enable_winapi = get_option('enable_winapi')
 enable_vulkan = get_option('enable_vulkan')
 enable_gl = get_option('enable_gl')
-enable_egl = get_option('enable_egl')
+examples = get_option('examples')
+
+# default arrguments
+# warnings and stuff
+add_project_arguments(
+	'-Wall',
+	'-Wextra',
+	'-Wno-unused-parameter',
+	'-Wpedantic',
+	'-Wno-missing-braces',
+	language: ['cpp', 'c'])
+
+# project-specific stuff
+add_project_arguments(
+	'-DDLG_BASE_PATH="@0@"'.format(meson.source_root()),
+	language: ['c', 'cpp'])
 
 # deps
+req_xkbcommon = enable_x11 or enable_wayland
+req_egl = enable_wayland and enable_gl
+
 dep_threads = dependency('threads')
-dep_xkbcommon = dependency('xkbcommon', required: enable_x11 or enable_wayland)
-dep_vulkan = dependency('vulkan', required: enable_vulkan)
+dep_xkbcommon = dependency('xkbcommon', required: req_xkbcommon)
+dep_vulkan = meson.get_compiler('c').find_library('vulkan', required: enable_vulkan)
 dep_gl = dependency('gl', required: enable_gl and (enable_x11 or enable_winapi))
-dep_egl = dependency('egl', required: enable_gl and enable_wayland)
+dep_egl = dependency('egl', required: req_egl)
+
+dep_dlg = dependency('dlg', required: false)
+if not dep_dlg.found()
+	dlg_subproj = subproject('dlg')
+	dep_dlg = dlg_subproj.get_variable('dlg_dep')
+endif
+
+dep_nytl = dependency('nytl', fallback: ['nytl', 'nytl_dep'])
+
+deps = [dep_threads, dep_xkbcommon, dep_vulkan, dep_gl, dep_egl, dep_dlg, dep_nytl]
 
 if enable_x11
 	dep_x11 = dependency('x11')
@@ -26,53 +52,33 @@ if enable_x11
 	dep_xcb = dependency('xcb')
 	dep_xcbewmh = dependency('xcb-ewmh')
 	dep_xcbicccm = dependency('xcb-icccm')
+	deps += [dep_x11, dep_xcb, dep_xcbewmh, dep_xcbicccm]
 endif
 
 if enable_wayland
 	dep_wl = dependency('wayland-client')
 	dep_wlcursor = dependency('wayland-cursor')
 	dep_wlegl = dependency('wayland-egl', required: enable_gl)
+	deps += [dep_wl, dep_wlcursor, dep_wlegl]
 endif
 
-if enable_win32
+if enable_winapi
 endif
+
+ny_inc = include_directories('include')
+ny_inc_private = include_directories('src')
 
 # subdirs
-subdir('include')
+subdir('include/ny')
 subdir('src/ny')
 
-if enable_examples
+# TODO: not working yet
+if examples
 	subdir('src/examples')
 endif
 
-add_project_arguments('-DWLR_SRC_DIR="@0@"'.format(meson.source_root()), language: 'c')
-add_project_arguments('-I@0@/include'.format(meson.source_root()), language: 'c')
-
-cc = meson.get_compiler('cxx')
-
-# Clang complains about some zeroed initialiser lists (= {0}), even though they are valid
-if cc.get_id() == 'clang'
-    add_project_arguments('-Wno-missing-field-initializers', language: 'c')
-    add_project_arguments('-Wno-missing-braces', language: 'c')
-endif
-
-
-lib_wlr = library('wlroots', wlr_src,
-    dependencies: all_deps)
-dep_wlr = declare_dependency(link_with: lib_wlr,
-    dependencies: all_deps)
-
-lib_shared = static_library('shared',
-    ['examples/shared.c', 'examples/cat.c'],
-    dependencies: dep_wlr)
-
-all_libs = [
-    lib_shared,
-    lib_wlr,
-]
-
-executable('simple', 'examples/simple.c', link_with: all_libs)
-executable('rotation', 'examples/rotation.c', link_with: all_libs)
-executable('pointer', 'examples/pointer.c', link_with: all_libs)
-executable('touch', 'examples/touch.c', link_with: all_libs)
-executable('tablet', 'examples/tablet.c', link_with: all_libs)
+# dependency
+ny_dep = declare_dependency(
+	include_directories: ny_inc,
+	depdencies: deps,
+	link_with: ny_lib)

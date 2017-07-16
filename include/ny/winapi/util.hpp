@@ -8,7 +8,7 @@
 #include <ny/winapi/windows.hpp>
 #include <ny/windowSettings.hpp>
 #include <ny/windowListener.hpp>
-#include <nytl/stringParam.hpp>
+#include <string_view>
 
 #include <string>
 #include <system_error>
@@ -82,7 +82,7 @@ struct WinapiEventData : public EventData {
 class WinapiErrorCategory : public std::error_category {
 public:
 	static WinapiErrorCategory& instance();
-	static std::system_error exception(nytl::StringParam msg = {});
+	static std::system_error exception(std::string_view msg = {});
 
 public:
 	const char* name() const noexcept override { return "ny::winapi"; }
@@ -102,7 +102,7 @@ std::error_code lastErrorCode();
 /// Always returns a system_error with a valid error code, i.e. does not check if GetLastError
 /// really returns an error.
 /// \param msg A message to add into the system error. Can be empty
-std::system_error lastErrorException(nytl::StringParam msg = {});
+std::system_error lastErrorException(std::string_view msg = {});
 
 /// Converts between a ny::Imageobject and a native winapi bitmap.
 /// The returned HBITMAP is owned and must be freed.
@@ -113,11 +113,11 @@ UniqueImage toImage(HBITMAP bitmap);
 
 /// Returns an error message for the given winapi error code.
 /// If msg is not nullptr, starts the error message with it and appends a ":".
-std::string errorMessage(unsigned int code, nytl::StringParam msg = {});
+std::string errorMessage(unsigned int code, std::string_view msg = {});
 
 /// Returns an error message for the last winapi error code (using GetLastError).
 /// If msg is not nullptr, starts the error message with it and appends a ":".
-std::string errorMessage(nytl::StringParam msg = {});
+std::string errorMessage(std::string_view msg = {});
 
 } // namespace winapi
 } // namespace ny

@@ -492,7 +492,7 @@ void WaylandWindowContext::beginResize(const EventData* ev, WindowEdges edge)
 	else ny_warn("::wlwc::beginResize"_src, "role cannot be resized");
 }
 
-void WaylandWindowContext::title(nytl::StringParam titlestring)
+void WaylandWindowContext::title(std::string_view titlestring)
 {
 	if(wlShellSurface()) wl_shell_surface_set_title(wlShellSurface_, titlestring);
 	else if(xdgSurfaceV5()) xdg_surface_set_title(xdgSurfaceV5_, titlestring);

@@ -10,12 +10,12 @@
 #include <ny/log.hpp>
 #include <ny/asyncRequest.hpp>
 
-#include <nytl/stringParam.hpp>
 #include <nytl/scope.hpp>
 
 #include <wayland-client-protocol.h>
 #include <wayland-cursor.h>
 
+#include <string_view>
 #include <unistd.h>
 #include <fcntl.h>
 #include <poll.h>
@@ -154,7 +154,7 @@ WaylandDataOffer::DataRequest WaylandDataOffer::data(const DataFormat& format)
 		auto callback =
 			[wlOffer = wlDataOffer_, ac = appContext_, format, reqfmt](int fd, unsigned int) {
 
-			auto fdGuard = nytl::makeScopeGuard([=]{ close(fd); });
+			auto fdGuard = nytl::ScopeGuard([=]{ close(fd); });
 
 			constexpr auto readCount = 1000;
 			auto self = static_cast<WaylandDataOffer*>(wl_data_offer_get_user_data(wlOffer));
@@ -293,7 +293,7 @@ void WaylandDataSource::send(wl_data_source*, const char* mimeType, int32_t fd)
 	dlg::SourceGuard sourceGuard("::WaylandDataSource::send"_src);
 
 	// close the fd no matter what happens here
-	auto fdGuard = nytl::makeScopeGuard([=]{ close(fd); });
+	auto fdGuard = nytl::ScopeGuard([=]{ close(fd); });
 
 	// find the associated DataFormat
 	auto formats = source_->formats();
@@ -317,7 +317,7 @@ void WaylandDataSource::send(wl_data_source*, const char* mimeType, int32_t fd)
 	// we simply set the sigpipe error handler to ignore and restore it when this
 	// function exits
 	auto prev = signal(SIGPIPE, SIG_IGN);
-	auto sigpipeGuard = nytl::makeScopeGuard([=] { signal(SIGPIPE, prev); });
+	auto sigpipeGuard = nytl::ScopeGuard([=] { signal(SIGPIPE, prev); });
 
 	auto ret = write(fd, buffer.data(), buffer.size());
 	if(ret < 0) ny_warn("write failed: {}", std::strerror(errno));

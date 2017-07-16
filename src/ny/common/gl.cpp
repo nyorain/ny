@@ -104,7 +104,7 @@ unsigned int rate(const GlConfig& config)
 	return ret;
 }
 
-bool glExtensionStringContains(nytl::StringParam extString, nytl::StringParam extension)
+bool glExtensionStringContains(std::string_view extString, std::string_view extension)
 {
 	auto it = extString.data();
 	while(true) {
@@ -135,7 +135,7 @@ std::error_code make_error_code(GlContextErrc code)
 }
 
 // GlContextError
-GlContextError::GlContextError(std::error_code code, nytl::StringParam msg) : logic_error("")
+GlContextError::GlContextError(std::error_code code, std::string_view msg) : logic_error("")
 {
 	std::string whatMsg;
 	if(msg) whatMsg.append(msg).append(": ");

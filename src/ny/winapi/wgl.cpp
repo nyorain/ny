@@ -108,7 +108,7 @@ WglSetup::WglSetup(HWND dummy) : dummyWindow_(dummy)
 
 	{
 		::wglMakeCurrent(dummyDC_, dummyContext);
-		auto notCurrentGuard = nytl::makeScopeGuard([&]{
+		auto notCurrentGuard = nytl::ScopeGuard([&]{
 			::wglMakeCurrent(nullptr, nullptr);
 			::wglDeleteContext(dummyContext);
 		});
@@ -238,7 +238,7 @@ std::unique_ptr<GlContext> WglSetup::createContext(const GlContextSettings& sett
 	return std::make_unique<WglContext>(*this, settings);
 }
 
-void* WglSetup::procAddr(nytl::StringParam name) const
+void* WglSetup::procAddr(std::string_view name) const
 {
 	return reinterpret_cast<void*>(::wglGetProcAddress(name));
 }
@@ -290,7 +290,7 @@ WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 	auto dummyDC = ::CreateCompatibleDC(setup.dummyDC());
 	if(!dummyDC) throw winapi::lastErrorException("ny::WglContext: failed to create dummy dc");
 
-	auto dcGuard = nytl::makeScopeGuard([&]{ ::DeleteDC(dummyDC); });
+	auto dcGuard = nytl::ScopeGuard([&]{ ::DeleteDC(dummyDC); });
 
 	if(settings.config == nullptr) config_ = setup.defaultConfig();
 	else config_ = setup.config(settings.config);

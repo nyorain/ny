@@ -171,7 +171,7 @@ std::unique_ptr<GlContext> GlxSetup::createContext(const GlContextSettings& sett
 	return std::make_unique<GlxContext>(*this, settings);
 }
 
-void* GlxSetup::procAddr(nytl::StringParam name) const
+void* GlxSetup::procAddr(std::string_view name) const
 {
 	auto data = reinterpret_cast<const unsigned char*>(name.data());
 	auto ret = reinterpret_cast<void*>(::glXGetProcAddress(data));

@@ -262,7 +262,7 @@ void WinapiWindowContext::cursor(const Cursor& cursor)
 		auto bitmap = winapi::toBitmap(img);
 		auto mask = ::CreateBitmap(img.size[0], img.size[1], 1, 1, nullptr);
 
-		auto bitmapsGuard = nytl::makeScopeGuard([&]{
+		auto bitmapsGuard = nytl::ScopeGuard([&]{
 			if(bitmap) ::DeleteObject(bitmap);
 			if(mask) ::DeleteObject(mask);
 		});
@@ -436,7 +436,7 @@ void WinapiWindowContext::icon(const Image& img)
 	::PostMessage(handle(), WM_SETICON, ICON_SMALL, (LPARAM) icon_);
 }
 
-void WinapiWindowContext::title(nytl::StringParam title)
+void WinapiWindowContext::title(std::string_view title)
 {
 	SetWindowText(handle(), widen(title.data()).c_str());
 }

@@ -132,7 +132,7 @@ DataOffer::DataRequest WinapiDataOffer::data(const DataFormat& format)
 	}
 
 	// always release the medium, no matter what
-	auto releaseGuard = nytl::makeScopeGuard([&]{ ::ReleaseStgMedium(&medium); });
+	auto releaseGuard = nytl::ScopeGuard([&]{ ::ReleaseStgMedium(&medium); });
 
 	using RequestImpl = DefaultAsyncRequest<std::any>;
 	return std::make_unique<RequestImpl>(winapi::com::fromStgMedium(formatetc, format, medium));
