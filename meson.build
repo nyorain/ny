@@ -1,4 +1,4 @@
-project('wlroots', 'c',
+project('ny', 'c',
     license: 'BSL',
 		version: '0.1.0',
     default_options: ['cpp_std=c++1z', 'c_std=c11'])
