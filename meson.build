@@ -37,12 +37,7 @@ dep_vulkan = meson.get_compiler('cpp').find_library('vulkan', required: enable_v
 dep_gl = dependency('gl', required: enable_gl and (enable_x11 or enable_winapi))
 dep_egl = dependency('egl', required: req_egl)
 
-dep_dlg = dependency('dlg', required: false)
-if not dep_dlg.found()
-	dlg_subproj = subproject('dlg')
-	dep_dlg = dlg_subproj.get_variable('dlg_dep')
-endif
-
+dep_dlg = dependency('dlg', fallback: ['dlg', 'dlg_dep'])
 dep_nytl = dependency('nytl', fallback: ['nytl', 'nytl_dep'])
 
 deps = [
