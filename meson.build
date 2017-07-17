@@ -1,7 +1,8 @@
-project('ny', 'c',
-    license: 'BSL',
-		version: '0.1.0',
-    default_options: ['cpp_std=c++1z', 'c_std=c11'])
+project('ny', ['c', 'cpp'],
+  license: 'BSL',
+	version: '0.1.0',
+	meson_version: '>=0.38',
+  default_options: ['cpp_std=c++1z', 'c_std=c11'])
 
 # options
 enable_x11 = get_option('enable_x11')
@@ -19,12 +20,12 @@ add_project_arguments(
 	'-Wno-unused-parameter',
 	'-Wpedantic',
 	'-Wno-missing-braces',
-	language: ['cpp', 'c'])
+	language: 'cpp')
 
 # project-specific stuff
 add_project_arguments(
 	'-DDLG_BASE_PATH="@0@"'.format(meson.source_root()),
-	language: ['c', 'cpp'])
+	language: 'cpp')
 
 # deps
 req_xkbcommon = enable_x11 or enable_wayland
@@ -32,7 +33,7 @@ req_egl = enable_wayland and enable_gl
 
 dep_threads = dependency('threads')
 dep_xkbcommon = dependency('xkbcommon', required: req_xkbcommon)
-dep_vulkan = meson.get_compiler('c').find_library('vulkan', required: enable_vulkan)
+dep_vulkan = meson.get_compiler('cpp').find_library('vulkan', required: enable_vulkan)
 dep_gl = dependency('gl', required: enable_gl and (enable_x11 or enable_winapi))
 dep_egl = dependency('egl', required: req_egl)
 
