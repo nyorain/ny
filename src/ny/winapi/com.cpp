@@ -116,18 +116,20 @@ DataOffer::FormatsRequest WinapiDataOffer::formats()
 
 DataOffer::DataRequest WinapiDataOffer::data(const DataFormat& format)
 {
+	dlg_source("::windo::data"_src);
+
 	HRESULT res = 0;
 	STGMEDIUM medium {};
 
 	auto it = formats_.find(format);
 	if(it == formats_.end()) {
-		warning("ny::winapi::DataOfferImpl::data failed: format not supported");
+		ny_warn("format not supported");
 		return {};
 	}
 
 	auto& formatetc = it->second;
 	if((res = data_->GetData(&formatetc, &medium))) {
-		warning(winapi::errorMessage(res, "ny::winapi::DataOfferImpl::data: GetData failed"));
+		ny_warn(winapi::errorMessage(res, "GetData"));
 		return {};
 	}
 
@@ -210,7 +212,7 @@ HRESULT DropTargetImpl::DragOver(DWORD keyState, POINTL screenPos, DWORD* effect
 	helper_->DragOver(&windowPos, *effect);
 
 	if(!offer_.dataObject()) {
-		warning("ny::winapi::DropTargetImpl::DragOver: no current drag data object");
+		ny_warn("::DropTargetImpl::DragOver"_src, "no current drag data object");
 		return E_UNEXPECTED;
 	}
 
@@ -233,7 +235,7 @@ HRESULT DropTargetImpl::DragLeave()
 	helper_->DragLeave();
 
 	if(!offer_.dataObject()) {
-		warning("ny::winapi::DropTargetImpl::DragLeave: no current drag data object");
+		ny_warn("::DropTargetImpl::DragLeave"_src, "no current drag data object");
 		return E_UNEXPECTED;
 	}
 
@@ -257,7 +259,7 @@ HRESULT DropTargetImpl::Drop(IDataObject* data, DWORD keyState, POINTL screenPos
 	helper_->Drop(data, &windowPos, *effect);
 
 	if(!data || offer_.dataObject().get() != data) {
-		warning("ny::winapi::DropTargetImpl::Drop: current drop data object inconsistency");
+		ny_warn("::DropTargetImpl::Drop"_src, "current drop data object inconsistency");
 		return E_UNEXPECTED;
 	}
 
@@ -383,15 +385,13 @@ HRESULT DataObjectImpl::QueryGetData(FORMATETC* format)
 {
 	if(!format) return DV_E_FORMATETC;
 
-	for(auto& f : formats_)
-	{
+	for(auto& f : formats_) {
 		if(f.first.cfFormat == format->cfFormat &&
 			f.first.tymed == format->tymed
 			&& f.first.dwAspect == format->dwAspect) return S_OK;
 	}
 
-	for(auto& f : additionalData_)
-	{
+	for(auto& f : additionalData_) {
 		if(f.first.cfFormat == format->cfFormat && f.first.tymed == format->tymed
 			&& f.first.dwAspect == format->dwAspect) return S_OK;
 	}
@@ -405,7 +405,7 @@ HRESULT DataObjectImpl::GetCanonicalFormatEtc(FORMATETC*, FORMATETC* formatOut)
 }
 HRESULT DataObjectImpl::SetData(FORMATETC* format, STGMEDIUM* medium, BOOL owned)
 {
-	//needed for DragSourceHelper to work correctly
+	// needed for DragSourceHelper to work correctly
 	additionalData_.emplace_back();
 	additionalData_.back().first = *format;
 
@@ -458,13 +458,11 @@ void DataObjectImpl::addFormat(const DataFormat& format)
 	formatetc.dwAspect = DVASPECT_CONTENT;
 	formatetc.lindex = -1;
 
-	//NOTE: sort better formats here before worse ones, i.e. first mime types
-	//check standard clipboard formats
-	//we always also support the custom mime type clipboard formats
-	for(auto& mapping : mappings)
-	{
-		if(match(mapping.format, format.name))
-		{
+	// NOTE: sort better formats here before worse ones, i.e. first mime types
+	// check standard clipboard formats
+	// we always also support the custom mime type clipboard formats
+	for(auto& mapping : mappings) {
+		if(match(mapping.format, format.name)) {
 			formatetc.cfFormat = ::RegisterClipboardFormat(widen(format.name).c_str());
 			formats_.push_back({formatetc, format});
 
@@ -477,23 +475,20 @@ void DataObjectImpl::addFormat(const DataFormat& format)
 	}
 
 	// - special cases -
-	//for DataFormat::uriList, we have to check whether all uris are file:// uris
-	//if so, we can support the HDROP native clipboard format.
-	if(format == DataFormat::uriList)
-	{
+	// for DataFormat::uriList, we have to check whether all uris are file:// uris
+	// if so, we can support the HDROP native clipboard format.
+	if(format == DataFormat::uriList) {
 		formatetc.cfFormat = ::RegisterClipboardFormat(L"text/uri-list");
 		formatetc.tymed = TYMED_HGLOBAL;
 		formats_.push_back({formatetc, format});
 
 		auto any = source_->data(DataFormat::uriList);
-		if(any.has_value())
-		{
+		if(any.has_value()) {
 			auto uriList = std::any_cast<const std::vector<std::string>&>(any);
 			bool filesOnly = false;
 			for(auto& uri : uriList) filesOnly &= (uri.find("file://") == 0);
 
-			if(filesOnly)
-			{
+			if(filesOnly) {
 				formatetc.cfFormat = CF_HDROP;
 				formatetc.tymed = TYMED_HGLOBAL;
 				formats_.push_back({formatetc, format});
@@ -503,19 +498,18 @@ void DataObjectImpl::addFormat(const DataFormat& format)
 		return;
 	}
 
-	//custom clipboard format
+	// custom clipboard format
 	auto cf = ::RegisterClipboardFormat(widen(format.name).c_str());
 	formatetc.cfFormat = cf;
 	formatetc.tymed = TYMED_HGLOBAL;
 	formats_.push_back({formatetc, format});
 }
 
-//free functions impl
+// free functions impl
 void replaceLF(std::string& string)
 {
 	auto idx = string.find("\n");
-	while(idx != std::string::npos)
-	{
+	while(idx != std::string::npos) {
 		string[idx] = '\r';
 		string.insert(idx, 1, '\n');
 		idx = string.find("\n", idx);
@@ -525,8 +519,7 @@ void replaceLF(std::string& string)
 void replaceCRLF(std::string& string)
 {
 	auto idx = string.find("\r\n");
-	while(idx != std::string::npos)
-	{
+	while(idx != std::string::npos) {
 		string[idx] = '\n';
 		string.erase(idx + 1, 1);
 		idx = string.find("\r\n", idx);
@@ -644,6 +637,7 @@ std::any fromStgMedium(const FORMATETC& from, const DataFormat& to, const STGMED
 
 STGMEDIUM toStgMedium(const DataFormat& from, const FORMATETC& to, const std::any& data)
 {
+	dlg_source("::winapi_com::toStgMedium"_src);
 	if(from == DataFormat::none || !to.cfFormat || !to.tymed || !data.has_value()) return {};
 
 	STGMEDIUM ret {};
@@ -691,13 +685,13 @@ STGMEDIUM toStgMedium(const DataFormat& from, const FORMATETC& to, const std::an
 		auto size = sizeof(dropfiles) + (filesstring.size() * 2);
 		auto globalBuffer = ::GlobalAlloc(GMEM_MOVEABLE, size);
 		if(!globalBuffer) {
-			warning(winapi::errorMessage("ny::winapi::toStgMedium(DataExchange): GlobalAlloc"));
+			ny_warn(errorMessage("GlobalAlloc"));
 			return {};
 		}
 
 		auto bufferPtr = reinterpret_cast<uint8_t*>(::GlobalLock(globalBuffer));
 		if(!bufferPtr) {
-			warning(winapi::errorMessage("ny::winapi::toStgMedium(DataExchange): GlobalLock"));
+			ny_warn(errorMessage("GlobalLock"));
 			::GlobalFree(globalBuffer);
 			return {};
 		}

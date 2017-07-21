@@ -21,6 +21,7 @@
 		- useful for late initialization
 			- needed?
 	- testing; code review!
+- fix android backend
 - egl/wgl/glx library loading (dynamically load opengl)
 	- should GlSetup::procAddr be able to query gl core functions?
 	- fix egl (check in context creation if extension/egl 1.5 available)

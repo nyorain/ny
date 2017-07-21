@@ -125,12 +125,14 @@ LRESULT CALLBACK WinapiAppContext::dlgProcCallback(HWND a, UINT b, WPARAM c, LPA
 //WinapiAC
 WinapiAppContext::WinapiAppContext() : mouseContext_(*this), keyboardContext_(*this)
 {
+	dlg_source("winac"_module, "winac"_scope);
+
 	impl_ = std::make_unique<Impl>();
 	instance_ = ::GetModuleHandle(nullptr);
 
 	// needed for dnd and clipboard
 	auto res = ::OleInitialize(nullptr);
-	if(res != S_OK) warning("ny::WinapiAppContext: OleInitialize failed with code ", res);
+	if(res != S_OK) ny_warn("OleInitialize failed with code ", res);
 
 	// init dummy window (needed as clipboard viewer and opengl dummy window)
 	dummyWindow_ = ::CreateWindow(L"STATIC", L"", WS_DISABLED, 0, 0, 10, 10, nullptr, nullptr,
@@ -147,7 +149,7 @@ WinapiAppContext::WinapiAppContext() : mouseContext_(*this), keyboardContext_(*t
 	// auto lib = ::LoadLibrary(L"User32.dll");
 	// if(lib) {
 	// 	auto func = ::GetProcAddress(lib, "AddClipboardFormatListener");
-	// 	if(!func) warning("ny::WinapiAppContext: Failed to retrieve AddClipboardFormatListener");
+	// 	if(!func) ny_warn("Failed to retrieve AddClipboardFormatListener");
 	// 	else (reinterpret_cast<BOOL(*)(HWND)>(func))(dummyWindow_);
 	// 	::FreeLibrary(lib);
 	// }
@@ -251,7 +253,7 @@ bool WinapiAppContext::dispatchLoop(LoopControl& control)
 
 		auto ret = ::GetMessage(&msg, nullptr, 0, 0);
 		if(ret == -1) {
-			warning(winapi::errorMessage("ny::WinapiAppContext::dispatchLoop: GetMessage error"));
+			ny_warn("::winac::dispatchLoop"_src, winapi::errorMessage("GetMessage"));
 			return false;
 		} else {
 			::DispatchMessage(&msg);
@@ -268,14 +270,14 @@ bool WinapiAppContext::clipboard(std::unique_ptr<DataSource>&& source)
 	try {
 		dataObj = new winapi::com::DataObjectImpl(std::move(source));
 	} catch(const std::exception& err) {
-		warning("ny::WinapiAppContext::clipboard(set): DataObject failed: ", err.what());
+		ny_warn("::winac::clipboard(set)"_src, "DataObject failed: ", err.what());
 		return false;
 	}
 
 	auto ret = ::OleSetClipboard(dataObj);
 	if(ret == S_OK) return true;
 
-	warning("ny::WinapiAppContext::clipboard(set): OleSetClipboard failed with code ", ret);
+	ny_warn("::winac::clipboard(set):"_src, "OleSetClipboard failed with code {}", ret);
 	return false;
 }
 
@@ -469,7 +471,7 @@ WglSetup* WinapiAppContext::wglSetup() const
 			try {
 				impl_->wglSetup = {dummyWindow_};
 			} catch(const std::exception& error) {
-				warning("ny::WinapiAppContext::wglSetup: init failed: ", error.what());
+				ny_warn("::winac::wglSetup"_src, "init failed: {}", error.what());
 				impl_->wglFailed = true;
 				impl_->wglSetup = {};
 				return nullptr;

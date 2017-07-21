@@ -233,7 +233,7 @@ GlxSurface::~GlxSurface()
 	}
 
 	if(isCurrentInAnyThread())
-		ny_error("~GlxSurface:"_scope, "still current in another thread");
+		ny_error("~GlxSurface"_scope, "still current in another thread");
 }
 
 bool GlxSurface::apply(std::error_code& ec) const

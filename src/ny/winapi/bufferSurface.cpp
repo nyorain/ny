@@ -14,7 +14,8 @@ WinapiBufferSurface::WinapiBufferSurface(WinapiWindowContext& wc) : windowContex
 
 WinapiBufferSurface::~WinapiBufferSurface()
 {
-	if(active_) warning("ny::~WinapiBufferSurface: there is still an active BufferGuard");
+	if(active_)
+		ny_warn("::winbs::~winbs"_src, "there is still an active BufferGuard");
 }
 
 BufferGuard WinapiBufferSurface::buffer()
@@ -38,7 +39,7 @@ BufferGuard WinapiBufferSurface::buffer()
 void WinapiBufferSurface::apply(const BufferGuard& bufferGuard) noexcept
 {
 	if(!active_ || bufferGuard.get().data != data_.get()) {
-		warning("ny::WinapiBufferSurface::apply: invalid bufferGuard");
+		ny_warn("ny::winbs::apply: invalid bufferGuard");
 		return;
 	}
 

@@ -255,6 +255,7 @@ void WinapiWindowContext::position(nytl::Vec2i position)
 
 void WinapiWindowContext::cursor(const Cursor& cursor)
 {
+	dlg_source("::winwc::cursor"_src);
 	using winapi::errorMessage;
 
 	if(cursor.type() == CursorType::image) {
@@ -268,7 +269,7 @@ void WinapiWindowContext::cursor(const Cursor& cursor)
 		});
 
 		if(!bitmap || !mask) {
-			warning(errorMessage("ny::WinapiWindowContext::cursor: failed to create bitmaps"));
+			ny_warn(errorMessage("CreateBitmap"));
 			return;
 		}
 
@@ -282,7 +283,7 @@ void WinapiWindowContext::cursor(const Cursor& cursor)
 
 		cursor_ = reinterpret_cast<HCURSOR>(::CreateIconIndirect(&iconinfo));
 		if(!cursor_) {
-			warning(errorMessage("ny::WinapiWindowContext::cursor: failed to create icon"));
+			ny_warn(errorMessage("CreateIconIndirect"));
 			return;
 		}
 
@@ -292,9 +293,8 @@ void WinapiWindowContext::cursor(const Cursor& cursor)
 		ownedCursor_ = false;
 	} else {
 		auto cursorName = cursorToWinapi(cursor.type());
-		if(!cursorName)
-		{
-			warning("ny::WinapiWindowContext::cursor: invalid native cursor type");
+		if(!cursorName) {
+			ny_warn("invalid native cursor type");
 			return;
 		}
 
@@ -302,7 +302,7 @@ void WinapiWindowContext::cursor(const Cursor& cursor)
 		cursor_ = ::LoadCursor(nullptr, cursorName);
 
 		if(!cursor_) {
-			warning(errorMessage("ny::WinapiWindowContext::cursor: failed to load native cursor"));
+			ny_warn(errorMessage("LoadCursor"));
 			return;
 		}
 	}
@@ -428,7 +428,7 @@ void WinapiWindowContext::icon(const Image& img)
 	auto pixelsData = data(uniqueImage);
 	icon_ = ::CreateIcon(hinstance(), img.size[0], img.size[1], 1, 32, nullptr, pixelsData);
 	if(!icon_) {
-		warning(winapi::errorMessage("ny::WinapiWindowContext::icon: CreateIcon failed"));
+		ny_warn("::winwc::icon"_src, winapi::errorMessage("CreateIcon"));
 		return;
 	}
 

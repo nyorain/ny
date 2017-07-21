@@ -40,7 +40,7 @@ bool loadExtensions(HDC hdc)
 	std::call_once(of, [&] {
 		auto ptr = ::wglGetProcAddress("wglGetExtensionsStringARB");
 		if(!ptr) {
-			warning("ny::Wgl::initChoosePixelFormat: could not load wglGetExtensionsString");
+			ny_warn("::Wgl::initChoosePixelFormat"_src, "could not load wglGetExtensionsString");
 			return;
 		}
 
@@ -167,7 +167,7 @@ WglSetup::WglSetup(HWND dummy) : dummyWindow_(dummy)
 			attribs.size(), attribs.data(), values.data());
 
 		if(!succ) {
-			warning(winapi::errorMessage("ny::WglSetup: wglGetPixelFormatAttrib"));
+			ny_warn("WglSetup"_scope, winapi::errorMessage("wglGetPixelFormatAttrib"));
 			continue;
 		}
 
@@ -240,7 +240,8 @@ std::unique_ptr<GlContext> WglSetup::createContext(const GlContextSettings& sett
 
 void* WglSetup::procAddr(std::string_view name) const
 {
-	return reinterpret_cast<void*>(::wglGetProcAddress(name));
+	std::string namen {name};
+	return reinterpret_cast<void*>(::wglGetProcAddress(namen.c_str()));
 }
 
 // WglSurface
@@ -250,11 +251,11 @@ WglSurface::~WglSurface()
 	if(isCurrent(&context)) {
 		std::error_code ec;
 		if(!context->makeNotCurrent(ec))
-			warning("ny::~WglSurface: failed not make not current: ", ec.message());
+			ny_warn("~WglSurface"_scope, "failed not make not current: {}", ec.message());
 	}
 
 	if(isCurrentInAnyThread())
-		error("ny::~WglSurface: still current in a thread. Can't do much about it");
+		ny_error("~WglSurface"_scope, "still current in another thread");
 }
 
 bool WglSurface::apply(std::error_code& ec) const
@@ -262,7 +263,7 @@ bool WglSurface::apply(std::error_code& ec) const
 	ec.clear();
 	::SetLastError(0);
 	if(!::SwapBuffers(hdc_)) {
-		warning(winapi::errorMessage("ny::WglContext::apply (SwapBuffer) failed"));
+		ny_warn("::WglSurface::apply"_src, winapi::errorMessage("SwapBuffer"));
 		ec = winapi::lastErrorCode();
 		return false;
 	}
@@ -274,6 +275,8 @@ bool WglSurface::apply(std::error_code& ec) const
 WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 	: setup_(&setup)
 {
+	dlg_source("::WglContext::WglContext"_src);
+
 	// test config
 	auto api = settings.api;
 	if(api == GlApi::gles && !hasProfileES) {
@@ -366,7 +369,7 @@ WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 			auto error = ::GetLastError();
 			if(error != 0 && error != ERROR_INVALID_VERSION_ARB) {
 				auto msg = winapi::errorMessage(error);
-				warning("ny::WglContext: unexpected createContextAttribsARB error: ", msg);
+				ny_warn("unexpected createContextAttribsARB error: {}", msg);
 				break;
 			}
 
@@ -374,12 +377,12 @@ WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 				break;
 		}
 	} else {
-		warning("ny::WglContext: createContextAttribsARB extension not available");
+		ny_warn("createContextAttribsARB extension not available");
 	}
 
 	// try legacy version
 	if(!wglContext_) {
-		log("ny::WglContext: could not create modern context, trying legacy version");
+		ny_info("ny::WglContext: could not create modern context, trying legacy version");
 		wglContext_ = ::wglCreateContext(dummyDC);
 		if(wglContext_ && share && !::wglShareLists(share, wglContext_)) {
 			::SetLastError(0);
@@ -396,13 +399,15 @@ WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 
 WglContext::~WglContext()
 {
+	dlg_source("::WglContext::~WglContext"_src);
+
 	if(wglContext_) {
 		std::error_code ec;
 		if(!makeNotCurrent(ec))
-			warning("ny::~WglContext: failed to make the context not current: ", ec.message());
+			ny_warn("failed to make the context not current: {}", ec.message());
 
 		if(isCurrentInAnyThread())
-			error("ny::~WglContext: still current in a thread. Can't do much about it");
+			ny_error("still current in another thread");
 
 		::wglDeleteContext(wglContext_);
 	}
@@ -415,7 +420,7 @@ bool WglContext::makeCurrentImpl(const GlSurface& surf, std::error_code& ec)
 	::SetLastError(0);
 	auto wglSurface = dynamic_cast<const WglSurface*>(&surf);
 	if(!::wglMakeCurrent(wglSurface->hdc(), wglContext_)) {
-		warning(winapi::errorMessage("ny::WglContext::makeCurrentImpl: wglMakeCurrent failed"));
+		ny_warn("::WglContext::makeCurentImpl"_src, winapi::errorMessage("wglMakeCurrent"));
 		ec = winapi::lastErrorCode();
 		return false;
 	}
@@ -429,7 +434,7 @@ bool WglContext::makeNotCurrentImpl(std::error_code& ec)
 
 	::SetLastError(0);
 	if(!::wglMakeCurrent(nullptr, nullptr)) {
-		warning(winapi::errorMessage("ny::WglContext::makeNotCurrentImpl: wglMakeCurrent failed"));
+		ny_warn("::WglContext::makeNotCurentImpl"_src, winapi::errorMessage("wglMakeCurrent"));
 		ec = winapi::lastErrorCode();
 		return false;
 	}
@@ -456,7 +461,7 @@ bool WglContext::swapInterval(int interval, std::error_code& ec) const
 	}
 
 	if(!hasSwapControlTear && interval < 0) {
-		warning("ny::WglContext::swapInterval: negative interval, no swap_control_tear");
+		ny_warn("::WglContext::swapInterval"_src, "negative interval given, no swap_control_tear");
 		ec = {GlContextErrc::extensionNotSupported};
 		return false;
 	}

@@ -23,9 +23,11 @@ add_project_arguments(
 	language: 'cpp')
 
 # project-specific stuff
-add_project_arguments(
-	'-DDLG_BASE_PATH="@0@"'.format(meson.source_root()),
-	language: 'cpp')
+if build_machine.system() != 'windows'
+	add_project_arguments(
+		'-DDLG_BASE_PATH="@0@"'.format(meson.source_root()),
+		language: 'cpp')
+endif
 
 # deps
 req_xkbcommon = enable_x11 or enable_wayland
@@ -33,7 +35,6 @@ req_egl = enable_wayland and enable_gl
 
 dep_threads = dependency('threads')
 dep_xkbcommon = dependency('xkbcommon', required: req_xkbcommon)
-dep_vulkan = meson.get_compiler('cpp').find_library('vulkan', required: enable_vulkan)
 dep_gl = dependency('gl', required: enable_gl and (enable_x11 or enable_winapi))
 dep_egl = dependency('egl', required: req_egl)
 
@@ -43,11 +44,46 @@ dep_nytl = dependency('nytl', fallback: ['nytl', 'nytl_dep'])
 deps = [
 	dep_threads,
 	dep_xkbcommon,
-	dep_vulkan,
 	dep_gl,
 	dep_egl,
 	dep_dlg,
 	dep_nytl]
+
+# vulkan
+if enable_vulkan
+	vulkan_sdk = get_option('vulkan_sdk')
+
+	if build_machine.system() == 'windows'
+		vulkan_lib = 'vulkan-1'
+	else
+		vulkan_lib = 'vulkan'
+
+		# we only do this on linux since on windows the paths
+		# uses backslashes which are not (or cannot be) handled by meson/ninja
+		add_project_arguments(
+			'-DDLG_BASE_PATH="@0@"'.format(meson.source_root()),
+			language: 'cpp')
+	endif
+
+	# try to find vulkan library
+	vulkan_inc_arg = ''
+	if vulkan_sdk != 'none'
+		if meson.get_compiler('cpp').sizeof('void*') == 8
+			vulkan_lib_path = join_paths(vulkan_sdk, 'Lib')
+		else
+			vulkan_lib_path = join_paths(vulkan_sdk, 'Lib32')
+		endif
+
+		# TODO: make this more beautiful using a vulkan declare_dependency?
+		vulkan_inc_arg = '-I' + join_paths(vulkan_sdk, 'Include')
+		add_project_arguments(vulkan_inc_arg, language: 'cpp')
+		dep_vulkan = meson.get_compiler('cpp').find_library(vulkan_lib, dirs: vulkan_lib_path)
+	else
+		dep_vulkan = meson.get_compiler('cpp').find_library(vulkan_lib)
+	endif
+
+	deps += dep_vulkan
+endif
 
 if enable_x11
 	dep_x11 = dependency('x11')
@@ -80,6 +116,8 @@ if enable_wayland
 endif
 
 if enable_winapi
+	deps += meson.get_compiler('cpp').find_library('Dwmapi')
+	deps += meson.get_compiler('cpp').find_library('Shlwapi')
 endif
 
 ny_inc = include_directories('include')

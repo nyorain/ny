@@ -279,8 +279,9 @@ WinapiErrorCategory& WinapiErrorCategory::instance()
 
 std::system_error WinapiErrorCategory::exception(std::string_view msg)
 {
-	if(!msg) msg = "ny::Winapi: an error without message occurred";
-	return std::system_error(std::error_code(::GetLastError(), instance()), msg);
+	if(msg.empty()) msg = "ny::Winapi: an error without message occurred";
+	std::string msgn {msg};
+	return std::system_error(std::error_code(::GetLastError(), instance()), msgn);
 }
 
 std::string WinapiErrorCategory::message(int code) const
@@ -342,6 +343,8 @@ HBITMAP toBitmap(const Image& img)
 
 UniqueImage toImage(HBITMAP hbitmap)
 {
+	dlg_source("::winapi::toImage"_src);
+
 	auto hdc = ::GetDC(nullptr);
 	auto hdcGuard = nytl::ScopeGuard([&]{ ::ReleaseDC(nullptr, hdc); });
 
@@ -349,7 +352,7 @@ UniqueImage toImage(HBITMAP hbitmap)
 	bminfo.bmiHeader.biSize = sizeof(bminfo.bmiHeader);
 
 	if(!::GetDIBits(hdc, hbitmap, 0, 0, nullptr, &bminfo, DIB_RGB_COLORS)) {
-		warning("ny::winapi::toImageData(HBITMAP): GetDiBits:1 failed");
+		ny_warn("GetDiBits:1 failed");
 		return {};
 	}
 
@@ -364,7 +367,7 @@ UniqueImage toImage(HBITMAP hbitmap)
 	bminfo.bmiHeader.biHeight = height;
 
 	if(!::GetDIBits(hdc, hbitmap, 0, height, buffer.get(), &bminfo, DIB_RGB_COLORS)) {
-		warning("ny::winapi::toImageData(HBITMAP): GetDiBits:2 failed");
+		ny_warn("GetDiBits:2 failed");
 		return {};
 	}
 
@@ -380,13 +383,13 @@ UniqueImage toImage(HBITMAP hbitmap)
 std::string errorMessage(unsigned int code, std::string_view msg)
 {
 	std::string ret;
-	if(msg) ret += msg;
+	if(!msg.empty()) ret += msg;
 
 	wchar_t buffer[512] = {};
 	auto size = ::FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, nullptr, code, 0, buffer,
 		sizeof(buffer), nullptr);
 
-	if(msg) ret += ": ";
+	if(!msg.empty()) ret += ": ";
 
 	if(size > 0) ret += narrow(buffer);
 	else ret += "<unkown winapi error>";
