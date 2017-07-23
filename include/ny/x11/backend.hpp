@@ -12,7 +12,8 @@ namespace ny {
 /// X11 backend implementation.
 class X11Backend : public Backend {
 public:
-	static X11Backend& instance(){ return instance_; }
+	/// Makes sure this backend is registerd
+	static void initialize();
 
 public:
 	bool available() const override;
@@ -23,8 +24,7 @@ public:
 	bool vulkan() const override;
 
 protected:
-	static X11Backend instance_;
-	X11Backend();
+	X11Backend() = default;
 };
 
 } // namespace ny

@@ -7,7 +7,10 @@
 
 namespace ny {
 
-WinapiBackend WinapiBackend::instance_;
+void WinapiBackend::initialize()
+{
+	static WinapiBackend instance_ {};
+}
 
 std::unique_ptr<AppContext> WinapiBackend::createAppContext()
 {

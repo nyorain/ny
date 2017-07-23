@@ -2,10 +2,27 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
+#include <ny/config.hpp>
 #include <ny/backend.hpp>
 #include <ny/log.hpp> // ny::warning
 #include <cstdlib> // std::getenv
 #include <cstring> // std::strcmp
+
+#ifdef NY_WithWinapi
+ #include <ny/winapi/backend.hpp>
+#endif
+
+#ifdef NY_WithX11
+ #include <ny/x11/backend.hpp>
+#endif
+
+#ifdef NY_WithWayland
+ #include <ny/wayland/backend.hpp>
+#endif
+
+#ifdef NY_WithAndroid
+ #include <ny/android/backend.hpp>
+#endif
 
 namespace ny {
 
@@ -24,13 +41,34 @@ std::vector<Backend*> Backend::backendsFunc(Backend* reg, bool remove)
 		} else {
 			backends_.push_back(reg);
 		}
-	}
+	} // TODO: else warn?
 
 	return backends_;
 }
 
 Backend& Backend::choose()
 {
+	// make sure all backends are initialized
+	// we explicitly don't rely on static initialization for built-in
+	// backends anymore since this causes issues when statically linkin
+	// and is - stricly speaking - undefined behvaiour.
+#ifdef NY_WithWinapi
+	WinapiBackend::initialize();
+#endif
+
+#ifdef NY_WithX11
+	X11Backend::initialize();
+#endif
+
+#ifdef NY_WithWayland
+	WaylandBackend::initialize();
+#endif
+
+#ifdef NY_WithAndroid
+	AndroidBackend::initialize();
+#endif
+
+	// choose
 	dlg_source("Backend"_module, "choose"_scope);
 
 	static const std::string waylandString = "wayland";

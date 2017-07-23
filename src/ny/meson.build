@@ -122,3 +122,5 @@ ny_lib = library('ny',
 	sources: ny_src,
 	dependencies: deps,
 	include_directories: [ny_inc, ny_inc_private])
+
+ny_lib_dir = join_paths(meson.build_root(), 'src', 'ny') + '/'

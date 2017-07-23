@@ -10,9 +10,10 @@
 
 namespace ny {
 
-WaylandBackend WaylandBackend::instance_;
-
-WaylandBackend::WaylandBackend() {}
+void WaylandBackend::initialize()
+{
+	static WaylandBackend instance_;
+}
 
 bool WaylandBackend::available() const
 {

@@ -128,6 +128,7 @@ subdir('include/ny')
 subdir('src/ny')
 
 # dependency
+message(ny_lib_dir)
 ny_dep = declare_dependency(
 	include_directories: ny_inc,
 	dependencies: deps,

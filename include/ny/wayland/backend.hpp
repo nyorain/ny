@@ -12,7 +12,8 @@ namespace ny {
 ///Wayland backend implementation.
 class WaylandBackend : public Backend {
 public:
-	static WaylandBackend& instance(){ return instance_; }
+	/// Makes sure this backend is registerd
+	static void initialize();
 
 public:
 	bool available() const override;
@@ -23,8 +24,7 @@ public:
 	bool vulkan() const override;
 
 protected:
-	static WaylandBackend instance_;
-	WaylandBackend();
+	WaylandBackend() = default;
 };
 
 } // namespace ny

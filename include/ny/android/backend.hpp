@@ -5,7 +5,6 @@
 #pragma once
 
 #include <ny/android/include.hpp>
-#include <ny/android/activity.hpp>
 #include <ny/backend.hpp>
 
 namespace ny {
@@ -13,7 +12,8 @@ namespace ny {
 /// Android backend implementation.
 class AndroidBackend : public Backend {
 public:
-	static AndroidBackend& instance() { return instance_; }
+	/// Makes sure this backend is registerd
+	static void initialize();
 
 protected:
 	bool available() const override;
@@ -24,7 +24,6 @@ protected:
 	bool vulkan() const override { return builtWithVulkan(); }
 
 protected:
-	static AndroidBackend instance_;
 	AndroidBackend() = default;
 };
 

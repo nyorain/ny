@@ -12,9 +12,11 @@
 
 namespace ny {
 
-AndroidBackend AndroidBackend::instance_;
+void AndroidBackend::initialize()
+{
+	static AndroidBackend instance_;
+}
 
-// AndroidBackend
 bool AndroidBackend::available() const
 {
 	return android::Activity::instance();

@@ -8,9 +8,12 @@
 
 namespace ny {
 
-X11Backend X11Backend::instance_;
-
 X11Backend::X11Backend() {}
+
+void X11Backend::initialize()
+{
+	static X11Backend::instance_;
+}
 
 bool X11Backend::available() const
 {
