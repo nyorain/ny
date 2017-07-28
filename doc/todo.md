@@ -7,6 +7,8 @@
 	- possibility to even unify cmake?
 		- maybe just if(Android) section that add apk.cmake stuff (?!)
 - fix x11 backend (see backend todo)
+- dataExchange: correctly handle utf-8 mimetype
+	- only pass utf-8 to the application
 - WindowListener::surfaceDestroyed: output warning on default implementation?
 	- it was not overriden which can/will lead to serious problems.
 - gl impl: use shared mutex for glCurrentMap
@@ -71,6 +73,15 @@
 - dataExchange: use std::variant instead of std::any
 	- the possible types are known
 	- further are custom types really bad
+
+- auto meson options
+	- ```
+	option('enable_x11', type: 'combo', choices: ['auto', 'true', 'false'])
+	option('enable_wayland', type: 'combo', choices: ['auto', 'true', 'false'])
+	option('enable_winapi', type: 'combo', choices: ['auto', 'true', 'false'])
+	option('enable_gl', type: 'combo', choices: ['auto', 'true', 'false'])
+	option('enable_vulkan', type: 'combo', choices: ['auto', 'true', 'false'])
+	```
 
 ### later; general; rework needed
 

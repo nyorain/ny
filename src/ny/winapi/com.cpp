@@ -153,7 +153,7 @@ DropTargetImpl::DropTargetImpl(WinapiWindowContext& ctx) : windowContext_(&ctx)
 			IID_IDropTargetHelper, reinterpret_cast<void**>(&helper_));
 
 		if(!helper_ || ret != S_OK) {
-			std::string msg = "ny::winapi::com::DataObjectImpl: CoCreateInstance: ";
+			std::string msg = "ny::winapi::com::DropTargetImpl: CoCreateInstance: ";
 			msg += std::to_string(ret);
 			msg += errorMessage(ret);
 			throw std::runtime_error(msg);

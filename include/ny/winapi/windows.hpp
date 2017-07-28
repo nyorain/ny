@@ -15,4 +15,5 @@
 #undef near
 #undef far
 #undef ERROR
+#undef MemoryBarrier
 #undef UNICODE

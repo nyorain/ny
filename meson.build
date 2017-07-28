@@ -1,7 +1,7 @@
 project('ny', ['c', 'cpp'],
   license: 'BSL',
-	version: '0.1.0',
-	meson_version: '>=0.38',
+  version: '0.1.0',
+  meson_version: '>=0.38',
   default_options: ['cpp_std=c++1z', 'c_std=c11'])
 
 # options

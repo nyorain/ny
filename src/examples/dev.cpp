@@ -1,5 +1,6 @@
 #include <ny/ny.hpp>
 #include <nytl/vecOps.hpp>
+#include <any>
 
 // used at the moment to test data sources and data offers, dragndrop and clipboard stuff
 
@@ -216,8 +217,13 @@ CustomDataSource::CustomDataSource()
 
 std::any CustomDataSource::data(const ny::DataFormat& format) const
 {
-	if(format != ny::DataFormat::text) return {};
-	return std::string("ayyy got em");
+	if(format != ny::DataFormat::text) {
+		dlg_error("Invalid data format requested");
+		return {};
+	}
+
+	std::any ret = std::string("ayy got em");
+	return ret;
 }
 
 ny::Image CustomDataSource::image() const
