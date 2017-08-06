@@ -12,9 +12,10 @@ arch:
     - ninja
     - wayland
     - wayland-protocols
-    - vulkan
+    - vulkan-icd-loader
+    - vulkan-headers
     - mesa
-    - xcb
+    - libxcb
     - xcb-util
     - xcb-util-cursor
     - libx11
