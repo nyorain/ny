@@ -19,10 +19,13 @@ arch:
     - vulkan-headers
     - mesa
     - libxcb
+    - libxcursor
     - xcb-util
     - xcb-util-cursor
+    - xcb-util-image
     - libx11
     - libxkbcommon
+    - libxkbcommon-x11
   script:
     - "meson build"
     - "ninja -C build"
