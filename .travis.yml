@@ -28,7 +28,7 @@ arch:
     - libxkbcommon
     - libxkbcommon-x11
   script:
-    - "meson build"
+    - "meson build -Dexamples=true"
     - "ninja -C build"
 
 script:
