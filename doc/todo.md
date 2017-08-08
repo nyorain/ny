@@ -56,15 +56,6 @@
 	- the possible types are known
 	- further are custom types really bad
 
-- auto meson options
-	- ```
-	option('enable_x11', type: 'combo', choices: ['auto', 'true', 'false'])
-	option('enable_wayland', type: 'combo', choices: ['auto', 'true', 'false'])
-	option('enable_winapi', type: 'combo', choices: ['auto', 'true', 'false'])
-	option('enable_gl', type: 'combo', choices: ['auto', 'true', 'false'])
-	option('enable_vulkan', type: 'combo', choices: ['auto', 'true', 'false'])
-	```
-
 ### later; general; rework needed
 
 - C++17 update:

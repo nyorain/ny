@@ -1,8 +1,8 @@
-option('enable_x11', type: 'boolean', value: 'true')
-option('enable_wayland', type: 'boolean', value: 'true')
-option('enable_winapi', type: 'boolean', value: 'false')
-option('enable_gl', type: 'boolean', value: 'true')
-option('enable_vulkan', type: 'boolean', value: 'true')
+option('enable_x11', type: 'combo', choices: ['auto', 'true', 'false'])
+option('enable_wayland', type: 'combo', choices: ['auto', 'true', 'false'])
+option('enable_winapi', type: 'combo', choices: ['auto', 'true', 'false'])
+option('enable_gl', type: 'combo', choices: ['auto', 'true', 'false'])
+option('enable_vulkan', type: 'combo', choices: ['auto', 'true', 'false'])
 
 option('vulkan_sdk', type: 'string', value: 'none')
 
