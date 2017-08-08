@@ -274,20 +274,16 @@ protected:
 	virtual bool makeCurrentImpl(const GlSurface&, std::error_code&) = 0;
 	virtual bool makeNotCurrentImpl(std::error_code&) = 0;
 
-	virtual void addShared(GlContext& other);
-	virtual bool removeShared(GlContext& other);
-
-	virtual const std::vector<GlContext*>& shared() const { return shared_; }
-	friend bool shared(GlContext& a, GlContext& b);
+	// friend bool shared(GlContext& a, GlContext& b);
 
 protected:
 	GlConfig config_;
 	GlApi api_;
-	std::vector<GlContext*> shared_ {};
+	// GlContext* shared_ {};
 };
 
 /// Returns whether the both given GlContext objects are shared with each other.
-bool shared(GlContext& a, GlContext& b);
+// bool shared(GlContext& a, GlContext& b);
 
 /// A guard to make a context current on construction and make it not current on destruction.
 /// Note that GlContext does allow to manually make current/make not current since it may

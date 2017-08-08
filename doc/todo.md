@@ -11,9 +11,6 @@
 	- only pass utf-8 to the application
 - WindowListener::surfaceDestroyed: output warning on default implementation?
 	- it was not overriden which can/will lead to serious problems.
-- gl impl: use shared mutex for glCurrentMap
-	- most locks are probably read access
-	- combine with SharedLockGuard (in nytl?)
 - fix loopControl [synchronization] [pretty much done, fix for backends maybe needed]
 	- make sure that impl isnt changed during operation on it?!
 		- mutex in loopControl?
@@ -24,17 +21,7 @@
 			- needed?
 	- testing; code review!
 - fix android backend
-- egl/wgl/glx library loading (dynamically load opengl)
-	- should GlSetup::procAddr be able to query gl core functions?
-	- fix egl (check in context creation if extension/egl 1.5 available)
-	- apientryp needed for pointer declarations?
-	- does the force version flag really makes sense?
-		- version setting at all? are there some (real) cases where a
-			specific opengl version is needed?
-	- fix egl/wgl error handling
-		- GlContextErrc::contextNotCurrent (e.g. swapInterval)
-	- query gl context version as attribute
-- make log.hpp a private header?
+	- integrate with meson
 - fix examples
 	- see src/examples/old
 		- provide vulkan example (basic)
@@ -43,8 +30,6 @@
 		- cairo/skia
 - better WindowSettings surface/draw namings
 	- WindowSettings::buffer is a rather bad/unintuitive name
-- make position vecs (e.g. for mouseButton, mouseMove) Vec2ui instead of Vec2i
-	- when could it be negative?
 - fix WindowSettings handling for backends
 - send state and size events on windowContext creation? (other important values?)
 	- general way to query size from windowContext?
@@ -55,17 +40,14 @@
 	- query server caps if possible
 - AppContext error handling? Give the application change to retrieve some error (code,
 	exception?) when e.g. AppContext::dispatchLoop returns false
-	- also: AsyncRequest wait return type? the bool return type is rather bad.
-		perfer excpetions in AppContext for critical errors? would really make more sense...
-		the function might already throw if any listener/callback throw so it should
-		throw on critical errors!
+	- also: AsyncRequest::wait return type? the bool return type is rather bad.
+		perfer excpetions in AppContext for critical errors? would maybe make more sense...
+		the function might already throw if any listener/callback throws so it should
+		throw on critical errors
 	- or is it ok this way? applications ususually can't do much about critical errors...
-		and to modify where ny logs it, they can just change the log streams
 - fix building config:
-	- which cmake version is needed?
+	- which meson version is needed?
 	- see: gl linkin/building
-	- better find xcb cmake script
-		- make sure icccm and ewmh are found (are they available everywhere?)
 	- test wayland config
 		- wayland without egl, wayland without cursor library
 - abolish WindowContextPtr, AppContextPtr
@@ -85,14 +67,12 @@
 
 ### later; general; rework needed
 
-- easier image rework? (old format impl?)
-	- then fix android bufferSurface format query (dont assume rgba8888)
 - C++17 update:
 	- use extended aggregate initialization for Event class
 		- update for backends (not create explicit structs before calling listener)
 - fix/clean up TODO marks in code
 - bufferSurface: dirtyBounds parameter for buffer function
-- glsurface::apply: dirtyBound parameter
+- glsurface::apply: dirtyBound parameter (?)
 - DataOffer: methods const? they do not change the state of the object (interface)
 	- may not be threadsafe in implementation; should not be required (should it?)
 	- also: really pass it as unique ptr in WindowListener::drop
@@ -142,12 +122,20 @@
 	- some general event dispatching utiliy helpers for AppContext implementations?
 - AppContext: function for ringing the systems bell (at least x11, winapi)
 - send CloseEvent when WindowContext::close called? define such things somewhere!
+- gl: (re-)implement shared checking functionality
+	- only if it possible in a lightweight manner
+- egl/wgl/glx library loading (dynamically load opengl)
+	- should GlSetup::procAddr be able to query gl core functions?
+	- fix egl (check in context creation if extension/egl 1.5 available)
+	- apientryp needed for pointer declarations?
+	- fix egl/wgl error handling
+		- GlContextErrc::contextNotCurrent (e.g. swapInterval)
+	- query gl context version as attribute
 
 further improvements:
 =============
 
 - testing! add general tests for all features
-	- test image functions on big endian machine
 - documentation
 	- fix/remove/split main.md
 	- operation
@@ -171,7 +159,10 @@ low prio, for later:
 	- cairo/skia integration mockups
 	- rewrite/fix cairo/skia examples
 - noexcept specifications (especially for interfaces!)
-- mir, osx support
+- osx support
+- make position vecs (e.g. for mouseButton, mouseMove) Vec2ui instead of Vec2i
+	- when could it be negative?
+	- not sure if good idea
 
 Backend stuff
 =============

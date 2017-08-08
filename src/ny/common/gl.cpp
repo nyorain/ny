@@ -7,6 +7,7 @@
 
 #include <thread> // std::this_thread
 #include <mutex> // std::mutex
+#include <shared_mutex> // std::shared_mutex
 #include <unordered_map> // std::unordered_map
 #include <algorithm> // std::reverse
 #include <cstring> // std::strstr
@@ -17,6 +18,17 @@
 
 namespace ny {
 namespace {
+
+/// Locks the given mutex type shared.
+/// Like std::lock_guard but for shared mutex locking.
+/// \requiers Type 'T' shall fulfill the stl SharedMutex concept.
+template<typename T>
+struct SharedLockGuard {
+	SharedLockGuard(T& mutex) : mutex_(mutex) { mutex_.lock_shared(); }
+	~SharedLockGuard() { mutex_.unlock_shared(); }
+
+	T& mutex_;
+};
 
 /// GlContext std::error_category implementation
 /// Used to provide abstract logical gl error codes.
@@ -30,20 +42,16 @@ public:
 	std::string message(int code) const override;
 };
 
+/// Map that associates the the current gl context and surface with the thread id.
+/// The mutex pointer returned in mutex will be valid and must be used when accessing the map.
 using GlCurrentMap = std::unordered_map<std::thread::id, std::pair<GlContext*, const GlSurface*>>;
-GlCurrentMap& contextCurrentMap(std::mutex*& mutex)
+GlCurrentMap& contextCurrentMap(std::shared_mutex*& mutex)
 {
 	static GlCurrentMap smap;
-	static std::mutex smutex;
+	static std::shared_mutex smutex;
 
 	mutex = &smutex;
 	return smap;
-}
-
-std::mutex& contextShareMutex()
-{
-	static std::mutex smutex;
-	return smutex;
 }
 
 } // anonymous util namespace
@@ -174,11 +182,11 @@ GlSurface::~GlSurface()
 	if(isCurrent(&context)) {
 		ny_warn("~GlSurface"_scope, "current in calling thread!");
 
-		std::mutex* mutex;
+		std::shared_mutex* mutex;
 		auto& map = contextCurrentMap(mutex);
 
 		{
-			std::lock_guard<std::mutex> lock(*mutex);
+			std::lock_guard lock(*mutex);
 			map[std::this_thread::get_id()] = {nullptr, nullptr};
 		}
 	}
@@ -186,13 +194,15 @@ GlSurface::~GlSurface()
 	// check if it is current in any thread
 	// we cannot use isCurrentInAnyThread since the checking/removing has
 	// to be in one critical section, it has to be atomic (regarding the current map mutex)
-	std::mutex* mutex;
+	std::shared_mutex* mutex;
 	auto& map = contextCurrentMap(mutex);
 
-	std::lock_guard<std::mutex> lock(*mutex);
+	std::lock_guard lock(*mutex);
 
 	for(auto& entry : map) {
 		if(entry.second.second == this) {
+			// we will probably not recover from this
+			// the surface was destroyed in another thread than it was made current in
 			ny_error("~GlSurface"_scope, "current in another thread");
 			entry.second = {nullptr, nullptr};
 		}
@@ -201,10 +211,10 @@ GlSurface::~GlSurface()
 
 bool GlSurface::isCurrent(GlContext** currentContext) const
 {
-	std::mutex* mutex;
+	std::shared_mutex* mutex;
 	auto& map = contextCurrentMap(mutex);
 
-	std::lock_guard<std::mutex> lock(*mutex);
+	SharedLockGuard lock(*mutex);
 	auto it = map.find(std::this_thread::get_id());
 	if(it == map.end() || it->second.second != this) return false;
 
@@ -216,10 +226,10 @@ bool GlSurface::isCurrentInAnyThread(GlContext** currentContext,
 	std::thread::id* currentThread) const
 {
 
-	std::mutex* mutex;
+	std::shared_mutex* mutex;
 	auto& map = contextCurrentMap(mutex);
 
-	std::lock_guard<std::mutex> lock(*mutex);
+	SharedLockGuard lock(*mutex);
 
 	for(auto& entry : map) {
 		if(entry.second.second == this) {
@@ -235,16 +245,17 @@ bool GlSurface::isCurrentInAnyThread(GlContext** currentContext,
 void GlSurface::apply() const
 {
 	std::error_code ec;
-	if(!apply(ec)) throw std::system_error(ec, "ny::GlSurface::apply");
+	if(!apply(ec))
+		throw std::system_error(ec, "ny::GlSurface::apply");
 }
 
 // GlContext - static
 GlContext* GlContext::current(const GlSurface** currentSurface)
 {
-	std::mutex* mutex;
+	std::shared_mutex* mutex;
 	auto& map = contextCurrentMap(mutex);
 
-	std::lock_guard<std::mutex> lock(*mutex);
+	SharedLockGuard lock(*mutex);
 	auto it = map.find(std::this_thread::get_id());
 	if(it == map.end()) return nullptr;
 
@@ -261,38 +272,30 @@ GlContext::~GlContext()
 	if(isCurrent()) {
 		ny_warn("~GlContext"_scope, "context is current on destruction");
 
-		std::mutex* mutex;
+		std::shared_mutex* mutex;
 		auto& map = contextCurrentMap(mutex);
 
-		{
-			std::lock_guard<std::mutex> lock(*mutex);
-			map[std::this_thread::get_id()] = {nullptr, nullptr};
-		}
+		std::lock_guard lock(*mutex);
+		map[std::this_thread::get_id()] = {nullptr, nullptr};
 	}
 
 	// check if it is current in any thread
 	// we cannot use isCurrentInAnyThread since the checking/removing has
 	// to be in one critical section, it has to be atomic (regarding the current map mutex)
 	{
-		std::mutex* mutex;
+		std::shared_mutex* mutex;
 		auto& map = contextCurrentMap(mutex);
 
-		std::lock_guard<std::mutex> lock(*mutex);
+		std::lock_guard lock(*mutex);
 
 		for(auto& entry : map) {
 			if(entry.second.first == this) {
+				// we will probably not recover from this, this just cleans
+				// up the logical state. The context was destroyed
+				// in another thread as it is still current in
 				ny_error("~GlContext"_scope, "current in another thread");
 				entry.second = {nullptr, nullptr};
 			}
-		}
-	}
-
-	// signal the shared contexts
-	{
-		std::lock_guard<std::mutex> lock(contextShareMutex());
-		for(auto& c : shared_) {
-			if(!c->removeShared(*this))
-				ny_warn("~GlContext"_scope, "context->removeShared(*this) failed - expect data inconsistency");
 		}
 	}
 }
@@ -302,15 +305,8 @@ void GlContext::initContext(GlApi api, const GlConfig& config, GlContext* shared
 	api_ = api;
 	config_ = config;
 
-	if(shared) {
-		std::lock_guard<std::mutex> lock(contextShareMutex());
-
-		shared_ = shared->shared();
-		shared_.push_back(shared);
-
-		for(auto& s : shared_)
-			s->addShared(*this);
-	}
+	// TODO
+	// shared_ = shared;
 }
 
 void GlContext::makeCurrent(const GlSurface& surface)
@@ -339,7 +335,7 @@ bool GlContext::makeCurrent(const GlSurface& surface, std::error_code& ec)
 	}
 
 	// get the context current thread map
-	std::mutex* mutex;
+	std::shared_mutex* mutex;
 	auto threadid = std::this_thread::get_id();
 	auto& map = contextCurrentMap(mutex);
 	decltype(map.begin()) thisThreadIt {};
@@ -348,7 +344,7 @@ bool GlContext::makeCurrent(const GlSurface& surface, std::error_code& ec)
 	// prepare everything
 	// check if this exact combination is already current
 	{
-		std::lock_guard<std::mutex> lock(*mutex);
+		std::lock_guard lock(*mutex);
 
 		thisThreadIt = map.find(threadid);
 		if(thisThreadIt == map.end()) thisThreadIt = map.insert({threadid, {}}).first;
@@ -361,7 +357,8 @@ bool GlContext::makeCurrent(const GlSurface& surface, std::error_code& ec)
 		// check if this context or the given surface is already current in another
 		// thread.
 		for(auto& entry : map) {
-			if(entry.first == threadid) continue;
+			if(entry.first == threadid)
+				continue;
 
 			if(entry.second.first == this) {
 				ec = Errc::contextCurrentInAnotherThread;
@@ -380,16 +377,23 @@ bool GlContext::makeCurrent(const GlSurface& surface, std::error_code& ec)
 			if(!thisThreadIt->second.first->makeNotCurrentImpl(ec)) return false;
 			thisThreadIt->second = {nullptr, nullptr};
 		}
+
+		// we make it here already logically current
+		// if another threads tries to make it current during the makeCurrentImpl call
+		// it will already fail
+		thisThreadIt->second = {this, &surface};
 	}
 
 	// makeCurrentImpl can be outside of an critical section
 	// note how we still use thisThreadIt iterator after exiting critical section
 	// map iterators are not invalidated  if they are not deleted (and this operation is
 	// not done by any thread)
-	if(!makeCurrentImpl(surface, ec)) return false;
+	if(!makeCurrentImpl(surface, ec)) {
+		std::lock_guard lock(*mutex);
+		thisThreadIt->second = {nullptr, nullptr};
+		return false;
+	}
 
-	std::lock_guard<std::mutex> lock(*mutex);
-	thisThreadIt->second = {this, &surface};
 	return true;
 }
 
@@ -403,17 +407,18 @@ bool GlContext::makeNotCurrent(std::error_code& ec)
 {
 	ec.clear();
 
-	std::mutex* mutex;
+	std::shared_mutex* mutex;
 	auto threadid = std::this_thread::get_id();
 	auto& map = contextCurrentMap(mutex);
 	decltype(map.begin()) thisThreadIt {};
 
 	// check if it is already not current
 	{
-		std::lock_guard<std::mutex> lock(*mutex);
+		SharedLockGuard lock(*mutex);
 
 		thisThreadIt = map.find(threadid);
-		if(thisThreadIt == map.end()) thisThreadIt = map.insert({threadid, {}}).first;
+		if(thisThreadIt == map.end())
+			thisThreadIt = map.insert({threadid, {}}).first;
 
 		if(thisThreadIt->second.first != this) {
 			ec = Errc::contextAlreadyNotCurrent;
@@ -421,19 +426,20 @@ bool GlContext::makeNotCurrent(std::error_code& ec)
 		}
 	}
 
-	if(!makeNotCurrentImpl(ec)) return false;
+	if(!makeNotCurrentImpl(ec))
+		return false;
 
-	std::lock_guard<std::mutex> lock(*mutex);
+	std::lock_guard lock(*mutex);
 	thisThreadIt->second = {nullptr, nullptr};
 	return true;
 }
 
 bool GlContext::isCurrent(const GlSurface** currentSurface) const
 {
-	std::mutex* mutex;
+	std::shared_mutex* mutex;
 	auto& map = contextCurrentMap(mutex);
 
-	std::lock_guard<std::mutex> lock(*mutex);
+	SharedLockGuard lock(*mutex);
 	auto it = map.find(std::this_thread::get_id());
 	if(it == map.end() || it->second.first != this) return false;
 
@@ -444,10 +450,10 @@ bool GlContext::isCurrent(const GlSurface** currentSurface) const
 bool GlContext::isCurrentInAnyThread(const GlSurface** currentSurface,
 	std::thread::id* currentThread) const
 {
-	std::mutex* mutex;
+	std::shared_mutex* mutex;
 	auto& map = contextCurrentMap(mutex);
 
-	std::lock_guard<std::mutex> lock(*mutex);
+	SharedLockGuard lock(*mutex);
 
 	for(auto& entry : map) {
 		if(entry.second.first == this) {
@@ -475,29 +481,6 @@ bool GlContext::swapInterval(int interval, std::error_code& ec) const
 {
 	nytl::unused(interval);
 	ec = Errc::extensionNotSupported;
-	return false;
-}
-
-void GlContext::addShared(GlContext& other)
-{
-	shared_.push_back(&other);
-}
-
-bool GlContext::removeShared(GlContext& other)
-{
-	auto it = std::remove(shared_.begin(), shared_.end(), &other);
-	if(it == shared_.end()) return false;
-
-	shared_.erase(it, shared_.end());
-	return true;
-}
-
-bool shared(GlContext& a, GlContext& b)
-{
-	std::lock_guard<std::mutex> lock(contextShareMutex());
-	const auto& shared = a.shared();
-
-	for(auto& c : shared) if(c == &b) return true;
 	return false;
 }
 

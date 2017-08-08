@@ -34,23 +34,23 @@ namespace ny {
 /// | <custom>  | vector<uint8_t>		| <custom>						|
 class DataFormat {
 public:
-	static const DataFormat none; //empty object, used for invalid formats
-	static const DataFormat raw; //raw, not further specified data buffer
-	static const DataFormat text; //textual data
-	static const DataFormat uriList; //a list of uri objects
-	static const DataFormat image; //raw image data
+	static const DataFormat none; // empty object, used for invalid formats
+	static const DataFormat raw; // raw, not further specified data buffer
+	static const DataFormat text; // textual data
+	static const DataFormat uriList; // a list of uri objects
+	static const DataFormat image; // raw image data
 
 public:
 	/// The primary default name of the DataFormat.
-	/// This will be used to compare multiple DataFormats and must not be empty, otherwise
+	/// This will be used to compare two DataFormats and must not be empty, otherwise
 	/// the DataFormat is invalid.
-	/// This should be a mime-type, but does not have to be a standardized one if there is none.
+	/// Should be a mimetype.
 	std::string name {};
 
-	/// Additional names that this format might be recognized under. Basically a help for
+	/// Additional names that this format might be recognized under. Basically a helper for
 	/// other applications that might know it the same format under a different name.
-	/// More significant names/descriptions should come first. Can also contains none mime-type
-	/// names, but should be avoided.
+	/// More significant names/descriptions should come first.
+	/// Prefer mime types.
 	std::vector<std::string> additionalNames {};
 };
 

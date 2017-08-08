@@ -38,16 +38,7 @@ dep_xkbcommon = dependency('xkbcommon', required: req_xkbcommon)
 dep_gl = dependency('gl', required: enable_gl and (enable_x11 or enable_winapi))
 dep_egl = dependency('egl', required: req_egl)
 
-dep_dlg = dependency('dlg', fallback: ['dlg', 'dlg_dep'])
-dep_nytl = dependency('nytl', fallback: ['nytl', 'nytl_dep'])
-
-deps = [
-	dep_threads,
-	dep_xkbcommon,
-	dep_gl,
-	dep_egl,
-	dep_dlg,
-	dep_nytl]
+deps = []
 
 # vulkan
 if enable_vulkan
@@ -119,6 +110,18 @@ if enable_winapi
 	deps += meson.get_compiler('cpp').find_library('Dwmapi')
 	deps += meson.get_compiler('cpp').find_library('Shlwapi')
 endif
+
+
+dep_dlg = dependency('dlg', fallback: ['dlg', 'dlg_dep'])
+dep_nytl = dependency('nytl', fallback: ['nytl', 'nytl_dep'])
+
+deps += [
+	dep_threads,
+	dep_xkbcommon,
+	dep_gl,
+	dep_egl,
+	dep_dlg,
+	dep_nytl]
 
 ny_inc = include_directories('include')
 ny_inc_private = include_directories('src')
