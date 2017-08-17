@@ -34,7 +34,7 @@ req_xkbcommon = enable_x11 or enable_wayland
 req_egl = enable_wayland and enable_gl
 
 dep_threads = dependency('threads')
-dep_vulkan = dependency('vulkan')
+dep_vulkan = dependency('vulkan', required: enable_vulkan)
 dep_xkbcommon = dependency('xkbcommon', required: req_xkbcommon)
 dep_gl = dependency('gl', required: enable_gl and (enable_x11 or enable_winapi))
 dep_egl = dependency('egl', required: req_egl)
@@ -45,6 +45,7 @@ dep_nytl = dependency('nytl', fallback: ['nytl', 'nytl_dep'])
 deps = [
 	dep_threads,
 	dep_xkbcommon,
+	dep_vulkan,
 	dep_gl,
 	dep_egl,
 	dep_dlg,
