@@ -13,24 +13,11 @@
 
 #include <xcb/xcb.h>
 
-// note that all these gcc-specific stuff also works for
-// other gcc-compatible compilers (e.g. clang)
-// don't generate a warning for the explicit macro
-#ifdef __GNUC__
-	#pragma GCC diagnostic push
-	#pragma GCC diagnostic ignored "-Wkeyword-macro"
-#endif
-
 // i'm really sorry for this...
 // the xkb header is not very c++ friendly
 #define explicit explicit_
 	#include <xcb/xkb.h>
 #undef explicit
-
-// pop ignored warning for explicit
-#ifdef __GNUC__
-	#pragma GCC diagnostic pop
-#endif
 
 #include <xkbcommon/xkbcommon-x11.h>
 #include <xkbcommon/xkbcommon-compose.h>

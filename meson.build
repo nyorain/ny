@@ -1,7 +1,7 @@
 project('ny', ['c', 'cpp'],
   license: 'BSL',
   version: '0.1.0',
-  meson_version: '>=0.38',
+  meson_version: '>=0.42',
   default_options: ['cpp_std=c++1z', 'c_std=c11'])
 
 # options
@@ -17,9 +17,9 @@ examples = get_option('examples')
 add_project_arguments(
 	'-Wall',
 	'-Wextra',
-	'-Wno-unused-parameter',
+	'-Wno-non-virtual-dtor',
 	'-Wpedantic',
-	'-Wno-missing-braces',
+	'-Wno-missing-braces', # needed for clang
 	language: 'cpp')
 
 # project-specific stuff
@@ -34,6 +34,7 @@ req_xkbcommon = enable_x11 or enable_wayland
 req_egl = enable_wayland and enable_gl
 
 dep_threads = dependency('threads')
+dep_vulkan = dependency('vulkan')
 dep_xkbcommon = dependency('xkbcommon', required: req_xkbcommon)
 dep_gl = dependency('gl', required: enable_gl and (enable_x11 or enable_winapi))
 dep_egl = dependency('egl', required: req_egl)
@@ -48,42 +49,6 @@ deps = [
 	dep_egl,
 	dep_dlg,
 	dep_nytl]
-
-# vulkan
-if enable_vulkan
-	vulkan_sdk = get_option('vulkan_sdk')
-
-	if build_machine.system() == 'windows'
-		vulkan_lib = 'vulkan-1'
-	else
-		vulkan_lib = 'vulkan'
-
-		# we only do this on linux since on windows the paths
-		# uses backslashes which are not (or cannot be) handled by meson/ninja
-		add_project_arguments(
-			'-DDLG_BASE_PATH="@0@"'.format(meson.source_root()),
-			language: 'cpp')
-	endif
-
-	# try to find vulkan library
-	vulkan_inc_arg = ''
-	if vulkan_sdk != 'none'
-		if meson.get_compiler('cpp').sizeof('void*') == 8
-			vulkan_lib_path = join_paths(vulkan_sdk, 'Lib')
-		else
-			vulkan_lib_path = join_paths(vulkan_sdk, 'Lib32')
-		endif
-
-		# TODO: make this more beautiful using a vulkan declare_dependency?
-		vulkan_inc_arg = '-I' + join_paths(vulkan_sdk, 'Include')
-		add_project_arguments(vulkan_inc_arg, language: 'cpp')
-		dep_vulkan = meson.get_compiler('cpp').find_library(vulkan_lib, dirs: vulkan_lib_path)
-	else
-		dep_vulkan = meson.get_compiler('cpp').find_library(vulkan_lib)
-	endif
-
-	deps += dep_vulkan
-endif
 
 if enable_x11
 	dep_x11 = dependency('x11')

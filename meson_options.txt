@@ -4,6 +4,4 @@ option('enable_winapi', type: 'boolean', value: 'false')
 option('enable_gl', type: 'boolean', value: 'true')
 option('enable_vulkan', type: 'boolean', value: 'true')
 
-option('vulkan_sdk', type: 'string', value: 'none')
-
 option('examples', type: 'boolean', value: 'false')
