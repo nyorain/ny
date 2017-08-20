@@ -22,6 +22,6 @@ install:
 
 build_script:
   - echo Building on %arch% with %compiler%
-  - set PATH=%cd%;C:\python34-x64;%PATH%;
+  - set PATH=C:\ninja;C:\mingw\mingw64\bin;%PYTHON%;%PYTHON%\\Scripts;%PATH%
   - "python meson.py --backend=ninja builddir"
   - "ninja -C builddir"
