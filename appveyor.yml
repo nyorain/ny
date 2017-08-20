@@ -11,8 +11,11 @@ platform:
 install:
   - appveyor-retry appveyor DownloadFile http://downloads.sourceforge.net/mingw-w64/x86_64-7.1.0-release-posix-seh-rt_v5-rev0.7z
   - 7z x x86_64-7.1.0-release-posix-seh-rt_v5-rev0.7z -oc:\mingw > nul
-  - set PATH=C:\mingw\mingw64\bin;%PATH%
-  - ps: (new-object net.webclient).DownloadFile('https://dl.dropboxusercontent.com/u/37517477/ninja.exe', 'C:\projects\meson\ninja.exe')
+  - set NINJA_URL="https://github.com/ninja-build/ninja/releases/download/v1.6.0/ninja-win.zip"
+  - appveyor-rety appveyor DownloadFile %NINJA_URL% -FileName ninja.zip
+  - 7z x ninja.zip -oC:\ninja > nul
+  - set PATH=C:\ninja;C:\mingw\mingw64\bin;%PATH%
+  - ninja --version
   - echo Using Python at %MESON_PYTHON_PATH%
   - C:\python32-x64\pip install meson
 
