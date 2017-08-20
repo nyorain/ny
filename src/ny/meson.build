@@ -10,7 +10,8 @@ ny_src = [
 	'key.cpp',
 	'mouseButton.cpp',
 	'backend.cpp',
-	'common/gl.cpp']
+	'common/gl.cpp', # does actually not need gl
+	]
 
 # Winapi backend
 if enable_winapi
@@ -101,11 +102,7 @@ if false
 	endif
 endif
 
-# gl
-if enable_gl
-	ny_src += ['common/gl.cpp']
-endif
-
+# additional
 if enable_egl
 	ny_src += ['common/egl.cpp']
 endif
