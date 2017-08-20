@@ -16,7 +16,7 @@ install:
   - appveyor-retry appveyor DownloadFile %NINJA_URL% -FileName ninja.zip
   - 7z x ninja.zip -oC:\ninja > nul
   - ps: if (-not(Test-Path($env:PYTHON))) { & appveyor\install.ps1 }
-  - set PATH=C:\ninja;C:\mingw\mingw64\bin;%PYTHON%;%PATH%
+  - set PATH=C:\ninja;C:\mingw\mingw64\bin;%PYTHON%;%PYTHON%\\Scripts;%PATH%
   - "ninja --version"
   - "pip install meson"
 
