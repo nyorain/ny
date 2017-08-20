@@ -4,6 +4,7 @@ environment:
   matrix:
     - arch: x64
       compiler: MinGW-w64
+      PYTHON: "C:\\Python34-x64"
 
 platform:
   - x64
@@ -14,12 +15,13 @@ install:
   - set NINJA_URL="https://github.com/ninja-build/ninja/releases/download/v1.6.0/ninja-win.zip"
   - appveyor-retry appveyor DownloadFile %NINJA_URL% -FileName ninja.zip
   - 7z x ninja.zip -oC:\ninja > nul
-  - set PATH=C:\ninja;C:\mingw\mingw64\bin;%PATH%
-  - ninja --version
-  - C:\python34-x64\pip install meson
+  - ps: if (-not(Test-Path($env:PYTHON))) { & appveyor\install.ps1 }
+  - set PATH=C:\ninja;C:\mingw\mingw64\bin;%PYTHON%;%PATH%
+  - "ninja --version"
+  - "pip install meson"
 
 build_script:
   - echo Building on %arch% with %compiler%
   - set PATH=%cd%;C:\python34-x64;%PATH%;
-  - python meson.py --backend=ninja builddir
-  - ninja -C builddir
+  - "python meson.py --backend=ninja builddir"
+  - "ninja -C builddir"
