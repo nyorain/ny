@@ -1,0 +1,35 @@
+sudo: required
+
+language: cpp
+
+notifications:
+  email: false
+
+compiler:
+  - gcc
+  - clang
+
+arch:
+  packages:
+    - meson
+    - ninja
+    - wayland
+    - wayland-protocols
+    - vulkan-icd-loader
+    - vulkan-headers
+    - mesa
+    - libxcb
+    - libxcursor
+    - xcb-util
+    - xcb-util-wm
+    - xcb-util-cursor
+    - xcb-util-image
+    - libx11
+    - libxkbcommon
+    - libxkbcommon-x11
+  script:
+    - "meson build -Dexamples=true"
+    - "ninja -C build"
+
+script:
+  - "curl -s https://raw.githubusercontent.com/mikkeloscar/arch-travis/master/arch-travis.sh | bash"

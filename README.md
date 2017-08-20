@@ -1,6 +1,6 @@
 # ny
 
-A lightweight and modern C++14 windowing toolkit.
+A lightweight and modern C++17 windowing toolkit.
 Licensed under the __Boost License__ (similar to MIT and BSD license but does not require
 attribution when only used in binaries).
 

@@ -1,7 +1,7 @@
 project('ny', ['c', 'cpp'],
   license: 'BSL',
   version: '0.1.0',
-  meson_version: '>=0.38',
+  meson_version: '>=0.42',
   default_options: ['cpp_std=c++1z', 'c_std=c11'])
 
 # options
@@ -20,9 +20,9 @@ examples = get_option('examples')
 add_project_arguments(
 	'-Wall',
 	'-Wextra',
-	'-Wno-unused-parameter',
+	'-Wno-non-virtual-dtor',
 	'-Wpedantic',
-	'-Wno-missing-braces',
+	'-Wno-missing-braces', # needed for clang
 	language: 'cpp')
 
 # project-specific stuff
@@ -44,62 +44,35 @@ endif
 
 # deps
 dep_threads = dependency('threads')
-dep_xkbcommon = dependency('xkbcommon', required: false)
+dep_vulkan = dependency('vulkan', required: enable_vulkan)
+dep_xkbcommon = dependency('xkbcommon', required: req_xkbcommon)
+dep_gl = dependency('gl', required: enable_gl and (enable_x11 or enable_winapi))
+dep_egl = dependency('egl', required: req_egl)
 
-deps = []
+dep_dlg = dependency('dlg', fallback: ['dlg', 'dlg_dep'])
+dep_nytl = dependency('nytl', fallback: ['nytl', 'nytl_dep'])
 
-# vulkan
-if enable_vulkan
-	vulkan_sdk = get_option('vulkan_sdk')
+deps = [
+	dep_threads,
+	dep_xkbcommon,
+	dep_vulkan,
+	dep_gl,
+	dep_egl,
+	dep_dlg,
+	dep_nytl]
 
-	if build_machine.system() == 'windows'
-		vulkan_lib = 'vulkan-1'
-	else
-		vulkan_lib = 'vulkan'
+if enable_x11
+	dep_x11 = dependency('x11')
+	dep_x11xcb = dependency('x11-xcb')
+	dep_xcursor = dependency('xcursor')
+	dep_xcb = dependency('xcb')
+	dep_xcbewmh = dependency('xcb-ewmh')
+	dep_xcbicccm = dependency('xcb-icccm')
+	dep_xcbshm = dependency('xcb-shm')
+	dep_xcbxkb = dependency('xcb-xkb')
+	dep_xkbcommonx11 = dependency('xkbcommon-x11', required: req_xkbcommon)
 
-		# we only do this on linux since on windows the paths
-		# uses backslashes which are not (or cannot be) handled by meson/ninja
-		add_project_arguments(
-			'-DDLG_BASE_PATH="@0@"'.format(meson.source_root()),
-			language: 'cpp')
-	endif
-
-	# try to find vulkan library
-	vulkan_inc_arg = ''
-	if vulkan_sdk != 'none'
-		if meson.get_compiler('cpp').sizeof('void*') == 8
-			vulkan_lib_path = join_paths(vulkan_sdk, 'Lib')
-		else
-			vulkan_lib_path = join_paths(vulkan_sdk, 'Lib32')
-		endif
-
-		# TODO: make this more beautiful using a vulkan declare_dependency?
-		vulkan_inc_arg = '-I' + join_paths(vulkan_sdk, 'Include')
-		add_project_arguments(vulkan_inc_arg, language: 'cpp')
-		dep_vulkan = meson.get_compiler('cpp').find_library(vulkan_lib, dirs: vulkan_lib_path)
-	else
-		dep_vulkan = meson.get_compiler('cpp').find_library(vulkan_lib)
-	endif
-
-	deps += dep_vulkan
-endif
-
-# x11
-if op_enable_x11 == 'false' or not dep_xcbcommon.found()
-	enable_x11 = false
-else
-	required = enable_x11 == 'true'
-	dep_x11 = dependency('x11', required: required)
-	dep_x11xcb = dependency('x11-xcb', required: required)
-	dep_xcursor = dependency('xcursor', required: required)
-	dep_xcb = dependency('xcb', required: required)
-	dep_xcbewmh = dependency('xcb-ewmh', required: required)
-	dep_xcbicccm = dependency('xcb-icccm', required: required)
-	dep_xcbshm = dependency('xcb-shm', required: required)
-	dep_xcbxkb = dependency('xcb-xkb', required: required)
-	dep_xkbcommonx11 = dependency('xkbcommon-x11', required: required)
-
-	x11_deps = [
+	deps += [
 		dep_x11,
 		dep_x11xcb,
 		dep_xcursor,
