@@ -7,7 +7,7 @@ notifications:
 
 compiler:
   - gcc
-  - clang
+  # - clang
 
 arch:
   packages:
