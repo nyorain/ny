@@ -12,13 +12,12 @@ install:
   - 7z x x86_64-7.1.0-release-posix-seh-rt_v5-rev0.7z -oc:\mingw > nul
   - set PATH=C:\mingw\mingw64\bin;%PATH%
   - ps: (new-object net.webclient).DownloadFile('https://dl.dropboxusercontent.com/u/37517477/ninja.exe', 'C:\projects\meson\ninja.exe')
-  - set MESON_PYTHON_PATH=C:\python34-x64
   - echo Using Python at %MESON_PYTHON_PATH%
-  - %MESON_PYTHON_PATH%\pip install meson
+  - C:\python32-x64\pip install meson
 
 build_script:
   - echo Building on %arch% with %compiler%
-  - set PATH=%cd%;%MESON_PYTHON_PATH%;%PATH%;
+  - set PATH=%cd%;C:\python32-x64;%PATH%;
   - python meson.py --backend=ninja builddir
   - ninja -C builddir
 
