@@ -16,11 +16,10 @@ install:
   - 7z x ninja.zip -oC:\ninja > nul
   - set PATH=C:\ninja;C:\mingw\mingw64\bin;%PATH%
   - ninja --version
-  - echo Using Python at %MESON_PYTHON_PATH%
-  - C:\python32-x64\pip install meson
+  - C:\python34-x64\pip install meson
 
 build_script:
   - echo Building on %arch% with %compiler%
-  - set PATH=%cd%;C:\python32-x64;%PATH%;
+  - set PATH=%cd%;C:\python34-x64;%PATH%;
   - python meson.py --backend=ninja builddir
   - ninja -C builddir
