@@ -23,5 +23,5 @@ install:
 
 build_script:
   - echo Building on %arch% with %compiler%
-  - meson.py --backend=ninja build
+  - meson.py --backend=ninja -Dexamples=true build
   - ninja -C build
