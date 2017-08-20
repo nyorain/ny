@@ -1,8 +1,9 @@
 os: Visual Studio 2015
 
-matrix:
-  - arch: x64
-    compiler: MinGW-w64
+environment:
+  matrix:
+    - arch: x64
+      compiler: MinGW-w64
 
 platform:
   - x64
@@ -20,6 +21,3 @@ build_script:
   - set PATH=%cd%;C:\python32-x64;%PATH%;
   - python meson.py --backend=ninja builddir
   - ninja -C builddir
-
-# test_script:
-#  - cmd: PATH=%cd%;%MESON_PYTHON_PATH%;%PATH%; && ninja -C builddir test
