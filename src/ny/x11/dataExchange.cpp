@@ -42,7 +42,7 @@ unsigned int xdndAware(X11AppContext& ac, xcb_window_t window)
 	if(error.error_code || prop.data.size() < 4 || prop.type != XCB_ATOM_ATOM) {
 		if(error.error_code) {
 			auto msg = x11::errorMessage(ac.xDisplay(), error.error_code);
-			ny_warn("::x11::xdndAware"_src, "x11::readProperty: {}", msg);
+			ny_warn("x11::readProperty: {}", msg);
 			return 0u;
 		}
 
@@ -210,8 +210,6 @@ nytl::UniqueConnection X11DataOffer::registerDataRequest(const DataFormat& forma
 
 void X11DataOffer::notify(const xcb_selection_notify_event_t& notify)
 {
-	dlg_source("x11do"_module, "notify"_scope);
-
 	// if the property is 0 the request failed
 	if(notify.property == 0) {
 		ny_info("request failed (property == 0)");
@@ -319,11 +317,11 @@ void X11DataOffer::addFormats(nytl::Span<const xcb_atom_t> targets)
 
 		if(error) {
 			auto msg = x11::errorMessage(appContext().xDisplay(), error->error_code);
-			ny_warn("::x11do::addFormats"_src, "get_atom_name_reply failed: {}", msg);
+			ny_warn("get_atom_name_reply failed: {}", msg);
 			free(error);
 			continue;
 		} else if(!nameReply) {
-			ny_warn("::x11do::addFormats"_src, "get_atom_name_reply failed: without error");
+			ny_warn("get_atom_name_reply failed: without error");
 			continue;
 		}
 
@@ -392,7 +390,7 @@ X11DataSource::X11DataSource(X11AppContext& ac, std::unique_ptr<DataSource> src)
 			continue;
 		} else if(error) {
 			auto msg = x11::errorMessage(appContext().xDisplay(), error->error_code);
-			ny_warn("::x11ds::x11ds()"_src, "Failed to load atom for {}", cookie.first->name);
+			ny_warn("Failed to load atom for {}", cookie.first->name);
 			free(error);
 		}
 	}
@@ -410,8 +408,6 @@ X11DataSource::X11DataSource(X11AppContext& ac, std::unique_ptr<DataSource> src)
 void X11DataSource::answerRequest(const xcb_selection_request_event_t& request)
 {
 	// TODO: correctly implement all (reasonable parts) of icccm
-	dlg_source("x11ds"_module, "answerRequest"_scope);
-
 	auto property = request.property;
 	if(!property) property = request.target;
 
@@ -472,7 +468,6 @@ X11DataManager::X11DataManager(X11AppContext& ac) : appContext_(&ac)
 
 bool X11DataManager::processEvent(const xcb_generic_event_t& ev)
 {
-	dlg_source("x11dm"_module, "processEvent"_scope);
 	X11EventData eventData {ev};
 
 	auto responseType = ev.response_type & ~0x80;
@@ -581,8 +576,6 @@ bool X11DataManager::processEvent(const xcb_generic_event_t& ev)
 bool X11DataManager::processClientMessage(const xcb_client_message_event_t& clientm,
 	const EventData& eventData)
 {
-	dlg_source("x11dm"_module, "processClientMessage"_scope);
-
 	if(clientm.type == atoms().xdndEnter) {
 		auto* data = clientm.data.data32;
 
@@ -751,7 +744,6 @@ bool X11DataManager::processClientMessage(const xcb_client_message_event_t& clie
 
 bool X11DataManager::processDndEvent(const xcb_generic_event_t& ev)
 {
-	dlg_source("x11dm"_module, "processDndEvent"_scope);
 	auto responseType = ev.response_type & ~0x80;
 	switch(responseType) {
 		case XCB_MOTION_NOTIFY: {
@@ -874,8 +866,6 @@ DataOffer* X11DataManager::clipboard()
 bool X11DataManager::startDragDrop(std::unique_ptr<DataSource> src)
 {
 	// TODO: better check, give up xdndselection ownership on fail
-	dlg_source("x11dm"_module, "startDnd"_scope);
-
 	// check if currently over window
 	if(!appContext().mouseContext()->over()) return false;
 
@@ -942,7 +932,7 @@ xcb_window_t X11DataManager::selectionOwner(xcb_atom_t selection)
 	xcb_window_t owner {};
 	if(error) {
 		auto msg = x11::errorMessage(appContext().xDisplay(), error->error_code);
-		ny_warn("::x11dm::selectionOwner"_src, "xcb_get_selection_owner: {}", msg);
+		ny_warn("xcb_get_selection_owner: {}", msg);
 		free(error);
 	}
 	else if(reply) {
@@ -957,7 +947,7 @@ void X11DataManager::unregisterDataOffer(const X11DataOffer& offer)
 {
 	auto end = std::remove(dndOffers_.begin(), dndOffers_.end(), &offer);
 	if(dndOffers_.end() == end) {
-		ny_warn("::x11dm::unregisterDataOffer"_src, "invalid offer {} given", (void*) &offer);
+		ny_warn("invalid offer {} given", (void*) &offer);
 		return;
 	}
 

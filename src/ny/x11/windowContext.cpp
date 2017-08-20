@@ -131,7 +131,6 @@ void X11WindowContext::createWindow(const X11WindowSettings& settings)
 
 void X11WindowContext::initVisual(const X11WindowSettings& settings)
 {
-	dlg_source("xwc"_module, "initVisual"_scope);
 	static constexpr auto novis = "ny::X11WindowContext::initVisual: ny no 24 or 32 bit visuals";
 	static constexpr auto nofound = "ny::X11WindowContext::initVisual: no matching visuals";
 
@@ -256,7 +255,7 @@ void X11WindowContext::cursor(const Cursor& curs)
 		auto xname = cursorToXName(curs.type());
 		if(!xname) {
 			auto cname = name(curs.type());
-			ny_warn("::xwc::cursor"_src "{} not supported", cname);
+			ny_warn("{} not supported", cname);
 			return;
 		}
 
@@ -345,7 +344,7 @@ void X11WindowContext::beginMove(const EventData* ev)
 
 	auto* xbev = dynamic_cast<const X11EventData*>(ev);
 	if(!xbev) {
-		ny_warn("::xwc::beginMove"_src, "no event data given");
+		ny_warn("beginMove: no event data given");
 		return;
 	}
 

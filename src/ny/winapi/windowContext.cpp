@@ -255,7 +255,6 @@ void WinapiWindowContext::position(nytl::Vec2i position)
 
 void WinapiWindowContext::cursor(const Cursor& cursor)
 {
-	dlg_source("::winwc::cursor"_src);
 	using winapi::errorMessage;
 
 	if(cursor.type() == CursorType::image) {
@@ -428,7 +427,7 @@ void WinapiWindowContext::icon(const Image& img)
 	auto pixelsData = data(uniqueImage);
 	icon_ = ::CreateIcon(hinstance(), img.size[0], img.size[1], 1, 32, nullptr, pixelsData);
 	if(!icon_) {
-		ny_warn("::winwc::icon"_src, winapi::errorMessage("CreateIcon"));
+		ny_warn(winapi::errorMessage("CreateIcon"));
 		return;
 	}
 

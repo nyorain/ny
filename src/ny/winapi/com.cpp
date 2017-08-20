@@ -116,8 +116,6 @@ DataOffer::FormatsRequest WinapiDataOffer::formats()
 
 DataOffer::DataRequest WinapiDataOffer::data(const DataFormat& format)
 {
-	dlg_source("::windo::data"_src);
-
 	HRESULT res = 0;
 	STGMEDIUM medium {};
 
@@ -212,7 +210,7 @@ HRESULT DropTargetImpl::DragOver(DWORD keyState, POINTL screenPos, DWORD* effect
 	helper_->DragOver(&windowPos, *effect);
 
 	if(!offer_.dataObject()) {
-		ny_warn("::DropTargetImpl::DragOver"_src, "no current drag data object");
+		ny_warn("no current drag data object");
 		return E_UNEXPECTED;
 	}
 
@@ -235,7 +233,7 @@ HRESULT DropTargetImpl::DragLeave()
 	helper_->DragLeave();
 
 	if(!offer_.dataObject()) {
-		ny_warn("::DropTargetImpl::DragLeave"_src, "no current drag data object");
+		ny_warn("no current drag data object");
 		return E_UNEXPECTED;
 	}
 
@@ -259,7 +257,7 @@ HRESULT DropTargetImpl::Drop(IDataObject* data, DWORD keyState, POINTL screenPos
 	helper_->Drop(data, &windowPos, *effect);
 
 	if(!data || offer_.dataObject().get() != data) {
-		ny_warn("::DropTargetImpl::Drop"_src, "current drop data object inconsistency");
+		ny_warn("current drop data object inconsistency");
 		return E_UNEXPECTED;
 	}
 
@@ -637,7 +635,6 @@ std::any fromStgMedium(const FORMATETC& from, const DataFormat& to, const STGMED
 
 STGMEDIUM toStgMedium(const DataFormat& from, const FORMATETC& to, const std::any& data)
 {
-	dlg_source("::winapi_com::toStgMedium"_src);
 	if(from == DataFormat::none || !to.cfFormat || !to.tymed || !data.has_value()) return {};
 
 	STGMEDIUM ret {};

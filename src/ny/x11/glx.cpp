@@ -35,7 +35,7 @@ bool loadExtensions(Display& dpy)
 		auto exts = ::glXQueryExtensionsString(&dpy, 0);
 
 		if(!client || !exts) {
-			ny_warn("::glx::loadExtensions:"_src, "failed to retrieve extension string");
+			ny_warn("failed to retrieve glx extension string");
 			return;
 		}
 
@@ -202,7 +202,7 @@ unsigned int GlxSetup::visualID(GlConfigID id) const
 {
 	auto glxfbc = glxConfig(id);
 	if(!glxfbc) {
-		ny_warn("::GlxSetup::visualID"_src, "invalid gl config id");
+		ny_warn("invalid gl config id");
 		return 0u;
 	}
 
@@ -229,11 +229,11 @@ GlxSurface::~GlxSurface()
 	if(isCurrent(&context)) {
 		std::error_code ec;
 		if(!context->makeNotCurrent(ec))
-			ny_warn("~GlxSurface"_scope, "failed not make not current: {}", ec.message());
+			ny_warn("failed not make not current: {}", ec.message());
 	}
 
 	if(isCurrentInAnyThread())
-		ny_error("~GlxSurface"_scope, "still current in another thread");
+		ny_error("still current in another thread");
 }
 
 bool GlxSurface::apply(std::error_code& ec) const
@@ -261,8 +261,6 @@ GlxContext::GlxContext(const GlxSetup& setup, GLXContext context, const GlConfig
 GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 	: setup_(setup)
 {
-	dlg_source("GlxContext()"_scope);
-
 	// test config
 	auto api = settings.api;
 	if(api == GlApi::gles && !hasProfileES) {
@@ -395,10 +393,10 @@ GlxContext::~GlxContext()
 	if(glxContext_) {
 		std::error_code ec;
 		if(!makeNotCurrent(ec))
-			ny_warn("~GlxContext"_scope, "failed to make context not current: {}", ec.message());
+			ny_warn("failed to make context not current: {}", ec.message());
 
 		if(isCurrentInAnyThread())
-			ny_error("~GlxContext"_scope, "still current in a thread. Can't do much about it");
+			ny_error("still current in a thread. Can't do much about it");
 
 		::glXDestroyContext(&xDisplay(), glxContext_);
 	}
@@ -430,7 +428,7 @@ bool GlxContext::swapInterval(int interval, std::error_code& ec) const
 	}
 
 	if(!hasSwapControlTear && interval < 0) {
-		ny_warn("::glx::swapInterval"_src, "negative interval, no swap_control_tear");
+		ny_warn("negative swap interval, no swap_control_tear");
 		ec = {GlContextErrc::extensionNotSupported};
 		return false;
 	}
@@ -496,7 +494,7 @@ GlxWindowContext::GlxWindowContext(X11AppContext& ac, const GlxSetup& setup,
 		if(settings.transparent) configid = setup.defaultTransparentConfig().id;
 		if(!configid) {
 			if(settings.transparent)
-				ny_warn("::glx::WindowContext"_src, "no transparent config");
+				ny_warn("no transparent glx window config");
 			configid = setup.defaultConfig().id;
 		}
 	}

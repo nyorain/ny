@@ -106,11 +106,11 @@ if enable_gl
 	ny_src += ['common/gl.cpp']
 endif
 
-if req_egl
+if enable_egl
 	ny_src += ['common/egl.cpp']
 endif
 
-if req_xkbcommon
+if dep_xkbcommon.found()
 	ny_src += ['common/xkb.cpp']
 endif
 

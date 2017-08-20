@@ -422,7 +422,7 @@ xcb_atom_t X11AppContext::atom(const std::string& name)
 		auto reply = xcb_intern_atom_reply(xConnection_, cookie, &error);
 		if(error) {
 			auto msg = x11::errorMessage(xDisplay(), error->error_code);
-			ny_warn("::xac::atom"_scope, "failed to retrieve atom {}: {}", name, msg);
+			ny_warn("failed to retrieve x11 atom {}: {}", name, msg);
 			free(error);
 			return 0u;
 		}
@@ -510,7 +510,7 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev)
 	case 0u: {
 			int code = reinterpret_cast<const xcb_generic_error_t&>(ev).error_code;
 			auto errorMsg = x11::errorMessage(xDisplay(), code);
-			ny_warn("::xac::processEvent"_src, "retrieved error code {}, {}", code, errorMsg);
+			ny_warn("retrieved error code {}, {}", code, errorMsg);
 
 			break;
 		}

@@ -64,18 +64,22 @@ Backend& Backend::choose()
 	WaylandBackend::initialize();
 #endif
 
-#ifdef NY_WithAndroid
-	AndroidBackend::initialize();
-#endif
+    // TODO
+// #ifdef NY_WithAndroid
+// 	AndroidBackend::initialize();
+// #endif
 
-	// choose
-	dlg_source("Backend"_module, "choose"_scope);
+	// choose the backend
+	dlg_tag("Backend", "choose");
 
 	static const std::string waylandString = "wayland";
 	static const std::string x11String = "x11";
 	static const std::string winapiString = "winapi";
 
 	auto* envBackend = std::getenv("NY_BACKEND");
+    if(envBackend) {
+        dlg_debug("NY_BACKEND was set to {}", envBackend);
+    }
 
 	auto bestScore = -1;
 	auto envFound = false;
@@ -91,8 +95,10 @@ Backend& Backend::choose()
 			continue;
 		}
 
-		if(envBackend && !std::strcmp(backend->name(), envBackend))
+		if(envBackend && !std::strcmp(backend->name(), envBackend)) {
+            ny_debug("Using available NY_BACKEND backend {}", envBackend);
 			return *backend;
+        }
 
 		// score is chosen this way since there might be x servers on winapi
 		// but no winapi on linux and we always want the native backend

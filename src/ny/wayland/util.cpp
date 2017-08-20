@@ -42,7 +42,7 @@ err1:
 	close(fd);
 
 err2:
-	ny_warn("::wayland::setCloexecOrClose"_src, "fctnl failed: {}", std::strerror(errno));
+	ny_warn("fctnl failed: {}", std::strerror(errno));
 	return -1;
 }
 

@@ -192,6 +192,10 @@ wayland backend:
 - WaylandErrorCategory new protocols!
 - improve xdg shell v6 support (position, better configure events, popups)
 	- min/max size (also implement this for other surface roles)
+- maybe there can be multiple over/focus surfaces
+- multi seat support (needs api addition)
+	- rework whole keyboardContext/mouseContext concept for multi seat
+	- allow them to disappear (add a signal)
 
 winapi backend:
 ---------------

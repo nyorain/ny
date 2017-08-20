@@ -13,6 +13,7 @@ op_enable_wayland = get_option('enable_wayland')
 op_enable_winapi = get_option('enable_winapi')
 op_enable_vulkan = get_option('enable_vulkan')
 op_enable_gl = get_option('enable_gl')
+op_enable_egl = get_option('enable_egl')
 examples = get_option('examples')
 
 # default arrguments
@@ -35,6 +36,16 @@ if build_machine.system() != 'windows'
 endif
 
 # auto option resolution
+# always required deps
+dep_threads = dependency('threads')
+dep_dlg = dependency('dlg', fallback: ['dlg', 'dlg_dep'])
+dep_nytl = dependency('nytl', fallback: ['nytl', 'nytl_dep'])
+
+deps = [
+	dep_threads,
+	dep_dlg,
+	dep_nytl]
+
 # winapi
 if op_enable_winapi == 'auto'
 	enable_winapi = build_machine.system() == 'windows'
@@ -42,37 +53,54 @@ else
 	enable_winapi = op_enable_winapi == 'true'
 endif
 
-# deps
-dep_threads = dependency('threads')
-dep_vulkan = dependency('vulkan', required: enable_vulkan)
-dep_xkbcommon = dependency('xkbcommon', required: req_xkbcommon)
-dep_gl = dependency('gl', required: enable_gl and (enable_x11 or enable_winapi))
-dep_egl = dependency('egl', required: req_egl)
+# vulkan
+if op_enable_vulkan == 'false'
+  enable_vulkan = false
+else
+  dep_vulkan = dependency('vulkan', required: op_enable_vulkan == 'true')
+  enable_vulkan = dep_vulkan.found()
+  deps += dep_vulkan
+endif
 
-dep_dlg = dependency('dlg', fallback: ['dlg', 'dlg_dep'])
-dep_nytl = dependency('nytl', fallback: ['nytl', 'nytl_dep'])
+# gl
+if op_enable_gl == 'false'
+  enable_gl = false
+else
+  dep_gl = dependency('gl', required: op_enable_gl == 'true')
+  enable_gl = dep_gl.found()
+  deps += dep_gl
+endif
 
-deps = [
-	dep_threads,
-	dep_xkbcommon,
-	dep_vulkan,
-	dep_gl,
-	dep_egl,
-	dep_dlg,
-	dep_nytl]
+# egl
+if op_enable_egl == 'false'
+  enable_egl = false
+else
+  dep_egl = dependency('egl', required: op_enable_egl == 'true')
+  enable_egl = dep_egl.found()
+  deps += dep_egl
+endif
 
-if enable_x11
-	dep_x11 = dependency('x11')
-	dep_x11xcb = dependency('x11-xcb')
-	dep_xcursor = dependency('xcursor')
-	dep_xcb = dependency('xcb')
-	dep_xcbewmh = dependency('xcb-ewmh')
-	dep_xcbicccm = dependency('xcb-icccm')
-	dep_xcbshm = dependency('xcb-shm')
-	dep_xcbxkb = dependency('xcb-xkb')
-	dep_xkbcommonx11 = dependency('xkbcommon-x11', required: req_xkbcommon)
+dep_xkbcommon = dependency('xkbcommon', required: false)
 
-	deps += [
+if op_enable_x11 == 'false'
+  enable_x11 = false
+else
+  req = op_enable_x11 == 'true'
+  if req and not depxkbcommon.found()
+    error('x11 backend requires xkbcommon')
+  endif
+
+	dep_x11 = dependency('x11', required: req)
+	dep_x11xcb = dependency('x11-xcb', required: req)
+	dep_xcursor = dependency('xcursor', required: req)
+	dep_xcb = dependency('xcb', required: req)
+	dep_xcbewmh = dependency('xcb-ewmh', required: req)
+	dep_xcbicccm = dependency('xcb-icccm', required: req)
+	dep_xcbshm = dependency('xcb-shm', required: req)
+	dep_xcbxkb = dependency('xcb-xkb', required: req)
+	dep_xkbcommonx11 = dependency('xkbcommon-x11', required: req)
+
+	x11_deps = [
 		dep_x11,
 		dep_x11xcb,
 		dep_xcursor,
@@ -81,6 +109,7 @@ if enable_x11
 		dep_xcbicccm,
 		dep_xcbshm,
 		dep_xcbxkb,
+    dep_xkbcommon,
 		dep_xkbcommonx11]
 
 	enable_x11 = true
@@ -92,17 +121,25 @@ if enable_x11
 
 	if enable_x11
 		deps += x11_deps
+
+    if enable_gl
+      deps += dep_gl
+    endif
 	endif
 endif
 
 # wayland
-if op_enable_wayland == 'false' or not dep_xcbcommon.found()
+if op_enable_wayland == 'false'
 	enable_wayland = false
 else
-	required = enable_wayland == 'true'
+	required = op_enable_wayland == 'true'
+  if required and not dep_xkbcommon.found()
+    error('wayland requires xkbcommon')
+  endif
+
 	dep_wl = dependency('wayland-client', required: required)
 	dep_wlcursor = dependency('wayland-cursor', required: required)
-	wl_deps += [dep_xkbcommon, dep_wl, dep_wlcursor]
+	wl_deps = [dep_xkbcommon, dep_wl, dep_wlcursor]
 
 	enable_wayland = true
 	foreach dep : wl_deps
@@ -113,6 +150,11 @@ else
 
 	if enable_wayland
 		deps += wl_deps
+
+    if enable_egl
+      deps += dep_egl
+      deps += dependency('wayland-egl')
+    endif
 	endif
 endif
 
@@ -120,50 +162,15 @@ endif
 if enable_winapi
 	deps += meson.get_compiler('cpp').find_library('Dwmapi')
 	deps += meson.get_compiler('cpp').find_library('Shlwapi')
+
+  if enable_gl
+    deps += dep_gl
+  endif
 endif
 
 if not enable_winapi and not enable_wayland and not enable_x11
 	message('WARNING: building ny without any valid backends')
 endif
-
-# gl
-if op_enable_gl == 'false'
-	enable_gl = false
-else
-	required = op_enable_gl == 'true'
-	if enable_winapi or enable_x11
-		dep_gl = dependency('gl', required: required)
-		enable_gl = dep_gl.found()
-		deps += dep_gl
-	endif
-	if enable_wayland
-		dep_egl = dependency('egl', required: required)
-		dep_wlegl += dependency('wayland-egl', required: required)
-		enable_gl = dep_egl.found() and dep_wlegl.found()
-		deps += dep_gl
-	endif
-endif
-
-# vulkan TODO
-if op_enable_vulkan == 'false'
-	enable_vulkan = false
-else
-	required = op_enable_vulkan == 'true'
-	dep_vulkan = dependency('vulkan', required)
-	enable_vulkan = dep_vulkan.found()
-	deps += dep_vulkan
-endif
-
-dep_dlg = dependency('dlg', fallback: ['dlg', 'dlg_dep'])
-dep_nytl = dependency('nytl', fallback: ['nytl', 'nytl_dep'])
-
-# common dependencies
-deps += [
-	dep_threads,
-	dep_gl,
-	dep_egl,
-	dep_dlg,
-	dep_nytl]
 
 ny_inc = include_directories('include')
 ny_inc_private = include_directories('src')

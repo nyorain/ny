@@ -125,8 +125,6 @@ LRESULT CALLBACK WinapiAppContext::dlgProcCallback(HWND a, UINT b, WPARAM c, LPA
 //WinapiAC
 WinapiAppContext::WinapiAppContext() : mouseContext_(*this), keyboardContext_(*this)
 {
-	dlg_source("winac"_module, "winac"_scope);
-
 	impl_ = std::make_unique<Impl>();
 	instance_ = ::GetModuleHandle(nullptr);
 
@@ -253,7 +251,7 @@ bool WinapiAppContext::dispatchLoop(LoopControl& control)
 
 		auto ret = ::GetMessage(&msg, nullptr, 0, 0);
 		if(ret == -1) {
-			ny_warn("::winac::dispatchLoop"_src, winapi::errorMessage("GetMessage"));
+			ny_warn(winapi::errorMessage("GetMessage"));
 			return false;
 		} else {
 			::DispatchMessage(&msg);
@@ -270,14 +268,14 @@ bool WinapiAppContext::clipboard(std::unique_ptr<DataSource>&& source)
 	try {
 		dataObj = new winapi::com::DataObjectImpl(std::move(source));
 	} catch(const std::exception& err) {
-		ny_warn("::winac::clipboard(set)"_src, "DataObject failed: ", err.what());
+		ny_warn("DataObject constructor failed: ", err.what());
 		return false;
 	}
 
 	auto ret = ::OleSetClipboard(dataObj);
 	if(ret == S_OK) return true;
 
-	ny_warn("::winac::clipboard(set):"_src, "OleSetClipboard failed with code {}", ret);
+	ny_warn("OleSetClipboard failed with code {}", ret);
 	return false;
 }
 
@@ -471,7 +469,7 @@ WglSetup* WinapiAppContext::wglSetup() const
 			try {
 				impl_->wglSetup = {dummyWindow_};
 			} catch(const std::exception& error) {
-				ny_warn("::winac::wglSetup"_src, "init failed: {}", error.what());
+				ny_warn("wgl init failed: {}", error.what());
 				impl_->wglFailed = true;
 				impl_->wglSetup = {};
 				return nullptr;

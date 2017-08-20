@@ -51,7 +51,7 @@ std::shared_timed_mutex errorCategoriesMutex; // TODO: C++17
 
 int xlibErrorHandler(Display* display, XErrorEvent* event) {
 	if(!event) {
-		ny_warn("::x11::xlibErrorHandler"_src, "null error event");
+		ny_warn("null x11 error event");
 		return 0;
 	}
 
@@ -59,7 +59,7 @@ int xlibErrorHandler(Display* display, XErrorEvent* event) {
 	auto lockGuard = nytl::ScopeGuard([&]{ errorCategoriesMutex.unlock_shared(); });
 	auto it = errorCategories.find(display);
 	if(it == errorCategories.end()) {
-		ny_warn("::x11::xlibErrorHandler"_src, "invalid display");
+		ny_warn("invalid x11 display");
 		return 0;
 	}
 
@@ -158,10 +158,10 @@ bool X11ErrorCategory::checkWarn(xcb_void_cookie_t cookie, std::string_view msg)
 		auto errorMsg = x11::errorMessage(*xDisplay_, e->error_code);
 
 		if(!msg.empty()) {
-			ny_warn("x11"_module, "error code {}, {}: {}",
+			ny_warn("error code {}, {}: {}",
 				(int) e->error_code, errorMsg, msg);
 		} else {
-			ny_warn("x11"_module, "error code {}, {}", (int) e->error_code, errorMsg);
+			ny_warn("error code {}, {}", (int) e->error_code, errorMsg);
 		}
 
 		free(e);

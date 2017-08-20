@@ -9,9 +9,9 @@ conf_data.set('NY_WithWayland', enable_wayland)
 conf_data.set('NY_WithWinapi', enable_winapi)
 conf_data.set('NY_WithX11', enable_x11)
 conf_data.set('NY_WithGl', enable_gl)
-conf_data.set('NY_WithEgl', req_egl)
+conf_data.set('NY_WithEgl', enable_egl)
 conf_data.set('NY_WithVulkan', enable_vulkan)
-conf_data.set('NY_WithXkbcommon', req_xkbcommon)
+conf_data.set('NY_WithXkbcommon', dep_xkbcommon.found())
 conf_data.set('NY_WithAndroid', false)
 
 configure_file(input: 'config.hpp.in',
@@ -20,7 +20,7 @@ configure_file(input: 'config.hpp.in',
                configuration: conf_data)
 
 # install headers
-# TODO: backend headers as well
+# TODO: backend headers as well?
 headers = [
 	'appContext.hpp',
 	'asyncRequest.hpp',

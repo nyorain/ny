@@ -148,7 +148,7 @@ void logHandler(const char* format, va_list vlist)
 	std::vsnprintf(&lastLogMessage[0], lastLogMessage.size(), format, vlistcopy);
 	va_end(vlistcopy);
 
-	ny_info("wayland"_module, "logHandler: {}", lastLogMessage);
+	ny_info("wayland error: {}", lastLogMessage);
 }
 
 // Listener entry to implement custom fd polling callbacks in WaylandAppContext.
@@ -188,8 +188,6 @@ struct WaylandAppContext::Impl {
 
 WaylandAppContext::WaylandAppContext()
 {
-	dlg_source("wlac"_module, "wlac()"_scope);
-
 	// listeners
 	using WAC = WaylandAppContext;
 	constexpr static wl_registry_listener registryListener = {
@@ -321,7 +319,7 @@ bool WaylandAppContext::dispatchEvents()
 		// otherwise handle the error
 		if(errno != EAGAIN) {
 			auto msg = std::strerror(errno);
-			ny_warn("::wlac::dispatchEvents"_src, "wl_display_flush: {}", msg);
+			ny_warn("wl_display_flush: {}", msg);
 		}
 	} else {
 		wl_display_read_events(wlDisplay_);
@@ -413,7 +411,7 @@ bool WaylandAppContext::startDragDrop(std::unique_ptr<DataSource>&& dataSource)
 	try {
 		dndSource_ = std::make_unique<WaylandDataSource>(*this, std::move(dataSource), true);
 	} catch(const std::exception& error) {
-		ny_warn("::wlac::startDragDrop"_src, "WaylandDataSource threw: {}", error.what());
+		ny_warn("WaylandDataSource threw: {}", error.what());
 		return false;
 	}
 
@@ -454,7 +452,7 @@ EglSetup* WaylandAppContext::eglSetup() const
 			try {
 				impl_->eglSetup = {static_cast<void*>(&wlDisplay())};
 			} catch(const std::exception& error) {
-				ny_warn("::wlac::eglSetup"_src, "initialization failed: {}", error.what());
+				ny_warn("initialization failed: {}", error.what());
 				impl_->eglFailed = true;
 				impl_->eglSetup = {};
 				return nullptr;
@@ -545,7 +543,7 @@ void WaylandAppContext::destroyDataSource(const WaylandDataSource& src)
 {
 	if(&src == dndSource_.get()) dndSource_.reset();
 	else if(&src == clipboardSource_.get()) dndSource_.reset();
-	else ny_warn("::wlac::destroyDataSource"_src, "invalid data source");
+	else ny_warn("invalid data source object to destroy");
 }
 
 bool WaylandAppContext::dispatchDisplay()
@@ -624,7 +622,7 @@ int WaylandAppContext::pollFds(short wlDisplayEvents, int timeout)
 
 	auto ret = noSigPoll(*fds.data(), fds.size(), timeout);
 	if(ret < 0) {
-		ny_info("::wlac::pollFds"_src, "poll failed: {}", std::strerror(errno));
+		ny_info("poll failed: {}", std::strerror(errno));
 		return ret;
 	}
 
@@ -757,7 +755,7 @@ void WaylandAppContext::handleSeatCapabilities(wl_seat*, uint32_t caps)
 	if((caps & WL_SEAT_CAPABILITY_POINTER) && !mouseContext_) {
 		mouseContext_ = std::make_unique<WaylandMouseContext>(*this, *wlSeat());
 	} else if (!(caps & WL_SEAT_CAPABILITY_POINTER) && mouseContext_) {
-		ny_info("wlac"_module, "lost wl_pointer");
+		ny_info("lost wl_pointer");
 		mouseContext_.reset();
 	}
 
@@ -765,7 +763,7 @@ void WaylandAppContext::handleSeatCapabilities(wl_seat*, uint32_t caps)
 	if((caps & WL_SEAT_CAPABILITY_KEYBOARD) && !keyboardContext_) {
 		keyboardContext_ = std::make_unique<WaylandKeyboardContext>(*this, *wlSeat());
 	} else if(!(caps & WL_SEAT_CAPABILITY_KEYBOARD) && keyboardContext_) {
-		ny_info("wlac"_module, "lost wl_keyboard");
+		ny_info("lost wl_keyboard");
 		keyboardContext_.reset();
 	}
 }

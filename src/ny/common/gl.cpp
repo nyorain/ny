@@ -180,7 +180,7 @@ GlSurface::~GlSurface()
 	// it not current (in which case - if it did not raise an error - we can try to ignore it).
 	GlContext* context {};
 	if(isCurrent(&context)) {
-		ny_warn("~GlSurface"_scope, "current in calling thread!");
+		ny_warn("surface current in calling thread!");
 
 		std::shared_mutex* mutex;
 		auto& map = contextCurrentMap(mutex);
@@ -203,7 +203,7 @@ GlSurface::~GlSurface()
 		if(entry.second.second == this) {
 			// we will probably not recover from this
 			// the surface was destroyed in another thread than it was made current in
-			ny_error("~GlSurface"_scope, "current in another thread");
+			ny_error("surface current in another thread");
 			entry.second = {nullptr, nullptr};
 		}
 	}
@@ -270,7 +270,7 @@ GlContext::~GlContext()
 	// either the implementation is leaking or destroyed the context without making
 	// it not current (in which case - if it did not raise an error - we can try to ignore it).
 	if(isCurrent()) {
-		ny_warn("~GlContext"_scope, "context is current on destruction");
+		ny_warn("context is current on destruction");
 
 		std::shared_mutex* mutex;
 		auto& map = contextCurrentMap(mutex);
@@ -293,7 +293,7 @@ GlContext::~GlContext()
 				// we will probably not recover from this, this just cleans
 				// up the logical state. The context was destroyed
 				// in another thread as it is still current in
-				ny_error("~GlContext"_scope, "current in another thread");
+				ny_error("context current in another thread");
 				entry.second = {nullptr, nullptr};
 			}
 		}
@@ -495,7 +495,7 @@ GlCurrentGuard::~GlCurrentGuard()
 	try {
 		context.makeNotCurrent();
 	} catch(const std::exception& exception) {
-		ny_warn("~GlCurrentGuard"_scope, "makeNotCurrent failed: {}", exception.what());
+		ny_warn("makeNotCurrent failed: {}", exception.what());
 	}
 }
 

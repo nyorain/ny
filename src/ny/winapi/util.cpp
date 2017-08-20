@@ -343,8 +343,6 @@ HBITMAP toBitmap(const Image& img)
 
 UniqueImage toImage(HBITMAP hbitmap)
 {
-	dlg_source("::winapi::toImage"_src);
-
 	auto hdc = ::GetDC(nullptr);
 	auto hdcGuard = nytl::ScopeGuard([&]{ ::ReleaseDC(nullptr, hdc); });
 

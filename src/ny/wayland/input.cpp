@@ -117,7 +117,7 @@ void WaylandMouseContext::handleLeave(wl_pointer*, uint32_t serial, wl_surface* 
 	WaylandEventData eventData(serial);
 
 	auto wc = appContext_.windowContext(*surface);
-	if(wc != over_) ny_warn("::WlMouseContext::handleLeave"_src, "'over_' inconsistency");
+	if(wc != over_) ny_warn("'over_' inconsistency");
 
 	if(over_) onFocus(*this, over_, nullptr);
 	if(wc) {
@@ -237,8 +237,6 @@ bool WaylandKeyboardContext::withKeymap()
 }
 void WaylandKeyboardContext::handleKeymap(wl_keyboard*, uint32_t format, int32_t fd, uint32_t size)
 {
-	dlg_source("wlkc"_module, "handleKeymap"_scope);
-
 	// always close the give fd
 	auto fdGuard = nytl::ScopeGuard([=]{ if(fd) close(fd); });
 
@@ -314,7 +312,7 @@ void WaylandKeyboardContext::handleLeave(wl_keyboard*, uint32_t serial, wl_surfa
 	WaylandEventData eventData(serial);
 
 	auto* wc = appContext_.windowContext(*surface);
-	if(wc != focus_) ny_warn("::WlKeyboardContext::handleLeave"_src, "'focus_' inconsistency");
+	if(wc != focus_) ny_warn("'focus_' inconsistency");
 
 	if(wc) {
 		onFocus(*this, wc, nullptr);

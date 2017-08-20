@@ -168,7 +168,7 @@ nytl::Vec2i X11MouseContext::position() const
 
 	if(error) {
 		auto msg = x11::errorMessage(appContext_.xDisplay(), error->error_code);
-		ny_warn("::X11MouseContext::position"_src, "xcb_query_pointer: {}", msg);
+		ny_warn("xcb_query_pointer: {}", msg);
 		free(error);
 		return {};
 	}
@@ -204,7 +204,7 @@ X11KeyboardContext::X11KeyboardContext(X11AppContext& ac) : appContext_(ac)
 		XKB_X11_MIN_MINOR_XKB_VERSION, XKB_X11_SETUP_XKB_EXTENSION_NO_FLAGS,
 		&major, &minor, &eventType_, nullptr);
 	if(!ret) throw std::runtime_error("X11KC: Failed to setup xkb extension");
-	// ny_debug("x11kc()"_scope, "xkb version {}.{}", major, minor);
+	// ny_debug("xkb version {}.{}", major, minor);
 
 	auto devid = xkb_x11_get_core_keyboard_device_id(&xconn);
 	auto flags = XKB_KEYMAP_COMPILE_NO_FLAGS;

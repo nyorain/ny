@@ -18,7 +18,7 @@ WaylandBufferSurface::WaylandBufferSurface(WaylandWindowContext& wc) : windowCon
 
 WaylandBufferSurface::~WaylandBufferSurface()
 {
-	if(active_) ny_warn("~WlBufferSurface"_scope, "there is still an active BufferGuard");
+	if(active_) ny_warn("there is still an active BufferGuard");
 }
 
 BufferGuard WaylandBufferSurface::buffer()
@@ -51,7 +51,7 @@ BufferGuard WaylandBufferSurface::buffer()
 void WaylandBufferSurface::apply(const BufferGuard& buffer) noexcept
 {
 	if(!active_ || buffer.get().data != &active_->data()) {
-		ny_warn("::WlBufferSurface::apply"_src, "invalid BufferGuard given");
+		ny_warn("invalid BufferGuard given");
 		return;
 	}
 

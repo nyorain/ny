@@ -15,7 +15,7 @@ WinapiBufferSurface::WinapiBufferSurface(WinapiWindowContext& wc) : windowContex
 WinapiBufferSurface::~WinapiBufferSurface()
 {
 	if(active_)
-		ny_warn("::winbs::~winbs"_src, "there is still an active BufferGuard");
+		ny_warn("there is still an active BufferGuard");
 }
 
 BufferGuard WinapiBufferSurface::buffer()
