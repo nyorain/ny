@@ -1,0 +1,27 @@
+os: Visual Studio 2015
+
+environment:
+  matrix:
+    - arch: x64
+      compiler: MinGW-w64
+
+platform:
+  - x64
+
+install:
+    # install mingw 7.1
+  - appveyor-retry appveyor DownloadFile http://downloads.sourceforge.net/mingw-w64/x86_64-7.1.0-release-posix-seh-rt_v5-rev0.7z
+  - 7z x x86_64-7.1.0-release-posix-seh-rt_v5-rev0.7z -oc:\mingw > nul
+    # install ninja
+  - appveyor-retry appveyor DownloadFile "https://github.com/ninja-build/ninja/releases/download/v1.6.0/ninja-win.zip" -FileName ninja.zip
+  - 7z x ninja.zip -oC:\ninja > nul
+    # update the path and show information
+  - set PATH=C:\ninja;C:\mingw\mingw64\bin;C:\Python34\scripts;C:Python34;%PATH%
+  - ninja --version
+    # install meson
+  - pip3 install meson
+
+build_script:
+  - echo Building on %arch% with %compiler%
+  - meson.py --backend=ninja -Dexamples=true build
+  - ninja -C build
