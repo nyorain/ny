@@ -2,11 +2,21 @@
 
 ### priority
 
-- move the cpp examples out of android folder
-	- use mainlined examples (fix them to work for ALL (android!) platforms)
-	- possibility to even unify cmake?
-		- maybe just if(Android) section that add apk.cmake stuff (?!)
+- clean this file up (it really needs work -> docs)
+- after some cleanups (+important fixes): release first alpha (clear roadmap?)
+	- think about api/abi guarantees to give
+	- improve docs/make gen doc pages?
+- fix android
+	- add meson support, port own apk.cmake
+	- move the cpp examples out of android folder
+		- use mainlined examples (fix them to work for ALL (android!) platforms)
+- WindowContext framecallback events? Could be useful on android/wayland
+	- shows the application when it can render again. Would be even really useful
+		for games. Can this be achieved on windows (it pretty sure cannot on x11)
+- add WindowContext capability 'surfaceEvent' to signal it might send surface destroyed events?
 - fix x11 backend (see backend todo)
+- WindowContext destroy event? Called in the listener when the windowContext exists no more?
+	- rework destruction/closing of windows?
 - dataExchange: correctly handle utf-8 mimetype
 	- only pass utf-8 to the application
 - WindowListener::surfaceDestroyed: output warning on default implementation?
@@ -137,6 +147,8 @@ low prio, for later:
 
 - some common util file/dir for e.g. ConnectionList and LoopInterfaceGuard
 	(both not really public include where they are atm, both not really src)
+- toy around with additional backends e.g. drm
+	- mainly to make sure it is possible with the current abstraction
 - LoopControl: callIn implementation (combines timer and function call)
 	- can be merged with call function by using `now` as special time value
 - touch support (TouchContext and touch events)
@@ -168,6 +180,7 @@ x11 backend:
 - selections and xdnd improvements (see x11/dataExchange header/source TODO)
 	- X11DataSource constructor: check for uri list one file -> filename target format
 	- dnd image window
+	- https://git.blender.org/gitweb/gitweb.cgi/blender.git/blob/HEAD:/extern/xdnd/xdnd.c
 - correct error handling (for xlib calls e.g. glx use an error handle in X11AppContext or util)
 	- glx: don't log every error but instead only output error list on total failure?
 - beginResize/beginMove bug
@@ -187,6 +200,9 @@ wayland backend:
 - animated cursor (low prio)
 - support xdg popup (and version 6), other protocols (low prio)
 - ShmBuffer shm_pool shared (not one per buffer...)
+- fix/simplify data exchange. Formats probably not async
+	- fix data retrieving/sending (make sure it always works, even if splitted and stuff)
+	- when exactly can we close the fd we read from? check for EOF. Don't block!
 - handle window hints correctly (at least try somehow)
 - correct capabilites
 - WaylandErrorCategory new protocols!
