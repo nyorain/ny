@@ -191,8 +191,8 @@ WaylandAppContext::WaylandAppContext()
 	// listeners
 	using WAC = WaylandAppContext;
 	constexpr static wl_registry_listener registryListener = {
-		memberCallback<decltype(&WAC::handleRegistryAdd), &WAC::handleRegistryAdd>,
-		memberCallback<decltype(&WAC::handleRegistryRemove), &WAC::handleRegistryRemove>
+		memberCallback<&WAC::handleRegistryAdd>,
+		memberCallback<&WAC::handleRegistryRemove>
 	};
 
 	// connect to the wayland displa and retrieve the needed objects
@@ -627,9 +627,8 @@ int WaylandAppContext::pollFds(short wlDisplayEvents, int timeout)
 	// fds.size() > ids.size() always true
 	for(auto i = 0u; i < ids.size(); ++i) {
 		if(!fds[i].revents) continue;
-		for(auto& callback : impl_->fdCallbacks.items)
-		{
-			if(callback.clID_ != ids[i]) continue;
+		for(auto& callback : impl_->fdCallbacks.items) {
+			if(callback.clID_.get() != ids[i].get()) continue;
 			nytl::Connection conn(impl_->fdCallbacks, callback.clID_);
 			callback.callback(conn, fds[i].fd, fds[i].revents);
 			break;
@@ -651,20 +650,20 @@ void WaylandAppContext::handleRegistryAdd(wl_registry*, uint32_t id, const char*
 	// they must be added instantly, otherwise we will miss initial events
 	using WAC = WaylandAppContext;
 	constexpr static wl_shm_listener shmListener {
-		memberCallback<decltype(&WAC::handleShmFormat), &WAC::handleShmFormat>
+		memberCallback<&WAC::handleShmFormat>
 	};
 
 	constexpr static wl_seat_listener seatListener {
-		memberCallback<decltype(&WAC::handleSeatCapabilities), &WAC::handleSeatCapabilities>,
-		memberCallback<decltype(&WAC::handleSeatName), &WAC::handleSeatName>
+		memberCallback<&WAC::handleSeatCapabilities>,
+		memberCallback<&WAC::handleSeatName>
 	};
 
 	constexpr static xdg_shell_listener xdgShellV5Listener {
-		memberCallback<decltype(&WAC::handleXdgShellV5Ping), &WAC::handleXdgShellV5Ping>
+		memberCallback<&WAC::handleXdgShellV5Ping>
 	};
 
 	constexpr static zxdg_shell_v6_listener xdgShellV6Listener {
-		memberCallback<decltype(&WAC::handleXdgShellV6Ping), &WAC::handleXdgShellV6Ping>
+		memberCallback<&WAC::handleXdgShellV6Ping>
 	};
 
 	// the supported interface versions by ny (for stable protocols)

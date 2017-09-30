@@ -191,7 +191,7 @@ void ShmBuffer::create()
 	buffer_ = wl_shm_pool_create_buffer(pool_, 0, size_[0], size_[1], stride_, format_);
 
 	static constexpr wl_buffer_listener listener {
-		memberCallback<decltype(&ShmBuffer::released), &ShmBuffer::released>
+		memberCallback<&ShmBuffer::released>
 	};
 
 	wl_buffer_add_listener(buffer_, &listener, this);
@@ -230,10 +230,10 @@ Output::Output(WaylandAppContext& ac, wl_output& outp, unsigned int id)
 	: appContext_(&ac), wlOutput_(&outp), globalID_(id)
 {
 	static constexpr wl_output_listener listener {
-		memberCallback<decltype(&Output::geometry), &Output::geometry>,
-		memberCallback<decltype(&Output::mode), &Output::mode>,
-		memberCallback<decltype(&Output::done), &Output::done>,
-		memberCallback<decltype(&Output::scale), &Output::scale>
+		memberCallback<&Output::geometry>,
+		memberCallback<&Output::mode>,
+		memberCallback<&Output::done>,
+		memberCallback<&Output::scale>
 	};
 
 	wl_output_add_listener(&outp, &listener, this);

@@ -192,27 +192,19 @@ struct MemberCallback<F, f, void(Args...), true> {
 
 } // namespace detail
 
+// TODO: does not belong here... rather some common util file
 /// Can be used to implement wayland callbacks directly to member functions.
 /// Does only work if the first parameter of the callback is a void* userdata pointer and
 /// the pointer holds the object of which the given member function should be called.
 /// Note that while the same could (usually) also be achieved by just casting the
 /// member function pointer to a non-member function pointer taking a void* pointer,
 /// this way is C++ standard conform and should also not have any call real overhead.
-/// \tparam F The type of the member callback function. This template parameter
-/// can be avoided by using <auto f> in C++17.
 /// \tparam f The member callback function.
-/// \tparam S The original callback signature. Since the actually passed callback function
-/// can take less parameters than the wayland listener function takes (nytl::CompatibleFunction is
-/// used to achieve parameter mapping at compile time) this parameter should be the
-/// Signature the raw listener function (i.e. the function returnd by this expression) should
-/// have.
+/// \tparam S The original callback signature. Allows small differences to the
+/// signature of f.
 /// |tparam L Whether the object void pointer is the last parameter instead of the first.
-template<typename F, F f, typename S = typename nytl::FunctionTraits<F>::Signature, bool L = false>
-auto constexpr memberCallback = &detail::MemberCallback<std::decay_t<F>, f, S, L>::call;
-
-// TODO: C++17
-// template<auto f>
-// constexpr auto memberCallback = &detail::MemberCallback<std::decay_t<decltype(f)>, f>::call;
+template<auto f, typename S = typename nytl::FunctionTraits<decltype(f)>::Signature, bool L = false>
+constexpr auto memberCallback = &detail::MemberCallback<std::decay_t<decltype(f)>, f, S, L>::call;
 
 // TODO: does not belong here... rather some common util file
 /// Utility template that allows a generic list of connectable objects.
@@ -232,7 +224,7 @@ public:
 	bool disconnect(const nytl::ConnectionID& id) override
 	{
 		for(auto it = items.begin(); it != items.end(); ++it) {
-			if(it->clID_ == id) {
+			if(it->clID_.get() == id.get()) {
 				items.erase(it);
 				return true;
 			}
@@ -245,7 +237,7 @@ public:
 	{
 		items.emplace_back();
 		static_cast<T&>(items.back()) = value;
-		items.back().clID_ = nextID();
+		items.back().clID_ = {nextID()};
 		return {*this, items.back().clID_};
 	}
 

@@ -403,10 +403,10 @@ WglContext::~WglContext()
 	if(wglContext_) {
 		std::error_code ec;
 		if(!makeNotCurrent(ec))
-			dlg_warn("failed to make the context not current: {}", ec.message());
+			dlg_warn("~WglContext: failed to make the context not current: {}", ec.message());
 
 		if(isCurrentInAnyThread())
-			ny_error("still current in another thread");
+			dlg_error("~WglContext: still current in another thread");
 
 		::wglDeleteContext(wglContext_);
 	}

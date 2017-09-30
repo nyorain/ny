@@ -27,15 +27,15 @@ WaylandMouseContext::WaylandMouseContext(WaylandAppContext& ac, wl_seat& seat)
 {
 	using WMC = WaylandMouseContext;
 	constexpr static wl_pointer_listener listener = {
-		memberCallback<decltype(&WMC::handleEnter), &WMC::handleEnter>,
-		memberCallback<decltype(&WMC::handleLeave), &WMC::handleLeave>,
-		memberCallback<decltype(&WMC::handleMotion), &WMC::handleMotion>,
-		memberCallback<decltype(&WMC::handleButton), &WMC::handleButton>,
-		memberCallback<decltype(&WMC::handleAxis), &WMC::handleAxis>,
-		memberCallback<decltype(&WMC::handleFrame), &WMC::handleFrame>,
-		memberCallback<decltype(&WMC::handleAxisSource), &WMC::handleAxisSource>,
-		memberCallback<decltype(&WMC::handleAxisStop), &WMC::handleAxisStop>,
-		memberCallback<decltype(&WMC::handleAxisDiscrete), &WMC::handleAxisDiscrete>,
+		memberCallback<&WMC::handleEnter>,
+		memberCallback<&WMC::handleLeave>,
+		memberCallback<&WMC::handleMotion>,
+		memberCallback<&WMC::handleButton>,
+		memberCallback<&WMC::handleAxis>,
+		memberCallback<&WMC::handleFrame>,
+		memberCallback<&WMC::handleAxisSource>,
+		memberCallback<&WMC::handleAxisStop>,
+		memberCallback<&WMC::handleAxisDiscrete>,
 	};
 
 	wlPointer_ = wl_seat_get_pointer(&seat);
@@ -202,12 +202,12 @@ WaylandKeyboardContext::WaylandKeyboardContext(WaylandAppContext& ac, wl_seat& s
 {
 	using WKC = WaylandKeyboardContext;
 	constexpr static wl_keyboard_listener listener = {
-		memberCallback<decltype(&WKC::handleKeymap), &WKC::handleKeymap>,
-		memberCallback<decltype(&WKC::handleEnter), &WKC::handleEnter>,
-		memberCallback<decltype(&WKC::handleLeave), &WKC::handleLeave>,
-		memberCallback<decltype(&WKC::handleKey), &WKC::handleKey>,
-		memberCallback<decltype(&WKC::handleModifiers), &WKC::handleModifiers>,
-		memberCallback<decltype(&WKC::handleRepeatInfo), &WKC::handleRepeatInfo>,
+		memberCallback<&WKC::handleKeymap>,
+		memberCallback<&WKC::handleEnter>,
+		memberCallback<&WKC::handleLeave>,
+		memberCallback<&WKC::handleKey>,
+		memberCallback<&WKC::handleModifiers>,
+		memberCallback<&WKC::handleRepeatInfo>,
 	};
 
 	wlKeyboard_ = wl_seat_get_keyboard(&seat);

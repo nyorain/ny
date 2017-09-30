@@ -97,11 +97,9 @@ void WaylandWindowContext::createShellSurface(const WaylandWindowSettings& ws)
 {
 	using WWC = WaylandWindowContext;
 	constexpr static wl_shell_surface_listener shellSurfaceListener = {
-		memberCallback<decltype(&WWC::handleShellSurfacePing), &WWC::handleShellSurfacePing>,
-		memberCallback<decltype(&WWC::handleShellSurfaceConfigure),
-			&WWC::handleShellSurfaceConfigure>,
-		memberCallback<decltype(&WWC::handleShellSurfacePopupDone),
-			&WWC::handleShellSurfacePopupDone>
+		memberCallback<&WWC::handleShellSurfacePing>,
+		memberCallback<&WWC::handleShellSurfaceConfigure>,
+		memberCallback<&WWC::handleShellSurfacePopupDone>
 	};
 
 	wlShellSurface_ = wl_shell_get_shell_surface(appContext().wlShell(), wlSurface_);
@@ -121,10 +119,8 @@ void WaylandWindowContext::createXdgSurfaceV5(const WaylandWindowSettings& ws)
 {
 	using WWC = WaylandWindowContext;
 	constexpr static xdg_surface_listener xdgSurfaceListener = {
-		memberCallback<decltype(&WWC::handleXdgSurfaceV5Configure),
-			&WWC::handleXdgSurfaceV5Configure>,
-		memberCallback<decltype(&WWC::handleXdgSurfaceV5Close),
-			&WWC::handleXdgSurfaceV5Close>
+		memberCallback<&WWC::handleXdgSurfaceV5Configure>,
+		memberCallback<&WWC::handleXdgSurfaceV5Close>
 	};
 
 	xdgSurfaceV5_ = xdg_shell_get_xdg_surface(appContext().xdgShellV5(), wlSurface_);
@@ -145,15 +141,12 @@ void WaylandWindowContext::createXdgSurfaceV6(const WaylandWindowSettings& ws)
 {
 	using WWC = WaylandWindowContext;
 	constexpr static zxdg_surface_v6_listener xdgSurfaceListener = {
-		memberCallback<decltype(&WWC::handleXdgSurfaceV6Configure),
-			&WWC::handleXdgSurfaceV6Configure>
+		memberCallback< &WWC::handleXdgSurfaceV6Configure>
 	};
 
 	constexpr static zxdg_toplevel_v6_listener xdgToplevelListener = {
-		memberCallback<decltype(&WWC::handleXdgToplevelV6Configure),
-			&WWC::handleXdgToplevelV6Configure>,
-		memberCallback<decltype(&WWC::handleXdgToplevelV6Close),
-			&WWC::handleXdgToplevelV6Close>
+		memberCallback<&WWC::handleXdgToplevelV6Configure>,
+		memberCallback<&WWC::handleXdgToplevelV6Close>
 	};
 
 	// create the xdg surface
@@ -191,8 +184,7 @@ void WaylandWindowContext::createXdgPopupV5(const WaylandWindowSettings& ws)
 
 	using WWC = WaylandWindowContext;
 	constexpr static xdg_popup_listener xdgPopupListener = {
-		memberCallback<decltype(&WWC::handleXdgPopupV5Done), &WWC::handleXdgPopupV5Done,
-			void(xdg_popup*)>
+		memberCallback<&WWC::handleXdgPopupV5Done>
 	};
 
 	wl_surface* parent {};
@@ -216,13 +208,12 @@ void WaylandWindowContext::createXdgPopupV6(const WaylandWindowSettings& ws)
 
 	using WWC = WaylandWindowContext;
 	constexpr static zxdg_surface_v6_listener xdgSurfaceListener = {
-		memberCallback<decltype(&WWC::handleXdgSurfaceV6Configure),
-			&WWC::handleXdgSurfaceV6Configure>
+		memberCallback<&WWC::handleXdgSurfaceV6Configure>
 	};
 
 	constexpr static zxdg_popup_v6_listener xdgPopupListener = {
-		memberCallback<decltype(&WWC::handleXdgPopupV6Configure), &WWC::handleXdgPopupV6Configure>,
-		memberCallback<decltype(&WWC::handleXdgPopupV6Done), &WWC::handleXdgPopupV6Done>
+		memberCallback<&WWC::handleXdgPopupV6Configure>,
+		memberCallback<&WWC::handleXdgPopupV6Done>
 	};
 
 	// create the xdg surface
@@ -549,7 +540,7 @@ void WaylandWindowContext::attachCommit(wl_buffer* buffer)
 {
 	using WWC = WaylandWindowContext;
 	static constexpr wl_callback_listener frameListener {
-		memberCallback<decltype(&WWC::handleFrameCallback), &WWC::handleFrameCallback>
+		memberCallback<&WWC::handleFrameCallback>
 	};
 
 	frameCallback_ = wl_surface_frame(wlSurface_);

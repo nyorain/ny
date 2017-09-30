@@ -60,10 +60,9 @@ WaylandDataOffer::WaylandDataOffer(WaylandAppContext& ac, wl_data_offer& wlDataO
 	: appContext_(&ac), wlDataOffer_(&wlDataOffer)
 {
 	static constexpr wl_data_offer_listener listener {
-		memberCallback<decltype(&WaylandDataOffer::offer), &WaylandDataOffer::offer>,
-		memberCallback<decltype(&WaylandDataOffer::sourceActions),
-			&WaylandDataOffer::sourceActions>,
-		memberCallback<decltype(&WaylandDataOffer::action), &WaylandDataOffer::action>
+		memberCallback<&WaylandDataOffer::offer>,
+		memberCallback<&WaylandDataOffer::sourceActions>,
+		memberCallback<&WaylandDataOffer::action>
 	};
 
 	wl_data_offer_add_listener(&wlDataOffer, &listener, this);
@@ -239,12 +238,12 @@ WaylandDataSource::WaylandDataSource(WaylandAppContext& ac, std::unique_ptr<Data
 
 	using WDS = WaylandDataSource;
 	static constexpr wl_data_source_listener listener = {
-		memberCallback<decltype(&WDS::target), &WDS::target, void(wl_data_source*, const char*)>,
-		memberCallback<decltype(&WDS::send), &WDS::send, void(wl_data_source*, const char*, int)>,
-		memberCallback<decltype(&WDS::cancelled), &WDS::cancelled, void(wl_data_source*)>,
-		memberCallback<decltype(&WDS::dndPerformed), &WDS::dndPerformed, void(wl_data_source*)>,
-		memberCallback<decltype(&WDS::dndFinished), &WDS::dndFinished, void(wl_data_source*)>,
-		memberCallback<decltype(&WDS::action), &WDS::action, void(wl_data_source*, unsigned int)>,
+		memberCallback<&WDS::target>,
+		memberCallback<&WDS::send>,
+		memberCallback<&WDS::cancelled>,
+		memberCallback<&WDS::dndPerformed>,
+		memberCallback<&WDS::dndFinished>,
+		memberCallback<&WDS::action>,
 	};
 
 	wl_data_source_add_listener(wlDataSource_, &listener, this);
@@ -375,12 +374,12 @@ WaylandDataDevice::WaylandDataDevice(WaylandAppContext& ac) : appContext_(&ac)
 
 	using WDD = WaylandDataDevice;
 	static constexpr wl_data_device_listener listener = {
-		memberCallback<decltype(&WDD::offer), &WDD::offer>,
-		memberCallback<decltype(&WDD::enter), &WDD::enter>,
-		memberCallback<decltype(&WDD::leave), &WDD::leave>,
-		memberCallback<decltype(&WDD::motion), &WDD::motion>,
-		memberCallback<decltype(&WDD::drop), &WDD::drop>,
-		memberCallback<decltype(&WDD::selection), &WDD::selection>
+		memberCallback<&WDD::offer>,
+		memberCallback<&WDD::enter>,
+		memberCallback<&WDD::leave>,
+		memberCallback<&WDD::motion>,
+		memberCallback<&WDD::drop>,
+		memberCallback<&WDD::selection>
 	};
 
 	wl_data_device_add_listener(wlDataDevice_, &listener, this);

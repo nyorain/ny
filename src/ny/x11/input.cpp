@@ -204,7 +204,7 @@ X11KeyboardContext::X11KeyboardContext(X11AppContext& ac) : appContext_(ac)
 		XKB_X11_MIN_MINOR_XKB_VERSION, XKB_X11_SETUP_XKB_EXTENSION_NO_FLAGS,
 		&major, &minor, &eventType_, nullptr);
 	if(!ret) throw std::runtime_error("X11KC: Failed to setup xkb extension");
-	// ny_debug("xkb version {}.{}", major, minor);
+	// dlg_debug("xkb version {}.{}", major, minor);
 
 	auto devid = xkb_x11_get_core_keyboard_device_id(&xconn);
 	auto flags = XKB_KEYMAP_COMPILE_NO_FLAGS;
