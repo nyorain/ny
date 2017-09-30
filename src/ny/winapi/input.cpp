@@ -142,6 +142,10 @@ bool WinapiMouseContext::processEvent(const WinapiEventData& eventData, LRESULT&
 // KeyboardContext
 WinapiKeyboardContext::WinapiKeyboardContext(WinapiAppContext& context) : context_(context)
 {
+	// TODO: load them in an extra function,
+	//  and store the current ::GetKeyboardLayout()
+	//  in this.utf8() check ::GetKeyboardLayout() is still the same,
+	//  otherwise refresh
 	wchar_t unicode[16] {};
 	unsigned char state[256] {};
 	auto decimalScancode = ::MapVirtualKey(VK_DECIMAL, MAPVK_VK_TO_VSC);

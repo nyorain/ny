@@ -13,6 +13,7 @@
 #include <nytl/utf.hpp>
 #include <nytl/scope.hpp>
 #include <nytl/span.hpp>
+#include <nytl/tmpUtil.hpp>
 
 #include <Shlobj.h>
 #include <Shlwapi.h>
