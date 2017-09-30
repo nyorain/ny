@@ -5,8 +5,8 @@
 #include <ny/x11/bufferSurface.hpp>
 #include <ny/x11/appContext.hpp>
 #include <ny/x11/util.hpp>
-#include <ny/log.hpp>
 #include <nytl/vecOps.hpp>
+#include <dlg/dlg.hpp>
 
 #include <xcb/xcb_image.h>
 #include <xcb/shm.h>
@@ -75,12 +75,12 @@ X11BufferSurface::X11BufferSurface(X11WindowContext& wc) : windowContext_(&wc)
 
 	shm_ = (reply);
 	if(reply) free(reply);
-	if(!shm_) ny_warn("shm server does not support shm extension");
+	if(!shm_) dlg_warn("shm server does not support shm extension");
 }
 
 X11BufferSurface::~X11BufferSurface()
 {
-	if(active_) ny_warn("there is still an active BufferGuard");
+	if(active_) dlg_warn("there is still an active BufferGuard");
 	if(gc_) xcb_free_gc(&xConnection(), gc_);
 
 	if(shmseg_) {
@@ -133,7 +133,7 @@ BufferGuard X11BufferSurface::buffer()
 void X11BufferSurface::apply(const BufferGuard&) noexcept
 {
 	if(!active_) {
-		ny_warn("no currently active BufferGuard");
+		dlg_warn("no currently active BufferGuard");
 		return;
 	}
 

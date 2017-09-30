@@ -24,8 +24,8 @@ namespace ny {
 /// or some other event dispatching functions.
 /// The member functions of AsyncRequest objects should always only be used from the main gui
 /// thread that it was retrieved from. It cannot be directly used from other threads like
-/// e.g. std::future), but the flexible callback design can be easily used to achieve something
-/// similiar.
+/// e.g. std::future, but the flexible callback design can be easily used to achieve something
+/// similar.
 template <typename R>
 class AsyncRequest {
 public:
@@ -115,4 +115,4 @@ protected:
 	R value_;
 };
 
-}
+} // namespace ny

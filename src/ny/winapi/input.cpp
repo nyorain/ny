@@ -6,10 +6,10 @@
 #include <ny/winapi/windows.hpp>
 #include <ny/winapi/util.hpp>
 #include <ny/winapi/windowContext.hpp>
-#include <ny/log.hpp>
 #include <ny/key.hpp>
 #include <ny/mouseButton.hpp>
 #include <nytl/utf.hpp>
+#include <dlg/dlg.hpp>
 
 namespace ny {
 

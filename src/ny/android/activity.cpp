@@ -4,8 +4,8 @@
 
 #include <ny/android/activity.hpp>
 #include <ny/android/appContext.hpp>
-#include <ny/log.hpp>
 #include <nytl/tmpUtil.hpp>
+#include <dlg/dlg.hpp>
 
 #include <android/log.h>
 #include <android/native_activity.h>
@@ -37,6 +37,7 @@ extern "C" int mainProxyC(int argc, char** argv);
 
 namespace ny::android {
 
+// TODO
 // custom logger implementation to use the android log
 class AndroidLogger : public LoggerBase {
 public:
@@ -350,7 +351,5 @@ extern "C"
 void ANativeActivity_onCreate(ANativeActivity* activity, void* savedState, size_t savedStateSize)
 {
 	using ny::android::Activity;
-
-	nytl::unused(savedState, savedStateSize);
 	Activity::instanceRef().store(new Activity(*activity, savedState, savedStateSize));
 }

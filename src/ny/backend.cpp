@@ -4,7 +4,7 @@
 
 #include <ny/config.hpp>
 #include <ny/backend.hpp>
-#include <ny/log.hpp> // ny::warning
+#include <dlg/dlg.hpp>
 #include <cstdlib> // std::getenv
 #include <cstring> // std::strcmp
 
@@ -70,7 +70,7 @@ Backend& Backend::choose()
 // #endif
 
 	// choose the backend
-	dlg_tag("Backend", "choose");
+	dlg_tags("Backend", "choose");
 
 	static const std::string waylandString = "wayland";
 	static const std::string x11String = "x11";
@@ -88,7 +88,7 @@ Backend& Backend::choose()
 	for(auto& backend : backends()) {
 		if(!backend->available()) {
 			if(envBackend && std::strcmp(backend->name(), envBackend) == 0) {
-				ny_warn("requested NY_BACKEND '{}' (env) found, not available", envBackend);
+				dlg_warn("requested NY_BACKEND '{}' (env) found, not available", envBackend);
 				envFound = true;
 			}
 
@@ -96,7 +96,7 @@ Backend& Backend::choose()
 		}
 
 		if(envBackend && !std::strcmp(backend->name(), envBackend)) {
-            ny_debug("Using available NY_BACKEND backend {}", envBackend);
+            dlg_warn("Using available NY_BACKEND backend {}", envBackend);
 			return *backend;
         }
 
@@ -114,10 +114,14 @@ Backend& Backend::choose()
 		}
 	}
 
-	if(envBackend && !envFound)
-		ny_warn("requested env NY_BACKEND {} not found", envBackend);
+	if(envBackend && !envFound) {
+		dlg_warn("requested env NY_BACKEND {} not found", envBackend);
+	}
 
-	if(!best) throw std::runtime_error("ny::Backend: no backend available.");
+	if(!best) {
+		throw std::runtime_error("ny::Backend: no backend available");
+	}
+
 	return *best;
 }
 

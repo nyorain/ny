@@ -5,10 +5,9 @@
 #include <ny/wayland/util.hpp>
 #include <ny/wayland/appContext.hpp>
 #include <ny/wayland/windowContext.hpp>
-
-#include <ny/log.hpp>
 #include <ny/cursor.hpp>
 
+#include <dlg/dlg.hpp>
 #include <nytl/scope.hpp>
 
 #include <wayland-client-protocol.h>
@@ -42,7 +41,7 @@ err1:
 	close(fd);
 
 err2:
-	ny_warn("fctnl failed: {}", std::strerror(errno));
+	dlg_warn("fctnl failed: {}", std::strerror(errno));
 	return -1;
 }
 

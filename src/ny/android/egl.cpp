@@ -6,7 +6,7 @@
 #include <ny/android/appContext.hpp>
 #include <ny/common/egl.hpp>
 #include <ny/surface.hpp>
-#include <ny/log.hpp>
+#include <dlg/dlg.hpp>
 
 #include <EGL/egl.h>
 

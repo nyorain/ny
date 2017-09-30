@@ -7,11 +7,11 @@
 #include <ny/winapi/appContext.hpp>
 #include <ny/winapi/com.hpp>
 
-#include <ny/log.hpp>
 #include <ny/cursor.hpp>
 #include <ny/image.hpp>
 #include <ny/surface.hpp>
 
+#include <dlg/dlg.hpp>
 #include <nytl/scope.hpp>
 #include <nytl/utf.hpp>
 
@@ -268,7 +268,7 @@ void WinapiWindowContext::cursor(const Cursor& cursor)
 		});
 
 		if(!bitmap || !mask) {
-			ny_warn(errorMessage("CreateBitmap"));
+			dlg_warn(errorMessage("CreateBitmap"));
 			return;
 		}
 
@@ -282,7 +282,7 @@ void WinapiWindowContext::cursor(const Cursor& cursor)
 
 		cursor_ = reinterpret_cast<HCURSOR>(::CreateIconIndirect(&iconinfo));
 		if(!cursor_) {
-			ny_warn(errorMessage("CreateIconIndirect"));
+			dlg_warn(errorMessage("CreateIconIndirect"));
 			return;
 		}
 
@@ -293,7 +293,7 @@ void WinapiWindowContext::cursor(const Cursor& cursor)
 	} else {
 		auto cursorName = cursorToWinapi(cursor.type());
 		if(!cursorName) {
-			ny_warn("invalid native cursor type");
+			dlg_warn("invalid native cursor type");
 			return;
 		}
 
@@ -301,7 +301,7 @@ void WinapiWindowContext::cursor(const Cursor& cursor)
 		cursor_ = ::LoadCursor(nullptr, cursorName);
 
 		if(!cursor_) {
-			ny_warn(errorMessage("LoadCursor"));
+			dlg_warn(errorMessage("LoadCursor"));
 			return;
 		}
 	}
@@ -427,7 +427,7 @@ void WinapiWindowContext::icon(const Image& img)
 	auto pixelsData = data(uniqueImage);
 	icon_ = ::CreateIcon(hinstance(), img.size[0], img.size[1], 1, 32, nullptr, pixelsData);
 	if(!icon_) {
-		ny_warn(winapi::errorMessage("CreateIcon"));
+		dlg_warn(winapi::errorMessage("CreateIcon"));
 		return;
 	}
 

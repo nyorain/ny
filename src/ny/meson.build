@@ -109,6 +109,7 @@ endif
 
 if dep_xkbcommon.found()
 	ny_src += ['common/xkb.cpp']
+	deps += [dep_xkbcommon] # should probably not be here
 endif
 
 if enable_wayland or enable_x11
@@ -118,6 +119,7 @@ endif
 ny_lib = library('ny',
 	sources: ny_src,
 	dependencies: deps,
+	cpp_args: '-DDLG_DEFAULT_TAGS="ny",',
 	include_directories: [ny_inc, ny_inc_private])
 
 ny_lib_dir = join_paths(meson.build_root(), 'src', 'ny') + '/'

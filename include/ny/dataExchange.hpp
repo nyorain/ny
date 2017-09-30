@@ -48,7 +48,7 @@ public:
 	std::string name {};
 
 	/// Additional names that this format might be recognized under. Basically a helper for
-	/// other applications that might know it the same format under a different name.
+	/// other applications that might know the same format under a different name.
 	/// More significant names/descriptions should come first.
 	/// Prefer mime types.
 	std::vector<std::string> additionalNames {};
@@ -104,7 +104,7 @@ public:
 
 	/// Requests the offered data in the given DataFormat.
 	/// If this failed because the format is not supported or the data cannot be retrieved,
-	/// nullptr (if known at return time) or a DataRequest with en empty any object should
+	/// nullptr (if known at return time) or a DataRequest with an empty any object should
 	/// be returned.
 	virtual DataRequest data(const DataFormat&) = 0;
 };

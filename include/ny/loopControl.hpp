@@ -67,7 +67,7 @@ public:
 
 	/// Asks the loop to run the given function from within.
 	/// Especially useful for synchronization. The function is not guaranteed to be called
-	/// as sonn as possible, but as soon as the next loop iteration is done.
+	/// as soon as possible, but as soon as the next loop iteration is done.
 	/// Functions are guaranteed to be called in the order they are queued here.
 	/// Returns false if this LoopControl object is invalid or queueing the function failed.
 	/// Will not wait for the function to be executed or finish.
@@ -126,7 +126,7 @@ bool LoopControl::call(std::function<void()> func)
 	return impl_.get().call(std::move(func));
 }
 
-/// NOTE: a few implementation detilas on LoopControl
+/// NOTE: a few implementation details on LoopControl
 /// It is required to synchronize it with a mutex (an atomic impl pointer is not enough)
 /// since it has to be assured that the impl cannot be changed (usually reset)
 /// while an impl function is called.

@@ -7,12 +7,13 @@
 #include <ny/loopControl.hpp> // ny::LoopControl
 #include <ny/keyboardContext.hpp> // ny::KeyboardContext
 #include <ny/bufferSurface.hpp> // ny::BufferSurface
-#include <ny/log.hpp> // ny::log
 #include <ny/key.hpp> // ny::Keycode
 #include <ny/mouseButton.hpp> // ny::MouseButton
 #include <ny/image.hpp> // ny::Image
 #include <ny/event.hpp> // ny::*Event
+#include <dlg/dlg.hpp> // logging
 
+#include <nytl/vecOps.hpp> // printinf nytl::Vec
 #include <cstring> // std::memset
 
 // The second ny example that shows some further basic functionality

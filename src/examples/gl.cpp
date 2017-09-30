@@ -2,6 +2,7 @@
 
 #include <ny/ny.hpp>
 #include <ny/common/gl.hpp>
+#include <dlg/dlg.hpp>
 
 #ifdef NY_WithAndroid
 	#include <GLES2/gl2.h>

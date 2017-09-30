@@ -8,10 +8,11 @@
 #include <ny/wayland/util.hpp>
 #include <ny/common/unix.hpp>
 #include <ny/windowContext.hpp>
-#include <ny/log.hpp>
+#include <dlg/dlg.hpp>
 
 #include <nytl/span.hpp>
 #include <nytl/scope.hpp>
+#include <nytl/tmpUtil.hpp> // nytl::unused
 
 #include <wayland-client-protocol.h>
 #include <xkbcommon/xkbcommon.h>
@@ -117,7 +118,7 @@ void WaylandMouseContext::handleLeave(wl_pointer*, uint32_t serial, wl_surface* 
 	WaylandEventData eventData(serial);
 
 	auto wc = appContext_.windowContext(*surface);
-	if(wc != over_) ny_warn("'over_' inconsistency");
+	if(wc != over_) dlg_warn("'over_' inconsistency");
 
 	if(over_) onFocus(*this, over_, nullptr);
 	if(wc) {
@@ -242,13 +243,13 @@ void WaylandKeyboardContext::handleKeymap(wl_keyboard*, uint32_t format, int32_t
 
 	if(format == WL_KEYBOARD_KEYMAP_FORMAT_NO_KEYMAP) return;
 	if(format != WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1) {
-		ny_warn("invalid keymap format");
+		dlg_warn("invalid keymap format");
 		return;
 	}
 
 	auto buf = mmap(nullptr, size, PROT_READ, MAP_SHARED, fd, 0);
 	if(buf == MAP_FAILED) {
-		ny_warn("Wl: cannot mmap keymap");
+		dlg_warn("Wl: cannot mmap keymap");
 		return;
 	}
 
@@ -265,14 +266,14 @@ void WaylandKeyboardContext::handleKeymap(wl_keyboard*, uint32_t format, int32_t
 		XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
 
 	if(!xkbKeymap_) {
-		ny_warn("failed to compile the xkb keymap from compositor.");
+		dlg_warn("failed to compile the xkb keymap from compositor.");
 		return;
 	}
 
 	xkbState_ = xkb_state_new(xkbKeymap_);
 
 	if(!xkbState_) {
-		ny_warn("failed to create the xkbState from mapped keymap buffer");
+		dlg_warn("failed to create the xkbState from mapped keymap buffer");
 		return;
 	}
 }
@@ -312,7 +313,7 @@ void WaylandKeyboardContext::handleLeave(wl_keyboard*, uint32_t serial, wl_surfa
 	WaylandEventData eventData(serial);
 
 	auto* wc = appContext_.windowContext(*surface);
-	if(wc != focus_) ny_warn("'focus_' inconsistency");
+	if(wc != focus_) dlg_warn("'focus_' inconsistency");
 
 	if(wc) {
 		onFocus(*this, wc, nullptr);

@@ -33,7 +33,6 @@ headers = [
 	'image.hpp',
 	'key.hpp',
 	'keyboardContext.hpp',
-	'log.hpp',
 	'loopControl.hpp',
 	'mouseButton.hpp',
 	'mouseContext.hpp',

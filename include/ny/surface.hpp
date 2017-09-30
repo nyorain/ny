@@ -18,6 +18,7 @@ enum class SurfaceType : unsigned int {
 	vulkan
 };
 
+// TODO: simply use std::variant
 /// Holds the type of draw integration for a WindowContext.
 /// Can be used to get the associated hardware acceleration surface or a raw
 /// memory image buffer into which can be drawn to display context on the

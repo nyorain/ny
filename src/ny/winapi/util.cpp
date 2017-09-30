@@ -7,8 +7,8 @@
 #include <ny/mouseContext.hpp>
 #include <ny/cursor.hpp>
 #include <ny/key.hpp>
-#include <ny/log.hpp>
 #include <ny/mouseButton.hpp>
+#include <dlg/dlg.hpp>
 
 #include <nytl/utf.hpp>
 #include <nytl/scope.hpp>
@@ -350,7 +350,7 @@ UniqueImage toImage(HBITMAP hbitmap)
 	bminfo.bmiHeader.biSize = sizeof(bminfo.bmiHeader);
 
 	if(!::GetDIBits(hdc, hbitmap, 0, 0, nullptr, &bminfo, DIB_RGB_COLORS)) {
-		ny_warn("GetDiBits:1 failed");
+		dlg_warn("GetDiBits:1 failed");
 		return {};
 	}
 
@@ -365,7 +365,7 @@ UniqueImage toImage(HBITMAP hbitmap)
 	bminfo.bmiHeader.biHeight = height;
 
 	if(!::GetDIBits(hdc, hbitmap, 0, height, buffer.get(), &bminfo, DIB_RGB_COLORS)) {
-		ny_warn("GetDiBits:2 failed");
+		dlg_warn("GetDiBits:2 failed");
 		return {};
 	}
 

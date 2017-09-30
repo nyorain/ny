@@ -1,8 +1,9 @@
 -I./include
 -I./src
 -I./mbuild/include
+-I./build/l2/include
 -I./subprojects/nytl
--I./subprojects/dlg
+-I./subprojects/dlg/include
 -Wall
 -Wextra
 -Wpedantic

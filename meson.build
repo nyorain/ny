@@ -26,6 +26,7 @@ add_project_arguments(
 	'-Wno-missing-braces', # needed for clang
 	language: 'cpp')
 
+# TODO: fix on windows, see dlg notes
 # project-specific stuff
 # currently set dlg path only on linux since on windows
 # it causes errors with backslashes
@@ -86,7 +87,7 @@ if op_enable_x11 == 'false'
   enable_x11 = false
 else
   req = op_enable_x11 == 'true'
-  if req and not depxkbcommon.found()
+  if req and not dep_xkbcommon.found()
     error('x11 backend requires xkbcommon')
   endif
 
@@ -109,7 +110,7 @@ else
 		dep_xcbicccm,
 		dep_xcbshm,
 		dep_xcbxkb,
-    dep_xkbcommon,
+    	dep_xkbcommon,
 		dep_xkbcommonx11]
 
 	enable_x11 = true
@@ -180,7 +181,6 @@ subdir('include/ny')
 subdir('src/ny')
 
 # dependency
-message(ny_lib_dir)
 ny_dep = declare_dependency(
 	include_directories: ny_inc,
 	dependencies: deps,

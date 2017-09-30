@@ -7,10 +7,11 @@
 #include <ny/wayland/appContext.hpp>
 #include <ny/wayland/windowContext.hpp>
 #include <ny/wayland/input.hpp>
-#include <ny/log.hpp>
 #include <ny/asyncRequest.hpp>
+#include <dlg/dlg.hpp>
 
 #include <nytl/scope.hpp>
+#include <nytl/tmpUtil.hpp> // nytl::unused
 
 #include <wayland-client-protocol.h>
 #include <wayland-cursor.h>
@@ -132,7 +133,7 @@ WaylandDataOffer::DataRequest WaylandDataOffer::data(const DataFormat& format)
 	std::pair<DataFormat, std::string> reqfmt {};
 	for(auto& supported : formats_) if(format == supported.first) reqfmt = supported;
 	if(reqfmt.second.empty()) {
-		ny_warn("unsupported format {}", format.name);
+		dlg_warn("unsupported format {}", format.name);
 		return {};
 	}
 
@@ -143,14 +144,14 @@ WaylandDataOffer::DataRequest WaylandDataOffer::data(const DataFormat& format)
 		int fds[2];
 		auto ret = pipe2(fds, O_CLOEXEC);
 		if(ret < 0) {
-			ny_warn("pipe2 failed: {}", std::strerror(errno));
+			dlg_warn("pipe2 failed: {}", std::strerror(errno));
 			return {};
 		}
 
 		wl_data_offer_receive(wlDataOffer_, reqfmt.second.c_str(), fds[1]);
 
 		auto callback =
-			[wlOffer = wlDataOffer_, ac = appContext_, format, reqfmt](int fd, unsigned int) {
+			[wlOffer = wlDataOffer_, format, reqfmt](int fd, unsigned int) {
 
 			auto fdGuard = nytl::ScopeGuard([=]{ close(fd); });
 
@@ -172,7 +173,9 @@ WaylandDataOffer::DataRequest WaylandDataOffer::data(const DataFormat& format)
 			auto any = wrap(buffer, reqfmt.first);
 
 			// complete all pending requests and remove the request entry
-			for(auto& req : self->requests_[reqfmt.second].requests) req->complete(any);
+			for(auto& req : self->requests_[reqfmt.second].requests) {
+				req->complete(any);
+			}
 			self->requests_.erase(self->requests_.find(reqfmt.second));
 		};
 
@@ -213,13 +216,13 @@ void WaylandDataOffer::removeDataRequest(const std::string& format, DataRequestI
 {
 	auto it = requests_.find(format);
 	if(it == requests_.end()) {
-		ny_warn("invalid format");
+		dlg_warn("invalid format");
 		return;
 	}
 
 	auto it2 = std::find(it->second.requests.begin(), it->second.requests.end(), &request);
 	if(it2 == it->second.requests.end()) {
-		ny_warn("invalid request");
+		dlg_warn("invalid request");
 		return;
 	}
 
@@ -298,13 +301,13 @@ void WaylandDataSource::send(wl_data_source*, const char* mimeType, int32_t fd)
 	for(auto& format : formats) if(match(format, mimeType)) dataFormat = &format;
 
 	if(!dataFormat) {
-		ny_warn("invalid/unsupported mimeType: {}", mimeType);
+		dlg_warn("invalid/unsupported mimeType: {}", mimeType);
 		return;
 	}
 
 	auto data = source_->data(*dataFormat);
 	if(!data.has_value()) {
-		ny_warn("failed to retrieve data object via DataSource::data");
+		dlg_warn("failed to retrieve data object via DataSource::data");
 		return;
 	}
 
@@ -317,7 +320,7 @@ void WaylandDataSource::send(wl_data_source*, const char* mimeType, int32_t fd)
 	auto sigpipeGuard = nytl::ScopeGuard([=] { signal(SIGPIPE, prev); });
 
 	auto ret = write(fd, buffer.data(), buffer.size());
-	if(ret < 0) ny_warn("write failed: {}", std::strerror(errno));
+	if(ret < 0) dlg_warn("write failed: {}", std::strerror(errno));
 }
 
 void WaylandDataSource::action(wl_data_source*, uint32_t action)
@@ -411,13 +414,13 @@ void WaylandDataDevice::enter(wl_data_device*, uint32_t serial, wl_surface* surf
 	}
 
 	if(!dndOffer_) {
-		ny_info("invalid wl_data_offer given");
+		dlg_info("invalid wl_data_offer given");
 		return;
 	}
 
 	dndWC_ = appContext_->windowContext(*surface);
 	if(!dndWC_) {
-		ny_info("invalid wl_surface given");
+		dlg_info("invalid wl_surface given");
 		dndOffer_ = {};
 		return;
 	}
@@ -487,7 +490,7 @@ void WaylandDataDevice::drop(wl_data_device*)
 	// debug("ny::WaylandDataDevice::drop");
 
 	if(!dndOffer_ || !dndWC_) {
-		ny_info("invalid current dnd session");
+		dlg_info("invalid current dnd session");
 		return;
 	}
 
@@ -508,10 +511,10 @@ void WaylandDataDevice::drop(wl_data_device*)
 			dde.offer = std::move(ownedDndOffer);
 			dndWC_->listener().dndDrop(dde);
 		} else {
-			ny_warn("no current dnd WindowContext");
+			dlg_warn("no current dnd WindowContext");
 		}
 	} else {
-		ny_warn("invalid current cached dnd offer");
+		dlg_warn("invalid current cached dnd offer");
 	}
 
 	dndOffer_ = {};
@@ -536,7 +539,7 @@ void WaylandDataDevice::selection(wl_data_device*, wl_data_offer* offer)
 		}
 	}
 
-	ny_warn("unkown offer argument");
+	dlg_warn("unkown offer argument");
 }
 
 } // namespace ny

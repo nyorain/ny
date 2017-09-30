@@ -1,5 +1,6 @@
 #include <ny/ny.hpp>
 #include <nytl/vecOps.hpp>
+#include <dlg/dlg.hpp>
 #include <any>
 
 // used at the moment to test data sources and data offers, dragndrop and clipboard stuff
@@ -161,16 +162,22 @@ public:
 			return;
 		} else if(ev.keycode == ny::Keycode::c) {
 			dlg_info("setting clipboard... ");
-			if(ac->clipboard(std::make_unique<CustomDataSource>())) dlg_info("\tsuccesful!");
-			else dlg_info("\tunsuccesful");
+			if(ac->clipboard(std::make_unique<CustomDataSource>())) {
+				dlg_info("\tsuccesful!");
+			} else {
+				dlg_info("\tunsuccesful");
+			}
 		}
 		if(ev.keycode == ny::Keycode::v)
 		{
 			dlg_info("reading clipboard... ");
 			auto dataOffer = ac->clipboard();
 
-			if(!dataOffer) dlg_info("Backend does not support clipboard operations...");
-			else if(!handleDataOffer(*dataOffer)) lc->stop();
+			if(!dataOffer) {
+				dlg_info("Backend does not support clipboard operations...");
+			} else if(!handleDataOffer(*dataOffer)) {
+				lc->stop();
+			}
 		}
 	}
 };

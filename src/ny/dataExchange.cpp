@@ -3,8 +3,9 @@
 // See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
 #include <ny/dataExchange.hpp>
-#include <ny/log.hpp> // ny::warning
 #include <nytl/utf.hpp> // nytl::nth
+#include <nytl/tmpUtil.hpp> // nytl::unused
+#include <dlg/dlg.hpp>
 
 #include <sstream> // std::ostringstream
 #include <cstring> // std::memcpy
@@ -59,7 +60,7 @@ UniqueImage deserializeImage(nytl::Span<const uint8_t> buffer)
 
 	// check for invaliad heaer/empty data
 	if(buffer.size() < headerSize) {
-		ny_warn("invalid serialized image header");
+		dlg_warn("invalid serialized image header");
 		return {};
 	}
 
@@ -72,7 +73,7 @@ UniqueImage deserializeImage(nytl::Span<const uint8_t> buffer)
 
 	//check for invalid data size
 	if(buffer.size() < dSize + headerSize) {
-		ny_warn("invalid serialized image data size");
+		dlg_warn("invalid serialized image data size");
 		return {};
 	}
 

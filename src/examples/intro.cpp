@@ -1,4 +1,5 @@
-#include <ny/ny.hpp>
+#include <ny/ny.hpp> // all common ny headers
+#include <dlg/dlg.hpp> // logging
 
 // This is the first ny example.
 // It tries to cover the most important parts a ny application has or might use.
@@ -66,7 +67,7 @@ int main()
 	listener.lc = &control;
 
 	// ny::log can be used to easily output application information.
-	// There are also other output methods, see ny/log.hpp.
+	// There are also other output methods, see dlg for details
 	dlg_info("Entering main loop");
 
 	// We call the main dispatch loop, which will just wait for new events and process them

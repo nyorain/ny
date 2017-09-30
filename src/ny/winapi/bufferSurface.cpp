@@ -3,7 +3,7 @@
 // See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
 #include <ny/winapi/bufferSurface.hpp>
-#include <ny/log.hpp>
+#include <dlg/dlg.hpp>
 #include <windows.h>
 
 namespace ny {
@@ -14,14 +14,16 @@ WinapiBufferSurface::WinapiBufferSurface(WinapiWindowContext& wc) : windowContex
 
 WinapiBufferSurface::~WinapiBufferSurface()
 {
-	if(active_)
-		ny_warn("there is still an active BufferGuard");
+	if(active_) {
+		dlg_warn("there is still an active BufferGuard");
+	}
 }
 
 BufferGuard WinapiBufferSurface::buffer()
 {
-	if(active_)
+	if(active_) {
 		throw std::logic_error("ny::WinapiBufferSurface::get: has already an active BufferGuard");
+	}
 
 	auto currSize = nytl::Vec2ui(windowContext().clientExtents().size);
 	auto currTotal = currSize[0] * currSize[1] * 4;
@@ -39,7 +41,7 @@ BufferGuard WinapiBufferSurface::buffer()
 void WinapiBufferSurface::apply(const BufferGuard& bufferGuard) noexcept
 {
 	if(!active_ || bufferGuard.get().data != data_.get()) {
-		ny_warn("ny::winbs::apply: invalid bufferGuard");
+		dlg_warn("ny::winbs::apply: invalid bufferGuard");
 		return;
 	}
 

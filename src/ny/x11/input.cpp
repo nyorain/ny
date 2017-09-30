@@ -6,7 +6,7 @@
 #include <ny/x11/appContext.hpp>
 #include <ny/x11/windowContext.hpp>
 #include <ny/x11/util.hpp>
-#include <ny/log.hpp>
+#include <dlg/dlg.hpp>
 
 #include <nytl/utf.hpp>
 #include <nytl/vecOps.hpp>
@@ -168,7 +168,7 @@ nytl::Vec2i X11MouseContext::position() const
 
 	if(error) {
 		auto msg = x11::errorMessage(appContext_.xDisplay(), error->error_code);
-		ny_warn("xcb_query_pointer: {}", msg);
+		dlg_warn("xcb_query_pointer: {}", msg);
 		free(error);
 		return {};
 	}

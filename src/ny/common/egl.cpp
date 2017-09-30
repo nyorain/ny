@@ -3,8 +3,8 @@
 // See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
 #include <ny/common/egl.hpp>
-#include <ny/log.hpp>
 #include <nytl/span.hpp>
+#include <dlg/dlg.hpp>
 
 #include <EGL/egl.h>
 #ifndef EGL_VERSION_1_4
@@ -63,7 +63,7 @@ EglSetup::EglSetup(void* nativeDisplay)
 		throw EglErrorCategory::exception("ny::EglSetup: eglInitialize failed");
 
 	if(major < 1 || (major == 1 && minor < 4)) {
-		ny_error("only egl version {}.{} supported", major, minor);
+		dlg_error("only egl version {}.{} supported", major, minor);
 		throw std::runtime_error("ny::EglSetup: egl 1.4 not supported");
 	}
 
@@ -206,11 +206,11 @@ EglSurface::~EglSurface()
 	if(isCurrent(&context)) {
 		std::error_code ec;
 		if(!context->makeNotCurrent(ec))
-			ny_warn("failed not make not current: {}", ec.message());
+			dlg_warn("~EglSurface: failed not make not current: {}", ec.message());
 	}
 
 	if(isCurrentInAnyThread())
-		ny_error("still current in another thread.");
+		dlg_error("~EglSurface: still current in another thread.");
 
 	if(eglDisplay_ && eglSurface_)
 		::eglDestroySurface(eglDisplay_, eglSurface_);
@@ -221,7 +221,7 @@ bool EglSurface::apply(std::error_code& ec) const
 	ec.clear();
 	if(!::eglSwapBuffers(eglDisplay_, eglSurface_)) {
 		ec = EglErrorCategory::errorCode();
-		ny_warn("eglSwapBuffers failed: {}", ec.message());
+		dlg_warn("eglSwapBuffers failed: {}", ec.message());
 		return false;
 	}
 
@@ -279,8 +279,11 @@ EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 		attributes.reserve(20);
 		std::vector<std::pair<unsigned int, unsigned int>> versionPairs;
 
-		if(api == GlApi::gles) versionPairs = {{3, 2}, {3, 1}, {3, 0}, {2, 0}, {1, 1}, {1, 0}};
-		else versionPairs = {{4, 5}, {3, 3}, {3, 2}, {3, 1}, {3, 0}, {1, 2}, {1, 0}};
+		if(api == GlApi::gles) {
+			versionPairs = {{3, 2}, {3, 1}, {3, 0}, {2, 0}, {1, 1}, {1, 0}};
+		} else {
+			versionPairs = {{4, 5}, {3, 3}, {3, 2}, {3, 1}, {3, 0}, {1, 2}, {1, 0}};
+		}
 
 		// profile
 		if(api == GlApi::gl) {
@@ -341,10 +344,10 @@ EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 
 		if(!eglContext_) {
 			auto msg = EglErrorCategory::errorCode().message();
-			ny_warn("could not create context for any version: {}", msg);
+			dlg_warn("could not create egl context for any version: {}", msg);
 		}
 	} else {
-		ny_info("create_context extension and egl 1.5 not available");
+		dlg_info("create_context extension and egl 1.5 not available");
 	}
 
 	// try (again) if extension is not present or creation failed
@@ -364,7 +367,7 @@ EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 
 		if(!eglContext_) {
 			auto msg = EglErrorCategory::errorCode().message();
-			ny_warn("could not create legacy context: {}", msg);
+			dlg_warn("could not create legacy context: {}", msg);
 		}
 	}
 
@@ -379,10 +382,10 @@ EglContext::~EglContext()
 	if(eglContext_) {
 		std::error_code ec;
 		if(!makeNotCurrent(ec))
-			ny_warn("failed to make context not current: {}", ec.message());
+			dlg_warn("~EglContext: failed to make context not current: {}", ec.message());
 
 		if(isCurrentInAnyThread())
-			ny_error("still current in another thread");
+			dlg_error("~EglContext: still current in another thread");
 
 		::eglDestroyContext(eglDisplay(), eglContext_);
 	}
@@ -395,7 +398,7 @@ bool EglContext::makeCurrentImpl(const GlSurface& surface, std::error_code& ec)
 	auto eglSurface = dynamic_cast<const EglSurface*>(&surface)->eglSurface();
 	if(!eglMakeCurrent(eglDisplay(), eglSurface, eglSurface, eglContext())) {
 		ec = EglErrorCategory::errorCode();
-		ny_warn("eglMakeCurrent failed: {}", ec.message());
+		dlg_warn("eglMakeCurrent failed: {}", ec.message());
 		return false;
 	}
 
@@ -408,7 +411,7 @@ bool EglContext::makeNotCurrentImpl(std::error_code& ec)
 
 	if(!::eglMakeCurrent(eglDisplay(), nullptr, nullptr, nullptr)) {
 		ec = EglErrorCategory::errorCode();
-		ny_warn("eglMakeCurrent failed: {}", ec.message());
+		dlg_warn("eglMakeCurrent failed: {}", ec.message());
 		return false;
 	}
 

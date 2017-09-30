@@ -3,7 +3,7 @@
 // See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
 #include <ny/common/gl.hpp>
-#include <ny/log.hpp>
+#include <dlg/dlg.hpp>
 
 #include <thread> // std::this_thread
 #include <mutex> // std::mutex
@@ -180,7 +180,7 @@ GlSurface::~GlSurface()
 	// it not current (in which case - if it did not raise an error - we can try to ignore it).
 	GlContext* context {};
 	if(isCurrent(&context)) {
-		ny_warn("surface current in calling thread!");
+		dlg_warn("surface current in calling thread!");
 
 		std::shared_mutex* mutex;
 		auto& map = contextCurrentMap(mutex);
@@ -203,7 +203,7 @@ GlSurface::~GlSurface()
 		if(entry.second.second == this) {
 			// we will probably not recover from this
 			// the surface was destroyed in another thread than it was made current in
-			ny_error("surface current in another thread");
+			dlg_error("surface current in another thread");
 			entry.second = {nullptr, nullptr};
 		}
 	}
@@ -270,7 +270,7 @@ GlContext::~GlContext()
 	// either the implementation is leaking or destroyed the context without making
 	// it not current (in which case - if it did not raise an error - we can try to ignore it).
 	if(isCurrent()) {
-		ny_warn("context is current on destruction");
+		dlg_warn("context is current on destruction");
 
 		std::shared_mutex* mutex;
 		auto& map = contextCurrentMap(mutex);
@@ -293,7 +293,7 @@ GlContext::~GlContext()
 				// we will probably not recover from this, this just cleans
 				// up the logical state. The context was destroyed
 				// in another thread as it is still current in
-				ny_error("context current in another thread");
+				dlg_error("context current in another thread");
 				entry.second = {nullptr, nullptr};
 			}
 		}
@@ -474,12 +474,14 @@ bool GlContext::compatible(const GlSurface& surf) const
 void GlContext::swapInterval(int interval) const
 {
 	std::error_code ec;
-	if(!swapInterval(interval, ec)) throw std::system_error(ec, "ny::GlContext::swapInterval");
+	if(!swapInterval(interval, ec)) {
+		throw std::system_error(ec, "ny::GlContext::swapInterval");
+	}
 }
 
-bool GlContext::swapInterval(int interval, std::error_code& ec) const
+bool GlContext::swapInterval(int, std::error_code& ec) const
 {
-	nytl::unused(interval);
+	dlg_debug("GlContext: swapInterval unsupported");
 	ec = Errc::extensionNotSupported;
 	return false;
 }
@@ -495,7 +497,7 @@ GlCurrentGuard::~GlCurrentGuard()
 	try {
 		context.makeNotCurrent();
 	} catch(const std::exception& exception) {
-		ny_warn("makeNotCurrent failed: {}", exception.what());
+		dlg_warn("makeNotCurrent failed: {}", exception.what());
 	}
 }
 

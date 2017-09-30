@@ -8,6 +8,7 @@
 #include <memory> // std::unique_ptr
 #include <cstring> // std::memcpy
 #include <array> // std::array
+#include <cmath> // std::ceil
 
 namespace ny {
 

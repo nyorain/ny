@@ -11,7 +11,6 @@
 
 #include <ny/common/unix.hpp>
 #include <ny/loopControl.hpp>
-#include <ny/log.hpp>
 #include <ny/dataExchange.hpp>
 
 #ifdef NY_WithVulkan
@@ -25,6 +24,7 @@
 #endif //GL
 
 #include <nytl/scope.hpp>
+#include <dlg/dlg.hpp>
 
 // #include <X11/Xlibint.h>
 #include <X11/Xlib.h>
@@ -133,14 +133,16 @@ X11AppContext::X11AppContext()
 	impl_ = std::make_unique<Impl>();
 
 	xDisplay_ = ::XOpenDisplay(nullptr);
-	if(!xDisplay_)
+	if(!xDisplay_) {
 		throw std::runtime_error("ny::X11AppContext: could not connect to X Server");
+	}
 
 	xDefaultScreenNumber_ = ::XDefaultScreen(xDisplay_);
 
 	xConnection_ = ::XGetXCBConnection(xDisplay_);
-	if(!xConnection_ || xcb_connection_has_error(xConnection_))
+	if(!xConnection_ || xcb_connection_has_error(xConnection_)) {
 		throw std::runtime_error("ny::X11AppContext: unable to get xcb connection");
+	}
 
 	impl_->errorCategory = {*xDisplay_, *xConnection_};
 	auto ewmhCookie = xcb_ewmh_init_atoms(&xConnection(), &ewmhConnection());
@@ -220,7 +222,7 @@ X11AppContext::X11AppContext()
 			continue;
 		} else if(error) {
 			auto msg = x11::errorMessage(xDisplay(), error->error_code);
-			ny_warn("Failed to load atom {} : {}", atomNames[i].name, msg);
+			dlg_warn("Failed to load atom {} : {}", atomNames[i].name, msg);
 			free(error);
 		}
 	}
@@ -369,7 +371,7 @@ GlxSetup* X11AppContext::glxSetup() const
 			try {
 				impl_->glxSetup = {*this};
 			} catch(const std::exception& error) {
-				ny_warn("initialization failed: {}", error.what());
+				dlg_warn("initialization failed: {}", error.what());
 				impl_->glxFailed = true;
 				impl_->glxSetup = {};
 				return nullptr;
@@ -406,7 +408,7 @@ bool X11AppContext::checkErrorWarn()
 {
 	auto err = xcb_connection_has_error(xConnection_);
 	if(err) {
-		ny_error("xcb_connection has critical error {}", err);
+		dlg_error("xcb_connection has critical error {}", err);
 		return false;
 	}
 
@@ -422,7 +424,7 @@ xcb_atom_t X11AppContext::atom(const std::string& name)
 		auto reply = xcb_intern_atom_reply(xConnection_, cookie, &error);
 		if(error) {
 			auto msg = x11::errorMessage(xDisplay(), error->error_code);
-			ny_warn("failed to retrieve x11 atom {}: {}", name, msg);
+			dlg_warn("failed to retrieve x11 atom {}: {}", name, msg);
 			free(error);
 			return 0u;
 		}
@@ -510,7 +512,7 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev)
 	case 0u: {
 			int code = reinterpret_cast<const xcb_generic_error_t&>(ev).error_code;
 			auto errorMsg = x11::errorMessage(xDisplay(), code);
-			ny_warn("retrieved error code {}, {}", code, errorMsg);
+			dlg_warn("retrieved error code {}, {}", code, errorMsg);
 
 			break;
 		}

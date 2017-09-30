@@ -8,7 +8,7 @@
 #include <ny/wayland/util.hpp>
 #include <ny/common/egl.hpp>
 #include <ny/surface.hpp>
-#include <ny/log.hpp>
+#include <dlg/dlg.hpp>
 
 #include <wayland-egl.h>
 #include <EGL/egl.h>
@@ -23,8 +23,9 @@ WaylandEglWindowContext::WaylandEglWindowContext(WaylandAppContext& ac, const Eg
 	if(size == defaultSize) size = fallbackSize;
 
 	wlEglWindow_ = wl_egl_window_create(&wlSurface(), size[0], size[1]);
-	if(!wlEglWindow_)
+	if(!wlEglWindow_) {
 		throw std::runtime_error("ny::WaylandEglWindowContext: wl_egl_window_create failed");
+	}
 
 	auto eglnwindow = static_cast<void*>(wlEglWindow_);
 	surface_ = std::make_unique<EglSurface>(setup, eglnwindow, ws.gl.config);
@@ -34,7 +35,9 @@ WaylandEglWindowContext::WaylandEglWindowContext(WaylandAppContext& ac, const Eg
 WaylandEglWindowContext::~WaylandEglWindowContext()
 {
 	surface_.reset();
-	if(wlEglWindow_) wl_egl_window_destroy(wlEglWindow_);
+	if(wlEglWindow_) {
+		wl_egl_window_destroy(wlEglWindow_);
+	}
 }
 
 void WaylandEglWindowContext::size(nytl::Vec2ui size)

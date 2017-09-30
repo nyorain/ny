@@ -7,8 +7,8 @@
 #include <ny/winapi/appContext.hpp>
 #include <ny/winapi/util.hpp>
 #include <ny/asyncRequest.hpp>
-#include <ny/log.hpp>
 #include <ny/image.hpp>
+#include <dlg/dlg.hpp>
 
 #include <nytl/utf.hpp>
 #include <nytl/scope.hpp>
@@ -121,13 +121,13 @@ DataOffer::DataRequest WinapiDataOffer::data(const DataFormat& format)
 
 	auto it = formats_.find(format);
 	if(it == formats_.end()) {
-		ny_warn("format not supported");
+		dlg_warn("format not supported");
 		return {};
 	}
 
 	auto& formatetc = it->second;
 	if((res = data_->GetData(&formatetc, &medium))) {
-		ny_warn(winapi::errorMessage(res, "GetData"));
+		dlg_warn(winapi::errorMessage(res, "GetData"));
 		return {};
 	}
 
@@ -210,7 +210,7 @@ HRESULT DropTargetImpl::DragOver(DWORD keyState, POINTL screenPos, DWORD* effect
 	helper_->DragOver(&windowPos, *effect);
 
 	if(!offer_.dataObject()) {
-		ny_warn("no current drag data object");
+		dlg_warn("no current drag data object");
 		return E_UNEXPECTED;
 	}
 
@@ -233,7 +233,7 @@ HRESULT DropTargetImpl::DragLeave()
 	helper_->DragLeave();
 
 	if(!offer_.dataObject()) {
-		ny_warn("no current drag data object");
+		dlg_warn("no current drag data object");
 		return E_UNEXPECTED;
 	}
 
@@ -257,7 +257,7 @@ HRESULT DropTargetImpl::Drop(IDataObject* data, DWORD keyState, POINTL screenPos
 	helper_->Drop(data, &windowPos, *effect);
 
 	if(!data || offer_.dataObject().get() != data) {
-		ny_warn("current drop data object inconsistency");
+		dlg_warn("current drop data object inconsistency");
 		return E_UNEXPECTED;
 	}
 
@@ -682,13 +682,13 @@ STGMEDIUM toStgMedium(const DataFormat& from, const FORMATETC& to, const std::an
 		auto size = sizeof(dropfiles) + (filesstring.size() * 2);
 		auto globalBuffer = ::GlobalAlloc(GMEM_MOVEABLE, size);
 		if(!globalBuffer) {
-			ny_warn(errorMessage("GlobalAlloc"));
+			dlg_warn(errorMessage("GlobalAlloc"));
 			return {};
 		}
 
 		auto bufferPtr = reinterpret_cast<uint8_t*>(::GlobalLock(globalBuffer));
 		if(!bufferPtr) {
-			ny_warn(errorMessage("GlobalLock"));
+			dlg_warn(errorMessage("GlobalLock"));
 			::GlobalFree(globalBuffer);
 			return {};
 		}

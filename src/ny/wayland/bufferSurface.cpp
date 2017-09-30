@@ -4,8 +4,8 @@
 
 #include <ny/wayland/bufferSurface.hpp>
 #include <ny/wayland/util.hpp>
-#include <ny/log.hpp>
 #include <ny/surface.hpp>
+#include <dlg/dlg.hpp>
 
 #include <stdexcept> // std::runtime_error
 
@@ -18,7 +18,9 @@ WaylandBufferSurface::WaylandBufferSurface(WaylandWindowContext& wc) : windowCon
 
 WaylandBufferSurface::~WaylandBufferSurface()
 {
-	if(active_) ny_warn("there is still an active BufferGuard");
+	if(active_) {
+		dlg_warn("~WaylandBufferSurface: there is still an active BufferGuard");
+	}
 }
 
 BufferGuard WaylandBufferSurface::buffer()
@@ -51,7 +53,7 @@ BufferGuard WaylandBufferSurface::buffer()
 void WaylandBufferSurface::apply(const BufferGuard& buffer) noexcept
 {
 	if(!active_ || buffer.get().data != &active_->data()) {
-		ny_warn("invalid BufferGuard given");
+		dlg_warn("invalid BufferGuard given");
 		return;
 	}
 

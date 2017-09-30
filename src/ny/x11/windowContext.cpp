@@ -8,9 +8,9 @@
 #include <ny/x11/appContext.hpp>
 
 #include <ny/common/unix.hpp>
-#include <ny/log.hpp>
 #include <ny/cursor.hpp>
 #include <ny/mouseContext.hpp>
+#include <dlg/dlg.hpp>
 
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
@@ -35,8 +35,14 @@ X11WindowContext::~X11WindowContext()
 		xcb_destroy_window(&xConnection(), xWindow_);
 	}
 
-	if(xColormap_) xcb_free_colormap(&xConnection(), xCursor_);
-	if(xCursor_) xcb_free_cursor(&xConnection(), xCursor_);
+	if(xColormap_) {
+		xcb_free_colormap(&xConnection(), xCursor_);
+	}
+
+	if(xCursor_) {
+		xcb_free_cursor(&xConnection(), xCursor_);
+	}
+
 	xcb_flush(&xConnection());
 }
 
@@ -68,8 +74,9 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 	// version 5 of the xdnd protocol is supported
 	if(settings.droppable) {
 		static constexpr auto version = 5u;
-		xcb_change_property(&xconn, XCB_PROP_MODE_REPLACE, xWindow_, appContext().atoms().xdndAware,
-			XCB_ATOM_ATOM, 32, 1, reinterpret_cast<const unsigned char*>(&version));
+		xcb_change_property(&xconn, XCB_PROP_MODE_REPLACE, xWindow_, 
+			appContext().atoms().xdndAware, XCB_ATOM_ATOM, 
+			32, 1, reinterpret_cast<const unsigned char*>(&version));
 	}
 
 	// apply init settings
@@ -88,8 +95,9 @@ void X11WindowContext::createWindow(const X11WindowSettings& settings)
 {
 	if(!visualID_) initVisual(settings);
 	auto visualtype = xVisualType();
-	if(!visualtype)
+	if(!visualtype) {
 		throw std::runtime_error("ny::X11WindowContext: failed to retrieve the visualtype");
+	}
 
 	auto vid = visualtype->visual_id;
 	auto& xconn = appContext_->xConnection();
@@ -151,12 +159,13 @@ void X11WindowContext::initVisual(const X11WindowSettings& settings)
 		}
 	}
 
-	if(avDepth == 0u)
+	if(avDepth == 0u) {
 		throw std::runtime_error(novis);
-	else if(settings.transparent && avDepth == 24)
-		ny_warn("transparent window but no 32 bit visual");
-	else if(!settings.transparent && avDepth == 32)
-		ny_info("not-transparent window, but only 32 bits visuals");
+	} else if(settings.transparent && avDepth == 24) {
+		dlg_warn("transparent window but no 32 bit visual");
+	} else if(!settings.transparent && avDepth == 32) {
+		dlg_info("not-transparent window, but only 32 bits visuals");
+	}
 
 	// argb > rgba > bgra for 32
 	// rgb > bgr for 24
@@ -255,7 +264,7 @@ void X11WindowContext::cursor(const Cursor& curs)
 		auto xname = cursorToXName(curs.type());
 		if(!xname) {
 			auto cname = name(curs.type());
-			ny_warn("{} not supported", cname);
+			dlg_warn("{} not supported", cname);
 			return;
 		}
 
@@ -344,7 +353,7 @@ void X11WindowContext::beginMove(const EventData* ev)
 
 	auto* xbev = dynamic_cast<const X11EventData*>(ev);
 	if(!xbev) {
-		ny_warn("beginMove: no event data given");
+		dlg_warn("beginMove: no event data given");
 		return;
 	}
 
