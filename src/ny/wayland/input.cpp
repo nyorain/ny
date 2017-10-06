@@ -337,6 +337,7 @@ void WaylandKeyboardContext::handleKey(wl_keyboard*, uint32_t serial, uint32_t t
 	Keycode keycode;
 	std::string utf8;
 
+	auto repeat = pressed && this->pressed(xkbToKey(key));
 	XkbKeyboardContext::handleKey(key + 8, pressed, keycode, utf8);
 	if(focus_) {
 		KeyEvent ke;
@@ -344,6 +345,7 @@ void WaylandKeyboardContext::handleKey(wl_keyboard*, uint32_t serial, uint32_t t
 		ke.keycode = keycode;
 		ke.utf8 = utf8;
 		ke.pressed = pressed;
+		ke.repeat = repeat;
 		focus_->listener().key(ke);
 	}
 
@@ -359,8 +361,6 @@ void WaylandKeyboardContext::handleModifiers(wl_keyboard*, uint32_t serial, uint
 
 void WaylandKeyboardContext::handleRepeatInfo(wl_keyboard*, int32_t rate, int32_t delay)
 {
-	nytl::unused(rate, delay);
-
 	repeatRate_ = rate;
 	repeatDelay_ = delay;
 }

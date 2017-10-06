@@ -3,6 +3,7 @@
 ### priority
 
 - clean this file up (it really needs work -> docs)
+- Keyboard/MouseContext use Event in callback
 - after some cleanups (+important fixes): release first alpha (clear roadmap?)
 	- think about api/abi guarantees to give
 	- improve docs/make gen doc pages?
@@ -197,6 +198,8 @@ x11 backend:
 wayland backend:
 ---------------
 
+- key repeat (probably best to use a timerfd, see weston example clients)
+	- then rework key repeat check in input.cpp (can probably be done better)
 - animated cursor (low prio)
 - support xdg popup (and version 6), other protocols (low prio)
 - ShmBuffer shm_pool shared (not one per buffer...)

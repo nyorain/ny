@@ -54,11 +54,11 @@ int main()
 	listener.loopControl = &control;
 
 	ny::GlContextSettings glsettings;
-	if(glSurface)
+	if(glSurface) {
 		listener.glContext = ac->glSetup()->createContext(*glSurface);
+	}
 
 	wc->listener(listener);
-	wc->refresh();
 
 	dlg_info("Entering main loop");
 	ac->dispatchLoop(control);
@@ -72,8 +72,9 @@ void MyWindowListener::close(const ny::CloseEvent&)
 
 void MyWindowListener::draw(const ny::DrawEvent&)
 {
-	if(!glSurface)
+	if(!glSurface) {
 		dlg_warn("draw without gl surface");
+	}
 
 	// First, we make the gl context current.
 	// we do not make it notCurrent and the end of this function since we only

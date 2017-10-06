@@ -56,7 +56,7 @@ public:
 	/// calls the appropriate listeners and callbacks.
 	/// Also handles xkb specific events.
 	/// Returns whether the given event was processed.
-	bool processEvent(const x11::GenericEvent& ev);
+	bool processEvent(const x11::GenericEvent& ev, const x11::GenericEvent* next);
 
 	bool updateKeymap();
 
@@ -65,7 +65,8 @@ public:
 protected:
 	X11AppContext& appContext_;
 	X11WindowContext* focus_ {};
-	uint8_t eventType_ {};
+	bool repeated_ {}; // whether the next key press is repeated
+	uint8_t eventType_ {}; // xkb event type (rename?)
 };
 
 } // namespace ny

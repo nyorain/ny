@@ -62,9 +62,7 @@ WaylandWindowContext::WaylandWindowContext(WaylandAppContext& ac,
 		else if(ac.wlShell()) createShellSurface(settings);
 		else throw std::runtime_error("ny::WaylandWindowContext: compositor has no shell global");
 
-		if(!settings.title.empty()) title(settings.title);
 		switch(settings.initState) {
-			case ToplevelState::normal: normalState(); break;
 			case ToplevelState::fullscreen: fullscreen(); break;
 			case ToplevelState::maximized: maximize(); break;
 			case ToplevelState::minimized: minimize(); break;
@@ -113,6 +111,9 @@ void WaylandWindowContext::createShellSurface(const WaylandWindowSettings& ws)
 
 	wl_shell_surface_set_title(wlShellSurface_, ws.title.c_str());
 	wl_shell_surface_set_class(wlShellSurface_, "ny::application"); // TODO: AppContextSettings
+	wl_shell_surface_set_toplevel(wlShellSurface_);
+
+	// TODO: deferred refresh
 }
 
 void WaylandWindowContext::createXdgSurfaceV5(const WaylandWindowSettings& ws)
@@ -159,23 +160,21 @@ void WaylandWindowContext::createXdgSurfaceV6(const WaylandWindowSettings& ws)
 	if(!xdgSurfaceV6_.toplevel)
 		throw std::runtime_error("ny::WaylandWindowContext: failed to create xdg_toplevel v6");
 
-	// commit to apply the role
-	wl_surface_commit(wlSurface_);
-
 	role_ = WaylandSurfaceRole::xdgToplevelV6;
 	xdgSurfaceV6_.configured = false;
 
-	// TODO: when we use this here we override the size our WindowContext would get i.e. on
-	// a tiling window manager which is not what we want. But otherwise if the compositor
-	// wants the application to choose the size we need this call to actually choose it.
-	// how to handle this? somehow parse the configure events we get and react to it
-	zxdg_surface_v6_set_window_geometry(xdgSurfaceV6_.surface, 0, 0, size()[0], size()[1]);
+	// TODO: probably remove
+	// zxdg_surface_v6_set_window_geometry(xdgSurfaceV6_.surface, 0, 0, size()[0], size()[1]);
 
 	zxdg_surface_v6_add_listener(xdgSurfaceV6_.surface, &xdgSurfaceListener, this);
 	zxdg_toplevel_v6_add_listener(xdgSurfaceV6_.toplevel, &xdgToplevelListener, this);
 
 	zxdg_toplevel_v6_set_title(xdgSurfaceV6_.toplevel, ws.title.c_str());
 	zxdg_toplevel_v6_set_app_id(xdgSurfaceV6_.toplevel, appContext().appName());
+
+	// commit to apply the role
+	wl_surface_commit(wlSurface_);
+	dlg_debug("created v6 toplevel");
 }
 
 void WaylandWindowContext::createXdgPopupV5(const WaylandWindowSettings& ws)
@@ -651,7 +650,7 @@ void WaylandWindowContext::handleXdgSurfaceV6Configure(zxdg_surface_v6*, uint32_
 	// if not, dont send size event and redraw
 	xdgSurfaceV6_.configured = true;
 	zxdg_surface_v6_ack_configure(xdgSurfaceV6(), serial);
-	zxdg_surface_v6_set_window_geometry(xdgSurfaceV6_.surface, 0, 0, size()[0], size()[1]);
+	// zxdg_surface_v6_set_window_geometry(xdgSurfaceV6_.surface, 0, 0, size()[0], size()[1]);
 
 	SizeEvent se;
 	se.size = size_;
@@ -663,7 +662,11 @@ void WaylandWindowContext::handleXdgSurfaceV6Configure(zxdg_surface_v6*, uint32_
 void WaylandWindowContext::handleXdgToplevelV6Configure(zxdg_toplevel_v6*, int32_t width,
 	int32_t height, wl_array* states)
 {
-	if(!width || !height) return;
+	// TODO?
+	if(!width || !height) {
+		return;
+	}
+
 	reparseState(*states);
 
 	// we store the new size but not yet actually resize/redraw the window

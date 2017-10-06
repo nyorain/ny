@@ -10,8 +10,19 @@
 #include <memory>
 
 namespace ny {
+namespace x11 {
 
-///X11 AppContext implementation.
+struct EventQueue {
+	xcb_connection_t* xConnection_;
+	x11::GenericEvent* current;
+	x11::GenericEvent* next;
+	void update();
+	void skipNext();
+};
+
+} // namespace x11
+
+/// X11 AppContext implementation.
 class X11AppContext : public AppContext {
 public:
 	X11AppContext();
@@ -33,7 +44,7 @@ public:
 	GlSetup* glSetup() const override;
 
 	// - x11 specific -
-	void processEvent(const x11::GenericEvent& xEvent);
+	void processEvent(const x11::GenericEvent& ev, const x11::GenericEvent* next);
 	X11WindowContext* windowContext(xcb_window_t);
 	bool checkErrorWarn();
 
@@ -68,6 +79,7 @@ protected:
 
 	std::unique_ptr<X11MouseContext> mouseContext_;
 	std::unique_ptr<X11KeyboardContext> keyboardContext_;
+	x11::GenericEvent* next_ {};
 
 	struct Impl;
 	std::unique_ptr<Impl> impl_;

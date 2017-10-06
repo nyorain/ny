@@ -79,6 +79,7 @@ int main(int, char**)
 
 void MyWindowListener::draw(const ny::DrawEvent&)
 {
+	dlg_info("drawing the window");
 	if(!bufferSurface) {
 		dlg_info("draw: no bufferSurface");
 		return;
@@ -101,9 +102,10 @@ void MyWindowListener::key(const ny::KeyEvent& keyEvent)
 
 	std::string_view utf8 = (keyEvent.utf8.empty() || ny::specialKey(keyEvent.keycode)) ?
 		"<unprintable>" : keyEvent.utf8;
-	dlg_info("Key {} with keycode ({}: {}) {}, generating: {}", name,
+	dlg_info("Key {} with keycode ({}: {}) {}, generating: {} {}", name,
 		(unsigned int) keyEvent.keycode, ny::name(keyEvent.keycode),
-		keyEvent.pressed ? "pressed" : "released", utf8);
+		keyEvent.pressed ? "pressed" : "released", utf8,
+		keyEvent.repeat ? "(repeated)" : "");
 
 	if(keyEvent.pressed) {
 		auto keycode = keyEvent.keycode;

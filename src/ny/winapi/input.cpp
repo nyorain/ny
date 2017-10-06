@@ -178,6 +178,7 @@ bool WinapiKeyboardContext::pressed(Keycode key) const
 
 std::string WinapiKeyboardContext::utf8(Keycode keycode) const
 {
+	// TODO: use GetKeyNameText ?
 	auto it = keycodeUnicodeMap_.find(keycode);
 	if(it != keycodeUnicodeMap_.end()) return it->second;
 	return "";
@@ -241,6 +242,8 @@ bool WinapiKeyboardContext::processEvent(const WinapiEventData& eventData, LRESU
 			keyPressed = true;
 			[[fallthrough]];
 		case WM_KEYUP: {
+			// TODO: better scancode (extended) handling,
+			// see https://handmade.network/forums/t/2011-keyboard_inputs_-_scancodes,_raw_input,_text_input,_key_names
 			auto vkcode = wparam;
 			auto scancode = HIWORD(lparam);
 			auto keycode = winapiToKeycode(vkcode);
@@ -253,6 +256,7 @@ bool WinapiKeyboardContext::processEvent(const WinapiEventData& eventData, LRESU
 			ke.eventData = &eventData;
 			ke.pressed = keyPressed;
 			ke.modifiers = modifiers();
+			ke.repeated = keyPressed && (lparam & 0xFF);
 			wchar_t utf16[64];
 			auto bytes = ::ToUnicode(vkcode, scancode, state, utf16, 64, 0);
 			if(bytes > 0) {

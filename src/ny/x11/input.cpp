@@ -265,7 +265,7 @@ WindowContext* X11KeyboardContext::focus() const
 	return focus_;
 }
 
-bool X11KeyboardContext::processEvent(const x11::GenericEvent& ev)
+bool X11KeyboardContext::processEvent(const x11::GenericEvent& ev, const x11::GenericEvent* next)
 {
 	union XkbEvent {
 		struct {
@@ -331,7 +331,10 @@ bool X11KeyboardContext::processEvent(const x11::GenericEvent& ev)
 			std::string utf8;
 
 			// When the user presses keys that cancel a dead key, we ring the bell.
-			if(!handleKey(key.detail, true, keycode, utf8)) appContext().bell();
+			if(!handleKey(key.detail, true, keycode, utf8)) {
+				appContext().bell();
+			}
+			
 			onKey(*this, keycode, utf8, true);
 
 			if(wc) {
@@ -340,9 +343,11 @@ bool X11KeyboardContext::processEvent(const x11::GenericEvent& ev)
 				ke.keycode = keycode;
 				ke.utf8 = utf8;
 				ke.pressed = true;
+				ke.repeat = repeated_;
 				wc->listener().key(ke);
 			}
 
+			repeated_ = false;
 			break;
 		}
 
@@ -353,8 +358,21 @@ bool X11KeyboardContext::processEvent(const x11::GenericEvent& ev)
 			Keycode keycode;
 			std::string utf8;
 
+			// check for repeat
+			if(next && (next->response_type & ~0x80) == XCB_KEY_PRESS) {
+				auto& kp = reinterpret_cast<const xcb_key_press_event_t&>(*next);
+				if(kp.time == key.time && kp.detail == key.detail) {
+					// just ignore this event
+					repeated_ = true;
+					break;
+				}
+			}
+
 			// When the user presses keys that cancel a dead key, we ring the bell.
-			if(!handleKey(key.detail, false, keycode, utf8)) appContext().bell();
+			if(!handleKey(key.detail, false, keycode, utf8)) {
+				appContext().bell();
+			}
+
 			onKey(*this, keycode, utf8, false);
 
 			if(wc) {

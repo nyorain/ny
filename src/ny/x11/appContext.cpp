@@ -299,13 +299,23 @@ KeyboardContext* X11AppContext::keyboardContext()
 
 bool X11AppContext::dispatchEvents()
 {
-	if(!checkErrorWarn()) return false;
+	if(!checkErrorWarn()) {
+		return false;
+	}
 
-	xcb_flush(&xConnection());
-	while(auto event = xcb_poll_for_event(xConnection_)) {
-		processEvent(static_cast<const x11::GenericEvent&>(*event));
+	while(true) {
+		xcb_generic_event_t* event {};
+		if(next_) {
+			event = next_;
+			next_ = nullptr;
+		} else if(!(event = xcb_poll_for_event(xConnection_))) {
+			break;
+		}
+
+		next_ = static_cast<x11::GenericEvent*>(xcb_poll_for_event(xConnection_));
+		processEvent(static_cast<x11::GenericEvent&>(*event), next_);
 		free(event);
-		xcb_flush(&xConnection());
+		xcb_flush(&xConnection()); // TODO: needed?
 	}
 
 	return checkErrorWarn();
@@ -316,14 +326,26 @@ bool X11AppContext::dispatchLoop(LoopControl& control)
 	X11LoopImpl loopImpl(control, xConnection(), xDummyWindow());
 
 	while(loopImpl.run.load()) {
-		while(auto func = loopImpl.popFunction()) func();
+		while(auto func = loopImpl.popFunction()) {
+			func();
+		}
 
-		xcb_generic_event_t* event = xcb_wait_for_event(xConnection_);
-		if(!event && !checkErrorWarn()) return false;
+		xcb_generic_event_t* event {};
+		if(next_) {
+			event = next_;
+			next_ = nullptr;
+		} else {
+			event = xcb_wait_for_event(xConnection_);
 
-		processEvent(static_cast<const x11::GenericEvent&>(*event));
+			if(!event && !checkErrorWarn()) {
+				return false;
+			}
+		}
+
+		next_ = static_cast<x11::GenericEvent*>(xcb_poll_for_event(xConnection_));
+		processEvent(static_cast<x11::GenericEvent&>(*event), next_);
 		free(event);
-		xcb_flush(&xConnection());
+		xcb_flush(&xConnection()); // TODO: needed?
 	}
 
 	return true;
@@ -442,7 +464,7 @@ void X11AppContext::bell()
 	xcb_bell(xConnection_, 100);
 }
 
-void X11AppContext::processEvent(const x11::GenericEvent& ev)
+void X11AppContext::processEvent(const x11::GenericEvent& ev, const x11::GenericEvent* next)
 {
 	X11EventData eventData {ev};
 
@@ -521,10 +543,10 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev)
 	}
 
 	if(impl_->dataManager.processEvent(ev)) return;
-	if(keyboardContext_->processEvent(ev)) return;
+	if(keyboardContext_->processEvent(ev, next)) return;
 	if(mouseContext_->processEvent(ev)) return;
 
-	#undef EventHandlerEvent
+	#undef EventHandlerEvent // ???
 }
 
 x11::EwmhConnection& X11AppContext::ewmhConnection() const { return impl_->ewmhConnection; }
@@ -532,4 +554,4 @@ X11ErrorCategory& X11AppContext::errorCategory() const { return impl_->errorCate
 const x11::Atoms& X11AppContext::atoms() const { return impl_->atoms; }
 X11DataManager& X11AppContext::dataManager() const { return impl_->dataManager; }
 
-}
+} // namespace ny

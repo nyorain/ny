@@ -141,7 +141,7 @@ public:
 	NativeHandle parent {}; ///< May specify the windows native parent
 	ToplevelState initState = ToplevelState::normal; ///< Window state after initialization
 	nytl::Vec2ui size = defaultSize; ///< Beginning window size. Must not be (0, 0)
-	nytl::Vec2i position = defaultPosition; ///< Beginngin window position
+	nytl::Vec2i position = defaultPosition; ///< Beginning window position
 	std::string title = "Some Random Window Title"; ///< The title of the window
 	bool show = true; ///< Show the window direclty after initialization?
 	Cursor cursor {}; ///< Default cursor for the whole window
