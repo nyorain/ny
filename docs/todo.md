@@ -1,27 +1,35 @@
 # Needed fixes:
 
-### priority
-
-- clean this file up (it really needs work -> docs)
-- Keyboard/MouseContext use Event in callback
 - after some cleanups (+important fixes): release first alpha (clear roadmap?)
 	- think about api/abi guarantees to give
 	- improve docs/make gen doc pages?
+
+### bug fixes, important
+
 - fix android
 	- add meson support, port own apk.cmake
 	- move the cpp examples out of android folder
 		- use mainlined examples (fix them to work for ALL (android!) platforms)
+
+### missing features/design issues, not so important
+
+- dataExchange: correctly handle utf-8 mimetype
+	- only pass utf-8 to the application
+- Keyboard/MouseContext use Event in callback
+- WindowListener::surfaceDestroyed: output warning on default implementation?
+	- it was not overriden which can/will lead to serious problems.
+
+### ideas/additions, for later
+
 - WindowContext framecallback events? Could be useful on android/wayland
 	- shows the application when it can render again. Would be even really useful
 		for games. Can this be achieved on windows (it pretty sure cannot on x11)
 - add WindowContext capability 'surfaceEvent' to signal it might send surface destroyed events?
-- fix x11 backend (see backend todo)
 - WindowContext destroy event? Called in the listener when the windowContext exists no more?
 	- rework destruction/closing of windows?
-- dataExchange: correctly handle utf-8 mimetype
-	- only pass utf-8 to the application
-- WindowListener::surfaceDestroyed: output warning on default implementation?
-	- it was not overriden which can/will lead to serious problems.
+
+### priority
+
 - fix loopControl [synchronization] [pretty much done, fix for backends maybe needed]
 	- make sure that impl isnt changed during operation on it?!
 		- mutex in loopControl?

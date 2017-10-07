@@ -9,6 +9,7 @@
 
 #include <memory> // std::unique_ptr
 #include <vector> // std::vector
+#include <functional> // std::function
 
 namespace ny {
 
