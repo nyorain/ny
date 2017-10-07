@@ -11,8 +11,6 @@
 #include <ny/mouseContext.hpp>
 #include <ny/keyboardContext.hpp>
 
-#include <ny/loopControl.hpp>
-
 #ifdef NY_WithGl
 	#include <ny/winapi/wgl.hpp>
 #endif //Gl
@@ -38,6 +36,7 @@
 
 // NOTE: we never actually call TranslateMessage since we translate keycodes manually
 // and calling this function will interfer with our ToUnicode calls.
+namespace ny {
 
 struct WinapiAppContext::Impl {
 #ifdef NY_WithGl
@@ -200,7 +199,7 @@ void WinapiAppContext::waitEvents()
 	auto ret = ::GetMessage(&msg, nullptr, 0, 0);
 	if(ret == -1) {
 		dlg_warn(winapi::errorMessage("GetMessage"));
-		return false;
+		// return false;
 	} else {
 		::DispatchMessage(&msg);
 	}

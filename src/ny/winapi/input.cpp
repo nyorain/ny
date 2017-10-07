@@ -256,7 +256,7 @@ bool WinapiKeyboardContext::processEvent(const WinapiEventData& eventData, LRESU
 			ke.eventData = &eventData;
 			ke.pressed = keyPressed;
 			ke.modifiers = modifiers();
-			ke.repeated = keyPressed && (lparam & 0xFF);
+			ke.repeat = keyPressed && (lparam & 0x40000000);
 			wchar_t utf16[64];
 			auto bytes = ::ToUnicode(vkcode, scancode, state, utf16, 64, 0);
 			if(bytes > 0) {
