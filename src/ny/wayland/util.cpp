@@ -360,7 +360,7 @@ ToplevelState waylandToState(unsigned int wlState)
 // WaylandErrorCategory
 WaylandErrorCategory::WaylandErrorCategory(const wl_interface& interface) : interface_(interface)
 {
-	name_ = std::string() + "ny::wayland::" + interface.name;
+	name_ = std::string("ny::wayland::") + interface.name;
 }
 
 std::string WaylandErrorCategory::message(int code) const
@@ -453,8 +453,15 @@ std::string WaylandErrorCategory::message(int code) const
 	};
 
 	for(auto& i : interfaces) {
-		if(&i.interface != &interface_) continue;
-		for(auto& e : i.errors) if(e.code - 1 == code) return e.msg;
+		if(&i.interface != &interface_) {
+			continue;
+		}
+
+		for(auto& e : i.errors) {
+			if(e.code - 1 == code) {
+				return e.msg;
+			}
+		}
 		break;
 	}
 

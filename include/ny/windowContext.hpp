@@ -95,8 +95,7 @@ public:
 
 	/// Asks the platform-specific windowing api for a window refresh.
 	/// Will basically send a DrawEvent to the registered EventHandler as soon as the window is
-	/// ready to draw. This function might directly dispatch a DrawEvent to the associated
-	/// WindowListener if no kind of draw synchronization is available.
+	/// ready to draw. Will never send an event from within the function.
 	virtual void refresh() = 0;
 
 	/// Returns a Surface object that holds some type of surface object that was created

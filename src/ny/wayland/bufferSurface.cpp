@@ -25,8 +25,9 @@ WaylandBufferSurface::~WaylandBufferSurface()
 
 BufferGuard WaylandBufferSurface::buffer()
 {
-	if(active_)
+	if(active_) {
 		throw std::logic_error("ny::WlBufferSurface: there is already an active BufferGuard");
+	}
 
 	auto size = windowContext().size();
 	for(auto& b : buffers_) {
@@ -67,7 +68,9 @@ WaylandBufferWindowContext::WaylandBufferWindowContext(WaylandAppContext& ac,
 		WaylandWindowContext(ac, settings),
 		bufferSurface_(*this)
 {
-	if(settings.buffer.storeSurface) *settings.buffer.storeSurface = &bufferSurface_;
+	if(settings.buffer.storeSurface) {
+		*settings.buffer.storeSurface = &bufferSurface_;
+	}
 }
 
 Surface WaylandBufferWindowContext::surface()

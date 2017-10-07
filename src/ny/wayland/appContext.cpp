@@ -13,7 +13,6 @@
 #include <ny/wayland/protocols/xdg-shell-v5.h>
 #include <ny/wayland/protocols/xdg-shell-v6.h>
 
-#include <ny/loopControl.hpp>
 #include <dlg/dlg.hpp>
 
 #ifdef NY_WithEgl
@@ -44,83 +43,12 @@
 #include <sstream>
 #include <atomic>
 
-// TODO: is the wakeup_ flag really needed? see dispatchDisplay
-
-// Implementation notes:
-// It is possible to call wl_dispatch functions nested since before wayland calls
-// an event listener, the display mutex is unlocked (wayland client.c dispatch_event)
-
-// Wayland proxy listener do not directly call the applications callback, but rather
-// use WaylandAppContext::dispatch which checks whether the AppContext is currently
-// dispatching (WaylandAppContext::dispatching_).
-// If it is not the dispatch function is stored and executed the next time the AppContext
-// is dispatching. This assured that events are not dispatched outside of a dispatch
-// function because the application did e.g. call a function that triggers
-// a display roundtrip (which might call wayland listeners).
-//
 // At the moment, we implement xdg_shell versions 5 and 6 since some compositors only
 // support one of them. WaylandWindowContext will use version 6 is available.
 // Later on, all support for version 5 might be dropped
 
 namespace ny {
 namespace {
-
-/// Wayland LoopInterface implementation.
-/// The WaylandAppContext uses a modified version of wl_display_dispatch that
-/// additionally listens for various fds. One of them is an eventfd that is triggered every
-/// time .stop or .call is called to wake the loop up.
-/// The class has additionally an atomic bool that will be set to false when the
-/// loop was stopped.
-/// The eventfd is only used to wake the polling up, it does not transmit any useful information.
-class WaylandLoopImpl : public ny::LoopInterface {
-public:
-	std::atomic<bool> run {true};
-
-	unsigned int eventfd {};
-	std::queue<std::function<void()>> functions {};
-	std::mutex mutex {};
-
-public:
-	WaylandLoopImpl(LoopControl& lc, unsigned int evfd)
-		: LoopInterface(lc), eventfd(evfd) {}
-
-	bool stop() override
-	{
-		run.store(false);
-		wakeup();
-		return true;
-	}
-
-	bool call(std::function<void()> function) override
-	{
-		if(!function) return false;
-
-		{
-			std::lock_guard<std::mutex> lock(mutex);
-			functions.push(std::move(function));
-		}
-
-		wakeup();
-		return true;
-	}
-
-	// Write to the eventfd to wake a potential loop polling up.
-	void wakeup()
-	{
-		std::int64_t v = 1;
-		::write(eventfd, &v, 8);
-	}
-
-	// Returns the first queued function to be called or an empty object.
-	std::function<void()> popFunction()
-	{
-		std::lock_guard<std::mutex> lock(mutex);
-		if(functions.empty()) return {};
-		auto ret = std::move(functions.front());
-		functions.pop();
-		return ret;
-	}
-};
 
 // Like poll but does not return on signals.
 int noSigPoll(pollfd& fds, nfds_t nfds, int timeout = -1)
@@ -146,6 +74,8 @@ void logHandler(const char* format, va_list vlist)
 
 	lastLogMessage.resize(size + 1);
 	std::vsnprintf(&lastLogMessage[0], lastLogMessage.size(), format, vlistcopy);
+	lastLogMessage.pop_back(); // null-terminator
+	lastLogMessage.pop_back(); // newline
 	va_end(vlistcopy);
 
 	dlg_info("wayland error: {}", lastLogMessage);
@@ -155,7 +85,7 @@ void logHandler(const char* format, va_list vlist)
 struct ListenerEntry {
 	int fd {};
 	unsigned int events {};
-	std::function<void(nytl::Connection, int fd, unsigned int events)> callback;
+	std::function<bool(int fd, unsigned int events)> callback;
 };
 
 } // anonymous util namespace
@@ -237,15 +167,14 @@ WaylandAppContext::WaylandAppContext()
 	if(!impl_->wlCompositor)
 		throw std::runtime_error("ny::WaylandAppContext(): could not get compositor");
 
-	// create eventfd needed to wake up polling
-	// register a fd poll callback that just resets the eventfd and sets wakeup_
-	// to true which will cause no further polling, but running the next loop
-	// iteration in dispatchLoop
+	// TODO: is the wakeup_ flag really needed? see dispatchDisplay
+	// create eventfd needed for wakeupWait
 	eventfd_ = eventfd(0, EFD_NONBLOCK);
 	fdCallback(eventfd_, POLLIN, [&](int, unsigned int){
 		int64_t v;
 		read(eventfd_, &v, 8);
 		wakeup_ = true;
+		return true;
 	});
 
 	// warn if features are missing
@@ -299,17 +228,23 @@ WaylandAppContext::~WaylandAppContext()
 	if(wlDisplay_) wl_display_disconnect(wlDisplay_);
 }
 
-bool WaylandAppContext::dispatchEvents()
+// TODO: error handling
+void WaylandAppContext::pollEvents()
 {
-	if(!checkErrorWarn()) return false;
+	if(!checkErrorWarn()) {
+		return;
+	}
+
+	callDeferred();
 
 	// read all registered file descriptors without any blocking and without polling
-	// for the display file descriptor, since we dispatch everything availabel anyways
+	// for the display file descriptor, since we dispatch everything available anyways
 	pollFds(0, 0);
 
 	// dispatch all pending wayland events
-	while(wl_display_prepare_read(wlDisplay_) == -1)
+	while(wl_display_prepare_read(wlDisplay_) == -1) {
 		wl_display_dispatch_pending(wlDisplay_);
+	}
 
 	if(wl_display_flush(wlDisplay_) == -1) {
 		wl_display_cancel_read(wlDisplay_);
@@ -326,24 +261,24 @@ bool WaylandAppContext::dispatchEvents()
 		wl_display_dispatch_pending(wlDisplay_);
 	}
 
-	return checkErrorWarn();
+	checkErrorWarn();
 }
 
-bool WaylandAppContext::dispatchLoop(LoopControl& control)
+void WaylandAppContext::waitEvents()
 {
-	if(!checkErrorWarn()) return false;
-	WaylandLoopImpl loopImpl(control, eventfd_);
-
-	while(loopImpl.run.load()) {
-		// call pending callback & dispatch functions
-		while(auto func = loopImpl.popFunction()) func();
-
-		if(dispatchDisplay()) continue;
-		if(!checkErrorWarn()) return false;
-		// debug("ny::WaylandAppContext::dispatchLoop: dispatchDisplay failed without error");
+	if(!checkErrorWarn()) {
+		return;
 	}
 
-	return checkErrorWarn();
+	callDeferred();
+	dispatchDisplay();
+	checkErrorWarn();
+}
+
+void WaylandAppContext::wakeupWait()
+{
+	std::int64_t v = 1;
+	::write(eventfd_, &v, 8);
 }
 
 KeyboardContext* WaylandAppContext::keyboardContext()
@@ -471,7 +406,9 @@ std::error_code WaylandAppContext::checkError() const
 {
 	// We cache the error so we don't have to query it every time
 	// This function is called/checked very often (critical paths)
-	if(impl_->error) return impl_->error;
+	if(impl_->error) {
+		return impl_->error;
+	}
 
 	auto err = wl_display_get_error(wlDisplay_);
 	if(!err) return {};
@@ -485,8 +422,11 @@ std::error_code WaylandAppContext::checkError() const
 
 		// find or insert the matching category
 		// see wayland/util.hpp WaylandErrorCategory for more information
-		for(auto& category : impl_->errorCategories)
-			if(&category->interface() == interface) return {code, *category};
+		for(auto& category : impl_->errorCategories) {
+			if(&category->interface() == interface) {
+				return {code, *category};
+			}
+		}
 
 		impl_->errorCategories.push_back(std::make_unique<WaylandErrorCategory>(*interface));
 		impl_->error = {code, *impl_->errorCategories.back()};
@@ -505,9 +445,10 @@ bool WaylandAppContext::checkErrorWarn() const
 
 	auto msg = ec.message();
 	auto* wlCategory = dynamic_cast<const WaylandErrorCategory*>(&ec.category());
+
 	if(wlCategory) {
 		dlg_warn(
-			"Wayland display has protocol error <{}> in interface <{}>\n\t"
+			"Wayland display has protocol error '{}' in interface '{}'\n\t"
 			"Last log output in this thread: {}\n\t" 
 			"The display and WaylandAppContext might be instable",
 			msg, wlCategory->interface().name, lastLogMessage);
@@ -526,14 +467,33 @@ bool WaylandAppContext::checkErrorWarn() const
 nytl::Connection WaylandAppContext::fdCallback(int fd, unsigned int events,
 	const FdCallbackFunc& func)
 {
-	return fdCallback(fd, events,
-		[f = func](nytl::Connection, int fd, unsigned int events){ f(fd, events); });
+	return impl_->fdCallbacks.add({fd, events, func});
 }
 
-nytl::Connection WaylandAppContext::fdCallback(int fd, unsigned int events,
-	const FdCallbackFuncConn& func)
+void WaylandAppContext::defer(WaylandWindowContext* wc,
+	DeferedHandler handler)
 {
-	return impl_->fdCallbacks.add({fd, events, func});
+	deferred_.push_back({wc, std::move(handler)});
+}
+
+void WaylandAppContext::removeDeferred(const WaylandWindowContext& wc)
+{
+	deferred_.erase(std::remove_if(deferred_.begin(), deferred_.end(),
+		[&](const auto& d){ return d.first == &wc; }), deferred_.end());
+}
+
+void WaylandAppContext::callDeferred()
+{
+	// care, the deferred handlers might add new deferred handlers
+	for(auto i = 0u; i < deferred_.size(); ++i) {
+		auto& d = deferred_[i];
+		auto wc = d.first;
+		auto f = std::move(d.second);
+		d = {}; // to make sure it is not removed from removeDeferred
+		f(wc);
+	}
+
+	deferred_.clear();
 }
 
 void WaylandAppContext::destroyDataSource(const WaylandDataSource& src)
@@ -554,7 +514,9 @@ bool WaylandAppContext::dispatchDisplay()
 	// try to flush the display until all data is flushed
 	while(true) {
 		ret = wl_display_flush(wlDisplay_);
-		if(ret != -1 || errno != EAGAIN) break;
+		if(ret != -1 || errno != EAGAIN) {
+			break;
+		}
 
 		// poll until the display could be written again.
 		if(pollFds(POLLOUT, -1) == -1) {
@@ -588,7 +550,10 @@ bool WaylandAppContext::dispatchDisplay()
 		return true;
 	}
 
-	if(wl_display_read_events(wlDisplay_) == -1) return false;
+	if(wl_display_read_events(wlDisplay_) == -1) {
+		return false;
+	}
+
 	auto dispatched = wl_display_dispatch_pending(wlDisplay_);
 	return dispatched >= 0;
 }
@@ -615,7 +580,9 @@ int WaylandAppContext::pollFds(short wlDisplayEvents, int timeout)
 	}
 
 	// add the wayland display fd to the pollfds
-	if(wlDisplayEvents) fds.push_back({wl_display_get_fd(&wlDisplay()), wlDisplayEvents, 0u});
+	if(wlDisplayEvents) {
+		fds.push_back({wl_display_get_fd(&wlDisplay()), wlDisplayEvents, 0u});
+	}
 
 	auto ret = noSigPoll(*fds.data(), fds.size(), timeout);
 	if(ret < 0) {
@@ -626,12 +593,20 @@ int WaylandAppContext::pollFds(short wlDisplayEvents, int timeout)
 	// check which fd callbacks have revents, find and trigger them
 	// fds.size() > ids.size() always true
 	for(auto i = 0u; i < ids.size(); ++i) {
-		if(!fds[i].revents) continue;
-		for(auto& callback : impl_->fdCallbacks.items) {
-			if(callback.clID_.get() != ids[i].get()) continue;
-			nytl::Connection conn(impl_->fdCallbacks, callback.clID_);
-			callback.callback(conn, fds[i].fd, fds[i].revents);
-			break;
+		if(!fds[i].revents) {
+			continue;
+		}
+
+		auto& items = impl_->fdCallbacks.items;
+		auto it = std::find_if(items.begin(), items.end(),
+			[&](auto& cb){ return cb.clID_.get() == ids[i].get(); });
+		if(it == items.end()) {
+			dlg_warn("invalid fd callback");
+			continue;
+		}
+
+		if(!it->callback(fds[i].fd, fds[i].revents)) {
+			items.erase(it);
 		}
 	}
 

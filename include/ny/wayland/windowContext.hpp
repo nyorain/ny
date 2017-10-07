@@ -140,7 +140,8 @@ protected:
 	// stores if the window has a pending refresh request, i.e. if it should refresh
 	// as soon as possible
 	// flag will be set by refresh() and trigger a DrawEvent when frameEvent is called
-	bool refreshFlag_ = false;
+	bool refreshFlag_ {};
+	bool refreshPending_ {}; // for deferred refresh
 
 	// stores which kinds of surface this context holds
 	WaylandSurfaceRole role_ = WaylandSurfaceRole::none;

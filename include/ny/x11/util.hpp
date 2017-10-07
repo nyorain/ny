@@ -23,6 +23,7 @@
 
 namespace ny {
 
+// TODO: guaranteed that generic_event can hold other event types?
 /// X11EventData stores the native xcb event for later use.
 /// To see where this might be needed look at the X11WC::beginResize and X11WC::beginMove functions.
 struct X11EventData : public EventData {

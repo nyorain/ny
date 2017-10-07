@@ -7,14 +7,16 @@
 // understand the documented code here.
 // If you have questions, just ask them on github (post an issue on github.com/nyorain/ny) and
 // we will try to document unclear aspects.
+// Note that we don't render anything in this example so the window contents
+// are undefined - expect graphical glitches.
 
-// Create a custom Windowlistener that will handle events for windows.
+// A custom Windowlistener that will handle events for our window.
 // We only the handle the close event in this simple case.
-// The class also holds an additional ny::LoopControl to which we will come in the main function.
+// The class also holds an additional bool to communiate with the main loop.
 // The close function is implemented at the bottom of this file.
 class MyWindowListener : public ny::WindowListener {
 public:
-	ny::LoopControl* lc {};
+	bool* run;
 	void close(const ny::CloseEvent& ev) override;
 };
 
@@ -22,7 +24,8 @@ public:
 // a custom EventHandler and then runs the mainLoop. All classes are only roughly described
 // here, usually just looking at the ny header files and reading their documentation
 // will really help you.
-// The most important classes (interaces) of ny are ny::AppContext and ny::WindowContext.
+// The most important classes (interaces) of ny are ny::AppContext, ny::WindowContext
+// and ny::WindowListener.
 int main()
 {
 	// We let ny choose a backend.
@@ -58,34 +61,28 @@ int main()
 	ws.listener = &listener;
 	auto wc = ac->createWindowContext(ws); // decltype(wc): std::unique_ptr<ny::WindowContext>
 
-	// Now we create a LoopControl object.
-	// With this object we can stop the loop called below from the inside (in callbacks/listeners)
-	// or even from different threads (see the ny-multithread example).
-	// We also pass the loopControl to our listener, since it will use it to stop the main
-	// loop when the window is closed.
-	ny::LoopControl control {};
-	listener.lc = &control;
-
-	// ny::log can be used to easily output application information.
+	// We (and ny) use dlg to output information. You could easily filter
+	// out logs (e.g. from ny) you don't want.
 	// There are also other output methods, see dlg for details
 	dlg_info("Entering main loop");
 
-	// We call the main dispatch loop, which will just wait for new events and process them
-	// until a critical error occurs or we stop the loop using the passed LoopControl.
-	// The LoopControl idiom can be imagined like this: We pass the looping function
-	// an interface object and this function will set its implementation before starting
-	// the loop that allows us in callbacks and listener functions triggered during the dispatch
-	// loop to stop it (we do it below, when the window is closed).
-	ac->dispatchLoop(control);
+	// The main loop: ny actually has no built-in main loop you have
+	// to it yourself. We keep things simple and just wait/dispatch
+	// events as long as the window was not closed. We use a bool
+	// variable to communicate between window listener and our main loop
+	bool run;
+	listener.run = &run;
+	while(run) {
+		ac->waitEvents();
+	}
 
 	// Clean up is done automatically, everything follows the RAII idiom.
 }
 
 void MyWindowListener::close(const ny::CloseEvent&)
 {
-	// We output that we received the close event and then call the stop function
-	// on the loop control that controls the main dispatch loop on the AppContext.
-	// This will cause the main loop to end and our program to exit gracefully.
+	// We output that we received the close event and then set the run
+	// pointer to false, which will end the main loop.
 	dlg_info("Received an closed event - exiting");
-	lc->stop();
+	*run = false;
 }

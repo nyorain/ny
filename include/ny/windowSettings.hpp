@@ -137,7 +137,6 @@ constexpr nytl::Vec2ui fallbackSize {800, 500};
 /// contains additional settings.
 class WindowSettings {
 public:
-	NativeHandle nativeHandle {}; ///< May specify an already existent native handle
 	NativeHandle parent {}; ///< May specify the windows native parent
 	ToplevelState initState = ToplevelState::normal; ///< Window state after initialization
 	nytl::Vec2ui size = defaultSize; ///< Beginning window size. Must not be (0, 0)
@@ -147,7 +146,7 @@ public:
 	Cursor cursor {}; ///< Default cursor for the whole window
 	WindowListener* listener {}; ///< first listener after initialization. Can be changed
 	bool transparent = false; ///< Whether to try to make the window possibly transparent
-	bool droppable = false; ///< Whether the window can handle drop events
+	bool droppable = false; ///< Whether the window will handle drop events
 
 	/// Can be used to specify if and which context should be created for the window.
 	SurfaceType surface = SurfaceType::none;

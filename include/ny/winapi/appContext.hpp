@@ -30,8 +30,9 @@ public:
 	MouseContext* mouseContext() override;
 	WindowContextPtr createWindowContext(const WindowSettings& settings) override;
 
-	bool dispatchEvents() override;
-	bool dispatchLoop(LoopControl& control) override;
+	void pollEvents() override;
+	void waitEvents() override;
+	void wakeupWait() override;
 
 	bool clipboard(std::unique_ptr<DataSource>&& source) override;
 	DataOffer* clipboard() override;
@@ -63,6 +64,7 @@ protected:
 
 	struct Impl;
 	std::unique_ptr<Impl> impl_;
+	DWORD mainThread_;
 };
 
 } // namespace ny

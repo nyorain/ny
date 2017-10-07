@@ -69,7 +69,8 @@ void AndroidWindowContext::refresh()
 		return;
 	}
 
-	listener().draw({});
+	// TODO: redraw deferred
+	// listener().draw({});
 }
 
 void AndroidWindowContext::maximize()

@@ -16,10 +16,12 @@ namespace ny {
 using WindowContextPtr = std::unique_ptr<WindowContext>;
 using AppContextPtr = std::unique_ptr<AppContext>;
 
-//TODO: optional (mouse)event parameter for dnd/clipboard functions?
-//TODO: more/better term definitions. Multiple AppContexts allowed?
-//TODO: return type of startDragDrop? AsyncRequest (docs/dev.md)
-//TODO: TouchContext. Other input sources?
+// TODO: optional (mouse)event parameter for dnd/clipboard functions?
+// TODO: more/better term definitions. Multiple AppContexts allowed?
+// TODO: return type of startDragDrop? AsyncRequest (docs/dev.md)
+// TODO: TouchContext. Other input sources?
+// TODO: wakeupWait: return how many layered wait calls are left?
+// TODO: error handling (wait/poll/wakeup calls)
 
 /// Abstract base interface for a backend-specific display conncetion.
 /// Defines the interfaces for different (threaded/blocking) event dispatching functions
@@ -33,7 +35,6 @@ public:
 	/// May throw backend specific errors on failure.
 	/// Note that this AppContext object must not be destroyed as long as the WindowContext
 	/// exists.
-	/// /\sa WindowContext
 	virtual WindowContextPtr createWindowContext(const WindowSettings&) = 0;
 
 	/// Returns a MouseContext implementation that is able to provide information about the mouse.
@@ -46,8 +47,6 @@ public:
 	/// The lifetime of the object the returned pointer points to is allowed to end IN a dispatch
 	/// call. So the returned pointer is guaranteed to be valid as long as no dispatch function is
 	/// called.
-	/// At the moment ny has no support for multiple mouse devices.
-	/// \sa MouseContext
 	virtual MouseContext* mouseContext() = 0;
 
 	/// Returns a KeyboardContext implementation that is able to provide information about the
@@ -61,26 +60,28 @@ public:
 	/// The lifetime of the object the returned pointer points to is allowed to end IN a dispatch
 	/// call. So the returned pointer is guaranteed to be valid as long as no dispatch function is
 	/// called.
-	/// At the moment ny has no support for multiple keyboard devices.
-	/// \sa KeyboardContext
 	virtual KeyboardContext* keyboardContext() = 0;
 
-	/// Dispatches all retrieved events to their eventHandlers.
-	/// Does only dispatch all currently queued events and does not wait/block for new events.
-	/// Should only be called from the ui thread.
-	/// \return false if the display conncetion was destroyed (or an error occurred) and the
-	/// AppContext should no longer be used, true otherwise (if all queued events were dispatched).
-	virtual bool dispatchEvents() = 0;
+	/// Tries to read and dispatch all available events.
+	/// Can be called from a handler from within the loop (recursively).
+	/// Will not block waiting for events.
+	/// Throws when a critical error ocurrs, the AppContext is then
+	/// in an invalid state and must not be used further.
+	virtual void pollEvents() = 0;
 
-	/// Blocks and dispatches all incoming display events until the stop function of the loop control
-	/// is called or the display conncection is closed by the server (e.g. an error or exit event).
-	/// Shall only be called from the ui thread.
-	/// \param control A LoopControl object that can be used to control the loop from
-	/// inside or from another thread.
-	/// \return true if loop was exited because stop() was called by the LoopControl.
-	/// \return false if loop was exited because the display conncetion was destroyed or an error
-	/// occured. The AppContext should then no longer be used.
-	virtual bool dispatchLoop(LoopControl& control) = 0;
+	/// Waits until events are avilable to be read and dispatched.
+	/// If there are e.g. immediately events available, behaves like pollEvents.
+	/// Can be called from a handler from within the loop (recursively).
+	/// Use wakeupWait to return from this function.
+	/// Throws when a critical error ocurrs, the AppContext is then
+	/// in an invalid state and must not be used further.
+	virtual void waitEvents() = 0;
+
+	/// Causes waitEvents to return even if no events could be dispatched.
+	/// If waitEvents was called multiple times from within each other,
+	/// will only make the top most wait call return.
+	/// Throws when an error ocurss, but the AppContext must remain usable.
+	virtual void wakeupWait() = 0;
 
 	/// Sets the clipboard to the data provided by the given DataSource implementation.
 	/// \param dataSource a DataSource implementation for the data to copy.
@@ -89,7 +90,7 @@ public:
 	/// other applications need them.
 	/// Therefore the given DataSource implementation must be able to provide data as long
 	/// as it exists.
-	/// \return true on success, false on failure.
+	/// \return Whether settings the clipboard succeeded.
 	/// \sa DataSource
 	virtual bool clipboard(std::unique_ptr<DataSource>&& dataSource) = 0;
 
@@ -109,11 +110,10 @@ public:
 
 	/// Start a drag and drop action at the current cursor position.
 	/// Note that this function might not return (running an internal event loop)
-	/// until the drag and drop ends. Anyways may no further mouse events sent until
-	/// the drag and drop ends.
+	/// until the drag and drop ends.
 	/// \param dataSource A DataSource implementation for the data to drag and drop.
 	/// The implementation must be able to provide the data as long as it exists.
-	/// \return true on success, false on failure (e.g. cursor is not over a window)
+	/// \return Whether starting the dnd operation suceeded.
 	virtual bool startDragDrop(std::unique_ptr<DataSource>&& dataSource) = 0;
 
 	/// If ny was built with vulkan and the AppContext implementation has

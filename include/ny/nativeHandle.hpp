@@ -12,15 +12,16 @@ namespace ny {
 /// Holds either a pointer to backend-specific type or an integer value.
 class NativeHandle {
 public:
-	using Value = std::intmax_t;
+	using Value = std::uintmax_t;
 
 public:
 	NativeHandle() = default;
-	template<typename T> NativeHandle(T* handle) : value_(reinterpret_cast<Value>(handle)) {}
-	template<typename T> NativeHandle(T& handle) : value_(reinterpret_cast<Value>(&handle)) {}
+	
+	template<typename T> 
+	NativeHandle(T* handle) : value_(reinterpret_cast<Value>(handle)) {}
 
-	NativeHandle(std::uintmax_t uint) : value_(static_cast<Value>(uint)) {}
-	NativeHandle(std::intmax_t sint) : value_(static_cast<Value>(sint)) {}
+	template<typename T>
+	NativeHandle(T val) : value_(static_cast<Value>(val)) {}
 
 	void* pointer() const { return reinterpret_cast<void*>(value_); }
 	Value value() const { return value_; }
@@ -34,7 +35,6 @@ public:
 	std::intptr_t intptr() const { return static_cast<std::intptr_t>(value_); }
 
 	template<typename T> T* asPtr() const { return reinterpret_cast<T*>(value_); }
-
 	operator bool() const { return (value_); }
 
 protected:

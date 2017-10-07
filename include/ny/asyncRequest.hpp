@@ -9,8 +9,9 @@
 #include <nytl/scope.hpp> // nytl::ScopeGuard
 
 #include <ny/appContext.hpp> // ny::AppContext
-#include <ny/loopControl.hpp> // ny::LoopControl
 #include <functional> // std::function
+
+// TODO: simplify for new AppContext
 
 namespace ny {
 
@@ -41,7 +42,7 @@ public:
 	/// return object and the return value must always be checked.
 	/// While waiting, the internal gui thread event loop will be run.
 	/// Calls to wait on the same AsyncRequest object should not be nested.
-	virtual bool wait(LoopControl* lc = nullptr) = 0;
+	virtual bool wait() = 0;
 
 	/// Returns whether the AsyncRequest is valid.
 	/// If this is false, calling other member functions results in undefined behaviour.
@@ -74,20 +75,23 @@ public:
 	DefaultAsyncRequest(AppContext& ac) : appContext_(&ac) {}
 	DefaultAsyncRequest(R value) : ready_(true), value_(std::move(value)) {}
 
-	bool wait(LoopControl* lc = nullptr) override
+	bool wait() override
 	{
-		if(ready_) return true;
-		LoopControl localControl;
-		if(!lc) lc = &localControl;
-		topControl_ = lc;
-		auto controlGuard = nytl::ScopeGuard([&]{ topControl_ = {}; });
+		if(ready_) {
+			return true;
+		}
 
-		return appContext_->dispatchLoop(*lc);
+		appContext_->waitEvents();
+		running_ = true;
+		return true;
 	}
 
 	void callback(std::function<void(AsyncRequest<R>&)> func) override
 	{
-		if(ready_) func(*this);
+		if(ready_) {
+			func(*this);
+		}
+
 		callback_ = func;
 	}
 
@@ -103,15 +107,21 @@ public:
 	{
 		ready_ = true;
 		value_ = std::move(value);
-		if(callback_) callback_(*this);
-		if(topControl_) topControl_->stop();
+		if(callback_) {
+			callback_(*this);
+		}
+
+		if(running_) {
+			appContext_->wakeupWait();
+			running_ = false;
+		}
 	}
 
 protected:
 	AppContext* appContext_ {};
 	std::function<void(AsyncRequest<R>&)> callback_;
 	bool ready_ {};
-	LoopControl* topControl_ {};
+	bool running_ {};
 	R value_;
 };
 

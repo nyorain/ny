@@ -62,8 +62,9 @@ WinapiWindowContext::~WinapiWindowContext()
 void WinapiWindowContext::initWindowClass(const WinapiWindowSettings& settings)
 {
 	auto wndClass = windowClass(settings);
-	if(!::RegisterClassEx(&wndClass))
+	if(!::RegisterClassEx(&wndClass)) {
 		throw winapi::lastErrorException("ny::WinapiWindowContext: RegisterClassEx failed");
+	}
 }
 
 WNDCLASSEX WinapiWindowContext::windowClass(const WinapiWindowSettings&)
@@ -110,7 +111,9 @@ void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 	if(size == defaultSize) size[0] = size[1] = CW_USEDEFAULT;
 
 	// set the listener
-	if(settings.listener) listener(*settings.listener);
+	if(settings.listener) {
+		listener(*settings.listener);
+	}
 
 	// NOTE on transparency and layered windows
 	// The window has to be layered to enable transparent drawing on it
@@ -202,7 +205,8 @@ HINSTANCE WinapiWindowContext::hinstance() const
 
 void WinapiWindowContext::refresh()
 {
-	::RedrawWindow(handle_, nullptr, nullptr, RDW_INVALIDATE | RDW_NOERASE | RDW_FRAME);
+	// just use invalidateRect? use RDW_FRAME?
+	::RedrawWindow(handle_, nullptr, nullptr, RDW_INVALIDATE | RDW_NOERASE);
 }
 
 void WinapiWindowContext::show()
@@ -442,7 +446,7 @@ void WinapiWindowContext::title(std::string_view title)
 
 NativeHandle WinapiWindowContext::nativeHandle() const
 {
-	return handle_;
+	return {handle_};
 }
 
 WindowCapabilities WinapiWindowContext::capabilities() const

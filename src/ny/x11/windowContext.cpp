@@ -36,7 +36,7 @@ X11WindowContext::~X11WindowContext()
 	}
 
 	if(xColormap_) {
-		xcb_free_colormap(&xConnection(), xCursor_);
+		xcb_free_colormap(&xConnection(), xColormap_);
 	}
 
 	if(xCursor_) {
@@ -52,12 +52,11 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 	settings_ = settings;
 	auto& xconn = xConnection();
 
-	if(settings.listener) listener(*settings.listener);
+	if(settings.listener) {
+		listener(*settings.listener);
+	}
 
-	// TODO: query visual id for native handle
-	if(settings.nativeHandle) xWindow_ = settings.nativeHandle;
-	else createWindow(settings);
-
+	createWindow(settings);
 	appContext_->registerContext(xWindow_, *this);
 
 	if(!settings.parent) {
@@ -81,11 +80,17 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 
 	// apply init settings
 	cursor(settings.cursor);
-	if(settings.show) show();
+	if(settings.show) {
+		show();
+	}
 
-	if(settings.initState == ToplevelState::maximized) maximize();
-	else if(settings.initState == ToplevelState::minimized) minimize();
-	else if(settings.initState == ToplevelState::fullscreen) fullscreen();
+	if(settings.initState == ToplevelState::maximized) {
+		maximize();
+	} else if(settings.initState == ToplevelState::minimized) {
+		minimize();
+	} else if(settings.initState == ToplevelState::fullscreen) {
+		fullscreen();
+	}
 
 	// make sure windows is mapped and set to correct state
 	xcb_flush(&xconn);
@@ -110,7 +115,10 @@ void X11WindowContext::createWindow(const X11WindowSettings& settings)
 	if(size == defaultSize) size = fallbackSize;
 
 	xcb_window_t xparent = settings.parent.uint64();
-	if(!xparent) xparent = xscreen.root;
+	dlg_info("xparent: {}", xparent);
+	if(!xparent) {
+		xparent = xscreen.root;
+	}
 
 	auto colormap = xcb_generate_id(&xconn);
 	auto cookie = xcb_create_colormap_checked(&xconn, XCB_COLORMAP_ALLOC_NONE, colormap,
@@ -348,64 +356,88 @@ void X11WindowContext::normalState()
 
 void X11WindowContext::beginMove(const EventData* ev)
 {
-	// TODO: also try to do it without given event data?
-	// we could figure the current mouse position out
+	auto index = XCB_BUTTON_INDEX_ANY;
+	auto pos = appContext().mouseContext()->position();
 
 	auto* xbev = dynamic_cast<const X11EventData*>(ev);
-	if(!xbev) {
-		dlg_warn("beginMove: no event data given");
-		return;
+	if(xbev && (xbev->event.response_type & ~0x80) == XCB_BUTTON_PRESS) {
+		auto& xev = reinterpret_cast<const xcb_button_press_event_t&>(xbev->event);
+		pos = {xev.root_x, xev.root_y};
+		index = static_cast<xcb_button_index_t>(xev.detail);
 	}
 
-	auto& xev = reinterpret_cast<const xcb_button_press_event_t&>(xbev->event);
+	xcb_ungrab_pointer(&xConnection(), XCB_TIME_CURRENT_TIME);
+	xcb_ewmh_request_wm_moveresize(&ewmhConnection(), 0, xWindow(), 
+		pos[0], pos[1], XCB_EWMH_WM_MOVERESIZE_MOVE, 
+		index, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
 
-	XEvent event;
-	memset(&event, 0, sizeof(event));
-	event.xclient.type = ClientMessage;
-	event.xclient.display = &appContext().xDisplay();
-	event.xclient.window = xWindow();
-	event.xclient.message_type = ewmhConnection()._NET_WM_MOVERESIZE;
-	event.xclient.format = 32;
-	event.xclient.data.l[0] = xev.root_x;
-	event.xclient.data.l[1] = xev.root_y;
-	event.xclient.data.l[2] = XCB_EWMH_WM_MOVERESIZE_MOVE;
-	event.xclient.data.l[3] = xev.detail;
-	event.xclient.data.l[4] = 0;
+/*
+	// implementation without xcb_ewmh
+	xcb_ungrab_pointer(&xConnection(), XCB_TIME_CURRENT_TIME);
+	xcb_client_message_event_t event {};
+	event.response_type = XCB_CLIENT_MESSAGE;
+	event.window = xWindow();
+	event.type = ewmhConnection()._NET_WM_MOVERESIZE;
+	event.format = 32;
+	event.data.data32[0] = xev.root_x;
+	event.data.data32[1] = xev.root_y;
+	event.data.data32[2] = 8; // movement only
+	event.data.data32[3] = xev.detail;
+	event.data.data32[4] = 1;
 
-	auto root = DefaultRootWindow(&appContext().xDisplay());
-	XSendEvent(&appContext().xDisplay(), root, False,
-	     SubstructureRedirectMask | SubstructureNotifyMask,
-	     &event);
-	XFlush(&appContext().xDisplay());
+	auto mask = XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | 
+		XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY;
+	auto root = appContext().xDefaultScreen().root;
+	xcb_send_event(&xConnection(), false, root,
+		mask, reinterpret_cast<char*>(&event));
+*/
 }
 
 void X11WindowContext::beginResize(const EventData* ev, WindowEdges edge)
 {
-	// TODO: also try to do it without given event data?
-	// we could figure the current mouse position out
+	auto index = XCB_BUTTON_INDEX_ANY;
+	auto pos = appContext().mouseContext()->position();
 
 	auto* xbev = dynamic_cast<const X11EventData*>(ev);
-	if(!xbev) return;
-
-	auto& xev = reinterpret_cast<const xcb_button_press_event_t&>(xbev->event);
+	if(xbev && (xbev->event.response_type & ~0x80) == XCB_BUTTON_PRESS) {
+		auto& xev = reinterpret_cast<const xcb_button_press_event_t&>(xbev->event);
+		pos = {xev.root_x, xev.root_y};
+		index = static_cast<xcb_button_index_t>(xev.detail);
+	}
 
 	xcb_ewmh_moveresize_direction_t x11Edge;
 	switch(static_cast<WindowEdge>(edge.value())) {
-		case WindowEdge::top: x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_TOP; break;
-		case WindowEdge::left: x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_LEFT; break;
-		case WindowEdge::bottom: x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_BOTTOM; break;
-		case WindowEdge::right: x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_RIGHT; break;
-		case WindowEdge::topLeft: x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_TOPLEFT; break;
-		case WindowEdge::topRight: x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_TOPRIGHT; break;
-		case WindowEdge::bottomLeft: x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_BOTTOMLEFT; break;
-		case WindowEdge::bottomRight: x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_BOTTOMRIGHT; break;
+		case WindowEdge::top: 
+			x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_TOP; 
+			break;
+		case WindowEdge::left: 
+			x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_LEFT; 
+			break;
+		case WindowEdge::bottom: 
+			x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_BOTTOM; 
+			break;
+		case WindowEdge::right: 
+			x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_RIGHT; 
+			break;
+		case WindowEdge::topLeft: 
+			x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_TOPLEFT; 
+			break;
+		case WindowEdge::topRight: 
+			x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_TOPRIGHT; 
+			break;
+		case WindowEdge::bottomLeft: 
+			x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_BOTTOMLEFT; 
+			break;
+		case WindowEdge::bottomRight: 
+			x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_BOTTOMRIGHT; 
+			break;
 		default: return;
 	}
 
-	auto index = static_cast<xcb_button_index_t>(xev.detail);
-	xcb_ewmh_request_wm_moveresize(&ewmhConnection(), 0, xWindow(), xev.root_x, xev.root_y,
-		x11Edge, index, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
-	xcb_flush(&xConnection());
+	xcb_ungrab_pointer(&xConnection(), XCB_TIME_CURRENT_TIME);
+	xcb_ewmh_request_wm_moveresize(&ewmhConnection(), 0, xWindow(), 
+		pos[0], pos[1], x11Edge, index, 
+		XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
 }
 
 void X11WindowContext::icon(const Image& img)
@@ -495,6 +527,8 @@ bool X11WindowContext::customDecorated() const
 WindowCapabilities X11WindowContext::capabilities() const
 {
 	// TODO; query if curstom and server decoration are really supported!
+	// we could also check if ewmh (-> beginMove/beginResize) is supported:
+	// https://chromium.googlesource.com/chromium/src.git/+/master/ui/base/x/x11_util.cc#914
 	return WindowCapability::size |
 		WindowCapability::fullscreen |
 		WindowCapability::minimize |

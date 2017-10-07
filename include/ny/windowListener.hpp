@@ -13,6 +13,8 @@ namespace ny {
 /// Abstract base class for handling WindowContext events.
 /// This is usually implemented by applications and associated with all window-relevant
 /// state such as drawing contexts or widget logic.
+/// All functions are guaranteed to be only called from AppContext::waitEvents
+/// or AppContext::pollEvents.
 class WindowListener {
 public:
 	/// Returns a default WindowImpl object.

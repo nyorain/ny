@@ -39,61 +39,6 @@
 // NOTE: we never actually call TranslateMessage since we translate keycodes manually
 // and calling this function will interfer with our ToUnicode calls.
 
-namespace ny {
-namespace {
-
-// LoopInterface implementation
-class WinapiLoopImpl : public ny::LoopInterface {
-public:
-	DWORD threadHandle;
-
-	std::atomic<bool> run {true};
-	std::queue<std::function<void()>> functions;
-	std::mutex mutex;
-
-public:
-	WinapiLoopImpl(LoopControl& lc) : LoopInterface(lc)
-	{
-		threadHandle = ::GetCurrentThreadId();
-	}
-
-	bool stop() override
-	{
-		run.store(false);
-		wakeup();
-		return true;
-	};
-
-	bool call(std::function<void()> function) override
-	{
-		if(!function) return false;
-
-		{
-			std::lock_guard<std::mutex> lock(mutex);
-			functions.push(std::move(function));
-		}
-
-		wakeup();
-		return true;
-	}
-
-	void wakeup()
-	{
-		::PostThreadMessage(threadHandle, WM_USER, 0, 0);
-	}
-
-	std::function<void()> popFunction()
-	{
-		std::lock_guard<std::mutex> lock(mutex);
-		if(functions.empty()) return {};
-		auto ret = std::move(functions.front());
-		functions.pop();
-		return ret;
-	}
-};
-
-} // anonymous util namespace
-
 struct WinapiAppContext::Impl {
 #ifdef NY_WithGl
 	WglSetup wglSetup;
@@ -135,6 +80,8 @@ WinapiAppContext::WinapiAppContext() : mouseContext_(*this), keyboardContext_(*t
 	// init dummy window (needed as clipboard viewer and opengl dummy window)
 	dummyWindow_ = ::CreateWindow(L"STATIC", L"", WS_DISABLED, 0, 0, 10, 10, nullptr, nullptr,
 		hinstance(), nullptr);
+
+	mainThread_ = ::GetCurrentThreadId();
 
 	// TODO:
 	// we must load AddClipboardFormatListener dynamically since it does not link correctly
@@ -231,34 +178,43 @@ KeyboardContext* WinapiAppContext::keyboardContext()
 	return &keyboardContext_;
 }
 
-bool WinapiAppContext::dispatchEvents()
+void WinapiAppContext::pollEvents()
 {
 	receivedQuit_ = false;
 	MSG msg;
 
-	while(::PeekMessage(&msg, 0, 0, 0, PM_REMOVE)) ::DispatchMessage(&msg);
-	return !receivedQuit_;
-}
-
-bool WinapiAppContext::dispatchLoop(LoopControl& control)
-{
-	receivedQuit_ = false;
-	WinapiLoopImpl loopImpl(control);
-
-	MSG msg;
-	while(!receivedQuit_ && loopImpl.run.load()) {
-		while(auto func = loopImpl.popFunction()) func();
-
-		auto ret = ::GetMessage(&msg, nullptr, 0, 0);
-		if(ret == -1) {
-			dlg_warn(winapi::errorMessage("GetMessage"));
-			return false;
-		} else {
-			::DispatchMessage(&msg);
-		}
+	while(::PeekMessage(&msg, 0, 0, 0, PM_REMOVE)) {
+		::DispatchMessage(&msg);
 	}
 
-	return !receivedQuit_;
+	// TODO
+	// return !receivedQuit_;
+}
+
+void WinapiAppContext::waitEvents()
+{
+	receivedQuit_ = false;
+
+	// wait for first msg
+	MSG msg;
+	auto ret = ::GetMessage(&msg, nullptr, 0, 0);
+	if(ret == -1) {
+		dlg_warn(winapi::errorMessage("GetMessage"));
+		return false;
+	} else {
+		::DispatchMessage(&msg);
+	}
+
+	// dispatch all pending
+	pollEvents();
+
+	// TODO
+	// return !receivedQuit_;
+}
+
+void WinapiAppContext::wakeupWait()
+{
+	::PostThreadMessage(mainThread_, WM_USER, 0, 0);
 }
 
 // TODO: error handling (warnings)

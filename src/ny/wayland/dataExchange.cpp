@@ -175,7 +175,9 @@ WaylandDataOffer::DataRequest WaylandDataOffer::data(const DataFormat& format)
 			for(auto& req : self->requests_[reqfmt.second].requests) {
 				req->complete(any);
 			}
+
 			self->requests_.erase(self->requests_.find(reqfmt.second));
+			return true;
 		};
 
 		conn = appContext_->fdCallback(fds[0], POLLIN, callback);

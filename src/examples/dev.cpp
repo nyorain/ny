@@ -84,14 +84,15 @@ class MyWindowListener : public ny::WindowListener {
 public:
 	ny::AppContext* ac;
 	ny::WindowContext* wc;
-	ny::LoopControl* lc;
 	ny::BufferSurface* surface {};
+	bool* run;
 
 public:
 	void close(const ny::CloseEvent&) override
 	{
 		dlg_info("Recevied closed event. Exiting");
-		lc->stop();
+		*run = false;
+		ac->wakeupWait();
 	}
 
 	void draw(const ny::DrawEvent&) override
@@ -133,7 +134,8 @@ public:
 			auto formatsReq = ev.offer->formats();
 			if(!formatsReq->wait()) {
 				dlg_warn("AppContext broke while waiting for formats! Exiting.");
-				lc->stop();
+				*run = false;
+				ac->wakeupWait();
 				return ny::DataFormat::none;
 			}
 
@@ -148,8 +150,10 @@ public:
 
 	void dndDrop(const ny::DndDropEvent& ev) override
 	{
-		if(!handleDataOffer(*ev.offer))
-			lc->stop();
+		if(!handleDataOffer(*ev.offer)) {
+			*run = false;
+			ac->wakeupWait();
+		}
 	}
 
 	void key(const ny::KeyEvent& ev) override
@@ -158,7 +162,8 @@ public:
 
 		if(ev.keycode == ny::Keycode::escape) {
 			dlg_info("Escape pressed, exiting");
-			lc->stop();
+			*run = false;
+			ac->wakeupWait();
 			return;
 		} else if(ev.keycode == ny::Keycode::c) {
 			dlg_info("setting clipboard... ");
@@ -176,7 +181,8 @@ public:
 			if(!dataOffer) {
 				dlg_info("Backend does not support clipboard operations...");
 			} else if(!handleDataOffer(*dataOffer)) {
-				lc->stop();
+				*run = false;
+				ac->wakeupWait();
 			}
 		}
 	}
@@ -198,15 +204,16 @@ int main()
 	settings.buffer.storeSurface = &bufferSurface;
 	auto wc = ac->createWindowContext(settings);
 
-	ny::LoopControl control;
-
-	listener.lc = &control;
+	bool run;
+	listener.run = &run;
 	listener.ac = ac.get();
 	listener.wc = wc.get();
 	listener.surface = bufferSurface;
 
 	dlg_info("Entering main loop");
-	ac->dispatchLoop(control);
+	while(true) {
+		ac->waitEvents();
+	}
 }
 
 CustomDataSource::CustomDataSource()

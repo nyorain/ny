@@ -14,9 +14,9 @@ class MyWindowListener : public ny::WindowListener {
 public:
 	ny::GlSurface* glSurface;
 	std::unique_ptr<ny::GlContext> glContext;
-	ny::LoopControl* loopControl;
 	ny::WindowContext* windowContext;
 	ny::AppContext* appContext;
+	bool* run;
 
 	void draw(const ny::DrawEvent&) override;
 	void close(const ny::CloseEvent&) override;
@@ -46,12 +46,12 @@ int main()
 
 	auto wc = ac->createWindowContext(windowSettings);
 
-	ny::LoopControl control;
+	auto run = true;
 	MyWindowListener listener;
 	listener.glSurface = glSurface;
 	listener.appContext = ac.get();
 	listener.windowContext = wc.get();
-	listener.loopControl = &control;
+	listener.run = &run;
 
 	ny::GlContextSettings glsettings;
 	if(glSurface) {
@@ -61,13 +61,16 @@ int main()
 	wc->listener(listener);
 
 	dlg_info("Entering main loop");
-	ac->dispatchLoop(control);
+	while(run) {
+		ac->waitEvents();
+	}
 }
 
 void MyWindowListener::close(const ny::CloseEvent&)
 {
 	dlg_info("Window closed from server side. Exiting.");
-	loopControl->stop();
+	*run = false;
+	appContext->wakeupWait();
 }
 
 void MyWindowListener::draw(const ny::DrawEvent&)

@@ -4,7 +4,6 @@
 #include <ny/windowContext.hpp> // ny::WindowContext
 #include <ny/windowListener.hpp> // ny::WindowListener
 #include <ny/windowSettings.hpp> // ny::WindowSettings
-#include <ny/loopControl.hpp> // ny::LoopControl
 #include <ny/keyboardContext.hpp> // ny::KeyboardContext
 #include <ny/bufferSurface.hpp> // ny::BufferSurface
 #include <ny/key.hpp> // ny::Keycode
@@ -13,7 +12,7 @@
 #include <ny/event.hpp> // ny::*Event
 #include <dlg/dlg.hpp> // logging
 
-#include <nytl/vecOps.hpp> // printinf nytl::Vec
+#include <nytl/vecOps.hpp> // print nytl::Vec
 #include <cstring> // std::memset
 
 // The second ny example that shows some further basic functionality
@@ -32,12 +31,12 @@
 // They are again implemented below main.
 class MyWindowListener : public ny::WindowListener {
 public:
-	ny::LoopControl* loopControl;
 	ny::AppContext* appContext;
 	ny::WindowContext* windowContext;
 	ny::BufferSurface* bufferSurface;
 	ny::ToplevelState toplevelState;
 	nytl::Vec2ui windowSize {800u, 500u};
+	bool* run;
 
 public:
 	void draw(const ny::DrawEvent&) override;
@@ -67,14 +66,19 @@ int main(int, char**)
 	ws.buffer.storeSurface = &bufferSurface;
 	auto wc = ac->createWindowContext(ws);
 
-	ny::LoopControl control {};
-	listener.loopControl = &control;
+	auto run = true;
+	listener.appContext = ac.get();
 	listener.windowContext = wc.get();
 	listener.bufferSurface = bufferSurface;
 	listener.appContext = ac.get();
+	listener.run = &run;
 
 	dlg_info("Entering main loop");
-	ac->dispatchLoop(control);
+	while(run) {
+		ac->waitEvents();
+	}
+
+	dlg_info("Returning from main with grace");
 }
 
 void MyWindowListener::draw(const ny::DrawEvent&)
@@ -123,7 +127,7 @@ void MyWindowListener::key(const ny::KeyEvent& keyEvent)
 			windowContext->normalState();
 		} else if(keycode == ny::Keycode::escape) {
 			dlg_info("Closing window and exiting");
-			loopControl->stop();
+			*run = false;
 		} else if(keycode == ny::Keycode::m) {
 			dlg_info("Toggle window maximize");
 			if(toplevelState != ny::ToplevelState::maximized) {
@@ -148,7 +152,7 @@ void MyWindowListener::key(const ny::KeyEvent& keyEvent)
 void MyWindowListener::close(const ny::CloseEvent&)
 {
 	dlg_info("Window was closed by server side. Exiting");
-	loopControl->stop();
+	*run = false;
 }
 
 void MyWindowListener::mouseButton(const ny::MouseButtonEvent& event)

@@ -10,7 +10,6 @@
 #include <ny/x11/dataExchange.hpp>
 
 #include <ny/common/unix.hpp>
-#include <ny/loopControl.hpp>
 #include <ny/dataExchange.hpp>
 
 #ifdef NY_WithVulkan
@@ -44,72 +43,6 @@
 #include <queue>
 
 namespace ny {
-namespace {
-
-// TODO: reimplement this using eventfd and allow X11AppContext to handle fd callbacks
-// should be more efficient and offer more possibilities
-// See WaylandAppContexst for details
-// See also the common unix AppContext interface concept
-
-/// X11 LoopInterface implementation.
-/// Wakes up a blocking xcb_connection by simply sending a client message to
-/// a dummy window.
-class X11LoopImpl : public ny::LoopInterface {
-public:
-	xcb_connection_t& xConnection;
-	xcb_window_t xDummyWindow {};
-
-	std::atomic<bool> run {true};
-	std::queue<std::function<void()>> functions;
-	std::mutex mutex;
-
-public:
-	X11LoopImpl(LoopControl& control, xcb_connection_t& conn, xcb_window_t win)
-		:  LoopInterface(control), xConnection(conn), xDummyWindow(win) {}
-
-	bool stop() override
-	{
-		run.store(false);
-		wakeup();
-		return true;
-	}
-
-	bool call(std::function<void()> function) override
-	{
-		if(!function) return false;
-
-		{
-			std::lock_guard<std::mutex> lock(mutex);
-			functions.push(std::move(function));
-		}
-
-		wakeup();
-		return true;
-	}
-
-	void wakeup()
-	{
-		xcb_client_message_event_t dummyEvent {};
-		dummyEvent.window = xDummyWindow;
-		dummyEvent.response_type = XCB_CLIENT_MESSAGE;
-		dummyEvent.format = 32;
-
-		auto eventData = reinterpret_cast<const char*>(&dummyEvent);
-		xcb_send_event(&xConnection, 0, xDummyWindow, 0, eventData);
-		xcb_flush(&xConnection);
-	}
-
-	std::function<void()> popFunction()
-	{
-		std::lock_guard<std::mutex> lock(mutex);
-		if(functions.empty()) return {};
-		auto ret = std::move(functions.front());
-		functions.pop();
-		return ret;
-	}
-};
-
-} // anonymous util namespace
 
 struct X11AppContext::Impl {
 	x11::EwmhConnection ewmhConnection;
@@ -128,7 +61,8 @@ X11AppContext::X11AppContext()
 {
 	// TODO, make this optional, may be needed by some applications
 	// Something like a threadsafe flags in X11AppContextSettings would make sense
-	// XInitThreads();
+	// we use it only in wakeupWait (if called from other thread)
+	XInitThreads();
 
 	impl_ = std::make_unique<Impl>();
 
@@ -240,17 +174,23 @@ X11AppContext::X11AppContext()
 
 X11AppContext::~X11AppContext()
 {
-	if(xDisplay_) ::XFlush(&xDisplay());
+	if(next_) {
+		free(next_);
+	}
+	if(xDisplay_) {
+		::XFlush(&xDisplay());
+	}
 
 	xcb_ewmh_connection_wipe(&ewmhConnection());
 	impl_.reset();
 
-	if(xDummyWindow_) xcb_destroy_window(xConnection_, xDummyWindow_);
-	if(xDisplay_) ::XCloseDisplay(&xDisplay());
+	if(xDummyWindow_) {
+		xcb_destroy_window(xConnection_, xDummyWindow_);
+	}
 
-	xDisplay_ = nullptr;
-	xConnection_ = nullptr;
-	xDefaultScreen_ = nullptr;
+	if(xDisplay_) {
+		::XCloseDisplay(&xDisplay());
+	}
 }
 
 WindowContextPtr X11AppContext::createWindowContext(const WindowSettings& settings)
@@ -297,13 +237,16 @@ KeyboardContext* X11AppContext::keyboardContext()
 	return keyboardContext_.get();
 }
 
-bool X11AppContext::dispatchEvents()
+// TODO: error handling
+void X11AppContext::pollEvents()
 {
+	xcb_flush(&xConnection()); // TODO: needed?
 	if(!checkErrorWarn()) {
-		return false;
+		return;
 	}
 
 	while(true) {
+		xcb_flush(&xConnection()); // TODO: needed?
 		xcb_generic_event_t* event {};
 		if(next_) {
 			event = next_;
@@ -315,40 +258,37 @@ bool X11AppContext::dispatchEvents()
 		next_ = static_cast<x11::GenericEvent*>(xcb_poll_for_event(xConnection_));
 		processEvent(static_cast<x11::GenericEvent&>(*event), next_);
 		free(event);
-		xcb_flush(&xConnection()); // TODO: needed?
 	}
 
-	return checkErrorWarn();
+	checkErrorWarn();
 }
 
-bool X11AppContext::dispatchLoop(LoopControl& control)
+void X11AppContext::waitEvents()
 {
-	X11LoopImpl loopImpl(control, xConnection(), xDummyWindow());
+	xcb_flush(&xConnection()); // TODO: needed?
+	auto event = xcb_wait_for_event(xConnection_);
+	if(!event) {
+		checkErrorWarn();
+		return;
+	}
 
-	while(loopImpl.run.load()) {
-		while(auto func = loopImpl.popFunction()) {
-			func();
-		}
-
-		xcb_generic_event_t* event {};
-		if(next_) {
-			event = next_;
-			next_ = nullptr;
-		} else {
-			event = xcb_wait_for_event(xConnection_);
-
-			if(!event && !checkErrorWarn()) {
-				return false;
-			}
-		}
-
+	while(event) {
+		xcb_flush(&xConnection()); // TODO: needed?
 		next_ = static_cast<x11::GenericEvent*>(xcb_poll_for_event(xConnection_));
 		processEvent(static_cast<x11::GenericEvent&>(*event), next_);
 		free(event);
-		xcb_flush(&xConnection()); // TODO: needed?
+		event = next_;
 	}
+}
 
-	return true;
+void X11AppContext::wakeupWait()
+{
+	// TODO: only send if currently blocking?
+	xcb_client_message_event_t dummyEvent {};
+	dummyEvent.type = XCB_CLIENT_MESSAGE;
+	auto eventData = reinterpret_cast<const char*>(&dummyEvent);
+	xcb_send_event(xConnection_, 0, xDummyWindow(), 0, eventData);
+	xcb_flush(xConnection_);
 }
 
 bool X11AppContext::clipboard(std::unique_ptr<DataSource>&& dataSource)

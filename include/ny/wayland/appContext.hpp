@@ -24,8 +24,9 @@ public:
 	virtual ~WaylandAppContext();
 
 	// - AppContext implementation -
-	bool dispatchEvents() override;
-	bool dispatchLoop(LoopControl& control) override;
+	void pollEvents() override;
+	void waitEvents() override;
+	void wakeupWait() override;
 
 	MouseContext* mouseContext() override;
 	KeyboardContext* keyboardContext() override;
@@ -48,18 +49,23 @@ public:
 	bool checkErrorWarn() const; /// Outputs warning and returns false on error
 
 	/// Can be called to register custom listeners for fds that the dispatch loop will
-	/// then poll for.
-	using FdCallbackFunc = std::function<void(int fd, unsigned int events)>;
-	using FdCallbackFuncConn = std::function<void(nytl::Connection, int fd, unsigned int events)>;
-
+	/// then poll for. Should return false if it wants to be disconnected.
+	using FdCallbackFunc = std::function<bool(int fd, unsigned int events)>;
 	nytl::Connection fdCallback(int fd, unsigned int events, const FdCallbackFunc& func);
-	nytl::Connection fdCallback(int fd, unsigned int events, const FdCallbackFuncConn& func);
 
 	/// Roundtrips, i.e. waits until all requests are sent and the server has processed
 	/// all of them.
 	/// This function should be used instead of wl_display_roundtrip since it takes care of
 	/// not dispatching any other events by using an extra event queue.
 	void roundtrip();
+
+	/// Defers the given function associated with the given window context to
+	/// the next event dispatching.
+	using DeferedHandler = std::function<void(WaylandWindowContext*)>;
+	void defer(WaylandWindowContext*, DeferedHandler);
+
+	/// Removes all deferred handler for the given wc.
+	void removeDeferred(const WaylandWindowContext&);
 
 	WaylandKeyboardContext* waylandKeyboardContext() const { return keyboardContext_.get(); }
 	WaylandMouseContext* waylandMouseContext() const { return mouseContext_.get(); }
@@ -102,6 +108,9 @@ protected:
 	/// Will not stop on a signal.
 	int pollFds(short wlDisplayEvents, int timeout);
 
+	/// Calls the deferred handlers.
+	void callDeferred();
+
 	// callback handlers
 	void handleRegistryAdd(wl_registry*, uint32_t id, const char* cinterface, uint32_t version);
 	void handleRegistryRemove(wl_registry*, uint32_t id);
@@ -131,7 +140,8 @@ protected:
 	std::unique_ptr<WaylandDataSource> clipboardSource_;
 	std::unique_ptr<WaylandDataSource> dndSource_;
 
-	bool wakeup_ {false}; // Set from the eventfd callback, causes dispatchDisplay to return
+	bool wakeup_ {false}; // Set from the eventfd callback
+	std::vector<std::pair<WaylandWindowContext*, DeferedHandler>> deferred_;
 
 	struct Impl;
 	std::unique_ptr<Impl> impl_;
