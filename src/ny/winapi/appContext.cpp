@@ -37,6 +37,20 @@
 // NOTE: we never actually call TranslateMessage since we translate keycodes manually
 // and calling this function will interfer with our ToUnicode calls.
 namespace ny {
+namespace {
+
+bool dispatchEvent() {
+	MSG msg;
+	if(!::PeekMessage(&msg, 0, 0, 0, PM_REMOVE)) {
+		return false;
+	}
+
+	// ::TranslateMessage(&msg); // TODO
+	::DispatchMessage(&msg);
+	return true;
+}
+
+} // anonymous namespace
 
 struct WinapiAppContext::Impl {
 #ifdef NY_WithGl
@@ -131,14 +145,15 @@ KeyboardContext* WinapiAppContext::keyboardContext()
 
 void WinapiAppContext::pollEvents()
 {
-	MSG msg;
-	while(::PeekMessage(&msg, 0, 0, 0, PM_REMOVE)) {
-		::DispatchMessage(&msg);
-	}
+	deferred.execute();
+	while(dispatchEvent());
+	deferred.execute();
 }
 
 void WinapiAppContext::waitEvents()
 {
+	deferred.execute();
+
 	// wait for first msg
 	MSG msg;
 	auto ret = ::GetMessage(&msg, nullptr, 0, 0);
@@ -149,11 +164,13 @@ void WinapiAppContext::waitEvents()
 		dlg_error(msg);
 		throw std::runtime_error(msg);
 	} else {
+		// ::TranslateMessage(&msg); // TODO
 		::DispatchMessage(&msg);
 	}
 
 	// dispatch all events that are still pending
-	pollEvents();
+	while(dispatchEvent());
+	deferred.execute();
 }
 
 void WinapiAppContext::wakeupWait()
@@ -227,121 +244,26 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 
 	LRESULT result = 0;
 
-	if(!wc) return ::DefWindowProc(window, message, wparam, lparam);
-
-	switch(message) {
-		case WM_PAINT: {
-			if(wc->clientExtents().size == nytl::Vec2i {0, 0}) {
-				break;
-			}
-
-			DrawEvent de;
-			de.eventData = &eventData;
-			wc->listener().draw(de);
-			result = ::DefWindowProc(window, message, wparam, lparam); // to validate the window
-			break;
-		}
-
-		case WM_DESTROY: {
-			CloseEvent ce;
-			ce.eventData = &eventData;
-			wc->listener().close(ce);
-			break;
-		}
-
-		case WM_SIZE: {
-			auto size = nytl::Vec2ui{LOWORD(lparam), HIWORD(lparam)};
-			if(size == nytl::Vec2ui{0, 0}) {
-				break;
-			}
-
-			SizeEvent se;
-			se.eventData = &eventData;
-			se.size = size;
-			se.edges = WindowEdge::none;
-			wc->listener().resize(se);
-			break;
-		}
-
-		case WM_SYSCOMMAND: {
-			if(wc) {
-				ToplevelState state;
-
-				if(wparam == SC_MAXIMIZE) state = ToplevelState::maximized;
-				else if(wparam == SC_MINIMIZE) state = ToplevelState::minimized;
-				else if(wparam == SC_RESTORE) state = ToplevelState::normal;
-				else if(wparam >= SC_SIZE && wparam <= SC_SIZE + 8) {
-					auto currentCursor = ::GetClassLongPtr(wc->handle(), -12);
-
-					auto edge = winapiToEdges(wparam - SC_SIZE);
-					auto cursor = sizeCursorFromEdge(edge);
-					wc->cursor(cursor);
-
-					result = ::DefWindowProc(window, message, wparam, lparam);
-					::SetClassLongPtr(wc->handle(), -12, currentCursor);
-
-					break;
-				}
-
-				StateEvent se;
-				se.eventData = &eventData;
-				se.state = state;
-				se.shown = IsWindowVisible(window);
-				wc->listener().state(se);
-			}
-
-			result = ::DefWindowProc(window, message, wparam, lparam);
-			break;
-		}
-
-		case WM_GETMINMAXINFO: {
-			if(wc) {
-				::MINMAXINFO* mmi = reinterpret_cast<MINMAXINFO*>(lparam);
-				mmi->ptMaxTrackSize.x = wc->maxSize()[0];
-				mmi->ptMaxTrackSize.y = wc->maxSize()[1];
-				mmi->ptMinTrackSize.x = wc->minSize()[0];
-				mmi->ptMinTrackSize.y = wc->minSize()[1];
-			}
-
-			break;
-		}
-
-		case WM_ERASEBKGND: {
-			// prevent the background erase
-			result = 1;
-			break;
-		}
-
-		// TODO: needed?
-		// case WM_CLIPBOARDUPDATE: {
-		// 	clipboardSequenceNumber_ = ::GetClipboardSequenceNumber();
-		// 	clipboardOffer_.reset();
-		//
-		// 	IDataObject* obj;
-		// 	::OleGetClipboard(&obj);
-		// 	if(obj) clipboardOffer_ = std::make_unique<winapi::DataOfferImpl>(*obj);
-		// 	break;
-		// }
-
-		// case WM_MOVE: {
-		// 	nytl::Vec2i position(LOWORD(lparam), HIWORD(lparam));
-		// 	if(wc) wc->listener().position(position, &eventData);
-		// 	break;
-		// }
-
-		default: {
-			if(keyboardContext_.processEvent(eventData, result)) {
-				break;
-			} else if(mouseContext_.processEvent(eventData, result)) {
-				break;
-			}
-
-			result = ::DefWindowProc(window, message, wparam, lparam);
-			break;
-		}
+	if(wc && wc->processEvent(eventData, result)) {
+		return result;
+	} else if(keyboardContext_.processEvent(eventData, result)) {
+		return result;
+	} else if(mouseContext_.processEvent(eventData, result)) {
+		return result;
 	}
 
-	return result;
+	return ::DefWindowProc(window, message, wparam, lparam);
+
+	// TODO: needed?
+	// case WM_CLIPBOARDUPDATE: {
+	// 	clipboardSequenceNumber_ = ::GetClipboardSequenceNumber();
+	// 	clipboardOffer_.reset();
+	//
+	// 	IDataObject* obj;
+	// 	::OleGetClipboard(&obj);
+	// 	if(obj) clipboardOffer_ = std::make_unique<winapi::DataOfferImpl>(*obj);
+	// 	break;
+	// }
 }
 
 std::vector<const char*> WinapiAppContext::vulkanExtensions() const

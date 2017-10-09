@@ -8,6 +8,7 @@
 #include <ny/winapi/windows.hpp>
 #include <ny/winapi/input.hpp>
 #include <ny/appContext.hpp>
+#include <ny/deferred.hpp>
 
 #include <map>
 #include <thread>
@@ -20,6 +21,8 @@ class WinapiAppContext : public AppContext {
 public:
 	static LONG_PTR CALLBACK wndProcCallback(HWND, UINT, WPARAM, LPARAM);
 	static INT_PTR CALLBACK dlgProcCallback(HWND, UINT, WPARAM, LPARAM);
+
+	DeferredOperator<void(), WindowContext*> deferred;
 
 public:
 	WinapiAppContext();
@@ -44,13 +47,12 @@ public:
 	//- winapi specific -
 	WglSetup* wglSetup() const;
 	LONG_PTR eventProc(HWND, UINT, WPARAM, LPARAM);
-
 	WinapiWindowContext* windowContext(HWND win);
+
 	HINSTANCE hinstance() const { return instance_; };
 
 protected:
-	HINSTANCE instance_ = nullptr;
-	// std::map<HWND, WinapiWindowContext*> contexts_;
+	HINSTANCE instance_ = nullptr; // TODO: really needed?
 
 	std::unique_ptr<DataOffer> clipboardOffer_;
 	unsigned int clipboardSequenceNumber_ {};

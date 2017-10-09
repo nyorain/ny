@@ -7,7 +7,9 @@
 ### bug fixes, important
 
 - cleanup docs
-- winapi: send initial window size (-> deferred)
+	- document when which events are sent
+		- test it on all backends, such things may be possible with half-automated tests
+- add unit tests where possible
 - fix error handling/spec in appContext implementations
 	- when to throw? how to signal that AppContext is in invalid state? std::error_code support?
 - fix android
@@ -20,9 +22,20 @@
 	- general way to query size from windowContext?
 	- query other values? against event flow but currently things like
 		toggling fullscreen are hard/partly impossible
-- rework (and implement) AppContext error handling
 - make sure spec/promises are kept
 	- no event dispatching to handlers outside poll/waitEvents
+- normalize wheel input values in some way across backends
+	- like value 1 if one "tick" was scrolled?
+- general keydown/keyup unicode value specificiation (cross-platform, differents atm)
+	- which event should contain the utf8 member set?
+	- document it somewhere
+- ime input (see winapi backend)
+	- use wm_char and such, don't use ToUnicode
+- use deferred for x11, wayland appContext
+
+### missing features/design issues, no real bug but should be done
+
+- SizeEvent.windowEdges never used (no backend really implements it?)
 - rework dataExchange
 	- some kind of dnd offer succesful feedback
 		- also offer dnd effects (copy/move etc)
@@ -41,15 +54,8 @@
 		- may not be threadsafe in implementation; should not be required (should it?)
 		- also: really pass it as unique ptr in WindowListener::drop
 			- why not simply non-const pointer, from this can be moved as well?!
-- normalize wheel input values in some way across backends
-	- like value 1 if one "tick" was scrolled?
-- general keydown/keyup unicode value specificiation (cross-platform, differents atm)
-	- which event should contain the utf8 member set?
-	- document it somewhere
 
-### missing features/design issues, not so important
-
-- common DeferredOperator abstraction for x11/wayland appcontext?
+- move deferred.hpp to nytl
 - send CloseEvent when WindowContext::close called? define such things somewhere!
 - abolish WindowContextPtr, AppContextPtr
 - dataExchange: correctly handle utf-8 mimetype
@@ -114,10 +120,6 @@
 	- also default clear the buffer in some way? or set a flag for this with
 		default set to true?
 - test image and uri serialize/deserialize
-- implement the "less event processing optimization" (-> see deferred events)
-	- on all backends (where possible): first process all available events, then send them.
-	- prevents that e.g. a size event is sent although the next size event is already known
-	- some general event dispatching utiliy helpers for AppContext implementations?
 - AppContext: function for ringing the systems bell (at least x11, winapi)
 
 low prio, for later:
@@ -148,9 +150,6 @@ Backend stuff
 x11 backend:
 ------------
 
-- fix windowContext operations/implementation
-	- customDecorated/beginMove/beginResize
-	- https://github.com/nwjs/chromium.src/blob/45886148c94c59f45f14a9dc7b9a60624cfa626a/ui/base/x/x11_util.cc
 - rethink dependency on xcb-ewmh and xcb-icccm (really makes sense?)
 - selections and xdnd improvements (see x11/dataExchange header/source TODO)
 	- X11DataSource constructor: check for uri list one file -> filename target format
@@ -191,30 +190,31 @@ wayland backend:
 winapi backend:
 ---------------
 
+- ime input? at least check if it is needed
+	- yep is needed, japanese input does currently not work
+	- in a nutshell:　translate message + wm_char/wm_ime_char + set composition window correctly
+	- https://msdn.microsoft.com/en-us/library/dd318581(v=vs.85).aspx
 - SetCapture/ReleaseCapture on mouse button down/release
 	- needed to make sure that mouse button release events are sent even
 		outside the window (is required for usual button press/release handling e.g.)
-- assure/recheck unicode handling for title, window class name etc.
-- rethink WinapiWindowContext::cursor implementation.
 - initial mouse focus (see KeyboardContext handler inconsistency)
 - better documentation about layered window, make it optional. Move doc out of the source.
+
+- assure/recheck unicode handling for title, window class name etc.
+- rethink WinapiWindowContext::cursor implementation.
 - dnd/clipboard improvements
 	- think about WM_CLIPBOARDUPDATE
 	- remove clibboardOffer_ from AppContext
 	- startDragDrop without blocking
 		- ability to cancel it (general design)
-- windowsettings init toplevel states
 - clean up winapi-dependent data type usage, i.e. assure it works for 32 bit and
 	potential future typedef changes
-- does it really make sense to store the WindowContext as user window longptr?
-	- cannot differentiate to windows created not by ny
 - com: correct refadd/release? check with destructor log!
 - WC: cursor and icon: respect/handle/take care of system metrics
 
 - Set a cursor when moving the window (beginMove)? windows 10 does not do it
 - native widgets rethink (for all backends relevant)
 	- at least dialogs are something (-> see window types)
-- ime input? at least check if it is needed
 - egl backend (see egl.cpp)
 	- optional instead of wgl
 	- check if available, use wgl instead

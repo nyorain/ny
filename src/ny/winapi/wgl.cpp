@@ -513,8 +513,9 @@ WglWindowContext::WglWindowContext(WinapiAppContext& ac, WglSetup& setup,
 	}
 
 	::SetLastError(0);
-	if(!::SetPixelFormat(hdc_, pixelformat, &pfd))
+	if(!::SetPixelFormat(hdc_, pixelformat, &pfd)) {
 		throw winapi::lastErrorException("ny::WglWindowContext: failed to set pixel format");
+	}
 
 	surface_.reset(new WglSurface(hdc_, config));
 	if(settings.gl.storeSurface) *settings.gl.storeSurface = surface_.get();

@@ -30,10 +30,23 @@ WinapiWindowContext::WinapiWindowContext(WinapiAppContext& appContext,
 	setStyle(settings);
 	initWindow(settings);
 	showWindow(settings);
+
+	size_ = static_cast<nytl::Vec2ui>(clientExtents().size);
+
+	// send initial size and state
+	this->appContext().deferred.add([this, settings]{
+		if(settings.initState == ToplevelState::normal) {
+			listener().resize({nullptr, size_, {}});
+		}
+		if(!settings.parent) {
+			listener().state({nullptr, settings.initState});
+		}
+	}, this);
 }
 
 WinapiWindowContext::~WinapiWindowContext()
 {
+	appContext().deferred.remove(this);
 	if(dropTarget_) {
 		dropTarget_->Release();
 		dropTarget_ = nullptr;
@@ -62,14 +75,14 @@ WinapiWindowContext::~WinapiWindowContext()
 void WinapiWindowContext::initWindowClass(const WinapiWindowSettings& settings)
 {
 	auto wndClass = windowClass(settings);
-	if(!::RegisterClassEx(&wndClass)) {
+	if(!::RegisterClassExW(&wndClass)) {
 		throw winapi::lastErrorException("ny::WinapiWindowContext: RegisterClassEx failed");
 	}
 }
 
 WNDCLASSEX WinapiWindowContext::windowClass(const WinapiWindowSettings&)
 {
-	// TODO: does every window needs it own class (sa setCursor function)?
+	// TODO: does every window needs it own class (see setCursor function)?
 	static unsigned int highestID = 0;
 	highestID++;
 
@@ -79,7 +92,9 @@ WNDCLASSEX WinapiWindowContext::windowClass(const WinapiWindowSettings&)
 	ret.hInstance = appContext().hinstance();
 	ret.lpszClassName = wndClassName_.c_str();
 	ret.lpfnWndProc = &WinapiAppContext::wndProcCallback;
-	ret.style = CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
+
+	// NOTE: always adding CS_OWNDC might be problematic
+	ret.style = CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW;
 	ret.cbSize = sizeof(WNDCLASSEX);
 	ret.hIcon = ::LoadIcon (nullptr, IDI_APPLICATION);
 	ret.hIconSm = ::LoadIcon (nullptr, IDI_APPLICATION);
@@ -92,9 +107,13 @@ WNDCLASSEX WinapiWindowContext::windowClass(const WinapiWindowSettings&)
 	return ret;
 }
 
-void WinapiWindowContext::setStyle(const WinapiWindowSettings&)
+void WinapiWindowContext::setStyle(const WinapiWindowSettings& ws)
 {
-	style_ = WS_OVERLAPPEDWINDOW | WS_OVERLAPPED | WS_VISIBLE | WS_CLIPSIBLINGS;
+	if(!ws.parent) {
+		style_ = WS_OVERLAPPEDWINDOW;
+	} else {
+		style_ = WS_CHILD; // alternatively: WS_POPUP
+	}
 }
 
 void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
@@ -107,8 +126,12 @@ void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 	auto size = settings.size;
 	auto position = settings.position;
 
-	if(position == defaultPosition) position[0] = position[1] = CW_USEDEFAULT;
-	if(size == defaultSize) size[0] = size[1] = CW_USEDEFAULT;
+	if(position == defaultPosition) {
+		position[0] = position[1] = CW_USEDEFAULT;
+	}
+	if(size == defaultSize) {
+		size[0] = size[1] = CW_USEDEFAULT;
+	}
 
 	// set the listener
 	if(settings.listener) {
@@ -117,7 +140,7 @@ void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 
 	// NOTE on transparency and layered windows
 	// The window has to be layered to enable transparent drawing on it
-	// On newer windows versions it is not enough to call DwmEnableBlueBehinWindow, only
+	// On newer windows versions it is not enough to call DwmEnableBlurBehinWindow, only
 	// layered windows are considered really transparent and contents beneath it
 	// are rerendered.
 	//
@@ -128,8 +151,11 @@ void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 	// Setting this flag can also really hit performance (e.g. resizing can lag) so
 	// this should probably only be set if really needed
 
-	auto exstyle = WS_EX_APPWINDOW |  WS_EX_OVERLAPPEDWINDOW;
-	if(settings.transparent) exstyle |= WS_EX_LAYERED;
+	auto exstyle = 0;
+	if(settings.transparent) {
+		exstyle |= WS_EX_LAYERED;
+		style_ |= CS_OWNDC;
+	}
 
 	handle_ = ::CreateWindowEx(
 		exstyle,
@@ -140,17 +166,15 @@ void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 		size[0], size[1],
 		parent, nullptr, hinstance, this);
 
-	if(!handle_)
+	if(!handle_) {
 		throw winapi::lastErrorException("ny::WinapiWindowContext: CreateWindowEx failed");
+	}
 
 	// Set the userdata
 	std::uintptr_t ptr = reinterpret_cast<std::uintptr_t>(this);
 	::SetWindowLongPtr(handle_, GWLP_USERDATA, ptr);
 
 	if(settings.transparent) {
-		// TODO: check for windows version > xp here.
-		// Otherwise ny will no compile/run on xp
-
 		// This will simply cause windows to respect the alpha bits in the content of the window
 		// and not actually blur anything. Windows is stupid af.
 		DWM_BLURBEHIND bb {};
@@ -184,6 +208,8 @@ void WinapiWindowContext::showWindow(const WinapiWindowSettings& settings)
 		::ShowWindowAsync(handle_, SW_SHOWMAXIMIZED);
 	} else if(settings.initState == ToplevelState::minimized) {
 		::ShowWindowAsync(handle_, SW_SHOWMINIMIZED);
+	} else if(settings.initState == ToplevelState::fullscreen) {
+		::ShowWindowAsync(handle_, SW_SHOWDEFAULT);
 	} else {
 		::ShowWindowAsync(handle_, SW_SHOWDEFAULT);
 	}
@@ -213,8 +239,6 @@ void WinapiWindowContext::hide()
 
 void WinapiWindowContext::customDecorated(bool set)
 {
-	// /*
-
 	auto style = ::GetWindowLong(handle(), GWL_STYLE);
 	auto exStyle = ::GetWindowLong(handle(), GWL_EXSTYLE);
 
@@ -311,12 +335,13 @@ void WinapiWindowContext::cursor(const Cursor& cursor)
 	// -12 == GCL_HCURSOR
 	// number used since it is not defined in windows.h sometimes (tested with MinGW headers)
 	::SetClassLongPtr(handle(), -12, reinterpret_cast<LONG_PTR>(cursor_));
-	// ::SetClassLongPtr(handle(), -12, (LONG_PTR) nullptr);
 }
 
 void WinapiWindowContext::fullscreen()
 {
-	if(fullscreen_) return;
+	if(fullscreen_) {
+		return;
+	}
 
 	// TODO: maybe add possibilty for display modes?
 	// games *might* want to set a different resolution (low prio)
@@ -327,7 +352,9 @@ void WinapiWindowContext::fullscreen()
 	savedState_.style = ::GetWindowLong(handle(), GWL_STYLE);
 	savedState_.exstyle = ::GetWindowLong(handle(), GWL_EXSTYLE);
 	savedState_.extents = extents();
-	if(::IsZoomed(handle())) savedState_.state = 1;
+	if(::IsZoomed(handle())) {
+		savedState_.state = 1;
+	}
 
 	MONITORINFO monitorinfo;
 	monitorinfo.cbSize = sizeof(monitorinfo);
@@ -340,13 +367,16 @@ void WinapiWindowContext::fullscreen()
 	::SetWindowLong(handle(), GWL_EXSTYLE, savedState_.exstyle & ~(WS_EX_DLGMODALFRAME |
 		WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE));
 
+	// TODO
 	// the rect.bottom + 1 is needed here since some (buggy?) winapi implementations
 	// go automatically in real fullscreen mode when the window is a popup and the size
 	// the same as the monitor (observed behaviour).
 	// ny does not handle/support real fullscreen mode (consideren bad) since then
 	// the window has to take care about correct alt-tab/minimize handling which becomes
 	// easily buggy
-	::SetWindowPos(handle(), HWND_TOP, rect.left, rect.top, rect.right, rect.bottom + 1,
+	// ::SetWindowPos(handle(), HWND_TOP, rect.left, rect.top, rect.right, rect.bottom + 1,
+
+	::SetWindowPos(handle(), HWND_TOP, rect.left, rect.top, rect.right, rect.bottom,
 		SWP_NOOWNERZORDER |	SWP_ASYNCWINDOWPOS | SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOACTIVATE);
 
 	fullscreen_ = true;
@@ -479,6 +509,122 @@ nytl::Rect2i WinapiWindowContext::clientExtents() const
 	::RECT ext;
 	GetClientRect(handle_, &ext);
 	return {{ext.left, ext.top}, {ext.right - ext.left, ext.bottom - ext.top}};
+}
+
+bool WinapiWindowContext::processEvent(const WinapiEventData& eventData, LRESULT& result)
+{
+	if(eventData.windowContext != this) {
+		dlg_error("WinapiWindowContext: processEvent with invalid wc");
+		return false;
+	}
+
+	auto message = eventData.message;
+	auto lparam = eventData.lparam;
+	auto wparam = eventData.wparam;
+
+	switch(message) {
+		case WM_PAINT: {
+			if(clientExtents().size == nytl::Vec2i {0, 0}) {
+				break;
+			}
+
+			// TODO: should this be deferred?
+			DrawEvent de;
+			de.eventData = &eventData;
+			listener().draw(de);
+			result = ::DefWindowProc(handle(), message, wparam, lparam); // to validate the window
+			break;
+		}
+
+		case WM_DESTROY: {
+			CloseEvent ce;
+			ce.eventData = &eventData;
+			listener().close(ce);
+			break;
+		}
+
+		case WM_SIZE: {
+			auto size = nytl::Vec2ui{LOWORD(lparam), HIWORD(lparam)};
+			if(size == nytl::Vec2ui{0, 0} || size == size_) {
+				break;
+			}
+
+			size_ = size;
+			if(!sizeEventFlag_) {
+				sizeEventFlag_ = true;
+				appContext().deferred.add([this, eventData]{
+					sizeEventFlag_ = false;
+					SizeEvent se;
+					se.eventData = &eventData;
+					se.size = size_;
+					se.edges = WindowEdge::none;
+					listener().resize(se);
+				}, this);
+			}
+
+			break;
+		}
+
+		case WM_SYSCOMMAND: {
+			ToplevelState state {};
+
+			if(wparam == SC_MAXIMIZE) {
+				state = ToplevelState::maximized;
+			} else if(wparam == SC_MINIMIZE) {
+				state = ToplevelState::minimized;
+			} else if(wparam == SC_RESTORE) {
+				state = ToplevelState::normal;
+			} else if(wparam >= SC_SIZE && wparam <= SC_SIZE + 8) {
+				auto currentCursor = ::GetClassLongPtr(handle(), -12);
+
+				auto edge = winapiToEdges(wparam - SC_SIZE);
+				auto c = sizeCursorFromEdge(edge);
+				cursor(c);
+
+				result = ::DefWindowProc(handle(), message, wparam, lparam);
+				::SetClassLongPtr(handle(), -12, currentCursor);
+
+				break;
+			}
+
+			if(state != ToplevelState::unknown) {
+				StateEvent se;
+				se.eventData = &eventData;
+				se.state = state;
+				se.shown = IsWindowVisible(handle());
+				listener().state(se);
+			}
+
+			result = ::DefWindowProc(handle(), message, wparam, lparam);
+			break;
+		}
+
+		case WM_GETMINMAXINFO: {
+			::MINMAXINFO* mmi = reinterpret_cast<MINMAXINFO*>(lparam);
+			mmi->ptMaxTrackSize.x = maxSize()[0];
+			mmi->ptMaxTrackSize.y = maxSize()[1];
+			mmi->ptMinTrackSize.x = minSize()[0];
+			mmi->ptMinTrackSize.y = minSize()[1];
+
+			break;
+		}
+
+		case WM_ERASEBKGND: {
+			// prevent the background erase
+			result = 1;
+			break;
+		}
+
+		// case WM_MOVE: {
+		// 	nytl::Vec2i position(LOWORD(lparam), HIWORD(lparam));
+		// 	listener().position(position, &eventData);
+		// 	break;
+		// }
+
+		default: return false;
+	}
+
+	return true;
 }
 
 } // namespace ny

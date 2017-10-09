@@ -38,7 +38,9 @@ bool WinapiMouseContext::processEvent(const WinapiEventData& eventData, LRESULT&
 	auto lparam = eventData.lparam;
 	auto wparam = eventData.wparam;
 
-	if(!wc) return false;
+	if(!wc) {
+		return false;
+	}
 
 	using MB = MouseButton;
 	auto handleMouseButton = [&](bool pressed, MouseButton button) {
@@ -208,8 +210,12 @@ bool WinapiKeyboardContext::processEvent(const WinapiEventData& eventData, LRESU
 	auto wc = eventData.windowContext;
 	auto lparam = eventData.lparam;
 	auto wparam = eventData.wparam;
+	result = 0;
 
 	bool keyPressed = false;
+	if(!wc) {
+		return false;
+	}
 
 	switch(message) {
 		case WM_SETFOCUS: {
@@ -271,10 +277,21 @@ bool WinapiKeyboardContext::processEvent(const WinapiEventData& eventData, LRESU
 			break;
 		}
 
+		/*
+		case WM_IME_CHAR: {
+			dlg_info("ime char: {}", wparam);
+			return false;
+		}
+
+		case WM_CHAR: {
+			dlg_info("char: {}", wparam);
+			return false;
+		}
+		*/
+
 		default: return false;
 	}
 
-	result = 0;
 	return true;
 }
 

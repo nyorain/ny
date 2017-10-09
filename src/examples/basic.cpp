@@ -64,6 +64,7 @@ int main(int, char**)
 	ws.listener = &listener;
 	ws.surface = ny::SurfaceType::buffer;
 	ws.buffer.storeSurface = &bufferSurface;
+	ws.initState = ny::ToplevelState::fullscreen;
 	auto wc = ac->createWindowContext(ws);
 
 	auto run = true;
@@ -125,6 +126,7 @@ void MyWindowListener::key(const ny::KeyEvent& keyEvent)
 			}
 		} else if(keycode == ny::Keycode::n) {
 			dlg_info("Resetting window to normal state");
+			toplevelState = ny::ToplevelState::normal;
 			windowContext->normalState();
 		} else if(keycode == ny::Keycode::escape) {
 			dlg_info("Closing window and exiting");
@@ -161,7 +163,8 @@ void MyWindowListener::mouseButton(const ny::MouseButtonEvent& event)
 	dlg_info("mouseButton {} {} at {}", ny::mouseButtonName(event.button),
 		event.pressed ? "pressed" : "released", event.position);
 	if(event.pressed && event.button == ny::MouseButton::left) {
-		if(event.position[0] < 0 || event.position[1] < 0 ||
+		if(toplevelState != ny::ToplevelState::normal ||
+			event.position[0] < 0 || event.position[1] < 0 ||
 			static_cast<unsigned int>(event.position[0]) > windowSize[0] ||
 			static_cast<unsigned int>(event.position[1]) > windowSize[1])
 				return;
@@ -197,11 +200,8 @@ void MyWindowListener::focus(const ny::FocusEvent& ev)
 
 void MyWindowListener::state(const ny::StateEvent& stateEvent)
 {
-	dlg_info("window state changed");
-	if(stateEvent.state != toplevelState) {
-		toplevelState = stateEvent.state;
-	}
-	windowContext->refresh();
+	dlg_info("window state changed: {}", (int) stateEvent.state);
+	toplevelState = stateEvent.state;
 }
 
 void MyWindowListener::resize(const ny::SizeEvent& sizeEvent)

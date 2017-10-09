@@ -34,7 +34,7 @@ The full list of dependencies for ny is fairly small:
 
 - wayland, wayland-egl, wayland-cursor, xkbcommon for wayland backend
 - xlib, xcb (with utility libraries), xkbcommon for x11 backend
-- just the default windows libraries (windows >= vista) for winapi backend
+- just the default windows libraries (windows > xp) for winapi backend
 
 
 - gl [optional, gl support]
@@ -284,7 +284,7 @@ or an exception will be thrown.
 A Word about exceptions
 -----------------------
 
-Function like AppContext::dispatch<*> may throw e.g. if some of the functions (e.g. event
+Function like AppContext::dispatch<> may throw e.g. if some of the functions (e.g. event
 handlers they call) throw or call functions that might throw.
 Therefore all code dealing with ny (generally all modern C++ code, remember that every
 new call can throw) should be exception safe.

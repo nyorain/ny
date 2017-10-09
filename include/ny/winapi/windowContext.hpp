@@ -64,6 +64,8 @@ public:
 	nytl::Vec2ui minSize() const { return minSize_; }
 	nytl::Vec2ui maxSize() const { return maxSize_; }
 
+	bool processEvent(const WinapiEventData&, LRESULT& result);
+
 protected:
 	struct State {
 		std::uint64_t style {};
@@ -104,8 +106,11 @@ protected:
 	std::uint64_t style_ = 0;
 	State savedState_; // used e.g. for resetState
 
+	nytl::Vec2ui size_ {}; // synced size
 	nytl::Vec2ui minSize_ {};
 	nytl::Vec2ui maxSize_ {9999, 9999};
+
+	bool sizeEventFlag_ {};
 };
 
 } // namespace ny
