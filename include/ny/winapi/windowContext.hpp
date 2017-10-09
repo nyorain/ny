@@ -79,7 +79,6 @@ protected:
 	virtual WNDCLASSEX windowClass(const WinapiWindowSettings& settings);
 
 	virtual void initWindow(const WinapiWindowSettings& settings);
-	virtual void initDialog(const WinapiWindowSettings& settings);
 	virtual void showWindow(const WinapiWindowSettings& settings);
 
 	virtual void setStyle(const WinapiWindowSettings& settings);

@@ -174,18 +174,11 @@ void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 	}
 }
 
-void WinapiWindowContext::initDialog(const WinapiWindowSettings& settings)
-{
-	auto parent = static_cast<HWND>(settings.parent.pointer());
-	auto dialogProc = &WinapiAppContext::dlgProcCallback;
-
-	DLGTEMPLATE dtemp {};
-	handle_ = ::CreateDialogIndirect(hinstance(), &dtemp, parent, dialogProc);
-}
-
 void WinapiWindowContext::showWindow(const WinapiWindowSettings& settings)
 {
-	if(!settings.show) return;
+	if(!settings.show) {
+		return;
+	}
 
 	if(settings.initState == ToplevelState::maximized) {
 		::ShowWindowAsync(handle_, SW_SHOWMAXIMIZED);

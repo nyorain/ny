@@ -1,0 +1,2 @@
+- winapi last commit with multi-threaded clipboard, SetClipboardListener, dialog stuff:
+	- 5add38fc66ca19100f9e0db2416ad8604aff2e77

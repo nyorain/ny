@@ -83,7 +83,6 @@ int main(int, char**)
 
 void MyWindowListener::draw(const ny::DrawEvent&)
 {
-	dlg_info("drawing the window");
 	if(!bufferSurface) {
 		dlg_info("draw: no bufferSurface");
 		return;
@@ -92,6 +91,8 @@ void MyWindowListener::draw(const ny::DrawEvent&)
 	auto guard = bufferSurface->buffer();
 	auto image = guard.get();
 	auto size = ny::dataSize(image);
+	dlg_info("drawing the window: size {}", image.size);
+
 	std::memset(image.data, 0xFF, size); // opaque white
 }
 
@@ -157,7 +158,8 @@ void MyWindowListener::close(const ny::CloseEvent&)
 
 void MyWindowListener::mouseButton(const ny::MouseButtonEvent& event)
 {
-	dlg_info("mouseButton at {}", event.position);
+	dlg_info("mouseButton {} {} at {}", ny::mouseButtonName(event.button),
+		event.pressed ? "pressed" : "released", event.position);
 	if(event.pressed && event.button == ny::MouseButton::left) {
 		if(event.position[0] < 0 || event.position[1] < 0 ||
 			static_cast<unsigned int>(event.position[0]) > windowSize[0] ||
@@ -165,15 +167,17 @@ void MyWindowListener::mouseButton(const ny::MouseButtonEvent& event)
 				return;
 
 		ny::WindowEdges resizeEdges = ny::WindowEdge::none;
-		if(event.position[0] < 100)
+		if(event.position[0] < 100) {
 			resizeEdges |= ny::WindowEdge::left;
-		else if(static_cast<unsigned int>(event.position[0]) > windowSize[0] - 100)
+		} else if(static_cast<unsigned int>(event.position[0]) > windowSize[0] - 100) {
 			resizeEdges |= ny::WindowEdge::right;
+		}
 
-		if(event.position[1] < 100)
+		if(event.position[1] < 100) {
 			resizeEdges |= ny::WindowEdge::top;
-		else if(static_cast<unsigned int>(event.position[1]) > windowSize[1] - 100)
+		} else if(static_cast<unsigned int>(event.position[1]) > windowSize[1] - 100) {
 			resizeEdges |= ny::WindowEdge::bottom;
+		}
 
 		auto caps = windowContext->capabilities();
 		if(resizeEdges != ny::WindowEdge::none && caps & ny::WindowCapability::beginResize) {
@@ -197,6 +201,7 @@ void MyWindowListener::state(const ny::StateEvent& stateEvent)
 	if(stateEvent.state != toplevelState) {
 		toplevelState = stateEvent.state;
 	}
+	windowContext->refresh();
 }
 
 void MyWindowListener::resize(const ny::SizeEvent& sizeEvent)

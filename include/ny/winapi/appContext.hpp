@@ -44,21 +44,18 @@ public:
 	//- winapi specific -
 	WglSetup* wglSetup() const;
 	LONG_PTR eventProc(HWND, UINT, WPARAM, LPARAM);
-	//INT_PTR dlgEventProc(HWND, UINT, WPARAM, LPARAM); //needed?
 
 	WinapiWindowContext* windowContext(HWND win);
 	HINSTANCE hinstance() const { return instance_; };
 
 protected:
 	HINSTANCE instance_ = nullptr;
-	std::map<HWND, WinapiWindowContext*> contexts_;
+	// std::map<HWND, WinapiWindowContext*> contexts_;
 
 	std::unique_ptr<DataOffer> clipboardOffer_;
 	unsigned int clipboardSequenceNumber_ {};
 
 	HWND dummyWindow_ {};
-	bool receivedQuit_ = false;
-
 	WinapiMouseContext mouseContext_;
 	WinapiKeyboardContext keyboardContext_;
 

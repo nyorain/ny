@@ -6,6 +6,10 @@
 
 ### bug fixes, important
 
+- cleanup docs
+- winapi: send initial window size (-> deferred)
+- fix error handling/spec in appContext implementations
+	- when to throw? how to signal that AppContext is in invalid state? std::error_code support?
 - fix android
 	- add meson support, port own apk.cmake
 	- move the cpp examples out of android folder
@@ -78,6 +82,7 @@
 
 ### ideas/additions, for later
 
+- animated cursor support (low prio)
 - WindowContext framecallback events? Could be useful on android/wayland
 	- shows the application when it can render again. Would be even really useful
 		for games. Can this be achieved on windows (it pretty sure cannot on x11)
@@ -90,7 +95,7 @@
 - fix/clean up TODO marks in code
 - bufferSurface: dirtyBounds parameter for buffer function
 - glsurface::apply: dirtyBound parameter (?) + extension using
-- save (and provide somewhere) the LoopControl idiom 
+- save (and provide somewhere) the LoopControl idiom
 	- see (last) commit 057bb554339957984f9e593895f2954ffdda7093
 - support for multiple seats (mainly wayland)
 - new image formats, such as hsl, yuv since they might be supported by some backends?
@@ -146,7 +151,7 @@ x11 backend:
 - fix windowContext operations/implementation
 	- customDecorated/beginMove/beginResize
 	- https://github.com/nwjs/chromium.src/blob/45886148c94c59f45f14a9dc7b9a60624cfa626a/ui/base/x/x11_util.cc
-- rething dependency on xcb-ewmh and xcb-icccm (really makes sense?)
+- rethink dependency on xcb-ewmh and xcb-icccm (really makes sense?)
 - selections and xdnd improvements (see x11/dataExchange header/source TODO)
 	- X11DataSource constructor: check for uri list one file -> filename target format
 	- dnd image window
@@ -167,17 +172,15 @@ x11 backend:
 wayland backend:
 ---------------
 
-- key repeat (probably best to use a timerfd, see weston example clients)
-	- then rework key repeat check in input.cpp (can probably be done better)
-- animated cursor (low prio)
-- support xdg popup (and version 6), other protocols (low prio)
+- support other protocols (low prio)
 - ShmBuffer shm_pool shared (not one per buffer...)
 - fix/simplify data exchange. Formats probably not async
 	- fix data retrieving/sending (make sure it always works, even if splitted and stuff)
 	- when exactly can we close the fd we read from? check for EOF. Don't block!
 - handle window hints correctly (at least try somehow)
 - correct capabilites
-- WaylandErrorCategory new protocols!
+- WaylandErrorCategory add new protocols!
+	- concept good idea at all?
 - improve xdg shell v6 support (position, better configure events, popups)
 	- min/max size (also implement this for other surface roles)
 - maybe there can be multiple over/focus surfaces

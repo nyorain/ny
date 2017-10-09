@@ -204,14 +204,14 @@ int main()
 	settings.buffer.storeSurface = &bufferSurface;
 	auto wc = ac->createWindowContext(settings);
 
-	bool run;
+	auto run = true;
 	listener.run = &run;
 	listener.ac = ac.get();
 	listener.wc = wc.get();
 	listener.surface = bufferSurface;
 
 	dlg_info("Entering main loop");
-	while(true) {
+	while(run) {
 		ac->waitEvents();
 	}
 }

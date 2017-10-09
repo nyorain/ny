@@ -45,21 +45,8 @@ struct WinapiAppContext::Impl {
 #endif //GL
 };
 
-// TODO: for extra dnd thread
-// std::thread dndThread;
-// std::mutex dndMutex;
-// std::condition_variable dndCond;
-// std::unique_ptr<DataSource> dndSource;
-
-//winapi callbacks
+// winapi callbacks
 LRESULT CALLBACK WinapiAppContext::wndProcCallback(HWND a, UINT b, WPARAM c, LPARAM d)
-{
-	auto wc = reinterpret_cast<WinapiWindowContext*>(::GetWindowLongPtr(a, GWLP_USERDATA));
-	if(!wc) return ::DefWindowProc(a, b, c, d);
-	return wc->appContext().eventProc(a, b, c, d);
-}
-
-LRESULT CALLBACK WinapiAppContext::dlgProcCallback(HWND a, UINT b, WPARAM c, LPARAM d)
 {
 	auto wc = reinterpret_cast<WinapiWindowContext*>(::GetWindowLongPtr(a, GWLP_USERDATA));
 	if(!wc) return ::DefWindowProc(a, b, c, d);
@@ -74,59 +61,24 @@ WinapiAppContext::WinapiAppContext() : mouseContext_(*this), keyboardContext_(*t
 
 	// needed for dnd and clipboard
 	auto res = ::OleInitialize(nullptr);
-	if(res != S_OK) dlg_warn("OleInitialize failed with code ", res);
+	if(res != S_OK) {
+		dlg_warn("OleInitialize failed with code ", res);
+	}
 
 	// init dummy window (needed as clipboard viewer and opengl dummy window)
 	dummyWindow_ = ::CreateWindow(L"STATIC", L"", WS_DISABLED, 0, 0, 10, 10, nullptr, nullptr,
 		hinstance(), nullptr);
 
+	// needed for wakeup
 	mainThread_ = ::GetCurrentThreadId();
-
-	// TODO:
-	// we must load AddClipboardFormatListener dynamically since it does not link correctly
-	// with mingw and is not supported for windows versions before vista
-	// It is not really needed to call this function since we check for new clipboard content
-	// anyways everytime clipboard() is called.
-	// But this can free the old clipboard DataOffer object as soon as the clipboard
-	// changes and create the new one.
-
-	// auto lib = ::LoadLibrary(L"User32.dll");
-	// if(lib) {
-	// 	auto func = ::GetProcAddress(lib, "AddClipboardFormatListener");
-	// 	if(!func) dlg_warn("Failed to retrieve AddClipboardFormatListener");
-	// 	else (reinterpret_cast<BOOL(*)(HWND)>(func))(dummyWindow_);
-	// 	::FreeLibrary(lib);
-	// }
-
-	// TODO: correctly implement this for non-modal dnd
-	// worth it?
-
-	// auto t1 = ::GetCurrentThreadId();
-	// dndThread = std::thread([=](){
-	//     ::OleInitialize(nullptr);
-	//     auto t2 = ::GetCurrentThreadId();
-	//     ::AttachThreadInput(t2, t1, true);
-	//
-	//     std::unique_lock<std::mutex> lock(dndMutex);
-	//     while(true) {
-	//         dndCond.wait(lock);
-	//
-	//         if(dndSource) {
-	//         	auto dataObj = new winapi::com::DataObjectImpl(std::move(dndSource));
-	//         	auto dropSource = new winapi::com::DropSourceImpl();
-	//
-	//         	DWORD effect;
-	//             log("DoDragDrop start");
-	//         	auto ret = ::DoDragDrop(dataObj, dropSource, DROPEFFECT_COPY, &effect);
-	//             log("DoDragDrop: ", (unsigned int)ret);
-	//         }
-	//     }
-	// });
 }
 
 WinapiAppContext::~WinapiAppContext()
 {
-	if(dummyWindow_) ::DestroyWindow(dummyWindow_);
+	impl_.reset();
+	if(dummyWindow_) {
+		::DestroyWindow(dummyWindow_);
+	}
 	::OleUninitialize();
 }
 
@@ -146,7 +98,7 @@ std::unique_ptr<WindowContext> WinapiAppContext::createWindowContext(const Windo
 				"ny was built without vulkan support and can not create a Vulkan surface";
 
 		throw std::logic_error(noVulkan);
-		#endif //vulkan
+		#endif // vulkan
 	} else if(settings.surface == SurfaceType::gl) {
 		#ifdef NY_WithGl
 			static constexpr auto wglFailed = "ny::WinapiAppContext::createWindowContext: "
@@ -159,7 +111,7 @@ std::unique_ptr<WindowContext> WinapiAppContext::createWindowContext(const Windo
 				"ny was built without gl/wgl support and can therefore not create a gl Surface";
 
 			throw std::logic_error(noWgl);
-		#endif //gl
+		#endif // gl
 	} else if(settings.surface == SurfaceType::buffer) {
 		return std::make_unique<WinapiBufferWindowContext>(*this, winapiSettings);
 	}
@@ -179,36 +131,29 @@ KeyboardContext* WinapiAppContext::keyboardContext()
 
 void WinapiAppContext::pollEvents()
 {
-	receivedQuit_ = false;
 	MSG msg;
-
 	while(::PeekMessage(&msg, 0, 0, 0, PM_REMOVE)) {
 		::DispatchMessage(&msg);
 	}
-
-	// TODO
-	// return !receivedQuit_;
 }
 
 void WinapiAppContext::waitEvents()
 {
-	receivedQuit_ = false;
-
 	// wait for first msg
 	MSG msg;
 	auto ret = ::GetMessage(&msg, nullptr, 0, 0);
 	if(ret == -1) {
-		dlg_warn(winapi::errorMessage("GetMessage"));
-		// return false;
+		// msdn does not state if there are any additional reasons for error
+		// but suggests that they should be treated as critical errors
+		auto msg = winapi::errorMessage("WinapiAppContext::waitEvents: GetMessage");
+		dlg_error(msg);
+		throw std::runtime_error(msg);
 	} else {
 		::DispatchMessage(&msg);
 	}
 
-	// dispatch all pending
+	// dispatch all events that are still pending
 	pollEvents();
-
-	// TODO
-	// return !receivedQuit_;
 }
 
 void WinapiAppContext::wakeupWait()
@@ -228,7 +173,9 @@ bool WinapiAppContext::clipboard(std::unique_ptr<DataSource>&& source)
 	}
 
 	auto ret = ::OleSetClipboard(dataObj);
-	if(ret == S_OK) return true;
+	if(ret == S_OK) {
+		return true;
+	}
 
 	dlg_warn("OleSetClipboard failed with code {}", ret);
 	return false;
@@ -251,14 +198,7 @@ DataOffer* WinapiAppContext::clipboard()
 
 bool WinapiAppContext::startDragDrop(std::unique_ptr<DataSource>&& source)
 {
-	//TODO: make non blocking
-	//TODO: catch dataObject constructor exception
-
-	// TODO
-	// dndCond.notify_one();
-	// dndSource = std::move(source);
-	// return true;
-
+	// TODO: catch dataObject constructor exception
 	auto dataObj = new winapi::com::DataObjectImpl(std::move(source));
 	auto dropSource = new winapi::com::DropSourceImpl();
 
@@ -291,6 +231,10 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 
 	switch(message) {
 		case WM_PAINT: {
+			if(wc->clientExtents().size == nytl::Vec2i {0, 0}) {
+				break;
+			}
+
 			DrawEvent de;
 			de.eventData = &eventData;
 			wc->listener().draw(de);
@@ -306,9 +250,14 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 		}
 
 		case WM_SIZE: {
+			auto size = nytl::Vec2ui{LOWORD(lparam), HIWORD(lparam)};
+			if(size == nytl::Vec2ui{0, 0}) {
+				break;
+			}
+
 			SizeEvent se;
 			se.eventData = &eventData;
-			se.size = nytl::Vec2ui{LOWORD(lparam), HIWORD(lparam)};
+			se.size = size;
 			se.edges = WindowEdge::none;
 			wc->listener().resize(se);
 			break;
@@ -380,14 +329,12 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 		// 	break;
 		// }
 
-		case WM_QUIT: {
-			receivedQuit_ = 1;
-			break;
-		}
-
 		default: {
-			if(keyboardContext_.processEvent(eventData, result)) break;
-			if(mouseContext_.processEvent(eventData, result)) break;
+			if(keyboardContext_.processEvent(eventData, result)) {
+				break;
+			} else if(mouseContext_.processEvent(eventData, result)) {
+				break;
+			}
 
 			result = ::DefWindowProc(window, message, wparam, lparam);
 			break;
