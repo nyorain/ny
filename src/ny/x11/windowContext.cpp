@@ -30,6 +30,8 @@ X11WindowContext::X11WindowContext(X11AppContext& ctx, const X11WindowSettings& 
 
 X11WindowContext::~X11WindowContext()
 {
+	appContext().removeDeferred(*this);
+
 	if(xWindow_) {
 		appContext().unregisterContext(xWindow_);
 		xcb_destroy_window(&xConnection(), xWindow_);
@@ -81,7 +83,7 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 	// apply init settings
 	cursor(settings.cursor);
 	if(settings.show) {
-		show();
+		xcb_map_window(&xConnection(), xWindow_);
 	}
 
 	if(settings.initState == ToplevelState::maximized) {
@@ -115,7 +117,6 @@ void X11WindowContext::createWindow(const X11WindowSettings& settings)
 	if(size == defaultSize) size = fallbackSize;
 
 	xcb_window_t xparent = settings.parent.uint64();
-	dlg_info("xparent: {}", xparent);
 	if(!xparent) {
 		xparent = xscreen.root;
 	}
@@ -628,7 +629,7 @@ void X11WindowContext::overrideRedirect(bool redirect)
 	xcb_change_window_attributes(&xConnection(), xWindow(), XCB_CW_OVERRIDE_REDIRECT, &data);
 }
 
-nytl::Vec2ui X11WindowContext::size() const
+nytl::Vec2ui X11WindowContext::querySize() const
 {
 	auto cookie = xcb_get_geometry(&xConnection(), xWindow());
 	auto geometry = xcb_get_geometry_reply(&xConnection(), cookie, nullptr);

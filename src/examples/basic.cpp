@@ -193,12 +193,15 @@ void MyWindowListener::focus(const ny::FocusEvent& ev)
 
 void MyWindowListener::state(const ny::StateEvent& stateEvent)
 {
-	if(stateEvent.state != toplevelState)
+	dlg_info("window state changed");
+	if(stateEvent.state != toplevelState) {
 		toplevelState = stateEvent.state;
+	}
 }
 
 void MyWindowListener::resize(const ny::SizeEvent& sizeEvent)
 {
+	dlg_info("window resized to {}", sizeEvent.size);
 	windowSize = sizeEvent.size;
 }
 

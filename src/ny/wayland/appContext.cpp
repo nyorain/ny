@@ -229,6 +229,7 @@ WaylandAppContext::~WaylandAppContext()
 }
 
 // TODO: error handling
+// TODO: callDeferred also at the end of the function?
 void WaylandAppContext::pollEvents()
 {
 	if(!checkErrorWarn()) {

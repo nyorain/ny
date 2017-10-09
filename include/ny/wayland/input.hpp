@@ -39,6 +39,17 @@ public:
 	void cursorBuffer(wl_buffer* buf, nytl::Vec2i hs = {}, nytl::Vec2ui size = {2048, 2048}) const;
 
 protected:
+	void handleEnter(wl_pointer*, uint32_t serial, wl_surface*, wl_fixed_t x, wl_fixed_t y);
+	void handleLeave(wl_pointer*, uint32_t serial, wl_surface*);
+	void handleMotion(wl_pointer*, uint32_t time, wl_fixed_t x, wl_fixed_t y);
+	void handleButton(wl_pointer*, uint32_t s, uint32_t t, uint32_t button, uint32_t pressed);
+	void handleAxis(wl_pointer*, uint32_t time, uint32_t axis, wl_fixed_t value);
+	void handleFrame(wl_pointer*);
+	void handleAxisSource(wl_pointer*, uint32_t source);
+	void handleAxisStop(wl_pointer*, uint32_t time, uint32_t axis);
+	void handleAxisDiscrete(wl_pointer*, uint32_t axis, int32_t discrete);
+
+protected:
 	WaylandAppContext& appContext_;
 	WaylandWindowContext* over_ {};
 	nytl::Vec2i position_;
@@ -49,17 +60,6 @@ protected:
 
 	unsigned int lastSerial_ {};
 	unsigned int cursorSerial_ {};
-
-protected:
-	void handleEnter(wl_pointer*, uint32_t serial, wl_surface*, wl_fixed_t x, wl_fixed_t y);
-	void handleLeave(wl_pointer*, uint32_t serial, wl_surface*);
-	void handleMotion(wl_pointer*, uint32_t time, wl_fixed_t x, wl_fixed_t y);
-	void handleButton(wl_pointer*, uint32_t s, uint32_t t, uint32_t button, uint32_t pressed);
-	void handleAxis(wl_pointer*, uint32_t time, uint32_t axis, wl_fixed_t value);
-	void handleFrame(wl_pointer*);
-	void handleAxisSource(wl_pointer*, uint32_t source);
-	void handleAxisStop(wl_pointer*, uint32_t time, uint32_t axis);
-	void handleAxisDiscrete(wl_pointer*, uint32_t axis, int32_t discrete);
 };
 
 
@@ -78,8 +78,15 @@ public:
 	wl_keyboard* wlKeyboard() const { return wlKeyboard_; }
 	unsigned int lastSerial() const { return lastSerial_; }
 
-	int repeatRate() const { return repeatRate_; }
-	int repeatDelay() const { return repeatDelay_; }
+protected:
+	void handleKeymap(wl_keyboard*, uint32_t format, int32_t fd, uint32_t size);
+	void handleEnter(wl_keyboard*, uint32_t serial, wl_surface* surface, wl_array* keys);
+	void handleLeave(wl_keyboard*, uint32_t serial, wl_surface* surface);
+	void handleKey(wl_keyboard*, uint32_t serial, uint32_t time, uint32_t key, uint32_t pressed);
+	void handleModifiers(wl_keyboard*, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
+	void handleRepeatInfo(wl_keyboard*, int32_t rate, int32_t delay);
+
+	void repeatKey();
 
 protected:
 	WaylandAppContext& appContext_;
@@ -88,16 +95,16 @@ protected:
 	bool keymap_ {};
 	unsigned int lastSerial_ {};
 
-	int repeatRate_ {};
-	int repeatDelay_ {};
+	struct {
+		unsigned int rates {};
+		unsigned int ratens {};
+		unsigned int delays {};
+		unsigned int delayns {};
+	} repeat_;
 
-protected:
-	void handleKeymap(wl_keyboard*, uint32_t format, int32_t fd, uint32_t size);
-	void handleEnter(wl_keyboard*, uint32_t serial, wl_surface* surface, wl_array* keys);
-	void handleLeave(wl_keyboard*, uint32_t serial, wl_surface* surface);
-	void handleKey(wl_keyboard*, uint32_t serial, uint32_t time, uint32_t key, uint32_t pressed);
-	void handleModifiers(wl_keyboard*, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
-	void handleRepeatInfo(wl_keyboard*, int32_t rate, int32_t delay);
+	int timerfd_ {};
+	nytl::UniqueConnection timerfdConn_ {};
+	unsigned int repeatKey_ {};
 };
 
 } // namespace ny

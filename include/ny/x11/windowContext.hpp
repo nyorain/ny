@@ -66,7 +66,8 @@ public:
 	x11::EwmhConnection& ewmhConnection() const; /// The associated ewmh connection (helper)
 	const X11ErrorCategory& errorCategory() const; /// Shortcut for the AppContexts ErrorCategory
 
-	nytl::Vec2ui size() const; /// Queries the current window size
+	nytl::Vec2ui size() const { return size_; } /// Synchronous size
+	nytl::Vec2ui querySize() const; /// Queries the current window size
 	void overrideRedirect(bool redirect); /// Sets the overrideRedirect flag for the window
 	void transientFor(uint32_t win); /// Makes the window transient for another x window
 
@@ -128,6 +129,9 @@ public:
 	/// visual type (since it also counts the alpha bits).
 	unsigned int visualDepth() const { return depth_; }
 
+	/// Updates the stored size
+	void updateSize(nytl::Vec2ui s) { size_ = s; }
+
 protected:
 	/// Default Constructor only for derived classes that later call the create function.
 	X11WindowContext() = default;
@@ -165,6 +169,12 @@ protected:
 	// Stored EWMH states can be used to check whether it is fullscreen, maximized etc.
 	std::vector<uint32_t> states_;
 	bool customDecorated_ {};
+	nytl::Vec2ui size_ {}; // the latest size
+
+	// flags
+	friend class X11AppContext; // TODO?
+	bool resizeEventFlag_ {};
+	bool drawEventFlag_ {};
 };
 
 } // namespace ny

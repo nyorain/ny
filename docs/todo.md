@@ -45,6 +45,7 @@
 
 ### missing features/design issues, not so important
 
+- common DeferredOperator abstraction for x11/wayland appcontext?
 - send CloseEvent when WindowContext::close called? define such things somewhere!
 - abolish WindowContextPtr, AppContextPtr
 - dataExchange: correctly handle utf-8 mimetype
@@ -97,6 +98,8 @@
 - MouseContext callbacks delta value might go crazy when changing over (mouseCross)
 	- reorder <Mouse/Keyobard>Context callback parameters/use Event structs as well
 		give them a similiar signature to the WindowListener callbacks
+- x11: don't use XInitThreads and send_event for synchronization, but
+  poll with eventfd like wayland app context
 
 ### later; general; rework needed (might be outdated)
 

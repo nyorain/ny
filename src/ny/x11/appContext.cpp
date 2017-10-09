@@ -240,6 +240,8 @@ KeyboardContext* X11AppContext::keyboardContext()
 // TODO: error handling
 void X11AppContext::pollEvents()
 {
+	callDeferred();
+
 	xcb_flush(&xConnection()); // TODO: needed?
 	if(!checkErrorWarn()) {
 		return;
@@ -260,11 +262,14 @@ void X11AppContext::pollEvents()
 		free(event);
 	}
 
+	callDeferred();
 	checkErrorWarn();
 }
 
 void X11AppContext::waitEvents()
 {
+	callDeferred();
+
 	xcb_flush(&xConnection()); // TODO: needed?
 	auto event = xcb_wait_for_event(xConnection_);
 	if(!event) {
@@ -279,6 +284,8 @@ void X11AppContext::waitEvents()
 		free(event);
 		event = next_;
 	}
+
+	callDeferred();
 }
 
 void X11AppContext::wakeupWait()
@@ -408,26 +415,41 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev, const x11::Generic
 {
 	X11EventData eventData {ev};
 
+	// TODO: optimize deferred operations, code duplication atm
+	//  + maybe just use this defered method in X11WindowContext::refresh
+	//  instead of real event
+
 	auto responseType = ev.response_type & ~0x80;
 	switch(responseType) {
 		case XCB_EXPOSE: {
 			auto& expose = reinterpret_cast<const xcb_expose_event_t&>(ev);
 			auto wc = windowContext(expose.window);
-			if(expose.count == 0 && wc) {
-				DrawEvent de;
-				de.eventData = &eventData;
-				wc->listener().draw(de);
+			if(wc) {
+				if(!wc->drawEventFlag_) {
+					wc->drawEventFlag_ = true;
+					defer(wc, [wc, eventData](const auto&){
+						DrawEvent de;
+						de.eventData = &eventData;
+						wc->listener().draw(de);
+						wc->drawEventFlag_ = false;
+					});
+				}
 			}
-			break;
 		}
 
 		case XCB_MAP_NOTIFY: {
 			auto& map = reinterpret_cast<const xcb_map_notify_event_t&>(ev);
 			auto wc = windowContext(map.event);
 			if(wc) {
-				DrawEvent de;
-				de.eventData = &eventData;
-				wc->listener().draw(de);
+				if(!wc->drawEventFlag_) {
+					wc->drawEventFlag_ = true;
+					defer(wc, [wc, eventData](const auto&){
+						DrawEvent de;
+						de.eventData = &eventData;
+						wc->listener().draw(de);
+						wc->drawEventFlag_ = false;
+					});
+				}
 			}
 			break;
 		}
@@ -435,23 +457,31 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev, const x11::Generic
 		case XCB_REPARENT_NOTIFY: {
 			auto& reparent = reinterpret_cast<const xcb_reparent_notify_event_t&>(ev);
 			auto wc = windowContext(reparent.window);
-			if(wc) wc->reparentEvent();
+			if(wc) {
+				wc->reparentEvent();
+			}
 			break;
 		}
 
 		case XCB_CONFIGURE_NOTIFY: {
+			// TODO: notify of changed position?
 			auto& configure = reinterpret_cast<const xcb_configure_notify_event_t&>(ev);
 
 			auto nsize = nytl::Vec2ui{configure.width, configure.height};
-			// auto npos = nytl::Vec2i(configure.x, configure.y);
-
 			auto wc = windowContext(configure.window);
-			if(wc) {
-				SizeEvent se;
-				se.eventData = &eventData;
-				se.size = nsize;
-				wc->listener().resize(se);
-				// wc->listener().position({{&eventData}, npos});
+
+			if(wc && nsize != wc->size()) {
+				wc->updateSize(nsize);
+				if(!wc->resizeEventFlag_) {
+					wc->resizeEventFlag_ = true;
+					defer(wc, [wc, eventData](const auto&){
+						SizeEvent se;
+						se.size = wc->size();
+						se.eventData = &eventData;
+						wc->listener().resize(se);
+						wc->resizeEventFlag_ = false;
+					});
+				}
 			}
 
 			break;
@@ -487,6 +517,32 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev, const x11::Generic
 	if(mouseContext_->processEvent(ev)) return;
 
 	#undef EventHandlerEvent // ???
+}
+
+void X11AppContext::defer(X11WindowContext* wc,
+	DeferedHandler handler)
+{
+	deferred_.push_back({wc, std::move(handler)});
+}
+
+void X11AppContext::removeDeferred(const X11WindowContext& wc)
+{
+	deferred_.erase(std::remove_if(deferred_.begin(), deferred_.end(),
+		[&](const auto& d){ return d.first == &wc; }), deferred_.end());
+}
+
+void X11AppContext::callDeferred()
+{
+	// care, the deferred handlers might add new deferred handlers
+	for(auto i = 0u; i < deferred_.size(); ++i) {
+		auto& d = deferred_[i];
+		auto wc = d.first;
+		auto f = std::move(d.second);
+		d = {}; // to make sure it is not removed from removeDeferred
+		f(wc);
+	}
+
+	deferred_.clear();
 }
 
 x11::EwmhConnection& X11AppContext::ewmhConnection() const { return impl_->ewmhConnection; }

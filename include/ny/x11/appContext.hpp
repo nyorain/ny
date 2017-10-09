@@ -67,6 +67,18 @@ public:
 	xcb_atom_t atom(const std::string& name);
 	const x11::Atoms& atoms() const;
 
+	/// Defers the given function associated with the given window context to
+	/// the next event dispatching.
+	using DeferedHandler = std::function<void(X11WindowContext*)>;
+	void defer(X11WindowContext*, DeferedHandler);
+
+	/// Removes all deferred handler for the given wc.
+	void removeDeferred(const X11WindowContext&);
+
+protected:
+	/// Calls the deferred handlers.
+	void callDeferred();
+
 protected:
 	Display* xDisplay_  = nullptr;
 	xcb_connection_t* xConnection_ = nullptr;
@@ -81,6 +93,8 @@ protected:
 	std::unique_ptr<X11MouseContext> mouseContext_;
 	std::unique_ptr<X11KeyboardContext> keyboardContext_;
 	x11::GenericEvent* next_ {};
+
+	std::vector<std::pair<X11WindowContext*, DeferedHandler>> deferred_;
 
 	struct Impl;
 	std::unique_ptr<Impl> impl_;

@@ -17,7 +17,9 @@
 #include <wayland-client-protocol.h>
 #include <xkbcommon/xkbcommon.h>
 #include <unistd.h>
+#include <poll.h>
 #include <sys/mman.h>
+#include <sys/timerfd.h>
 
 namespace ny {
 
@@ -215,10 +217,21 @@ WaylandKeyboardContext::WaylandKeyboardContext(WaylandAppContext& ac, wl_seat& s
 
 	XkbKeyboardContext::createDefault();
 	XkbKeyboardContext::setupCompose();
+
+	// TODO: error checking
+	timerfd_ = timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC | TFD_NONBLOCK);
+	timerfdConn_ = ac.fdCallback(timerfd_, POLLIN, [=](int, unsigned int){
+		this->repeatKey();
+		return true;
+	});
 }
 
 WaylandKeyboardContext::~WaylandKeyboardContext()
 {
+	if(timerfd_) {
+		close(timerfd_);
+	}
+
 	if(wlKeyboard_) {
 		if(wl_keyboard_get_version(wlKeyboard_) >= 3) wl_keyboard_release(wlKeyboard_);
 		else wl_keyboard_destroy(wlKeyboard_);
@@ -325,6 +338,15 @@ void WaylandKeyboardContext::handleLeave(wl_keyboard*, uint32_t serial, wl_surfa
 
 	keyStates_.reset();
 	focus_ = nullptr;
+
+	// reset repeat
+	struct itimerspec its;
+	repeatKey_ = 0;
+	its.it_interval.tv_sec = 0;
+	its.it_interval.tv_nsec = 0;
+	its.it_value.tv_sec = 0;
+	its.it_value.tv_nsec = 0;
+	timerfd_settime(timerfd_, 0, &its, nullptr);	
 }
 void WaylandKeyboardContext::handleKey(wl_keyboard*, uint32_t serial, uint32_t time,
 	uint32_t key, uint32_t pressed)
@@ -337,7 +359,6 @@ void WaylandKeyboardContext::handleKey(wl_keyboard*, uint32_t serial, uint32_t t
 	Keycode keycode;
 	std::string utf8;
 
-	auto repeat = pressed && this->pressed(xkbToKey(key));
 	XkbKeyboardContext::handleKey(key + 8, pressed, keycode, utf8);
 	if(focus_) {
 		KeyEvent ke;
@@ -345,11 +366,29 @@ void WaylandKeyboardContext::handleKey(wl_keyboard*, uint32_t serial, uint32_t t
 		ke.keycode = keycode;
 		ke.utf8 = utf8;
 		ke.pressed = pressed;
-		ke.repeat = repeat;
+		ke.repeat = false;
 		focus_->listener().key(ke);
 	}
 
 	onKey(*this, keycode, utf8, pressed);
+
+	// repeat the key
+	struct itimerspec its;
+	if(pressed && xkb_keymap_key_repeats(xkbKeymap_, key + 8)) {
+		repeatKey_ = key;
+		its.it_interval.tv_sec = repeat_.rates;
+		its.it_interval.tv_nsec = repeat_.ratens;
+		its.it_value.tv_sec = repeat_.delays;
+		its.it_value.tv_nsec = repeat_.delayns;
+		timerfd_settime(timerfd_, 0, &its, nullptr);	
+	} else if(!pressed && key == repeatKey_) {
+		repeatKey_ = 0;
+		its.it_interval.tv_sec = 0;
+		its.it_interval.tv_nsec = 0;
+		its.it_value.tv_sec = 0;
+		its.it_value.tv_nsec = 0;
+		timerfd_settime(timerfd_, 0, &its, nullptr);	
+	}
 }
 
 void WaylandKeyboardContext::handleModifiers(wl_keyboard*, uint32_t serial, uint32_t mdepressed,
@@ -361,8 +400,46 @@ void WaylandKeyboardContext::handleModifiers(wl_keyboard*, uint32_t serial, uint
 
 void WaylandKeyboardContext::handleRepeatInfo(wl_keyboard*, int32_t rate, int32_t delay)
 {
-	repeatRate_ = rate;
-	repeatDelay_ = delay;
+	repeat_ = {};
+
+	if(rate == 0) { // repeating disabled
+		return;
+	}
+
+	auto& r = repeat_;
+	if (rate == 1) {
+		r.rates = 1;
+	} else {
+		r.ratens = 1000000000 / rate;
+	}
+
+	r.delays = delay / 1000;
+	delay -= (r.delays * 1000);
+	r.delayns = delay * 1000 * 1000;
+}
+
+void WaylandKeyboardContext::repeatKey()
+{
+	std::uint64_t val;
+	if(read(timerfd_, &val, 8) != 8) {
+		return;
+	}
+
+	Keycode keycode;
+	std::string utf8;
+
+	XkbKeyboardContext::handleKey(repeatKey_ + 8, true, keycode, utf8);
+	if(focus_) {
+		KeyEvent ke;
+		ke.eventData = nullptr;
+		ke.keycode = keycode;
+		ke.utf8 = utf8;
+		ke.pressed = true;
+		ke.repeat = true;
+		focus_->listener().key(ke);
+	}
+
+	onKey(*this, keycode, utf8, true);
 }
 
 } // namespace ny
