@@ -28,6 +28,7 @@ element of the x spec. There are 3 main sources for x atoms:
 #### xdnd:
 
 starting a dnd request:
+
 	- create a preview drag window with type _NET_WM_WINDOW_TYPE_DND
 		- preview the dragged content
 	- grab the x cursor

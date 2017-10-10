@@ -82,17 +82,19 @@ WinapiDataOffer::WinapiDataOffer(IDataObject& object) : data_(object)
 			if(!found && format.cfFormat >= 0xC000 && format.tymed == TYMED_HGLOBAL) {
 				wchar_t buffer[256] {};
 				auto bytes = ::GetClipboardFormatName(format.cfFormat, buffer, 255);
-				if(!bytes) continue;
+				if(!bytes) {
+					continue;
+				}
 				buffer[bytes] = '\0';
 				auto name = narrow(buffer);
 
 				// check for uri-names of standard formats (etc. handle "text/plain" as text)
 				// otherwise just insert the name as data format
 				using DF = DataFormat;
-				if(match(DF::text, name)) formats_[DF::text] = format;
-				else if(match(DF::raw, name)) formats_[DF::raw] = format;
-				else if(match(DF::uriList, name)) formats_[DF::uriList] = format;
-				else if(match(DF::image, name)) formats_[DF::image] = format;
+				if(match(DF::text, name.c_str())) formats_[DF::text] = format;
+				else if(match(DF::raw, name.c_str())) formats_[DF::raw] = format;
+				else if(match(DF::uriList, name.c_str())) formats_[DF::uriList] = format;
+				else if(match(DF::image, name.c_str())) formats_[DF::image] = format;
 				else formats_[{name}] = format;
 			}
 		}
@@ -461,7 +463,7 @@ void DataObjectImpl::addFormat(const DataFormat& format)
 	// check standard clipboard formats
 	// we always also support the custom mime type clipboard formats
 	for(auto& mapping : mappings) {
-		if(match(mapping.format, format.name)) {
+		if(match(mapping.format, format.name.c_str())) {
 			formatetc.cfFormat = ::RegisterClipboardFormat(widen(format.name).c_str());
 			formats_.push_back({formatetc, format});
 
