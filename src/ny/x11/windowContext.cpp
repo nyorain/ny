@@ -30,7 +30,7 @@ X11WindowContext::X11WindowContext(X11AppContext& ctx, const X11WindowSettings& 
 
 X11WindowContext::~X11WindowContext()
 {
-	appContext().removeDeferred(*this);
+	appContext().deferred.remove(this);
 
 	if(xWindow_) {
 		appContext().unregisterContext(xWindow_);
@@ -100,7 +100,10 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 
 void X11WindowContext::createWindow(const X11WindowSettings& settings)
 {
-	if(!visualID_) initVisual(settings);
+	if(!visualID_) {
+		initVisual(settings);
+	}
+
 	auto visualtype = xVisualType();
 	if(!visualtype) {
 		throw std::runtime_error("ny::X11WindowContext: failed to retrieve the visualtype");
@@ -172,40 +175,46 @@ void X11WindowContext::initVisual(const X11WindowSettings& settings)
 		throw std::runtime_error(novis);
 	} else if(settings.transparent && avDepth == 24) {
 		dlg_warn("transparent window but no 32 bit visual");
-	} else if(!settings.transparent && avDepth == 32) {
-		dlg_info("not-transparent window, but only 32 bits visuals");
 	}
 
-	// argb > rgba > bgra for 32
-	// rgb > bgr for 24
-	depth_iter = xcb_screen_allowed_depths_iterator(&screen);
-	for(; depth_iter.rem; xcb_depth_next(&depth_iter)) {
-		if(depth_iter.data->depth != avDepth) continue;
-
-		auto highestScore = 0u;
-		auto score = [](const ImageFormat& f) {
-			if(f == ImageFormat::argb8888) return 3u;
-			else if(f == ImageFormat::rgba8888) return 2u;
-			else if(f == ImageFormat::bgra8888) return 1u;
-
-			else if(f == ImageFormat::rgb888) return 2u;
-			else if(f == ImageFormat::bgr888) return 1u;
-			return 1u;
-		};
-
-		// TODO: make requested format dynamic with X11WindowSettings
-		// i.e. make it possible to request a certain format
-		auto visual_iter = xcb_depth_visuals_iterator(depth_iter.data);
-		for(; visual_iter.rem; xcb_visualtype_next(&visual_iter)) {
-			auto format = x11::visualToFormat(*visual_iter.data, avDepth);
-			if(score(format) > highestScore) visualID_ = visual_iter.data->visual_id;
+	auto highestScore = 0u;
+	auto format = ImageFormat::none;
+	auto score = [&](const ImageFormat& f) {
+		if(f == ImageFormat::argb8888) {
+			return 4u + settings.transparent * 10;
+		} else if(f == ImageFormat::rgba8888) {
+			return 3u + settings.transparent * 10;
+		} else if(f == ImageFormat::bgra8888) {
+			return 2u + settings.transparent * 10;
 		}
 
-		break;
+		else if(f == ImageFormat::rgb888) {
+			return 3u + !settings.transparent * 10;
+		} else if(f == ImageFormat::bgr888) {
+			return 2u + !settings.transparent * 10;
+		}
+
+		return 1u;
+	};
+
+	// TODO: make requested format dynamic with X11WindowSettings
+	// i.e. make it possible to request a certain format
+	depth_iter = xcb_screen_allowed_depths_iterator(&screen);
+	for(; depth_iter.rem; xcb_depth_next(&depth_iter)) {
+		auto visual_iter = xcb_depth_visuals_iterator(depth_iter.data);
+		for(; visual_iter.rem; xcb_visualtype_next(&visual_iter)) {
+			auto vformat = x11::visualToFormat(*visual_iter.data, avDepth);
+			if(score(vformat) > highestScore) {
+				visualID_ = visual_iter.data->visual_id;
+				format = vformat;
+				depth_ = depth_iter.data->depth;
+			}
+		}
 	}
 
-	if(!visualID_) throw std::runtime_error(nofound);
-	depth_ = avDepth;
+	if(!visualID_) {
+		throw std::runtime_error(nofound);
+	}
 }
 
 xcb_connection_t& X11WindowContext::xConnection() const

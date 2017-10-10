@@ -6,6 +6,7 @@
 
 #include <ny/wayland/include.hpp>
 #include <ny/appContext.hpp> // ny::AppContext
+#include <ny/deferred.hpp> 
 #include <nytl/connection.hpp> // nytl::Connection
 
 #include <vector> // std::vector
@@ -19,6 +20,9 @@ namespace ny {
 /// Wayland AppContext implementation.
 /// Holds the wayland display connection as well as all global resources.
 class WaylandAppContext : public AppContext {
+public:
+	DeferredOperator<void(), WindowContext*> deferred;
+
 public:
 	WaylandAppContext();
 	virtual ~WaylandAppContext();
@@ -58,14 +62,6 @@ public:
 	/// This function should be used instead of wl_display_roundtrip since it takes care of
 	/// not dispatching any other events by using an extra event queue.
 	void roundtrip();
-
-	/// Defers the given function associated with the given window context to
-	/// the next event dispatching.
-	using DeferedHandler = std::function<void(WaylandWindowContext*)>;
-	void defer(WaylandWindowContext*, DeferedHandler);
-
-	/// Removes all deferred handler for the given wc.
-	void removeDeferred(const WaylandWindowContext&);
 
 	WaylandKeyboardContext* waylandKeyboardContext() const { return keyboardContext_.get(); }
 	WaylandMouseContext* waylandMouseContext() const { return mouseContext_.get(); }
@@ -108,9 +104,6 @@ protected:
 	/// Will not stop on a signal.
 	int pollFds(short wlDisplayEvents, int timeout);
 
-	/// Calls the deferred handlers.
-	void callDeferred();
-
 	// callback handlers
 	void handleRegistryAdd(wl_registry*, uint32_t id, const char* cinterface, uint32_t version);
 	void handleRegistryRemove(wl_registry*, uint32_t id);
@@ -141,7 +134,6 @@ protected:
 	std::unique_ptr<WaylandDataSource> dndSource_;
 
 	bool wakeup_ {false}; // Set from the eventfd callback
-	std::vector<std::pair<WaylandWindowContext*, DeferedHandler>> deferred_;
 
 	struct Impl;
 	std::unique_ptr<Impl> impl_;

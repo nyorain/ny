@@ -1,7 +1,6 @@
 -I./include
 -I./src
--I./mbuild/include
--I./build/l2/include
+-I./build/include
 -I./subprojects/nytl
 -I./subprojects/dlg/include
 -Wall

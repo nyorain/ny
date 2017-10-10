@@ -230,12 +230,14 @@ std::string errorMessage(Display& dpy, unsigned int error)
 ImageFormat visualToFormat(const xcb_visualtype_t& v, unsigned int depth)
 {
 	using Format = ImageFormat;
-	if(depth != 24 && depth != 32) return Format::none;
+	if(depth != 24 && depth != 32) {
+		return Format::none;
+	}
 
-	//XXX: the map could use some love; error/special case handling.
-	//A simple format map that maps the rgb[a] mask values of the visualtype to a format
-	//Note that only the rgb[a] masks of some visuals will result in a valid format,
-	//usually ImageDataFormat::none is returned
+	// XXX: the map could use some love; error/special case handling.
+	// A simple format map that maps the rgb[a] mask values of the visualtype to a format
+	// Note that only the rgb[a] masks of some visuals will result in a valid format,
+	// usually ImageDataFormat::none is returned
 	struct
 	{
 		std::uint32_t r, g, b, a;
@@ -255,7 +257,9 @@ ImageFormat visualToFormat(const xcb_visualtype_t& v, unsigned int depth)
 	};
 
 	auto a = 0u;
-	if(depth == 32) a = 0xFFFFFFFFu & ~(v.red_mask | v.green_mask | v.blue_mask);
+	if(depth == 32) {
+		a = 0xFFFFFFFFu & ~(v.red_mask | v.green_mask | v.blue_mask);
+	}
 
 	for(auto& f : formats)
 		if(v.red_mask == f.r && v.green_mask == f.g && v.blue_mask == f.b && a == f.a)

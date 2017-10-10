@@ -240,7 +240,7 @@ KeyboardContext* X11AppContext::keyboardContext()
 // TODO: error handling
 void X11AppContext::pollEvents()
 {
-	callDeferred();
+	deferred.execute();
 
 	xcb_flush(&xConnection()); // TODO: needed?
 	if(!checkErrorWarn()) {
@@ -262,13 +262,13 @@ void X11AppContext::pollEvents()
 		free(event);
 	}
 
-	callDeferred();
+	deferred.execute();
 	checkErrorWarn();
 }
 
 void X11AppContext::waitEvents()
 {
-	callDeferred();
+	deferred.execute();
 
 	xcb_flush(&xConnection()); // TODO: needed?
 	auto event = xcb_wait_for_event(xConnection_);
@@ -285,12 +285,13 @@ void X11AppContext::waitEvents()
 		event = next_;
 	}
 
-	callDeferred();
+	deferred.execute();
 }
 
 void X11AppContext::wakeupWait()
 {
 	// TODO: only send if currently blocking?
+	// TODO: just use eventfd and custom poll instead?
 	xcb_client_message_event_t dummyEvent {};
 	dummyEvent.type = XCB_CLIENT_MESSAGE;
 	auto eventData = reinterpret_cast<const char*>(&dummyEvent);
@@ -419,6 +420,8 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev, const x11::Generic
 	//  + maybe just use this defered method in X11WindowContext::refresh
 	//  instead of real event
 
+	// TODO: make windowContext handle events to remove friend decl
+
 	auto responseType = ev.response_type & ~0x80;
 	switch(responseType) {
 		case XCB_EXPOSE: {
@@ -427,12 +430,12 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev, const x11::Generic
 			if(wc) {
 				if(!wc->drawEventFlag_) {
 					wc->drawEventFlag_ = true;
-					defer(wc, [wc, eventData](const auto&){
+					deferred.add([wc, eventData](){
 						DrawEvent de;
 						de.eventData = &eventData;
 						wc->listener().draw(de);
 						wc->drawEventFlag_ = false;
-					});
+					}, wc);
 				}
 			}
 		}
@@ -443,12 +446,12 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev, const x11::Generic
 			if(wc) {
 				if(!wc->drawEventFlag_) {
 					wc->drawEventFlag_ = true;
-					defer(wc, [wc, eventData](const auto&){
+					deferred.add([wc, eventData](){
 						DrawEvent de;
 						de.eventData = &eventData;
 						wc->listener().draw(de);
 						wc->drawEventFlag_ = false;
-					});
+					}, wc);
 				}
 			}
 			break;
@@ -474,13 +477,13 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev, const x11::Generic
 				wc->updateSize(nsize);
 				if(!wc->resizeEventFlag_) {
 					wc->resizeEventFlag_ = true;
-					defer(wc, [wc, eventData](const auto&){
+					deferred.add([wc, eventData](){
 						SizeEvent se;
 						se.size = wc->size();
 						se.eventData = &eventData;
 						wc->listener().resize(se);
 						wc->resizeEventFlag_ = false;
-					});
+					}, wc);
 				}
 			}
 
@@ -517,32 +520,6 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev, const x11::Generic
 	if(mouseContext_->processEvent(ev)) return;
 
 	#undef EventHandlerEvent // ???
-}
-
-void X11AppContext::defer(X11WindowContext* wc,
-	DeferedHandler handler)
-{
-	deferred_.push_back({wc, std::move(handler)});
-}
-
-void X11AppContext::removeDeferred(const X11WindowContext& wc)
-{
-	deferred_.erase(std::remove_if(deferred_.begin(), deferred_.end(),
-		[&](const auto& d){ return d.first == &wc; }), deferred_.end());
-}
-
-void X11AppContext::callDeferred()
-{
-	// care, the deferred handlers might add new deferred handlers
-	for(auto i = 0u; i < deferred_.size(); ++i) {
-		auto& d = deferred_[i];
-		auto wc = d.first;
-		auto f = std::move(d.second);
-		d = {}; // to make sure it is not removed from removeDeferred
-		f(wc);
-	}
-
-	deferred_.clear();
 }
 
 x11::EwmhConnection& X11AppContext::ewmhConnection() const { return impl_->ewmhConnection; }

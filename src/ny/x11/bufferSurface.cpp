@@ -61,12 +61,14 @@ X11BufferSurface::X11BufferSurface(X11WindowContext& wc) : windowContext_(&wc)
 		++fmtit;
 	}
 
-	if(!fmt)
+	if(!fmt) {
 		throw std::runtime_error("ny::X11BufferSurface: couldn't query depth format bpp");
+	}
 
 	format_ = x11::visualToFormat(*windowContext().xVisualType(), fmt->bits_per_pixel);
-	if(format_ == ImageFormat::none)
+	if(format_ == ImageFormat::none) {
 		throw std::runtime_error("ny::X11BufferSurface: couldn't parse visual format");
+	}
 
 	// check if the server has shm suport
 	// it is also implemented without shm but the performance might be worse
@@ -162,7 +164,11 @@ void X11BufferSurface::apply(const BufferGuard&) noexcept
 X11BufferWindowContext::X11BufferWindowContext(X11AppContext& ac, const X11WindowSettings& settings)
 	: X11WindowContext(ac, settings), bufferSurface_(*this)
 {
-	if(settings.buffer.storeSurface) *settings.buffer.storeSurface = &bufferSurface_;
+	// TODO: we could implement a custom visual querying here
+	// we need to find a visual with a known format
+	if(settings.buffer.storeSurface) {
+		*settings.buffer.storeSurface = &bufferSurface_;
+	}
 }
 
 Surface X11BufferWindowContext::surface()

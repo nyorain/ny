@@ -9,19 +9,16 @@
 - cleanup docs
 	- document when which events are sent
 		- test it on all backends, such things may be possible with half-automated tests
-- add unit tests where possible
+- send state and size events on windowContext creation? (other important values?)
+	- general way to query size from windowContext?
+	- query other values? against event flow but currently things like
+		toggling fullscreen are hard/partly impossible
 - fix error handling/spec in appContext implementations
 	- when to throw? how to signal that AppContext is in invalid state? std::error_code support?
 - fix android
 	- add meson support, port own apk.cmake
 	- move the cpp examples out of android folder
 		- use mainlined examples (fix them to work for ALL (android!) platforms)
-- fix WindowSettings handling for backends
-- fix WindowCapabilities handling for backends
-- send state and size events on windowContext creation? (other important values?)
-	- general way to query size from windowContext?
-	- query other values? against event flow but currently things like
-		toggling fullscreen are hard/partly impossible
 - make sure spec/promises are kept
 	- no event dispatching to handlers outside poll/waitEvents
 - normalize wheel input values in some way across backends
@@ -31,10 +28,14 @@
 	- document it somewhere
 - ime input (see winapi backend)
 	- use wm_char and such, don't use ToUnicode
-- use deferred for x11, wayland appContext
+- wayland: fix dataExchange, enable only for droppable windows
 
 ### missing features/design issues, no real bug but should be done
 
+- add unit tests where possible
+- x11 dnd window
+- improve WindowCapabilities handling for backends
+	- not static on x11/wayland regarding decorations, position, sizeLimits
 - SizeEvent.windowEdges never used (no backend really implements it?)
 - rework dataExchange
 	- some kind of dnd offer succesful feedback

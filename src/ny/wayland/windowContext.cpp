@@ -26,6 +26,7 @@
 // TODO: implement show capability? could be done with custom egl surface, show flag
 //	and custom refrsh/redraw handling (see earlier commits)
 // TODO: possibility (interface) for popups
+// TODO: make native handle pointer to struct that contains role and surface?
 
 namespace ny {
 
@@ -85,7 +86,7 @@ WaylandWindowContext::WaylandWindowContext(WaylandAppContext& ac,
 
 WaylandWindowContext::~WaylandWindowContext()
 {
-	appContext().removeDeferred(*this);
+	appContext().deferred.remove(this);
 	if(frameCallback_) {
 		wl_callback_destroy(frameCallback_);
 	}
@@ -109,7 +110,9 @@ WaylandWindowContext::~WaylandWindowContext()
 		zxdg_surface_v6_destroy(xdgSurfaceV6_.surface);
 	}
 
-	if(wlSurface_) wl_surface_destroy(wlSurface_);
+	if(wlSurface_) {
+		wl_surface_destroy(wlSurface_);
+	}
 }
 
 void WaylandWindowContext::createShellSurface(const WaylandWindowSettings& ws)
@@ -136,10 +139,10 @@ void WaylandWindowContext::createShellSurface(const WaylandWindowSettings& ws)
 	wl_shell_surface_set_toplevel(wlShellSurface_);
 
 	// draw window for the first time in main loop to make it visible
-	appContext().defer(this, [&](const auto&) {
+	appContext().deferred.add([&]{
 		DrawEvent de {};
 		listener().draw(de);
-	});
+	}, this);
 }
 
 void WaylandWindowContext::createXdgSurfaceV5(const WaylandWindowSettings& ws)
@@ -165,10 +168,10 @@ void WaylandWindowContext::createXdgSurfaceV5(const WaylandWindowSettings& ws)
 
 	// TODO: should that be here?
 	// draw window for the first time in main loop to make it visible
-	appContext().defer(this, [&](const auto&) {
+	appContext().deferred.add([&]{
 		DrawEvent de {};
 		listener().draw(de);
-	});
+	}, this);
 }
 
 void WaylandWindowContext::createXdgSurfaceV6(const WaylandWindowSettings& ws)
@@ -238,10 +241,10 @@ void WaylandWindowContext::createXdgPopupV5(const WaylandWindowSettings& ws)
 	xdg_popup_add_listener(xdgPopupV5_, &xdgPopupListener, this);
 
 	// draw window for the first time in main loop to make it visible
-	appContext().defer(this, [&](const auto&) {
+	appContext().deferred.add([&]{
 		DrawEvent de {};
 		listener().draw(de);
-	});
+	}, this);
 }
 
 void WaylandWindowContext::createXdgPopupV6(const WaylandWindowSettings& ws)
@@ -304,10 +307,10 @@ void WaylandWindowContext::createSubsurface(wl_surface& parent, const WaylandWin
 	wl_subsurface_set_desync(wlSubsurface_);
 
 	// draw window for the first time in main loop to make it visible
-	appContext().defer(this, [&](const auto&) {
+	appContext().deferred.add([&]{
 		DrawEvent de {};
 		listener().draw(de);
-	});
+	}, this);
 }
 
 void WaylandWindowContext::refresh()
@@ -325,12 +328,12 @@ void WaylandWindowContext::refresh()
 
 	// otherwise send a draw event (deferred)
 	refreshPending_ = true;
-	appContext().defer(this, [&](const auto&) {
+	appContext().deferred.add([&]() {
 		// draw window for the first time to make it visible
 		refreshPending_ = false;
 		DrawEvent de {};
 		listener().draw(de);
-	});
+	}, this);
 }
 
 void WaylandWindowContext::show()

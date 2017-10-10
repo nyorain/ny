@@ -236,7 +236,7 @@ void WaylandAppContext::pollEvents()
 		return;
 	}
 
-	callDeferred();
+	deferred.execute();
 
 	// read all registered file descriptors without any blocking and without polling
 	// for the display file descriptor, since we dispatch everything available anyways
@@ -262,17 +262,20 @@ void WaylandAppContext::pollEvents()
 		wl_display_dispatch_pending(wlDisplay_);
 	}
 
+	deferred.execute();
 	checkErrorWarn();
 }
 
 void WaylandAppContext::waitEvents()
 {
+	deferred.execute();
+
 	if(!checkErrorWarn()) {
 		return;
 	}
 
-	callDeferred();
 	dispatchDisplay();
+	deferred.execute();
 	checkErrorWarn();
 }
 
@@ -469,32 +472,6 @@ nytl::Connection WaylandAppContext::fdCallback(int fd, unsigned int events,
 	const FdCallbackFunc& func)
 {
 	return impl_->fdCallbacks.add({fd, events, func});
-}
-
-void WaylandAppContext::defer(WaylandWindowContext* wc,
-	DeferedHandler handler)
-{
-	deferred_.push_back({wc, std::move(handler)});
-}
-
-void WaylandAppContext::removeDeferred(const WaylandWindowContext& wc)
-{
-	deferred_.erase(std::remove_if(deferred_.begin(), deferred_.end(),
-		[&](const auto& d){ return d.first == &wc; }), deferred_.end());
-}
-
-void WaylandAppContext::callDeferred()
-{
-	// care, the deferred handlers might add new deferred handlers
-	for(auto i = 0u; i < deferred_.size(); ++i) {
-		auto& d = deferred_[i];
-		auto wc = d.first;
-		auto f = std::move(d.second);
-		d = {}; // to make sure it is not removed from removeDeferred
-		f(wc);
-	}
-
-	deferred_.clear();
 }
 
 void WaylandAppContext::destroyDataSource(const WaylandDataSource& src)
