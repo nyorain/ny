@@ -40,15 +40,21 @@ bool loadExtensions(Display& dpy)
 		}
 
 		std::string extensions;
-		if(client) extensions += client;
-		if(exts) extensions += exts;
+		if(client) {
+			extensions += client;
+		}
 
-		auto swapControl = glExtensionStringContains(extensions, "GLX_ARB_swap_control");
-		auto createContext = glExtensionStringContains(extensions, "GLX_ARB_create_context");
+		if(exts) {
+			extensions += exts;
+		}
 
-		hasSwapControlTear = glExtensionStringContains(extensions, "GLX_ARB_swap_control_tear");
-		hasProfile = glExtensionStringContains(extensions, "GLX_EXT_create_context_profile");
-		hasProfileES = glExtensionStringContains(extensions, "GLX_EXT_create_context_es2_profile");
+		auto estr = extensions.c_str();
+		auto swapControl = glExtensionStringContains(estr, "GLX_ARB_swap_control");
+		auto createContext = glExtensionStringContains(estr, "GLX_ARB_create_context");
+
+		hasSwapControlTear = glExtensionStringContains(estr, "GLX_ARB_swap_control_tear");
+		hasProfile = glExtensionStringContains(estr, "GLX_EXT_create_context_profile");
+		hasProfileES = glExtensionStringContains(estr, "GLX_EXT_create_context_es2_profile");
 
 		using PfnVoid = void (*)();
 		struct LoadFunc {
@@ -171,9 +177,9 @@ std::unique_ptr<GlContext> GlxSetup::createContext(const GlContextSettings& sett
 	return std::make_unique<GlxContext>(*this, settings);
 }
 
-void* GlxSetup::procAddr(std::string_view name) const
+void* GlxSetup::procAddr(const char* name) const
 {
-	auto data = reinterpret_cast<const unsigned char*>(name.data());
+	auto data = reinterpret_cast<const unsigned char*>(name);
 	auto ret = reinterpret_cast<void*>(::glXGetProcAddress(data));
 	return ret;
 }

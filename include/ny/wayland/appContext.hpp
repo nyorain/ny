@@ -12,7 +12,6 @@
 #include <vector> // std::vector
 #include <string> // std::string
 #include <memory> // std::unique_ptr
-#include <system_error> // std::error_code
 #include <functional> // std::function
 
 namespace ny {
@@ -44,14 +43,6 @@ public:
 	GlSetup* glSetup() const override;
 
 	// - wayland specific -
-
-	/// Checks the wayland display for errors.
-	/// If the wayland display has an error (i.e. it cannot be used any longer) returns an
-	/// error code holding either the posix error code returned, or an interface-specific
-	/// error code.
-	std::error_code checkError() const;
-	bool checkErrorWarn() const; /// Outputs warning and returns false on error
-
 	/// Can be called to register custom listeners for fds that the dispatch loop will
 	/// then poll for. Should return false if it wants to be disconnected.
 	using FdCallbackFunc = std::function<bool(int fd, unsigned int events)>;
@@ -93,6 +84,11 @@ public:
 	void destroyDataSource(const WaylandDataSource& dataSource);
 
 protected:
+	/// Checks the wayland display for errors.
+	/// If the wayland display has an error (i.e. it cannot be used any longer)
+	/// throws a std::runtime_error containing information about the error.
+	void checkError() const;
+
 	/// Modified version of wl_dispatch_display that performs the same operations but
 	/// does also poll for the registered fds.
 	/// Returns false on error.

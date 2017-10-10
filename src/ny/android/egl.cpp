@@ -16,18 +16,22 @@ AndroidEglWindowContext::AndroidEglWindowContext(AndroidAppContext& ac, EglSetup
 	const AndroidWindowSettings& ws) : AndroidWindowContext(ac, ws)
 {
 	glConfig_ = ws.gl.config;
-	if(!glConfig_) glConfig_ = setup.defaultConfig().id;
+	if(!glConfig_) {
+		glConfig_ = setup.defaultConfig().id;
+	}
 
 	// could not find any doc that this is needed but everyone seems to do it
 	auto config = setup.eglConfig(glConfig_);
 	if(!::eglGetConfigAttrib(setup.eglDisplay(), config, EGL_NATIVE_VISUAL_ID, &format_)) {
-		std::string msg = "ny::AndroidEglWindowContext: could not retrieve config format";
-		throw EglErrorCategory::exception(msg);
+		throw EglErrorCategory::exception(
+			"ny::AndroidEglWindowContext: could not retrieve config format");
 	}
 
 	if(!nativeWindow()) {
-		warning("ny::AndroidEglWindowContext: no native window");
-		if(ws.gl.storeSurface) *ws.gl.storeSurface = nullptr;
+		dlg_warn("no native window");
+		if(ws.gl.storeSurface) {
+			*ws.gl.storeSurface = nullptr;
+		}
 		return;
 	}
 

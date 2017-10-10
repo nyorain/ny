@@ -9,16 +9,6 @@
 - cleanup docs
 	- document when which events are sent
 		- test it on all backends, such things may be possible with half-automated tests
-- send state and size events on windowContext creation? (other important values?)
-	- general way to query size from windowContext?
-	- query other values? against event flow but currently things like
-		toggling fullscreen are hard/partly impossible
-- fix error handling/spec in appContext implementations
-	- when to throw? how to signal that AppContext is in invalid state? std::error_code support?
-- fix android
-	- add meson support, port own apk.cmake
-	- move the cpp examples out of android folder
-		- use mainlined examples (fix them to work for ALL (android!) platforms)
 - make sure spec/promises are kept
 	- no event dispatching to handlers outside poll/waitEvents
 - normalize wheel input values in some way across backends
@@ -29,14 +19,26 @@
 - ime input (see winapi backend)
 	- use wm_char and such, don't use ToUnicode
 - wayland: fix dataExchange, enable only for droppable windows
+	- probably -> dataExchange rework
+- think about current appContext error handling scheme
+	- on android e.g. the AppContext becomes invalid when the application is
+	  closed, it has to throw (since there is no other way to signal it per
+	  interface). So we basically use an exception for an everyday situation,
+	  the application will always exit with exception which is probably not
+	  what we want.
 
 ### missing features/design issues, no real bug but should be done
 
-- add unit tests where possible
+- improvements to meson android handling
+	- e.g. offer way to automate building (at least some scripts)
+		- copy libraries using meson (+ script), automatically generate apk
+	- add unit tests where possible
+- general way to query (sync/async?) size from windowContext?
 - x11 dnd window
 - improve WindowCapabilities handling for backends
 	- not static on x11/wayland regarding decorations, position, sizeLimits
 - SizeEvent.windowEdges never used (no backend really implements it?)
+- improve error specifications everywhere
 - rework dataExchange
 	- some kind of dnd offer succesful feedback
 		- also offer dnd effects (copy/move etc)
@@ -89,6 +91,8 @@
 
 ### ideas/additions, for later
 
+- android: fix/improve input
+	- (-> Touch support), window coords and input coords don't match currently
 - animated cursor support (low prio)
 - WindowContext framecallback events? Could be useful on android/wayland
 	- shows the application when it can render again. Would be even really useful

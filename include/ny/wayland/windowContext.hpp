@@ -62,7 +62,7 @@ public:
 	void beginMove(const EventData* ev) override;
 	void beginResize(const EventData* event, WindowEdges edges) override;
 
-	void title(std::string_view name) override;
+	void title(const char* name) override;
 	void icon(const Image&) override {}
 
 	void customDecorated(bool) override {}

@@ -4,8 +4,7 @@
 
 #include <ny/mouseButton.hpp>
 
-namespace ny
-{
+namespace ny {
 
 constexpr struct Mapping
 {
@@ -35,14 +34,22 @@ constexpr struct Mapping
 
 const char* mouseButtonName(MouseButton button)
 {
-	for(auto m : mappings) if(m.button == button) return m.name;
+	for(auto m : mappings) {
+		if(m.button == button) {
+			return m.name;
+		}
+	}
 	return "";
 }
 
-MouseButton mouseButtonFromName(std::string_view name)
+MouseButton mouseButtonFromName(const char* name)
 {
-	for(auto m : mappings) if(m.name == name) return m.button;
+	for(auto m : mappings) {
+		if(m.name == name) {
+			return m.button;
+		}
+	}
 	return MouseButton::none;
 }
 
-}
+} // namespace ny 

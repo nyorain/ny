@@ -4,15 +4,16 @@
 
 #include <ny/android/windowContext.hpp>
 #include <ny/android/appContext.hpp>
-#include <ny/log.hpp>
+#include <dlg/dlg.hpp>
 
 namespace ny {
 
 AndroidWindowContext::AndroidWindowContext(AndroidAppContext& ac, const AndroidWindowSettings& ws)
 	: appContext_(ac), nativeWindow_(ac.nativeWindow())
 {
-	if(ws.listener)
+	if(ws.listener) {
 		listener(*ws.listener);
+	}
 }
 
 AndroidWindowContext::~AndroidWindowContext()
@@ -32,40 +33,40 @@ WindowCapabilities AndroidWindowContext::capabilities() const
 
 void AndroidWindowContext::show()
 {
-	warning("ny::AndroidWindowContext::show: has no capability");
+	dlg_warn("show: not supported");
 }
 
 void AndroidWindowContext::hide()
 {
-	warning("ny::AndroidWindowContext::show: has no capability");
+	dlg_warn("show: not supported");
 }
 
 void AndroidWindowContext::minSize(nytl::Vec2ui)
 {
-	warning("ny::AndroidWindowContext::minSize: has no capability");
+	dlg_warn("minSize: not supported");
 }
 void AndroidWindowContext::maxSize(nytl::Vec2ui)
 {
-	warning("ny::AndroidWindowContext::maxSize: has no capability");
+	dlg_warn("maxSize: not supported");
 }
 
 void AndroidWindowContext::size(nytl::Vec2ui)
 {
-	warning("ny::AndroidWindowContext::size: has no capability");
+	dlg_warn("size: not supported");
 }
 void AndroidWindowContext::position(nytl::Vec2i)
 {
-	warning("ny::AndroidWindowContext::position: has no capability");
+	dlg_warn("position: not supported");
 }
 
 void AndroidWindowContext::cursor(const Cursor&)
 {
-	warning("ny::AndroidWindowContext::cursor: has no capability");
+	dlg_warn("cursor: not supported");
 }
 void AndroidWindowContext::refresh()
 {
 	if(!nativeWindow_) {
-		warning("ny::AndroidWindowContext::refresh: no native window");
+		dlg_warn("refresh: not supported");
 		return;
 	}
 
@@ -75,47 +76,48 @@ void AndroidWindowContext::refresh()
 
 void AndroidWindowContext::maximize()
 {
-	warning("ny::AndroidWindowContext::maximize: has no capability");
+	dlg_warn("maximize: not supported");
 }
 void AndroidWindowContext::minimize()
 {
-	warning("ny::AndroidWindowContext::minimize: has no capability");
+	dlg_warn("minimize: not supported");
 }
 void AndroidWindowContext::fullscreen()
 {
-	warning("ny::AndroidWindowContext::fullscreen: has no capability");
+	dlg_warn("fullscreen: not supported");
 }
 void AndroidWindowContext::normalState()
 {
-	warning("ny::AndroidWindowContext::normalState: has no capability");
+	dlg_warn("normalState: not supported");
 }
 
 void AndroidWindowContext::beginMove(const EventData*)
 {
-	warning("ny::AndroidWindowContext::beginMove: has no capability");
+	dlg_warn("beginMove: not supported");
 }
 void AndroidWindowContext::beginResize(const EventData*, WindowEdges)
 {
-	warning("ny::AndroidWindowContext::beginResize: has no capability");
+	dlg_warn("beginResize: not supported");
 }
 
-void AndroidWindowContext::title(std::string_view)
+void AndroidWindowContext::title(const char*)
 {
-	warning("ny::AndroidWindowContext::title: has no capability");
+	dlg_warn("title: not supported");
 }
 void AndroidWindowContext::icon(const Image&)
 {
-	warning("ny::AndroidWindowContext::icon: has no capability");
+	dlg_warn("icon: not supported");
 }
 void AndroidWindowContext::customDecorated(bool)
 {
-	warning("ny::AndroidWindowContext::customDecorated: has no capability");
+	dlg_warn("customDecorated: not supported");
 }
 
 void AndroidWindowContext::nativeWindow(ANativeWindow* nativeWindow)
 {
-	if(nativeWindow_ && nativeWindow)
-		warning("ny::AndroidWindowContext::nativeWindow: already has native window");
+	if(nativeWindow_ && nativeWindow) {
+		dlg_warn("nativeWindow: already has native window");
+	}
 
 	nativeWindow_ = nativeWindow;
 }

@@ -1,13 +1,12 @@
-// Copyright (c) 2017 nyorain
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
+// Copyright (c) 2017 nyorain
 
 #include <ny/android/appContext.hpp>
 #include <ny/android/windowContext.hpp>
 #include <ny/android/bufferSurface.hpp>
 #include <ny/android/input.hpp>
 #include <ny/android/activity.hpp>
-#include <ny/loopControl.hpp>
 #include <dlg/dlg.hpp>
 
 #ifdef NY_WithVulkan
@@ -45,61 +44,6 @@
 ///    waits during that phase that we process its events. See e.g. savedState().
 
 namespace ny {
-namespace {
-
-/// Android LoopInterface implementation
-/// Just uses the ALooper mechnisms
-class AndroidLoopImpl : public ny::LoopInterface {
-public:
-	ALooper& looper;
-	std::atomic<bool> run {true};
-	std::queue<std::function<void()>> functions {};
-	std::mutex mutex {};
-
-public:
-	AndroidLoopImpl(LoopControl& lc, ALooper& alooper)
-		: LoopInterface(lc), looper(alooper)
-	{
-	}
-
-	bool stop() override
-	{
-		run.store(false);
-		wakeup();
-		return true;
-	}
-
-	bool call(std::function<void()> function) override
-	{
-		if(!function) return false;
-
-		{
-			std::lock_guard<std::mutex> lock(mutex);
-			functions.push(std::move(function));
-		}
-
-		wakeup();
-		return true;
-	}
-
-	void wakeup()
-	{
-		ALooper_wake(&looper);
-	}
-
-	std::function<void()> popFunction()
-	{
-		std::lock_guard<std::mutex> lock(mutex);
-		if(functions.empty()) return {};
-		auto ret = std::move(functions.front());
-		functions.pop();
-		return ret;
-	}
-};
-
-constexpr auto inputIndent = 1u;
-
-} // anonymous util namespace
 
 struct AndroidAppContext::Impl {
 	std::queue<android::ActivityEvent> activityEvents;
@@ -125,11 +69,13 @@ AndroidAppContext::AndroidAppContext(android::Activity& activity)
 	// after this block the callbacks will be called
 	{
 		std::lock_guard<std::mutex>(activity_.mutex());
-		if(!activity_.activity_)
+		if(!activity_.activity_) {
 			throw std::runtime_error(funcName + "native activity already invalid");
+		}
 
-		if(activity_.appContext_)
+		if(activity_.appContext_) {
 			throw std::logic_error(funcName + "there can only be one android AppContext");
+		}
 
 		activity_.appContext_ = this;
 		nativeActivity_ = activity_.nativeActivity();
@@ -146,7 +92,7 @@ AndroidAppContext::AndroidAppContext(android::Activity& activity)
 
 	auto result = nativeActivity_->vm->AttachCurrentThread(&jniEnv_, &attachArgs);
 	if(result == JNI_ERR) {
-		warning(funcName + "attaching the thread to the java vm failed.");
+		dlg_warn("attaching the thread to the java vm failed");
 		jniEnv_ = nullptr;
 	}
 
@@ -184,14 +130,15 @@ AndroidAppContext::~AndroidAppContext()
 
 	if(jniEnv_) {
 		if(!nativeActivity_) {
-			warning("ny::~AndroidAppContext: jniEnv_ but not no native activity.");
+			dlg_warn("ny::~AndroidAppContext: jniEnv_ but not no native activity.");
 		} else {
 			nativeActivity_->vm->DetachCurrentThread();
 		}
 	}
 
-	if(inputQueue_)
+	if(inputQueue_) {
 		AInputQueue_detachLooper(inputQueue_);
+	}
 }
 
 WindowContextPtr AndroidAppContext::createWindowContext(const WindowSettings& settings)
@@ -241,47 +188,42 @@ MouseContext* AndroidAppContext::mouseContext()
 	return mouseContext_.get();
 }
 
-bool AndroidAppContext::dispatchEvents()
+void AndroidAppContext::pollEvents()
 {
-	if(!nativeActivity_)
-		return false;
-
+	checkActivity();
 	handleActivityEvents();
-	if(!nativeActivity_)
-		return false;
+	checkActivity();
 
 	int outFd, outEvents;
 	void* outData;
 	auto ret = ALooper_pollAll(0, &outFd, &outEvents, &outData);
-	if(ret == ALOOPER_POLL_ERROR)
-		warning("ny::AndroidAppContext::dispatchEvents: ALooper_pollOnce returned error");
+	if(ret == ALOOPER_POLL_ERROR) {
+		dlg_warn("ALooper_pollOnce: I/O error");
+	}
 
-	return (nativeActivity_);
+	checkActivity();
 }
 
-bool AndroidAppContext::dispatchLoop(LoopControl& loopControl)
+void AndroidAppContext::waitEvents()
 {
-	if(!nativeActivity_)
-		return false;
+	checkActivity();
+	handleActivityEvents();
+	checkActivity();
 
-	AndroidLoopImpl loopImpl(loopControl, *looper_);
 	int outFd, outEvents;
 	void* outData;
 
-	while(loopImpl.run.load()) {
-		handleActivityEvents();
-		if(!nativeActivity_)
-			break;
-
-		while(auto func = loopImpl.popFunction())
-			func();
-
-		auto ret = ALooper_pollAll(-1, &outFd, &outEvents, &outData);
-		if(ret == ALOOPER_POLL_ERROR)
-			warning("ny::AndroidAppContext::dispatchLoop: ALooper_pollAll returned error");
+	auto ret = ALooper_pollAll(-1, &outFd, &outEvents, &outData);
+	if(ret == ALOOPER_POLL_ERROR) {
+		dlg_warn("ALooper_pollAll: I/O error");
 	}
 
-	return (nativeActivity_);
+	checkActivity();
+}
+
+void AndroidAppContext::wakeupWait()
+{
+	ALooper_wake(looper_);
 }
 
 std::vector<const char*> AndroidAppContext::vulkanExtensions() const
@@ -310,7 +252,7 @@ EglSetup* AndroidAppContext::eglSetup() const
 		if(!impl_->eglSetup.valid()) {
 			try { impl_->eglSetup = {nullptr}; }
 			catch(const std::exception& error) {
-				warning("ny::AndroidAppContext::eglSetup: creating failed: ", error.what());
+				dlg_warn("creating eglSetup failed: ", error.what());
 				impl_->eglFailed = true;
 				impl_->eglFailed = {};
 				return nullptr;
@@ -376,14 +318,13 @@ std::vector<uint8_t> AndroidAppContext::savedState()
 // private interface
 void AndroidAppContext::inputReceived()
 {
-	static const std::string funcName = "ny::AndroidAppContext::inputReceived: ";
 	if(!inputQueue_) {
-		warning(funcName, "invalid input queue. This should really not happen");
+		dlg_warn("invalid input queue");
 		return;
 	}
 
 	if(!nativeActivity_) {
-		warning(funcName, "no native activity. This should not happen");
+		dlg_warn("no native activity");
 		return;
 	}
 
@@ -392,13 +333,14 @@ void AndroidAppContext::inputReceived()
 		AInputEvent* event {};
 		ret = AInputQueue_getEvent(inputQueue_, &event);
 		if(ret < 0) {
-			warning(funcName, "getEvent failed with error code ", ret);
+			dlg_warn("getEvent returned error code {}", ret);
 			continue;
 		}
 
 		ret = AInputQueue_preDispatchEvent(inputQueue_, event);
-		if(ret != 0)
+		if(ret != 0) {
 			continue;
+		}
 
 		auto handled = false;
 		auto type = AInputEvent_getType(event);
@@ -412,7 +354,7 @@ void AndroidAppContext::inputReceived()
 	}
 
 	if(ret < 0) {
-		warning(funcName, "input queue returned error code ", ret);
+		dlg_warn("input queue returned error code {}", ret);
 		return;
 	}
 }
@@ -466,8 +408,11 @@ void AndroidAppContext::handleActivityEvents()
 			case ActivityEventType::saveState:
 				std::memcpy(&dataPtr, event.data, sizeof(dataPtr));
 				std::memcpy(&sizePtr, event.data + sizeof(dataPtr), sizeof(sizePtr));
-				if(!dataPtr || !sizePtr) warning("ny::AndroidAppContext:: invalid stateSave aev");
-				else if(stateSaver_) *dataPtr = stateSaver_(*sizePtr);
+				if(!dataPtr || !sizePtr) {
+					dlg_warn("invalid stateSave event");
+				} else if(stateSaver_) {
+					*dataPtr = stateSaver_(*sizePtr);
+				}
 				break;
 			default:
 				break;
@@ -491,8 +436,16 @@ void AndroidAppContext::initQueue()
 			return 1;
 		};
 
+		constexpr auto inputIndent = 1u;
 		AInputQueue_attachLooper(inputQueue_, looper_, inputIndent,
 			inputCallback, static_cast<void*>(this));
+	}
+}
+
+void AndroidAppContext::checkActivity()
+{
+	if(!nativeActivity_) {
+		throw std::runtime_error("Native activity was destoyed");
 	}
 }
 
@@ -504,7 +457,7 @@ void AndroidAppContext::pushEvent(const android::ActivityEvent& ev) noexcept
 		impl_->activityEvents.push(ev);
 		ALooper_wake(looper_);
 	} catch(const std::exception& error) {
-		ny::error("ny::AndroidAppContext::pushEvent: ", error.what());
+		dlg_error("ny::AndroidAppContext::pushEvent: ", error.what());
 	}
 }
 
@@ -519,7 +472,7 @@ void AndroidAppContext::pushEventWait(android::ActivityEvent ev) noexcept
 		ALooper_wake(looper_);
 		impl_->eventQueueCV.wait(lock, [&]{ return flag.load(); });
 	} catch(const std::exception& error) {
-		ny::error("ny::AndroidAppContext::pushEventWait: ", error.what());
+		dlg_error("ny::AndroidAppContext::pushEventWait: ", error.what());
 	}
 }
 
@@ -539,11 +492,12 @@ void AndroidAppContext::windowFocusChanged(bool gained)
 }
 void AndroidAppContext::windowResized(nytl::Vec2i32 size)
 {
-	if(!windowContext_)
+	if(!windowContext_) {
 		return;
+	}
 
 	if(size[0] <= 0 || size[1] <= 0) {
-		warning("ny::AndroidAppCotnext::windowResized: invalid size");
+		dlg_warn("invalid size of resize event");
 		return;
 	}
 
@@ -553,22 +507,25 @@ void AndroidAppContext::windowResized(nytl::Vec2i32 size)
 }
 void AndroidAppContext::windowRedrawNeeded()
 {
-	if(!windowContext_)
+	if(!windowContext_) {
 		return;
+	}
 
 	windowContext_->listener().draw({});
 }
 void AndroidAppContext::windowCreated(ANativeWindow& window)
 {
 	nativeWindow_ = &window;
-	if(windowContext_)
+	if(windowContext_) {
 		windowContext_->nativeWindow(&window);
+	}
 }
 void AndroidAppContext::windowDestroyed()
 {
 	nativeWindow_ = nullptr;
-	if(windowContext_)
+	if(windowContext_) {
 		windowContext_->nativeWindow(nullptr);
+	}
 }
 void AndroidAppContext::inputQueueCreated(AInputQueue& queue)
 {
@@ -578,7 +535,7 @@ void AndroidAppContext::inputQueueCreated(AInputQueue& queue)
 void AndroidAppContext::inputQueueDestroyed()
 {
 	if(!inputQueue_) {
-		warning("ny::AndroidAppContext::inputQueueDestroyed: invalid input queue");
+		dlg_warn("invalid input queue");
 		return;
 	}
 
@@ -587,9 +544,8 @@ void AndroidAppContext::inputQueueDestroyed()
 }
 void AndroidAppContext::activityDestroyed()
 {
-	debug("ny::AndroidAppContext::activityDestroyed");
 	if(!nativeActivity_) {
-		warning("ny::AndroidAppContext::activityDestroyed: there is no activity");
+		dlg_warn("there was no activity");
 		return;
 	}
 

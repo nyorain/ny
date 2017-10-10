@@ -64,10 +64,9 @@ Backend& Backend::choose()
 	WaylandBackend::initialize();
 #endif
 
-    // TODO
-// #ifdef NY_WithAndroid
-// 	AndroidBackend::initialize();
-// #endif
+#ifdef NY_WithAndroid
+	AndroidBackend::initialize();
+#endif
 
 	// choose the backend
 	dlg_tags("Backend", "choose");

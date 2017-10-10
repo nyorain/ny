@@ -237,18 +237,12 @@ KeyboardContext* X11AppContext::keyboardContext()
 	return keyboardContext_.get();
 }
 
-// TODO: error handling
 void X11AppContext::pollEvents()
 {
+	checkError();
 	deferred.execute();
-
-	xcb_flush(&xConnection()); // TODO: needed?
-	if(!checkErrorWarn()) {
-		return;
-	}
-
 	while(true) {
-		xcb_flush(&xConnection()); // TODO: needed?
+		xcb_flush(&xConnection());
 		xcb_generic_event_t* event {};
 		if(next_) {
 			event = next_;
@@ -262,30 +256,35 @@ void X11AppContext::pollEvents()
 		free(event);
 	}
 
+	xcb_flush(&xConnection());
 	deferred.execute();
-	checkErrorWarn();
+	checkError();
 }
 
 void X11AppContext::waitEvents()
 {
+	checkError();
 	deferred.execute();
+	xcb_flush(&xConnection());
 
-	xcb_flush(&xConnection()); // TODO: needed?
-	auto event = xcb_wait_for_event(xConnection_);
-	if(!event) {
-		checkErrorWarn();
+	xcb_generic_event_t* event;
+	if(!(event = xcb_wait_for_event(xConnection_))) {
+		checkError();
+		dlg_warn("waitEvents: xcb_wait_for_event: I/O error");
 		return;
 	}
 
 	while(event) {
-		xcb_flush(&xConnection()); // TODO: needed?
+		xcb_flush(&xConnection());
 		next_ = static_cast<x11::GenericEvent*>(xcb_poll_for_event(xConnection_));
 		processEvent(static_cast<x11::GenericEvent&>(*event), next_);
 		free(event);
 		event = next_;
 	}
 
+	xcb_flush(&xConnection());
 	deferred.execute();
+	checkError();
 }
 
 void X11AppContext::wakeupWait()
@@ -374,15 +373,27 @@ X11WindowContext* X11AppContext::windowContext(xcb_window_t win)
 	return nullptr;
 }
 
-bool X11AppContext::checkErrorWarn()
+void X11AppContext::checkError()
 {
 	auto err = xcb_connection_has_error(xConnection_);
 	if(err) {
-		dlg_error("xcb_connection has critical error {}", err);
-		return false;
-	}
+		const char* name = "<unknown error>";
+		#define NY_CASE(x) case x: name = #x; break;
+		switch(err) {
+			NY_CASE(XCB_CONN_ERROR);
+			NY_CASE(XCB_CONN_CLOSED_EXT_NOTSUPPORTED);
+			NY_CASE(XCB_CONN_CLOSED_REQ_LEN_EXCEED);
+			NY_CASE(XCB_CONN_CLOSED_PARSE_ERR);
+			NY_CASE(XCB_CONN_CLOSED_INVALID_SCREEN);
+			default: break;
+		}
+		#undef NY_CASE
 
-	return true;
+		auto msg = dlg::format("X11AppContext: xcb_connection has "
+			"critical error:\n\t'{}' (code {})", name, err);
+		dlg_error(msg);
+		throw std::runtime_error(msg);
+	}
 }
 
 xcb_atom_t X11AppContext::atom(const std::string& name)
@@ -438,6 +449,7 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev, const x11::Generic
 					}, wc);
 				}
 			}
+			break;
 		}
 
 		case XCB_MAP_NOTIFY: {

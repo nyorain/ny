@@ -112,21 +112,24 @@ unsigned int rate(const GlConfig& config)
 	return ret;
 }
 
-bool glExtensionStringContains(std::string_view extString, std::string_view extension)
+bool glExtensionStringContains(const char* extString, const char* extension)
 {
+	auto extLength = strlen(extension);
 	auto it = extString;
 	while(true) {
-		auto loc = it.find(extension);
-		if(loc == it.npos)
+		auto loc = strstr(it, extension);
+		if(!loc) {
 			return false;
+		}
 
-		auto terminator = extString[loc + extension.length()];
-		bool blankBefore = (loc == 0 || extString[loc - 1] == ' ');
+		auto terminator = *(loc + extLength);
+		bool blankBefore = (loc == it || *(loc - 1) == ' ');
 		bool blankAfter = (terminator == ' ' || terminator == '\0');
-		if(blankBefore && blankAfter)
+		if(blankBefore && blankAfter) {
 			return true;
+		}
 
-		it.remove_prefix(loc);
+		it = loc + 1;
 	}
 
 	return false;
@@ -143,11 +146,13 @@ std::error_code make_error_code(GlContextErrc code)
 }
 
 // GlContextError
-GlContextError::GlContextError(std::error_code code, std::string_view msg) : logic_error("")
+GlContextError::GlContextError(std::error_code code, const char* msg) 
+	: logic_error("")
 {
 	std::string whatMsg;
-	if(!msg.empty())
+	if(msg) {
 		whatMsg.append(msg).append(": ");
+	}
 	whatMsg.append(code.message());
 
 	std::logic_error::operator=(std::logic_error(whatMsg));
@@ -307,6 +312,7 @@ void GlContext::initContext(GlApi api, const GlConfig& config, GlContext* shared
 
 	// TODO
 	// shared_ = shared;
+	((void)shared);
 }
 
 void GlContext::makeCurrent(const GlSurface& surface)

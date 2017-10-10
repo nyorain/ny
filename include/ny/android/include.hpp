@@ -25,7 +25,7 @@ using JNIEnv = struct _JNIEnv;
 using JavaVM = struct _JavaVM;
 
 using jclass = class _jclass*;
-using jmethodID = class _jmethodID*;
+using jmethodID = struct _jmethodID*;
 
 namespace ny {
 

@@ -277,19 +277,31 @@ constexpr struct Mapping {
 
 const char* name(Keycode keycode)
 {
-	for(auto m : mappings) if(m.keycode == keycode) return m.name;
+	for(auto m : mappings) {
+		if(m.keycode == keycode) {
+			return m.name;
+		}
+	}
 	return "<unknown>";
 }
 
-Keycode keycodeFromName(std::string_view name)
+Keycode keycodeFromName(const char* name)
 {
-	for(auto m : mappings) if(name == m.name) return m.keycode;
+	for(auto m : mappings) {
+		if(name == m.name) {
+			return m.keycode;
+		}
+	}
 	return Keycode::none;
 }
 
 bool specialKey(Keycode keycode)
 {
-	for(auto m : mappings) if(keycode == m.keycode) return !m.nonSpecial;
+	for(auto m : mappings) {
+		if(keycode == m.keycode) {
+			return !m.nonSpecial;
+		}
+	}
 	return false;
 }
 

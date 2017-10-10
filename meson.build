@@ -2,7 +2,11 @@ project('ny', ['c', 'cpp'],
   license: 'BSL',
   version: '0.1.0',
   meson_version: '>=0.42',
-  default_options: ['cpp_std=c++1z', 'c_std=c11'])
+  default_options: ['cpp_std=c++1z', 'c_std=c11', 'warning_level=3'])
+
+# TODO:
+# android:
+# - disable x11/wayland/winapi dependency checks, maybe error with wrong options
 
 # options
 # can be 'true', 'false' or 'auto'
@@ -15,15 +19,13 @@ op_enable_vulkan = get_option('enable_vulkan')
 op_enable_gl = get_option('enable_gl')
 op_enable_egl = get_option('enable_egl')
 examples = get_option('examples')
+android = get_option('android')
 
 # default arrguments
 # warnings and stuff
 add_project_arguments(
-	'-Wall',
-	'-Wextra',
 	'-Wno-non-virtual-dtor',
-	'-Wpedantic',
-	'-Wno-missing-braces', # needed for clang
+	'-Wno-missing-braces', # TODO: only needed for clang
 	language: 'cpp')
 
 # TODO: fix on windows, see dlg notes
@@ -47,6 +49,39 @@ deps = [
 	dep_dlg,
 	dep_nytl]
 
+# vulkan
+if op_enable_vulkan == 'false'
+	enable_vulkan = false
+else
+	dep_vulkan = dependency('vulkan', required: op_enable_vulkan == 'true')
+	enable_vulkan = dep_vulkan.found()
+	deps += dep_vulkan
+endif
+
+# gl
+if op_enable_gl == 'false'
+	enable_gl = false
+else
+	dep_gl = dependency('gl', required: op_enable_gl == 'true')
+	enable_gl = dep_gl.found()
+	deps += dep_gl
+endif
+
+# egl
+if op_enable_egl == 'false'
+	enable_egl = false
+elif not android
+	dep_egl = dependency('egl', required: op_enable_egl == 'true')
+	enable_egl = dep_egl.found()
+	deps += dep_egl
+elif android
+	dep_egl = meson.get_compiler('c').find_library('EGL', required: false)
+	enable_egl = dep_egl.found()
+	deps += dep_egl
+endif
+
+dep_xkbcommon = dependency('xkbcommon', required: false)
+
 # winapi
 if op_enable_winapi == 'auto'
 	enable_winapi = build_machine.system() == 'windows'
@@ -54,35 +89,7 @@ else
 	enable_winapi = op_enable_winapi == 'true'
 endif
 
-# vulkan
-if op_enable_vulkan == 'false'
-  enable_vulkan = false
-else
-  dep_vulkan = dependency('vulkan', required: op_enable_vulkan == 'true')
-  enable_vulkan = dep_vulkan.found()
-  deps += dep_vulkan
-endif
-
-# gl
-if op_enable_gl == 'false'
-  enable_gl = false
-else
-  dep_gl = dependency('gl', required: op_enable_gl == 'true')
-  enable_gl = dep_gl.found()
-  deps += dep_gl
-endif
-
-# egl
-if op_enable_egl == 'false'
-  enable_egl = false
-else
-  dep_egl = dependency('egl', required: op_enable_egl == 'true')
-  enable_egl = dep_egl.found()
-  deps += dep_egl
-endif
-
-dep_xkbcommon = dependency('xkbcommon', required: false)
-
+# x11
 if op_enable_x11 == 'false'
   enable_x11 = false
 else
@@ -159,7 +166,7 @@ else
 	endif
 endif
 
-# winapi
+# winapi deps
 if enable_winapi
 	deps += meson.get_compiler('cpp').find_library('Dwmapi')
 	deps += meson.get_compiler('cpp').find_library('Shlwapi')
@@ -169,7 +176,7 @@ if enable_winapi
   endif
 endif
 
-if not enable_winapi and not enable_wayland and not enable_x11
+if not enable_winapi and not enable_wayland and not enable_x11 and not android
 	message('WARNING: building ny without any valid backends')
 endif
 

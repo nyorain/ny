@@ -13,11 +13,13 @@
 namespace ny {
 namespace {
 
-bool sameBeginning(std::string_view a, std::string_view b)
+bool sameBeginning(const char* a, const char* b)
 {
-	if(a.size() == 0 || b.size() == 0)
+	if(!a || !b || *a == '\0' || *b == '\0') {
 		return false;
-	return !std::strncmp(a.data(), b.data(), std::min(a.size(), b.size()));
+	}
+
+	return !std::strcmp(a, b);
 }
 
 } // anoymous util namespace
@@ -161,22 +163,23 @@ std::vector<std::string> decodeUriList(const std::string& escaped, bool removeCo
 	return ret;
 }
 
-bool match(const DataFormat& dataFormat, std::string_view formatName)
+bool match(const DataFormat& dataFormat, const char* formatName)
 {
-	if(sameBeginning(dataFormat.name, formatName.data())) return true;
+	if(sameBeginning(dataFormat.name.c_str(), formatName)) return true;
 	for(auto name : dataFormat.additionalNames)
-		if(sameBeginning(name, formatName.data())) return true;
+		if(sameBeginning(name.c_str(), formatName)) return true;
 
 	return false;
 }
 
 bool match(const DataFormat& a, const DataFormat& b)
 {
-	if(sameBeginning(a.name, b.name)) return true;
+	if(sameBeginning(a.name.c_str(), b.name.c_str())) return true;
 
 	for(auto aname : a.additionalNames)
 		for(auto bname : b.additionalNames)
-			if(sameBeginning(aname, bname)) return true;
+			if(sameBeginning(aname.c_str(), bname.c_str())) 
+				return true;
 
 	return false;
 }

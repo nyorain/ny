@@ -26,6 +26,13 @@ namespace ny {
 X11WindowContext::X11WindowContext(X11AppContext& ctx, const X11WindowSettings& settings)
 {
 	create(ctx, settings);
+
+	// send initial state
+	this->appContext().deferred.add([this, settings]{
+		if(!settings.parent) {
+			listener().state({nullptr, settings.initState});
+		}
+	}, this);
 }
 
 X11WindowContext::~X11WindowContext()
@@ -64,7 +71,9 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 	if(!settings.parent) {
 		auto protocols = ewmhConnection().WM_PROTOCOLS;
 		auto supportedProtocols = appContext_->atoms().wmDeleteWindow;
-		if(!settings.title.empty()) title(settings.title);
+		if(!settings.title.empty()) {
+			title(settings.title.c_str());
+		}
 		xcb_change_property(&xconn, XCB_PROP_MODE_REPLACE, xWindow_, protocols,
 				XCB_ATOM_ATOM, 32, 1, &supportedProtocols);
 		xcb_change_property(&xconn, XCB_PROP_MODE_REPLACE, xWindow_, XCB_ATOM_WM_NAME,
@@ -178,7 +187,6 @@ void X11WindowContext::initVisual(const X11WindowSettings& settings)
 	}
 
 	auto highestScore = 0u;
-	auto format = ImageFormat::none;
 	auto score = [&](const ImageFormat& f) {
 		if(f == ImageFormat::argb8888) {
 			return 4u + settings.transparent * 10;
@@ -206,7 +214,6 @@ void X11WindowContext::initVisual(const X11WindowSettings& settings)
 			auto vformat = x11::visualToFormat(*visual_iter.data, avDepth);
 			if(score(vformat) > highestScore) {
 				visualID_ = visual_iter.data->visual_id;
-				format = vformat;
 				depth_ = depth_iter.data->depth;
 			}
 		}
@@ -475,9 +482,9 @@ void X11WindowContext::icon(const Image& img)
 	}
 }
 
-void X11WindowContext::title(std::string_view title)
+void X11WindowContext::title(const char* title)
 {
-	xcb_ewmh_set_wm_name(&ewmhConnection(), xWindow(), title.size(), title.data());
+	xcb_ewmh_set_wm_name(&ewmhConnection(), xWindow(), strlen(title), title);
 }
 
 NativeHandle X11WindowContext::nativeHandle() const
@@ -649,7 +656,9 @@ nytl::Vec2ui X11WindowContext::querySize() const
 
 xcb_visualtype_t* X11WindowContext::xVisualType() const
 {
-	if(!visualID_) return nullptr;
+	if(!visualID_) {
+		return nullptr;
+	}
 
 	auto depthi = xcb_screen_allowed_depths_iterator(&appContext().xDefaultScreen());
 	for(; depthi.rem; xcb_depth_next(&depthi)) {

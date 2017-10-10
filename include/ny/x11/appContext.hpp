@@ -41,7 +41,7 @@ public:
 	// - x11 specific -
 	void processEvent(const x11::GenericEvent& ev, const x11::GenericEvent* next);
 	X11WindowContext* windowContext(xcb_window_t);
-	bool checkErrorWarn();
+	void checkError();
 
 	Display& xDisplay() const { return *xDisplay_; }
 	xcb_connection_t& xConnection() const { return *xConnection_; }

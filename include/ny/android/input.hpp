@@ -20,8 +20,8 @@ public:
 	AndroidKeyboardContext(AndroidAppContext& ac);
 	~AndroidKeyboardContext() = default;
 
-	AndroidKeyboardContext(AndroidKeyboardContext&&) noexcept = default;
-	AndroidKeyboardContext& operator=(AndroidKeyboardContext&&) noexcept = default;
+	AndroidKeyboardContext(AndroidKeyboardContext&&) = default;
+	AndroidKeyboardContext& operator=(AndroidKeyboardContext&&) = default;
 
 	bool pressed(Keycode) const override;
 	std::string utf8(Keycode) const override;
@@ -54,8 +54,8 @@ public:
 	AndroidMouseContext(AndroidAppContext& ac);
 	~AndroidMouseContext() = default;
 
-	AndroidMouseContext(AndroidMouseContext&& other) noexcept = default;
-	AndroidMouseContext& operator=(AndroidMouseContext&& other) noexcept = default;
+	AndroidMouseContext(AndroidMouseContext&& other) = default;
+	AndroidMouseContext& operator=(AndroidMouseContext&& other) = default;
 
 	nytl::Vec2i position() const override;
 	bool pressed(MouseButton button) const override;

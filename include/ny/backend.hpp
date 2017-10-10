@@ -29,15 +29,15 @@ using WindowContextPtr = std::unique_ptr<WindowContext>;
 class Backend : public nytl::NonMovable {
 public:
 	/// Returns a list of all current registered backends.
-	/// Note that backend implementations usually hold a static object of theiself, so this
-	/// function will returned undefined contents if called before or after main().
+	/// Constructed backends will automatically appear in this vector.
 	/// The Backends registered here are the backends that are loaded/ny was built with.
 	/// It does not guarantee that they are available, this must be checked with Backend::available.
 	static std::vector<Backend*> backends() { return backendsFunc(); }
 
 	/// Chooses one available backend.
-	/// Will prefer the backend set in the NY_BACKEND environment variable. If it is
-	/// not available, will output a warning and choose another backend.
+	/// Will prefer the backend set in the NY_BACKEND environment variable.
+	/// Otherwise (if NY_BACKEND is not set, invalid or not available) will
+	/// simply choose a native backend.
 	/// \exception std::runtime_error if no backend is available.
 	static Backend& choose();
 

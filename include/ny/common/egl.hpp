@@ -38,7 +38,7 @@ public:
 	std::vector<GlConfig> configs() const override { return configs_; }
 
 	std::unique_ptr<GlContext> createContext(const GlContextSettings& = {}) const override;
-	void* procAddr(std::string_view name) const override;
+	void* procAddr(const char* name) const override;
 
 	/// Returns the EGLConfig for the given GlConfigId.
 	/// If the given id is invalid returns nullptr.
@@ -104,7 +104,7 @@ class EglErrorCategory : public std::error_category {
 public:
 	static EglErrorCategory& instance();
 
-	static std::system_error exception(std::string_view msg = "");
+	static std::system_error exception(const char* msg = "");
 	static std::error_code errorCode();
 
 public:

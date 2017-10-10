@@ -8,7 +8,7 @@
 #include <ny/mouseButton.hpp>
 #include <ny/event.hpp>
 #include <ny/key.hpp>
-#include <ny/log.hpp>
+#include <dlg/dlg.hpp>
 
 #include <nytl/vec.hpp>
 #include <nytl/utf.hpp>
@@ -196,7 +196,7 @@ unsigned int modifiersToAndroid(KeyboardModifiers mask)
 AndroidKeyboardContext::AndroidKeyboardContext(AndroidAppContext& ac) : appContext_(ac)
 {
 	if(!ac.jniEnv()) {
-		warning("ny::AndroidKeyboardContext: no AppContext jniEnv");
+		dlg_warn("no AppContext jniEnv");
 		return;
 	}
 
@@ -206,7 +206,7 @@ AndroidKeyboardContext::AndroidKeyboardContext(AndroidAppContext& ac) : appConte
 	jniKeyEventConstructor_ = jniEnv.GetMethodID(jniKeyEvent_, "<init>", "(II)V");
 
 	if(!jniKeyEvent_ || !jniGetUnicodeChar_ || !jniKeyEventConstructor_) {
-		warning("ny::AndroidKeyboardCotnext: could not load all jni symbols");
+		dlg_warn("could not load all jni symbols");
 		jniKeyEvent_ = nullptr;
 		jniGetUnicodeChar_ = nullptr;
 		jniKeyEventConstructor_ = nullptr;
@@ -241,7 +241,7 @@ std::string AndroidKeyboardContext::utf8(unsigned int aKeycode, unsigned int aMe
 {
 	auto jniEnv = appContext().jniEnv();
 	if(!jniKeyEvent_ || !jniEnv) {
-		warning("ny::AndroidKeyboardContext::utf8: jni not initialized");
+		dlg_warn("jni not initialized");
 		return "";
 	}
 

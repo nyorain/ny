@@ -33,7 +33,7 @@ public:
 	std::vector<GlConfig> configs() const override { return configs_; }
 
 	std::unique_ptr<GlContext> createContext(const GlContextSettings& = {}) const override;
-	void* procAddr(std::string_view name) const override;
+	void* procAddr(const char* name) const override;
 
 	GLXFBConfig glxConfig(GlConfigID id) const;
 	unsigned int visualID(GlConfigID id) const;

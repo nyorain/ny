@@ -5,7 +5,6 @@
 #pragma once
 
 #include <nytl/flags.hpp> // nytl::Flags
-#include <string_view> // std::string_view
 
 namespace ny {
 
@@ -542,6 +541,6 @@ bool specialKey(Keycode keycode);
 /// Constructs a keycode value from a given name string.
 /// Returns the correspondingly named Keycode value or Keycode::none if there is no such value.
 /// \sa keycodeName
-Keycode keycodeFromName(std::string_view name);
+Keycode keycodeFromName(const char* name);
 
 } // namespace nytl

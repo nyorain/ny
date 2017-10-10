@@ -66,7 +66,8 @@ public:
 	/// Can be called from a handler from within the loop (recursively).
 	/// Will not block waiting for events.
 	/// Throws when a critical error ocurrs, the AppContext is then
-	/// in an invalid state and must not be used further.
+	/// in an invalid state and must not be used further (e.g. when the connection
+	/// to the display is lost or a critical protocol error was encountered).
 	virtual void pollEvents() = 0;
 
 	/// Waits until events are avilable to be read and dispatched.
@@ -74,7 +75,8 @@ public:
 	/// Can be called from a handler from within the loop (recursively).
 	/// Use wakeupWait to return from this function.
 	/// Throws when a critical error ocurrs, the AppContext is then
-	/// in an invalid state and must not be used further.
+	/// in an invalid state and must not be used further (e.g. when the connection
+	/// to the display is lost or a critical protocol error was encountered).
 	virtual void waitEvents() = 0;
 
 	/// Causes waitEvents to return even if no events could be dispatched.

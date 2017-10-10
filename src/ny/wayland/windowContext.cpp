@@ -51,9 +51,6 @@ WaylandWindowContext::WaylandWindowContext(WaylandAppContext& ac,
 	wl_surface_set_user_data(wlSurface_, this);
 
 	if(settings.parent.pointer()) {
-		// TODO
-		// createXdgPopupV5(settings);
-
 		auto& parent = *reinterpret_cast<wl_surface*>(settings.parent.pointer());
 		createSubsurface(parent, settings);
 	} else {
@@ -542,22 +539,28 @@ void WaylandWindowContext::beginResize(const EventData* ev, WindowEdges edge)
 		return;
 	}
 
-	if(wlShellSurface())
+	if(wlShellSurface()) {
 		wl_shell_surface_resize(wlShellSurface_, appContext().wlSeat(), serial, wlEdge);
-	else if(xdgSurfaceV5())
+	} else if(xdgSurfaceV5()) {
 		xdg_surface_resize(xdgSurfaceV5_, appContext().wlSeat(), serial, wlEdge);
-	else if(xdgToplevelV6())
+	} else if(xdgToplevelV6()) {
 		zxdg_toplevel_v6_resize(xdgSurfaceV6_.toplevel, appContext().wlSeat(), serial, wlEdge);
-	else dlg_warn("role cannot be resized");
+	} else {
+		dlg_warn("role cannot be resized");
+	}
 }
 
-void WaylandWindowContext::title(std::string_view titlestring)
+void WaylandWindowContext::title(const char* nt)
 {
-	std::string ntitle {titlestring};
-	if(wlShellSurface()) wl_shell_surface_set_title(wlShellSurface_, ntitle.c_str());
-	else if(xdgSurfaceV5()) xdg_surface_set_title(xdgSurfaceV5_, ntitle.c_str());
-	else if(xdgToplevelV6()) zxdg_toplevel_v6_set_title(xdgSurfaceV6_.toplevel, ntitle.c_str());
-	else dlg_warn("role cannot change title");
+	if(wlShellSurface()) {
+		wl_shell_surface_set_title(wlShellSurface_, nt);
+	} else if(xdgSurfaceV5()) {
+		xdg_surface_set_title(xdgSurfaceV5_, nt);
+	} else if(xdgToplevelV6()) {
+		zxdg_toplevel_v6_set_title(xdgSurfaceV6_.toplevel, nt);
+	} else {
+		dlg_warn("role cannot change title");
+	}
 }
 
 wl_shell_surface* WaylandWindowContext::wlShellSurface() const
@@ -712,15 +715,17 @@ void WaylandWindowContext::handleXdgSurfaceV5Close(xdg_surface*)
 
 void WaylandWindowContext::handleXdgPopupV5Done(xdg_popup*)
 {
-	// TODO: close popup and stuff
+	// TODO: close popup and stuff (?)
 	CloseEvent ce;
 	listener().close(ce);
 }
 
+// TODO: defer the whole configure event handling. Only handle the last
+// event received (should speed up resizing)
 void WaylandWindowContext::handleXdgSurfaceV6Configure(zxdg_surface_v6*, uint32_t serial)
 {
 	// TODO: somehow check if size has really changed.
-	// if not, dont send size event and redraw
+	// only then send redraw/resize events
 
 	xdgSurfaceV6_.configured = true;
 	zxdg_surface_v6_ack_configure(xdgSurfaceV6(), serial);
@@ -735,12 +740,12 @@ void WaylandWindowContext::handleXdgSurfaceV6Configure(zxdg_surface_v6*, uint32_
 void WaylandWindowContext::handleXdgToplevelV6Configure(zxdg_toplevel_v6*, int32_t width,
 	int32_t height, wl_array* states)
 {
-	// TODO?
+	reparseState(*states);
 	if(!width || !height) {
+		// in this case we simply keep the (copied from WindowSettings)
+		// width and height
 		return;
 	}
-
-	reparseState(*states);
 
 	// we store the new size but not yet actually resize/redraw the window
 	// this should/can only be done after we recevie the surfaceV6Configure event

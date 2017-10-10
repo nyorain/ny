@@ -81,7 +81,10 @@ public:
 			return true;
 		}
 
-		appContext_->waitEvents();
+		while(!ready_) {
+			appContext_->waitEvents();
+		}
+
 		running_ = true;
 		return true;
 	}

@@ -6,6 +6,8 @@ Roadmap for 0.1
 - documentation, cleanup
 - android backend
 
+- (not sure yet) data exchange rework
+
 later
 =====
 

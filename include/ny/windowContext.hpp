@@ -146,7 +146,7 @@ public:
 	/// Sets the title for the native window. The title is what is displayed for the
 	/// window in a potential titlebar or taskbar.
 	/// \warning Shall have only an effect for toplevel windows.
-	virtual void title(std::string_view name) = 0;
+	virtual void title(const char* name) = 0;
 
 	/// Sets the icon of the native window. Used e.g. in a titlebar or taskbar.
 	/// If the given icon pointer variable is an empty image, the icon will be reset/unset.

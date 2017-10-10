@@ -25,8 +25,6 @@ using std::int32_t;
 using std::int64_t;
 
 class Cursor;
-class LoopControl;
-class LoopInterface;
 class DataFormat;
 class DataOffer;
 class DataSource;

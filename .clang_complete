@@ -1,6 +1,8 @@
+-I./build/android/include
+
 -I./include
 -I./src
--I./build/include
+-I./build/linux/include
 -I./subprojects/nytl
 -I./subprojects/dlg/include
 -Wall

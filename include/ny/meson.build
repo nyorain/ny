@@ -12,15 +12,16 @@ conf_data.set('NY_WithGl', enable_gl)
 conf_data.set('NY_WithEgl', enable_egl)
 conf_data.set('NY_WithVulkan', enable_vulkan)
 conf_data.set('NY_WithXkbcommon', dep_xkbcommon.found())
-conf_data.set('NY_WithAndroid', false)
+conf_data.set('NY_WithAndroid', android)
 
 configure_file(input: 'config.hpp.in',
-               output: 'config.hpp',
-							 install_dir: 'include/ny',
-               configuration: conf_data)
+	output: 'config.hpp', 
+	install_dir: 'include/ny', 
+	configuration: conf_data)
 
 # install headers
 # TODO: backend headers as well?
+# TODO: use install_subdir
 headers = [
 	'appContext.hpp',
 	'asyncRequest.hpp',

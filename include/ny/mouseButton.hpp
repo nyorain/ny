@@ -4,8 +4,6 @@
 
 #pragma once
 
-#include <string_view> // std::string_view
-
 namespace ny {
 
 /// Contains all mouse buttons.
@@ -34,6 +32,6 @@ const char* mouseButtonName(MouseButton);
 
 /// Returns a MouseButton enumeration value for its name.
 /// Returns MouseButton::none for unknown names.
-MouseButton mouseButtonFromName(std::string_view name);
+MouseButton mouseButtonFromName(const char* name);
 
 } // namespace ny

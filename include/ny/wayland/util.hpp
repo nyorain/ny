@@ -143,6 +143,10 @@ struct NamedGlobal {
 	operator T*() const { return global; }
 };
 
+/// Returns the name of the given protocol error.
+/// Returns "<unknown interface error>" if it is not known.
+const char* errorName(const wl_interface& interface, int error);
+
 } // namespace wayland
 
 // The following could also be moved to some general util file since many c libraries use
@@ -255,27 +259,6 @@ class WaylandEventData : public ny::EventData {
 public:
 	WaylandEventData(unsigned int xserial) : serial(xserial) {};
 	unsigned int serial;
-};
-
-/// Wayland std::error_category implementation for one wayland interface.
-/// Only used for wayland protocol errors, for other errors wayland uses posix
-/// error codes, so generic_category will be used.
-/// Note that there has to be one ErrorCategory for every wayland interface since
-/// otherwise errors cannot be correctly represented just using an integer value
-/// (i.e. the error code).
-class WaylandErrorCategory : public std::error_category {
-public:
-	WaylandErrorCategory(const wl_interface&);
-	~WaylandErrorCategory() = default;
-
-	const char* name() const noexcept override { return name_.c_str(); }
-	std::string message(int code) const override;
-
-	const wl_interface& interface() const { return interface_; }
-
-protected:
-	const wl_interface& interface_;
-	std::string name_;
 };
 
 /// Converts the given wl_shell_surface edge enumerations value to the corresponding

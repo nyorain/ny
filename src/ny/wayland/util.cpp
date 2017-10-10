@@ -302,68 +302,8 @@ void Output::scale(wl_output*, int32_t scale)
 	information_.scale = scale;
 }
 
-} // namespace wayland
-
-WindowEdge waylandToEdge(unsigned int wlEdge)
-{
-	return static_cast<WindowEdge>(wlEdge);
-}
-
-unsigned int edgeToWayland(WindowEdge edge)
-{
-	return static_cast<unsigned int>(edge);
-}
-
-constexpr struct FormatConversion {
-	ImageFormat imageFormat;
-	unsigned int shmFormat;
-} formatConversions[] {
-	{ImageFormat::argb8888, WL_SHM_FORMAT_ARGB8888},
-	{ImageFormat::argb8888, WL_SHM_FORMAT_XRGB8888},
-	{ImageFormat::rgba8888, WL_SHM_FORMAT_RGBA8888},
-	{ImageFormat::bgra8888, WL_SHM_FORMAT_BGRA8888},
-	{ImageFormat::abgr8888, WL_SHM_FORMAT_ABGR8888},
-	{ImageFormat::bgr888, WL_SHM_FORMAT_BGR888},
-	{ImageFormat::rgb888, WL_SHM_FORMAT_RGB888},
-};
-
-int imageFormatToWayland(const ImageFormat& format)
-{
-	for(auto& fc : formatConversions) if(fc.imageFormat == format) return fc.shmFormat;
-	return -1;
-}
-
-ImageFormat waylandToImageFormat(unsigned int shmFormat)
-{
-	for(auto& fc : formatConversions) if(fc.shmFormat == shmFormat) return fc.imageFormat;
-	return ImageFormat::none;
-}
-
-unsigned int stateToWayland(ToplevelState state)
-{
-	switch(state) {
-		case ToplevelState::maximized: return 1;
-		case ToplevelState::fullscreen: return 2;
-		default: return 0;
-	}
-}
-
-ToplevelState waylandToState(unsigned int wlState)
-{
-	switch(wlState) {
-		case 1: return ToplevelState::maximized;
-		case 2: return ToplevelState::fullscreen;
-		default: return ToplevelState::unknown;
-	}
-}
-
-// WaylandErrorCategory
-WaylandErrorCategory::WaylandErrorCategory(const wl_interface& interface) : interface_(interface)
-{
-	name_ = std::string("ny::wayland::") + interface.name;
-}
-
-std::string WaylandErrorCategory::message(int code) const
+// util
+const char* errorName(const wl_interface& interface, int error)
 {
 	struct Error {
 		int code;
@@ -373,8 +313,7 @@ std::string WaylandErrorCategory::message(int code) const
 	static struct {
 		const wl_interface& interface;
 		std::vector<Error> errors;
-	} interfaces[] =
-	{
+	} interfaces[] = {
 		// core protocol
 		{ wl_display_interface, {
 			{ WL_DISPLAY_ERROR_INVALID_OBJECT, "WL_DISPLAY_ERROR_INVALID_OBJECT" },
@@ -453,19 +392,75 @@ std::string WaylandErrorCategory::message(int code) const
 	};
 
 	for(auto& i : interfaces) {
-		if(&i.interface != &interface_) {
+		if(&i.interface != &interface) {
 			continue;
 		}
 
 		for(auto& e : i.errors) {
-			if(e.code - 1 == code) {
+			if(e.code == error) {
 				return e.msg;
 			}
 		}
+
 		break;
 	}
 
 	return "<unknown interface error>";
+}
+
+} // namespace wayland
+
+WindowEdge waylandToEdge(unsigned int wlEdge)
+{
+	return static_cast<WindowEdge>(wlEdge);
+}
+
+unsigned int edgeToWayland(WindowEdge edge)
+{
+	return static_cast<unsigned int>(edge);
+}
+
+constexpr struct FormatConversion {
+	ImageFormat imageFormat;
+	unsigned int shmFormat;
+} formatConversions[] {
+	{ImageFormat::argb8888, WL_SHM_FORMAT_ARGB8888},
+	{ImageFormat::argb8888, WL_SHM_FORMAT_XRGB8888},
+	{ImageFormat::rgba8888, WL_SHM_FORMAT_RGBA8888},
+	{ImageFormat::bgra8888, WL_SHM_FORMAT_BGRA8888},
+	{ImageFormat::abgr8888, WL_SHM_FORMAT_ABGR8888},
+	{ImageFormat::bgr888, WL_SHM_FORMAT_BGR888},
+	{ImageFormat::rgb888, WL_SHM_FORMAT_RGB888},
+};
+
+int imageFormatToWayland(const ImageFormat& format)
+{
+	for(auto& fc : formatConversions) if(fc.imageFormat == format) return fc.shmFormat;
+	return -1;
+}
+
+ImageFormat waylandToImageFormat(unsigned int shmFormat)
+{
+	for(auto& fc : formatConversions) if(fc.shmFormat == shmFormat) return fc.imageFormat;
+	return ImageFormat::none;
+}
+
+unsigned int stateToWayland(ToplevelState state)
+{
+	switch(state) {
+		case ToplevelState::maximized: return 1;
+		case ToplevelState::fullscreen: return 2;
+		default: return 0;
+	}
+}
+
+ToplevelState waylandToState(unsigned int wlState)
+{
+	switch(wlState) {
+		case 1: return ToplevelState::maximized;
+		case 2: return ToplevelState::fullscreen;
+		default: return ToplevelState::unknown;
+	}
 }
 
 } // namespace ny

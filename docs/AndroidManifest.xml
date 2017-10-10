@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+	package="com.example.ny_basic"
+	versionCode="1"
+	versionName="1.0" >
+
+	<application 
+		android:label="ny-basic"
+		android:hasCode="false"
+		android:allowBackup="true"
+		android:debuggable="true">
+		<activity 
+			android:name="android.app.NativeActivity"
+			android:label="ny-basic-label"
+			android:configChanges="keyboardHidden|orientation|screenSize">
+			<meta-data 
+				android:name="android.app.lib_name" 
+				android:value="basic"/>
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN" />
+				<category android:name="android.intent.category.LAUNCHER" />
+			</intent-filter>
+		</activity>
+	</application>
+</manifest>

@@ -79,8 +79,7 @@ if enable_wayland
 endif
 
 # android backend
-# TODO
-if false
+if android
 	ny_src += [
 		'android/appContext.cpp',
 		'android/activity.cpp',
@@ -90,8 +89,8 @@ if false
 		'android/input.cpp',
 		'android/mainProxy.c']
 
-	# find_library(android-log log)
-	# list(APPEND ny_libs android ${android-log})
+	deps += meson.get_compiler('c').find_library('log')
+	deps += meson.get_compiler('c').find_library('android')
 
 	if enable_egl
 		ny_src += ['android/egl.cpp']
@@ -116,10 +115,19 @@ if enable_wayland or enable_x11
 	ny_src += ['common/unix.cpp']
 endif
 
-ny_lib = library('ny',
-	sources: ny_src,
-	dependencies: deps,
-	cpp_args: '-DDLG_DEFAULT_TAGS="ny",',
-	include_directories: [ny_inc, ny_inc_private])
+if android
+	add_project_arguments('-fexceptions', language: 'c')
+	ny_lib = shared_module('ny',
+		sources: ny_src,
+		dependencies: deps,
+		cpp_args: '-DDLG_DEFAULT_TAGS="ny",',
+		include_directories: [ny_inc, ny_inc_private])
+else
+	ny_lib = library('ny',
+		sources: ny_src,
+		dependencies: deps,
+		cpp_args: '-DDLG_DEFAULT_TAGS="ny",',
+		include_directories: [ny_inc, ny_inc_private])
+endif
 
 ny_lib_dir = join_paths(meson.build_root(), 'src', 'ny') + '/'

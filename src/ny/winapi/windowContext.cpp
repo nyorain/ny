@@ -462,9 +462,9 @@ void WinapiWindowContext::icon(const Image& img)
 	::PostMessage(handle(), WM_SETICON, ICON_SMALL, (LPARAM) icon_);
 }
 
-void WinapiWindowContext::title(std::string_view title)
+void WinapiWindowContext::title(const char* title)
 {
-	SetWindowText(handle(), widen(title.data()).c_str());
+	SetWindowText(handle(), widen(title).c_str());
 }
 
 NativeHandle WinapiWindowContext::nativeHandle() const

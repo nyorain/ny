@@ -14,7 +14,6 @@
 #include <memory> // std::unique_ptr
 #include <functional> // std::function
 #include <any> // std::any
-#include <string_view> // std::string_view
 
 namespace ny {
 
@@ -136,7 +135,7 @@ std::vector<uint8_t> unwrap(std::any any, const DataFormat& format);
 
 /// Checks whether the given format string matches the given DataFormat, i.e. if it one
 /// of the descriptions/names of dataFormat.
-bool match(const DataFormat& dataFormat, std::string_view formatName);
+bool match(const DataFormat& dataFormat, const char* formatName);
 bool match(const DataFormat& a, const DataFormat& b);
 
 // TODO: with additional parameter (e.g. charset) parsing?

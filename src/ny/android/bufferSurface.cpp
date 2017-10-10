@@ -16,16 +16,18 @@ AndroidBufferSurface::AndroidBufferSurface(ANativeWindow& nativeWindow)
 
 AndroidBufferSurface::~AndroidBufferSurface()
 {
-	if(buffer_.bits)
-		warning("ny::~AndroidBufferSurface: There is still an active buffer guard!");
+	if(buffer_.bits) {
+		dlg_warn("~AndroidBufferSurface: There is still an active buffer guard");
+	}
 }
 
 BufferGuard AndroidBufferSurface::buffer()
 {
 	static const std::string funcName = "ny::AndroidBufferSurface::buffer: ";
 
-	if(buffer_.bits)
+	if(buffer_.bits) {
 		throw std::logic_error(funcName + "there is already a BufferGuard");
+	}
 
 	// try to lock it
 	auto ret = ANativeWindow_lock(&nativeWindow_, &buffer_, nullptr);
@@ -37,24 +39,29 @@ BufferGuard AndroidBufferSurface::buffer()
 	// TODO: correct format query!
 	// util func: androidToFormat?
 
-	constexpr auto format = imageFormats::rgba8888;
-	auto size = nytl::Vec2ui{buffer_.width, buffer_.height};
+	constexpr auto format = ImageFormat::rgba8888;
+	unsigned int w = buffer_.width;
+	unsigned int h = buffer_.height;
+
 	auto data = reinterpret_cast<unsigned char*>(buffer_.bits);
 	auto stride = static_cast<unsigned int>(buffer_.stride) * 32u; // pixel size : 32 bits
-	return {*this, {data, size, format, stride}};
+	return {*this, {data, {w, h}, format, stride}};
 }
 
 void AndroidBufferSurface::apply(const BufferGuard&) noexcept
 {
 	static const std::string funcName = "ny::AndroidBufferSurface::apply: ";
-	if(!buffer_.bits)
-		throw std::logic_error(funcName + "no active BufferGuard");
+	if(!buffer_.bits) {
+		dlg_warn("apply: No active BufferGuard");
+		return;
+	}
 
 	buffer_ = {};
 
 	int ret = ANativeWindow_unlockAndPost(&nativeWindow_);
-	if(ret != 0)
-		warning(funcName + "unlockAndPost failed with error code ", ret);
+	if(ret != 0) {
+		dlg_warn("unlockAndPost failed with error code ", ret);
+	}
 }
 
 // AndroidBuffereWindowContext
@@ -62,7 +69,7 @@ AndroidBufferWindowContext::AndroidBufferWindowContext(AndroidAppContext& ac,
 	const AndroidWindowSettings& settings) : AndroidWindowContext(ac, settings)
 {
 	if(!nativeWindow()) {
-		warning("ny::AndroidBufferWindowContext: no native window");
+		dlg_warn("no native window");
 		if(settings.buffer.storeSurface) *settings.buffer.storeSurface = nullptr;
 		return;
 	}

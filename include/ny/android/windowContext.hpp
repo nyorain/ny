@@ -49,7 +49,7 @@ public:
 	void beginMove(const EventData*) override;
 	void beginResize(const EventData* event, WindowEdges edges) override;
 
-	void title(std::string_view name) override;
+	void title(const char* name) override;
 	void icon(const Image& newicon) override;
 	void customDecorated(bool set) override;
 	bool customDecorated() const override { return false; }

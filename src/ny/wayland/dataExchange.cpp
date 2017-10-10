@@ -130,7 +130,11 @@ WaylandDataOffer::DataRequest WaylandDataOffer::data(const DataFormat& format)
 {
 	// find the associated wayland format string
 	std::pair<DataFormat, std::string> reqfmt {};
-	for(auto& supported : formats_) if(format == supported.first) reqfmt = supported;
+	for(auto& supported : formats_) {
+		if(format == supported.first) {
+			reqfmt = supported;
+		}
+	}
 	if(reqfmt.second.empty()) {
 		dlg_warn("unsupported format {}", format.name);
 		return {};

@@ -12,7 +12,6 @@
 #include <nytl/flags.hpp>
 
 #include <string>
-#include <string_view>
 #include <vector>
 #include <memory>
 #include <thread>
@@ -52,7 +51,7 @@ unsigned int rate(const GlConfig& config);
 
 /// Returns whether the given extension string that lists extensions sepertaed by
 /// whitespace contains the given extensions.
-bool glExtensionStringContains(std::string_view extString, std::string_view extension);
+bool glExtensionStringContains(const char* extString, const char* extension);
 
 /// Describes the settings for a created gl context.
 /// The shared GlContext must be set to nullptr or a GlContext that was created from the
@@ -108,7 +107,7 @@ enum class GlContextErrc : unsigned int {
 /// Is usually thrown for arguments or situations that result in some critical logic error.
 class GlContextError : public std::logic_error {
 public:
-	GlContextError(std::error_code, std::string_view msg = {});
+	GlContextError(std::error_code, const char* msg = {});
 	const std::error_code& code() const { return code_; }
 
 protected:
@@ -166,7 +165,7 @@ public:
 	/// the returned value is actually a valid and callable function. One must always
 	/// query the supported extensions. Some implementations even return values
 	/// != nullptr for non-existent functions.
-	virtual void* procAddr(std::string_view name) const = 0;
+	virtual void* procAddr(const char* name) const = 0;
 };
 
 /// Abstract base class for some kind of openGL(ES) surface that can be drawn on.

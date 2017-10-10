@@ -78,7 +78,7 @@ void logHandler(const char* format, va_list vlist)
 	lastLogMessage.pop_back(); // newline
 	va_end(vlistcopy);
 
-	dlg_info("wayland error: {}", lastLogMessage);
+	dlg_debug("wayland log: {}", lastLogMessage);
 }
 
 // Listener entry to implement custom fd polling callbacks in WaylandAppContext.
@@ -90,7 +90,7 @@ struct ListenerEntry {
 
 } // anonymous util namespace
 
-// NamesGlobal values are defined in impl because they need wayland/util.hp
+// NamesGlobal values are defined in impl because they need wayland/util.hpp
 // Furthermore may there be additional globals in future versions of this implementation
 struct WaylandAppContext::Impl {
 	wayland::NamedGlobal<wl_compositor> wlCompositor;
@@ -104,11 +104,6 @@ struct WaylandAppContext::Impl {
 
 	// here because ConnectionList is in wayland/util.hpp
 	ConnectionList<ListenerEntry> fdCallbacks;
-
-	// here because changed is const functions (more like cache vars)
-	std::vector<std::unique_ptr<WaylandErrorCategory>> errorCategories;
-	std::error_code error {}; // The cached error code for the display (if any)
-	bool errorOutputted {}; // Whether the critical error was already outputted
 
 	#ifdef NY_WithEgl
 		EglSetup eglSetup;
@@ -228,14 +223,9 @@ WaylandAppContext::~WaylandAppContext()
 	if(wlDisplay_) wl_display_disconnect(wlDisplay_);
 }
 
-// TODO: error handling
-// TODO: callDeferred also at the end of the function?
 void WaylandAppContext::pollEvents()
 {
-	if(!checkErrorWarn()) {
-		return;
-	}
-
+	checkError();
 	deferred.execute();
 
 	// read all registered file descriptors without any blocking and without polling
@@ -248,7 +238,8 @@ void WaylandAppContext::pollEvents()
 	}
 
 	if(wl_display_flush(wlDisplay_) == -1) {
-		wl_display_cancel_read(wlDisplay_);
+		// TODO: handle error correctly, canacel read if needed
+		// wl_display_cancel_read(wlDisplay_);
 
 		// if errno is eagain we have to wait until the compositor has read data
 		// here, we just return since we don't want to block
@@ -257,26 +248,26 @@ void WaylandAppContext::pollEvents()
 			auto msg = std::strerror(errno);
 			dlg_warn("wl_display_flush: {}", msg);
 		}
+
+		// if errno == EAGAIN we should poll the fd so it can be written
 	} else {
-		wl_display_read_events(wlDisplay_);
+		if(wl_display_read_events(wlDisplay_) == -1) {
+			dlg_warn("wl_display_read_events: {}", std::strerror(errno));
+		}
 		wl_display_dispatch_pending(wlDisplay_);
 	}
 
 	deferred.execute();
-	checkErrorWarn();
+	checkError();
 }
 
 void WaylandAppContext::waitEvents()
 {
+	checkError();
 	deferred.execute();
-
-	if(!checkErrorWarn()) {
-		return;
-	}
-
 	dispatchDisplay();
 	deferred.execute();
-	checkErrorWarn();
+	checkError();
 }
 
 void WaylandAppContext::wakeupWait()
@@ -336,16 +327,22 @@ bool WaylandAppContext::clipboard(std::unique_ptr<DataSource>&& dataSource)
 
 DataOffer* WaylandAppContext::clipboard()
 {
-	if(!waylandDataDevice()) return nullptr;
+	if(!waylandDataDevice()) {
+		return nullptr;
+	}
 	return waylandDataDevice()->clipboardOffer();
 }
 
 bool WaylandAppContext::startDragDrop(std::unique_ptr<DataSource>&& dataSource)
 {
-	if(!waylandMouseContext() || !waylandDataDevice()) return false;
+	if(!waylandMouseContext() || !waylandDataDevice()) {
+		return false;
+	}
 
 	auto over = mouseContext_->over();
-	if(!over) return false;
+	if(!over) {
+		return false;
+	}
 
 	try {
 		dndSource_ = std::make_unique<WaylandDataSource>(*this, std::move(dataSource), true);
@@ -355,8 +352,8 @@ bool WaylandAppContext::startDragDrop(std::unique_ptr<DataSource>&& dataSource)
 	}
 
 	auto surf = &static_cast<WaylandWindowContext*>(over)->wlSurface();
-	wl_data_device_start_drag(&dataDevice_->wlDataDevice(), &dndSource_->wlDataSource(), surf,
-		dndSource_->dragSurface(), mouseContext_->lastSerial());
+	wl_data_device_start_drag(&dataDevice_->wlDataDevice(), &dndSource_->wlDataSource(), 
+		surf, dndSource_->dragSurface(), mouseContext_->lastSerial());
 
 	// only now we can attach a buffer to the surface since now it has the
 	// dnd surface role.
@@ -406,66 +403,49 @@ EglSetup* WaylandAppContext::eglSetup() const
 	#endif // WithEgl
 }
 
-std::error_code WaylandAppContext::checkError() const
+void WaylandAppContext::checkError() const
 {
-	// We cache the error so we don't have to query it every time
-	// This function is called/checked very often (critical paths)
-	if(impl_->error) {
-		return impl_->error;
-	}
-
 	auto err = wl_display_get_error(wlDisplay_);
-	if(!err) return {};
+	if(!err) {
+		return;
+	}
 
 	// when wayland returns this error code, we can query the exact interface
 	// that triggered the error
 	if(err == EPROTO) {
 		const wl_interface* interface;
 		uint32_t id;
-		int code = wl_display_get_protocol_error(wlDisplay_, &interface, &id) + 1;
+		int code = wl_display_get_protocol_error(wlDisplay_, &interface, &id);
 
-		// find or insert the matching category
-		// see wayland/util.hpp WaylandErrorCategory for more information
-		for(auto& category : impl_->errorCategories) {
-			if(&category->interface() == interface) {
-				return {code, *category};
-			}
-		}
+		auto errorName = "<unknown>";
+		auto interfaceName = "<null interface>";
+		if(interface) {
+			errorName = wayland::errorName(*interface, code);
+			interfaceName = interface->name;
+		} 
 
-		impl_->errorCategories.push_back(std::make_unique<WaylandErrorCategory>(*interface));
-		impl_->error = {code, *impl_->errorCategories.back()};
-	} else if(err) {
-		impl_->error = {err, std::system_category()};
-	}
-
-	return impl_->error;
-}
-
-bool WaylandAppContext::checkErrorWarn() const
-{
-	auto ec = checkError();
-	if(!ec) return true;
-	if(impl_->errorOutputted) return false;
-
-	auto msg = ec.message();
-	auto* wlCategory = dynamic_cast<const WaylandErrorCategory*>(&ec.category());
-
-	if(wlCategory) {
-		dlg_warn(
-			"Wayland display has protocol error '{}' in interface '{}'\n\t"
+		auto msg = dlg::format(
+			"ny::WaylandAppContext: display has critical protocol error\n\t",
+			"error: '{}'\n\t"
+			"interface: '{}'\n\t"
 			"Last log output in this thread: {}\n\t" 
-			"The display and WaylandAppContext might be instable",
-			msg, wlCategory->interface().name, lastLogMessage);
-	} else {
-		dlg_error(
-			"Wayland display has non-protocol error <{}>\n\t"
-			"Last log output in this thread: <{}>\n\t"
-			"The display and WaylandAppContext might be instable",
-			msg, lastLogMessage);
+			"This is likely a ny, app or compositor bug, please report it",
+			errorName, interfaceName, lastLogMessage);
+
+		dlg_fatal(msg);
+		throw std::runtime_error(msg);
+	} 
+
+	const char* errorName = std::strerror(err);
+	if(!errorName) {
+		errorName = "<unknown>";
 	}
 
-	impl_->errorOutputted = true;
-	return false;
+	auto msg = dlg::format(
+		"Wayland display has non-protocol error '{}'\n\t"
+		"Last log output in this thread: '{}'",
+		errorName, lastLogMessage);
+	dlg_error(msg);
 }
 
 nytl::Connection WaylandAppContext::fdCallback(int fd, unsigned int events,

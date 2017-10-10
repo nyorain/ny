@@ -17,6 +17,9 @@
 //   poor c++ exception support
 //   Logging the message is the best we can do
 
+// TODO: make sure to also catch exceptions from e.g. mutex or
+//  other sources
+
 // NOTE: we wait until the native window is created until we start the
 //   main thread. This will minimize the change to create a WindowContext
 //   without native window which may trigger application bugs.
@@ -36,21 +39,42 @@
 extern "C" int mainProxyC(int argc, char** argv);
 
 namespace ny::android {
+namespace {
 
-// TODO
-// custom logger implementation to use the android log
-class AndroidLogger : public LoggerBase {
-public:
-	AndroidLogger(int prio, const char* tag) : prio_(prio), tag_(tag) {}
+// Custom dlg output handler that will be set as default.
+// Logs using the system log.
+void output_handler(const dlg_origin& origin, const char* str)
+{
+	// TODO: AppContextSettings -> tag
+	auto features = dlg_output_file_line;
+	auto output = dlg::generic_output(features, origin, str);
 
-	void write(const std::string& text) const override {
-		__android_log_write(prio_, tag_, text.c_str());
+	auto prio = ANDROID_LOG_DEFAULT;
+	switch(origin.level) {
+		case dlg_level_trace: [[fallthrough]];
+		case dlg_level_debug:
+			prio = ANDROID_LOG_DEBUG;
+			break;	
+		case dlg_level_info:
+			prio = ANDROID_LOG_INFO;
+			break;	
+		case dlg_level_warn: 
+			prio = ANDROID_LOG_WARN; 
+			break;	
+		case dlg_level_error:
+			prio = ANDROID_LOG_ERROR;
+			break;	
+		case dlg_level_fatal:
+			prio = ANDROID_LOG_FATAL;
+			break;	
+		default:
+			break;
 	}
 
-protected:
-	int prio_;
-	const char* tag_;
-};
+	__android_log_write(prio, "ny", output.c_str());
+}
+
+} // anonymous namespace
 
 // Activity - static
 Activity* Activity::instance()
@@ -70,8 +94,9 @@ void Activity::onStart(ANativeActivity* nativeActivity) noexcept
 	std::lock_guard<std::mutex> lock(activity.mutex_);
 	auto appContext = activity.appContext_;
 
-	if(appContext)
+	if(appContext) {
 		appContext->pushEvent({ActivityEventType::start});
+	}
 }
 void Activity::onResume(ANativeActivity* nativeActivity) noexcept
 {
@@ -79,8 +104,9 @@ void Activity::onResume(ANativeActivity* nativeActivity) noexcept
 	std::lock_guard<std::mutex> lock(activity.mutex_);
 	auto appContext = activity.appContext_;
 
-	if(appContext)
+	if(appContext) {
 		appContext->pushEvent({ActivityEventType::resume});
+	}
 }
 void Activity::onPause(ANativeActivity* nativeActivity) noexcept
 {
@@ -88,8 +114,9 @@ void Activity::onPause(ANativeActivity* nativeActivity) noexcept
 	std::lock_guard<std::mutex> lock(activity.mutex_);
 	auto appContext = activity.appContext_;
 
-	if(appContext)
+	if(appContext) {
 		appContext->pushEvent({ActivityEventType::pause});
+	}
 }
 void Activity::onStop(ANativeActivity* nativeActivity) noexcept
 {
@@ -97,14 +124,16 @@ void Activity::onStop(ANativeActivity* nativeActivity) noexcept
 	std::lock_guard<std::mutex> lock(activity.mutex_);
 	auto appContext = activity.appContext_;
 
-	if(appContext)
+	if(appContext) {
 		appContext->pushEvent({ActivityEventType::stop});
+	}
 }
 void Activity::onDestroy(ANativeActivity* nativeActivity) noexcept
 {
 	auto& activity = retrieveActivity(*nativeActivity);
 
 	// we simply delete the Activity global, this will perform needed actions
+	// note how it was also allocated on the heap, no smart pointer
 	delete &activity;
 }
 void Activity::onWindowFocusChanged(ANativeActivity* nativeActivity, int hasFocus) noexcept
@@ -234,11 +263,8 @@ Activity::Activity(ANativeActivity& nativeActivity, void* state, std::size_t sta
 	savedState_.resize(stateSize);
 	std::memcpy(state, savedState_.data(), stateSize);
 
-	// init the logs to use android-log
-	debugLogger() = std::make_unique<AndroidLogger>(ANDROID_LOG_DEBUG, "ny");
-	logLogger() = std::make_unique<AndroidLogger>(ANDROID_LOG_INFO, "ny");
-	warningLogger() = std::make_unique<AndroidLogger>(ANDROID_LOG_WARN, "ny");
-	errorLogger() = std::make_unique<AndroidLogger>(ANDROID_LOG_ERROR, "ny");
+	// set the default dlg handler
+	dlg::set_handler(output_handler);
 
 	// set all needed callbacks
 	activity_ = &nativeActivity;
@@ -314,12 +340,22 @@ void Activity::mainThreadFunction()
 	// call the applications main method
 	// since this is the main thread function we output exceptions
 	int ret = 0u;
+	bool thrown = false;
 	try {
+		// Note that we compile our c proxy with exception support
+		// so exceptions will propagate through it
 		ret = ::mainProxyC(0, nullptr);
 	} catch(const std::exception& err) {
-		error("ny::android: main function exception: ", err.what());
+		dlg_error("ny::android: exception from main"
+			"\n\twhat(): {}", err.what());
+		thrown = true;
 	} catch(...) {
-		error("ny::android: main function threw unknown exception object");
+		dlg_error("ny::android: catching unknown exception object from main");
+		thrown = true;
+	}
+
+	if(!thrown) {
+		dlg_debug("ny::android: main returned {}", ret);
 	}
 
 	// this is needed if main ends before the onDestroy callback
@@ -327,14 +363,15 @@ void Activity::mainThreadFunction()
 
 	mainRunning_.store(false);
 	mainThreadCV_.notify_one();
-	debug("ny::android::Activity: main returned ", ret ,". Exiting main thread.");
+
+	dlg_info("ny::android: exiting main thread");
 }
 
 // utility
 Activity& retrieveActivity(const ANativeActivity& nativeActivity) noexcept
 {
 	if(!nativeActivity.instance) {
-		error("android: instance == nullptr. This should not happen.");
+		dlg_fatal("android: instance == nullptr.");
 		std::terminate();
 	}
 

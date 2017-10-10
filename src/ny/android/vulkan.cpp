@@ -5,7 +5,7 @@
 #include <ny/android/vulkan.hpp>
 #include <ny/android/appContext.hpp>
 #include <ny/surface.hpp>
-#include <ny/log.hpp>
+#include <dlg/dlg.hpp>
 
 #define VK_USE_PLATFORM_ANDROID_KHR
 #include <vulkan/vulkan.h>
@@ -16,11 +16,12 @@ AndroidVulkanWindowContext::AndroidVulkanWindowContext(AndroidAppContext& ac,
 	const AndroidWindowSettings& ws) : AndroidWindowContext(ac, ws)
 {
 	vkInstance_ = ws.vulkan.instance;
-	if(!vkInstance_)
+	if(!vkInstance_) {
 		throw std::logic_error("ny::AndroidVulkanWindowContext: given VkInstance is invalid");
+	}
 
 	if(!nativeWindow()) {
-		warning("ny::AndroidVulkanWindowContext: no native window");
+		dlg_warn("no native window");
 		if(ws.vulkan.storeSurface) *ws.vulkan.storeSurface = 0u;
 		return;
 	}
@@ -42,14 +43,16 @@ AndroidVulkanWindowContext::AndroidVulkanWindowContext(AndroidAppContext& ac,
 	}
 
 	std::memcpy(&vkSurface_, &vkSurface, sizeof(vkSurface));
-	if(ws.vulkan.storeSurface)
+	if(ws.vulkan.storeSurface) {
 		*ws.vulkan.storeSurface = vkSurface_;
+	}
 }
 
 AndroidVulkanWindowContext::~AndroidVulkanWindowContext()
 {
-	if(vkSurface_)
+	if(vkSurface_) {
 		vkDestroySurfaceKHR(vkInstance_, (VkSurfaceKHR) vkSurface_, allocCbs_.get());
+	}
 }
 
 Surface AndroidVulkanWindowContext::surface()
@@ -77,10 +80,7 @@ void AndroidVulkanWindowContext::nativeWindow(ANativeWindow* window)
 
 		auto res = vkCreateAndroidSurfaceKHR(vkInstance_, &info, allocCbs_.get(), &vkSurface);
 		if(res != VK_SUCCESS) {
-			std::string msg = "ny::AndroidVulkanWindowContext::nativeWindow: ";
-			msg += "vkCreateAndroidSurfaceKHR error code ";
-			msg += std::to_string(res);
-			warning(msg);
+			dlg_error("vkCreateAndroidSurfaceKHR error code {}", res);
 		} else {
 			std::memcpy(&vkSurface_, &vkSurface, sizeof(vkSurface));
 			SurfaceCreatedEvent sce;

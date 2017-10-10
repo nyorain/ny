@@ -106,7 +106,7 @@ void MyWindowListener::key(const ny::KeyEvent& keyEvent)
 		else name = "<unprintable>";
 	}
 
-	std::string_view utf8 = (keyEvent.utf8.empty() || ny::specialKey(keyEvent.keycode)) ?
+	auto utf8 = (keyEvent.utf8.empty() || ny::specialKey(keyEvent.keycode)) ?
 		"<unprintable>" : keyEvent.utf8;
 	dlg_info("Key {} with keycode ({}: {}) {}, generating: {} {}", name,
 		(unsigned int) keyEvent.keycode, ny::name(keyEvent.keycode),

@@ -3,6 +3,7 @@
 // See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
 #include <ny/android/backend.hpp>
+#include <ny/android/activity.hpp>
 #include <ny/android/appContext.hpp>
 #include <nytl/tmpUtil.hpp>
 
@@ -25,8 +26,9 @@ bool AndroidBackend::available() const
 AppContextPtr AndroidBackend::createAppContext()
 {
 	auto instance = android::Activity::instance();
-	if(!instance)
+	if(!instance) {
 		throw std::logic_error("ny::AndroidBackend::createAppContext: no native activity");
+	}
 
 	return std::make_unique<AndroidAppContext>(*instance);
 }

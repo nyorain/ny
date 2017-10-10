@@ -24,7 +24,7 @@ public:
 	GlConfig defaultConfig() const override { return defaultConfig_; }
 	std::vector<GlConfig> configs() const override { return configs_; }
 	std::unique_ptr<GlContext> createContext(const GlContextSettings& = {}) const override;
-	void* procAddr(std::string_view name) const;
+	void* procAddr(const char* name) const override;
 
 	HDC dummyDC() const { return dummyDC_; }
 	bool valid() const { return (dummyDC_); }

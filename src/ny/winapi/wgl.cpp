@@ -237,10 +237,9 @@ std::unique_ptr<GlContext> WglSetup::createContext(const GlContextSettings& sett
 	return std::make_unique<WglContext>(*this, settings);
 }
 
-void* WglSetup::procAddr(std::string_view name) const
+void* WglSetup::procAddr(const char* name) const
 {
-	std::string namen {name};
-	return reinterpret_cast<void*>(::wglGetProcAddress(namen.c_str()));
+	return reinterpret_cast<void*>(::wglGetProcAddress(name));
 }
 
 // WglSurface
