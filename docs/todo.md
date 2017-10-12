@@ -16,8 +16,6 @@
 - general keydown/keyup unicode value specificiation (cross-platform, differents atm)
 	- which event should contain the utf8 member set?
 	- document it somewhere
-- ime input (see winapi backend)
-	- use wm_char and such, don't use ToUnicode
 - wayland: fix dataExchange, enable only for droppable windows
 	- probably -> dataExchange rework
 - think about current appContext error handling scheme
@@ -29,6 +27,8 @@
 
 ### missing features/design issues, no real bug but should be done
 
+- ime input (see winapi backend)
+	- use wm_char and such, don't use ToUnicode
 - improvements to meson android handling
 	- e.g. offer way to automate building (at least some scripts)
 		- copy libraries using meson (+ script), automatically generate apk
@@ -116,6 +116,18 @@
 		give them a similiar signature to the WindowListener callbacks
 - x11: don't use XInitThreads and send_event for synchronization, but
   poll with eventfd like wayland app context
+
+
+- implement NonOwnedData optimization (less buffer-copies) [dataExchange rework]
+	- for offer/source/both?
+```cpp
+using NonOwnedData = std::variant<
+	std::monostate,
+	std::string_view,
+	Image,
+	nytl::Span<std::string>, // or nytl::Span<std::string_view>?
+	nytl::Span<std::byte>>;
+```
 
 ### later; general; rework needed (might be outdated)
 

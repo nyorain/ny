@@ -1,16 +1,16 @@
 [binaries]
 name = 'android'  
-c = '/tmp/android-toolchain/bin/aarch64-linux-android-clang'  
-cpp = '/tmp/android-toolchain/bin/aarch64-linux-android-clang++'  
-ar = '/tmp/android-toolchain/bin/aarch64-linux-android-ar'  
-ld = '/tmp/android-toolchain/bin/aarch64-linux-android-ld'  
-strip = '/tmp/android-toolchain/bin/aarch64-linux-android-strip'
+c = '/tmp/android/bin/aarch64-linux-android-clang'  
+cpp = '/tmp/android/bin/aarch64-linux-android-clang++'  
+ar = '/tmp/android/bin/aarch64-linux-android-ar'  
+ld = '/tmp/android/bin/aarch64-linux-android-ld'  
+strip = '/tmp/android/bin/aarch64-linux-android-strip'
 
 [properties]
-root = '/tmp/android-toolchain/' 
+root = '/tmp/android'
 
 [host_machine]
 system = 'linux'
 cpu_family = 'arm'
-cpu = 'armv8' # Not sure if correct.
+cpu = 'arm64'
 endian = 'big'
