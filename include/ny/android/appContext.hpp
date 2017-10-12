@@ -22,8 +22,8 @@ public:
 	MouseContext* mouseContext() override;
 	KeyboardContext* keyboardContext() override;
 
-	void pollEvents() override;
-	void waitEvents() override;
+	bool pollEvents() override;
+	bool waitEvents() override;
 	void wakeupWait() override;
 
 	bool clipboard(std::unique_ptr<DataSource>&&) override { return false; }
@@ -75,9 +75,6 @@ protected:
 	void handleActivityEvents();
 	void inputReceived();
 	void initQueue();
-
-	/// Throws std::runtime_error if there is no activity.
-	void checkActivity();
 
 	void windowFocusChanged(bool gained);
 	void windowCreated(ANativeWindow&);
