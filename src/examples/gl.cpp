@@ -61,9 +61,7 @@ int main()
 	wc->listener(listener);
 
 	dlg_info("Entering main loop");
-	while(run) {
-		ac->waitEvents();
-	}
+	while(run && ac->waitEvents());
 }
 
 void MyWindowListener::close(const ny::CloseEvent&)

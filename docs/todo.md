@@ -28,7 +28,8 @@
 ### missing features/design issues, no real bug but should be done
 
 - ime input (see winapi backend)
-	- use wm_char and such, don't use ToUnicode
+	- use wm char/wm ime char and such, don't use ToUnicode
+- add android ci (ndk)
 - improvements to meson android handling
 	- e.g. offer way to automate building (at least some scripts)
 		- copy libraries using meson (+ script), automatically generate apk

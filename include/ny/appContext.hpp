@@ -65,24 +65,28 @@ public:
 	/// Tries to read and dispatch all available events.
 	/// Can be called from a handler from within the loop (recursively).
 	/// Will not block waiting for events.
-	/// Throws when a critical error ocurrs, the AppContext is then
-	/// in an invalid state and must not be used further (e.g. when the connection
-	/// to the display is lost or a critical protocol error was encountered).
-	virtual void pollEvents() = 0;
+	/// Forwards all exceptions.
+	/// If this function returns false, the AppContext should no longer
+	/// be used. Don't automatically assume that this is an error, it might
+	/// also occur when the display server shut down or the application
+	/// is supposed to exit.
+	virtual bool pollEvents() = 0;
 
 	/// Waits until events are avilable to be read and dispatched.
 	/// If there are e.g. immediately events available, behaves like pollEvents.
 	/// Can be called from a handler from within the loop (recursively).
 	/// Use wakeupWait to return from this function.
-	/// Throws when a critical error ocurrs, the AppContext is then
-	/// in an invalid state and must not be used further (e.g. when the connection
-	/// to the display is lost or a critical protocol error was encountered).
-	virtual void waitEvents() = 0;
+	/// If this function returns false, the AppContext should no longer
+	/// be used. Don't automatically assume that this is an error, it might
+	/// also occur when the display server shut down or the application
+	/// is supposed to exit.
+	virtual bool waitEvents() = 0;
 
 	/// Causes waitEvents to return even if no events could be dispatched.
 	/// If waitEvents was called multiple times from within each other,
 	/// will only make the top most wait call return.
-	/// Throws when an error ocurss, but the AppContext must remain usable.
+	/// Throws when an error ocurss, but the AppContext can still
+	/// be used.
 	virtual void wakeupWait() = 0;
 
 	/// Sets the clipboard to the data provided by the given DataSource implementation.

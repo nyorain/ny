@@ -223,9 +223,12 @@ WaylandAppContext::~WaylandAppContext()
 	if(wlDisplay_) wl_display_disconnect(wlDisplay_);
 }
 
-void WaylandAppContext::pollEvents()
+bool WaylandAppContext::pollEvents()
 {
-	checkError();
+	if(!checkError()) {
+		return false;
+	}
+
 	deferred.execute();
 
 	// read all registered file descriptors without any blocking and without polling
@@ -258,16 +261,19 @@ void WaylandAppContext::pollEvents()
 	}
 
 	deferred.execute();
-	checkError();
+	return checkError();
 }
 
-void WaylandAppContext::waitEvents()
+bool WaylandAppContext::waitEvents()
 {
-	checkError();
+	if(!checkError()) {
+		return false;
+	}
+
 	deferred.execute();
 	dispatchDisplay();
 	deferred.execute();
-	checkError();
+	return checkError();
 }
 
 void WaylandAppContext::wakeupWait()
@@ -403,11 +409,15 @@ EglSetup* WaylandAppContext::eglSetup() const
 	#endif // WithEgl
 }
 
-void WaylandAppContext::checkError() const
+bool WaylandAppContext::checkError() const
 {
+	if(error_) {
+		return true;
+	}
+
 	auto err = wl_display_get_error(wlDisplay_);
 	if(!err) {
-		return;
+		return true;
 	}
 
 	// when wayland returns this error code, we can query the exact interface
@@ -433,7 +443,7 @@ void WaylandAppContext::checkError() const
 			errorName, interfaceName, lastLogMessage);
 
 		dlg_fatal(msg);
-		throw std::runtime_error(msg);
+		return false;
 	} 
 
 	const char* errorName = std::strerror(err);
@@ -446,6 +456,7 @@ void WaylandAppContext::checkError() const
 		"Last log output in this thread: '{}'",
 		errorName, lastLogMessage);
 	dlg_error(msg);
+	return false;
 }
 
 nytl::Connection WaylandAppContext::fdCallback(int fd, unsigned int events,

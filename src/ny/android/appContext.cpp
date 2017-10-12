@@ -188,11 +188,17 @@ MouseContext* AndroidAppContext::mouseContext()
 	return mouseContext_.get();
 }
 
-void AndroidAppContext::pollEvents()
+bool AndroidAppContext::pollEvents()
 {
-	checkActivity();
+	if(!nativeActivity_) {
+		return false;
+	}
+
 	handleActivityEvents();
-	checkActivity();
+
+	if(!nativeActivity_) {
+		return false;
+	}
 
 	int outFd, outEvents;
 	void* outData;
@@ -201,14 +207,20 @@ void AndroidAppContext::pollEvents()
 		dlg_warn("ALooper_pollOnce: I/O error");
 	}
 
-	checkActivity();
+	return (nativeActivity_);
 }
 
-void AndroidAppContext::waitEvents()
+bool AndroidAppContext::waitEvents()
 {
-	checkActivity();
+	if(!nativeActivity_) {
+		return false;
+	}
+
 	handleActivityEvents();
-	checkActivity();
+
+	if(!nativeActivity_) {
+		return false;
+	}
 
 	int outFd, outEvents;
 	void* outData;
@@ -218,7 +230,7 @@ void AndroidAppContext::waitEvents()
 		dlg_warn("ALooper_pollAll: I/O error");
 	}
 
-	checkActivity();
+	return (nativeActivity_);
 }
 
 void AndroidAppContext::wakeupWait()
@@ -439,13 +451,6 @@ void AndroidAppContext::initQueue()
 		constexpr auto inputIndent = 1u;
 		AInputQueue_attachLooper(inputQueue_, looper_, inputIndent,
 			inputCallback, static_cast<void*>(this));
-	}
-}
-
-void AndroidAppContext::checkActivity()
-{
-	if(!nativeActivity_) {
-		throw std::runtime_error("Native activity was destoyed");
 	}
 }
 
