@@ -27,8 +27,8 @@ public:
 	virtual ~WaylandAppContext();
 
 	// - AppContext implementation -
-	void pollEvents() override;
-	void waitEvents() override;
+	bool pollEvents() override;
+	bool waitEvents() override;
 	void wakeupWait() override;
 
 	MouseContext* mouseContext() override;
@@ -87,7 +87,7 @@ protected:
 	/// Checks the wayland display for errors.
 	/// If the wayland display has an error (i.e. it cannot be used any longer)
 	/// throws a std::runtime_error containing information about the error.
-	void checkError() const;
+	bool checkError() const;
 
 	/// Modified version of wl_dispatch_display that performs the same operations but
 	/// does also poll for the registered fds.
@@ -130,6 +130,7 @@ protected:
 	std::unique_ptr<WaylandDataSource> dndSource_;
 
 	bool wakeup_ {false}; // Set from the eventfd callback
+	bool error_ {};
 
 	struct Impl;
 	std::unique_ptr<Impl> impl_;

@@ -143,14 +143,15 @@ KeyboardContext* WinapiAppContext::keyboardContext()
 	return &keyboardContext_;
 }
 
-void WinapiAppContext::pollEvents()
+bool WinapiAppContext::pollEvents()
 {
 	deferred.execute();
 	while(dispatchEvent());
 	deferred.execute();
+	return true;
 }
 
-void WinapiAppContext::waitEvents()
+bool WinapiAppContext::waitEvents()
 {
 	deferred.execute();
 
@@ -171,6 +172,7 @@ void WinapiAppContext::waitEvents()
 	// dispatch all events that are still pending
 	while(dispatchEvent());
 	deferred.execute();
+	return true;
 }
 
 void WinapiAppContext::wakeupWait()

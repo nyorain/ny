@@ -33,8 +33,8 @@ public:
 	MouseContext* mouseContext() override;
 	WindowContextPtr createWindowContext(const WindowSettings& settings) override;
 
-	void pollEvents() override;
-	void waitEvents() override;
+	bool pollEvents() override;
+	bool waitEvents() override;
 	void wakeupWait() override;
 
 	bool clipboard(std::unique_ptr<DataSource>&& source) override;

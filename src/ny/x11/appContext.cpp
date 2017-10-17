@@ -237,9 +237,12 @@ KeyboardContext* X11AppContext::keyboardContext()
 	return keyboardContext_.get();
 }
 
-void X11AppContext::pollEvents()
+bool X11AppContext::pollEvents()
 {
-	checkError();
+	if(!checkError()) {
+		return false;
+	}
+
 	deferred.execute();
 	while(true) {
 		xcb_flush(&xConnection());
@@ -258,20 +261,22 @@ void X11AppContext::pollEvents()
 
 	xcb_flush(&xConnection());
 	deferred.execute();
-	checkError();
+	return checkError();
 }
 
-void X11AppContext::waitEvents()
+bool X11AppContext::waitEvents()
 {
-	checkError();
+	if(!checkError()) {
+		return false;
+	}
+
 	deferred.execute();
 	xcb_flush(&xConnection());
 
 	xcb_generic_event_t* event;
 	if(!(event = xcb_wait_for_event(xConnection_))) {
-		checkError();
 		dlg_warn("waitEvents: xcb_wait_for_event: I/O error");
-		return;
+		return checkError();
 	}
 
 	while(event) {
@@ -284,7 +289,7 @@ void X11AppContext::waitEvents()
 
 	xcb_flush(&xConnection());
 	deferred.execute();
-	checkError();
+	return checkError();
 }
 
 void X11AppContext::wakeupWait()
@@ -373,8 +378,12 @@ X11WindowContext* X11AppContext::windowContext(xcb_window_t win)
 	return nullptr;
 }
 
-void X11AppContext::checkError()
+bool X11AppContext::checkError()
 {
+	if(error_) {
+		return false;
+	}
+
 	auto err = xcb_connection_has_error(xConnection_);
 	if(err) {
 		const char* name = "<unknown error>";
@@ -392,8 +401,11 @@ void X11AppContext::checkError()
 		auto msg = dlg::format("X11AppContext: xcb_connection has "
 			"critical error:\n\t'{}' (code {})", name, err);
 		dlg_error(msg);
-		throw std::runtime_error(msg);
+		error_ = true;
+		return false;
 	}
+
+	return true;
 }
 
 xcb_atom_t X11AppContext::atom(const std::string& name)

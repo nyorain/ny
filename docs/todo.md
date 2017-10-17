@@ -29,6 +29,7 @@
 
 ### missing features/design issues, no real bug but should be done
 
+- add android ci (ndk)
 - improvements to meson android handling
 	- e.g. offer way to automate building (at least some scripts)
 		- copy libraries using meson (+ script), automatically generate apk

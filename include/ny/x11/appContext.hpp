@@ -27,8 +27,8 @@ public:
 	MouseContext* mouseContext() override;
 	WindowContextPtr createWindowContext(const WindowSettings& settings) override;
 
-	void pollEvents() override;
-	void waitEvents() override;
+	bool pollEvents() override;
+	bool waitEvents() override;
 	void wakeupWait() override;
 
 	bool clipboard(std::unique_ptr<DataSource>&& dataSource) override;
@@ -41,7 +41,7 @@ public:
 	// - x11 specific -
 	void processEvent(const x11::GenericEvent& ev, const x11::GenericEvent* next);
 	X11WindowContext* windowContext(xcb_window_t);
-	void checkError();
+	bool checkError();
 
 	Display& xDisplay() const { return *xDisplay_; }
 	xcb_connection_t& xConnection() const { return *xConnection_; }
@@ -75,6 +75,8 @@ protected:
 	std::unique_ptr<X11MouseContext> mouseContext_;
 	std::unique_ptr<X11KeyboardContext> keyboardContext_;
 	x11::GenericEvent* next_ {};
+
+	bool error_ {};
 
 	struct Impl;
 	std::unique_ptr<Impl> impl_;

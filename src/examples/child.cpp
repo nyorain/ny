@@ -58,10 +58,7 @@ int main(int, char**)
 	listener.run = &run;
 
 	dlg_info("Entering main loop");
-	while(run) {
-		ac->waitEvents();
-	}
-
+	while(run && ac->waitEvents());
 	dlg_info("Returning from main with grace");
 }
 

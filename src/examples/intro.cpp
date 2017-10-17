@@ -72,9 +72,7 @@ int main()
 	// variable to communicate between window listener and our main loop
 	bool run;
 	listener.run = &run;
-	while(run) {
-		ac->waitEvents();
-	}
+	while(run && ac->waitEvents());
 
 	// Clean up is done automatically, everything follows the RAII idiom.
 }
