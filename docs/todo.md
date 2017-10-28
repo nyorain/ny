@@ -11,6 +11,7 @@
 		- test it on all backends, such things may be possible with half-automated tests
 - make sure spec/promises are kept
 	- no event dispatching to handlers outside poll/waitEvents
+- fix initial state/size sending
 - normalize wheel input values in some way across backends
 	- like value 1 if one "tick" was scrolled?
 - general keydown/keyup unicode value specificiation (cross-platform, differents atm)
@@ -18,12 +19,6 @@
 	- document it somewhere
 - wayland: fix dataExchange, enable only for droppable windows
 	- probably -> dataExchange rework
-- think about current appContext error handling scheme
-	- on android e.g. the AppContext becomes invalid when the application is
-	  closed, it has to throw (since there is no other way to signal it per
-	  interface). So we basically use an exception for an everyday situation,
-	  the application will always exit with exception which is probably not
-	  what we want.
 
 ### missing features/design issues, no real bug but should be done
 

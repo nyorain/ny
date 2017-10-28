@@ -160,31 +160,8 @@ void X11WindowContext::createWindow(const X11WindowSettings& settings)
 
 void X11WindowContext::initVisual(const X11WindowSettings& settings)
 {
-	static constexpr auto novis = "ny::X11WindowContext::initVisual: ny no 24 or 32 bit visuals";
-	static constexpr auto nofound = "ny::X11WindowContext::initVisual: no matching visuals";
-
 	visualID_ = 0u;
 	auto& screen = appContext().xDefaultScreen();
-	auto avDepth = 0u;
-
-	auto depth_iter = xcb_screen_allowed_depths_iterator(&screen);
-	for(; depth_iter.rem; xcb_depth_next(&depth_iter)) {
-		if(depth_iter.data->depth == 32) {
-			avDepth = 32;
-			if(settings.transparent) break;
-		}
-
-		if(!avDepth && depth_iter.data->depth == 24) {
-			avDepth = 24;
-			if(!settings.transparent) break;
-		}
-	}
-
-	if(avDepth == 0u) {
-		throw std::runtime_error(novis);
-	} else if(settings.transparent && avDepth == 24) {
-		dlg_warn("transparent window but no 32 bit visual");
-	}
 
 	auto highestScore = 0u;
 	auto score = [&](const ImageFormat& f) {
@@ -194,9 +171,7 @@ void X11WindowContext::initVisual(const X11WindowSettings& settings)
 			return 3u + settings.transparent * 10;
 		} else if(f == ImageFormat::bgra8888) {
 			return 2u + settings.transparent * 10;
-		}
-
-		else if(f == ImageFormat::rgb888) {
+		} else if(f == ImageFormat::rgb888) {
 			return 3u + !settings.transparent * 10;
 		} else if(f == ImageFormat::bgr888) {
 			return 2u + !settings.transparent * 10;
@@ -206,22 +181,31 @@ void X11WindowContext::initVisual(const X11WindowSettings& settings)
 	};
 
 	// TODO: make requested format dynamic with X11WindowSettings
-	// i.e. make it possible to request a certain format
-	depth_iter = xcb_screen_allowed_depths_iterator(&screen);
+	// i.e. make it possible to request a certain format.
+	// When using gl or vulkan we additionally don't really care
+	// about the visuals format i guess...
+	auto depth_iter = xcb_screen_allowed_depths_iterator(&screen);
 	for(; depth_iter.rem; xcb_depth_next(&depth_iter)) {
 		auto visual_iter = xcb_depth_visuals_iterator(depth_iter.data);
 		for(; visual_iter.rem; xcb_visualtype_next(&visual_iter)) {
-			auto vformat = x11::visualToFormat(*visual_iter.data, avDepth);
-			if(score(vformat) > highestScore) {
+			auto depth = depth_iter.data->depth;
+			auto vformat = x11::visualToFormat(*visual_iter.data, depth);
+			auto s = score(vformat);
+			if(s > highestScore) {
 				visualID_ = visual_iter.data->visual_id;
-				depth_ = depth_iter.data->depth;
+				depth_ = depth;
+				highestScore = s;
 			}
 		}
 	}
 
 	if(!visualID_) {
-		throw std::runtime_error(nofound);
+		throw std::runtime_error("ny::X11WindowContext: no visual found");
 	}
+
+	if(depth_ == 24 && settings.transparent) {
+		dlg_warn("Could not find 32-bit visual for transparent window");
+	} 
 }
 
 xcb_connection_t& X11WindowContext::xConnection() const

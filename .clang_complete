@@ -1,5 +1,3 @@
--I./build/android/include
-
 -I./include
 -I./src
 -I./build/linux/include
