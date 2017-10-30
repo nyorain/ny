@@ -134,19 +134,36 @@ constexpr nytl::Vec2ui fallbackSize {800, 500};
 
 /// Settings for a Window.
 /// Backends may have their own WindowSettings class derived from this one that
-/// contains additional settings.
+/// contains additional settings. Not all settings are supported by all backends.
 class WindowSettings {
 public:
-	NativeHandle parent {}; ///< May specify the windows native parent
-	ToplevelState initState = ToplevelState::normal; ///< Window state after initialization
+	/// The native handle of the parent, or a null handle if the window
+	/// should be a toplevel window.
+	/// WindowContext creation should fail if this cannot be used.
+	NativeHandle parent {};
+
+	/// Requests an initial state for the windowContext.
+	/// The WindowContext may not support this, in which case WindowContext 
+	/// creation should succeed anyways, the WindowContext will always receive
+	/// a state even on creation (containing the real state).
+	ToplevelState initState = ToplevelState::normal;
+
+	/// Whether to try to make the window possibly transparent.
+	/// On some platforms (mainly windows) this may have a performance impact,
+	/// on some platforms it may not be avilable (in which case windowContext
+	/// creation should succeed anyways).
+	bool transparent = false; 
+
+	/// Whether the window will handle drop events. Has no effect if the 
+	/// Backend does not support drag and drop events.
+	bool droppable = false; 
+
+	WindowListener* listener {}; ///< first listener after initialization. Can be changed
 	nytl::Vec2ui size = defaultSize; ///< Beginning window size. Must not be (0, 0)
 	nytl::Vec2i position = defaultPosition; ///< Beginning window position
-	std::string title = "Some Random Window Title"; ///< The title of the window
-	bool show = true; ///< Show the window direclty after initialization?
-	Cursor cursor {}; ///< Default cursor for the whole window
-	WindowListener* listener {}; ///< first listener after initialization. Can be changed
-	bool transparent = false; ///< Whether to try to make the window possibly transparent
-	bool droppable = false; ///< Whether the window will handle drop events
+	std::string title = "ny-window"; ///< The title of the window
+	bool show = true; ///< Whether to initially show the inwodw
+	Cursor cursor {}; ///< Default cursor for the window
 
 	/// Can be used to specify if and which context should be created for the window.
 	SurfaceType surface = SurfaceType::none;

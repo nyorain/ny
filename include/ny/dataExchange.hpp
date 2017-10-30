@@ -73,7 +73,7 @@ public:
 	/// empty std::any object should be returned.
 	virtual std::any data(const DataFormat& format) const = 0;
 
-	/// Returns an image representing the data. This image could e.g. used
+	/// Returns an image representing the data. This image could e.g. be used
 	/// when this DataSource is used for a drag and drop opertation.
 	/// If the data cannot be represented using an image, return a default-constructed
 	/// Image object (or just don't override it).

@@ -94,10 +94,13 @@ X11BufferSurface::~X11BufferSurface()
 
 BufferGuard X11BufferSurface::buffer()
 {
-	if(active_)
+	if(active_) {
 		throw std::logic_error("ny::X11BufferSurface::buffer: there is already a BufferGuard");
+	}
 
-	//check if resize is needed
+	// check if resize is needed
+	// TODO: querySize() might be needed here. But this would produce
+	//  unexpected results (return image size) for the caller.
 	auto size = windowContext().size();
 	auto newBytes = std::ceil(size[0] * size[1] * bitSize(format_) / 8.0); //the needed size
 	if(newBytes > byteSize_) {

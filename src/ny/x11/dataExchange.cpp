@@ -7,8 +7,11 @@
 #include <ny/x11/windowContext.hpp>
 #include <ny/x11/util.hpp>
 #include <ny/x11/input.hpp>
+#include <ny/x11/bufferSurface.hpp>
 #include <ny/asyncRequest.hpp>
+#include <ny/bufferSurface.hpp>
 #include <dlg/dlg.hpp>
+#include <nytl/vecOps.hpp>
 
 #include <algorithm>
 
@@ -463,8 +466,19 @@ void X11DataSource::answerRequest(const xcb_selection_request_event_t& request)
 }
 
 // X11DataManager
-X11DataManager::X11DataManager(X11AppContext& ac) : appContext_(&ac)
+X11DataManager::X11DataManager(X11AppContext& ac) : 
+	appContext_(&ac)
 {
+	X11WindowSettings settings;
+	settings.transparent = true;
+	settings.droppable = false;
+	settings.show = true;
+	settings.surface = SurfaceType::buffer;
+	settings.size = {32, 32};
+
+	settings.overrideRedirect = true;
+	settings.windowType = ac.ewmhConnection()._NET_WM_WINDOW_TYPE_DND;
+	dndSrc_.dndWindow = std::make_unique<X11BufferWindowContext>(ac, settings);
 }
 
 bool X11DataManager::processEvent(const xcb_generic_event_t& ev)
@@ -773,22 +787,37 @@ bool X11DataManager::processDndEvent(const xcb_generic_event_t& ev)
 				auto replyChild = reply->child;
 				free(reply);
 
-				if(!replyChild) break;
+				if(!replyChild) {
+					break;
+				}
 
 				child = replyChild;
 				if(!toplevel) {
 					version = xdndAware(appContext(), child);
-					if(version) toplevel = child;
+					if(version) {
+						toplevel = child;
+					}
 				}
 			}
+
+			// move the dnd window, TODO: offset (and XQueryTree, correct querying)
+			uint32_t values2[] = {(uint32_t) motionEv.root_x + 5, (uint32_t) motionEv.root_y + 5};
+			xcb_configure_window(&xConnection(), dndSrc_.dndWindow->xWindow(), 
+				XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
+				values2);
 
 			// send leave event to old one and enter to new one if valid if it changed
 			// otherwise just send a default position event
 			if(toplevel != dndSrc_.targetWindow) {
-				if(dndSrc_.targetWindow) xdndSendLeave();
+				if(dndSrc_.targetWindow) {
+					xdndSendLeave();
+				}
+
 				dndSrc_.targetWindow = toplevel;
 				dndSrc_.version = version;
-				if(dndSrc_.targetWindow) xdndSendEnter();
+				if(dndSrc_.targetWindow) {
+					xdndSendEnter();
+				}
 			} else if(dndSrc_.targetWindow) {
 				xdndSendPosition({motionEv.root_x, motionEv.root_y});
 			}
@@ -820,6 +849,7 @@ bool X11DataManager::processDndEvent(const xcb_generic_event_t& ev)
 			dndSrc_.version = {};
 			dndSrc_.sourceWindow = {};
 			dndSrc_.targetWindow = {};
+			dndSrc_.dndWindow->hide();
 
 			return true;
 		}
@@ -868,7 +898,10 @@ bool X11DataManager::startDragDrop(std::unique_ptr<DataSource> src)
 {
 	// TODO: better check, give up xdndselection ownership on fail
 	// check if currently over window
-	if(!appContext().mouseContext()->over()) return false;
+	if(!appContext().mouseContext()->over()) {
+		dlg_warn("startDragDrop: not having mouse focus");
+		return false;
+	}
 
 	// try to take ownership of the xdnd selection
 	auto xdndSelection = atoms().xdndSelection;
@@ -876,7 +909,10 @@ bool X11DataManager::startDragDrop(std::unique_ptr<DataSource> src)
 
 	// check for success
 	auto owner = selectionOwner(xdndSelection);
-	if(owner != xDummyWindow()) return false;
+	if(owner != xDummyWindow()) {
+		dlg_warn("startDragDrop: failed to set selction owner");
+		return false;
+	}
 
 	// grab the pointer
 	auto eventMask = XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_ENTER_WINDOW |
@@ -884,7 +920,6 @@ bool X11DataManager::startDragDrop(std::unique_ptr<DataSource> src)
 
 	auto wc = dynamic_cast<X11WindowContext*>(appContext().mouseContext()->over());
 	auto window = appContext().xDefaultScreen().root;
-	// auto window = wc->xWindow();
 
 	auto grabCookie = xcb_grab_pointer(&xConnection(), false, window, eventMask,
 		XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC, XCB_NONE, XCB_NONE, XCB_CURRENT_TIME);
@@ -904,6 +939,24 @@ bool X11DataManager::startDragDrop(std::unique_ptr<DataSource> src)
 	if(result != XCB_GRAB_STATUS_SUCCESS) {
 		dlg_warn("grabbing cursor returned {}", result);
 		return false;
+	}
+
+	// render and show the dnd window
+	auto img = src->image();
+	if(img.format != ImageFormat::none) {
+		// TODO: temporary hack
+		dndSrc_.dndWindow->size(img.size);
+		dndSrc_.dndWindow->updateSize(img.size);
+		dndSrc_.dndWindow->show();
+
+		{
+			auto surf = dndSrc_.dndWindow->surface().buffer;
+			dlg_assert(surf);
+			auto guard = surf->buffer();
+			auto buf = guard.get();
+			dlg_assertm(buf.size == img.size, "{} vs {}", buf.size, img.size);
+			convertFormat(img, buf.format, *buf.data); // TODO: stride?
+		}
 	}
 
 	// if everything went fine, store the DataSource implementation to be able to

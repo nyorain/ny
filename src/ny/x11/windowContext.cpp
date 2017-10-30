@@ -148,14 +148,20 @@ void X11WindowContext::createWindow(const X11WindowSettings& settings)
 
 	// Setting the background pixel here may introduce flicker but may fix issues
 	// with creating opengl windows.
-	std::uint32_t valuelist[] = {0, eventmask, colormap, 0};
-	std::uint32_t valuemask = XCB_CW_COLORMAP | XCB_CW_BORDER_PIXEL | XCB_CW_EVENT_MASK;
+	std::uint32_t valuelist[] = {0, settings.overrideRedirect, eventmask, 
+		colormap};
+	std::uint32_t valuemask = XCB_CW_BORDER_PIXEL | XCB_CW_OVERRIDE_REDIRECT | 
+		XCB_CW_EVENT_MASK | XCB_CW_COLORMAP ;
 
 	auto window = xcb_generate_id(&xconn);
 	cookie = xcb_create_window_checked(&xconn, depth_, window, xparent, pos[0], pos[1],
 		size[0], size[1], 0, XCB_WINDOW_CLASS_INPUT_OUTPUT, vid, valuemask, valuelist);
 	errorCategory().checkThrow(cookie, "ny::X11WindowContext: create_window failed");
 	xWindow_ = window;
+
+	if(settings.windowType) {
+		xWindowType(settings.windowType);
+	}
 }
 
 void X11WindowContext::initVisual(const X11WindowSettings& settings)
@@ -618,7 +624,7 @@ void X11WindowContext::transientFor(xcb_window_t other)
 		XCB_ATOM_WM_TRANSIENT_FOR, XCB_ATOM_WINDOW, 32,	1, &other);
 }
 
-void X11WindowContext::xWindowType(xcb_window_t type)
+void X11WindowContext::xWindowType(xcb_atom_t type)
 {
 	xcb_ewmh_set_wm_window_type(&ewmhConnection(), xWindow(), 1, &type);
 }

@@ -192,6 +192,7 @@ protected:
 		xcb_window_t sourceWindow {}; //the source window in this application
 		xcb_window_t targetWindow {}; //the dnd aware window we are currently over
 		X11DataSource source {};
+		std::unique_ptr<X11BufferWindowContext> dndWindow {};
 	} dndSrc_;
 
 	// values for the current dnd session as target

@@ -102,7 +102,7 @@ public:
 		auto bufferGuard = surface->buffer();
 		auto buffer = bufferGuard.get();
 		auto size = dataSize(buffer);
-		std::memset(buffer.data, 0xFF, size);
+		std::memset(buffer.data, 0x00, size);
 	}
 
 	void mouseButton(const ny::MouseButtonEvent& ev) override
@@ -224,6 +224,7 @@ CustomDataSource::CustomDataSource()
 
 	// light transparent red
 	auto color = 0xAAFF6666;
+	// auto color = 0xFFFFFFFF;
 
 	auto it = reinterpret_cast<std::uint32_t*>(image_.data.get());
 	std::fill(it, it + (32 * 32), color);

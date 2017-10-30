@@ -13,7 +13,11 @@
 namespace ny {
 
 /// Additional settings for a X11 Window.
-class X11WindowSettings : public WindowSettings {};
+class X11WindowSettings : public WindowSettings {
+public:
+	bool overrideRedirect {false};
+	uint32_t windowType {};
+};
 
 /// The X11 implementation of the WindowContext interface.
 /// Provides some extra functionality for x11.
@@ -34,7 +38,7 @@ public:
 	void size(nytl::Vec2ui size) override;
 	void position(nytl::Vec2i position) override;
 
-	void cursor(const Cursor& c) override;
+	void cursor(const Cursor&) override;
 
 	NativeHandle nativeHandle() const override;
 	WindowCapabilities capabilities() const override;
