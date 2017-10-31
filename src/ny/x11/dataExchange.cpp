@@ -472,7 +472,7 @@ X11DataManager::X11DataManager(X11AppContext& ac) :
 	X11WindowSettings settings;
 	settings.transparent = true;
 	settings.droppable = false;
-	settings.show = true;
+	settings.show = false;
 	settings.surface = SurfaceType::buffer;
 	settings.size = {32, 32};
 

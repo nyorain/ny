@@ -11,7 +11,9 @@
 		- test it on all backends, such things may be possible with half-automated tests
 - make sure spec/promises are kept
 	- no event dispatching to handlers outside poll/waitEvents
-- fix initial state/size sending
+	- fix initial state/size sending
+	- wayland/x11: top level states (init + on change)
+	- invalid behaviour with maximize (not supported) on e.g. i3 (basic example, thinks it is maximized but it is not)
 - normalize wheel input values in some way across backends
 	- like value 1 if one "tick" was scrolled?
 - general keydown/keyup unicode value specificiation (cross-platform, differents atm)
@@ -19,6 +21,9 @@
 	- document it somewhere
 - wayland: fix dataExchange, enable only for droppable windows
 	- probably -> dataExchange rework
+- windows: wm_sysdown to capture alt keypress
+- check for uses of nytl::Callback, where recursiveCallback would be needed
+- Backend: make vector a deque to allow register backends later on (after one was chosen)
 
 ### missing features/design issues, no real bug but should be done
 
