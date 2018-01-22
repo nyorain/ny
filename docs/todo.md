@@ -6,6 +6,8 @@
 
 ### missing features/design issues
 
+- fix x11 child example (shm error)
+- i3 states: handle _NET_SUPPORTED and such
 - normalize wheel input values in some way across backends
 	- like value 1 if one "tick" was scrolled?
 - create (and cleanup existing) docs
