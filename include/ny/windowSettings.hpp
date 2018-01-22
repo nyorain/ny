@@ -1,4 +1,4 @@
-// Copyright (c) 2017 nyorain
+// Copyright (c) 2015-2018 nyorain
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
@@ -139,7 +139,8 @@ class WindowSettings {
 public:
 	/// The native handle of the parent, or a null handle if the window
 	/// should be a toplevel window.
-	/// WindowContext creation should fail if this cannot be used.
+	/// WindowContext creation should fail if this cannot be used but
+	/// passing an invalid handle results in undefined behavior.
 	NativeHandle parent {};
 
 	/// Requests an initial state for the windowContext.

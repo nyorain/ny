@@ -1,4 +1,4 @@
-// Copyright (c) 2017 nyorain
+// Copyright (c) 2015-2018 nyorain
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
@@ -41,7 +41,7 @@ std::vector<Backend*> Backend::backendsFunc(Backend* reg, bool remove)
 		} else {
 			backends_.push_back(reg);
 		}
-	} // TODO: else warn?
+	}
 
 	return backends_;
 }
@@ -50,8 +50,8 @@ Backend& Backend::choose()
 {
 	// make sure all backends are initialized
 	// we explicitly don't rely on static initialization for built-in
-	// backends anymore since this causes issues when statically linkin
-	// and is - stricly speaking - undefined behvaiour.
+	// backends anymore since this causes issues when statically linking
+	// and is - stricly speaking - undefined behavior.
 #ifdef NY_WithWinapi
 	WinapiBackend::initialize();
 #endif

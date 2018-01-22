@@ -4,42 +4,21 @@
 	- think about api/abi guarantees to give
 	- improve docs/make gen doc pages?
 
-### bug fixes, important
+### missing features/design issues
 
-- cleanup docs
-	- document when which events are sent
-		- test it on all backends, such things may be possible with half-automated tests
-- make sure spec/promises are kept
-	- no event dispatching to handlers outside poll/waitEvents
-	- fix initial state/size sending
-	- wayland/x11: top level states (init + on change)
-	- invalid behaviour with maximize (not supported) on e.g. i3 (basic example, thinks it is maximized but it is not)
 - normalize wheel input values in some way across backends
 	- like value 1 if one "tick" was scrolled?
-- general keydown/keyup unicode value specificiation (cross-platform, differents atm)
-	- which event should contain the utf8 member set?
-	- document it somewhere
+- create (and cleanup existing) docs
+	- document when which events are sent
+		- test it on all backends, such things may be possible with half-automated tests
+	- make sure spec/promises are kept
+		- no event dispatching to handlers outside poll/waitEvents
+		- fix initial state/size sending
+		- wayland/x11: top level states (init + on change)
+		- invalid behaviour with maximize (not supported) on e.g. i3 (basic example, thinks it is maximized but it is not)
+- windows: wm_sysdown to capture alt keypress
 - wayland: fix dataExchange, enable only for droppable windows
 	- probably -> dataExchange rework
-- windows: wm_sysdown to capture alt keypress
-- check for uses of nytl::Callback, where recursiveCallback would be needed
-- Backend: make vector a deque to allow register backends later on (after one was chosen)
-
-### missing features/design issues, no real bug but should be done
-
-- ime input (see winapi backend)
-	- use wm char/wm ime char and such, don't use ToUnicode
-- add android ci (ndk)
-- improvements to meson android handling
-	- e.g. offer way to automate building (at least some scripts)
-		- copy libraries using meson (+ script), automatically generate apk
-	- add unit tests where possible
-- general way to query (sync/async?) size from windowContext?
-- x11 dnd window
-- improve WindowCapabilities handling for backends
-	- not static on x11/wayland regarding decorations, position, sizeLimits
-- SizeEvent.windowEdges never used (no backend really implements it?)
-- improve error specifications everywhere
 - rework dataExchange
 	- some kind of dnd offer succesful feedback
 		- also offer dnd effects (copy/move etc)
@@ -58,6 +37,20 @@
 		- may not be threadsafe in implementation; should not be required (should it?)
 		- also: really pass it as unique ptr in WindowListener::drop
 			- why not simply non-const pointer, from this can be moved as well?!
+
+- ime input (see winapi backend)
+	- use wm char/wm ime char and such, don't use ToUnicode
+- add android ci (ndk)
+- improvements to meson android handling
+	- e.g. offer way to automate building (at least some scripts)
+		- copy libraries using meson (+ script), automatically generate apk
+	- add unit tests where possible
+- general way to query (sync/async?) size from windowContext?
+- x11 dnd window
+- improve WindowCapabilities handling for backends
+	- not static on x11/wayland regarding decorations, position, sizeLimits
+- SizeEvent.windowEdges never used (no backend really implements it?)
+- improve error specifications everywhere
 
 - move deferred.hpp to nytl
 - send CloseEvent when WindowContext::close called? define such things somewhere!
