@@ -1,6 +1,9 @@
 - winapi last commit with multi-threaded clipboard, SetClipboardListener, dialog stuff:
 	- 5add38fc66ca19100f9e0db2416ad8604aff2e77
 
+- resource for winapi keyboard stuff:
+https://handmade.network/wiki/2823-keyboard_inputs_-_scancodes,_raw_input,_text_input,_key_names
+
 # Events
 
 - KeyEvents are only guaranteed to contain the valid utf8 value when
