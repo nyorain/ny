@@ -202,13 +202,15 @@ endif
 # pkgconfig
 # TODO: make sure requires is correct (test it)
 # test the packageconfig with an external project
-pkg = import('pkgconfig')
-pkg_dirs = ['ny']
-pkg.generate(
-	name: 'ny',
-	requires: ['nytl'],
-	libraries: ny_lib,
-	filebase: 'ny',
-	subdirs: pkg_dirs,
-	version: meson.project_version(),
-	description: 'C++17 window abstraction')
+if not android
+  pkg = import('pkgconfig')
+  pkg_dirs = ['ny']
+  pkg.generate(
+	  name: 'ny',
+	  requires: ['nytl'],
+	  libraries: ny_lib,
+	  filebase: 'ny',
+	  subdirs: pkg_dirs,
+	  version: meson.project_version(),
+	  description: 'C++17 window abstraction')
+endif

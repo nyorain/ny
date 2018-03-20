@@ -125,6 +125,7 @@ if android
 else
 	ny_lib = library('ny',
 		sources: ny_src,
+		install: true,
 		dependencies: deps,
 		cpp_args: '-DDLG_DEFAULT_TAGS="ny",',
 		include_directories: [ny_inc, ny_inc_private])
