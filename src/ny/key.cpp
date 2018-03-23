@@ -140,7 +140,7 @@ constexpr struct Mapping {
 	{Keycode::pause, "pause"},
 	{Keycode::scale, "scale"},
 
-	{Keycode::kpcomma, "kpcomma"},
+	{Keycode::kpcomma, "kpcomma", true},
 	{Keycode::hangeul, "hangeul"},
 	{Keycode::hanguel, "hanguel"},
 	{Keycode::hanja, "hanja"},

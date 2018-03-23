@@ -532,7 +532,7 @@ static_assert(static_cast<unsigned int>(Keycode::data) == 0x275, "Wrong enum num
 const char* name(Keycode keycode);
 
 /// Returns whehter the given keycode is usually a special (i.e. non input) input key.
-/// Will return false for e.g. keycodes like a,5,],+,space or the keypad keys,
+/// Will return true for e.g. keycodes like a,5,],+,space or the keypad keys,
 /// and false for meta keys like shift, alt, ctrl, pageUp, f12, etc. Note however
 /// that this check may be wrong and the best way is usually to check
 /// the resulting utf-8 for validity.
