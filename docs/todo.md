@@ -1,12 +1,7 @@
 # Todo
 
-- after some cleanups (+important fixes): release first alpha (clear roadmap?)
-	- think about api/abi guarantees to give
-	- improve docs/make gen doc pages?
-
 ### missing features/design issues
 
-- fix x11 child example (shm error)
 - i3 states: handle _NET_SUPPORTED and such
 - normalize wheel input values in some way across backends
 	- like value 1 if one "tick" was scrolled?
@@ -60,16 +55,12 @@
 - dataExchange: correctly handle utf-8 mimetype
 	- only pass utf-8 to the application
 - Keyboard/MouseContext use Event in callback
-- WindowListener::surfaceDestroyed: output warning on default implementation?
-	- it was not overriden which can/will lead to serious problems.
 - fix/readd examples
 	- see src/examples/old
 		- provide vulkan example (basic)
 		- provide software rendering example
 			- show how the handle the returned mutable image
 		- cairo/skia examples
-- gl: (re-)implement shared checking functionality
-	- only if it possible in a lightweight manner
 - better WindowSettings surface/draw namings
 	- WindowSettings::buffer is a rather bad/unintuitive name
 - possibility to create popups on wayland per common interface

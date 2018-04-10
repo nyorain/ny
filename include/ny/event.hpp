@@ -99,7 +99,10 @@ struct DndEnterEvent : public Event {
 /// The associated DataOffer pointer is only valid until a DndLeaveEvent for the offer is sent.
 struct DndMoveEvent : public Event {
 	nytl::Vec2i position {}; /// The new position of the dnd offer
-	DataOffer* offer {}; /// The associated DataOffer
+
+	/// The associated DataOffer. Can be used to determine the dnd feedback
+	/// (i.e. whether this DataOffer can be dropped in the window).
+	DataOffer* offer {};
 };
 
 /// Event that is sent when a drag and drop offer leaves the window.
@@ -113,7 +116,10 @@ struct DndLeaveEvent : public Event {
 /// Otherwise, it will be destructed with this structure.
 struct DndDropEvent : public Event {
 	nytl::Vec2i position {}; /// The position at which it was dropped
-	std::unique_ptr<DataOffer> offer {}; /// The owned associated DataOffer
+
+	/// The associated DataOffer. Guaranteed to be the same as in the 
+	/// previous dnd events. Ownership is handed over to the WindowListener.
+	std::unique_ptr<DataOffer> offer {};
 };
 
 /// Event that is sent when a window should be redrawn

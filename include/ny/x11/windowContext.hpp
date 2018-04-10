@@ -94,10 +94,6 @@ public:
 	/// The changed property is _NET_WM_STATE.
 	void toggleStates(uint32_t state1, uint32_t state2 = 0);
 
-	/// Returns the states associated with this window.
-	/// For more information look in the ewmh specification for _NET_WM_STATE.
-	std::vector<uint32_t> states() const { return states_; };
-
 	/// Sets the window type.
 	/// For more information look in the ewmh specification for _NET_WM_WINDOW_TYPE.
 	void xWindowType(uint32_t type);
@@ -156,6 +152,9 @@ protected:
 	/// By default, this just selects the 32 or 24 bit visual with the most usual format.
 	void initVisual(const X11WindowSettings& settings);
 
+	/// Reads the windows states and sends an event if they changed.
+	void reloadStates();
+
 protected:
 	X11AppContext* appContext_ = nullptr;
 	X11WindowSettings settings_ {};
@@ -171,7 +170,7 @@ protected:
 	unsigned int depth_ {};
 
 	// Stored EWMH states can be used to check whether it is fullscreen, maximized etc.
-	std::vector<uint32_t> states_;
+	ToplevelState state_ {};
 	bool customDecorated_ {};
 	nytl::Vec2ui size_ {}; // the latest size
 

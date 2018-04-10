@@ -38,9 +38,8 @@ WinapiWindowContext::WinapiWindowContext(WinapiAppContext& appContext,
 		if(settings.initState == ToplevelState::normal) {
 			listener().resize({nullptr, size_, {}});
 		}
-		if(!settings.parent) {
-			listener().state({nullptr, settings.initState});
-		}
+
+		listener().state({nullptr, settings.initState});
 	}, this);
 }
 
@@ -109,16 +108,11 @@ WNDCLASSEX WinapiWindowContext::windowClass(const WinapiWindowSettings&)
 
 void WinapiWindowContext::setStyle(const WinapiWindowSettings& ws)
 {
-	if(!ws.parent) {
-		style_ = WS_OVERLAPPEDWINDOW;
-	} else {
-		style_ = WS_CHILD; // alternatively: WS_POPUP
-	}
+	style_ = WS_OVERLAPPEDWINDOW;
 }
 
 void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 {
-	auto parent = static_cast<HWND>(settings.parent.pointer());
 	auto hinstance = appContext().hinstance();
 	auto titleW = widen(settings.title);
 
@@ -164,7 +158,7 @@ void WinapiWindowContext::initWindow(const WinapiWindowSettings& settings)
 		style_,
 		position[0], position[1],
 		size[0], size[1],
-		parent, nullptr, hinstance, this);
+		nullptr, nullptr, hinstance, this);
 
 	if(!handle_) {
 		throw winapi::lastErrorException("ny::WinapiWindowContext: CreateWindowEx failed");

@@ -9,6 +9,7 @@ ny_src = [
 	'dataExchange.cpp',
 	'key.cpp',
 	'mouseButton.cpp',
+	'windowListener.cpp',
 	'backend.cpp',
 	'common/gl.cpp', # does actually not need gl
 	]

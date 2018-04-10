@@ -394,7 +394,7 @@ WglContext::WglContext(const WglSetup& setup, const GlContextSettings& settings)
 	if(!wglContext_)
 		throw std::runtime_error("ny::WglContext: failed to create wgl context in any way");
 
-	GlContext::initContext(api, config_, settings.share);
+	GlContext::initContext(api, config_);
 }
 
 WglContext::~WglContext()

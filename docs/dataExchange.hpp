@@ -18,11 +18,11 @@
 namespace ny {
 namespace mime {
 
-constexpr auto text = "text/plain";
-constexpr auto utf8Text = "text/plain;charset=utf-8";
-constexpr auto uriList = "text/uri-list";
-constexpr auto image = "image/x-ny-data";
-constexpr auto raw = "application/octet-stream";
+constexpr auto text = "text/plain"; // text with unknown decoding
+constexpr auto utf8Text = "text/plain;charset=utf-8"; // utf-8 text
+constexpr auto uriList = "text/uri-list"; // uri/file list
+constexpr auto image = "image/x-ny-data"; // raw ny image
+constexpr auto raw = "application/octet-stream"; // binary data
 
 } // namespace mime
 
@@ -39,7 +39,7 @@ class DataSource {
 public:
 	virtual ~DataSource() = default;
 
-	/// Returns all supported dataTypes format constants as a DataTypes object.
+	/// Returns all mime types in which it can be represented.
 	virtual std::vector<std::string> formats() const = 0;
 
 	/// Returns data in the given format.
@@ -47,7 +47,7 @@ public:
 	/// Note that the valid member in the returned ExchangeData must otherwise
 	/// met the requested format (see ExchangeData typedef), i.e.
 	/// return a variant holding a std::string for format "image/jpg" is
-	/// invalid and will lead to an error.
+	/// invalid.
 	virtual ExchangeData data(const char* format) const = 0;
 
 	/// Returns an image representing the data. This image could e.g. used
@@ -67,31 +67,30 @@ public:
 /// without data to end the waiting.
 class DataOffer {
 public:
-	using FormatsRequest = std::unique_ptr<AsyncRequest<std::vector<std::string>>>;
-	using DataRequest = std::unique_ptr<AsyncRequest<ExchangeData>>;
+	using FormatsListener = std::function<void(nytl::Span<const char*>)>;
+	using DataListener = std::function<void(ExchangeData)>;
 
 public:
 	DataOffer() = default;
+
+	/// When a DataOffer is destructed it should call all registered Listeners
+	/// with an empty object (i.e. signaling failure).
 	virtual ~DataOffer() = default;
 
 	/// Requests all supported formats in which the data is offered.
-	/// On failure nullptr (if known at return time) or a FormatsRequest
-	/// without any formats should be returned.
-	virtual FormatsRequest formats() = 0;
+	/// Will return on error, otherwise the FormatsListener will be
+	/// called either from within this function or later on.
+	virtual bool formats(FormatsListener&) = 0;
 
-	/// Requests the offered data in the given DataFormat.
-	/// If this failed because the format is not supported or the data cannot 
-	/// be retrieved, nullptr (if known at return time) or a DataRequest with 
-	/// an empty object (monostate) should be returned.
-	/// Note that (the same as in DataSource::data), the type the variant
-	/// will hold is found to the requested format. 
-	/// If e.g. the format "text/uri-list" is requested the ExchangeData must 
-	/// be either empty (to signal an error) or hold a 
-	/// std::vector<std::string>, nothing else.
-	virtual DataRequest data(const DataFormat&) = 0;
+	/// Requests the offered data in the given mime type.
+	/// If this failed because the format is not supported or another error
+	/// ocurred, false should be returned. Otherwise the given DataListener
+	/// should be called later on from within a AppContext dispatch function
+	/// or instantly before this call returns.
+	/// Note that DataOffers should not cache data internally, this function
+	/// is not expected to be called multiple times for one format.
+	virtual bool data(const char* format, DataListener&) = 0;
 };
-
-using DataOfferPtr = std::unique_ptr<DataOffer>;
 
 // - The following functions are mainly used by backends -
 /// Serializes the given image (size, stride, (int) format, data).
@@ -108,7 +107,7 @@ std::string encodeUriList(const std::vector<std::string>& uris);
 
 /// Decodes a given utf8 encoded string of mime-type text/uri-list to a vector
 /// holding the uri list items.
-/// Will replace '%' escape codes in the list with utf8 special char.
+/// Will replace '%' escape codes in the list with utf8 special chars.
 /// \param removeComments removes (comment) uri lines that start with a '#'
 std::vector<std::string> decodeUriList(const std::string& list, 
 	bool removeComments = true);

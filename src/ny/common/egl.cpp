@@ -373,7 +373,7 @@ EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 	if(!eglContext_)
 		throw std::runtime_error("ny::EglContext: failed to create egl context");
 
-	GlContext::initContext(api, glConfig, settings.share);
+	GlContext::initContext(api, glConfig);
 }
 
 EglContext::~EglContext()

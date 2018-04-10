@@ -62,8 +62,12 @@ public:
 	virtual void mouseWheel(const MouseWheelEvent&) {} /// Mouse wheel rotated over window
 	virtual void mouseCross(const MouseCrossEvent&) {} /// Mouse entered/left window
 
-	virtual void surfaceDestroyed(const SurfaceDestroyedEvent&) {} /// Associated surface destroyed
-	virtual void surfaceCreated(const SurfaceCreatedEvent&) {} /// New surface created
+	/// On some platforms (android, namely) associated surfaces may have to
+	/// be recreated during the applications lifetime. Override this functions
+	/// and update your used surfaces. The default implementations just
+	/// output a warning since they were not overriden.
+	virtual void surfaceDestroyed(const SurfaceDestroyedEvent&);/// Associated surface destroyed
+	virtual void surfaceCreated(const SurfaceCreatedEvent&); /// New surface created
 
 protected:
 	WindowListener() = default;

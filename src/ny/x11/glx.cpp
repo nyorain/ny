@@ -261,7 +261,7 @@ bool GlxSurface::apply(std::error_code& ec) const
 GlxContext::GlxContext(const GlxSetup& setup, GLXContext context, const GlConfig& config)
 : setup_(setup), glxContext_(context)
 {
-	GlContext::initContext(GlApi::gl, config, nullptr);
+	GlContext::initContext(GlApi::gl, config);
 }
 
 GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
@@ -394,7 +394,7 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 		dlg_info("could only create indirect gl context");
 	}
 
-	GlContext::initContext(GlApi::gl, glConfig, settings.share);
+	GlContext::initContext(GlApi::gl, glConfig);
 }
 
 GlxContext::~GlxContext()

@@ -305,14 +305,10 @@ GlContext::~GlContext()
 	}
 }
 
-void GlContext::initContext(GlApi api, const GlConfig& config, GlContext* shared)
+void GlContext::initContext(GlApi api, const GlConfig& config)
 {
 	api_ = api;
 	config_ = config;
-
-	// TODO
-	// shared_ = shared;
-	((void)shared);
 }
 
 void GlContext::makeCurrent(const GlSurface& surface)

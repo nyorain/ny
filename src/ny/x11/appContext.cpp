@@ -491,7 +491,6 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev, const x11::Generic
 		}
 
 		case XCB_CONFIGURE_NOTIFY: {
-			// TODO: notify of changed position?
 			auto& configure = reinterpret_cast<const xcb_configure_notify_event_t&>(ev);
 
 			auto nsize = nytl::Vec2ui{configure.width, configure.height};
@@ -499,6 +498,7 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev, const x11::Generic
 
 			if(wc && nsize != wc->size()) {
 				wc->updateSize(nsize);
+				wc->reloadStates();
 				if(!wc->resizeEventFlag_) {
 					wc->resizeEventFlag_ = true;
 					deferred.add([wc, eventData](){

@@ -17,11 +17,8 @@ namespace ny {
 enum class WaylandSurfaceRole : unsigned int {
 	none,
 	shell,
-	sub,
 	xdgSurfaceV5,
-	xdgPopupV5,
 	xdgToplevelV6,
-	xdgPopupV6
 };
 
 /// WindowSettings class for wayland WindowContexts.
@@ -108,9 +105,6 @@ protected:
 	void createShellSurface(const WaylandWindowSettings& ws);
 	void createXdgSurfaceV5(const WaylandWindowSettings& ws);
 	void createXdgSurfaceV6(const WaylandWindowSettings& ws);
-	void createXdgPopupV5(const WaylandWindowSettings& ws);
-	void createXdgPopupV6(const WaylandWindowSettings& ws);
-	void createSubsurface(wl_surface& parent, const WaylandWindowSettings& ws);
 
 	// listeners
 	void handleFrameCallback(wl_callback*, uint32_t);
@@ -120,13 +114,10 @@ protected:
 
 	void handleXdgSurfaceV5Configure(xdg_surface*, int32_t, int32_t, wl_array*, uint32_t);
 	void handleXdgSurfaceV5Close(xdg_surface*);
-	void handleXdgPopupV5Done(xdg_popup*);
 
 	void handleXdgSurfaceV6Configure(zxdg_surface_v6*, uint32_t);
 	void handleXdgToplevelV6Configure(zxdg_toplevel_v6*, int32_t, int32_t, wl_array*);
 	void handleXdgToplevelV6Close(zxdg_toplevel_v6*);
-	void handleXdgPopupV6Configure(zxdg_popup_v6*, int32_t, int32_t, int32_t, int32_t);
-	void handleXdgPopupV6Done(zxdg_popup_v6*);
 
 protected:
 	WaylandAppContext* appContext_ {};
@@ -152,10 +143,7 @@ protected:
 	struct XdgSurfaceV6 {
 		zxdg_surface_v6* surface;
 		bool configured;
-		union {
-			zxdg_toplevel_v6* toplevel;
-			zxdg_popup_v6* popup;
-		};
+		zxdg_toplevel_v6* toplevel;
 	};
 
 	// the different surface roles this surface can have.
@@ -163,11 +151,7 @@ protected:
 	// xdg roles are preferred over the plain wl ones if available
 	union {
 		wl_shell_surface* wlShellSurface_ = nullptr;
-		wl_subsurface* wlSubsurface_;
-
 		xdg_surface* xdgSurfaceV5_;
-		xdg_popup* xdgPopupV5_;
-
 		XdgSurfaceV6 xdgSurfaceV6_;
 	};
 

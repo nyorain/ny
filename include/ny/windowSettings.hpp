@@ -137,12 +137,6 @@ constexpr nytl::Vec2ui fallbackSize {800, 500};
 /// contains additional settings. Not all settings are supported by all backends.
 class WindowSettings {
 public:
-	/// The native handle of the parent, or a null handle if the window
-	/// should be a toplevel window.
-	/// WindowContext creation should fail if this cannot be used but
-	/// passing an invalid handle results in undefined behavior.
-	NativeHandle parent {};
-
 	/// Requests an initial state for the windowContext.
 	/// The WindowContext may not support this, in which case WindowContext 
 	/// creation should succeed anyways, the WindowContext will always receive
@@ -151,8 +145,9 @@ public:
 
 	/// Whether to try to make the window possibly transparent.
 	/// On some platforms (mainly windows) this may have a performance impact,
-	/// on some platforms it may not be avilable (in which case windowContext
-	/// creation should succeed anyways).
+	/// on some platforms it may not be available (in which case windowContext
+	/// creation should succeed anyways). Note that settings this to false
+	/// does not guarantee that the window will not be transparent.
 	bool transparent = false; 
 
 	/// Whether the window will handle drop events. Has no effect if the 

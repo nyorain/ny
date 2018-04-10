@@ -134,8 +134,7 @@ struct Atoms {
 	xcb_atom_t wmDeleteWindow;
 	xcb_atom_t motifWmHints;
 
-	struct
-	{
+	struct {
 		xcb_atom_t textPlain; // text/plain
 		xcb_atom_t textPlainUtf8; // text/plain;charset=utf8
 		xcb_atom_t textUriList; // text/uri-list

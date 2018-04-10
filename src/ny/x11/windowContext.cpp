@@ -29,9 +29,7 @@ X11WindowContext::X11WindowContext(X11AppContext& ctx, const X11WindowSettings& 
 
 	// send initial state
 	this->appContext().deferred.add([this, settings]{
-		if(!settings.parent) {
-			listener().state({nullptr, settings.initState});
-		}
+		listener().state({nullptr, state_});
 	}, this);
 }
 
@@ -68,17 +66,15 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 	createWindow(settings);
 	appContext_->registerContext(xWindow_, *this);
 
-	if(!settings.parent) {
-		auto protocols = ewmhConnection().WM_PROTOCOLS;
-		auto supportedProtocols = appContext_->atoms().wmDeleteWindow;
-		if(!settings.title.empty()) {
-			title(settings.title.c_str());
-		}
-		xcb_change_property(&xconn, XCB_PROP_MODE_REPLACE, xWindow_, protocols,
-				XCB_ATOM_ATOM, 32, 1, &supportedProtocols);
-		xcb_change_property(&xconn, XCB_PROP_MODE_REPLACE, xWindow_, XCB_ATOM_WM_NAME,
-				XCB_ATOM_STRING, 8, settings.title.size(), settings.title.c_str());
+	auto protocols = ewmhConnection().WM_PROTOCOLS;
+	auto supportedProtocols = appContext_->atoms().wmDeleteWindow;
+	if(!settings.title.empty()) {
+		title(settings.title.c_str());
 	}
+	xcb_change_property(&xconn, XCB_PROP_MODE_REPLACE, xWindow_, protocols,
+			XCB_ATOM_ATOM, 32, 1, &supportedProtocols);
+	xcb_change_property(&xconn, XCB_PROP_MODE_REPLACE, xWindow_, XCB_ATOM_WM_NAME,
+			XCB_ATOM_STRING, 8, settings.title.size(), settings.title.c_str());
 
 	// signal that this window understands the xdnd protocol
 	// version 5 of the xdnd protocol is supported
@@ -127,11 +123,7 @@ void X11WindowContext::createWindow(const X11WindowSettings& settings)
 
 	auto size = settings.size;
 	if(size == defaultSize) size = fallbackSize;
-
-	xcb_window_t xparent = settings.parent.uint64();
-	if(!xparent) {
-		xparent = xscreen.root;
-	}
+	auto xparent = xscreen.root;
 
 	auto colormap = xcb_generate_id(&xconn);
 	auto cookie = xcb_create_colormap_checked(&xconn, XCB_COLORMAP_ALLOC_NONE, colormap,
@@ -317,8 +309,10 @@ void X11WindowContext::cursor(const Cursor& curs)
 
 void X11WindowContext::maximize()
 {
+	removeStates(ewmhConnection()._NET_WM_STATE_FULLSCREEN);
 	addStates(ewmhConnection()._NET_WM_STATE_MAXIMIZED_VERT,
 			ewmhConnection()._NET_WM_STATE_MAXIMIZED_HORZ);
+	state_ = ToplevelState::maximized;
 }
 
 void X11WindowContext::minimize()
@@ -340,11 +334,13 @@ void X11WindowContext::minimize()
 
 	::XIconifyWindow(&appContext().xDisplay(), xWindow_, appContext().xDefaultScreenNumber());
 	::XSync(&appContext().xDisplay(), 1);
+	state_ = ToplevelState::minimized;
 }
 
 void X11WindowContext::fullscreen()
 {
 	addStates(ewmhConnection()._NET_WM_STATE_FULLSCREEN);
+	state_ = ToplevelState::fullscreen;
 }
 
 void X11WindowContext::normalState()
@@ -359,6 +355,8 @@ void X11WindowContext::normalState()
 	removeStates(ewmhConnection()._NET_WM_STATE_FULLSCREEN);
 	removeStates(ewmhConnection()._NET_WM_STATE_MAXIMIZED_VERT,
 		ewmhConnection()._NET_WM_STATE_MAXIMIZED_HORZ);
+	
+	state_ = ToplevelState::normal;
 }
 
 void X11WindowContext::beginMove(const EventData* ev)
@@ -665,6 +663,40 @@ xcb_visualtype_t* X11WindowContext::xVisualType() const
 Surface X11WindowContext::surface()
 {
 	return {};
+}
+
+void X11WindowContext::reloadStates() {
+	auto prop = x11::readProperty(xConnection(), 
+		ewmhConnection()._NET_WM_STATE, xWindow());
+	dlg_assert(prop.type = XCB_ATOM_ATOM);
+	dlg_assert(prop.format = 32);
+
+	auto states = nytl::Span<std::uint32_t> {
+		reinterpret_cast<std::uint32_t*>(prop.data.data()),
+		prop.data.size() / 4
+	};
+
+	auto hidden = std::find(states.begin(), states.end(), 
+		ewmhConnection()._NET_WM_STATE_HIDDEN);
+
+	if(std::find(states.begin(), states.end(), 
+			ewmhConnection()._NET_WM_STATE_FULLSCREEN) != states.end()) {
+		if(state_ != ToplevelState::fullscreen) {
+			state_ = ToplevelState::fullscreen;
+			listener().state({nullptr, state_, !hidden});
+		}
+	} else if(std::find(states.begin(), states.end(), 
+			ewmhConnection()._NET_WM_STATE_MAXIMIZED_HORZ) != states.end() &&
+			std::find(states.begin(), states.end(), 
+			ewmhConnection()._NET_WM_STATE_MAXIMIZED_VERT) != states.end()) {
+		if(state_ != ToplevelState::maximized) {
+			state_ = ToplevelState::maximized;
+			listener().state({nullptr, state_, !hidden});
+		}
+	} else if(state_ == ToplevelState::fullscreen || state_ == ToplevelState::maximized) {
+		state_ = ToplevelState::normal;
+		listener().state({nullptr, state_, !hidden});
+	}
 }
 
 } // namespace ny

@@ -4,6 +4,11 @@
 - resource for winapi keyboard stuff:
 https://handmade.network/wiki/2823-keyboard_inputs_-_scancodes,_raw_input,_text_input,_key_names
 
+- commit that removed child functionality
+	- inclusive (bad) implementations and wayland popup stuff
+	- not all bad, just not really polished/finished/tested
+	- 72f206ce9b690078ab6a1e08063aea589af78ba8
+
 # Events
 
 - KeyEvents are only guaranteed to contain the valid utf8 value when
