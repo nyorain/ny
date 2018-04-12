@@ -23,8 +23,6 @@ MouseButton x11ToButton(unsigned int button)
 		case 1: return MouseButton::left;
 		case 2: return MouseButton::middle;
 		case 3: return MouseButton::right;
-		case 6: return MouseButton::custom1;
-		case 7: return MouseButton::custom2;
 		case 8: return MouseButton::custom1;
 		case 9: return MouseButton::custom2;
 		default: return MouseButton::unknown;

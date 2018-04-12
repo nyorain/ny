@@ -156,13 +156,23 @@ void WaylandMouseContext::handleButton(wl_pointer*, uint32_t serial, uint32_t ti
 
 void WaylandMouseContext::handleAxis(wl_pointer*, uint32_t time, uint32_t axis, wl_fixed_t value)
 {
-	nytl::unused(time, axis);
-	auto nvalue = wl_fixed_to_int(value);
-	onWheel(*this, nvalue);
+	nytl::unused(time);
+
+	float nvalue = wl_fixed_to_double(value) / 10.f;
+	nytl::Vec2f scroll {};
+	if(axis == WL_POINTER_AXIS_HORIZONTAL_SCROLL) {
+		scroll = {nvalue, 0.f};
+	} else if(axis == WL_POINTER_AXIS_VERTICAL_SCROLL) {
+		scroll = {0.f, nvalue};
+	} else {
+		dlg_info("Wayland: unsupported axis {}", axis);
+	}
+
+	onWheel(*this, scroll);
 
 	if(over_) {
 		MouseWheelEvent mwe;
-		mwe.value = nvalue;
+		mwe.value = scroll;
 		mwe.position = position_;
 		over_->listener().mouseWheel(mwe);
 	}

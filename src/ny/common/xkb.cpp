@@ -68,6 +68,8 @@ void XkbKeyboardContext::setupCompose()
 	static constexpr auto stateFailed = "ny::XkbKeyboardContext::setupCompose: "
 		"failed to setup xkb compose state";
 
+	// TODO: can be improved, fall back to other locales if needed
+	// https://raw.githubusercontent.com/glfw/glfw/master/src/wl_init.c
 	auto locale = setlocale(LC_CTYPE, nullptr);
 	if(!locale) throw std::runtime_error(localeFailed);
 

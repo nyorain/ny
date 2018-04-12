@@ -50,7 +50,7 @@ struct MouseButtonEvent : public Event {
 /// Event that is sent when the mouse wheel gets scrolled.
 struct MouseWheelEvent : public Event {
 	nytl::Vec2i position {}; /// The mouse position when the event occurred
-	float value {}; /// The value of the wheel scrolling
+	nytl::Vec2f value {}; /// The horz/vert value of the wheel scrolling
 };
 
 /// Event that is sent when the mouse enters or leaves a window.
@@ -77,7 +77,6 @@ struct KeyEvent : public Event {
 /// Event for a window getting resized.
 struct SizeEvent : public Event {
 	nytl::Vec2ui size {}; /// The new size of the window
-	WindowEdges edges {}; /// The edges that were resized or WindowEdge::none if unknown
 };
 
 /// Event for a window that changed its state.

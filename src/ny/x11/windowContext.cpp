@@ -20,6 +20,10 @@
 
 #include <cstring> // std::memcpy
 
+// pid
+#include <sys/types.h>
+#include <unistd.h>
+
 namespace ny {
 
 //windowContext
@@ -67,14 +71,20 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 	appContext_->registerContext(xWindow_, *this);
 
 	auto protocols = ewmhConnection().WM_PROTOCOLS;
-	auto supportedProtocols = appContext_->atoms().wmDeleteWindow;
+	xcb_atom_t supportedProtocols[] = {
+		appContext_->atoms().wmDeleteWindow,
+		ewmhConnection()._NET_WM_PING
+	};
+
 	if(!settings.title.empty()) {
 		title(settings.title.c_str());
 	}
+
 	xcb_change_property(&xconn, XCB_PROP_MODE_REPLACE, xWindow_, protocols,
-			XCB_ATOM_ATOM, 32, 1, &supportedProtocols);
-	xcb_change_property(&xconn, XCB_PROP_MODE_REPLACE, xWindow_, XCB_ATOM_WM_NAME,
-			XCB_ATOM_STRING, 8, settings.title.size(), settings.title.c_str());
+		XCB_ATOM_ATOM, 32, 2, supportedProtocols);
+
+	auto pid = getpid();
+	xcb_ewmh_set_wm_pid(&ewmhConnection(), xWindow(), pid);
 
 	// signal that this window understands the xdnd protocol
 	// version 5 of the xdnd protocol is supported
@@ -535,19 +545,15 @@ WindowCapabilities X11WindowContext::capabilities() const
 	// we could also check if ewmh (-> beginMove/beginResize) is supported:
 	// https://chromium.googlesource.com/chromium/src.git/+/master/ui/base/x/x11_util.cc#914
 	return WindowCapability::size |
-		WindowCapability::fullscreen |
-		WindowCapability::minimize |
-		WindowCapability::maximize |
 		WindowCapability::position |
 		WindowCapability::sizeLimits |
 		WindowCapability::icon |
 		WindowCapability::cursor |
 		WindowCapability::title |
-		WindowCapability::beginMove |
-		WindowCapability::beginResize |
 		WindowCapability::visibility |
 		WindowCapability::customDecoration |
-		WindowCapability::serverDecoration;
+		WindowCapability::serverDecoration |
+		appContext().ewmhWindowCaps();
 }
 
 // x11 specific
@@ -624,6 +630,7 @@ void X11WindowContext::transientFor(xcb_window_t other)
 
 void X11WindowContext::xWindowType(xcb_atom_t type)
 {
+	// TODO: output warning if not in _NET_SUPPORTED (AppContext)
 	xcb_ewmh_set_wm_window_type(&ewmhConnection(), xWindow(), 1, &type);
 }
 

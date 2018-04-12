@@ -41,6 +41,7 @@ public:
 public:
 	void draw(const ny::DrawEvent&) override;
 	void mouseButton(const ny::MouseButtonEvent&) override;
+	void mouseWheel(const ny::MouseWheelEvent&) override;
 	void key(const ny::KeyEvent&) override;
 	void state(const ny::StateEvent&) override;
 	void close(const ny::CloseEvent&) override;
@@ -188,6 +189,11 @@ void MyWindowListener::mouseButton(const ny::MouseButtonEvent& event)
 			windowContext->beginMove(event.eventData);
 		}
 	}
+}
+
+void MyWindowListener::mouseWheel(const ny::MouseWheelEvent& ev) 
+{
+	dlg_info("mouse wheel: {}", ev.value);
 }
 
 void MyWindowListener::focus(const ny::FocusEvent& ev)

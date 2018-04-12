@@ -124,9 +124,22 @@ bool WinapiMouseContext::processEvent(const WinapiEventData& eventData, LRESULT&
 			POINT screenPos {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
 			::ClientToScreen(window, &screenPos);
 
-			MouseWheelEvent mwe;
+			MouseWheelEvent mwe {};
 			mwe.eventData = &eventData;
-			mwe.value = GET_WHEEL_DELTA_WPARAM(wparam) / 120.0;
+			mwe.value.y = GET_WHEEL_DELTA_WPARAM(wparam) / 120.0;
+			mwe.position = {screenPos.x, screenPos.y};
+			wc->listener().mouseWheel(mwe);
+			onWheel(*this, mwe.value);
+			break;
+		}
+
+		case WM_MOUSEHWHEEL: {
+			POINT screenPos {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+			::ClientToScreen(window, &screenPos);
+
+			MouseWheelEvent mwe {};
+			mwe.eventData = &eventData;
+			mwe.value.x = -GET_WHEEL_DELTA_WPARAM(wparam) / 120.0;
 			mwe.position = {screenPos.x, screenPos.y};
 			wc->listener().mouseWheel(mwe);
 			onWheel(*this, mwe.value);

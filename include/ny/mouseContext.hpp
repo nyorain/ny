@@ -39,7 +39,7 @@ public:
 
 	/// Will be called everytime the mousewheel is rotated.
 	/// A value >0 means that the wheel was rotated forwards, a value < 0 backwards.
-	nytl::Callback<void(MouseContext&, float value)> onWheel;
+	nytl::Callback<void(MouseContext&, nytl::Vec2f value)> onWheel;
 };
 
 } // namespace ny

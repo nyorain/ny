@@ -56,14 +56,16 @@ bool X11MouseContext::processEvent(const x11::GenericEvent& ev)
 		case XCB_BUTTON_PRESS: {
 			auto& button = reinterpret_cast<const xcb_button_press_event_t&>(ev);
 
-			int scroll = 0;
-			if(button.detail == 4) scroll = 1;
-			else if(button.detail == 5) scroll = -1;
-
 			auto wc = appContext().windowContext(button.event);
 			auto pos = nytl::Vec2i{button.event_x, button.event_y};
 
-			if(scroll) {
+			if(button.detail >= 4 && button.detail <= 7) {
+				nytl::Vec2f scroll {};
+				if(button.detail == 4) scroll = {0, 1};
+				else if(button.detail == 5) scroll = {0, -1};
+				else if(button.detail == 6) scroll = {1, 0};
+				else if(button.detail == 7) scroll = {-1, 0};
+
 				MouseWheelEvent mwe;
 				mwe.eventData = &eventData;
 				mwe.value = scroll;
@@ -91,7 +93,7 @@ bool X11MouseContext::processEvent(const x11::GenericEvent& ev)
 
 		case XCB_BUTTON_RELEASE: {
 			auto& button = reinterpret_cast<const xcb_button_release_event_t&>(ev);
-			if(button.detail == 4 || button.detail == 5) break;
+			if(button.detail >= 4 && button.detail <= 7) break;
 
 			auto nybutton = x11ToButton(button.detail);
 			buttonStates_[static_cast<unsigned int>(nybutton)] = false;

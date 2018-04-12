@@ -7,6 +7,7 @@
 #include <ny/x11/include.hpp>
 #include <ny/appContext.hpp>
 #include <ny/deferred.hpp>
+#include <ny/windowSettings.hpp>
 
 #include <map>
 #include <memory>
@@ -60,6 +61,7 @@ public:
 
 	xcb_atom_t atom(const std::string& name);
 	const x11::Atoms& atoms() const;
+	auto ewmhWindowCaps() const { return ewmhWindowCaps_; }
 
 protected:
 	Display* xDisplay_  = nullptr;
@@ -77,6 +79,8 @@ protected:
 	x11::GenericEvent* next_ {};
 
 	bool error_ {};
+
+	WindowCapabilities ewmhWindowCaps_ {};
 
 	struct Impl;
 	std::unique_ptr<Impl> impl_;

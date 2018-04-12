@@ -164,6 +164,42 @@ X11AppContext::X11AppContext()
 	// ewmh atoms
 	xcb_ewmh_init_atoms_replies(&ewmhConnection(), ewmhCookie, nullptr);
 
+	// check _NET_WM_SUPPORTED
+	auto prop = x11::readProperty(xConnection(),
+		ewmhConnection()._NET_SUPPORTED, xDefaultScreen().root);
+	if(prop.data.empty()) {
+		dlg_info("ewmh not supported. Some features may not work");
+	} else {
+		dlg_assert(prop.format == 32);
+		dlg_assert(prop.type == XCB_ATOM_ATOM);
+		auto atoms = nytl::Span<xcb_atom_t>{
+			reinterpret_cast<xcb_atom_t*>(prop.data.data()),
+			prop.data.size() / 4
+		};
+
+		auto supported = [&](xcb_atom_t atom) {
+			return std::find(atoms.begin(), atoms.end(), atom) != atoms.end();
+		};
+
+		if(supported(ewmhConnection()._NET_WM_MOVERESIZE)) {
+			ewmhWindowCaps_ |= WindowCapability::beginMove;
+			ewmhWindowCaps_ |= WindowCapability::beginResize;
+		}
+
+		if(supported(ewmhConnection()._NET_WM_STATE)) {
+			auto max = 
+				supported(ewmhConnection()._NET_WM_STATE_MAXIMIZED_HORZ) &&
+				supported(ewmhConnection()._NET_WM_STATE_MAXIMIZED_VERT);
+			if(max) {
+				ewmhWindowCaps_ |= WindowCapability::maximize;
+			}
+
+			if(supported(ewmhConnection()._NET_WM_STATE_FULLSCREEN)) {
+				ewmhWindowCaps_ |= WindowCapability::fullscreen;
+			}
+		}
+	}
+
 	// input
 	keyboardContext_ = std::make_unique<X11KeyboardContext>(*this);
 	mouseContext_ = std::make_unique<X11MouseContext>(*this);
@@ -523,6 +559,9 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev, const x11::Generic
 				CloseEvent ce;
 				ce.eventData = &eventData;
 				wc->listener().close(ce);
+			} else if(protocol == ewmhConnection()._NET_WM_PING) {
+				xcb_ewmh_send_wm_ping(&ewmhConnection(), xDefaultScreen().root,
+					client.data.data32[1]);
 			}
 
 			break;
