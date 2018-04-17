@@ -63,6 +63,8 @@ public:
 	const x11::Atoms& atoms() const;
 	auto ewmhWindowCaps() const { return ewmhWindowCaps_; }
 
+	bool xinput() const { return xiOpcode_; }
+
 protected:
 	Display* xDisplay_  = nullptr;
 	xcb_connection_t* xConnection_ = nullptr;
@@ -81,6 +83,7 @@ protected:
 	bool error_ {};
 
 	WindowCapabilities ewmhWindowCaps_ {};
+	int xiOpcode_ {};
 
 	struct Impl;
 	std::unique_ptr<Impl> impl_;

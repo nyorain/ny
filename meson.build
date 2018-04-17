@@ -100,6 +100,7 @@ else
 
 	dep_x11 = dependency('x11', required: req)
 	dep_x11xcb = dependency('x11-xcb', required: req)
+	dep_xi = dependency('xi', required: req)
 	dep_xcursor = dependency('xcursor', required: req)
 	dep_xcb = dependency('xcb', required: req)
 	dep_xcbewmh = dependency('xcb-ewmh', required: req)
@@ -111,6 +112,7 @@ else
 	x11_deps = [
 		dep_x11,
 		dep_x11xcb,
+		dep_xi,
 		dep_xcursor,
 		dep_xcb,
 		dep_xcbewmh,

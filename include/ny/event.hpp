@@ -116,7 +116,7 @@ struct DndLeaveEvent : public Event {
 struct DndDropEvent : public Event {
 	nytl::Vec2i position {}; /// The position at which it was dropped
 
-	/// The associated DataOffer. Guaranteed to be the same as in the 
+	/// The associated DataOffer. Guaranteed to be the same as in the
 	/// previous dnd events. Ownership is handed over to the WindowListener.
 	std::unique_ptr<DataOffer> offer {};
 };
@@ -150,5 +150,39 @@ struct SurfaceDestroyedEvent : public Event {};
 struct SurfaceCreatedEvent : public Event {
 	Surface surface;
 };
+
+
+/// Will be sent when a new touchpoint goes down.
+/// The given id will be used in TouchUpdate/End/Cancel events.
+/// It will be unique until TouchEnd/Cancel is sent but may be
+/// reused afterwards.
+struct TouchBeginEvent : public Event {
+	nytl::Vec2f pos;
+	unsigned id;
+};
+
+/// Sent when the touchpoint with the given id moves.
+struct TouchUpdateEvent : public Event {
+	nytl::Vec2f pos;
+	unsigned id;
+};
+
+/// Sent when a touchpoint goes up and is therefore ended.
+/// From this point on the touchpoint id may be reused in new
+/// TouchDownEvents.
+/// Note that for backends that don't differentiate between an
+/// ended touchpoint and a canceled one, only this event will
+/// be sent (and never TouchCancel).
+/// The position may be {-1.f, -1.f} if the backend does not support it.
+struct TouchEndEvent : public Event {
+	nytl::Vec2f pos;
+	unsigned id;
+};
+
+/// Sent when a touch gesture is canceled.
+/// Usually sent when the gesture is e.g. processed from the system or
+/// otherwise ended for this application.
+/// Ends all currently active touch points.
+struct TouchCancelEvent : public Event {};
 
 } // namespace ny

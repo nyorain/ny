@@ -23,18 +23,20 @@
 #endif //GL
 
 #include <nytl/scope.hpp>
+#include <nytl/vecOps.hpp>
 #include <dlg/dlg.hpp>
 
-// #include <X11/Xlibint.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/Xlib-xcb.h>
+#include <X11/extensions/XInput2.h>
 
 // undefine the worst Xlib macros
 #undef None
 #undef GenericEvent
 
 #include <xcb/xcb.h>
+#include <xcb/xproto.h>
 #include <xcb/xcb_ewmh.h>
 
 #include <cstring>
@@ -187,7 +189,7 @@ X11AppContext::X11AppContext()
 		}
 
 		if(supported(ewmhConnection()._NET_WM_STATE)) {
-			auto max = 
+			auto max =
 				supported(ewmhConnection()._NET_WM_STATE_MAXIMIZED_HORZ) &&
 				supported(ewmhConnection()._NET_WM_STATE_MAXIMIZED_VERT);
 			if(max) {
@@ -198,6 +200,22 @@ X11AppContext::X11AppContext()
 				ewmhWindowCaps_ |= WindowCapability::fullscreen;
 			}
 		}
+	}
+
+	// check for xinput
+	int ev, err, opcode = -1;
+	if(::XQueryExtension(xDisplay_, "XInputExtension", &opcode, &ev, &err)) {
+		int major = 2, minor = 2;
+		auto res = ::XIQueryVersion(xDisplay_, &major, &minor);
+		if(res == BadRequest) {
+			dlg_debug("XI2 version 2.2 not supported");
+		} else if(res != Success) {
+			dlg_warn("Unexpected failure to query XI extensions");
+		} else {
+			xiOpcode_ = opcode;
+		}
+	} else {
+		dlg_debug("XInput not avilable");
 	}
 
 	// input
@@ -582,7 +600,74 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev, const x11::Generic
 	if(keyboardContext_->processEvent(ev, next)) return;
 	if(mouseContext_->processEvent(ev)) return;
 
-	#undef EventHandlerEvent // ???
+	// touch events
+	auto& gev = reinterpret_cast<const xcb_ge_generic_event_t&>(ev);
+	if(xiOpcode_ && gev.response_type == XCB_GE_GENERIC &&
+			gev.extension == xiOpcode_) {
+
+		// Taken from xcb xinput.h
+		struct xcb_input_group_info_t {
+			uint8_t base;
+			uint8_t latched;
+			uint8_t locked;
+			uint8_t effective;
+		};
+
+		struct xcb_input_modifier_info_t {
+			uint32_t base;
+			uint32_t latched;
+			uint32_t locked;
+			uint32_t effective;
+		};
+
+		struct xcb_input_touch_begin_event_t {
+			uint8_t response_type;
+			uint8_t extension;
+			uint16_t sequence;
+			uint32_t length;
+			uint16_t event_type;
+			uint16_t deviceid;
+			xcb_timestamp_t time;
+			uint32_t detail;
+			xcb_window_t root;
+			xcb_window_t event;
+			xcb_window_t child;
+			uint32_t full_sequence;
+			int32_t root_x;
+			int32_t root_y;
+			int32_t event_x;
+			int32_t event_y;
+			uint16_t buttons_len;
+			uint16_t valuators_len;
+			int16_t sourceid;
+			uint8_t pad0[2];
+			uint32_t flags;
+			xcb_input_modifier_info_t mods;
+			xcb_input_group_info_t  group;
+		};
+
+		auto& tev = reinterpret_cast<const xcb_input_touch_begin_event_t&>(gev);
+		auto wc = windowContext(tev.event);
+		if(!wc) {
+			return;
+		}
+
+		static constexpr auto fp16 = 65536.f;
+		auto pos = nytl::Vec2f {tev.event_x / fp16, tev.event_y / fp16};
+		auto detail = static_cast<unsigned>(tev.detail);
+		auto data = X11EventData {ev};
+		switch(gev.event_type) {
+			case XI_TouchBegin:
+				wc->listener().touchBegin({&data, pos, detail});
+				return;
+			case XI_TouchUpdate:
+				wc->listener().touchUpdate({&data, pos, detail});
+				return;
+			case XI_TouchEnd:
+				wc->listener().touchEnd({&data, pos, detail});
+				return;
+		}
+	}
 }
 
 x11::EwmhConnection& X11AppContext::ewmhConnection() const { return impl_->ewmhConnection; }

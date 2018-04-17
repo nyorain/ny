@@ -47,12 +47,15 @@ public:
 	void close(const ny::CloseEvent&) override;
 	void resize(const ny::SizeEvent&) override;
 	void focus(const ny::FocusEvent&) override;
+	void touchBegin(const ny::TouchBeginEvent&) override;
+	void touchUpdate(const ny::TouchUpdateEvent&) override;
+	void touchEnd(const ny::TouchEndEvent&) override;
+	void touchCancel(const ny::TouchCancelEvent&) override;
 	void surfaceCreated(const ny::SurfaceCreatedEvent&) override;
 	void surfaceDestroyed(const ny::SurfaceDestroyedEvent&) override;
 };
 
-int main(int, char**)
-{
+int main(int, char**) {
 	// The same setup as in the first (intro) example
 	auto& backend = ny::Backend::choose();
 	auto ac = backend.createAppContext();
@@ -80,8 +83,7 @@ int main(int, char**)
 	dlg_info("Returning from main with grace");
 }
 
-void MyWindowListener::draw(const ny::DrawEvent&)
-{
+void MyWindowListener::draw(const ny::DrawEvent&) {
 	if(!bufferSurface) {
 		dlg_info("draw: no bufferSurface");
 		return;
@@ -95,8 +97,7 @@ void MyWindowListener::draw(const ny::DrawEvent&)
 	std::memset(image.data, 0xFF, size); // opaque white
 }
 
-void MyWindowListener::key(const ny::KeyEvent& keyEvent)
-{
+void MyWindowListener::key(const ny::KeyEvent& keyEvent) {
 	std::string name = "<unknown>";
 	if(appContext->keyboardContext()) {
 		auto utf8 = appContext->keyboardContext()->utf8(keyEvent.keycode);
@@ -150,14 +151,12 @@ void MyWindowListener::key(const ny::KeyEvent& keyEvent)
 	}
 }
 
-void MyWindowListener::close(const ny::CloseEvent&)
-{
+void MyWindowListener::close(const ny::CloseEvent&) {
 	dlg_info("Window was closed by server side. Exiting");
 	*run = false;
 }
 
-void MyWindowListener::mouseButton(const ny::MouseButtonEvent& event)
-{
+void MyWindowListener::mouseButton(const ny::MouseButtonEvent& event) {
 	dlg_info("mouseButton {} {} at {}", ny::mouseButtonName(event.button),
 		event.pressed ? "pressed" : "released", event.position);
 	if(event.pressed && event.button == ny::MouseButton::left) {
@@ -191,35 +190,45 @@ void MyWindowListener::mouseButton(const ny::MouseButtonEvent& event)
 	}
 }
 
-void MyWindowListener::mouseWheel(const ny::MouseWheelEvent& ev) 
-{
+void MyWindowListener::mouseWheel(const ny::MouseWheelEvent& ev) {
 	dlg_info("mouse wheel: {}", ev.value);
 }
 
-void MyWindowListener::focus(const ny::FocusEvent& ev)
-{
+void MyWindowListener::focus(const ny::FocusEvent& ev) {
 	dlg_info("focus: {}", ev.gained);
 }
 
-void MyWindowListener::state(const ny::StateEvent& stateEvent)
-{
+void MyWindowListener::state(const ny::StateEvent& stateEvent) {
 	dlg_info("window state changed: {}", (int) stateEvent.state);
 	toplevelState = stateEvent.state;
 }
 
-void MyWindowListener::resize(const ny::SizeEvent& sizeEvent)
-{
+void MyWindowListener::resize(const ny::SizeEvent& sizeEvent) {
 	dlg_info("window resized to {}", sizeEvent.size);
 	windowSize = sizeEvent.size;
 }
 
-void MyWindowListener::surfaceCreated(const ny::SurfaceCreatedEvent& surfaceEvent)
-{
-	bufferSurface = surfaceEvent.surface.buffer;
+void MyWindowListener::touchBegin(const ny::TouchBeginEvent& ev) {
+	dlg_info("Touch begin: {} at {}", ev.id, ev.pos);
+}
+
+void MyWindowListener::touchUpdate(const ny::TouchUpdateEvent& ev) {
+	dlg_info("Touch update: {} at {}", ev.id, ev.pos);
+}
+
+void MyWindowListener::touchEnd(const ny::TouchEndEvent& ev) {
+	dlg_info("Touch end: {} at {}", ev.id, ev.pos);
+}
+
+void MyWindowListener::touchCancel(const ny::TouchCancelEvent&) {
+	dlg_info("Touch cancel");
+}
+
+void MyWindowListener::surfaceCreated(const ny::SurfaceCreatedEvent& se) {
+	bufferSurface = se.surface.buffer;
 	windowContext->refresh();
 }
 
-void MyWindowListener::surfaceDestroyed(const ny::SurfaceDestroyedEvent&)
-{
+void MyWindowListener::surfaceDestroyed(const ny::SurfaceDestroyedEvent&) {
 	bufferSurface = nullptr;
 }

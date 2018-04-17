@@ -31,6 +31,12 @@ for features/improvements.
 
 ### missing features/design issues
 
+- dynamic casts for EventData bad design
+	- rather guarantee that a given backend always uses a fix type and
+	  make the user check on backend (in ny::Backend)
+	- also bad design for WindowContext creation? probably makes more
+	  sense to use some extension struct pointer on WindowSettings
+	  that MUST be set to the right (backend-specific) type
 - AppSettings
 	- for android: make the log name dependent on it
 		- really useful when multiple ny application running

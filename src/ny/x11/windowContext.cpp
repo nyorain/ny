@@ -17,6 +17,7 @@
 #include <xcb/xcb_image.h>
 #include <X11/Xcursor/Xcursor.h>
 #include <X11/Xlib.h>
+#include <X11/extensions/XInput2.h>
 
 #include <cstring> // std::memcpy
 
@@ -90,8 +91,8 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 	// version 5 of the xdnd protocol is supported
 	if(settings.droppable) {
 		static constexpr auto version = 5u;
-		xcb_change_property(&xconn, XCB_PROP_MODE_REPLACE, xWindow_, 
-			appContext().atoms().xdndAware, XCB_ATOM_ATOM, 
+		xcb_change_property(&xconn, XCB_PROP_MODE_REPLACE, xWindow_,
+			appContext().atoms().xdndAware, XCB_ATOM_ATOM,
 			32, 1, reinterpret_cast<const unsigned char*>(&version));
 	}
 
@@ -107,6 +108,21 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 		minimize();
 	} else if(settings.initState == ToplevelState::fullscreen) {
 		fullscreen();
+	}
+
+	// optional xinput
+	if(appContext().xinput()) {
+		XIEventMask mask {};
+		mask.deviceid = XIAllMasterDevices;
+		mask.mask_len = XIMaskLen(XI_LASTEVENT);
+		mask.mask = new unsigned char[mask.mask_len]();
+
+		XISetMask(mask.mask, XI_TouchBegin);
+    	XISetMask(mask.mask, XI_TouchUpdate);
+    	XISetMask(mask.mask, XI_TouchEnd);
+		XISelectEvents(&appContext().xDisplay(), xWindow(), &mask, 1u);
+
+		delete[] mask.mask;
 	}
 
 	// make sure windows is mapped and set to correct state
@@ -150,9 +166,9 @@ void X11WindowContext::createWindow(const X11WindowSettings& settings)
 
 	// Setting the background pixel here may introduce flicker but may fix issues
 	// with creating opengl windows.
-	std::uint32_t valuelist[] = {0, settings.overrideRedirect, eventmask, 
+	std::uint32_t valuelist[] = {0, settings.overrideRedirect, eventmask,
 		colormap};
-	std::uint32_t valuemask = XCB_CW_BORDER_PIXEL | XCB_CW_OVERRIDE_REDIRECT | 
+	std::uint32_t valuemask = XCB_CW_BORDER_PIXEL | XCB_CW_OVERRIDE_REDIRECT |
 		XCB_CW_EVENT_MASK | XCB_CW_COLORMAP ;
 
 	auto window = xcb_generate_id(&xconn);
@@ -213,7 +229,7 @@ void X11WindowContext::initVisual(const X11WindowSettings& settings)
 
 	if(depth_ == 24 && settings.transparent) {
 		dlg_warn("Could not find 32-bit visual for transparent window");
-	} 
+	}
 }
 
 xcb_connection_t& X11WindowContext::xConnection() const
@@ -365,7 +381,7 @@ void X11WindowContext::normalState()
 	removeStates(ewmhConnection()._NET_WM_STATE_FULLSCREEN);
 	removeStates(ewmhConnection()._NET_WM_STATE_MAXIMIZED_VERT,
 		ewmhConnection()._NET_WM_STATE_MAXIMIZED_HORZ);
-	
+
 	state_ = ToplevelState::normal;
 }
 
@@ -382,8 +398,8 @@ void X11WindowContext::beginMove(const EventData* ev)
 	}
 
 	xcb_ungrab_pointer(&xConnection(), XCB_TIME_CURRENT_TIME);
-	xcb_ewmh_request_wm_moveresize(&ewmhConnection(), 0, xWindow(), 
-		pos[0], pos[1], XCB_EWMH_WM_MOVERESIZE_MOVE, 
+	xcb_ewmh_request_wm_moveresize(&ewmhConnection(), 0, xWindow(),
+		pos[0], pos[1], XCB_EWMH_WM_MOVERESIZE_MOVE,
 		index, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
 
 /*
@@ -400,7 +416,7 @@ void X11WindowContext::beginMove(const EventData* ev)
 	event.data.data32[3] = xev.detail;
 	event.data.data32[4] = 1;
 
-	auto mask = XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | 
+	auto mask = XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT |
 		XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY;
 	auto root = appContext().xDefaultScreen().root;
 	xcb_send_event(&xConnection(), false, root,
@@ -422,36 +438,36 @@ void X11WindowContext::beginResize(const EventData* ev, WindowEdges edge)
 
 	xcb_ewmh_moveresize_direction_t x11Edge;
 	switch(static_cast<WindowEdge>(edge.value())) {
-		case WindowEdge::top: 
-			x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_TOP; 
+		case WindowEdge::top:
+			x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_TOP;
 			break;
-		case WindowEdge::left: 
-			x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_LEFT; 
+		case WindowEdge::left:
+			x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_LEFT;
 			break;
-		case WindowEdge::bottom: 
-			x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_BOTTOM; 
+		case WindowEdge::bottom:
+			x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_BOTTOM;
 			break;
-		case WindowEdge::right: 
-			x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_RIGHT; 
+		case WindowEdge::right:
+			x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_RIGHT;
 			break;
-		case WindowEdge::topLeft: 
-			x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_TOPLEFT; 
+		case WindowEdge::topLeft:
+			x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_TOPLEFT;
 			break;
-		case WindowEdge::topRight: 
-			x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_TOPRIGHT; 
+		case WindowEdge::topRight:
+			x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_TOPRIGHT;
 			break;
-		case WindowEdge::bottomLeft: 
-			x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_BOTTOMLEFT; 
+		case WindowEdge::bottomLeft:
+			x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_BOTTOMLEFT;
 			break;
-		case WindowEdge::bottomRight: 
-			x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_BOTTOMRIGHT; 
+		case WindowEdge::bottomRight:
+			x11Edge = XCB_EWMH_WM_MOVERESIZE_SIZE_BOTTOMRIGHT;
 			break;
 		default: return;
 	}
 
 	xcb_ungrab_pointer(&xConnection(), XCB_TIME_CURRENT_TIME);
-	xcb_ewmh_request_wm_moveresize(&ewmhConnection(), 0, xWindow(), 
-		pos[0], pos[1], x11Edge, index, 
+	xcb_ewmh_request_wm_moveresize(&ewmhConnection(), 0, xWindow(),
+		pos[0], pos[1], x11Edge, index,
 		XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
 }
 
@@ -673,7 +689,7 @@ Surface X11WindowContext::surface()
 }
 
 void X11WindowContext::reloadStates() {
-	auto prop = x11::readProperty(xConnection(), 
+	auto prop = x11::readProperty(xConnection(),
 		ewmhConnection()._NET_WM_STATE, xWindow());
 	dlg_assert(prop.type = XCB_ATOM_ATOM);
 	dlg_assert(prop.format = 32);
@@ -683,18 +699,18 @@ void X11WindowContext::reloadStates() {
 		prop.data.size() / 4
 	};
 
-	auto hidden = std::find(states.begin(), states.end(), 
+	auto hidden = std::find(states.begin(), states.end(),
 		ewmhConnection()._NET_WM_STATE_HIDDEN);
 
-	if(std::find(states.begin(), states.end(), 
+	if(std::find(states.begin(), states.end(),
 			ewmhConnection()._NET_WM_STATE_FULLSCREEN) != states.end()) {
 		if(state_ != ToplevelState::fullscreen) {
 			state_ = ToplevelState::fullscreen;
 			listener().state({nullptr, state_, !hidden});
 		}
-	} else if(std::find(states.begin(), states.end(), 
+	} else if(std::find(states.begin(), states.end(),
 			ewmhConnection()._NET_WM_STATE_MAXIMIZED_HORZ) != states.end() &&
-			std::find(states.begin(), states.end(), 
+			std::find(states.begin(), states.end(),
 			ewmhConnection()._NET_WM_STATE_MAXIMIZED_VERT) != states.end()) {
 		if(state_ != ToplevelState::maximized) {
 			state_ = ToplevelState::maximized;

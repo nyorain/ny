@@ -24,6 +24,27 @@ public:
 	static WindowListener& defaultInstance() { static WindowListener ret; return ret; }
 
 public:
+	virtual void draw(const DrawEvent&) {} /// The window should be redrawn
+	virtual void close(const CloseEvent&) {} /// Close the window at destroy the WindowContext
+	virtual void destroyed() {} /// Informs the listener that the WindowContext was destroyed
+
+	virtual void resize(const SizeEvent&) {} /// Window was resized
+	virtual void state(const StateEvent&) {} /// Window state changed
+
+	virtual void key(const KeyEvent&) {} /// A key was pressed or released
+	virtual void focus(const FocusEvent&) {} /// Window gained or lost focus
+
+	virtual void mouseButton(const MouseButtonEvent&) {} /// A mouse button was pressed or released
+	virtual void mouseMove(const MouseMoveEvent&) {} /// Mouse moved over window
+	virtual void mouseWheel(const MouseWheelEvent&) {} /// Mouse wheel rotated over window
+	virtual void mouseCross(const MouseCrossEvent&) {} /// Mouse entered/left window
+
+	/// Touch input, see events for documentation
+	virtual void touchBegin(const TouchBeginEvent&) {}
+	virtual void touchEnd(const TouchEndEvent&) {}
+	virtual void touchUpdate(const TouchUpdateEvent&) {}
+	virtual void touchCancel(const TouchCancelEvent&) {}
+
 	/// This function is called when a dnd action enters the window.
 	/// The window could use this to e.g. redraw itself in a special way.
 	/// Remember that after calling a dispatch function in this function, the given
@@ -46,21 +67,6 @@ public:
 	/// The application gains ownership about the DataOffer object.
 	/// This event is only received when the previous dndMove handler returned true.
 	virtual void dndDrop(const DndDropEvent&) {}
-
-	virtual void draw(const DrawEvent&) {} /// The window should be redrawn
-	virtual void close(const CloseEvent&) {} /// Close the window at destroy the WindowContext
-	virtual void destroyed() {} /// Informs the listener that the WindowContext was destroyed
-
-	virtual void resize(const SizeEvent&) {} /// Window was resized
-	virtual void state(const StateEvent&) {} /// Window state changed
-
-	virtual void key(const KeyEvent&) {} /// A key was pressed or released
-	virtual void focus(const FocusEvent&) {} /// Window gained or lost focus
-
-	virtual void mouseButton(const MouseButtonEvent&) {} /// A mouse button was pressed or released
-	virtual void mouseMove(const MouseMoveEvent&) {} /// Mouse moved over window
-	virtual void mouseWheel(const MouseWheelEvent&) {} /// Mouse wheel rotated over window
-	virtual void mouseCross(const MouseCrossEvent&) {} /// Mouse entered/left window
 
 	/// On some platforms (android, namely) associated surfaces may have to
 	/// be recreated during the applications lifetime. Override this functions
