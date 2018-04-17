@@ -383,7 +383,10 @@ bool AndroidMouseContext::process(const AInputEvent& event)
 		} case AMOTION_EVENT_ACTION_SCROLL: {
 			MouseWheelEvent mwe;
 			mwe.eventData = &eventData;
-			mwe.value = AMotionEvent_getAxisValue(&event, AMOTION_EVENT_AXIS_VSCROLL, 0);
+			mwe.value[0] = AMotionEvent_getAxisValue(&event,
+				AMOTION_EVENT_AXIS_VSCROLL, 0);
+			mwe.value[1] = AMotionEvent_getAxisValue(&event,
+				AMOTION_EVENT_AXIS_HSCROLL, 0);
 			wc.listener().mouseWheel(mwe);
 			break;
 		} case AMOTION_EVENT_ACTION_HOVER_ENTER: {
