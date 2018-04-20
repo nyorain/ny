@@ -10,6 +10,7 @@
 #include <ny/event.hpp>
 
 #include <bitset> // std::bitset
+#include <unordered_map> // std::unordered_map
 
 namespace ny {
 
@@ -71,6 +72,7 @@ protected:
 	AndroidAppContext& appContext_;
 	nytl::Vec2i position_;
 	bool pressed_ {};
+	std::unordered_map<unsigned, nytl::Vec2f> touchPoints_;
 };
 
 /// Conerts the given android keycode (from android/keycodes.h) to

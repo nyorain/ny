@@ -13,6 +13,7 @@ Go to ndk-root and run
 	--install-dir=/tmp/android --stl=libc++ --verbose
 ```
 
+--stl=libc++ is important for newer headers.
 This will install a toolchain to /tmp/android
 
 ## Build ny and its dependencies
@@ -25,11 +26,14 @@ meson build/android --cross-file=./docs/android_cross.txt -Dexamples=true -Dandr
 
 Copy build.sh and AndroidManifest.xml to $builddir/src/examples.
 Just follow the steps in build.sh (or execute it and debug what does
-not work). Make sure to copy
+not work).
+Make sure to get a key to sign the apk (see the keytool build.sh comment).
+Make sure to copy
  - libny.so
  - libdlg.so
  - libc++_shared.so
  - and the examples so
-to lib/arm64-v8a. Then everything should work.
+to lib/arm64-v8a. Then build.sh should work.
 
 Copy the c++ lib from $android-ndk/sources/cxx-stl/llvm-libc++/libs/arm64-v8a/libc++_shared.so
+Make sure adb is in path.

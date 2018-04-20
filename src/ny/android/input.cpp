@@ -241,7 +241,7 @@ std::string AndroidKeyboardContext::utf8(unsigned int aKeycode, unsigned int aMe
 {
 	auto jniEnv = appContext().jniEnv();
 	if(!jniKeyEvent_ || !jniEnv) {
-		dlg_warn("jni not initialized");
+		dlg_warn("android utf8 query: jni not initialized");
 		return "";
 	}
 
@@ -255,6 +255,9 @@ std::string AndroidKeyboardContext::utf8(unsigned int aKeycode, unsigned int aMe
 bool AndroidKeyboardContext::process(const AInputEvent& event)
 {
 	auto wc = appContext_.windowContext();
+	if(!wc) {
+		dlg_warn("android: AInputEvent without windowContext");
+	}
 
 	AndroidEventData eventData;
 	eventData.inputEvent = &event;
@@ -267,8 +270,10 @@ bool AndroidKeyboardContext::process(const AInputEvent& event)
 
 	// we skip this keycode so that is handled by android
 	// the application can't handle it anyways (at the moment - TODO?!)
-	if(akeycode == AKEYCODE_BACK)
+	if(akeycode == AKEYCODE_BACK) {
+		dlg_debug("android: skip back key");
 		return false;
+	}
 
 	if(action == AKEY_EVENT_ACTION_DOWN || action == AKEY_EVENT_ACTION_UP) {
 		bool pressed = (action == AKEY_EVENT_ACTION_DOWN);
@@ -276,8 +281,10 @@ bool AndroidKeyboardContext::process(const AInputEvent& event)
 
 		// skip button we don't know
 		// TODO: merge this with back keycode check?
-		if(keycode == Keycode::none)
+		if(keycode == Keycode::none) {
+			dlg_warn("android: invalid keycode");
 			return false;
+		}
 
 		std::string utf8 = this->utf8(akeycode, metaState);
 
@@ -323,8 +330,10 @@ WindowContext* AndroidMouseContext::over() const
 bool AndroidMouseContext::process(const AInputEvent& event)
 {
 	// TODO!
-	if(!appContext_.windowContext())
+	if(!appContext_.windowContext()) {
+		dlg_warn("android: AInputEvent without WindowContext");
 		return false;
+	}
 
 	auto& wc = *appContext_.windowContext();
 	AndroidEventData eventData;
@@ -347,17 +356,79 @@ bool AndroidMouseContext::process(const AInputEvent& event)
 	// switch the actions
 	auto action = AMotionEvent_getAction(&event);
 	switch(action) {
-		case AMOTION_EVENT_ACTION_DOWN:
-		case AMOTION_EVENT_ACTION_POINTER_DOWN: {
+		case AMOTION_EVENT_ACTION_DOWN: {
+			auto count = AMotionEvent_getPointerCount(&event);
+			for(auto i = 0u; i < count; ++i) {
+				unsigned id = AMotionEvent_getPointerId(&event, i);
+				nytl::Vec2f pos;
+				pos[0] = AMotionEvent_getX(&event, i);
+				pos[1] = AMotionEvent_getY(&event, i);
+				wc.listener().touchBegin({&eventData, pos, id});
+				touchPoints_.insert({id, pos});
+			}
+			break;
+		} case AMOTION_EVENT_ACTION_UP: {
+			touchPoints_.clear();
+			auto count = AMotionEvent_getPointerCount(&event);
+			for(auto i = 0u; i < count; ++i) {
+				unsigned id = AMotionEvent_getPointerId(&event, i);
+				nytl::Vec2f pos;
+				pos[0] = AMotionEvent_getX(&event, i);
+				pos[1] = AMotionEvent_getY(&event, i);
+				wc.listener().touchEnd({&eventData, pos, id});
+			}
+			break;
+		} case AMOTION_EVENT_ACTION_MOVE: {
+			auto count = AMotionEvent_getPointerCount(&event);
+			for(auto i = 0u; i < count; ++i) {
+				unsigned id = AMotionEvent_getPointerId(&event, i);
+				nytl::Vec2f pos;
+				pos[0] = AMotionEvent_getX(&event, i);
+				pos[1] = AMotionEvent_getY(&event, i);
+
+				auto it = touchPoints_.find(id);
+				if(it == touchPoints_.end()) {
+					touchPoints_.insert({id, pos});
+					wc.listener().touchBegin({&eventData, pos, id});
+				} else {
+					it->second = pos;
+					wc.listener().touchUpdate({&eventData, pos, id});
+				}
+			}
+
+			auto& tp = touchPoints_;
+			for(auto it = tp.begin(); it != tp.end();) {
+				bool found = false;
+				for(auto i = 0u; i < count; ++i) {
+					unsigned id = AMotionEvent_getPointerId(&event, i);
+					if(id == it->first) {
+						found = true;
+						break;
+					}
+				}
+
+				if(!found) {
+					wc.listener().touchEnd({&eventData, it->second, it->first});
+					it = touchPoints_.erase(it);
+				} else {
+					++it;
+				}
+			}
+			break;
+		} case AMOTION_EVENT_ACTION_CANCEL: {
+			wc.listener().touchCancel({&eventData});
+			touchPoints_.clear();
+			break;
+		/*
+		} case AMOTION_EVENT_ACTION_POINTER_DOWN: {
 			MouseButtonEvent mbe;
 			mbe.position = pos;
 			mbe.eventData = &eventData;
-			mbe.button = MouseButton::left;
+			mbe.button = MouseButton::left; // TODO
 			mbe.pressed = pressed_ = true;
 			wc.listener().mouseButton(mbe);
 			break;
-		} case AMOTION_EVENT_ACTION_POINTER_UP:
-		case AMOTION_EVENT_ACTION_UP: {
+		} case AMOTION_EVENT_ACTION_POINTER_UP: {
 			MouseButtonEvent mbe;
 			mbe.position = pos;
 			mbe.eventData = &eventData;
@@ -365,15 +436,7 @@ bool AndroidMouseContext::process(const AInputEvent& event)
 			mbe.pressed = pressed_ = false;
 			wc.listener().mouseButton(mbe);
 			break;
-		} case AMOTION_EVENT_ACTION_MOVE: {
-			MouseMoveEvent mme;
-			mme.position = pos;
-			mme.eventData = &eventData;
-			wc.listener().mouseMove(mme);
-			break;
-		} case AMOTION_EVENT_ACTION_CANCEL: {
-			// TODO
-			break;
+		*/
 		} case AMOTION_EVENT_ACTION_HOVER_MOVE: {
 			MouseMoveEvent mme;
 			mme.position = pos;
