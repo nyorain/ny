@@ -36,7 +36,7 @@ WinapiWindowContext::WinapiWindowContext(WinapiAppContext& appContext,
 	// send initial size and state
 	this->appContext().deferred.add([this, settings]{
 		if(settings.initState == ToplevelState::normal) {
-			listener().resize({nullptr, size_, {}});
+			listener().resize({nullptr, size_});
 		}
 
 		listener().state({nullptr, settings.initState});
@@ -45,7 +45,7 @@ WinapiWindowContext::WinapiWindowContext(WinapiAppContext& appContext,
 
 WinapiWindowContext::~WinapiWindowContext()
 {
-	appContext().deferred.remove(this);
+	appContext().destroyed(*this);
 	if(dropTarget_) {
 		dropTarget_->Release();
 		dropTarget_ = nullptr;
@@ -106,7 +106,7 @@ WNDCLASSEX WinapiWindowContext::windowClass(const WinapiWindowSettings&)
 	return ret;
 }
 
-void WinapiWindowContext::setStyle(const WinapiWindowSettings& ws)
+void WinapiWindowContext::setStyle(const WinapiWindowSettings&)
 {
 	style_ = WS_OVERLAPPEDWINDOW;
 }
@@ -551,7 +551,6 @@ bool WinapiWindowContext::processEvent(const WinapiEventData& eventData, LRESULT
 					SizeEvent se;
 					se.eventData = &eventData;
 					se.size = size_;
-					se.edges = WindowEdge::none;
 					listener().resize(se);
 				}, this);
 			}

@@ -34,8 +34,6 @@
 #include <atomic>
 #include <queue>
 
-// NOTE: we never actually call TranslateMessage since we translate keycodes manually
-// and calling this function will interfer with our ToUnicode calls.
 namespace ny {
 namespace {
 
@@ -45,7 +43,7 @@ bool dispatchEvent() {
 		return false;
 	}
 
-	// ::TranslateMessage(&msg); // TODO
+	::TranslateMessage(&msg);
 	::DispatchMessage(&msg);
 	return true;
 }
@@ -165,7 +163,7 @@ bool WinapiAppContext::waitEvents()
 		dlg_error(msg);
 		throw std::runtime_error(msg);
 	} else {
-		// ::TranslateMessage(&msg); // TODO
+		::TranslateMessage(&msg);
 		::DispatchMessage(&msg);
 	}
 
@@ -180,7 +178,7 @@ void WinapiAppContext::wakeupWait()
 	::PostThreadMessage(mainThread_, WM_USER, 0, 0);
 }
 
-// TODO: error handling (warnings)
+// TODO: better error handling (warnings)
 bool WinapiAppContext::clipboard(std::unique_ptr<DataSource>&& source)
 {
 	winapi::com::DataObjectImpl* dataObj {};
@@ -255,17 +253,6 @@ LRESULT WinapiAppContext::eventProc(HWND window, UINT message, WPARAM wparam, LP
 	}
 
 	return ::DefWindowProc(window, message, wparam, lparam);
-
-	// TODO: needed?
-	// case WM_CLIPBOARDUPDATE: {
-	// 	clipboardSequenceNumber_ = ::GetClipboardSequenceNumber();
-	// 	clipboardOffer_.reset();
-	//
-	// 	IDataObject* obj;
-	// 	::OleGetClipboard(&obj);
-	// 	if(obj) clipboardOffer_ = std::make_unique<winapi::DataOfferImpl>(*obj);
-	// 	break;
-	// }
 }
 
 std::vector<const char*> WinapiAppContext::vulkanExtensions() const
@@ -308,6 +295,12 @@ WglSetup* WinapiAppContext::wglSetup() const
 		return nullptr;
 
 	#endif // WithGl
+}
+
+
+void WinapiAppContext::destroyed(WinapiWindowContext& wc) {
+	deferred.remove(&wc);
+	keyboardContext_.destroyed(wc);
 }
 
 } // namespace ny

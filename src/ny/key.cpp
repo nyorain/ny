@@ -262,7 +262,7 @@ constexpr struct Mapping {
 	{Keycode::bluetooth, "bluetooth"},
 	{Keycode::wlan, "wlan"},
 	{Keycode::uwb, "uwb"},
-	{Keycode::unkown, "unkown"},
+	{Keycode::unknown, "unknown"},
 	{Keycode::videoNext, "videoNext"},
 	{Keycode::videoPrev, "videoPrev"},
 	{Keycode::brightnessCycle, "brightnessCycle"},
@@ -282,7 +282,7 @@ const char* name(Keycode keycode)
 			return m.name;
 		}
 	}
-	return "<unknown>";
+	return "<invalid>";
 }
 
 Keycode keycodeFromName(const char* name)

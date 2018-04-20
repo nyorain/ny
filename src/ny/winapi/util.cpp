@@ -201,7 +201,7 @@ Keycode winapiToKeycode(unsigned int code)
 	for(auto& kc : keycodeConversions)
 		if(kc.vkcode == code) return kc.keycode;
 
-	return Keycode::unkown;
+	return Keycode::unknown;
 }
 
 unsigned int keycodeToWinapi(Keycode keycode)
@@ -390,7 +390,7 @@ std::string errorMessage(unsigned int code, std::string_view msg)
 	if(!msg.empty()) ret += ": ";
 
 	if(size > 0) ret += narrow(buffer);
-	else ret += "<unkown winapi error>";
+	else ret += "<unknown winapi error>";
 
 	return ret;
 }

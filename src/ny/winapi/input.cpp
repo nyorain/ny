@@ -126,7 +126,7 @@ bool WinapiMouseContext::processEvent(const WinapiEventData& eventData, LRESULT&
 
 			MouseWheelEvent mwe {};
 			mwe.eventData = &eventData;
-			mwe.value.y = GET_WHEEL_DELTA_WPARAM(wparam) / 120.0;
+			mwe.value[0] = GET_WHEEL_DELTA_WPARAM(wparam) / 120.0;
 			mwe.position = {screenPos.x, screenPos.y};
 			wc->listener().mouseWheel(mwe);
 			onWheel(*this, mwe.value);
@@ -139,7 +139,7 @@ bool WinapiMouseContext::processEvent(const WinapiEventData& eventData, LRESULT&
 
 			MouseWheelEvent mwe {};
 			mwe.eventData = &eventData;
-			mwe.value.x = -GET_WHEEL_DELTA_WPARAM(wparam) / 120.0;
+			mwe.value[0] = -GET_WHEEL_DELTA_WPARAM(wparam) / 120.0;
 			mwe.position = {screenPos.x, screenPos.y};
 			wc->listener().mouseWheel(mwe);
 			onWheel(*this, mwe.value);
@@ -242,9 +242,7 @@ bool WinapiKeyboardContext::processEvent(const WinapiEventData& eventData, LRESU
 			}
 
 			break;
-		}
-
-		case WM_KILLFOCUS: {
+		} case WM_KILLFOCUS: {
 			if(focus_ == wc) {
 				FocusEvent fe;
 				fe.eventData = &eventData;
@@ -255,57 +253,71 @@ bool WinapiKeyboardContext::processEvent(const WinapiEventData& eventData, LRESU
 			}
 
 			break;
-		}
-
-		case WM_KEYDOWN:
-			keyPressed = true;
-			[[fallthrough]];
+		} 
+		case WM_KEYDOWN: keyPressed = true; [[fallthrough]];
 		case WM_KEYUP: {
-			// TODO: better scancode (extended) handling,
-			// see https://handmade.network/forums/t/2011-keyboard_inputs_-_scancodes,_raw_input,_text_input,_key_names
-			auto vkcode = wparam;
-			auto scancode = HIWORD(lparam);
-			auto keycode = winapiToKeycode(vkcode);
-
-			unsigned char state[256] {};
-			::GetKeyboardState(state);
-
 			KeyEvent ke;
-			ke.keycode = keycode;
-			ke.eventData = &eventData;
+			ke.keycode = winapiToKeycode(wparam);
 			ke.pressed = keyPressed;
 			ke.modifiers = modifiers();
 			ke.repeat = keyPressed && (lparam & 0x40000000);
-			wchar_t utf16[64];
-			auto bytes = ::ToUnicode(vkcode, scancode, state, utf16, 64, 0);
-			if(bytes > 0) {
-				utf16[bytes] = L'\0';
-				auto utf16string = reinterpret_cast<char16_t*>(utf16);
-				ke.utf8 = nytl::toUtf8(utf16string);
+			ke.eventData = &eventData;
+
+			onKey(*this, ke.keycode, ke.utf8, keyPressed);
+
+			::MSG msg;
+			while(::PeekMessage(&msg, nullptr, 0, 0, PM_NOREMOVE)) {
+				if((msg.message != WM_CHAR) && (msg.message != WM_SYSCHAR)) {
+					break;
+				}
+
+				dlg_assert(::GetMessage(&msg, nullptr, 0, 0));
+				auto utf16 = static_cast<char16_t>(msg.wParam);
+				ke.utf8 += nytl::toUtf8({&utf16, 1});
 			}
 
 			wc->listener().key(ke);
-			onKey(*this, keycode, ke.utf8, keyPressed);
-
 			break;
-		}
+		} case WM_CHAR: {
+			auto utf16 = static_cast<char16_t>(wparam);
+			auto utf8 = nytl::toUtf8({&utf16, 1});
 
-		/*
-		case WM_IME_CHAR: {
-			dlg_info("ime char: {}", wparam);
+			::MSG msg;
+			while(::PeekMessage(&msg, nullptr, 0, 0, PM_NOREMOVE)) {
+				if((msg.message != WM_CHAR) && (msg.message != WM_SYSCHAR)) {
+					break;
+				}
+
+				dlg_assert(::GetMessage(&msg, nullptr, 0, 0));
+				auto utf16 = static_cast<char16_t>(msg.wParam);
+				utf8 += nytl::toUtf8({&utf16, 1});
+			}
+
+			KeyEvent ke;
+			ke.keycode = Keycode::none;
+			ke.pressed = true;
+			ke.modifiers = modifiers();
+			ke.repeat = false;
+			ke.eventData = &eventData;
+			ke.utf8 = std::move(utf8);
+			wc->listener().key(ke);
+
+			ke.pressed = false;
+			ke.utf8 = {};
+			wc->listener().key(ke);
 			return false;
 		}
-
-		case WM_CHAR: {
-			dlg_info("char: {}", wparam);
-			return false;
-		}
-		*/
 
 		default: return false;
 	}
 
 	return true;
+}
+
+void WinapiKeyboardContext::destroyed(const WinapiWindowContext&) {
+	// if(pending_ && pending_->data.windowContext == &wc) {
+	// 	pending_ = {};
+	// }
 }
 
 } // namespace ny

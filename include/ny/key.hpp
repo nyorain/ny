@@ -293,7 +293,7 @@ enum class Keycode : unsigned int {
 	bluetooth,
 	wlan,
 	uwb,
-	unkown,
+	unknown,
 	videoNext,
 	videoPrev,
 	brightnessCycle,

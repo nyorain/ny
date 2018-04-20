@@ -16,6 +16,8 @@ ny_src = [
 
 # Winapi backend
 if enable_winapi
+	# requires vista
+    add_project_arguments('-D_WIN32_WINNT=0x0600', language: 'cpp')
 	ny_src += [
 		'winapi/appContext.cpp',
 		'winapi/backend.cpp',

@@ -52,6 +52,9 @@ public:
 	HINSTANCE hinstance() const { return instance_; };
 
 protected:
+	friend class WinapiWindowContext;
+	void destroyed(WinapiWindowContext&);
+
 	HINSTANCE instance_ = nullptr; // TODO: really needed?
 
 	std::unique_ptr<DataOffer> clipboardOffer_;
