@@ -314,10 +314,4 @@ bool WinapiKeyboardContext::processEvent(const WinapiEventData& eventData, LRESU
 	return true;
 }
 
-void WinapiKeyboardContext::destroyed(const WinapiWindowContext&) {
-	// if(pending_ && pending_->data.windowContext == &wc) {
-	// 	pending_ = {};
-	// }
-}
-
 } // namespace ny

@@ -297,6 +297,10 @@ Keycode keycodeFromName(const char* name)
 
 bool specialKey(Keycode keycode)
 {
+	if(keycode == Keycode::none) {
+		return false;
+	}
+
 	for(auto m : mappings) {
 		if(keycode == m.keycode) {
 			return !m.nonSpecial;

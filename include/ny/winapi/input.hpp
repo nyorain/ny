@@ -56,19 +56,9 @@ public:
 	bool pressed(unsigned int vkcode) const;
 
 protected:
-	friend class WinapiAppContext;
-	void destroyed(const WinapiWindowContext&);
-
 	WinapiAppContext& context_;
 	WinapiWindowContext* focus_ {};
 	std::map<Keycode, std::string> keycodeUnicodeMap_;
-
-	// struct Pending {
-	// 	WinapiEventData data;
-	// 	KeyEvent ev;
-	// };
-// 
-	// std::optional<Pending> pending_;
 };
 
 } // namespace ny
