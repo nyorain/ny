@@ -5,6 +5,7 @@
 #pragma once
 
 #include <nytl/vec.hpp> // nytl::Vec
+#include <nytl/tmpUtil.hpp> // nytl::templatize
 #include <memory> // std::unique_ptr
 #include <cstring> // std::memcpy
 #include <array> // std::array
@@ -20,8 +21,7 @@ namespace ny {
 /// rgba/argb format and ensure that all alpha values are set to 255.
 /// \sa imageDataFormatSize
 /// \sa ImageData
-enum class ImageFormat : unsigned int
-{
+enum class ImageFormat : unsigned int {
 	none,
 
 	rgba8888,
@@ -43,8 +43,9 @@ bool littleEndian();
 /// Returns the next multiple of alignment that is greater or equal than value.
 /// Can be used to 'align' a value e.g. align(27, 8) returns 32.
 template<typename A, typename B>
-constexpr auto align(A value, B alignment)
-	{ return alignment ? std::ceil(value / double(alignment)) * alignment : value; }
+constexpr auto align(A x, B xalign) {
+	return xalign ? std::ceil(x / double(xalign)) * xalign : x;
+}
 
 /// Returns the number of bits needed to store one pixel in the given format.
 /// Example: bitSize(ImageFormat::bgr888) returns 24.
@@ -55,12 +56,14 @@ unsigned int bitSize(ImageFormat format);
 /// Example: byteSize(ImageFormat::rgba8888) returns 4.
 unsigned int byteSize(ImageFormat format);
 
-/// Converts between byte order (i.e. endian-independent) and word-order (endian-dependent)
-/// and vice versa. On a big-endian machine this function will simply return the given format, but
-/// on a little-endian machine it will reverse the order of the color channels.
-/// Note that BasicImage objects always hold data in word order, so if one works with a library
-/// that uses byte-order (as some image libraries do) they have to either convert the
-/// data or the format when passing to/receiving from this library.
+/// Converts between byte order (i.e. endian-independent) and
+/// word-order (endian-dependent) and vice versa.
+/// On a big-endian machine this function will simply return the given format,
+/// but on a little-endian machine it will reverse the order of the color
+/// channels. Note that BasicImage objects always hold data in word order, so
+/// if one works with a library that uses byte-order (as some image libraries
+/// do) they have to either convert the data or the format when passing
+/// to/receiving from this library.
 /// Example: bitSize(ImageFormat::bgr888) returns
 ///  - on little endian: ImageFormat::rgb888 (reversed).
 ///  - on big endian: ImageFormat::bgr888 (not changed).
@@ -69,14 +72,17 @@ ImageFormat toggleByteWordOrder(const ImageFormat& format);
 namespace detail {
 
 template<typename T, typename F>
-constexpr void copy(T& to, F from, unsigned int) { to = from; }
+constexpr void copy(T& to, F from, unsigned int) {
+	to = from;
+}
 
 template<typename T, typename PF>
-void copy(T& to, const std::unique_ptr<PF[]>& from, unsigned int) { to = from.get(); }
+void copy(T& to, const std::unique_ptr<PF[]>& from, unsigned int) {
+	to = from.get();
+}
 
 template<typename PT>
-void copy(std::unique_ptr<PT[]>& to, const uint8_t* from, unsigned int size)
-{
+void copy(std::unique_ptr<PT[]>& to, const uint8_t* from, unsigned int size) {
 	if(!from) {
 		to = {};
 		return;
@@ -87,8 +93,8 @@ void copy(std::unique_ptr<PT[]>& to, const uint8_t* from, unsigned int size)
 }
 
 template<typename PT, typename PF>
-void copy(std::unique_ptr<PT[]>& to, const std::unique_ptr<PF[]>& from, unsigned int size)
-{
+void copy(std::unique_ptr<PT[]>& to, const std::unique_ptr<PF[]>& from,
+		unsigned int size) {
 	if(!from) {
 		to = {};
 		return;
@@ -103,15 +109,17 @@ void copy(std::unique_ptr<PT[]>& to, const std::unique_ptr<PF[]>& from, unsigned
 template<typename P> class BasicImage;
 
 /// Returns the raw data from the given BasicImage as uint8_t pointer.
-/// Useful for generic code since it allows to access the raw data independently from the medium
-/// used to store it (could e.g. be a std::unique_ptr).
+/// Useful for generic code since it allows to access the raw data
+/// independently from the medium used to store it (e.g. be a smart pointer).
 template<typename P>
-constexpr auto data(const BasicImage<P>& img)
-{
-	if constexpr(std::is_convertible<P, const uint8_t*>::value)
+constexpr auto data(const BasicImage<P>& img) {
+	if constexpr(std::is_convertible_v<P, const uint8_t*>) {
 		return img.data;
-	else if constexpr(std::is_convertible<decltype(img.data.get()), const uint8_t*>::value)
-		return img.data.get();
+	} else if constexpr(std::is_convertible_v<decltype(&*img.data), const uint8_t*>) {
+		return &*img.data;
+	} else if constexpr(nytl::templatize<P>(true)) {
+		static_assert("Invalid img data pointer");
+	}
 }
 
 template<typename P> constexpr unsigned int dataSize(const BasicImage<P>& img);
@@ -152,8 +160,7 @@ public:
 		{ detail::copy(data, lhs.data, dataSize(lhs)); }
 
 	template<typename O>
-	constexpr BasicImage<P>& operator=(const BasicImage<O>& lhs)
-	{
+	constexpr BasicImage<P>& operator=(const BasicImage<O>& lhs) {
 		size = lhs.size;
 		format = lhs.format;
 		stride = bitStride(lhs);
@@ -165,8 +172,7 @@ public:
 		: size(lhs.size), format(lhs.format), stride(bitStride(lhs))
 		{ detail::copy(data, lhs.data, dataSize(lhs)); }
 
-	constexpr BasicImage& operator=(const BasicImage& lhs)
-	{
+	constexpr BasicImage& operator=(const BasicImage& lhs) {
 		size = lhs.size;
 		format = lhs.format;
 		stride = bitStride(lhs);

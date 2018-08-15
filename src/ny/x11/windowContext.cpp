@@ -297,7 +297,7 @@ void X11WindowContext::cursor(const Cursor& curs)
 		auto xname = cursorToXName(curs.type());
 		if(!xname) {
 			auto cname = name(curs.type());
-			dlg_warn("{} not supported", cname);
+			dlg_warn("failed to convert cursor type '{}' to xcursor", cname);
 			return;
 		}
 

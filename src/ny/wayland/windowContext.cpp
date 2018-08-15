@@ -58,16 +58,16 @@ WaylandWindowContext::WaylandWindowContext(WaylandAppContext& ac,
 	} else throw std::runtime_error("ny::WaylandWindowContext: compositor has no shell global");
 
 	switch(settings.initState) {
-		case ToplevelState::fullscreen: 
-			fullscreen(); 
+		case ToplevelState::fullscreen:
+			fullscreen();
 			break;
-		case ToplevelState::maximized: 
-			maximize(); 
+		case ToplevelState::maximized:
+			maximize();
 			break;
-		case ToplevelState::minimized: 
-			minimize(); 
+		case ToplevelState::minimized:
+			minimize();
 			break;
-		default: 
+		default:
 			break;
 	}
 
@@ -89,8 +89,8 @@ WaylandWindowContext::~WaylandWindowContext()
 	} else if(xdgSurfaceV6()) {
 		if(xdgToplevelV6()) {
 			zxdg_toplevel_v6_destroy(xdgSurfaceV6_.toplevel);
-		} 
-		
+		}
+
 		zxdg_surface_v6_destroy(xdgSurfaceV6_.surface);
 	}
 
@@ -266,6 +266,12 @@ void WaylandWindowContext::cursor(const Cursor& cursor)
 		cursorBuffer_ = {};
 	} else {
 		auto cursorName = cursorToXName(cursor.type());
+		if(!cursorName) {
+			auto cname = name(cursor.type());
+			dlg_warn("failed to convert cursor type '{}' to xcursor", cname);
+			return;
+		}
+
 		auto cursorTheme = appContext().wlCursorTheme();
 		auto* wlCursor = wl_cursor_theme_get_cursor(cursorTheme, cursorName);
 		if(!wlCursor) {

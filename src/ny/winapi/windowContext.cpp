@@ -308,7 +308,7 @@ void WinapiWindowContext::cursor(const Cursor& cursor)
 	} else {
 		auto cursorName = cursorToWinapi(cursor.type());
 		if(!cursorName) {
-			dlg_warn("invalid native cursor type");
+			dlg_warn("invalid native cursor type '{}'", name(cursor.type()));
 			return;
 		}
 

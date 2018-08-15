@@ -19,8 +19,7 @@ namespace ny {
 constexpr struct KeycodeConversion {
 	Keycode keycode;
 	unsigned int vkcode;
-} keycodeConversions [] =
-{
+} keycodeConversions [] = {
 	{Keycode::none, 0x0},
 	{Keycode::a, 'A'},
 	{Keycode::b, 'B'},
@@ -158,8 +157,7 @@ constexpr struct KeycodeConversion {
 	{Keycode::zoom, VK_ZOOM},
 };
 
-constexpr struct EdgeConversion
-{
+constexpr struct EdgeConversion {
 	WindowEdge windowEdge;
 	unsigned int winapiCode;
 } edgeConversions[] = {
@@ -178,13 +176,15 @@ constexpr struct CursorConversion {
 	const wchar_t* idc;
 } cursorConversions[] = {
 	{CursorType::leftPtr, IDC_ARROW},
-	{CursorType::rightPtr, IDC_ARROW},
 	{CursorType::load, IDC_WAIT},
 	{CursorType::loadPtr, IDC_APPSTARTING},
+	{CursorType::rightPtr, IDC_ARROW},
 	{CursorType::hand, IDC_HAND},
 	{CursorType::grab, IDC_HAND},
 	{CursorType::crosshair, IDC_CROSS},
 	{CursorType::help, IDC_HELP},
+	{CursorType::beam, IDC_BEAM},
+	{CursorType::forbidden, IDC_NO},
 	{CursorType::size, IDC_SIZEALL},
 	{CursorType::sizeLeft, IDC_SIZEWE},
 	{CursorType::sizeRight, IDC_SIZEWE},
@@ -196,26 +196,28 @@ constexpr struct CursorConversion {
 	{CursorType::sizeBottomLeft, IDC_SIZENESW},
 };
 
-Keycode winapiToKeycode(unsigned int code)
-{
-	for(auto& kc : keycodeConversions)
-		if(kc.vkcode == code) return kc.keycode;
+Keycode winapiToKeycode(unsigned int code) {
+	for(auto& kc : keycodeConversions) {
+		if(kc.vkcode == code) {
+			return kc.keycode;
+		}
+	}
 
 	return Keycode::unknown;
 }
 
-unsigned int keycodeToWinapi(Keycode keycode)
-{
-	for(auto& kc : keycodeConversions)
-		if(kc.keycode == keycode) return kc.vkcode;
+unsigned int keycodeToWinapi(Keycode keycode) {
+	for(auto& kc : keycodeConversions) {
+		if(kc.keycode == keycode) {
+			return kc.vkcode;
+		}
+	}
 
 	return 0u;
 }
 
-MouseButton winapiToButton(unsigned int code)
-{
-	switch(code)
-	{
+MouseButton winapiToButton(unsigned int code) {
+	switch(code) {
 		case VK_RBUTTON: return MouseButton::right;
 		case VK_LBUTTON: return MouseButton::left;
 		case VK_MBUTTON: return MouseButton::middle;
@@ -225,10 +227,8 @@ MouseButton winapiToButton(unsigned int code)
 	}
 }
 
-unsigned int buttonToWinapi(MouseButton button)
-{
-	switch(button)
-	{
+unsigned int buttonToWinapi(MouseButton button) {
+	switch(button) {
 		case MouseButton::right: return VK_RBUTTON;
 		case MouseButton::left: return VK_LBUTTON;
 		case MouseButton::middle: return VK_MBUTTON;
@@ -238,86 +238,86 @@ unsigned int buttonToWinapi(MouseButton button)
 	}
 }
 
-const wchar_t* cursorToWinapi(CursorType type)
-{
-	for(auto& cc : cursorConversions)
-		if(cc.cursor == type) return cc.idc;
+const wchar_t* cursorToWinapi(CursorType type) {
+	for(auto& cc : cursorConversions) {
+		if(cc.cursor == type) {
+			return cc.idc;
+		}
+	}
 
 	return nullptr;
 }
 
-CursorType winapiToCursor(const wchar_t* idc)
-{
-	for(auto& cc : cursorConversions)
-		if(cc.idc == idc) return cc.cursor;
+CursorType winapiToCursor(const wchar_t* idc) {
+	for(auto& cc : cursorConversions) {
+		if(cc.idc == idc) {
+			return cc.cursor;
+		}
+	}
 
-	return CursorType::none;
+	return CursorType::unknown;
 }
 
-unsigned int edgesToWinapi(WindowEdges edges)
-{
+unsigned int edgesToWinapi(WindowEdges edges) {
 	auto edge = static_cast<WindowEdge>(edges.value());
-	for(auto& ec : edgeConversions)
-		if(ec.windowEdge == edge) return ec.winapiCode;
+	for(auto& ec : edgeConversions) {
+		if(ec.windowEdge == edge) {
+			return ec.winapiCode;
+		}
+	}
 
 	return 0u;
 }
 
-WindowEdge winapiToEdges(unsigned int edges)
-{
-	for(auto& ec : edgeConversions)
-		if(ec.winapiCode == edges) return ec.windowEdge;
+WindowEdge winapiToEdges(unsigned int edges) {
+	for(auto& ec : edgeConversions) {
+		if(ec.winapiCode == edges) {
+			return ec.windowEdge;
+		}
+	}
 
 	return WindowEdge::none;
 }
 
-WinapiErrorCategory& WinapiErrorCategory::instance()
-{
+WinapiErrorCategory& WinapiErrorCategory::instance() {
 	static WinapiErrorCategory ret;
 	return ret;
 }
 
-std::system_error WinapiErrorCategory::exception(std::string_view msg)
-{
+std::system_error WinapiErrorCategory::exception(std::string_view msg) {
 	if(msg.empty()) msg = "ny::Winapi: an error without message occurred";
 	std::string msgn {msg};
 	return std::system_error(std::error_code(::GetLastError(), instance()), msgn);
 }
 
-std::string WinapiErrorCategory::message(int code) const
-{
+std::string WinapiErrorCategory::message(int code) const {
 	return winapi::errorMessage(code);
 }
 
 // The ugly hack our all lives depend on. You have found it. Congratulations!
 // Srsly, this is done this way because we rely on windows treating wchar_t strings
 // as utf16 strings. Strangely u16string is not the same as wstring on windows (mingw).
-std::wstring widen(const std::string& string)
-{
+std::wstring widen(const std::string& string) {
 	auto str16 = nytl::toUtf16(string);
 	return reinterpret_cast<const wchar_t*>(str16.c_str());
 }
 
-std::string narrow(const std::wstring& string)
-{
+std::string narrow(const std::wstring& string) {
 	auto str16 = reinterpret_cast<const char16_t*>(string.c_str());
 	return nytl::toUtf8(str16);
 }
 
 namespace winapi {
 
-std::error_code lastErrorCode()
-{
+std::error_code lastErrorCode() {
 	return {static_cast<int>(::GetLastError()), WinapiErrorCategory::instance()};
 }
 
-std::system_error lastErrorException(std::string_view msg)
-{
+std::system_error lastErrorException(std::string_view msg) {
 	return WinapiErrorCategory::exception(msg);
 }
 
-HBITMAP toBitmap(const Image& img)
-{
+HBITMAP toBitmap(const Image& img) {
 	auto copy = convertFormat(img, ImageFormat::argb8888);
 	premultiply(copy);
 
@@ -341,8 +341,7 @@ HBITMAP toBitmap(const Image& img)
 	return bitmap;
 }
 
-UniqueImage toImage(HBITMAP hbitmap)
-{
+UniqueImage toImage(HBITMAP hbitmap) {
 	auto hdc = ::GetDC(nullptr);
 	auto hdcGuard = nytl::ScopeGuard([&]{ ::ReleaseDC(nullptr, hdc); });
 
@@ -378,8 +377,7 @@ UniqueImage toImage(HBITMAP hbitmap)
 	return ret;
 }
 
-std::string errorMessage(unsigned int code, std::string_view msg)
-{
+std::string errorMessage(unsigned int code, std::string_view msg) {
 	std::string ret;
 	if(!msg.empty()) ret += msg;
 
@@ -395,8 +393,7 @@ std::string errorMessage(unsigned int code, std::string_view msg)
 	return ret;
 }
 
-std::string errorMessage(std::string_view msg)
-{
+std::string errorMessage(std::string_view msg) {
 	return errorMessage(::GetLastError(), msg);
 }
 

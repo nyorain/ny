@@ -45,7 +45,7 @@ using WinapiCursorID = const wchar_t*;
 WinapiCursorID cursorToWinapi(CursorType type);
 
 /// Returns a CursorType for a winapi cursor id.
-/// Returns CursorType::none for unknown/invalid cursor ids.
+/// Returns CursorType::unknown for unknown/invalid cursor ids.
 CursorType winapiToCursor(WinapiCursorID idc);
 
 /// Conerts the gvien WindowEdges to winapi edges as used by SC_SIZE.

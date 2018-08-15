@@ -10,6 +10,7 @@
 namespace ny {
 
 // Converts between values of the CursorType enum and the matching x11 cursor names
+// Returns null/CursorType::unknown when conversion is not possible.
 // Note that wayland uses the same names since it uses x cursor themes.
 const char* cursorToXName(CursorType);
 CursorType x11NameToCursor(std::string_view name);
@@ -23,5 +24,4 @@ Keycode linuxToKey(unsigned int keycode);
 unsigned int buttonToLinux(MouseButton);
 MouseButton linuxToButton(unsigned int buttoncode);
 
-
-}
+} // namespace ny

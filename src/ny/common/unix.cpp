@@ -6,57 +6,68 @@
 #include <ny/mouseContext.hpp>
 #include <ny/mouseButton.hpp>
 #include <ny/cursor.hpp>
+#include <dlg/dlg.hpp>
+#include <cstring>
 
 namespace ny {
 
-const char* cursorToXName(CursorType cursor)
-{
-	switch(cursor) {
-		case CursorType::leftPtr: return "left_ptr";
-		case CursorType::sizeBottom: return "bottom_side";
-		case CursorType::sizeBottomLeft: return "bottom_left_corner";
-		case CursorType::sizeBottomRight: return "bottom_right_corner";
-		case CursorType::sizeTop: return "top_side";
-		case CursorType::sizeTopLeft: return "top_left_corner";
-		case CursorType::sizeTopRight: return "top_right_corner";
-		case CursorType::sizeLeft: return "left_side";
-		case CursorType::sizeRight: return "right_side";
-		case CursorType::hand: return "fleur";
-		case CursorType::grab: return "grabbing";
-		default: return nullptr;
+// https://www.freedesktop.org/wiki/Specifications/cursor-spec/
+// https://github.com/GNOME/gtk/blob/master/gdk/wayland/gdkcursor-wayland.c
+
+constexpr struct {
+	CursorType cursor;
+	const char* name;
+} mapping[] = {
+	{CursorType::leftPtr, "left_ptr"},
+	{CursorType::load, "watch"},
+	{CursorType::loadPtr, "left_ptr_watch"},
+	{CursorType::rightPtr, "right_ptr"},
+	{CursorType::hand, "pointer"},
+	{CursorType::grab, "grab"},
+	{CursorType::crosshair, "cross"},
+	{CursorType::help, "question_arrow"},
+	{CursorType::beam, "xterm"},
+	{CursorType::forbidden, "crossed_circle"},
+	{CursorType::size, "bottom_left_corner"},
+	{CursorType::sizeBottom, "bottom_side"},
+	{CursorType::sizeBottomLeft, "bottom_left_corner"},
+	{CursorType::sizeBottomRight, "bottom_right_corner"},
+	{CursorType::sizeTop, "top_side"},
+	{CursorType::sizeTopLeft, "top_left_corner"},
+	{CursorType::sizeTopRight, "top_right_corner"},
+	{CursorType::sizeLeft, "left_side"},
+	{CursorType::sizeRight, "right_side"},
+};
+
+const char* cursorToXName(CursorType cursor) {
+	for(auto& m : mapping) {
+		if(m.cursor == cursor) {
+			return m.name;
+		}
 	}
+
+	return nullptr;
 }
 
-CursorType xNameToCursor(std::string_view name)
-{
-	if(name == "left_ptr") return CursorType::leftPtr;
-	if(name == "right_ptr") return CursorType::rightPtr;
-	if(name == "bottom_side") return CursorType::sizeBottom;
-	if(name == "left_side") return CursorType::sizeLeft;
-	if(name == "right_side") return CursorType::sizeRight;
-	if(name == "top_side") return CursorType::sizeTop;
-	if(name == "top_side") return CursorType::sizeTop;
-	if(name == "top_left_corner") return CursorType::sizeTopLeft;
-	if(name == "top_right_corner") return CursorType::sizeTopRight;
-	if(name == "bottom_right_corner") return CursorType::sizeBottomRight;
-	if(name == "bottom_left_corner") return CursorType::sizeBottomLeft;
-	if(name == "fleur") return CursorType::hand;
-	if(name == "grabbing") return CursorType::grab;
+CursorType xNameToCursor(std::string_view name) {
+	for(auto& m : mapping) {
+		if(!std::strncmp(m.name, name.data(), name.size())) {
+			return m.cursor;
+		}
+	}
+
 	return CursorType::unknown;
 }
 
-unsigned int keyToLinux(Keycode keycode)
-{
+unsigned int keyToLinux(Keycode keycode) {
 	return static_cast<unsigned int>(keycode);
 }
 
-Keycode linuxToKey(unsigned int keycode)
-{
+Keycode linuxToKey(unsigned int keycode) {
 	return static_cast<Keycode>(keycode);
 }
 
-unsigned int buttonToLinux(MouseButton button)
-{
+unsigned int buttonToLinux(MouseButton button) {
 	switch(button) {
 		case MouseButton::left: return 0x110;
 		case MouseButton::right: return 0x111;
@@ -72,8 +83,7 @@ unsigned int buttonToLinux(MouseButton button)
 	}
 }
 
-MouseButton linuxToButton(unsigned int buttoncode)
-{
+MouseButton linuxToButton(unsigned int buttoncode) {
 	switch(buttoncode) {
 		case 0x110: return MouseButton::left;
 		case 0x111: return MouseButton::right;
