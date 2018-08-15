@@ -343,6 +343,7 @@ bool X11KeyboardContext::processEvent(const x11::GenericEvent& ev, const x11::Ge
 				KeyEvent ke;
 				ke.eventData = &eventData;
 				ke.keycode = keycode;
+				ke.modifiers = modifiers();
 				ke.utf8 = utf8;
 				ke.pressed = true;
 				ke.repeat = repeated_;
@@ -382,6 +383,7 @@ bool X11KeyboardContext::processEvent(const x11::GenericEvent& ev, const x11::Ge
 				KeyEvent ke;
 				ke.eventData = &eventData;
 				ke.keycode = keycode;
+				ke.modifiers = modifiers();
 				ke.utf8 = utf8;
 				ke.pressed = false;
 				ke.modifiers = modifiers();
