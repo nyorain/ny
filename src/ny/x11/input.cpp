@@ -336,7 +336,7 @@ bool X11KeyboardContext::processEvent(const x11::GenericEvent& ev, const x11::Ge
 			if(!handleKey(key.detail, true, keycode, utf8)) {
 				appContext().bell();
 			}
-			
+
 			onKey(*this, keycode, utf8, true);
 
 			if(wc) {
@@ -346,6 +346,7 @@ bool X11KeyboardContext::processEvent(const x11::GenericEvent& ev, const x11::Ge
 				ke.utf8 = utf8;
 				ke.pressed = true;
 				ke.repeat = repeated_;
+				ke.modifiers = modifiers();
 				wc->listener().key(ke);
 			}
 
@@ -383,6 +384,7 @@ bool X11KeyboardContext::processEvent(const x11::GenericEvent& ev, const x11::Ge
 				ke.keycode = keycode;
 				ke.utf8 = utf8;
 				ke.pressed = false;
+				ke.modifiers = modifiers();
 				wc->listener().key(ke);
 			}
 
