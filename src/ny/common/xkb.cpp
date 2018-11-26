@@ -150,7 +150,7 @@ bool XkbKeyboardContext::handleKey(std::uint8_t keycode, bool pressed, Keycode& 
 		} else if(status == XKB_COMPOSE_COMPOSED) {
 			auto needed = xkb_compose_state_get_utf8(xkbComposeState_, nullptr, 0) + 1;
 			utf8.resize(needed);
-			xkb_compose_state_get_utf8(xkbComposeState_, &utf8[0], needed);
+			xkb_compose_state_get_utf8(xkbComposeState_, utf8.data(), needed);
 			xkb_compose_state_reset(xkbComposeState_);
 			composed = true;
 		}
@@ -159,9 +159,11 @@ bool XkbKeyboardContext::handleKey(std::uint8_t keycode, bool pressed, Keycode& 
 	if(!composed) {
 		auto needed = xkb_state_key_get_utf8(xkbState_, keycode, nullptr, 0) + 1;
 		utf8.resize(needed);
-		xkb_state_key_get_utf8(xkbState_, keycode, &utf8[0], needed);
+		xkb_state_key_get_utf8(xkbState_, keycode, utf8.data(), needed);
 	}
 
+	// make sure to strip the NULL terminator
+	utf8.erase(std::find(utf8.begin(), utf8.end(), '\0'), utf8.end());
 	return ret;
 }
 
