@@ -442,6 +442,7 @@ void WaylandDataDevice::enter(wl_data_device*, uint32_t serial, wl_surface* surf
 	DndMoveEvent dme;
 	dme.eventData = &eventData;
 	dme.position = pos;
+	dme.offer = dndOffer_;
 	dndWC_->listener().dndMove(dme);
 }
 
@@ -486,6 +487,8 @@ void WaylandDataDevice::motion(wl_data_device*, uint32_t time, wl_fixed_t x, wl_
 	}
 
 	wl_data_offer_accept(&dndOffer_->wlDataOffer(), dndSerial_, fmt.name.c_str());
+	// wl_data_offer_set_actions(&dndOffer_->wlDataOffer(), WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE,
+		// WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE);
 	wl_data_offer_set_actions(&dndOffer_->wlDataOffer(), WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY,
 		WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY);
 }

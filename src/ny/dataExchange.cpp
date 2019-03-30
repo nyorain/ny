@@ -28,7 +28,7 @@ bool sameBeginning(const char* a, const char* b)
 const DataFormat DataFormat::none {};
 const DataFormat DataFormat::raw {"application/octet-stream",
 	{"application/binary", "applicatoin/unknown", "raw", "binary", "buffer", "unknown"}};
-const DataFormat DataFormat::text {"text/plain", {"text", "string",
+const DataFormat DataFormat::text {"text/plain;charset=utf-8", {"text", "string",
 	"unicode", "utf8", "STRING", "TEXT", "UTF8_STRING", "UNICODETEXT"}};
 const DataFormat DataFormat::uriList {"text/uri-list", {"uriList"}};
 const DataFormat DataFormat::image {"image/x-ny-data", {"ny::Image"}};
@@ -178,7 +178,7 @@ bool match(const DataFormat& a, const DataFormat& b)
 
 	for(auto aname : a.additionalNames)
 		for(auto bname : b.additionalNames)
-			if(sameBeginning(aname.c_str(), bname.c_str())) 
+			if(sameBeginning(aname.c_str(), bname.c_str()))
 				return true;
 
 	return false;

@@ -202,6 +202,7 @@ int main()
 	settings.listener = &listener;
 	settings.surface = ny::SurfaceType::buffer;
 	settings.buffer.storeSurface = &bufferSurface;
+	settings.transparent = false;
 	auto wc = ac->createWindowContext(settings);
 
 	auto run = true;
