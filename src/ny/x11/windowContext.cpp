@@ -31,11 +31,6 @@ namespace ny {
 X11WindowContext::X11WindowContext(X11AppContext& ctx, const X11WindowSettings& settings)
 {
 	create(ctx, settings);
-
-	// send initial state
-	this->appContext().deferred.add([this, settings]{
-		listener().state({nullptr, state_});
-	}, this);
 }
 
 X11WindowContext::~X11WindowContext()

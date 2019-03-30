@@ -31,12 +31,12 @@
 // They are again implemented below main.
 class MyWindowListener : public ny::WindowListener {
 public:
-	ny::AppContext* appContext;
-	ny::WindowContext* windowContext;
-	ny::BufferSurface* bufferSurface;
-	ny::ToplevelState toplevelState;
+	ny::AppContext* appContext {};
+	ny::WindowContext* windowContext {};
+	ny::BufferSurface* bufferSurface {};
+	ny::ToplevelState toplevelState = ny::ToplevelState::normal;
 	nytl::Vec2ui windowSize {800u, 500u};
-	bool* run;
+	bool* run {};
 
 public:
 	void draw(const ny::DrawEvent&) override;
@@ -68,7 +68,7 @@ int main(int, char**) {
 	ws.listener = &listener;
 	ws.surface = ny::SurfaceType::buffer;
 	ws.buffer.storeSurface = &bufferSurface;
-	ws.initState = ny::ToplevelState::fullscreen;
+	ws.initState = listener.toplevelState;
 	auto wc = ac->createWindowContext(ws);
 
 	auto run = true;
@@ -161,10 +161,12 @@ void MyWindowListener::mouseButton(const ny::MouseButtonEvent& event) {
 		event.pressed ? "pressed" : "released", event.position);
 	if(event.pressed && event.button == ny::MouseButton::left) {
 		if(toplevelState != ny::ToplevelState::normal ||
-			event.position[0] < 0 || event.position[1] < 0 ||
-			static_cast<unsigned int>(event.position[0]) > windowSize[0] ||
-			static_cast<unsigned int>(event.position[1]) > windowSize[1])
-				return;
+				event.position[0] < 0 || event.position[1] < 0 ||
+				static_cast<unsigned int>(event.position[0]) > windowSize[0] ||
+				static_cast<unsigned int>(event.position[1]) > windowSize[1]) {
+			dlg_info("Not resizing: {} {}", event.position, int(toplevelState));
+			return;
+		}
 
 		ny::WindowEdges resizeEdges = ny::WindowEdge::none;
 		if(event.position[0] < 100) {

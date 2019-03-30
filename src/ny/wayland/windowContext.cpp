@@ -498,19 +498,27 @@ Surface WaylandWindowContext::surface()
 
 void WaylandWindowContext::reparseState(const wl_array& states)
 {
-	// TODO: what about multiple valid states is array? maximied and fullscreen?
+	auto newXdgState = ToplevelState::normal;
 	for(auto i = 0u; i < states.size / sizeof(uint32_t); ++i) {
 		auto wlState = (static_cast<uint32_t*>(states.data))[i];
 		auto toplevelState = waylandToState(wlState);
-
-		if(toplevelState != ToplevelState::unknown && toplevelState != currentXdgState_) {
-			currentXdgState_ = toplevelState;
-
-			StateEvent se;
-			se.state = toplevelState;
-			listener().state(se);
+		if(toplevelState == ToplevelState::fullscreen) {
+			newXdgState = toplevelState;
 			break;
+		} else if(toplevelState == ToplevelState::maximized) {
+			// don't break here, wait for fullscreen
+			// if that is set as well; prefer fullscreen
+			currentXdgState_ = toplevelState;
 		}
+	}
+
+	if(newXdgState != currentXdgState_) {
+		currentXdgState_ = newXdgState;
+
+		StateEvent se;
+		se.state = currentXdgState_;
+		se.shown = true; // can this ever be false?
+		listener().state(se);
 	}
 }
 
