@@ -82,7 +82,7 @@ void copy(T& to, const std::unique_ptr<PF[]>& from, unsigned int) {
 }
 
 template<typename PT>
-void copy(std::unique_ptr<PT[]>& to, const uint8_t* from, unsigned int size) {
+void copy(std::unique_ptr<PT[]>& to, const std::byte* from, unsigned int size) {
 	if(!from) {
 		to = {};
 		return;
@@ -108,14 +108,14 @@ void copy(std::unique_ptr<PT[]>& to, const std::unique_ptr<PF[]>& from,
 
 template<typename P> class BasicImage;
 
-/// Returns the raw data from the given BasicImage as uint8_t pointer.
+/// Returns the raw data from the given BasicImage as byte pointer.
 /// Useful for generic code since it allows to access the raw data
 /// independently from the medium used to store it (e.g. be a smart pointer).
 template<typename P>
 constexpr auto data(const BasicImage<P>& img) {
-	if constexpr(std::is_convertible_v<P, const uint8_t*>) {
+	if constexpr(std::is_convertible_v<P, const std::byte*>) {
 		return img.data;
-	} else if constexpr(std::is_convertible_v<decltype(&*img.data), const uint8_t*>) {
+	} else if constexpr(std::is_convertible_v<decltype(&*img.data), const std::byte*>) {
 		return &*img.data;
 	} else if constexpr(nytl::templatize<P>(true)) {
 		static_assert("Invalid img data pointer");
@@ -136,7 +136,7 @@ template<typename P> constexpr unsigned int bitStride(const BasicImage<P>& img);
 /// rgba(0xAA, 0xBB, 0xCC, 0xDD) independent from endianess (note that on little endian
 /// this is not how it is layed out in memory).
 /// There are several helper functions that make dealing with BasicImage objects easier.
-/// \tparam P The pointer type to used. Should be a type that can be used as std::uint8_t*.
+/// \tparam P The pointer type to used. Should be a type that can be used as std::byte*.
 /// Might be a cv-qualified or smart pointer.
 template<typename P>
 class BasicImage {
@@ -184,10 +184,14 @@ public:
 	constexpr BasicImage& operator=(BasicImage&&) noexcept = default;
 };
 
-using Image = BasicImage<const uint8_t*>; /// Default, immutable, non-owned BasicImgae typedef.
-using MutableImage = BasicImage<uint8_t*>; /// Mutable, non-owned BasicImage typedef
-using UniqueImage = BasicImage<std::unique_ptr<uint8_t[]>>; /// Mutable, owned BasicImage typedef
-using SharedImage = BasicImage<std::shared_ptr<uint8_t[]>>; /// Mutable, shared BasicImage typedef
+/// Image: immutable, non-owned, default (others convert to this)
+/// MutabeImage: mutable, non-owned
+/// UniqueImage: mutable, owned (uniquely)
+/// SharedImage: mutable, owned (shared)
+using Image = BasicImage<const std::byte*>;
+using MutableImage = BasicImage<std::byte*>;
+using UniqueImage = BasicImage<std::unique_ptr<std::byte[]>>;
+using SharedImage = BasicImage<std::shared_ptr<std::byte[]>>;
 
 /// Returns the stride of the given BasicImage in bits.
 /// If the given image has no stride stored, calculates the stride.
@@ -222,7 +226,7 @@ nytl::Vec4u8 readPixel(const Image&, nytl::Vec2ui position);
 /// E.g. if bitOffset is 5, we should start reading the 5th most significant bit,
 /// and then getting less significant by continuing with the 6th.
 /// For formats whose bitSize is a multiple of 8, bitOffset must be 0.
-nytl::Vec4u8 readPixel(const uint8_t& pixel, ImageFormat format, unsigned int bitOffset = 0u);
+nytl::Vec4u8 readPixel(const std::byte& pixel, ImageFormat format, unsigned int bitOffset = 0u);
 
 /// Sets the color of the pixel at the given position.
 /// Does not perform any range checking, i.e. if position lies outside of the size
@@ -234,7 +238,7 @@ void writePixel(const MutableImage&, nytl::Vec2ui position, nytl::Vec4u8 color);
 /// by pixel does not have enough bytes to read.
 /// \param bitOffset The bit position at which reading should start in significance.
 /// For formats whose bitSize is a multiple of 8, bitOffset must be 0.
-void writePixel(uint8_t& pixel, ImageFormat format, nytl::Vec4u8 color,
+void writePixel(std::byte& pixel, ImageFormat format, nytl::Vec4u8 color,
 	unsigned int bitOffset = 0u);
 
 /// Normalizes the given color values for the given format (color channel sizes).
@@ -253,7 +257,7 @@ bool satisfiesRequirements(const Image&, ImageFormat, unsigned int strideAlign =
 /// \sa BasicImageData
 /// \sa ImageDataFormat
 UniqueImage convertFormat(const Image&, ImageFormat to, unsigned int alignNewStride = 0);
-void convertFormat(const Image&, ImageFormat to, uint8_t& into, unsigned int alignNewStride = 0);
+void convertFormat(const Image&, ImageFormat to, std::byte& into, unsigned int alignNewStride = 0);
 
 /// Returns whether the given format has an alpha component.
 /// Despite the name, this will return false for the a1 and a8 image formats.

@@ -56,7 +56,7 @@ public:
 	/// Should return whether the given DataOffer could be accepted at the given position.
 	/// Remember that after calling a dispatch function in this function, the given
 	/// DataOffer might not be valid anymore (then a dndLeave or dndDrop event occurred).
-	virtual DataFormat dndMove(const DndMoveEvent&) { return {}; };
+	virtual DndResponse dndMove(const DndMoveEvent&) { return {}; };
 
 	/// This function is called when a DataOffer that entered the window leaves it.
 	/// The DataOffer object should then actually not be used anymore and is just passed here

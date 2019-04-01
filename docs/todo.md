@@ -175,7 +175,10 @@ x11 backend:
 wayland backend:
 ---------------
 
-- support other protocols (low prio)
+- support other protocols
+	- stable xdg shell (high prio!)
+	- xdg-decoration
+	- maybe presentation protocol for timing?
 - ShmBuffer shm_pool shared (not one per buffer...)
 - fix/simplify data exchange. Formats probably not async
 	- fix data retrieving/sending (make sure it always works, even if splitted and stuff)

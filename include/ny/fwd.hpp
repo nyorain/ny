@@ -5,6 +5,7 @@
 #pragma once
 
 #include <cstdint> // std::uint8_t
+#include <cstddef> // std::byte
 #include <nytl/fwd.hpp> // pull in all nytl forward decls
 
 // This file contains forward delcarations for all ny classes and enumerations.
@@ -75,8 +76,8 @@ template<typename T> class AsyncRequest;
 template<typename T> class DefaultAsyncRequest;
 
 template<typename T> class BasicImage;
-using Image = BasicImage<const uint8_t*>;
-using MutableImage = BasicImage<uint8_t*>;
+using Image = BasicImage<const std::byte*>;
+using MutableImage = BasicImage<std::byte*>;
 
 // enums
 enum class ToplevelState : unsigned int;
@@ -90,6 +91,7 @@ enum class DialogResult : unsigned int;
 enum class NativeWidgetType : unsigned int;
 enum class DialogType : unsigned int;
 enum class CursorType : unsigned int;
+enum class DndAction : unsigned int;
 enum class ColorChannel : uint8_t;
 
 using WindowHints = nytl::Flags<WindowHint>;

@@ -11,8 +11,8 @@ class CustomDataSource : public ny::DataSource {
 public:
 	CustomDataSource();
 
-	std::vector<ny::DataFormat> formats() const override { return {ny::DataFormat::text}; }
-	std::any data(const ny::DataFormat& format) const override;
+	std::vector<std::string> formats() const override { return {ny::mime::utf8}; }
+	ny::ExchangeData data(const char* format) const override;
 	ny::Image image() const override;
 
 private:
@@ -20,64 +20,56 @@ private:
 };
 
 /// Returns whether AppContext received error
-bool handleDataOffer(ny::DataOffer& dataOffer)
-{
-	auto formatsRequest = dataOffer.formats();
-	if(!formatsRequest) {
-		dlg_warn("could not retrieve formats request");
-		return true;
-	}
-
-	if(!formatsRequest->wait()) {
-		dlg_warn("AppContext broke while waiting for formats! Exiting.");
-		return false;
-	}
-
-	auto formats = formatsRequest->get();
-
-	ny::DataFormat dataFormat {};
-	for(const auto& fmt : formats) {
-		dlg_info("clipboard type {}", fmt.name);
-		if(fmt == ny::DataFormat::text) {
-			dataFormat = fmt;
-			break;
-		} else if(fmt == ny::DataFormat::uriList && dataFormat == ny::DataFormat::none) {
-			dataFormat = fmt;
+void handleDataOffer(ny::AppContext& ac, ny::DataOffer& dataOffer) {
+	// TODO: we could provide a wrapper in ny/dataExchange.hpp that does exactly this
+	// blocking/only handling specific formats
+	bool wait = true;
+	std::string dataFormat;
+	auto dataHandler = [&](const auto& data) {
+		if(data.index() == 0) { // monstate; invalid
+			dlg_warn("clipboard data request failed");
+		} else if(dataFormat == ny::mime::utf8) {
+			auto& text = std::get<const std::string&>(data);
+			dlg_info("Received offer text data: {}", text);
+		} else if(dataFormat == ny::mime::uriList) {
+			auto& uriList = std::get<const std::vector<std::string>&>(data);
+			for(auto& uri : uriList) {
+				dlg_info("Received offer uri: {}", uri);
+			}
 		}
-	}
 
-	if(dataFormat == ny::DataFormat::none) {
-		dlg_info("no supported clipboard format!");
-		return true;
-	}
+		// requests completed, wake up waitEvents
+		wait = false;
+		ac.wakeupWait();
+	};
 
-	// trying to retrieve the data in text form and outputting it if successful
-	auto dataRequest = dataOffer.data(dataFormat);
-	if(!dataRequest) {
-		dlg_warn("could not retrieve data request");
-		return true;
-	}
+	auto formatHandler = [&](const auto& formats){
+		if(formats.empty()) {
+			dlg_warn("clipboard formats request failed");
+			wait = false;
+			ac.wakeupWait();
+			return;
+		}
 
-	if(!dataRequest->wait()) {
-		dlg_warn("AppContext broke while waiting for data! Exiting.");
-		return false;
-	}
+		for(const auto& fmt : formats) {
+			dlg_info("clipboard type {}", fmt);
+			if(fmt == ny::mime::utf8 && dataFormat.empty()) {
+				dataFormat = fmt;
+			} else if(fmt == ny::mime::uriList) {
+				dataFormat = fmt;
+			}
+		}
 
-	auto data = dataRequest->get();
-	if(!data.has_value()) {
-		dlg_warn("invalid text clipboard data offer");
-		return true;
-	}
+		// if we have a format, send data request
+		if(!dataFormat.empty()) {
+			dataOffer.data(dataFormat.c_str(), dataHandler);
+		}
+	};
 
-	if(dataFormat == ny::DataFormat::text) {
-		dlg_info("Received offer text data: {}", std::any_cast<const std::string&>(data));
-	} else if(dataFormat == ny::DataFormat::uriList) {
-		auto uriList = std::any_cast<const std::vector<std::string>&>(data);
-		for(auto& uri : uriList)
-			dlg_info("Received offer uri: {}", uri);
+	dataOffer.formats(formatHandler);
+	while(wait) {
+		ac.waitEvents();
 	}
-
-	return true;
 }
 
 class MyWindowListener : public ny::WindowListener {
@@ -88,16 +80,16 @@ public:
 	bool* run;
 
 public:
-	void close(const ny::CloseEvent&) override
-	{
+	void close(const ny::CloseEvent&) override {
 		dlg_info("Recevied closed event. Exiting");
 		*run = false;
 		ac->wakeupWait();
 	}
 
-	void draw(const ny::DrawEvent&) override
-	{
-		if(!surface) return;
+	void draw(const ny::DrawEvent&) override {
+		if(!surface) {
+			return;
+		}
 
 		auto bufferGuard = surface->buffer();
 		auto buffer = bufferGuard.get();
@@ -105,15 +97,16 @@ public:
 		std::memset(buffer.data, 0x00, size);
 	}
 
-	void mouseButton(const ny::MouseButtonEvent& ev) override
-	{
-		if(!ev.pressed) return;
+	void mouseButton(const ny::MouseButtonEvent& ev) override {
+		if(!ev.pressed) {
+			return;
+		}
 
 		// initiate a dnd operation with the CustomDataSource
 		auto pos = ev.position;
 		if(pos[0] < 100 && pos[1] < 100) {
 			auto src = std::make_unique<CustomDataSource>();
-			auto ret = ac->startDragDrop(std::move(src));
+			auto ret = ac->dragDrop(ev.eventData, std::move(src));
 			dlg_info("Starting a dnd operation: {}", ret);
 		} else if(pos[0] > 400 && pos[1] > 400) {
 			wc->beginResize(ev.eventData, ny::WindowEdge::bottomRight);
@@ -122,43 +115,40 @@ public:
 		}
 	}
 
-	void mouseWheel(const ny::MouseWheelEvent& ev) override
-	{
+	void mouseWheel(const ny::MouseWheelEvent& ev) override {
 		dlg_info("Mouse Wheel rotated: value={}", ev.value);
 	}
 
-	ny::DataFormat dndMove(const ny::DndMoveEvent& ev) override
-	{
-		auto pos = ev.position;
-		if(pos[0] > 100 && pos[1] > 100 && pos[0] < 700 && pos[1] < 400) {
-			auto formatsReq = ev.offer->formats();
-			if(!formatsReq->wait()) {
-				dlg_warn("AppContext broke while waiting for formats! Exiting.");
-				*run = false;
-				ac->wakeupWait();
-				return ny::DataFormat::none;
+	ny::DndResponse dndMove(const ny::DndMoveEvent& ev) override {
+		std::vector<std::string> formats;
+		bool wait = true;
+		auto formatHandler = [&](const auto& flist) {
+			for(auto& fmt : flist) {
+				if(fmt == ny::mime::utf8 || fmt == ny::mime::uriList) {
+					formats.push_back(fmt);
+				}
 			}
 
-			auto result = formatsReq->get();
-			for(const auto& fmt : result)
-				if(fmt == ny::DataFormat::text || fmt == ny::DataFormat::uriList)
-					return fmt;
-		}
-
-		return ny::DataFormat::none;
-	}
-
-	void dndDrop(const ny::DndDropEvent& ev) override
-	{
-		if(!handleDataOffer(*ev.offer)) {
-			*run = false;
+			wait = false;
 			ac->wakeupWait();
+		};
+
+		ev.offer->formats(formatHandler);
+		while(wait) {
+			ac->waitEvents();
 		}
+
+		return {formats, ny::DndAction::copy};
 	}
 
-	void key(const ny::KeyEvent& ev) override
-	{
-		if(!ev.pressed) return;
+	void dndDrop(const ny::DndDropEvent& ev) override {
+		handleDataOffer(*ac, *ev.offer);
+	}
+
+	void key(const ny::KeyEvent& ev) override {
+		if(!ev.pressed) {
+			return;
+		}
 
 		if(ev.keycode == ny::Keycode::escape) {
 			dlg_info("Escape pressed, exiting");
@@ -173,23 +163,21 @@ public:
 				dlg_info("\tunsuccesful");
 			}
 		}
-		if(ev.keycode == ny::Keycode::v)
-		{
+
+		if(ev.keycode == ny::Keycode::v) {
 			dlg_info("reading clipboard... ");
 			auto dataOffer = ac->clipboard();
 
 			if(!dataOffer) {
 				dlg_info("Backend does not support clipboard operations...");
-			} else if(!handleDataOffer(*dataOffer)) {
-				*run = false;
-				ac->wakeupWait();
+			} else {
+				handleDataOffer(*ac, *dataOffer);
 			}
 		}
 	}
 };
 
-int main()
-{
+int main() {
 	auto& backend = ny::Backend::choose();
 	auto ac = backend.createAppContext();
 
@@ -217,9 +205,8 @@ int main()
 	}
 }
 
-CustomDataSource::CustomDataSource()
-{
-	image_.data = std::make_unique<std::uint8_t[]>(32 * 32 * 4);
+CustomDataSource::CustomDataSource() {
+	image_.data = std::make_unique<std::byte[]>(32 * 32 * 4);
 	image_.format = ny::ImageFormat::argb8888;
 	image_.size = {32u, 32u};
 
@@ -231,18 +218,15 @@ CustomDataSource::CustomDataSource()
 	std::fill(it, it + (32 * 32), color);
 }
 
-std::any CustomDataSource::data(const ny::DataFormat& format) const
-{
-	if(format != ny::DataFormat::text) {
+ny::ExchangeData CustomDataSource::data(const char* format) const {
+	if(format != ny::mime::utf8) {
 		dlg_error("Invalid data format requested");
 		return {};
 	}
 
-	std::any ret = std::string("ayy got em");
-	return ret;
+	return {std::string("ayy got em")};
 }
 
-ny::Image CustomDataSource::image() const
-{
+ny::Image CustomDataSource::image() const {
 	return image_;
 }

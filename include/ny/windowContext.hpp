@@ -95,7 +95,9 @@ public:
 
 	/// Asks the platform-specific windowing api for a window refresh.
 	/// Will basically send a DrawEvent to the registered EventHandler as soon as the window is
-	/// ready to draw. Will never send an event from within the function.
+	/// ready to draw. Will never send an event from within the function so
+	/// it can saefly be used from within the DrawEvent handler to "schedule"
+	/// the next redraw as soon as it makes sense.
 	virtual void refresh() = 0;
 
 	/// Returns a Surface object that holds some type of surface object that was created
@@ -134,14 +136,16 @@ public:
 	virtual void normalState() = 0;
 
 	/// Asks the window manager to start an interactive move for the window.
-	/// \param event A pointer to an EventData object [optional]. Might fail if nullptr is given.
+	/// \param event EventData of the event to which this action is the response.
+	//  Should be a mouse event.
 	/// \warning Shall have only an effect for toplevel windows.
-	virtual void beginMove(const EventData* event) = 0;
+	virtual void beginMove(const EventData* trigger) = 0;
 
 	/// Asks the window manager to start an interactive resizing for the window.
-	/// \param event A pointer to an EventData object [optional]. Might fail if nullptr is given.
+	/// \param event EventData of the event to which this action is the response.
+	//  Should be a mouse event.
 	/// \warning Shall have only an effect for toplevel windows.
-	virtual void beginResize(const EventData* event, WindowEdges edges) = 0;
+	virtual void beginResize(const EventData* trigger, WindowEdges edges) = 0;
 
 	/// Sets the title for the native window. The title is what is displayed for the
 	/// window in a potential titlebar or taskbar.

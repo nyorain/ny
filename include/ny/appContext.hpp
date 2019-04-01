@@ -17,121 +17,123 @@ using WindowContextPtr = std::unique_ptr<WindowContext>;
 using AppContextPtr = std::unique_ptr<AppContext>;
 
 // TODO: optional (mouse)event parameter for dnd/clipboard functions?
-// TODO: more/better term definitions. Multiple AppContexts allowed?
-// TODO: return type of startDragDrop? AsyncRequest (docs/dev.md)
 // TODO: TouchContext. Other input sources?
-// TODO: wakeupWait: return how many layered wait calls are left?
-// TODO: error handling (wait/poll/wakeup calls)
 
 /// Abstract base interface for a backend-specific display conncetion.
-/// Defines the interfaces for different (threaded/blocking) event dispatching functions
+/// Defines the interfaces for different event dispatching functions
 /// that have to be implemented by the different backends.
+/// Multiple AppContext's are allows but usually not useful.
 class AppContext : public nytl::NonCopyable {
 public:
 	AppContext() = default;
 	virtual ~AppContext() = default;
 
 	/// Creates a WindowContext implementation for the given settings.
-	/// May throw backend specific errors on failure.
-	/// Note that this AppContext object must not be destroyed as long as the WindowContext
-	/// exists.
+	/// May throw backend specific errors on failure, e.g. when the
+	/// given WindowSettings are invalid or requirements can't be met (e.g.
+	/// vulkan window requested but vulkan not supported).
+	/// Note that this AppContext object must not be destroyed as long as the
+	/// WindowContext exists.
 	virtual WindowContextPtr createWindowContext(const WindowSettings&) = 0;
 
-	/// Returns a MouseContext implementation that is able to provide information about the mouse.
-	/// Note that this might return the same implementation for every call and the returned
-	/// object reference does not provide any kind of thread safety.
-	/// Returns nullptr if the implementation is not able to provide the needed
-	/// information about the pointer or there is no pointer connected.
-	/// Note that the fact that this function returns a valid pointer does not guarantee that
-	/// there is a mouse connected.
-	/// The lifetime of the object the returned pointer points to is allowed to end IN a dispatch
-	/// call. So the returned pointer is guaranteed to be valid as long as no dispatch function is
-	/// called.
-	virtual MouseContext* mouseContext() = 0;
-
-	/// Returns a KeyboardContext implementation that is able to provide information about the
-	/// backends keyboard.
-	/// Note that this might return the same implementation for every call and the returned
-	/// object reference does not provide any kind of thread safety.
-	/// Returns nullptr if the implementatoin is not able to provide
-	/// the needed information about the keyboard or there is no keyboard connected.
-	/// Note that the fact that this function returns a valid pointer does not guarantee that
-	/// there is a keyboard connected.
-	/// The lifetime of the object the returned pointer points to is allowed to end IN a dispatch
-	/// call. So the returned pointer is guaranteed to be valid as long as no dispatch function is
-	/// called.
-	virtual KeyboardContext* keyboardContext() = 0;
-
 	/// Tries to read and dispatch all available events.
-	/// Can be called from a handler from within the loop (recursively).
 	/// Will not block waiting for events.
-	/// Forwards all exceptions.
-	/// If this function returns false, the AppContext should no longer
-	/// be used. Don't automatically assume that this is an error, it might
-	/// also occur when the display server shut down or the application
-	/// is supposed to exit.
-	virtual bool pollEvents() = 0;
+	/// Can be called from a handler from within the loop (recursively).
+	/// Forwards all exceptions that are thrown in called handlers.
+	/// Might also throw own backend-dependent errors.
+	/// If these are of type ny::BackendError, the AppContext has become
+	/// invalid and must no longer be used.
+	/// This happens e.g. on protocol errors in communication with
+	/// the display server.
+	virtual void pollEvents() = 0;
 
 	/// Waits until events are avilable to be read and dispatched.
-	/// If there are e.g. immediately events available, behaves like pollEvents.
+	/// If there are immediately events available, behaves like pollEvents,
+	/// otherwise waits until at least one event has ben processed.
 	/// Can be called from a handler from within the loop (recursively).
 	/// Use wakeupWait to return from this function.
-	/// If this function returns false, the AppContext should no longer
-	/// be used. Don't automatically assume that this is an error, it might
-	/// also occur when the display server shut down or the application
-	/// is supposed to exit.
-	virtual bool waitEvents() = 0;
+	/// Forwards all exceptions that are thrown in called handlers.
+	/// Might also throw own backend-dependent errors.
+	/// If these are of type ny::BackendError, the AppContext has become
+	/// invalid and must no longer be used.
+	/// This happens e.g. on protocol errors in communication with
+	/// the display server.
+	virtual void waitEvents() = 0;
 
-	/// Causes waitEvents to return even if no events could be dispatched.
-	/// If waitEvents was called multiple times from within each other,
-	/// will only make the top most wait call return.
+	/// Causes `waitEvents` to return even if no events could be dispatched.
+	/// If `waitEvents` was called multiple times from within each other,
+	/// will only make the most recent waitEvents call (i.e. the highest
+	/// one on the call stack). Calling this without any currently
+	/// active `waitEvents` call may cause the next call to `waitEvents`
+	/// or `pollEvents` to return immediately (without processing an event)
+	/// but must otherwise have no effect.
 	/// Throws when an error ocurss, but the AppContext can still
 	/// be used.
 	virtual void wakeupWait() = 0;
 
-	/// Sets the clipboard to the data provided by the given DataSource implementation.
-	/// \param dataSource a DataSource implementation for the data to copy.
-	/// The data may be directly copied from the DataSource and the given object be destroyed,
-	/// or it may be stored by an AppContext implementation and retrieve the data only when
-	/// other applications need them.
-	/// Therefore the given DataSource implementation must be able to provide data as long
-	/// as it exists.
-	/// \return Whether settings the clipboard succeeded.
-	/// \sa DataSource
+	/// Returns a MouseContext implementation that is able to provide
+	/// information about the mouse. The returned pointer may be null,
+	/// is not threadsafe in any way and may become invalid as soon as control
+	/// returns to wait/pollEvents (so don't store this value anywhere, just
+	/// call this function again next time, it shouldn't have much overhead).
+	/// This function returning a valid MouseContext does not guarantee
+	/// that there actually is a mouse connected.
+	virtual MouseContext* mouseContext() = 0;
+
+	/// Returns a KeyboardContext implementation that is able to provide
+	/// information about the keyboard. The returned pointer may be null,
+	/// is not threadsafe in any way and may become invalid as soon as control
+	/// returns to wait/pollEvents (so don't store this value anywhere, just
+	/// call this function again next time, it shouldn't have much overhead).
+	/// This function returning a valid Keyboard does not guarantee
+	/// that there actually is a keyboard connected.
+	virtual KeyboardContext* keyboardContext() = 0;
+
+	/// Sets the clipboard to the given DataSource implementation.
+	/// dataSource: A DataSource implementation providing the data
+	/// that should be copied.
+	/// The the given DataSource implementation must be able to provide data
+	/// as long as it exists.
+	/// Returns false if the backend has no clipboard support or setting
+	/// the clipboard failed in another way.
 	virtual bool clipboard(std::unique_ptr<DataSource>&& dataSource) = 0;
 
-	/// Retrieves the data stored in the systems clipboard, or an nullptr if there is none.
-	/// The DataOffer implementation can then be used to get the data in the needed formats.
-	/// If the clipboard is empty or cannot be retrieved, returns nullptr.
-	/// Some backends also have no clipboard support at all, then nullptr should be returned
-	/// as well.
-	/// Note that the returned DataOffer (if any) is only guaranteed to be valid until the next
-	/// dispatch call. If the clipboard content changes or is unset while there are still
-	/// callbacks waiting for data in the requestes formats, they should be called
-	/// without any data to signal that data retrieval failed. Then one should simply
-	/// try again to retrieve the data since the clipboard changed before the data
-	/// could be transmitted.
-	/// \sa DataOffer
+	/// Attempts to retrieve the data stored in the systems clipboard.
+	/// The DataOffer implementation can then be used to get the data
+	/// in the required formats. If the clipboard is empty or cannot be
+	/// retrieved, or if the backend doesn't have a clipboard, returns nullptr.
+	/// Note that the returned DataOffer (if any) is only guaranteed to be
+	/// valid until control returns to poll/waitEvents. As soon as the
+	/// DataOffer becomes invalid, it will notify the pending signals
+	/// that their requests were unsuccessful.
 	virtual DataOffer* clipboard() = 0;
+
+	// TODO: might be problematic to let blocking depend on backend
+	// but can't be done async on windows and making other backends block as
+	// well seems bad
 
 	/// Start a drag and drop action at the current cursor position.
 	/// Note that this function might not return (running an internal event loop)
-	/// until the drag and drop ends.
+	/// until the drag and drop ends; depending on the backend.
 	/// \param dataSource A DataSource implementation for the data to drag and drop.
 	/// The implementation must be able to provide the data as long as it exists.
+	/// \param event EventData of the event to which this action is the
+	/// response. Should be a mouse event.
 	/// \return Whether starting the dnd operation suceeded.
-	virtual bool startDragDrop(std::unique_ptr<DataSource>&& dataSource) = 0;
+	virtual bool dragDrop(const EventData* trigger,
+		std::unique_ptr<DataSource>&& dataSource) = 0;
 
 	/// If ny was built with vulkan and the AppContext implementation has
-	/// vulkan support, this returns all instance extensions that must be enabled for
-	/// an instance to make it suited for vulkan surface creation and sets supported to true.
-	/// Otherwise this returns an empty vector and sets supported to false.
+	/// vulkan support, this returns all instance extensions that must be
+	/// enabled for an instance to make it suited for vulkan surface creation
+	/// and sets supported to true.
+	/// If vulkan is not supported by backend/build returns an empty
+	/// vector (can already be checked by Backend::vulkan).
 	virtual std::vector<const char*> vulkanExtensions() const = 0;
 
-	/// Returns a non-owned GlSetup implementation or nullptr if gl is not supported or
-	/// initialization failed.
-	/// The returned GlSetup can be used to retrieve the different gl configs and to create
-	/// opengl contexts.
+	/// Returns a GlSetup implementation or nullptr if gl is not supported or
+	/// initialization failed. The returned GlSetup can be used to retrieve
+	/// the different gl configs and to create opengl contexts.
 	virtual GlSetup* glSetup() const = 0;
 };
 

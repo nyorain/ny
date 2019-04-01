@@ -9,152 +9,137 @@
 
 #include <nytl/callback.hpp> // nytl::Callback
 #include <nytl/span.hpp> // nytl::Span
+#include <nytl/flags.hpp> // nytl::Flags
 
 #include <vector> // std::vector
 #include <memory> // std::unique_ptr
 #include <functional> // std::function
-#include <any> // std::any
+#include <variant> // std::variant
 
 namespace ny {
+namespace mime {
 
-/// Description of a data format by mime and non-mime strings.
-/// There are a few standard formats in which data is passed around (i.e. wrapped
-/// into the returnd std::any object form DataSource or DataOffer) using special types.
-/// Data in custom DataFormats are passed around using a raw buffer.
-/// The names of the standard formats should not be used for custom formats.
-/// Formats, their mime-type names and the type they should be stored in:
-///
-/// | Format 	| std::any wrapped type | mime-type name				|
-/// |-----------|-----------------------|-------------------------------|
-/// | raw		| vector<uint8_t>		| "application/octet-stream"	|
-/// | text		| string				| "text/plain"					|
-/// | uriList	| vector<string> 		| "text/uri-list"				|
-/// | image		| UniqueImage			| "image/x-ny-data"				|
-/// | <custom>  | vector<uint8_t>		| <custom>						|
-class DataFormat {
-public:
-	static const DataFormat none; // empty object, used for invalid formats
-	static const DataFormat raw; // raw, not further specified data buffer
-	static const DataFormat text; // textual data
-	static const DataFormat uriList; // a list of uri objects
-	static const DataFormat image; // raw image data
+constexpr auto utf8 = "text/plain;charset=utf-8"; // utf-8 text
+constexpr auto text = "text/plain"; // text with unknown decoding; prefer utf8Text
+constexpr auto uriList = "text/uri-list"; // uri/file list
+constexpr auto image = "image/x-ny-data"; // raw ny image
+constexpr auto raw = "application/octet-stream"; // binary data
 
-public:
-	/// The primary default name of the DataFormat.
-	/// This will be used to compare two DataFormats and must not be empty, otherwise
-	/// the DataFormat is invalid.
-	/// Should be a mimetype.
-	std::string name {};
+} // namespace mime
 
-	/// Additional names that this format might be recognized under. Basically a helper for
-	/// other applications that might know the same format under a different name.
-	/// More significant names/descriptions should come first.
-	/// Prefer mime types.
-	std::vector<std::string> additionalNames {};
+/// Possible data transfer types.
+using ExchangeData = std::variant<
+	std::monostate, // invalid, empty
+	std::string, // all "text/*" types except "text/uri-list"
+	std::vector<std::string>, // "text/uri-list"
+	UniqueImage, // "image/x-ny-data"
+	std::vector<std::byte>>; // everything else
+
+/// What an dnd operation means semantically.
+enum class DndAction : unsigned int {
+	none,
+	copy,
+	move,
+	link
 };
 
-inline bool operator==(const DataFormat& a, const DataFormat& b) { return a.name == b.name; }
-inline bool operator!=(const DataFormat& a, const DataFormat& b) { return !(a == b); }
+NYTL_FLAG_OPS(DndAction);
 
-/// The DataSource class is an interface implemented by the application to start drag and drop
-/// actions or copy data into the clipboard.
-/// The interface gives information about in which formats data can be represented and then
-/// provides the data for a given format.
+/// Can be implemented by an application to provide data to another application.
 class DataSource {
 public:
 	virtual ~DataSource() = default;
 
-	/// Returns all supported dataTypes format constants as a DataTypes object.
-	virtual std::vector<DataFormat> formats() const = 0;
+	/// Returns all mime types in which it can be represented.
+	virtual std::vector<std::string> formats() const = 0;
 
 	/// Returns data in the given format.
-	/// The std::any must contain a object of the type specified for the requested DataFormat.
-	/// If retrieving data fails (because e.g. the requestes format is invalid) an
-	/// empty std::any object should be returned.
-	virtual std::any data(const DataFormat& format) const = 0;
+	/// Should return a monostate (i.e. empty) variant on error.
+	/// Note that the valid member in the returned ExchangeData must otherwise
+	/// met the requested format (see ExchangeData typedef), i.e.
+	/// return a variant holding a std::string for format "image/jpg" is
+	/// invalid.
+	virtual ExchangeData data(const char* format) const = 0;
 
-	/// Returns an image representing the data. This image could e.g. be used
+	/// Returns an image representing the data. This image could e.g. used
 	/// when this DataSource is used for a drag and drop opertation.
-	/// If the data cannot be represented using an image, return a default-constructed
-	/// Image object (or just don't override it).
-	virtual Image image() const { return {}; };
+	/// If the data cannot be represented using an image, return a
+	/// default-constructed Image object (or just don't override it).
+	virtual Image image() const { return {}; }
+
+	/// Should return all supported actions.
+	/// Only relevant for dnd DataSources. For those, must return
+	/// at least one value.
+	virtual nytl::Flags<DndAction> supportedActions() {
+		return DndAction::copy;
+	}
+
+	/// Informs the source about the action this exchange represents.
+	/// Only relevant for dnd DataSources.
+	/// Will be one of the actions returned from supportedActions.
+	virtual void action(DndAction) {}
 };
 
 /// Class that allows app to retrieve data from other apps
-/// The DataOffer interface is usually implemented by the backends and will be passed to the
-/// application either as result from a clipboard request or with a DataOfferEvent, if there
-/// was data dropped onto a window.
-/// It can then be used to determine the different data types in which the data can be represented
-/// or to retrieve the data in a supported format.
-/// On Destruction, the DataOffer should trigger all waiting data callback without data to
-/// signal them that they dont have to wait for it any longer since retrieval failed.
+/// The DataOffer interface is usually implemented by the backends and will
+/// be passed to the application either as result from a clipboard request
+/// or when data was dropped onto a window.
+/// It can then be used to determine the different data types in which the
+/// data can be represented or to retrieve the data in a supported format.
+/// On Destruction, the DataOffer should trigger all waiting data callback
+/// without data to end the waiting.
 class DataOffer {
 public:
-	using FormatsRequest = std::unique_ptr<AsyncRequest<std::vector<DataFormat>>>;
-	using DataRequest = std::unique_ptr<AsyncRequest<std::any>>;
+	using FormatsListener = std::function<void(nytl::Span<const char*>)>;
+	using DataListener = std::function<void(ExchangeData)>;
 
 public:
 	DataOffer() = default;
+
+	/// When a DataOffer is destructed it should call all registered Listeners
+	/// with an empty object (i.e. signaling failure).
 	virtual ~DataOffer() = default;
 
 	/// Requests all supported formats in which the data is offered.
-	/// On failure nullptr or a FormatsRequest without any formats should be returned.
-	virtual FormatsRequest formats() = 0;
+	/// Will return on error, otherwise the FormatsListener will be
+	/// called either from within this function or later on.
+	virtual bool formats(FormatsListener) = 0;
 
-	/// Requests the offered data in the given DataFormat.
-	/// If this failed because the format is not supported or the data cannot be retrieved,
-	/// nullptr (if known at return time) or a DataRequest with an empty any object should
-	/// be returned.
-	virtual DataRequest data(const DataFormat&) = 0;
+	/// Requests the offered data in the given mime type.
+	/// If this failed because the format is not supported or another error
+	/// ocurred, false should be returned. Otherwise the given DataListener
+	/// should be called later on from within a AppContext dispatch function
+	/// or instantly before this call returns.
+	/// Note that DataOffers should not cache data internally, this function
+	/// is not expected to be called multiple times for one format.
+	virtual bool data(const char* format, DataListener) = 0;
 };
 
-using DataOfferPtr = std::unique_ptr<DataOffer>;
+// - The following functions are mainly used by backends -
+/// Serializes the given image (size, stride, (int) format, data).
+std::vector<std::byte> serialize(const Image&);
 
-std::vector<uint8_t> serialize(const Image&);
-UniqueImage deserializeImage(nytl::Span<const uint8_t> buffer);
+/// Tries to interpret the given data buffer as serialized image.
+/// Throws an exception on error.
+UniqueImage deserializeImage(nytl::Span<const std::byte> buffer);
 
-/// Encodes a vector of uris to a single string with mime-type text/uri-list encoded in utf8.
-/// Will replace special chars with their escape codes and seperate the given uris using
-/// newlines.
-/// \sa decodeUriList
+/// Encodes a vector of uris to a single string with mime-type text/uri-list
+/// encoded in utf8. Will replace special chars with their escape codes and
+/// seperate the given uris using newlines.
 std::string encodeUriList(const std::vector<std::string>& uris);
 
-/// Decodes a given utf8 encoded string of mime-type text/uri-list to a vector of uris.
-/// Will replace '%' escape codes in the list with utf8 special chars and ignore comment lines.
-/// \param removeComments removes uri lines that start with a '#'
-/// \sa encodeUriList
-std::vector<std::string> decodeUriList(const std::string& list, bool removeComments = true);
+/// Decodes a given utf8 encoded string of mime-type text/uri-list to a vector
+/// holding the uri list items.
+/// Will replace '%' escape codes in the list with utf8 special chars.
+/// \param removeComments removes (comment) uri lines that start with a '#'
+std::vector<std::string> decodeUriList(const std::string& list,
+	bool removeComments = true);
 
-/// Returns a std::any that wraps the data of a raw buffer in the correct format
-/// for the given parameters. Does basically check for standard formats and wrap the
-/// raw buffer otherwise.
-std::any wrap(std::vector<uint8_t> rawBuffer, const DataFormat& format);
+/// Returns an ExchangeData object that holds the correctly formatted and
+/// wrapped value for the given format and raw data buffer.
+ExchangeData wrap(std::vector<std::byte> rawBuffer, const char* format);
 
-/// Returns a raw buffer for the given std::any and the DataFormat for the data the any wraps.
-std::vector<uint8_t> unwrap(std::any any, const DataFormat& format);
-
-/// Checks whether the given format string matches the given DataFormat, i.e. if it one
-/// of the descriptions/names of dataFormat.
-bool match(const DataFormat& dataFormat, const char* formatName);
-bool match(const DataFormat& a, const DataFormat& b);
-
-// TODO: with additional parameter (e.g. charset) parsing?
-// text/plain might have other charsets then utf8 that should be handled as well...
-// std::any wrap(nytl::Span<uint8_t> rawBuffer, std::string_view formatName);
-// std::vector<uint8_t> unwrap(const std::any& any, std::string_view formatName);
+/// Returns a raw buffer for the given ExchangeData.
+std::vector<std::byte> unwrap(const ExchangeData& data);
 
 } // namespace ny
-
-// hash specialization for ny::DataFormat
-namespace std {
-
-template<>
-struct hash<ny::DataFormat> {
-	auto operator()(const ny::DataFormat& format) const noexcept
-	{
-		static const std::hash<std::string> hasher {};
-		return hasher(format.name);
-	}
-};
-
-} // namespace std

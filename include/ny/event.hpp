@@ -102,6 +102,9 @@ struct DndMoveEvent : public Event {
 	/// The associated DataOffer. Can be used to determine the dnd feedback
 	/// (i.e. whether this DataOffer can be dropped in the window).
 	DataOffer* offer {};
+
+	/// Which actions the data offer supports
+	nytl::Flags<DndAction> supportedActions {};
 };
 
 /// Event that is sent when a drag and drop offer leaves the window.
@@ -119,6 +122,15 @@ struct DndDropEvent : public Event {
 	/// The associated DataOffer. Guaranteed to be the same as in the
 	/// previous dnd events. Ownership is handed over to the WindowListener.
 	std::unique_ptr<DataOffer> offer {};
+};
+
+/// Response to a DndMoveEvent.
+/// Contains the formats the window/app supports for this position as well
+/// as the preferred action. The preferred action must be one of the
+/// actions present in the `supportedActions` field of the event.
+struct DndResponse {
+	std::vector<std::string> formats; // all supported formats at position
+	DndAction action; // preferred action at position
 };
 
 /// Event that is sent when a window should be redrawn

@@ -9,6 +9,7 @@
 
 #include <nytl/callback.hpp> // nytl::Callback
 #include <nytl/span.hpp> // nytl::Span
+#include <nytl/flags.hpp> // nytl::Flags
 
 #include <vector> // std::vector
 #include <memory> // std::unique_ptr
@@ -18,8 +19,8 @@
 namespace ny {
 namespace mime {
 
-constexpr auto text = "text/plain"; // text with unknown decoding
 constexpr auto utf8Text = "text/plain;charset=utf-8"; // utf-8 text
+constexpr auto text = "text/plain"; // text with unknown decoding; prefer utf8Text
 constexpr auto uriList = "text/uri-list"; // uri/file list
 constexpr auto image = "image/x-ny-data"; // raw ny image
 constexpr auto raw = "application/octet-stream"; // binary data
@@ -33,6 +34,16 @@ using ExchangeData = std::variant<
 	std::vector<std::string>, // "text/uri-list"
 	UniqueImage, // "image/x-ny-data"
 	std::vector<std::byte>>; // everything else
+
+/// What an dnd operation means semantically.
+enum class DndAction : unsigned int {
+	none,
+	copy,
+	move,
+	link
+};
+
+NYTL_FLAG_OPS(DndAction);
 
 /// Can be implemented by an application to provide data to another application.
 class DataSource {
@@ -52,18 +63,30 @@ public:
 
 	/// Returns an image representing the data. This image could e.g. used
 	/// when this DataSource is used for a drag and drop opertation.
-	/// If the data cannot be represented using an image, return a 
+	/// If the data cannot be represented using an image, return a
 	/// default-constructed Image object (or just don't override it).
 	virtual Image image() const { return {}; }
+
+	/// Should return all supported actions.
+	/// Only relevant for dnd DataSources. For those, must return
+	/// at least one value.
+	virtual nytl::Flags<DndAction> supportedActions() {
+		return DndAction::copy;
+	}
+
+	/// Informs the source about the action this exchange represents.
+	/// Only relevant for dnd DataSources.
+	/// Will be one of the actions returned from supportedActions.
+	virtual void action(DndAction) {}
 };
 
 /// Class that allows app to retrieve data from other apps
-/// The DataOffer interface is usually implemented by the backends and will 
-/// be passed to the application either as result from a clipboard request 
+/// The DataOffer interface is usually implemented by the backends and will
+/// be passed to the application either as result from a clipboard request
 /// or when data was dropped onto a window.
-/// It can then be used to determine the different data types in which the 
+/// It can then be used to determine the different data types in which the
 /// data can be represented or to retrieve the data in a supported format.
-/// On Destruction, the DataOffer should trigger all waiting data callback 
+/// On Destruction, the DataOffer should trigger all waiting data callback
 /// without data to end the waiting.
 class DataOffer {
 public:
@@ -94,14 +117,14 @@ public:
 
 // - The following functions are mainly used by backends -
 /// Serializes the given image (size, stride, (int) format, data).
-std::vector<uint8_t> serialize(const Image&);
+std::vector<std::byte> serialize(const Image&);
 
 /// Tries to interpret the given data buffer as serialized image.
 /// Throws an exception on error.
-UniqueImage deserializeImage(nytl::Span<const uint8_t> buffer);
+UniqueImage deserializeImage(nytl::Span<const std::byte> buffer);
 
-/// Encodes a vector of uris to a single string with mime-type text/uri-list 
-/// encoded in utf8. Will replace special chars with their escape codes and 
+/// Encodes a vector of uris to a single string with mime-type text/uri-list
+/// encoded in utf8. Will replace special chars with their escape codes and
 /// seperate the given uris using newlines.
 std::string encodeUriList(const std::vector<std::string>& uris);
 
@@ -109,12 +132,12 @@ std::string encodeUriList(const std::vector<std::string>& uris);
 /// holding the uri list items.
 /// Will replace '%' escape codes in the list with utf8 special chars.
 /// \param removeComments removes (comment) uri lines that start with a '#'
-std::vector<std::string> decodeUriList(const std::string& list, 
+std::vector<std::string> decodeUriList(const std::string& list,
 	bool removeComments = true);
 
 /// Returns an ExchangeData object that holds the correctly formatted and
 /// wrapped value for the given format and raw data buffer.
-ExchangeData wrap(std::vector<uint8_t> rawBuffer, const char* format);
+ExchangeData wrap(std::vector<std::byte> rawBuffer, const char* format);
 
 /// Returns a raw buffer for the given ExchangeData.
 std::vector<std::byte> unwrap(const ExchangeData& data);
