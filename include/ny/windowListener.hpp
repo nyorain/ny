@@ -46,17 +46,21 @@ public:
 	virtual void touchCancel(const TouchCancelEvent&) {}
 
 	/// This function is called when a dnd action enters the window.
-	/// The window could use this to e.g. redraw itself in a special way.
+	/// If the application wants to receive drag and drop events it should
+	/// examine the formats/position of the given DataOffer and call
+	/// DataOffer::preferred as soon as it knows the preferred format and action.
+	/// The window could also use this to e.g. redraw itself in a special way.
 	/// Remember that after calling a dispatch function in this function, the given
 	/// DataOffer might not be valid anymore (then a dndLeave or dndDrop event occurred).
+	/// `dndMove` will always be called immediately after `dndEnter`.
 	virtual void dndEnter(const DndEnterEvent&) {}
 
 	/// Called when a previously entered dnd offer is moved around in the window.
-	/// Many applications use this to enable e.g. scrolling while a dnd session is active.
-	/// Should return whether the given DataOffer could be accepted at the given position.
-	/// Remember that after calling a dispatch function in this function, the given
-	/// DataOffer might not be valid anymore (then a dndLeave or dndDrop event occurred).
-	virtual DndResponse dndMove(const DndMoveEvent&) { return {}; };
+	/// Can be handled to enable scrolling while dnd is active or to set
+	/// different actions and formats for different parts of the window.
+	/// Remember that after control returns to AppContext::wait/pollEvents,
+	/// the given data offer might become invalid.
+	virtual void dndMove(const DndMoveEvent&) {}
 
 	/// This function is called when a DataOffer that entered the window leaves it.
 	/// The DataOffer object should then actually not be used anymore and is just passed here

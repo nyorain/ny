@@ -37,7 +37,7 @@ public:
 	unsigned int dataSize() const { return stride_ * size_[1]; }
 	unsigned int format() const { return format_; }
 	unsigned int stride() const { return stride_; }
-	uint8_t& data(){ return *data_; }
+	std::byte& data(){ return *data_; }
 	wl_buffer& wlBuffer() const { return *buffer_; }
 
 	/// Sets the internal used flag to true. Should be called everytime the buffer
@@ -67,7 +67,7 @@ protected:
 
 	wl_buffer* buffer_ {};
 	wl_shm_pool* pool_ {};
-	uint8_t* data_ {};
+	std::byte* data_ {};
 	unsigned int format_ {}; // wayland format; argb > bgra > rgba > abgr > xrgb (all 32 bits)
 	bool used_ {0}; // whether the compositor owns the buffer atm
 
@@ -161,8 +161,7 @@ struct MemberCallback;
 template<typename F, F f, typename R, typename... Args>
 struct MemberCallback<F, f, R(Args...), false> {
 	using Class = typename nytl::FunctionTraits<F>::Class;
-	static auto call(void* self, Args... args)
-	{
+	static auto call(void* self, Args... args) {
 		return static_cast<Class*>(self)->*f(std::forward<Args>(args)...);
 	}
 };
@@ -170,8 +169,7 @@ struct MemberCallback<F, f, R(Args...), false> {
 template<typename F, F f, typename... Args>
 struct MemberCallback<F, f, void(Args...), false> {
 	using Class = typename nytl::FunctionTraits<F>::Class;
-	static void call(void* self, Args... args)
-	{
+	static void call(void* self, Args... args) {
 		(static_cast<Class*>(self)->*f)(std::forward<Args>(args)...);
 	}
 };
@@ -179,8 +177,7 @@ struct MemberCallback<F, f, void(Args...), false> {
 template<typename F, F f, typename R, typename... Args>
 struct MemberCallback<F, f, R(Args...), true> {
 	using Class = typename nytl::FunctionTraits<F>::Class;
-	static auto call(Args... args, void* self)
-	{
+	static auto call(Args... args, void* self) {
 		return static_cast<Class*>(self)->*f(std::forward<Args>(args)...);
 	}
 };
@@ -188,8 +185,7 @@ struct MemberCallback<F, f, R(Args...), true> {
 template<typename F, F f, typename... Args>
 struct MemberCallback<F, f, void(Args...), true> {
 	using Class = typename nytl::FunctionTraits<F>::Class;
-	static void call(Args... args, void* self)
-	{
+	static void call(Args... args, void* self) {
 		static_cast<Class*>(self)->*f(std::forward<Args>(args)...);
 	}
 };
@@ -289,9 +285,11 @@ unsigned int stateToWayland(ToplevelState);
 
 /// Converts the given wayland dnd action to DndAction.
 DndAction waylandToDndAction(unsigned int wlAction);
+nytl::Flags<DndAction> waylandToDndActions(unsigned int wlActions);
 
 /// Converts the given dnd action to its corresponding value in the wayland
 /// core protocol.
-wl_data_device_manager_dnd_action dndActionToWayland(DndAction);
+unsigned int dndActionToWayland(DndAction);
+unsigned int dndActionsToWayland(nytl::Flags<DndAction>);
 
 } // namespace ny

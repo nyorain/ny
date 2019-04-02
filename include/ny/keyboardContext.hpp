@@ -14,6 +14,8 @@ namespace ny {
 /// representations correctly as well as receiving general information about the keyboard.
 class KeyboardContext {
 public:
+	virtual ~KeyboardContext() = default;
+
 	/// Returns whether the given key code is pressed.
 	/// This functions may be async to any received events and callbacks e.g. if checked
 	/// here a key might appear press although the application has not yet received (and maybe will

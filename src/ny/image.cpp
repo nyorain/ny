@@ -28,15 +28,13 @@
 
 namespace ny {
 
-bool littleEndian()
-{
+bool littleEndian() {
 	// Runtime test checking for little endianess.
 	constexpr uint32_t dummy = 1u;
 	return ((reinterpret_cast<const uint8_t*>(&dummy))[0] == 1);
 }
 
-unsigned int bitSize(ImageFormat format)
-{
+unsigned int bitSize(ImageFormat format) {
 	using Format = ImageFormat;
 	switch(format) {
 		case Format::rgba8888:
@@ -62,14 +60,14 @@ unsigned int bitSize(ImageFormat format)
 	return 0u;
 }
 
-unsigned int byteSize(ImageFormat format)
-{
+unsigned int byteSize(ImageFormat format) {
 	return std::ceil(bitSize(format) / 8.0);
 }
 
-ImageFormat toggleByteWordOrder(ImageFormat format)
-{
-	if(!littleEndian()) return format;
+ImageFormat toggleByteWordOrder(ImageFormat format) {
+	if(!littleEndian()) {
+		return format;
+	}
 
 	using Format = ImageFormat;
 	switch(format) {
@@ -88,21 +86,26 @@ ImageFormat toggleByteWordOrder(ImageFormat format)
 	return Format::none;
 }
 
-unsigned int pixelBit(const Image& image, nytl::Vec2ui pos)
-{
+unsigned int pixelBit(const Image& image, nytl::Vec2ui pos) {
 	return image.stride * pos[1] + bitSize(image.format) * pos[0];
 }
 
-nytl::Vec4u8 readPixel(const uint8_t& pixel, ImageFormat format, unsigned int bitOffset)
-{
+nytl::Vec4u8 readPixel(const std::byte& bpixel, ImageFormat format, unsigned int bitOffset) {
+	const uint8_t& pixel = reinterpret_cast<const uint8_t&>(bpixel);
 	unsigned int bytesToLoad = byteSize(format); // NOTE: must be changed for [2,7]-bit formats
 	std::array<uint8_t, 4> bytes {};
 
 	// logical word-order bytes
-	bytes[0] = *(&pixel + (littleEndian() ? bytesToLoad - 1 : 0));
-	if(bytesToLoad > 1) bytes[1] = *(&pixel + (littleEndian() ? bytesToLoad - 2 : 1));
-	if(bytesToLoad > 2) bytes[2] = *(&pixel + (littleEndian() ? bytesToLoad - 3 : 2));
-	if(bytesToLoad > 3) bytes[3] = *(&pixel + (littleEndian() ? bytesToLoad - 4 : 3));
+	bytes[0] = uint8_t(*(&pixel + (littleEndian() ? bytesToLoad - 1 : 0)));
+	if(bytesToLoad > 1) {
+		bytes[1] = *(&pixel + (littleEndian() ? bytesToLoad - 2 : 1));
+	}
+	if(bytesToLoad > 2) {
+		bytes[2] = *(&pixel + (littleEndian() ? bytesToLoad - 3 : 2));
+	}
+	if(bytesToLoad > 3) {
+		bytes[3] = *(&pixel + (littleEndian() ? bytesToLoad - 4 : 3));
+	}
 
 	using Format = ImageFormat;
 	switch(format) {
@@ -123,69 +126,94 @@ nytl::Vec4u8 readPixel(const uint8_t& pixel, ImageFormat format, unsigned int bi
 	return {};
 }
 
-void writePixel(uint8_t& pixel, ImageFormat format, nytl::Vec4u8 color, unsigned int bitOffset)
-{
+void writePixel(std::byte& bpixel, ImageFormat format, nytl::Vec4u8 color, unsigned int bitOffset) {
+	uint8_t& pixel = reinterpret_cast<uint8_t&>(bpixel);
 	unsigned int bytesToWrite = byteSize(format); // NOTE: must be changed for [2,7]-bit formats
 	std::array<uint8_t, 4> bytes {}; // word-order bytes to write
 
 	using Format = ImageFormat;
 	switch(format) {
-		case Format::rgba8888: bytes = {color[0], color[1], color[2], color[3]}; break;
-		case Format::argb8888: bytes = {color[3], color[0], color[1], color[2]}; break;
-		case Format::abgr8888: bytes = {color[3], color[2], color[1], color[0]}; break;
-		case Format::bgra8888: bytes = {color[2], color[1], color[0], color[3]}; break;
+		case Format::rgba8888:
+			bytes = {color[0], color[1], color[2], color[3]};
+			break;
+		case Format::argb8888:
+			bytes = {color[3], color[0], color[1], color[2]};
+			break;
+		case Format::abgr8888:
+			bytes = {color[3], color[2], color[1], color[0]};
+			break;
+		case Format::bgra8888:
+			bytes = {color[2], color[1], color[0], color[3]};
+			break;
 
-		case Format::rgb888: bytes = {color[0], color[1], color[2], 0}; break;
-		case Format::bgr888: bytes = {color[2], color[1], color[0], 0}; break;
+		case Format::rgb888:
+			bytes = {color[0], color[1], color[2], 0};
+			break;
+		case Format::bgr888:
+			bytes = {color[2], color[1], color[0], 0};
+			break;
 
-		case Format::a8: bytes[3] = color[4]; break;
+		case Format::a8:
+			bytes[3] = color[4];
+			break;
 		case Format::a1:
 			bytes[0] = pixel & ~(1 << (8 - bitOffset));
 		 	bytes[0] |= (color[3] & (1 << 8)) >> bitOffset;
 			break;
-		case Format::none: bytes = {};
+		case Format::none:
+			bytes = {};
+			break;
 	}
 
 	*(&pixel + 0) = bytes[littleEndian() ? bytesToWrite - 1 : 0];
-	if(bytesToWrite > 1) *(&pixel + 1) = bytes[littleEndian() ? bytesToWrite - 2 : 1];
-	if(bytesToWrite > 2) *(&pixel + 2) = bytes[littleEndian() ? bytesToWrite - 3 : 2];
-	if(bytesToWrite > 3) *(&pixel + 3) = bytes[littleEndian() ? bytesToWrite - 4 : 3];
+	if(bytesToWrite > 1) {
+		*(&pixel + 1) = bytes[littleEndian() ? bytesToWrite - 2 : 1];
+	}
+	if(bytesToWrite > 2) {
+		*(&pixel + 2) = bytes[littleEndian() ? bytesToWrite - 3 : 2];
+	}
+	if(bytesToWrite > 3) {
+		*(&pixel + 3) = bytes[littleEndian() ? bytesToWrite - 4 : 3];
+	}
 }
 
-nytl::Vec4u8 readPixel(const Image& img, nytl::Vec2ui pos)
-{
+nytl::Vec4u8 readPixel(const Image& img, nytl::Vec2ui pos) {
 	auto bit = pixelBit(img, pos);
 	return readPixel(*(img.data + bit / 8), img.format, bit % 8);
 }
 
-void writePixel(const MutableImage& img, nytl::Vec2ui pos, nytl::Vec4u8 color)
-{
+void writePixel(const MutableImage& img, nytl::Vec2ui pos, nytl::Vec4u8 color) {
 	auto bit = pixelBit(img, pos);
 	return writePixel(*(img.data + bit / 8), img.format, color, bit % 8);
 }
 
-nytl::Vec4f norm(nytl::Vec4u8 color, ImageFormat format)
-{
+nytl::Vec4f norm(nytl::Vec4u8 color, ImageFormat format) {
 	auto ret = static_cast<nytl::Vec4f>(color);
-
-	if(format == ImageFormat::a1 || format == ImageFormat::none) return ret;
+	if(format == ImageFormat::a1 || format == ImageFormat::none) {
+		return ret;
+	}
 	return (1 / 255.f) * ret;
 }
 
-bool satisfiesRequirements(const Image& img, ImageFormat format, unsigned int strideAlign)
-{
+bool satisfiesRequirements(const Image& img, ImageFormat format,
+		unsigned int strideAlign) {
 	auto smallestStride = img.size[0] * bitSize(format);
-	if(strideAlign) smallestStride = align(smallestStride, strideAlign);
+	if(strideAlign) {
+		smallestStride = align(smallestStride, strideAlign);
+	}
 	return (img.format == format && bitStride(img) == smallestStride);
 }
 
-UniqueImage convertFormat(const Image& img, ImageFormat to, unsigned int alignNewStride)
-{
+UniqueImage convertFormat(const Image& img, ImageFormat to,
+		unsigned int alignNewStride) {
 	auto newStride = img.size[0] * bitSize(to);
-	if(alignNewStride) newStride = align(newStride, alignNewStride);
+	if(alignNewStride) {
+		newStride = align(newStride, alignNewStride);
+	}
 
 	UniqueImage ret;
-	ret.data = std::make_unique<std::uint8_t[]>(std::ceil((newStride * img.size[1]) / 8.0));
+	auto bytes = std::ceil((newStride * img.size[1]) / 8.0);
+	ret.data = std::make_unique<std::byte[]>(bytes);
 	ret.size = img.size;
 	ret.format = to;
 	ret.stride = newStride;
@@ -194,15 +222,17 @@ UniqueImage convertFormat(const Image& img, ImageFormat to, unsigned int alignNe
 	return ret;
 }
 
-void convertFormat(const Image& img, ImageFormat to, uint8_t& into, unsigned int alignNewStride)
-{
+void convertFormat(const Image& img, ImageFormat to, std::byte& into,
+		unsigned int alignNewStride) {
 	if(satisfiesRequirements(img, to, alignNewStride)) {
 		std::memcpy(&into, img.data, dataSize(img));
 		return;
 	}
 
 	auto newStride = img.size[0] * bitSize(to);
-	if(alignNewStride) newStride = align(newStride, alignNewStride);
+	if(alignNewStride) {
+		newStride = align(newStride, alignNewStride);
+	}
 
 	for(auto y = 0u; y < img.size[1]; ++y) {
 		for(auto x = 0u; x < img.size[0]; ++x) {
@@ -213,8 +243,7 @@ void convertFormat(const Image& img, ImageFormat to, uint8_t& into, unsigned int
 	}
 }
 
-bool alphaComponent(ImageFormat format)
-{
+bool alphaComponent(ImageFormat format) {
 	using Format = ImageFormat;
 	switch(format) {
 		case Format::argb8888:
@@ -235,10 +264,10 @@ bool alphaComponent(ImageFormat format)
 	return false;
 }
 
-void premultiply(const MutableImage& img, bool resetAlpha)
-{
-	if(!alphaComponent(img.format))
+void premultiply(const MutableImage& img, bool resetAlpha) {
+	if(!alphaComponent(img.format)) {
 		return;
+	}
 
 	for(auto y = 0u; y < img.size[1]; ++y) {
 		for(auto x = 0u; x < img.size[0]; ++x) {

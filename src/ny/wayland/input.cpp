@@ -25,8 +25,7 @@ namespace ny {
 
 // mouse
 WaylandMouseContext::WaylandMouseContext(WaylandAppContext& ac, wl_seat& seat)
-	: appContext_(ac)
-{
+		: appContext_(ac) {
 	using WMC = WaylandMouseContext;
 	constexpr static wl_pointer_listener listener = {
 		memberCallback<&WMC::handleEnter>,
@@ -45,22 +44,25 @@ WaylandMouseContext::WaylandMouseContext(WaylandAppContext& ac, wl_seat& seat)
 	wlCursorSurface_ = wl_compositor_create_surface(&ac.wlCompositor());
 }
 
-WaylandMouseContext::~WaylandMouseContext()
-{
+WaylandMouseContext::~WaylandMouseContext() {
 	if(wlPointer_) {
-		if(wl_pointer_get_version(wlPointer_) >= 3) wl_pointer_release(wlPointer_);
-		else wl_pointer_destroy(wlPointer_);
+		if(wl_pointer_get_version(wlPointer_) >= 3) {
+			wl_pointer_release(wlPointer_);
+		} else {
+			wl_pointer_destroy(wlPointer_);
+		}
 	}
-	if(wlCursorSurface_) wl_surface_destroy(wlCursorSurface_);
+
+	if(wlCursorSurface_) {
+		wl_surface_destroy(wlCursorSurface_);
+	}
 }
 
-bool WaylandMouseContext::pressed(MouseButton button) const
-{
+bool WaylandMouseContext::pressed(MouseButton button) const {
 	return buttonStates_[static_cast<unsigned int>(button)];
 }
 
-WindowContext* WaylandMouseContext::over() const
-{
+WindowContext* WaylandMouseContext::over() const {
 	return over_;
 }
 
@@ -356,7 +358,7 @@ void WaylandKeyboardContext::handleLeave(wl_keyboard*, uint32_t serial, wl_surfa
 	its.it_interval.tv_nsec = 0;
 	its.it_value.tv_sec = 0;
 	its.it_value.tv_nsec = 0;
-	timerfd_settime(timerfd_, 0, &its, nullptr);	
+	timerfd_settime(timerfd_, 0, &its, nullptr);
 }
 void WaylandKeyboardContext::handleKey(wl_keyboard*, uint32_t serial, uint32_t time,
 	uint32_t key, uint32_t pressed)
@@ -390,14 +392,14 @@ void WaylandKeyboardContext::handleKey(wl_keyboard*, uint32_t serial, uint32_t t
 		its.it_interval.tv_nsec = repeat_.ratens;
 		its.it_value.tv_sec = repeat_.delays;
 		its.it_value.tv_nsec = repeat_.delayns;
-		timerfd_settime(timerfd_, 0, &its, nullptr);	
+		timerfd_settime(timerfd_, 0, &its, nullptr);
 	} else if(!pressed && key == repeatKey_) {
 		repeatKey_ = 0;
 		its.it_interval.tv_sec = 0;
 		its.it_interval.tv_nsec = 0;
 		its.it_value.tv_sec = 0;
 		its.it_value.tv_nsec = 0;
-		timerfd_settime(timerfd_, 0, &its, nullptr);	
+		timerfd_settime(timerfd_, 0, &its, nullptr);
 	}
 }
 

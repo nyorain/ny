@@ -26,8 +26,7 @@ namespace ny {
 namespace wayland {
 namespace {
 
-int setCloexecOrClose(int fd)
-{
+int setCloexecOrClose(int fd) {
 	long flags;
 	if(fd == -1) goto err2;
 
@@ -45,8 +44,7 @@ err2:
 	return -1;
 }
 
-int createTmpfileCloexec(char *tmpname)
-{
+int createTmpfileCloexec(char *tmpname) {
 	int fd;
 
 	#ifdef HAVE_MKOSTEMP
@@ -65,8 +63,7 @@ int createTmpfileCloexec(char *tmpname)
 	return fd;
 }
 
-int osCreateAnonymousFile(off_t size)
-{
+int osCreateAnonymousFile(off_t size) {
 	static const char template1[] = "/weston-shared-XXXXXX";
 	const char *path;
 	char *name;
@@ -100,20 +97,17 @@ int osCreateAnonymousFile(off_t size)
 
 //shmBuffer
 ShmBuffer::ShmBuffer(WaylandAppContext& ac, nytl::Vec2ui size, unsigned int stride)
-	: appContext_(&ac), size_(size), stride_(stride)
-{
+		: appContext_(&ac), size_(size), stride_(stride) {
 	format_ = WL_SHM_FORMAT_ARGB8888;
 	if(!stride_) stride_ = size[0] * 4;
 	create();
 }
 
-ShmBuffer::~ShmBuffer()
-{
+ShmBuffer::~ShmBuffer() {
 	destroy();
 }
 
-ShmBuffer::ShmBuffer(ShmBuffer&& other)
-{
+ShmBuffer::ShmBuffer(ShmBuffer&& other) {
 	appContext_ = other.appContext_;
 	shmSize_ = other.shmSize_;
 	size_ = other.size_;
@@ -136,8 +130,7 @@ ShmBuffer::ShmBuffer(ShmBuffer&& other)
 	if(buffer_) wl_buffer_set_user_data(buffer_, this);
 }
 
-ShmBuffer& ShmBuffer::operator=(ShmBuffer&& other)
-{
+ShmBuffer& ShmBuffer::operator=(ShmBuffer&& other) {
 	destroy();
 
 	appContext_ = other.appContext_;
@@ -164,8 +157,7 @@ ShmBuffer& ShmBuffer::operator=(ShmBuffer&& other)
 	return *this;
 }
 
-void ShmBuffer::create()
-{
+void ShmBuffer::create() {
 	destroy();
 	if(!size_[0] || !size_[1]) throw std::runtime_error("ny::wayland::ShmBuffer invalid size");
 	if(!stride_) throw std::runtime_error("ny::wayland::ShmBuffer invalid stride");
@@ -186,7 +178,7 @@ void ShmBuffer::create()
 	auto ptr = mmap(nullptr, shmSize_, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	if(ptr == MAP_FAILED) throw std::runtime_error("ny::wayland::ShmBuffer: could not mmap file");
 
-	data_ = reinterpret_cast<std::uint8_t*>(ptr);
+	data_ = reinterpret_cast<std::byte*>(ptr);
 	pool_ = wl_shm_create_pool(shm, fd, shmSize_);
 	buffer_ = wl_shm_pool_create_buffer(pool_, 0, size_[0], size_[1], stride_, format_);
 
@@ -197,15 +189,13 @@ void ShmBuffer::create()
 	wl_buffer_add_listener(buffer_, &listener, this);
 }
 
-void ShmBuffer::destroy()
-{
+void ShmBuffer::destroy() {
 	if(buffer_) wl_buffer_destroy(buffer_);
 	if(pool_) wl_shm_pool_destroy(pool_);
 	if(data_) munmap(data_, shmSize_);
 }
 
-bool ShmBuffer::size(nytl::Vec2ui size, unsigned int stride)
-{
+bool ShmBuffer::size(nytl::Vec2ui size, unsigned int stride) {
 	size_ = size;
 	stride_ = stride;
 
@@ -227,8 +217,7 @@ bool ShmBuffer::size(nytl::Vec2ui size, unsigned int stride)
 
 // Output
 Output::Output(WaylandAppContext& ac, wl_output& outp, unsigned int id)
-	: appContext_(&ac), wlOutput_(&outp), globalID_(id)
-{
+		: appContext_(&ac), wlOutput_(&outp), globalID_(id) {
 	static constexpr wl_output_listener listener {
 		memberCallback<&Output::geometry>,
 		memberCallback<&Output::mode>,
@@ -239,8 +228,7 @@ Output::Output(WaylandAppContext& ac, wl_output& outp, unsigned int id)
 	wl_output_add_listener(&outp, &listener, this);
 }
 
-Output::~Output()
-{
+Output::~Output() {
 	if(wlOutput_) {
 		if(wl_output_get_version(wlOutput_) > 3) wl_output_release(wlOutput_);
 		else wl_output_destroy(wlOutput_);
@@ -248,19 +236,20 @@ Output::~Output()
 }
 
 Output::Output(Output&& other) noexcept :
-	appContext_(other.appContext_), wlOutput_(other.wlOutput_), globalID_(other.globalID_),
-	information_(other.information_)
-
-{
+		appContext_(other.appContext_),
+		wlOutput_(other.wlOutput_),
+		globalID_(other.globalID_),
+		information_(other.information_) {
 	other.appContext_ = {};
 	other.wlOutput_ = {};
 
 	if(wlOutput_) wl_output_set_user_data(wlOutput_, this);
 }
 
-Output& Output::operator=(Output&& other) noexcept
-{
-	if(wlOutput_) wl_output_release(wlOutput_);
+Output& Output::operator=(Output&& other) noexcept {
+	if(wlOutput_) {
+		wl_output_release(wlOutput_);
+	}
 
 	appContext_ = other.appContext_;
 	wlOutput_ = other.wlOutput_;
@@ -275,8 +264,7 @@ Output& Output::operator=(Output&& other) noexcept
 }
 
 void Output::geometry(wl_output*, int32_t x, int32_t y, int32_t phwidth, int32_t phheight,
-	int32_t subpixel, const char* make, const char* model, int32_t transform)
-{
+	int32_t subpixel, const char* make, const char* model, int32_t transform) {
 	information_.make = make;
 	information_.model = model;
 	information_.transform = transform;
@@ -285,26 +273,23 @@ void Output::geometry(wl_output*, int32_t x, int32_t y, int32_t phwidth, int32_t
 	information_.subpixel = subpixel;
 }
 
-void Output::mode(wl_output*, uint32_t flags, int32_t width, int32_t height, int32_t refresh)
-{
+void Output::mode(wl_output*, uint32_t flags, int32_t width, int32_t height,
+		int32_t refresh) {
 	unsigned int urefresh = refresh;
 	information_.modes.push_back({{}, flags, urefresh});
 	information_.modes.back().size = {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
 }
 
-void Output::done(wl_output*)
-{
+void Output::done(wl_output*) {
 	information_.done = true;
 }
 
-void Output::scale(wl_output*, int32_t scale)
-{
+void Output::scale(wl_output*, int32_t scale) {
 	information_.scale = scale;
 }
 
 // util
-const char* errorName(const wl_interface& interface, int error)
-{
+const char* errorName(const wl_interface& interface, int error) {
 	struct Error {
 		int code;
 		const char* msg;
@@ -410,13 +395,11 @@ const char* errorName(const wl_interface& interface, int error)
 
 } // namespace wayland
 
-WindowEdge waylandToEdge(unsigned int wlEdge)
-{
+WindowEdge waylandToEdge(unsigned int wlEdge) {
 	return static_cast<WindowEdge>(wlEdge);
 }
 
-unsigned int edgeToWayland(WindowEdge edge)
-{
+unsigned int edgeToWayland(WindowEdge edge) {
 	return static_cast<unsigned int>(edge);
 }
 
@@ -433,20 +416,27 @@ constexpr struct FormatConversion {
 	{ImageFormat::rgb888, WL_SHM_FORMAT_RGB888},
 };
 
-int imageFormatToWayland(const ImageFormat& format)
-{
-	for(auto& fc : formatConversions) if(fc.imageFormat == format) return fc.shmFormat;
+int imageFormatToWayland(const ImageFormat& format) {
+	for(auto& fc : formatConversions) {
+		if(fc.imageFormat == format) {
+			return fc.shmFormat;
+		}
+	}
+
 	return -1;
 }
 
-ImageFormat waylandToImageFormat(unsigned int shmFormat)
-{
-	for(auto& fc : formatConversions) if(fc.shmFormat == shmFormat) return fc.imageFormat;
+ImageFormat waylandToImageFormat(unsigned int shmFormat) {
+	for(auto& fc : formatConversions) {
+		if(fc.shmFormat == shmFormat) {
+			return fc.imageFormat;
+		}
+	}
+
 	return ImageFormat::none;
 }
 
-unsigned int stateToWayland(ToplevelState state)
-{
+unsigned int stateToWayland(ToplevelState state) {
 	switch(state) {
 		case ToplevelState::maximized: return 1;
 		case ToplevelState::fullscreen: return 2;
@@ -454,13 +444,54 @@ unsigned int stateToWayland(ToplevelState state)
 	}
 }
 
-ToplevelState waylandToState(unsigned int wlState)
-{
+ToplevelState waylandToState(unsigned int wlState) {
 	switch(wlState) {
 		case 1: return ToplevelState::maximized;
 		case 2: return ToplevelState::fullscreen;
 		default: return ToplevelState::unknown;
 	}
+}
+
+DndAction waylandToDndAction(unsigned int wlAction) {
+	switch(wlAction) {
+		case WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY: return DndAction::copy;
+		case WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE: return DndAction::move;
+		default: return DndAction::none;
+	}
+}
+
+nytl::Flags<DndAction> waylandToDndActions(unsigned int wlAction) {
+	nytl::Flags<DndAction> ret {};
+	if(wlAction & WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY) {
+		ret |= DndAction::copy;
+	}
+
+	if(wlAction & WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE) {
+		ret |= DndAction::move;
+	}
+
+	return ret;
+}
+
+unsigned int dndActionToWayland(DndAction action) {
+	switch(action) {
+		case DndAction::copy: return WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY;
+		case DndAction::move: return WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE;
+		default: return WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE;
+	}
+}
+
+unsigned int dndActionsToWayland(nytl::Flags<DndAction> wlAction) {
+	unsigned int ret  = WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE;
+	if(wlAction & DndAction::copy) {
+		ret |= WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY;
+	}
+
+	if(wlAction & DndAction::move) {
+		ret |= WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE;
+	}
+
+	return ret;
 }
 
 } // namespace ny

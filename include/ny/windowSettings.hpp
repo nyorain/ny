@@ -138,7 +138,7 @@ constexpr nytl::Vec2ui fallbackSize {800, 500};
 class WindowSettings {
 public:
 	/// Requests an initial state for the windowContext.
-	/// The WindowContext may not support this, in which case WindowContext 
+	/// The WindowContext may not support this, in which case WindowContext
 	/// creation should succeed anyways, the WindowContext will always receive
 	/// a state even on creation (containing the real state).
 	ToplevelState initState = ToplevelState::normal;
@@ -148,20 +148,21 @@ public:
 	/// on some platforms it may not be available (in which case windowContext
 	/// creation should succeed anyways). Note that settings this to false
 	/// does not guarantee that the window will not be transparent.
-	bool transparent = false; 
+	bool transparent = false;
 
-	/// Whether the window will handle drop events. Has no effect if the 
+	/// Whether the window will handle drop events. Has no effect if the
 	/// Backend does not support drag and drop events.
-	bool droppable = false; 
+	bool droppable = false;
 
-	WindowListener* listener {}; ///< first listener after initialization. Can be changed
-	nytl::Vec2ui size = defaultSize; ///< Beginning window size. Must not be (0, 0)
-	nytl::Vec2i position = defaultPosition; ///< Beginning window position
-	std::string title = "ny-window"; ///< The title of the window
-	bool show = true; ///< Whether to initially show the inwodw
-	Cursor cursor {}; ///< Default cursor for the window
+	WindowListener* listener {}; /// first listener after initialization. Can be changed
+	nytl::Vec2ui size = defaultSize; /// initial window size. Must not be (0, 0)
+	nytl::Vec2i position = defaultPosition; /// initial window position
+	std::string title = "ny-window"; /// initial window title
+	bool show = true; /// whether to initially show the window
+	Cursor cursor {}; /// initial cursor for the window
 
-	/// Can be used to specify if and which context should be created for the window.
+	/// Can be used to specify if and which drawing context should be created
+	/// for the window. See the settings for the different types below.
 	SurfaceType surface = SurfaceType::none;
 
 	/// Only the member associated with the set SurfaceType will be respected.

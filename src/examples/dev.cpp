@@ -3,6 +3,11 @@
 #include <dlg/dlg.hpp>
 #include <any>
 
+// TODO: handle supported actions of data offer
+
+// weston-dnd test
+constexpr const char* mimeFlower = "application/x-wayland-dnd-flower";
+
 // used at the moment to test data sources and data offers, dragndrop and clipboard stuff
 
 // Our CustomDataSource implementation that will be used if we want to provide data of different
@@ -12,12 +17,34 @@ public:
 	CustomDataSource();
 
 	std::vector<std::string> formats() const override { return {ny::mime::utf8}; }
-	ny::ExchangeData data(const char* format) const override;
+	ny::ExchangeData data(nytl::StringParam format) const override;
 	ny::Image image() const override;
 
 private:
 	ny::UniqueImage image_;
 };
+
+std::tuple<std::string, ny::DndAction>
+chooseFormat(nytl::Span<const std::string> formats) {
+	std::string format;
+	auto best = 0u;
+	auto action = ny::DndAction::copy;
+	for(auto& fmt : formats) {
+		if(fmt == ny::mime::utf8 && best < 1) {
+			format = fmt;
+			best = 1;
+		} else if(fmt == ny::mime::uriList && best < 2) {
+			format = fmt;
+			best = 2;
+		} else if(fmt == mimeFlower && best < 3) {
+			action = ny::DndAction::move;
+			format = fmt;
+			best = 3;
+		}
+	}
+
+	return {format, action};
+}
 
 /// Returns whether AppContext received error
 void handleDataOffer(ny::AppContext& ac, ny::DataOffer& dataOffer) {
@@ -29,39 +56,34 @@ void handleDataOffer(ny::AppContext& ac, ny::DataOffer& dataOffer) {
 		if(data.index() == 0) { // monstate; invalid
 			dlg_warn("clipboard data request failed");
 		} else if(dataFormat == ny::mime::utf8) {
-			auto& text = std::get<const std::string&>(data);
+			auto& text = std::get<std::string>(data);
 			dlg_info("Received offer text data: {}", text);
 		} else if(dataFormat == ny::mime::uriList) {
-			auto& uriList = std::get<const std::vector<std::string>&>(data);
+			auto& uriList = std::get<std::vector<std::string>>(data);
 			for(auto& uri : uriList) {
 				dlg_info("Received offer uri: {}", uri);
 			}
+		} else {
+			dlg_info("Received data of type {}", dataFormat);
 		}
 
 		// requests completed, wake up waitEvents
 		wait = false;
-		ac.wakeupWait();
 	};
 
 	auto formatHandler = [&](const auto& formats){
 		if(formats.empty()) {
 			dlg_warn("clipboard formats request failed");
 			wait = false;
-			ac.wakeupWait();
 			return;
 		}
 
-		for(const auto& fmt : formats) {
-			dlg_info("clipboard type {}", fmt);
-			if(fmt == ny::mime::utf8 && dataFormat.empty()) {
-				dataFormat = fmt;
-			} else if(fmt == ny::mime::uriList) {
-				dataFormat = fmt;
-			}
-		}
+		auto [fmt, _] = chooseFormat(formats);
+		dataFormat = fmt;
 
 		// if we have a format, send data request
 		if(!dataFormat.empty()) {
+			dlg_info("requesting data: {}", dataFormat);
 			dataOffer.data(dataFormat.c_str(), dataHandler);
 		}
 	};
@@ -83,7 +105,6 @@ public:
 	void close(const ny::CloseEvent&) override {
 		dlg_info("Recevied closed event. Exiting");
 		*run = false;
-		ac->wakeupWait();
 	}
 
 	void draw(const ny::DrawEvent&) override {
@@ -94,7 +115,7 @@ public:
 		auto bufferGuard = surface->buffer();
 		auto buffer = bufferGuard.get();
 		auto size = dataSize(buffer);
-		std::memset(buffer.data, 0x00, size);
+		std::memset(buffer.data, 0xCC, size);
 	}
 
 	void mouseButton(const ny::MouseButtonEvent& ev) override {
@@ -119,29 +140,21 @@ public:
 		dlg_info("Mouse Wheel rotated: value={}", ev.value);
 	}
 
-	ny::DndResponse dndMove(const ny::DndMoveEvent& ev) override {
-		std::vector<std::string> formats;
-		bool wait = true;
-		auto formatHandler = [&](const auto& flist) {
-			for(auto& fmt : flist) {
-				if(fmt == ny::mime::utf8 || fmt == ny::mime::uriList) {
-					formats.push_back(fmt);
-				}
-			}
-
-			wait = false;
-			ac->wakeupWait();
+	void dndMove(const ny::DndMoveEvent& ev) override {
+		auto formatHandler = [offer = ev.offer](const auto& flist) {
+			auto [format, action] = chooseFormat(flist);
+			offer->preferred(format, action);
 		};
 
+		// check the formats and choose
 		ev.offer->formats(formatHandler);
-		while(wait) {
-			ac->waitEvents();
-		}
-
-		return {formats, ny::DndAction::copy};
 	}
 
 	void dndDrop(const ny::DndDropEvent& ev) override {
+		// TODO: make sure we use the format we set in `preferred`
+		// - maybe add (action) parameter in `data` and then
+		//   make backends call preferred implictly one last
+		//   time (if needed)?
 		handleDataOffer(*ac, *ev.offer);
 	}
 
@@ -153,7 +166,6 @@ public:
 		if(ev.keycode == ny::Keycode::escape) {
 			dlg_info("Escape pressed, exiting");
 			*run = false;
-			ac->wakeupWait();
 			return;
 		} else if(ev.keycode == ny::Keycode::c) {
 			dlg_info("setting clipboard... ");
@@ -218,7 +230,7 @@ CustomDataSource::CustomDataSource() {
 	std::fill(it, it + (32 * 32), color);
 }
 
-ny::ExchangeData CustomDataSource::data(const char* format) const {
+ny::ExchangeData CustomDataSource::data(nytl::StringParam format) const {
 	if(format != ny::mime::utf8) {
 		dlg_error("Invalid data format requested");
 		return {};

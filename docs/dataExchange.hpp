@@ -132,7 +132,7 @@ std::string encodeUriList(const std::vector<std::string>& uris);
 /// holding the uri list items.
 /// Will replace '%' escape codes in the list with utf8 special chars.
 /// \param removeComments removes (comment) uri lines that start with a '#'
-std::vector<std::string> decodeUriList(const std::string& list,
+std::vector<std::string> decodeUriList(std::string_view list,
 	bool removeComments = true);
 
 /// Returns an ExchangeData object that holds the correctly formatted and

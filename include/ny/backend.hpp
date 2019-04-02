@@ -71,7 +71,7 @@ public:
 
 protected:
 	Backend() { backendsFunc(this); }
-	~Backend() { backendsFunc(this, true); }
+	virtual ~Backend() { backendsFunc(this, true); }
 
 	// small helper func to add/remove backends from the backend vector singleton.
 	static std::vector<Backend*> backendsFunc(Backend* reg = nullptr, bool remove = 0);

@@ -1,5 +1,5 @@
 // Copyright (c) 2015-2018 nyorain
-dataEx// Distributed under the Boost Software License, Version 1.0.
+// Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
 #pragma once
@@ -10,6 +10,7 @@ dataEx// Distributed under the Boost Software License, Version 1.0.
 #include <nytl/callback.hpp> // nytl::Callback
 #include <nytl/span.hpp> // nytl::Span
 #include <nytl/flags.hpp> // nytl::Flags
+#include <nytl/stringParam.hpp> // nytl::StringParam
 
 #include <vector> // std::vector
 #include <memory> // std::unique_ptr
@@ -20,7 +21,7 @@ namespace ny {
 namespace mime {
 
 constexpr auto utf8 = "text/plain;charset=utf-8"; // utf-8 text
-constexpr auto text = "text/plain"; // text with unknown decoding; prefer utf8Text
+constexpr auto text = "text/plain"; // text with unknown decoding; prefer utf8
 constexpr auto uriList = "text/uri-list"; // uri/file list
 constexpr auto image = "image/x-ny-data"; // raw ny image
 constexpr auto raw = "application/octet-stream"; // binary data
@@ -28,6 +29,9 @@ constexpr auto raw = "application/octet-stream"; // binary data
 } // namespace mime
 
 /// Possible data transfer types.
+/// Theoretically, all data could be passed as std::vector<std::byte> but
+/// this contains some more convenient access methods for the most common
+/// types of transferred data.
 using ExchangeData = std::variant<
 	std::monostate, // invalid, empty
 	std::string, // all "text/*" types except "text/uri-list"
@@ -43,7 +47,7 @@ enum class DndAction : unsigned int {
 	link
 };
 
-NYTL_FLAG_OPS(DndAction);
+NYTL_FLAG_OPS(DndAction)
 
 /// Can be implemented by an application to provide data to another application.
 class DataSource {
@@ -62,7 +66,7 @@ public:
 	/// met the requested format (see ExchangeData typedef), i.e.
 	/// return a variant holding a std::string for format "image/jpg" is
 	/// invalid.
-	virtual ExchangeData data(const char* format) const = 0;
+	virtual ExchangeData data(nytl::StringParam format) const = 0;
 
 	/// Returns an image representing the data. This image could e.g. used
 	/// when this DataSource is used for a drag and drop opertation.
@@ -108,8 +112,6 @@ public:
 	/// called either from within this function or later on.
 	/// If something fails later on, the FormatsListener will be called
 	/// with an empty vector to singal failure.
-	/// Only one FormatsListener can be pending at a time, i.e. don't call
-	/// this again before the first request is completed.
 	virtual bool formats(FormatsListener) = 0;
 
 	/// Requests the offered data in the given mime type.
@@ -119,12 +121,35 @@ public:
 	/// or instantly before this call returns.
 	/// Note that DataOffers should not cache data internally, this function
 	/// is not expected to be called multiple times for one format.
-	/// Only one DataListener can be pending at a time, i.e. don't call
-	/// this again before the first request is completed.
-	virtual bool data(const char* format, DataListener) = 0;
+	/// For dnd DataOffers, the format in which the data is finally
+	/// retrieved should match the last format passed to `preferred`.
+	virtual bool data(nytl::StringParam format, DataListener) = 0;
+
+	/// == dnd only ==
+
+	/// Informs the dnd data offer about an update of preferred data format
+	/// and action. Usually happens as response to a new data offer initially
+	/// entering the window or moving to a different region.
+	/// If this is not set, no data transfer will take place (the default
+	/// is no supported format and DndAction::none).
+	/// If a non-empty format is given, it must be one from the
+	/// list of supported formats.
+	/// If the given action is not contained in `supportedActions`,
+	/// no drop might happen.
+	virtual void preferred(nytl::StringParam format,
+		DndAction action = DndAction::copy) = 0;
+
+	/// Returns the selected action this offer represents.
+	/// Might still be changed later on by passing another
+	/// value to `preferred`.
+	virtual DndAction action() = 0;
+
+	/// Returns all actions the offering side accepts.
+	virtual nytl::Flags<DndAction> supportedActions() = 0;
 };
 
-// - The following functions are mainly used by backends -
+
+// - The following utility functions are mainly used by backends -
 /// Serializes the given image (size, stride, (int) format, data).
 std::vector<std::byte> serialize(const Image&);
 
@@ -135,20 +160,21 @@ UniqueImage deserializeImage(nytl::Span<const std::byte> buffer);
 /// Encodes a vector of uris to a single string with mime-type text/uri-list
 /// encoded in utf8. Will replace special chars with their escape codes and
 /// seperate the given uris using newlines.
-std::string encodeUriList(const std::vector<std::string>& uris);
+std::string encodeUriList(nytl::Span<const std::string> uris);
 
 /// Decodes a given utf8 encoded string of mime-type text/uri-list to a vector
 /// holding the uri list items.
 /// Will replace '%' escape codes in the list with utf8 special chars.
 /// \param removeComments removes (comment) uri lines that start with a '#'
-std::vector<std::string> decodeUriList(const std::string& list,
+std::vector<std::string> decodeUriList(std::string_view list,
 	bool removeComments = true);
 
 /// Returns an ExchangeData object that holds the correctly formatted and
 /// wrapped value for the given format and raw data buffer.
-ExchangeData wrap(std::vector<std::byte> rawBuffer, const char* format);
+ExchangeData wrap(std::vector<std::byte> rawBuffer, nytl::StringParam format);
 
 /// Returns a raw buffer for the given ExchangeData.
-std::vector<std::byte> unwrap(const ExchangeData& data);
+/// Returns an empty buffer for empty data (i.e. std::monostate).
+std::vector<std::byte> unwrap(ExchangeData data);
 
 } // namespace ny

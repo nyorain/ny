@@ -42,6 +42,14 @@
 #include <cstring>
 #include <sstream>
 #include <atomic>
+#include <charconv>
+
+// TODO: some globals are assumed to be present throughout code base.
+// e.g. wl_shm, some functions (like WaylandWindowContext::cursor) will
+// implicitly throw an error if it doesn't exist (-> wayland::ShmBuffer).
+// there are probably some others. seat?
+// either fix the errors (and replace them with warnings/propagated
+// errors) or fail AppContext initializion if globals are not present.
 
 // At the moment, we implement xdg_shell versions 5 and 6 since some compositors only
 // support one of them. WaylandWindowContext will use version 6 is available.
@@ -156,10 +164,10 @@ WaylandAppContext::WaylandAppContext() {
 	// compositor added by registry Callback listener
 	// note that if it is not there now it simply does not exist on the server since
 	// we rountripped above
-	if(!impl_->wlCompositor)
+	if(!impl_->wlCompositor) {
 		throw std::runtime_error("ny::WaylandAppContext(): could not get compositor");
+	}
 
-	// TODO: is the wakeup_ flag really needed? see dispatchDisplay
 	// create eventfd needed for wakeupWait
 	eventfd_ = eventfd(0, EFD_NONBLOCK);
 	fdCallback(eventfd_, POLLIN, [&](int, unsigned int){
@@ -178,7 +186,23 @@ WaylandAppContext::WaylandAppContext() {
 
 	// init secondary resources
 	if(wlSeat() && wlDataManager()) dataDevice_ = std::make_unique<WaylandDataDevice>(*this);
-	if(wlShm()) wlCursorTheme_ = wl_cursor_theme_load("default", 32, wlShm());
+	if(wlShm()) {
+		auto cursorTheme = std::getenv("XCURSOR_THEME");
+        auto cursorSizeStr = std::getenv("XCURSOR_SIZE");
+		auto cursorSize = 32u;
+        if(cursorSizeStr) {
+			auto end = cursorSizeStr + std::strlen(cursorSizeStr);
+			unsigned parsed;
+			auto res = std::from_chars(cursorSizeStr, end, parsed);
+			if(res.ec == std::errc()) {
+				cursorSize = parsed;
+			}
+        }
+
+		// if XCURSOR_THEME is not set, we pass in null, which will result
+		// in the default cursor theme being used.
+		wlCursorTheme_ = wl_cursor_theme_load(cursorTheme, cursorSize, wlShm());
+	}
 
 	// again roundtrip and dispatch pending events to finish all setup and make
 	// sure no errors occurred
@@ -522,6 +546,8 @@ int WaylandAppContext::pollFds(short wlDisplayEvents, int timeout) {
 	// We cannot use the fd as id, since there might be multiple callbacks on the same fd.
 	// ids holds the connectionID of the associated callback in fds (i.e. the pollfd with the
 	// same index)
+	//
+	// Function has to be re-entrent via the called callbacks (via poll/waitEvents)
 
 	std::vector<nytl::ConnectionID> ids;
 	std::vector<pollfd> fds;
@@ -555,7 +581,7 @@ int WaylandAppContext::pollFds(short wlDisplayEvents, int timeout) {
 		auto it = std::find_if(items.begin(), items.end(),
 			[&](auto& cb){ return cb.clID_.get() == ids[i].get(); });
 		if(it == items.end()) {
-			dlg_warn("invalid fd callback");
+			// in this case it was erased by a previous callback
 			continue;
 		}
 

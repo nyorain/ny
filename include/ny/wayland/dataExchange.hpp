@@ -17,44 +17,46 @@
 namespace ny {
 
 /// DataOffer implementation for the wayland backend and wrapper around wl_data_offer.
-class WaylandDataOffer : public DataOffer {
+class WaylandDataOffer : public DataOffer, nytl::NonMovable {
 public:
 	WaylandDataOffer();
 	WaylandDataOffer(WaylandAppContext& ac, wl_data_offer& wlDataOffer);
 	~WaylandDataOffer();
 
-	WaylandDataOffer(WaylandDataOffer&& other) noexcept;
-	WaylandDataOffer& operator=(WaylandDataOffer&& other) noexcept;
-
 	bool formats(FormatsListener) override;
-	bool data(const char* format, DataListener) override;
+	bool data(nytl::StringParam format, DataListener) override;
+	void preferred(nytl::StringParam format, DndAction) override;
+
+	DndAction action() override { return action_; }
+	nytl::Flags<DndAction> supportedActions() override { return actions_; }
 
 	wl_data_offer& wlDataOffer() const { return *wlDataOffer_; }
 	WaylandAppContext& appContext() const { return *appContext_; }
-
-	bool finish() const { return finish_; }
-	void finish(bool x) { finish_ = x; }
 
 	bool valid() const { return (wlDataOffer_); }
 
 protected:
 	WaylandAppContext* appContext_ {};
 	wl_data_offer* wlDataOffer_ {};
-	std::vector<std::string> formats_ {};
-	nytl::Flags<DndAction> actions_ {};
+	std::vector<std::string> formats_ {}; // supported formats by other side
+	nytl::Flags<DndAction> actions_ {}; // supported actions by other side
+
+	std::string accepted_ {}; // preferred format
+	DndAction action_ {}; // target action as chosen by compositor
 
 	// pending data request
-	struct {
+	struct Request {
 		nytl::UniqueConnection fdConnection; // listening for data on df
-		std::string format;
-		DataListener listener; // listener to forward data to
-		std::vector<std::byte> buffer;
-	} pending_;
+		std::vector<DataListener> listener; // listener to forward data to
+		std::vector<std::byte> buffer; // already received data
+	};
 
-	// whether it should be finished on destruction (only for accepted dnd offers)
-	bool finish_ {};
+	// pending data requests
+	std::unordered_map<std::string, Request> pending_;
 
 protected:
+	bool fdCallbackDnd(int fd, std::string);
+
 	/// Wayland callback that is called everytime a new mimeType is announced.
 	/// This might then trigger an onFormat callback.
 	void offer(wl_data_offer*, const char* mimeType);
@@ -63,7 +65,7 @@ protected:
 	void sourceActions(wl_data_offer*, uint32_t actions);
 
 	/// Source actions are currently not implemented since they do not have an interface.
-	void action(wl_data_offer*, uint32_t action);
+	void handleAction(wl_data_offer*, uint32_t action);
 
 	/// This function is registered as callback function when a data receive fd can be
 	/// read.
@@ -71,10 +73,6 @@ protected:
 
 	/// Called by destructor and move assignment operator
 	void destroy();
-
-	/// Called by the WaylandDataOfferRequest when it is destructed so it can be
-	/// removed from the request list.
-	void removeDataRequest(const std::string& format, DataRequestImpl& request);
 };
 
 /// Free wrapper class around wl_data_source objects.
@@ -105,12 +103,17 @@ protected:
 	WaylandAppContext& appContext_;
 	std::unique_ptr<DataSource> source_;
 	wl_data_source* wlDataSource_ {};
-	bool dnd_ {};
+	bool dnd_ {}; // whether this is a dnd data source
+
+	DndAction action_ {};
+	std::string target_ {};
 
 	wl_surface* dragSurface_ {};
 	wayland::ShmBuffer dragBuffer_ {};
 
 protected:
+	void updateCursor();
+
 	void target(wl_data_source*, const char* mimeType);
 	void send(wl_data_source*, const char* mimeType, int32_t fd);
 	void dndPerformed(wl_data_source*);
@@ -130,23 +133,30 @@ public:
 
 	wl_data_device& wlDataDevice() const { return *wlDataDevice_; }
 
+	unsigned dndSerial() const { return dnd_.serial; }
 	WaylandDataOffer* clipboardOffer() const { return clipboardOffer_; }
-	WaylandDataOffer* dndOffer() const { return dndOffer_; }
-	WaylandWindowContext* dndWC() const { return dndWC_; }
+	WaylandDataOffer* dndOffer() const { return dnd_.offer; }
+	WaylandWindowContext* dndWC() const { return dnd_.wc; }
 
 protected:
 	WaylandAppContext* appContext_ {};
 	wl_data_device* wlDataDevice_ {};
 
-	std::vector<std::unique_ptr<WaylandDataOffer>> offers_; //TODO: do it without dma/pointers (?)
-
+	std::vector<std::unique_ptr<WaylandDataOffer>> offers_;
 	WaylandDataOffer* clipboardOffer_ {};
-	WaylandDataOffer* dndOffer_ {};
 
-	WaylandWindowContext* dndWC_;
-	unsigned int dndSerial_ {};
+	// current dnd session
+	struct {
+		WaylandWindowContext* wc {};
+		unsigned int serial {};
+		nytl::Vec2i position {};
+		WaylandDataOffer* offer {};
+	} dnd_;
 
 protected:
+	decltype(offers_)::iterator findOffer(const WaylandDataOffer&);
+	decltype(offers_)::iterator findOffer(const wl_data_offer&);
+
 	/// Introduces and creates a new WaylandDataOffer object.
 	void offer(wl_data_device*, wl_data_offer* offer);
 

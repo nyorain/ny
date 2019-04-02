@@ -24,8 +24,7 @@ android = get_option('android')
 # default arrguments
 # warnings and stuff
 add_project_arguments(
-	'-Wno-non-virtual-dtor',
-	'-Wno-missing-braces', # TODO: only needed for clang
+	'-Wno-missing-braces', # NOTE: only needed for clang
 	language: 'cpp')
 
 # TODO: fix on windows, see dlg notes

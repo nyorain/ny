@@ -180,14 +180,9 @@ wayland backend:
 	- xdg-decoration
 	- maybe presentation protocol for timing?
 - ShmBuffer shm_pool shared (not one per buffer...)
-- fix/simplify data exchange. Formats probably not async
-	- fix data retrieving/sending (make sure it always works, even if splitted and stuff)
-	- when exactly can we close the fd we read from? check for EOF. Don't block!
-- handle window hints correctly (at least try somehow)
 - correct capabilites
-- WaylandErrorCategory add new protocols!
-	- concept good idea at all?
-- improve xdg shell v6 support (position, better configure events, popups)
+- WaylandErrorCategory: add new protocols!
+- improve xdg shell v6 support (position, better configure events)
 	- min/max size (also implement this for other surface roles)
 - maybe there can be multiple over/focus surfaces
 - multi seat support (needs api addition)

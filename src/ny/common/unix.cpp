@@ -13,6 +13,9 @@ namespace ny {
 
 // https://www.freedesktop.org/wiki/Specifications/cursor-spec/
 // https://github.com/GNOME/gtk/blob/master/gdk/wayland/gdkcursor-wayland.c
+// https://github.com/wayland-project/weston/blob/master/clients/window.c#L1220
+// TODO: we could return a vector of names per cursor type and then
+// (backend impl) we have fallbacks to load if the first one doesn't work
 
 constexpr struct {
 	CursorType cursor;

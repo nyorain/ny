@@ -11,31 +11,9 @@
 #include <cstring> // std::memcpy
 
 namespace ny {
-namespace {
 
-bool sameBeginning(const char* a, const char* b)
-{
-	if(!a || !b || *a == '\0' || *b == '\0') {
-		return false;
-	}
-
-	return !std::strcmp(a, b);
-}
-
-} // anoymous util namespace
-
-// default data formats
-const DataFormat DataFormat::none {};
-const DataFormat DataFormat::raw {"application/octet-stream",
-	{"application/binary", "applicatoin/unknown", "raw", "binary", "buffer", "unknown"}};
-const DataFormat DataFormat::text {"text/plain;charset=utf-8", {"text", "string",
-	"unicode", "utf8", "STRING", "TEXT", "UTF8_STRING", "UNICODETEXT"}};
-const DataFormat DataFormat::uriList {"text/uri-list", {"uriList"}};
-const DataFormat DataFormat::image {"image/x-ny-data", {"ny::Image"}};
-
-std::vector<uint8_t> serialize(const Image& image)
-{
-	std::vector<uint8_t> ret;
+std::vector<std::byte> serialize(const Image& image) {
+	std::vector<std::byte> ret;
 
 	// format
 	ret.resize(2 * 4u + 4 + 4); // size, stride, format
@@ -55,8 +33,7 @@ std::vector<uint8_t> serialize(const Image& image)
 	return ret;
 }
 
-UniqueImage deserializeImage(nytl::Span<const uint8_t> buffer)
-{
+UniqueImage deserializeImage(nytl::Span<const std::byte> buffer) {
 	UniqueImage image;
 	auto headerSize = 2 * 4u + 4 + 4; // size, stride, format
 
@@ -79,15 +56,14 @@ UniqueImage deserializeImage(nytl::Span<const uint8_t> buffer)
 		return {};
 	}
 
-	image.data = std::make_unique<uint8_t[]>(dSize);
+	image.data = std::make_unique<std::byte[]>(dSize);
 	std::memcpy(image.data.get(), &buffer[headerSize], dSize);
 
 	return image;
 }
 
 // see roughly: https://tools.ietf.org/html/rfc3986
-std::string encodeUriList(const std::vector<std::string>& uris)
-{
+std::string encodeUriList(nytl::Span<const std::string> uris) {
 	std::string ret;
 	ret.reserve(uris.size() * 10);
 
@@ -122,8 +98,8 @@ std::string encodeUriList(const std::vector<std::string>& uris)
 	return ret;
 }
 
-std::vector<std::string> decodeUriList(const std::string& escaped, bool removeComments)
-{
+std::vector<std::string> decodeUriList(std::string_view escaped,
+		bool removeComments) {
 	std::string uris;
 	uris.reserve(escaped.size());
 
@@ -163,51 +139,40 @@ std::vector<std::string> decodeUriList(const std::string& escaped, bool removeCo
 	return ret;
 }
 
-bool match(const DataFormat& dataFormat, const char* formatName)
-{
-	if(sameBeginning(dataFormat.name.c_str(), formatName)) return true;
-	for(auto name : dataFormat.additionalNames)
-		if(sameBeginning(name.c_str(), formatName)) return true;
+ExchangeData wrap(std::vector<std::byte> buffer, nytl::StringParam fmt) {
+	if(fmt == mime::uriList) {
+		auto ptr = reinterpret_cast<const char*>(buffer.data());
+		return decodeUriList({ptr, buffer.size()});
+	} else if(fmt.substr(0, 5) == "text/") {
+		auto ptr = reinterpret_cast<const char*>(buffer.data());
+		return std::string(ptr, buffer.size());
+	} else if(fmt == mime::image) {
+		return deserializeImage({buffer.data(), buffer.size()});
+	}
 
-	return false;
-}
-
-bool match(const DataFormat& a, const DataFormat& b)
-{
-	if(sameBeginning(a.name.c_str(), b.name.c_str())) return true;
-
-	for(auto aname : a.additionalNames)
-		for(auto bname : b.additionalNames)
-			if(sameBeginning(aname.c_str(), bname.c_str()))
-				return true;
-
-	return false;
-}
-
-std::any wrap(std::vector<uint8_t> buffer, const DataFormat& fmt)
-{
-	if(fmt == DataFormat::text) return std::string(buffer.begin(), buffer.end());
-	if(fmt == DataFormat::uriList) return decodeUriList({buffer.begin(), buffer.end()});
-	if(fmt == DataFormat::image) return  deserializeImage({buffer.data(), buffer.size()});
-
+	// other cases: just raw data
 	return {std::move(buffer)};
 }
 
-std::vector<uint8_t> unwrap(std::any any, const DataFormat& format)
-{
-	if(format == DataFormat::text) {
-		auto string = std::any_cast<const std::string&>(any);
-		return {string.begin(), string.end()};
-	} else if(format == DataFormat::uriList) {
-		auto uris = std::any_cast<const std::vector<std::string>&>(any);
-		auto string = encodeUriList(uris);
-		return {string.begin(), string.end()};
-	} else if(format == DataFormat::image) {
-		auto img = std::any_cast<const UniqueImage&>(any);
-		return serialize(img);
-	}
-
-	return std::move(std::any_cast<std::vector<uint8_t>&>(any));
+std::vector<std::byte> unwrap(ExchangeData data) {
+	return std::visit([&](auto& data) -> std::vector<std::byte> {
+		using T = std::decay_t<decltype(data)>;
+		if constexpr(std::is_same_v<T, std::vector<std::byte>>) {
+			return std::move(data);
+		} else if constexpr(std::is_same_v<T, std::vector<std::string>>) {
+			auto list = encodeUriList(data);
+			std::vector<std::byte> ret(list.size());
+			std::memcpy(ret.data(), list.data(), list.size());
+			return ret;
+		} else if constexpr(std::is_same_v<T, std::string>) {
+			std::vector<std::byte> ret(data.size());
+			std::memcpy(ret.data(), data.data(), data.size());
+			return ret;
+		} else if constexpr(std::is_same_v<T, UniqueImage>) {
+			return serialize(data);
+		}
+		return {};
+	}, data);
 }
 
 } // namespace ny

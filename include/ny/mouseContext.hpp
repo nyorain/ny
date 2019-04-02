@@ -14,6 +14,8 @@ namespace ny {
 /// MouseContext interface, implemented by a backend.
 class MouseContext {
 public:
+	virtual ~MouseContext() = default;
+
 	/// Returns the newest mouse position that can be queried for the current window under
 	/// the pointer.
 	/// Note that if the pointer is not over a window, the result of this function is undefined.
