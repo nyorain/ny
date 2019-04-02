@@ -16,8 +16,9 @@ namespace ny {
 using WindowContextPtr = std::unique_ptr<WindowContext>;
 using AppContextPtr = std::unique_ptr<AppContext>;
 
-// TODO: optional (mouse)event parameter for dnd/clipboard functions?
-// TODO: TouchContext. Other input sources?
+struct BackendError : public std::runtime_error {
+	using std::runtime_error::runtime_error;
+};
 
 /// Abstract base interface for a backend-specific display conncetion.
 /// Defines the interfaces for different event dispatching functions
@@ -41,8 +42,8 @@ public:
 	/// Can be called from a handler from within the loop (recursively).
 	/// Forwards all exceptions that are thrown in called handlers.
 	/// Might also throw own backend-dependent errors.
-	/// If these are of type ny::BackendError, the AppContext has become
-	/// invalid and must no longer be used.
+	/// If a thrown exception is of type ny::BackendError, the AppContext has
+	/// become invalid and must no longer be used.
 	/// This happens e.g. on protocol errors in communication with
 	/// the display server.
 	virtual void pollEvents() = 0;
@@ -54,8 +55,8 @@ public:
 	/// Use wakeupWait to return from this function.
 	/// Forwards all exceptions that are thrown in called handlers.
 	/// Might also throw own backend-dependent errors.
-	/// If these are of type ny::BackendError, the AppContext has become
-	/// invalid and must no longer be used.
+	/// If a thrown exception is of type ny::BackendError, the AppContext has
+	/// become invalid and must no longer be used.
 	/// This happens e.g. on protocol errors in communication with
 	/// the display server.
 	virtual void waitEvents() = 0;

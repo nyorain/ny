@@ -19,10 +19,6 @@ namespace ny {
 /// DataOffer implementation for the wayland backend and wrapper around wl_data_offer.
 class WaylandDataOffer : public DataOffer {
 public:
-	class PendingRequest;
-	class DataRequestImpl;
-
-public:
 	WaylandDataOffer();
 	WaylandDataOffer(WaylandAppContext& ac, wl_data_offer& wlDataOffer);
 	~WaylandDataOffer();
@@ -30,8 +26,8 @@ public:
 	WaylandDataOffer(WaylandDataOffer&& other) noexcept;
 	WaylandDataOffer& operator=(WaylandDataOffer&& other) noexcept;
 
-	FormatsRequest formats() override;
-	DataRequest data(const DataFormat& format) override;
+	bool formats(FormatsListener) override;
+	bool data(const char* format, DataListener) override;
 
 	wl_data_offer& wlDataOffer() const { return *wlDataOffer_; }
 	WaylandAppContext& appContext() const { return *appContext_; }
@@ -44,12 +40,19 @@ public:
 protected:
 	WaylandAppContext* appContext_ {};
 	wl_data_offer* wlDataOffer_ {};
-	std::vector<std::pair<DataFormat, std::string>> formats_ {};
+	std::vector<std::string> formats_ {};
+	nytl::Flags<DndAction> actions_ {};
 
-	// TODO: unordered_map here currently results in errors sine PendingRequest is incomplete
-	std::map<std::string, PendingRequest> requests_;
+	// pending data request
+	struct {
+		nytl::UniqueConnection fdConnection; // listening for data on df
+		std::string format;
+		DataListener listener; // listener to forward data to
+		std::vector<std::byte> buffer;
+	} pending_;
 
-	bool finish_ {}; // whether it should be finished on destruction (only for accepted dnd offers)
+	// whether it should be finished on destruction (only for accepted dnd offers)
+	bool finish_ {};
 
 protected:
 	/// Wayland callback that is called everytime a new mimeType is announced.

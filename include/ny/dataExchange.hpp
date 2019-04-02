@@ -1,5 +1,5 @@
 // Copyright (c) 2015-2018 nyorain
-// Distributed under the Boost Software License, Version 1.0.
+dataEx// Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt
 
 #pragma once
@@ -50,7 +50,10 @@ class DataSource {
 public:
 	virtual ~DataSource() = default;
 
-	/// Returns all mime types in which it can be represented.
+	/// Returns all mime types in which the data can be returned.
+	/// The formats are mimetypes.
+	/// A call to `data(format)` with a format returned from this call
+	/// should return valid data.
 	virtual std::vector<std::string> formats() const = 0;
 
 	/// Returns data in the given format.
@@ -90,7 +93,7 @@ public:
 /// without data to end the waiting.
 class DataOffer {
 public:
-	using FormatsListener = std::function<void(nytl::Span<const char*>)>;
+	using FormatsListener = std::function<void(nytl::Span<const std::string>)>;
 	using DataListener = std::function<void(ExchangeData)>;
 
 public:
@@ -101,8 +104,12 @@ public:
 	virtual ~DataOffer() = default;
 
 	/// Requests all supported formats in which the data is offered.
-	/// Will return on error, otherwise the FormatsListener will be
+	/// Will return false on error, otherwise the FormatsListener will be
 	/// called either from within this function or later on.
+	/// If something fails later on, the FormatsListener will be called
+	/// with an empty vector to singal failure.
+	/// Only one FormatsListener can be pending at a time, i.e. don't call
+	/// this again before the first request is completed.
 	virtual bool formats(FormatsListener) = 0;
 
 	/// Requests the offered data in the given mime type.
@@ -112,6 +119,8 @@ public:
 	/// or instantly before this call returns.
 	/// Note that DataOffers should not cache data internally, this function
 	/// is not expected to be called multiple times for one format.
+	/// Only one DataListener can be pending at a time, i.e. don't call
+	/// this again before the first request is completed.
 	virtual bool data(const char* format, DataListener) = 0;
 };
 

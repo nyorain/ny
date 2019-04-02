@@ -6,7 +6,7 @@
 
 #include <ny/wayland/include.hpp>
 #include <ny/appContext.hpp> // ny::AppContext
-#include <ny/deferred.hpp> 
+#include <ny/deferred.hpp>
 #include <nytl/connection.hpp> // nytl::Connection
 
 #include <vector> // std::vector
@@ -27,8 +27,8 @@ public:
 	virtual ~WaylandAppContext();
 
 	// - AppContext implementation -
-	bool pollEvents() override;
-	bool waitEvents() override;
+	void pollEvents() override;
+	void waitEvents() override;
 	void wakeupWait() override;
 
 	MouseContext* mouseContext() override;
@@ -37,7 +37,8 @@ public:
 
 	bool clipboard(std::unique_ptr<DataSource>&& dataSource) override;
 	DataOffer* clipboard() override;
-	bool startDragDrop(std::unique_ptr<DataSource>&& dataSource) override;
+	bool dragDrop(const EventData* event,
+		std::unique_ptr<DataSource>&& dataSource) override;
 
 	std::vector<const char*> vulkanExtensions() const override;
 	GlSetup* glSetup() const override;
@@ -87,7 +88,7 @@ protected:
 	/// Checks the wayland display for errors.
 	/// If the wayland display has an error (i.e. it cannot be used any longer)
 	/// throws a std::runtime_error containing information about the error.
-	bool checkError() const;
+	void checkError() const;
 
 	/// Modified version of wl_dispatch_display that performs the same operations but
 	/// does also poll for the registered fds.
@@ -130,7 +131,6 @@ protected:
 	std::unique_ptr<WaylandDataSource> dndSource_;
 
 	bool wakeup_ {false}; // Set from the eventfd callback
-	bool error_ {};
 
 	struct Impl;
 	std::unique_ptr<Impl> impl_;

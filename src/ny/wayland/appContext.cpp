@@ -51,8 +51,7 @@ namespace ny {
 namespace {
 
 // Like poll but does not return on signals.
-int noSigPoll(pollfd& fds, nfds_t nfds, int timeout = -1)
-{
+int noSigPoll(pollfd& fds, nfds_t nfds, int timeout = -1) {
 	while(true) {
 		auto ret = poll(&fds, nfds, timeout);
 		if(ret != -1 || errno != EINTR) return ret;
@@ -64,8 +63,7 @@ int noSigPoll(pollfd& fds, nfds_t nfds, int timeout = -1)
 // AppContext to be outputted in case a critical wayland error occurrs.
 thread_local std::string lastLogMessage = "<none>";
 
-void logHandler(const char* format, va_list vlist)
-{
+void logHandler(const char* format, va_list vlist) {
 	va_list vlistcopy;
 	va_copy(vlistcopy, vlist);
 
@@ -111,8 +109,7 @@ struct WaylandAppContext::Impl {
 	#endif //WithEGL
 };
 
-WaylandAppContext::WaylandAppContext()
-{
+WaylandAppContext::WaylandAppContext() {
 	// listeners
 	using WAC = WaylandAppContext;
 	constexpr static wl_registry_listener registryListener = {
@@ -189,8 +186,7 @@ WaylandAppContext::WaylandAppContext()
 	wl_display_dispatch_pending(wlDisplay_);
 }
 
-WaylandAppContext::~WaylandAppContext()
-{
+WaylandAppContext::~WaylandAppContext() {
 	// we explicitly have to destroy/disconnect everything since wayland is plain c
 	// note that additional (even RAII) members might have to be reset here too if there
 	// destructor require the wayland display (or anything else) to be valid
@@ -223,12 +219,8 @@ WaylandAppContext::~WaylandAppContext()
 	if(wlDisplay_) wl_display_disconnect(wlDisplay_);
 }
 
-bool WaylandAppContext::pollEvents()
-{
-	if(!checkError()) {
-		return false;
-	}
-
+void WaylandAppContext::pollEvents() {
+	checkError();
 	deferred.execute();
 
 	// read all registered file descriptors without any blocking and without polling
@@ -261,45 +253,40 @@ bool WaylandAppContext::pollEvents()
 	}
 
 	deferred.execute();
-	return checkError();
+	checkError();
 }
 
-bool WaylandAppContext::waitEvents()
-{
-	if(!checkError()) {
-		return false;
-	}
-
+void WaylandAppContext::waitEvents() {
+	checkError();
 	deferred.execute();
 	dispatchDisplay();
 	deferred.execute();
-	return checkError();
+	checkError();
 }
 
-void WaylandAppContext::wakeupWait()
-{
+void WaylandAppContext::wakeupWait() {
 	std::int64_t v = 1;
 	::write(eventfd_, &v, 8);
 }
 
-KeyboardContext* WaylandAppContext::keyboardContext()
-{
+KeyboardContext* WaylandAppContext::keyboardContext() {
 	return waylandKeyboardContext();
 }
 
-MouseContext* WaylandAppContext::mouseContext()
-{
+MouseContext* WaylandAppContext::mouseContext() {
 	return waylandMouseContext();
 }
 
-WindowContextPtr WaylandAppContext::createWindowContext(const WindowSettings& settings)
-{
+WindowContextPtr WaylandAppContext::createWindowContext(const WindowSettings& settings) {
 	static const std::string func = "ny::WaylandAppContext::createWindowContext: ";
 	WaylandWindowSettings waylandSettings;
 	const auto* ws = dynamic_cast<const WaylandWindowSettings*>(&settings);
 
-	if(ws) waylandSettings = *ws;
-	else waylandSettings.WindowSettings::operator=(settings);
+	if(ws) {
+		waylandSettings = *ws;
+	} else {
+		waylandSettings.WindowSettings::operator=(settings);
+	}
 
 	if(settings.surface == SurfaceType::vulkan) {
 		#ifdef NY_WithVulkan
@@ -309,7 +296,10 @@ WindowContextPtr WaylandAppContext::createWindowContext(const WindowSettings& se
 		#endif
 	} else if(settings.surface == SurfaceType::gl) {
 		#ifdef NY_WithEgl
-			if(!eglSetup()) throw std::runtime_error(func + "initializing egl failed");
+			if(!eglSetup()) {
+				throw std::runtime_error(func + "initializing egl failed");
+			}
+
 			return std::make_unique<WaylandEglWindowContext>(*this, *eglSetup(), waylandSettings);
 		#else
 			throw std::logic_error(func + "ny was built without egl support")
@@ -321,29 +311,33 @@ WindowContextPtr WaylandAppContext::createWindowContext(const WindowSettings& se
 	return std::make_unique<WaylandWindowContext>(*this, waylandSettings);
 }
 
-bool WaylandAppContext::clipboard(std::unique_ptr<DataSource>&& dataSource)
-{
-	if(!waylandDataDevice()) return false;
+bool WaylandAppContext::clipboard(std::unique_ptr<DataSource>&& dataSource) {
+	if(!waylandDataDevice()) {
+		return false;
+	}
 
-	clipboardSource_ = std::make_unique<WaylandDataSource>(*this, std::move(dataSource), false);
+	clipboardSource_ = std::make_unique<WaylandDataSource>(*this,
+		std::move(dataSource), false);
 	wl_data_device_set_selection(&dataDevice_->wlDataDevice(),
 		&clipboardSource_->wlDataSource(), keyboardContext_->lastSerial());
 	return true;
 }
 
-DataOffer* WaylandAppContext::clipboard()
-{
+DataOffer* WaylandAppContext::clipboard() {
 	if(!waylandDataDevice()) {
 		return nullptr;
 	}
 	return waylandDataDevice()->clipboardOffer();
 }
 
-bool WaylandAppContext::startDragDrop(std::unique_ptr<DataSource>&& dataSource)
-{
+bool WaylandAppContext::dragDrop(const EventData* event,
+		std::unique_ptr<DataSource>&& dataSource) {
 	if(!waylandMouseContext() || !waylandDataDevice()) {
 		return false;
 	}
+
+	auto wevent = dynamic_cast<const WaylandEventData*>(event);
+	auto serial = wevent ? wevent->serial : mouseContext_->lastSerial();
 
 	auto over = mouseContext_->over();
 	if(!over) {
@@ -358,8 +352,8 @@ bool WaylandAppContext::startDragDrop(std::unique_ptr<DataSource>&& dataSource)
 	}
 
 	auto surf = &static_cast<WaylandWindowContext*>(over)->wlSurface();
-	wl_data_device_start_drag(&dataDevice_->wlDataDevice(), &dndSource_->wlDataSource(), 
-		surf, dndSource_->dragSurface(), mouseContext_->lastSerial());
+	wl_data_device_start_drag(&dataDevice_->wlDataDevice(),
+		&dndSource_->wlDataSource(), surf, dndSource_->dragSurface(), serial);
 
 	// only now we can attach a buffer to the surface since now it has the
 	// dnd surface role.
@@ -367,8 +361,7 @@ bool WaylandAppContext::startDragDrop(std::unique_ptr<DataSource>&& dataSource)
 	return true;
 }
 
-std::vector<const char*> WaylandAppContext::vulkanExtensions() const
-{
+std::vector<const char*> WaylandAppContext::vulkanExtensions() const {
 	#ifdef NY_WithVulkan
 		return {VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME};
 	#else
@@ -376,8 +369,7 @@ std::vector<const char*> WaylandAppContext::vulkanExtensions() const
 	#endif // WithVulkan
 }
 
-GlSetup* WaylandAppContext::glSetup() const
-{
+GlSetup* WaylandAppContext::glSetup() const {
 	#ifdef NY_WithEgl
 		return eglSetup();
 	#else
@@ -385,8 +377,7 @@ GlSetup* WaylandAppContext::glSetup() const
 	#endif // WithEgl
 }
 
-EglSetup* WaylandAppContext::eglSetup() const
-{
+EglSetup* WaylandAppContext::eglSetup() const {
 	#ifdef NY_WithEgl
 		if(impl_->eglFailed) return nullptr;
 
@@ -409,15 +400,10 @@ EglSetup* WaylandAppContext::eglSetup() const
 	#endif // WithEgl
 }
 
-bool WaylandAppContext::checkError() const
-{
-	if(error_) {
-		return true;
-	}
-
+void WaylandAppContext::checkError() const {
 	auto err = wl_display_get_error(wlDisplay_);
 	if(!err) {
-		return true;
+		return;
 	}
 
 	// when wayland returns this error code, we can query the exact interface
@@ -432,19 +418,18 @@ bool WaylandAppContext::checkError() const
 		if(interface) {
 			errorName = wayland::errorName(*interface, code);
 			interfaceName = interface->name;
-		} 
+		}
 
 		auto msg = dlg::format(
 			"ny::WaylandAppContext: display has critical protocol error\n\t",
 			"error: '{}'\n\t"
 			"interface: '{}'\n\t"
-			"Last log output in this thread: {}\n\t" 
-			"This is likely a ny, app or compositor bug, please report it",
+			"Last log output in this thread: '{}'\n\t"
+			"This is likely a ny or compositor bug, please report it",
 			errorName, interfaceName, lastLogMessage);
 
-		dlg_fatal(msg);
-		return false;
-	} 
+		throw BackendError(msg);
+	}
 
 	const char* errorName = std::strerror(err);
 	if(!errorName) {
@@ -455,30 +440,31 @@ bool WaylandAppContext::checkError() const
 		"Wayland display has non-protocol error '{}'\n\t"
 		"Last log output in this thread: '{}'",
 		errorName, lastLogMessage);
-	dlg_error(msg);
-	return false;
+	throw BackendError(msg);
 }
 
 nytl::Connection WaylandAppContext::fdCallback(int fd, unsigned int events,
-	const FdCallbackFunc& func)
-{
+		const FdCallbackFunc& func) {
 	return impl_->fdCallbacks.add({fd, events, func});
 }
 
-void WaylandAppContext::destroyDataSource(const WaylandDataSource& src)
-{
-	if(&src == dndSource_.get()) dndSource_.reset();
-	else if(&src == clipboardSource_.get()) dndSource_.reset();
-	else dlg_warn("invalid data source object to destroy");
+void WaylandAppContext::destroyDataSource(const WaylandDataSource& src) {
+	if(&src == dndSource_.get()) {
+		dndSource_.reset();
+	} else if(&src == clipboardSource_.get()) {
+		dndSource_.reset();
+	} else {
+		dlg_warn("invalid data source object to destroy");
+	}
 }
 
-bool WaylandAppContext::dispatchDisplay()
-{
+bool WaylandAppContext::dispatchDisplay() {
 	wakeup_ = false;
 	int ret;
 
-	if(wl_display_prepare_read(wlDisplay_) == -1)
+	if(wl_display_prepare_read(wlDisplay_) == -1) {
 		return wl_display_dispatch_pending(wlDisplay_);
+	}
 
 	// try to flush the display until all data is flushed
 	while(true) {
@@ -527,8 +513,7 @@ bool WaylandAppContext::dispatchDisplay()
 	return dispatched >= 0;
 }
 
-int WaylandAppContext::pollFds(short wlDisplayEvents, int timeout)
-{
+int WaylandAppContext::pollFds(short wlDisplayEvents, int timeout) {
 	// This function simply polls for all fd callbacks (and the wayland display fd if
 	// wlDisplayEvents != 0) with the given timeout and triggers the activated fd callbacks.
 	//
@@ -582,14 +567,12 @@ int WaylandAppContext::pollFds(short wlDisplayEvents, int timeout)
 	return ret;
 }
 
-void WaylandAppContext::roundtrip()
-{
+void WaylandAppContext::roundtrip() {
 	wl_display_roundtrip_queue(&wlDisplay(), wlRoundtripQueue_);
 }
 
 void WaylandAppContext::handleRegistryAdd(wl_registry*, uint32_t id, const char* cinterface,
-	uint32_t version)
-{
+		uint32_t version) {
 	// listeners
 	// they must be added instantly, otherwise we will miss initial events
 	using WAC = WaylandAppContext;
@@ -675,8 +658,7 @@ void WaylandAppContext::handleRegistryAdd(wl_registry*, uint32_t id, const char*
 	}
 }
 
-void WaylandAppContext::handleRegistryRemove(wl_registry*, uint32_t id)
-{
+void WaylandAppContext::handleRegistryRemove(wl_registry*, uint32_t id) {
 	// TODO: stop the application/main loop when removing needed global? at least handle it somehow.
 	// TODO: check other globals here?
 	// This is currently more like a dummy and not really useful...
@@ -689,8 +671,7 @@ void WaylandAppContext::handleRegistryRemove(wl_registry*, uint32_t id)
 	}
 }
 
-void WaylandAppContext::handleSeatCapabilities(wl_seat*, uint32_t caps)
-{
+void WaylandAppContext::handleSeatCapabilities(wl_seat*, uint32_t caps) {
 	// mouse
 	if((caps & WL_SEAT_CAPABILITY_POINTER) && !mouseContext_) {
 		mouseContext_ = std::make_unique<WaylandMouseContext>(*this, *wlSeat());
@@ -708,48 +689,48 @@ void WaylandAppContext::handleSeatCapabilities(wl_seat*, uint32_t caps)
 	}
 }
 
-void WaylandAppContext::handleSeatName(wl_seat*, const char* name)
-{
+void WaylandAppContext::handleSeatName(wl_seat*, const char* name) {
 	seatName_ = name;
 }
 
-void WaylandAppContext::handleShmFormat(wl_shm*, unsigned int format)
-{
+void WaylandAppContext::handleShmFormat(wl_shm*, unsigned int format) {
 	shmFormats_.push_back(format);
 }
 
-void WaylandAppContext::handleXdgShellV5Ping(xdg_shell*, unsigned int serial)
-{
-	if(!xdgShellV5()) return;
+void WaylandAppContext::handleXdgShellV5Ping(xdg_shell*, unsigned int serial) {
+	if(!xdgShellV5()) {
+		dlg_warn("xdg shell v5 ping but didn't receive global");
+		return;
+	}
+
 	xdg_shell_pong(xdgShellV5(), serial);
 }
 
-void WaylandAppContext::handleXdgShellV6Ping(zxdg_shell_v6*, unsigned int serial)
-{
-	if(!xdgShellV6()) return;
+void WaylandAppContext::handleXdgShellV6Ping(zxdg_shell_v6*, unsigned int serial) {
+	if(!xdgShellV6()) {
+		dlg_warn("xdg shell v6 ping but didn't receive global");
+		return;
+	}
+
 	zxdg_shell_v6_pong(xdgShellV6(), serial);
 }
 
-bool WaylandAppContext::shmFormatSupported(unsigned int wlShmFormat)
-{
+bool WaylandAppContext::shmFormatSupported(unsigned int wlShmFormat) {
 	for(auto format : shmFormats_) if(format == wlShmFormat) return true;
 	return false;
 }
 
-WaylandWindowContext* WaylandAppContext::windowContext(wl_surface& surface) const
-{
+WaylandWindowContext* WaylandAppContext::windowContext(wl_surface& surface) const {
 	auto data = wl_surface_get_user_data(&surface);
 	return static_cast<WaylandWindowContext*>(data);
 }
 
-wl_pointer* WaylandAppContext::wlPointer() const
-{
+wl_pointer* WaylandAppContext::wlPointer() const {
 	if(!waylandMouseContext()) return nullptr;
 	return waylandMouseContext()->wlPointer();
 }
 
-wl_keyboard* WaylandAppContext::wlKeyboard() const
-{
+wl_keyboard* WaylandAppContext::wlKeyboard() const {
 	if(!waylandKeyboardContext()) return nullptr;
 	return waylandKeyboardContext()->wlKeyboard();
 }

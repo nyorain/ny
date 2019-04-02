@@ -27,38 +27,9 @@
 
 namespace ny {
 
-// /Represents a pending wayland to another request for a specific format.
-// /Will be associated with a format using a std::map.
-class WaylandDataOffer::PendingRequest {
-public:
-	std::vector<WaylandDataOffer::DataRequestImpl*> requests;
-	nytl::UniqueConnection fdConnection;
-};
-
-// /Small DefaultAsyncRequest addition that allows to unregister itself on desctruction.
-class WaylandDataOffer::DataRequestImpl : public DefaultAsyncRequest<std::any> {
-public:
-	using DefaultAsyncRequest::DefaultAsyncRequest;
-
-	WaylandDataOffer* dataOffer_;
-	std::string format_;
-
-	~DataRequestImpl()
-	{
-		if(dataOffer_) dataOffer_->removeDataRequest(format_, *this);
-	}
-
-	void complete(const std::any& any)
-	{
-		DefaultAsyncRequest::complete(std::any(any));
-		dataOffer_ = nullptr;
-	}
-};
-
 //WaylandDataOffer
 WaylandDataOffer::WaylandDataOffer(WaylandAppContext& ac, wl_data_offer& wlDataOffer)
-	: appContext_(&ac), wlDataOffer_(&wlDataOffer)
-{
+		: appContext_(&ac), wlDataOffer_(&wlDataOffer) {
 	static constexpr wl_data_offer_listener listener {
 		memberCallback<&WaylandDataOffer::offer>,
 		memberCallback<&WaylandDataOffer::sourceActions>,
@@ -69,29 +40,31 @@ WaylandDataOffer::WaylandDataOffer(WaylandAppContext& ac, wl_data_offer& wlDataO
 }
 
 WaylandDataOffer::WaylandDataOffer(WaylandDataOffer&& other) noexcept :
-	appContext_(other.appContext_),
-	wlDataOffer_(other.wlDataOffer_),
-	formats_(std::move(other.formats_)),
-	requests_(std::move(other.requests_)),
-	finish_(other.finish_)
-{
-	if(wlDataOffer_) wl_data_offer_set_user_data(wlDataOffer_, this);
+		appContext_(other.appContext_),
+		wlDataOffer_(other.wlDataOffer_),
+		formats_(std::move(other.formats_)),
+		pending_(std::move(other.pending_)),
+		finish_(other.finish_) {
+	if(wlDataOffer_) {
+		wl_data_offer_set_user_data(wlDataOffer_, this);
+	}
 
 	other.appContext_ = {};
 	other.wlDataOffer_ = {};
 }
 
-WaylandDataOffer& WaylandDataOffer::operator=(WaylandDataOffer&& other) noexcept
-{
+WaylandDataOffer& WaylandDataOffer::operator=(WaylandDataOffer&& other) noexcept {
 	destroy();
 
 	appContext_ = other.appContext_;
 	wlDataOffer_ = other.wlDataOffer_;
 	formats_ = std::move(other.formats_);
-	requests_ = std::move(other.requests_);
+	pending_ = std::move(other.pending_);
 	finish_ = other.finish_;
 
-	if(wlDataOffer_) wl_data_offer_set_user_data(wlDataOffer_, this);
+	if(wlDataOffer_) {
+		wl_data_offer_set_user_data(wlDataOffer_, this);
+	}
 
 	other.appContext_ = {};
 	other.wlDataOffer_ = {};
@@ -99,15 +72,15 @@ WaylandDataOffer& WaylandDataOffer::operator=(WaylandDataOffer&& other) noexcept
 	return *this;
 }
 
-WaylandDataOffer::~WaylandDataOffer()
-{
+WaylandDataOffer::~WaylandDataOffer() {
 	destroy();
 }
 
-void WaylandDataOffer::destroy()
-{
+void WaylandDataOffer::destroy() {
 	// signal all pending requests that they have failed
-	for(auto& r : requests_) for(auto& req : r.second.requests) req->complete({});
+	if(pending_.listener) {
+		pending_.listener({});
+	}
 
 	if(wlDataOffer_) {
 		auto version = wl_data_offer_get_version(wlDataOffer_);
@@ -116,104 +89,101 @@ void WaylandDataOffer::destroy()
 	}
 }
 
-WaylandDataOffer::FormatsRequest WaylandDataOffer::formats()
-{
-	// Since we don't have to query the supported formats but already have them
-	// stored, we can return a synchronous (i.e. already set) request object.
-	std::vector<DataFormat> formats;
-	formats.reserve(formats_.size());
-	for(auto& supported : formats_) formats.push_back(supported.first);
-	return std::make_unique<DefaultAsyncRequest<std::vector<DataFormat>>>(formats);
+bool WaylandDataOffer::formats(FormatsListener listener) {
+	listener(formats_);
+	return true;
 }
 
-WaylandDataOffer::DataRequest WaylandDataOffer::data(const DataFormat& format)
-{
-	// find the associated wayland format string
-	std::pair<DataFormat, std::string> reqfmt {};
-	for(auto& supported : formats_) {
-		if(format == supported.first) {
-			reqfmt = supported;
-		}
+bool WaylandDataOffer::data(const char* format, DataListener listener) {
+	auto it = std::find(formats_.begin(), formats_.end(), format);
+	if(it == formats_.end()) {
+		dlg_warn("unsupported format {}", format);
+		return false;
 	}
-	if(reqfmt.second.empty()) {
-		dlg_warn("unsupported format {}", format.name);
+
+	if(pending_.listener) {
+		dlg_warn("there is still a data request pending");
+		return false;
+	}
+
+	pending_.listener = listener;
+	pending_.format = format;
+
+	// create the pipe nonblocking, to allow us differentiating
+	// eof and no data avilable
+	int fds[2];
+	auto ret = pipe2(fds, O_CLOEXEC | O_NONBLOCK);
+	if(ret < 0) {
+		dlg_warn("pipe2 failed: {}", std::strerror(errno));
 		return {};
 	}
 
-	// we check if there is already a pending request for the given format.
-	// if so, we skip all request and appContext fd callback registering
-	auto& conn = requests_[reqfmt.second].fdConnection;
-	if(!conn.connected()) {
-		int fds[2];
-		auto ret = pipe2(fds, O_CLOEXEC);
-		if(ret < 0) {
-			dlg_warn("pipe2 failed: {}", std::strerror(errno));
-			return {};
+	wl_data_offer_receive(wlDataOffer_, format, fds[1]);
+
+	// we don't capture [this] but instead receive it from
+	// the data offers user data to make sure DataOffers can be moved.
+	auto callback = [wlOffer = wlDataOffer_, format](int fd, unsigned int) {
+		auto& self = *static_cast<WaylandDataOffer*>(
+			wl_data_offer_get_user_data(wlOffer));
+
+		auto& buffer = self.pending_.buffer;
+		auto readCount = 2048u;
+		while(true) {
+			auto size = buffer.size();
+			buffer.resize(size + readCount);
+			auto ret = read(fd, buffer.data() + size, readCount);
+
+			if(ret == 0) {
+				// other side closed, reading is finished
+				// moving the buffer clears it in this
+				self.pending_.listener(wrap(std::move(buffer), format));
+				self.pending_.listener = {};
+				self.pending_.fdConnection = {};
+			} else if(ret < 0) {
+				if(errno == EAGAIN || errno == EWOULDBLOCK) {
+					// no data avilable at the moment
+				} else {
+					// unexpected error ocurred, cancel
+					self.pending_.listener(std::monostate {});
+					self.pending_.listener = {};
+					self.pending_.buffer.clear();
+					self.pending_.fdConnection = {};
+				}
+			} else if(ret < readCount) { // fewer available, not finished
+				buffer.resize(size + ret); // erase leftover
+			} else if(ret == readCount) {
+				// more data might be avilable, continue
+				// let read size grow exponentially for performance
+				readCount *= 2;
+				continue;
+			} else {
+				dlg_error("unreachable: ret = {}; readCount = {}",
+					ret, readCount);
+			}
+
+			break;
 		}
 
-		wl_data_offer_receive(wlDataOffer_, reqfmt.second.c_str(), fds[1]);
+		return true;
+	};
 
-		auto callback =
-			[wlOffer = wlDataOffer_, format, reqfmt](int fd, unsigned int) {
-
-			auto fdGuard = nytl::ScopeGuard([=]{ close(fd); });
-
-			constexpr auto readCount = 1000;
-			auto self = static_cast<WaylandDataOffer*>(wl_data_offer_get_user_data(wlOffer));
-			std::vector<uint8_t> buffer;
-
-			auto ret = readCount;
-			while(ret == readCount) {
-				buffer.resize(buffer.size() + readCount);
-				ret = read(fd, buffer.data(), buffer.size());
-			}
-
-			buffer.resize(buffer.size() - (readCount - ret)); // remove the unneeded bytes
-			// TODO: is eof really assured here?
-			// the data source side might write multiple data segments and not be
-			// finished here...
-
-			auto any = wrap(buffer, reqfmt.first);
-
-			// complete all pending requests and remove the request entry
-			for(auto& req : self->requests_[reqfmt.second].requests) {
-				req->complete(any);
-			}
-
-			self->requests_.erase(self->requests_.find(reqfmt.second));
-			return true;
-		};
-
-		conn = appContext_->fdCallback(fds[0], POLLIN, callback);
-	}
-
-	// create an asynchronous request object that unregisters itself on destruction so
-	// we won't call complete on invalid objects. The application has ownership over the
-	// AsyncRequest
-	auto ret = std::make_unique<DataRequestImpl>(appContext());
-	ret->format_ = reqfmt.second;
-	ret->dataOffer_ = this;
-	requests_[reqfmt.second].requests.push_back(ret.get());
-	return ret;
+	// also listen to POLLHUP since that might be sent when pipe is closed
+	pending_.fdConnection = appContext_->fdCallback(fds[0], POLLIN | POLLHUP,
+		callback);
+	return true;
 }
 
-void WaylandDataOffer::offer(wl_data_offer*, const char* fmt)
-{
-	if(match(DataFormat::raw, fmt)) formats_.push_back({DataFormat::raw, fmt});
-	else if(match(DataFormat::text, fmt)) formats_.push_back({DataFormat::text, fmt});
-	else if(match(DataFormat::uriList, fmt)) formats_.push_back({DataFormat::uriList, fmt});
-	else if(match(DataFormat::image, fmt)) formats_.push_back({DataFormat::image, fmt});
-	else formats_.push_back({{fmt, {}}, fmt,});
+void WaylandDataOffer::offer(wl_data_offer*, const char* fmt) {
+	formats_.push_back(fmt);
 }
 
 // TODO: parse actions to determine whether wl_data_offer_finish has to be called? see protocol
-void WaylandDataOffer::sourceActions(wl_data_offer*, uint32_t actions)
-{
-	nytl::unused(actions);
+void WaylandDataOffer::sourceActions(wl_data_offer*, uint32_t actions) {
+	// TODO
 }
 
-void WaylandDataOffer::action(wl_data_offer*, uint32_t action)
-{
+void WaylandDataOffer::action(wl_data_offer*, uint32_t action) {
+	// TODO
 	nytl::unused(action);
 }
 

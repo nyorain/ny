@@ -287,4 +287,11 @@ ToplevelState waylandToState(unsigned int wlState);
 /// Returns 0 for values that cannot be represented.
 unsigned int stateToWayland(ToplevelState);
 
+/// Converts the given wayland dnd action to DndAction.
+DndAction waylandToDndAction(unsigned int wlAction);
+
+/// Converts the given dnd action to its corresponding value in the wayland
+/// core protocol.
+wl_data_device_manager_dnd_action dndActionToWayland(DndAction);
+
 } // namespace ny
