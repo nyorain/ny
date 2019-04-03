@@ -1,4 +1,3 @@
-// This time, we explicitly include only the needed headers
 #include <ny/backend.hpp> // ny::Backend
 #include <ny/appContext.hpp> // ny::AppContext
 #include <ny/windowContext.hpp> // ny::WindowContext
@@ -13,30 +12,30 @@
 #include <dlg/dlg.hpp> // logging
 
 #include <nytl/vecOps.hpp> // print nytl::Vec
+#include <cairo.h>
 #include <cstring> // std::memset
 
-// The second ny example that shows some further basic functionality
-// The example window has the following shortcuts (keycodes):
-// 	- d: try to toggle server decorations
-//	- f: toggle fullscreen
-//	- m: toggle maximized state
-// 	- i: iconize (minimize) the window
-//	- n: reset to normal toplevel state
-//	- Escape: close the window
-// It uses a raw buffer to fill the window with a solid white color.
-// Clicking on a the windows edges will start to resize it, while clicking in the middle
-// of the window will start to move it.
+// NOTE: include examples taken from cairo:
+// see https://github.com/freedesktop/cairo for license information
+// drawMode = 1: /doc/tutorial/src/twin.c
+// drawMode = 2: /doc/tutorial/src/singular.c
 
-// The WindowListener implementation that will handle a few more callbacks this time.
-// They are again implemented below main.
+// Use 0, 1 and 2 keys to toggle what is drawn
+// - d: try to toggle server decorations
+// - f: toggle fullscreen
+// - m: toggle maximized state
+// - i: iconize (minimize) the window
+// - n: reset to normal toplevel state
+// - Escape: close the window
 class MyWindowListener : public ny::WindowListener {
 public:
 	ny::AppContext* appContext {};
 	ny::WindowContext* windowContext {};
 	ny::BufferSurface* bufferSurface {};
 	ny::ToplevelState toplevelState = ny::ToplevelState::normal;
-	nytl::Vec2ui windowSize {800u, 500u};
+	nytl::Vec2ui windowSize {};
 	bool* run {};
+	int drawMode {1};
 
 public:
 	void draw(const ny::DrawEvent&) override;
@@ -85,6 +84,47 @@ int main(int, char**) {
 	dlg_info("Returning from main with grace");
 }
 
+static void
+get_singular_values (const cairo_matrix_t *matrix,
+		     double *major,
+		     double *minor)
+{
+    double xx = matrix->xx, xy = matrix->xy;
+    double yx = matrix->yx, yy = matrix->yy;
+
+    double a = xx*xx+yx*yx;
+    double b = xy*xy+yy*yy;
+    double k = xx*xy+yx*yy;
+
+    double f = (a+b) * .5;
+    double g = (a-b) * .5;
+    double delta = sqrt (g*g + k*k);
+
+    if (major)
+	*major = sqrt (f + delta);
+    if (minor)
+	*minor = sqrt (f - delta);
+}
+
+static void
+get_pen_axes (cairo_t *cr,
+	      double *major,
+	      double *minor)
+{
+    double width;
+    cairo_matrix_t matrix;
+
+    width = cairo_get_line_width (cr);
+    cairo_get_matrix (cr, &matrix);
+
+    get_singular_values (&matrix, major, minor);
+
+    if (major)
+	*major *= width;
+    if (minor)
+	*minor *= width;
+}
+
 void MyWindowListener::draw(const ny::DrawEvent&) {
 	if(!bufferSurface) {
 		dlg_info("draw: no bufferSurface");
@@ -93,10 +133,93 @@ void MyWindowListener::draw(const ny::DrawEvent&) {
 
 	auto guard = bufferSurface->buffer();
 	auto image = guard.get();
-	auto size = ny::dataSize(image);
-	dlg_info("drawing the window: size {}", image.size);
 
-	std::memset(image.data, 0xFF, size); // opaque white
+	// TODO: support other formats?
+	dlg_assert(image.format == ny::ImageFormat::argb8888);
+	auto data = reinterpret_cast<unsigned char*>(image.data);
+	auto surface = cairo_image_surface_create_for_data(data,
+		CAIRO_FORMAT_ARGB32, image.size.x, image.size.y,
+		image.stride / 8);
+
+	auto cr = cairo_create(surface);
+	cairo_set_source_rgba(cr, 0.8, 0.9, 0.6, 0.8);
+	cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+	cairo_paint(cr);
+
+	if(drawMode == 1) {
+		// just shows all chars in different sizes
+		cairo_set_source_rgb (cr, 0, 0, 0);
+		cairo_select_font_face (cr, "@cairo:",
+			CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+
+		unsigned char s[2] = {0, 0};
+		auto h = 2;
+		for (auto i = 8; i < 48; i >= 24 ? i+=3 : i++) {
+			cairo_set_font_size (cr, i);
+			for (auto j = 33; j < 128; j++) {
+				if (j == 33 || (j == 80 && i > 24)) {
+					h += i + 2;
+					cairo_move_to (cr, 10, h);
+				}
+				s[0] = j;
+				cairo_show_text (cr, (const char *) s);
+			}
+		}
+	} else if(drawMode == 2) {
+		double major_width, minor_width;
+		auto W = windowSize.x;
+		auto H = windowSize.y;
+		auto B = (windowSize.x + windowSize.y) / 16;
+
+		/* the spline we want to stroke */
+		cairo_move_to  (cr, W-B, B);
+		cairo_curve_to (cr, -W,   B,
+					2*W, H-B,
+				B,   H-B);
+
+		/* the effect is show better with round caps */
+		cairo_set_line_cap (cr, CAIRO_LINE_CAP_ROUND);
+
+		/* set the skewed pen */
+		cairo_rotate (cr, +.7);
+		cairo_scale  (cr, .5, 2.);
+		cairo_rotate (cr, -.7);
+		cairo_set_line_width (cr, B);
+
+		get_pen_axes (cr, &major_width, &minor_width);
+
+		/* stroke with "major" pen in translucent red */
+		cairo_save (cr);
+		cairo_identity_matrix (cr);
+		cairo_set_line_width (cr, major_width);
+		cairo_set_source_rgba (cr, 1.0, 0.0, 0.0, .9);
+		cairo_stroke_preserve (cr);
+		cairo_restore (cr);
+
+		/* stroke with skewed pen in translucent black */
+		cairo_set_source_rgba (cr, 0.0, 0.0, 0.0, .9);
+		cairo_stroke_preserve (cr);
+
+		/* stroke with "minor" pen in translucent yellow */
+		cairo_save (cr);
+		cairo_identity_matrix (cr);
+		cairo_set_line_width (cr, minor_width);
+		cairo_set_source_rgba (cr, 1.0, 1.0, 0.0, .9);
+		cairo_stroke_preserve (cr);
+		cairo_restore (cr);
+
+		/* stroke with hairline in black */
+		cairo_save (cr);
+		cairo_identity_matrix (cr);
+		cairo_set_line_width (cr, 1);
+		cairo_set_source_rgb (cr, 0.0, 0.0, 0.0);
+		cairo_stroke_preserve (cr);
+		cairo_restore (cr);
+	}
+
+	cairo_destroy(cr);
+	cairo_surface_flush(surface);
+	cairo_surface_destroy(surface);
 }
 
 void MyWindowListener::key(const ny::KeyEvent& keyEvent) {
@@ -148,6 +271,18 @@ void MyWindowListener::key(const ny::KeyEvent& keyEvent) {
 		} else if(keycode == ny::Keycode::d) {
 			dlg_info("Trying to toggle decorations");
 			windowContext->customDecorated(!windowContext->customDecorated());
+			windowContext->refresh();
+		} else if(keycode == ny::Keycode::k0) {
+			dlg_info("DrawMode 0");
+			drawMode = 0;
+			windowContext->refresh();
+		} else if(keycode == ny::Keycode::k1) {
+			dlg_info("DrawMode 1");
+			drawMode = 1;
+			windowContext->refresh();
+		} else if(keycode == ny::Keycode::k2) {
+			dlg_info("DrawMode 2");
+			drawMode = 2;
 			windowContext->refresh();
 		}
 	}
@@ -236,3 +371,4 @@ void MyWindowListener::surfaceCreated(const ny::SurfaceCreatedEvent& se) {
 void MyWindowListener::surfaceDestroyed(const ny::SurfaceDestroyedEvent&) {
 	bufferSurface = nullptr;
 }
+

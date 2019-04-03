@@ -12,7 +12,7 @@ ny_src = [
 	'windowListener.cpp',
 	'backend.cpp',
 	'common/gl.cpp', # does actually not need gl
-	]
+]
 
 # Winapi backend
 if enable_winapi
@@ -67,12 +67,15 @@ if enable_wayland
 		'wayland/dataExchange.cpp',
 		'wayland/input.cpp',
 		'wayland/util.cpp',
-		'wayland/windowContext.cpp',
+		'wayland/windowContext.cpp']
 
-		'wayland/protocols/xdg-shell-v5.c',
-		'wayland/protocols/xdg-shell-v6.c']
 
-	if enable_gl
+	subdir('wayland/protocols')
+	ny_src += wl_protos_src
+	ny_src += wl_protos_headers
+
+	# other options
+	if enable_egl
 		ny_src += ['wayland/egl.cpp']
 	endif
 

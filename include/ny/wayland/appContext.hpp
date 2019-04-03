@@ -67,7 +67,6 @@ public:
 	wl_shm* wlShm() const;
 	wl_seat* wlSeat() const;
 	wl_shell* wlShell() const;
-	xdg_shell* xdgShellV5() const;
 	zxdg_shell_v6* xdgShellV6() const;
 	wl_data_device_manager* wlDataManager() const;
 
@@ -107,7 +106,6 @@ protected:
 	void handleSeatName(wl_seat*, const char* name);
 	void handleShmFormat(wl_shm*, uint32_t format);
 
-	void handleXdgShellV5Ping(xdg_shell*, uint32_t serial);
 	void handleXdgShellV6Ping(zxdg_shell_v6*, uint32_t serial);
 
 protected:

@@ -1,7 +1,7 @@
 project('ny', ['c', 'cpp'],
   license: 'BSL',
   version: '0.1.0',
-  meson_version: '>=0.42',
+  meson_version: '>=0.47',
   default_options: ['cpp_std=c++1z', 'c_std=c11', 'warning_level=3'])
 
 # TODO:
@@ -49,37 +49,28 @@ deps = [
 	dep_nytl]
 
 # vulkan
-if op_enable_vulkan == 'false'
-	enable_vulkan = false
-else
-	dep_vulkan = dependency('vulkan', required: op_enable_vulkan == 'true')
-	enable_vulkan = dep_vulkan.found()
-	deps += dep_vulkan
-endif
+dep_vulkan = dependency('vulkan', required: op_enable_vulkan)
+enable_vulkan = dep_vulkan.found()
+deps += dep_vulkan
 
 # gl
-if op_enable_gl == 'false'
-	enable_gl = false
+# note added to deps automatically since normally not needed
+# backends will add if they need it
+dep_gl = dependency('gl', required: op_enable_gl)
+enable_gl = dep_gl.found()
+
+if android
+	dep_egl = meson.get_compiler('c').find_library('EGL', required: op_enable_egl)
+	enable_egl = dep_egl.found()
 else
-	dep_gl = dependency('gl', required: op_enable_gl == 'true')
-	enable_gl = dep_gl.found()
-	deps += dep_gl
+	dep_egl = dependency('egl', required: op_enable_egl)
+	enable_egl = dep_egl.found()
 endif
 
-# egl
-if op_enable_egl == 'false'
-	enable_egl = false
-elif not android
-	dep_egl = dependency('egl', required: op_enable_egl == 'true')
-	enable_egl = dep_egl.found()
-	deps += dep_egl
-elif android
-	dep_egl = meson.get_compiler('c').find_library('EGL', required: false)
-	enable_egl = dep_egl.found()
-	deps += dep_egl
-endif
-
-dep_xkbcommon = dependency('xkbcommon', required: false)
+# required for wayland and x11 backends though
+dep_xkbcommon = dependency('xkbcommon', required:
+	op_enable_x11 == 'enabled' or
+	op_enable_wayland == 'enabled')
 
 # winapi
 if op_enable_winapi == 'auto'
@@ -88,95 +79,64 @@ else
 	enable_winapi = op_enable_winapi == 'true'
 endif
 
-# x11
-if op_enable_x11 == 'false'
-  enable_x11 = false
-else
-  req = op_enable_x11 == 'true'
-  if req and not dep_xkbcommon.found()
-    error('x11 backend requires xkbcommon')
-  endif
-
-	dep_x11 = dependency('x11', required: req)
-	dep_x11xcb = dependency('x11-xcb', required: req)
-	dep_xi = dependency('xi', required: req)
-	dep_xcursor = dependency('xcursor', required: req)
-	dep_xcb = dependency('xcb', required: req)
-	dep_xcbewmh = dependency('xcb-ewmh', required: req)
-	dep_xcbicccm = dependency('xcb-icccm', required: req)
-	dep_xcbshm = dependency('xcb-shm', required: req)
-	dep_xcbxkb = dependency('xcb-xkb', required: req)
-	dep_xkbcommonx11 = dependency('xkbcommon-x11', required: req)
-
-	x11_deps = [
-		dep_x11,
-		dep_x11xcb,
-		dep_xi,
-		dep_xcursor,
-		dep_xcb,
-		dep_xcbewmh,
-		dep_xcbicccm,
-		dep_xcbshm,
-		dep_xcbxkb,
-    	dep_xkbcommon,
-		dep_xkbcommonx11]
-
-	enable_x11 = true
-	foreach dep : x11_deps
-		if not dep.found()
-			enable_x11 = false
-		endif
-	endforeach
-
-	if enable_x11
-		deps += x11_deps
-
-    if enable_gl
-      deps += dep_gl
-    endif
-	endif
-endif
-
-# wayland
-if op_enable_wayland == 'false'
-	enable_wayland = false
-else
-	required = op_enable_wayland == 'true'
-  if required and not dep_xkbcommon.found()
-    error('wayland requires xkbcommon')
-  endif
-
-	dep_wl = dependency('wayland-client', required: required)
-	dep_wlcursor = dependency('wayland-cursor', required: required)
-	wl_deps = [dep_xkbcommon, dep_wl, dep_wlcursor]
-
-	enable_wayland = true
-	foreach dep : wl_deps
-		if not dep.found()
-			enable_wayland = false
-		endif
-	endforeach
-
-	if enable_wayland
-		deps += wl_deps
-
-    if enable_egl
-      deps += dep_egl
-      deps += dependency('wayland-egl')
-    endif
-	endif
-endif
-
-# winapi deps
 if enable_winapi
 	deps += meson.get_compiler('cpp').find_library('Dwmapi')
 	deps += meson.get_compiler('cpp').find_library('Shlwapi')
-
-  if enable_gl
-    deps += dep_gl
-  endif
 endif
 
+
+# x11
+x11_deps = [
+	dep_xkbcommon,
+	dependency('x11', required: op_enable_x11),
+	dependency('x11-xcb', required: op_enable_x11),
+	dependency('xi', required: op_enable_x11),
+	dependency('xcursor', required: op_enable_x11),
+	dependency('xcb', required: op_enable_x11),
+	dependency('xcb-ewmh', required: op_enable_x11),
+	dependency('xcb-icccm', required: op_enable_x11),
+	dependency('xcb-shm', required: op_enable_x11),
+	dependency('xcb-xkb', required: op_enable_x11),
+	dependency('xkbcommon-x11', required: op_enable_x11),
+]
+
+enable_x11 = true
+foreach dep : x11_deps
+	if not dep.found()
+		enable_x11 = false
+	endif
+endforeach
+deps += x11_deps
+
+if enable_x11 and enable_gl
+	deps += dep_gl
+endif
+
+# wayland
+dep_wl_protos = dependency('wayland-protocols', version: '>=1.17',
+	required: op_enable_wayland)
+wl_deps = [
+	dep_xkbcommon,
+	dependency('wayland-client', required: op_enable_wayland),
+	dependency('wayland-cursor', required: op_enable_wayland),
+	dep_wl_protos,
+]
+
+enable_wayland = true
+foreach dep : wl_deps
+	if not dep.found()
+		enable_wayland = false
+	endif
+endforeach
+deps += wl_deps
+
+if enable_wayland and enable_egl
+  deps += dep_egl
+  deps += dependency('wayland-egl')
+endif
+
+# check that at least backend is supported
+# otherwise at least output warning, since this is probably not desired
 if not enable_winapi and not enable_wayland and not enable_x11 and not android
 	message('WARNING: building ny without any valid backends')
 endif

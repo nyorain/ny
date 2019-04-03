@@ -24,8 +24,7 @@ public:
 	void surfaceDestroyed(const ny::SurfaceDestroyedEvent&) override;
 };
 
-int main()
-{
+int main() {
 	auto& backend = ny::Backend::choose();
 	auto ac = backend.createAppContext();
 
@@ -53,26 +52,26 @@ int main()
 	listener.windowContext = wc.get();
 	listener.run = &run;
 
-	ny::GlContextSettings glsettings;
 	if(glSurface) {
-		listener.glContext = ac->glSetup()->createContext(*glSurface);
+		ny::GlContextSettings glsettings {};
+		listener.glContext = ac->glSetup()->createContext(*glSurface, glsettings);
 	}
 
 	wc->listener(listener);
 
 	dlg_info("Entering main loop");
-	while(run && ac->waitEvents());
+	while(run) {
+		ac->waitEvents();
+	}
 }
 
-void MyWindowListener::close(const ny::CloseEvent&)
-{
+void MyWindowListener::close(const ny::CloseEvent&) {
 	dlg_info("Window closed from server side. Exiting.");
 	*run = false;
 	appContext->wakeupWait();
 }
 
-void MyWindowListener::draw(const ny::DrawEvent&)
-{
+void MyWindowListener::draw(const ny::DrawEvent&) {
 	if(!glSurface) {
 		dlg_warn("draw without gl surface");
 	}
@@ -93,17 +92,16 @@ void MyWindowListener::draw(const ny::DrawEvent&)
 	glSurface->apply();
 }
 
-void MyWindowListener::surfaceCreated(const ny::SurfaceCreatedEvent& surfaceEvent)
-{
+void MyWindowListener::surfaceCreated(const ny::SurfaceCreatedEvent& surfaceEvent) {
 	glSurface = surfaceEvent.surface.gl;
 
-	if(!glContext)
+	if(!glContext) {
 		glContext = appContext->glSetup()->createContext(*glSurface);
+	}
 
 	windowContext->refresh();
 }
 
-void MyWindowListener::surfaceDestroyed(const ny::SurfaceDestroyedEvent&)
-{
+void MyWindowListener::surfaceDestroyed(const ny::SurfaceDestroyedEvent&) {
 	glSurface = nullptr;
 }

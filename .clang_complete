@@ -1,8 +1,10 @@
 -I./include
 -I./src
 -I./build/include
+-I./build/src/
 -I./subprojects/nytl
 -I./subprojects/dlg/include
+-I/usr/include/cairo
 -Wall
 -Wextra
 -Wpedantic

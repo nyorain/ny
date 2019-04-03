@@ -1,9 +1,9 @@
 option('android', type: 'boolean', value: false)
-option('enable_x11', type: 'combo', choices: ['auto', 'true', 'false'])
-option('enable_wayland', type: 'combo', choices: ['auto', 'true', 'false'])
-option('enable_winapi', type: 'combo', choices: ['auto', 'true', 'false'])
-option('enable_gl', type: 'combo', choices: ['auto', 'true', 'false']) # glx/wgl
-option('enable_egl', type: 'combo', choices: ['auto', 'true', 'false']) # wayland-egl, android
-option('enable_vulkan', type: 'combo', choices: ['auto', 'true', 'false'])
+option('enable_x11', type: 'feature', value: 'auto')
+option('enable_wayland', type: 'feature', value: 'auto')
+option('enable_winapi', type: 'feature', value: 'auto')
+option('enable_gl', type: 'feature', value: 'auto') # x11, winapi gl support
+option('enable_egl', type: 'feature', value: 'auto') # wayland, android gl support
+option('enable_vulkan', type: 'feature', value: 'auto')
 
 option('examples', type: 'boolean', value: false)

@@ -6,8 +6,7 @@
 
 namespace ny {
 
-bool builtWithAndroid()
-{
+bool builtWithAndroid() {
 	#ifdef NY_WithAndroid
 		return true;
 	#else
@@ -15,8 +14,7 @@ bool builtWithAndroid()
 	#endif
 }
 
-bool builtWithWayland()
-{
+bool builtWithWayland() {
 	#ifdef NY_WithWayland
 		return true;
 	#else
@@ -24,8 +22,7 @@ bool builtWithWayland()
 	#endif
 }
 
-bool builtWithWinapi()
-{
+bool builtWithWinapi() {
 	#ifdef NY_WithWinapi
 		return true;
 	#else
@@ -33,8 +30,7 @@ bool builtWithWinapi()
 	#endif
 }
 
-bool builtWithX11()
-{
+bool builtWithX11() {
 	#ifdef NY_WithX11
 		return true;
 	#else
@@ -42,8 +38,7 @@ bool builtWithX11()
 	#endif
 }
 
-bool builtWithXkbcommon()
-{
+bool builtWithXkbcommon() {
 	#ifdef NY_WithXkbcommon
 		return true;
 	#else
@@ -51,8 +46,7 @@ bool builtWithXkbcommon()
 	#endif
 }
 
-bool builtWithGl()
-{
+bool builtWithGl() {
 	#ifdef NY_WithGl
 		return true;
 	#else
@@ -60,8 +54,7 @@ bool builtWithGl()
 	#endif
 }
 
-bool builtWithEgl()
-{
+bool builtWithEgl() {
 	#ifdef NY_WithEgl
 		return true;
 	#else
@@ -69,8 +62,7 @@ bool builtWithEgl()
 	#endif
 }
 
-bool builtWithVulkan()
-{
+bool builtWithVulkan() {
 	#ifdef NY_WithVulkan
 		return true;
 	#else

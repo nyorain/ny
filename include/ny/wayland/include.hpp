@@ -13,8 +13,8 @@
 
 // wayland forward decls
 struct xdg_surface;
-struct xdg_popup;
-struct xdg_shell;
+struct xdg_toplevel;
+struct xdg_wm_base;
 
 struct zxdg_popup_v6;
 struct zxdg_positioner_v6;

@@ -26,8 +26,7 @@ public:
 // will really help you.
 // The most important classes (interaces) of ny are ny::AppContext, ny::WindowContext
 // and ny::WindowListener.
-int main()
-{
+int main() {
 	// We let ny choose a backend.
 	// If no backend is available, this function will simply throw an exception.
 	// The backend will determine the type of display manager used.
@@ -72,13 +71,14 @@ int main()
 	// variable to communicate between window listener and our main loop
 	bool run;
 	listener.run = &run;
-	while(run && ac->waitEvents());
+	while(run) {
+		ac->waitEvents();
+	}
 
 	// Clean up is done automatically, everything follows the RAII idiom.
 }
 
-void MyWindowListener::close(const ny::CloseEvent&)
-{
+void MyWindowListener::close(const ny::CloseEvent&) {
 	// We output that we received the close event and then set the run
 	// pointer to false, which will end the main loop.
 	dlg_info("Received an closed event - exiting");

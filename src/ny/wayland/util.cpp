@@ -11,8 +11,8 @@
 #include <nytl/scope.hpp>
 
 #include <wayland-client-protocol.h>
-#include <ny/wayland/protocols/xdg-shell-v5.h>
-#include <ny/wayland/protocols/xdg-shell-v6.h>
+#include <ny/wayland/protocols/xdg-shell-unstable-v6.h>
+#include <ny/wayland/protocols/xdg-shell.h>
 
 #include <fcntl.h>
 #include <sys/mman.h>
@@ -268,14 +268,6 @@ const char* errorName(const wl_interface& interface, int error) {
 		},
 
 		// xdg
-		// shell v5
-		{ xdg_shell_interface, {
-			{ XDG_SHELL_ERROR_ROLE, "XDG_SHELL_ERROR_ROLE" },
-			{ XDG_SHELL_ERROR_DEFUNCT_SURFACES, "XDG_SHELL_ERROR_DEFUNCT_SURFACES" },
-			{ XDG_SHELL_ERROR_NOT_THE_TOPMOST_POPUP, "XDG_SHELL_ERROR_NOT_THE_TOPMOST_POPUP" },
-			{ XDG_SHELL_ERROR_INVALID_POPUP_PARENT, "XDG_SHELL_ERROR_INVALID_POPUP_PARENT" } },
-		},
-
 		// shell v6
 		{ zxdg_shell_v6_interface, {
 			{ ZXDG_SHELL_V6_ERROR_ROLE, "ZXDG_SHELL_V6_ERROR_ROLE" },

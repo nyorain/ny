@@ -17,8 +17,8 @@ namespace ny {
 enum class WaylandSurfaceRole : unsigned int {
 	none,
 	shell,
-	xdgSurfaceV5,
 	xdgToplevelV6,
+	xdgToplevel,
 };
 
 /// WindowSettings class for wayland WindowContexts.
@@ -31,7 +31,7 @@ public:
 	using Role = WaylandSurfaceRole;
 
 public:
-	WaylandWindowContext(WaylandAppContext& ac, const WaylandWindowSettings& s = {});
+	WaylandWindowContext(WaylandAppContext&, const WaylandWindowSettings& = {});
 	virtual ~WaylandWindowContext();
 
 	void refresh() override;
@@ -74,12 +74,12 @@ public:
 	//return nullptr if this object has another role
 	wl_shell_surface* wlShellSurface() const;
 	wl_subsurface* wlSubsurface() const;
-	xdg_surface* xdgSurfaceV5() const;
-	xdg_popup* xdgPopupV5() const;
 
 	zxdg_surface_v6* xdgSurfaceV6() const;
-	zxdg_popup_v6* xdgPopupV6() const;
 	zxdg_toplevel_v6* xdgToplevelV6() const;
+
+	xdg_surface* xdgSurface() const;
+	xdg_toplevel* xdgToplevel() const;
 
 	wl_buffer* wlCursorBuffer() const { return cursorBuffer_; }
 	nytl::Vec2i cursorHotspot() const { return cursorHotspot_; }
@@ -103,7 +103,6 @@ protected:
 
 	// init helpers
 	void createShellSurface(const WaylandWindowSettings& ws);
-	void createXdgSurfaceV5(const WaylandWindowSettings& ws);
 	void createXdgSurfaceV6(const WaylandWindowSettings& ws);
 
 	// listeners
@@ -111,9 +110,6 @@ protected:
 	void handleShellSurfacePing(wl_shell_surface*, uint32_t);
 	void handleShellSurfaceConfigure(wl_shell_surface*, uint32_t, int32_t, int32_t);
 	void handleShellSurfacePopupDone(wl_shell_surface*);
-
-	void handleXdgSurfaceV5Configure(xdg_surface*, int32_t, int32_t, wl_array*, uint32_t);
-	void handleXdgSurfaceV5Close(xdg_surface*);
 
 	void handleXdgSurfaceV6Configure(zxdg_surface_v6*, uint32_t);
 	void handleXdgToplevelV6Configure(zxdg_toplevel_v6*, int32_t, int32_t, wl_array*);
@@ -137,13 +133,18 @@ protected:
 	// stores which kinds of surface this context holds
 	WaylandSurfaceRole role_ = WaylandSurfaceRole::none;
 
-	// when the wl_surface has a xdg_surface role, we can give this xdg_surface its
-	// own role, therefore we have to store surface and xdg role.
-	// which union member is active is controlled by the role_ member as well
-	struct XdgSurfaceV6 {
+	// state for xdgToplevelV6
+	struct XdgToplevelV6 {
 		zxdg_surface_v6* surface;
-		bool configured;
 		zxdg_toplevel_v6* toplevel;
+		bool configured;
+	};
+
+	// state for xdgToplevel role
+	struct XdgToplevel {
+		xdg_surface* surface;
+		xdg_toplevel* toplevel;
+		bool configured;
 	};
 
 	// the different surface roles this surface can have.
@@ -151,8 +152,8 @@ protected:
 	// xdg roles are preferred over the plain wl ones if available
 	union {
 		wl_shell_surface* wlShellSurface_ = nullptr;
-		xdg_surface* xdgSurfaceV5_;
-		XdgSurfaceV6 xdgSurfaceV6_;
+		XdgToplevelV6 xdgToplevelV6_;
+		XdgToplevel xdgToplevel_;
 	};
 
 	// current toplevel state for xdg toplevel windows
@@ -163,6 +164,9 @@ protected:
 	wl_buffer* cursorBuffer_ {};
 	nytl::Vec2i cursorHotspot_ {};
 	nytl::Vec2ui cursorSize_ {};
+
+	// whether there is a pending deferred resize event
+	bool pendingResize_ {};
 };
 
 } // namespace ny

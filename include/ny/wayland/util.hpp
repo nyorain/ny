@@ -202,10 +202,12 @@ int imageFormatToWayland(const ImageFormat&);
 
 /// Converts the given xdg shell protocol edge to a ToplevelState enum value.
 /// Returns ToplevelState::unknown for none/invalid states.
+/// Works for xdg shell v6 and stable.
 ToplevelState waylandToState(unsigned int wlState);
 
 /// Converts the given ToplevelState enum value to a xdg shell protoocl state value.
 /// Returns 0 for values that cannot be represented.
+/// Works for xdg shell v6 and stable.
 unsigned int stateToWayland(ToplevelState);
 
 /// Converts the given wayland dnd action to DndAction.

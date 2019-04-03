@@ -10,8 +10,8 @@
 #include <ny/wayland/dataExchange.hpp>
 #include <ny/wayland/bufferSurface.hpp>
 
-#include <ny/wayland/protocols/xdg-shell-v5.h>
-#include <ny/wayland/protocols/xdg-shell-v6.h>
+#include <ny/wayland/protocols/xdg-shell-unstable-v6.h>
+#include <ny/wayland/protocols/xdg-shell.h>
 
 #include <dlg/dlg.hpp>
 
@@ -105,7 +105,6 @@ struct WaylandAppContext::Impl {
 	wayland::NamedGlobal<wl_shm> wlShm;
 	wayland::NamedGlobal<wl_data_device_manager> wlDataManager;
 	wayland::NamedGlobal<wl_seat> wlSeat;
-	wayland::NamedGlobal<xdg_shell> xdgShellV5;
 	wayland::NamedGlobal<zxdg_shell_v6> xdgShellV6;
 
 	// here because ConnectionList is in wayland/util.hpp
@@ -182,7 +181,7 @@ WaylandAppContext::WaylandAppContext() {
 	if(!wlSubcompositor()) dlg_warn("wl_subcompositor not available");
 	if(!wlShm()) dlg_warn("wl_shm not available");
 	if(!wlDataManager()) dlg_warn("wl_data_manager not available");
-	if(!wlShell() && !xdgShellV5() && !xdgShellV6()) dlg_warn("no supported shell available");
+	if(!wlShell() && !xdgShellV6()) dlg_warn("no supported shell available");
 
 	// init secondary resources
 	if(wlSeat() && wlDataManager()) dataDevice_ = std::make_unique<WaylandDataDevice>(*this);
@@ -226,7 +225,6 @@ WaylandAppContext::~WaylandAppContext() {
 	clipboardSource_.reset();
 	dndSource_.reset();
 
-	if(xdgShellV5()) xdg_shell_destroy(xdgShellV5());
 	if(xdgShellV6()) zxdg_shell_v6_destroy(xdgShellV6());
 
 	if(wlShell()) wl_shell_destroy(wlShell());
@@ -610,10 +608,6 @@ void WaylandAppContext::handleRegistryAdd(wl_registry*, uint32_t id, const char*
 		memberCallback<&WAC::handleSeatName>
 	};
 
-	constexpr static xdg_shell_listener xdgShellV5Listener {
-		memberCallback<&WAC::handleXdgShellV5Ping>
-	};
-
 	constexpr static zxdg_shell_v6_listener xdgShellV6Listener {
 		memberCallback<&WAC::handleXdgShellV6Ping>
 	};
@@ -659,16 +653,6 @@ void WaylandAppContext::handleRegistryAdd(wl_registry*, uint32_t id, const char*
 		auto ptr = wl_registry_bind(&wlRegistry(), id, &wl_seat_interface, usedVersion);
 		impl_->wlSeat = {static_cast<wl_seat*>(ptr), id};
 		wl_seat_add_listener(wlSeat(), &seatListener, this);
-	}
-
-	// for unstable protocols, we only bind for the ny-implemented version
-	else if(interface == "xdg_shell" && !impl_->xdgShellV5) {
-		if(version != 1) return;
-
-		auto ptr = wl_registry_bind(&wlRegistry(), id, &xdg_shell_interface, 1);
-		impl_->xdgShellV5 = {static_cast<xdg_shell*>(ptr), id};
-		xdg_shell_add_listener(xdgShellV5(), &xdgShellV5Listener, this);
-		xdg_shell_use_unstable_version(xdgShellV5(), 5); //use version 5
 	} else if(interface == "zxdg_shell_v6" && !impl_->xdgShellV6) {
 		if(version != 1) return;
 
@@ -714,15 +698,6 @@ void WaylandAppContext::handleShmFormat(wl_shm*, unsigned int format) {
 	shmFormats_.push_back(format);
 }
 
-void WaylandAppContext::handleXdgShellV5Ping(xdg_shell*, unsigned int serial) {
-	if(!xdgShellV5()) {
-		dlg_warn("xdg shell v5 ping but didn't receive global");
-		return;
-	}
-
-	xdg_shell_pong(xdgShellV5(), serial);
-}
-
 void WaylandAppContext::handleXdgShellV6Ping(zxdg_shell_v6*, unsigned int serial) {
 	if(!xdgShellV6()) {
 		dlg_warn("xdg shell v6 ping but didn't receive global");
@@ -760,7 +735,6 @@ wl_subcompositor* WaylandAppContext::wlSubcompositor() const{ return impl_->wlSu
 wl_shm* WaylandAppContext::wlShm() const { return impl_->wlShm; }
 wl_seat* WaylandAppContext::wlSeat() const { return impl_->wlSeat; }
 wl_shell* WaylandAppContext::wlShell() const { return impl_->wlShell; }
-xdg_shell* WaylandAppContext::xdgShellV5() const { return impl_->xdgShellV5; }
 zxdg_shell_v6* WaylandAppContext::xdgShellV6() const { return impl_->xdgShellV6; }
 wl_data_device_manager* WaylandAppContext::wlDataManager() const { return impl_->wlDataManager; }
 wl_cursor_theme* WaylandAppContext::wlCursorTheme() const { return wlCursorTheme_; }
