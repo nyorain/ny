@@ -236,7 +236,6 @@ WaylandAppContext::~WaylandAppContext() {
 	if(wlSubcompositor()) wl_subcompositor_destroy(wlSubcompositor());
 	if(impl_->wlCompositor) wl_compositor_destroy(&wlCompositor());
 
-	outputs_.clear();
 	impl_.reset();
 
 	if(wlRegistry_) wl_registry_destroy(wlRegistry_);
@@ -626,7 +625,6 @@ void WaylandAppContext::handleRegistryAdd(wl_registry*, uint32_t id, const char*
 	static constexpr auto shellVersion = 1u;
 	static constexpr auto shmVersion = 1u;
 	static constexpr auto subcompositorVersion = 1u;
-	static constexpr auto outputVersion = 2u;
 	static constexpr auto dataDeviceManagerVersion = 3u;
 	static constexpr auto seatVersion = 5u;
 
@@ -651,10 +649,6 @@ void WaylandAppContext::handleRegistryAdd(wl_registry*, uint32_t id, const char*
 		auto usedVersion = std::min(version, subcompositorVersion);
 		auto ptr = wl_registry_bind(&wlRegistry(), id, &wl_subcompositor_interface, usedVersion);
 		impl_->wlSubcompositor = {static_cast<wl_subcompositor*>(ptr), id};
-	} else if(interface == "wl_output") {
-		auto usedVersion = std::min(version, outputVersion);
-		auto ptr = wl_registry_bind(&wlRegistry(), id, &wl_output_interface, usedVersion);
-		outputs_.emplace_back(*this, *static_cast<wl_output*>(ptr), id);
 	} else if(interface == "wl_data_device_manager" && !impl_->wlDataManager) {
 		auto usedVersion = std::min(version, dataDeviceManagerVersion);
 		auto ptr = wl_registry_bind(&wlRegistry(), id, &wl_data_device_manager_interface,
@@ -691,9 +685,6 @@ void WaylandAppContext::handleRegistryRemove(wl_registry*, uint32_t id) {
 	if(id == impl_->wlCompositor.name) {
 		wl_compositor_destroy(&wlCompositor());
 		impl_->wlCompositor = {};
-	} else {
-		outputs_.erase(std::remove_if(outputs_.begin(), outputs_.end(),
-			[=](const wayland::Output& output){ return output.name() == id; }), outputs_.end());
 	}
 }
 

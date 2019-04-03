@@ -126,6 +126,8 @@ public:
 	virtual bool data(nytl::StringParam format, DataListener) = 0;
 
 	/// == dnd only ==
+	// TODO: add support for setting multiple supported actions?
+	// and just one preferred one? matches wayland more closely
 
 	/// Informs the dnd data offer about an update of preferred data format
 	/// and action. Usually happens as response to a new data offer initially

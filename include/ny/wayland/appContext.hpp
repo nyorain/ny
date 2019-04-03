@@ -76,7 +76,6 @@ public:
 	wl_keyboard* wlKeyboard() const;
 
 	WaylandWindowContext* windowContext(wl_surface& surface) const;
-	const std::vector<wayland::Output>& outputs() const { return outputs_; }
 	bool shmFormatSupported(unsigned int wlShmFormat);
 
 	EglSetup* eglSetup() const;
@@ -119,7 +118,6 @@ protected:
 
 	unsigned int eventfd_ = 0u;
 	std::vector<unsigned int> shmFormats_;
-	std::vector<wayland::Output> outputs_;
 	std::string seatName_;
 
 	std::unique_ptr<WaylandDataDevice> dataDevice_;

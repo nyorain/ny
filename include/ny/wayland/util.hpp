@@ -77,62 +77,6 @@ protected:
 	void released(wl_buffer*) { used_ = false; } // registered as listener function
 };
 
-/// Holds information about a wayland output.
-class Output {
-public:
-	/// Represents a single possible output mode.
-	/// Can be set when a WindowContext is made fullscreen.
-	/// Usually outputs have multiple output modes.
-	struct Mode {
-		nytl::Vec2ui size;
-		unsigned int flags;
-		unsigned int refresh;
-	};
-
-	/// All received output information.
-	/// Note that this Information is not finished yet, if the done member is false.
-	struct Information {
-		nytl::Vec2i position;
-		nytl::Vec2ui physicalSize;
-		std::vector<Mode> modes;
-		unsigned int subpixel {};
-		unsigned int refreshRate {};
-		std::string make;
-		std::string model;
-		unsigned int transform {};
-		int scale {};
-		bool done {};
-	};
-
-public:
-	Output() = default;
-	Output(WaylandAppContext& ac, wl_output& outp, unsigned int id);
-	~Output();
-
-	Output(Output&& other) noexcept;
-	Output& operator=(Output&& other) noexcept;
-
-	WaylandAppContext& appContext() const { return *appContext_; }
-	wl_output& wlOutput() const { return *wlOutput_; }
-	unsigned int name() const { return globalID_; }
-	const Information& information() const { return information_; }
-
-	bool valid() const { return wlOutput_ && appContext_; }
-
-protected:
-	WaylandAppContext* appContext_;
-	wl_output* wlOutput_ {};
-	unsigned int globalID_ {};
-	Information information_ {};
-
-protected:
-	void geometry(wl_output*, int32_t, int32_t, int32_t, int32_t, int32_t, const char*,
-		const char*, int32_t);
-	void mode(wl_output*, uint32_t, int32_t, int32_t, int32_t);
-	void done(wl_output*);
-	void scale(wl_output*, int32_t);
-};
-
 /// Utility template that allows to associate a numerical value (name) with wayland globals.
 /// \tparam T The type of the wayland global, e.g. wl_output
 template<typename T>
@@ -162,15 +106,7 @@ template<typename F, F f, typename R, typename... Args>
 struct MemberCallback<F, f, R(Args...), false> {
 	using Class = typename nytl::FunctionTraits<F>::Class;
 	static auto call(void* self, Args... args) {
-		return static_cast<Class*>(self)->*f(std::forward<Args>(args)...);
-	}
-};
-
-template<typename F, F f, typename... Args>
-struct MemberCallback<F, f, void(Args...), false> {
-	using Class = typename nytl::FunctionTraits<F>::Class;
-	static void call(void* self, Args... args) {
-		(static_cast<Class*>(self)->*f)(std::forward<Args>(args)...);
+		return (static_cast<Class*>(self)->*f)(std::forward<Args>(args)...);
 	}
 };
 
@@ -178,15 +114,7 @@ template<typename F, F f, typename R, typename... Args>
 struct MemberCallback<F, f, R(Args...), true> {
 	using Class = typename nytl::FunctionTraits<F>::Class;
 	static auto call(Args... args, void* self) {
-		return static_cast<Class*>(self)->*f(std::forward<Args>(args)...);
-	}
-};
-
-template<typename F, F f, typename... Args>
-struct MemberCallback<F, f, void(Args...), true> {
-	using Class = typename nytl::FunctionTraits<F>::Class;
-	static void call(Args... args, void* self) {
-		static_cast<Class*>(self)->*f(std::forward<Args>(args)...);
+		return (static_cast<Class*>(self)->*f)(std::forward<Args>(args)...);
 	}
 };
 
@@ -221,8 +149,7 @@ public:
 	nytl::ConnectionID highestID;
 
 public:
-	bool disconnect(const nytl::ConnectionID& id) override
-	{
+	bool disconnect(const nytl::ConnectionID& id) override {
 		for(auto it = items.begin(); it != items.end(); ++it) {
 			if(it->clID_.get() == id.get()) {
 				items.erase(it);
@@ -233,17 +160,15 @@ public:
 		return false;
 	}
 
-	nytl::Connection add(const T& value)
-	{
+	nytl::Connection add(const T& value) {
 		items.emplace_back();
 		static_cast<T&>(items.back()) = value;
 		items.back().clID_ = {nextID()};
 		return {*this, items.back().clID_};
 	}
 
-	nytl::ConnectionID nextID()
-	{
-		++reinterpret_cast<std::uintptr_t&>(highestID);
+	nytl::ConnectionID nextID() {
+		++highestID.value;
 		return highestID;
 	}
 };
