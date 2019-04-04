@@ -7,6 +7,7 @@
 #include <ny/wayland/input.hpp>
 #include <ny/wayland/util.hpp>
 
+#include <ny/wayland/protocols/xdg-decoration-unstable-v1.h>
 #include <ny/wayland/protocols/xdg-shell-unstable-v6.h>
 #include <ny/wayland/protocols/xdg-shell.h>
 
@@ -94,6 +95,9 @@ WaylandWindowContext::~WaylandWindowContext() {
 
 		zxdg_surface_v6_destroy(xdgToplevelV6_.surface);
 	} else if(xdgSurface()) {
+		if(xdgDecoration()) {
+			zxdg_toplevel_decoration_v1_destroy(xdgDecoration());
+		}
 		if(xdgToplevel()) {
 			xdg_toplevel_destroy(xdgToplevel());
 		}
@@ -133,6 +137,10 @@ void WaylandWindowContext::createShellSurface(const WaylandWindowSettings& ws) {
 		DrawEvent de {};
 		listener().draw(de);
 	}, this);
+
+	if(!ws.customDecorated) {
+		dlg_warn("can't use server side decorations (using wl_shell)");
+	}
 }
 
 void WaylandWindowContext::createXdgToplevel(const WaylandWindowSettings& ws) {
@@ -148,6 +156,7 @@ void WaylandWindowContext::createXdgToplevel(const WaylandWindowSettings& ws) {
 
 	// create the xdg surface
 	role_ = WaylandSurfaceRole::xdgToplevel;
+	xdgToplevel_ = {};
 	xdgToplevel_.configured = false;
 	xdgToplevel_.surface = xdg_wm_base_get_xdg_surface(appContext().xdgWmBase(),
 		wlSurface_);
@@ -171,7 +180,26 @@ void WaylandWindowContext::createXdgToplevel(const WaylandWindowSettings& ws) {
 
 	// commit to apply the role
 	wl_surface_commit(wlSurface_);
-	dlg_trace("xdg toplevel");
+
+	// custom decoration?
+	if(!ws.customDecorated) {
+		if(!appContext().xdgDecorationManager()) {
+			dlg_warn("compositor doesn't support xdg-decoration, "
+				"having to use client side decorations");
+		} else {
+			using WWC = WaylandWindowContext;
+			constexpr static zxdg_toplevel_decoration_v1_listener xdgDecoListener = {
+				memberCallback<&WWC::handleXdgDecorationConfigure>,
+			};
+
+			xdgToplevel_.decoration = zxdg_decoration_manager_v1_get_toplevel_decoration(
+				appContext().xdgDecorationManager(), xdgToplevel());
+			zxdg_toplevel_decoration_v1_add_listener(xdgDecoration(),
+				&xdgDecoListener, this);
+			zxdg_toplevel_decoration_v1_set_mode(xdgDecoration(),
+				ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
+		}
+	}
 }
 
 void WaylandWindowContext::createXdgToplevelV6(const WaylandWindowSettings& ws) {
@@ -187,6 +215,7 @@ void WaylandWindowContext::createXdgToplevelV6(const WaylandWindowSettings& ws) 
 
 	// create the xdg surface
 	role_ = WaylandSurfaceRole::xdgToplevelV6;
+	xdgToplevelV6_ = {};
 	xdgToplevelV6_.configured = false;
 	xdgToplevelV6_.surface = zxdg_shell_v6_get_xdg_surface(
 		appContext().xdgShellV6(), wlSurface_);
@@ -210,6 +239,10 @@ void WaylandWindowContext::createXdgToplevelV6(const WaylandWindowSettings& ws) 
 
 	// commit to apply the role
 	wl_surface_commit(wlSurface_);
+
+	if(!ws.customDecorated) {
+		dlg_warn("can't use server side decorations (using xdg shell v6)");
+	}
 }
 
 void WaylandWindowContext::refresh() {
@@ -293,7 +326,6 @@ void WaylandWindowContext::cursor(const Cursor& cursor) {
 
 		// TODO: handle mulitple/animated images
 		auto img = wlCursor->images[0];
-
 		cursorBuffer_ = wl_cursor_image_get_buffer(img);
 
 		cursorHotspot_[0] = img->hotspot_y;
@@ -336,8 +368,13 @@ WindowCapabilities WaylandWindowContext::capabilities() const {
 	// return something else when using xdg shell 6
 	// make it dependent on the actual shell used
 	auto ret = WindowCapability::size |
-		WindowCapability::cursor |
-		WindowCapability::customDecoration;
+		WindowCapability::cursor;
+
+	if(customDecorated_) {
+		ret |= WindowCapability::customDecoration;
+	} else {
+		ret |= WindowCapability::serverDecoration;
+	}
 
 	if(xdgToplevelV6() || xdgToplevel() || wlShellSurface()) {
 		ret |= WindowCapability::fullscreen;
@@ -353,6 +390,18 @@ WindowCapabilities WaylandWindowContext::capabilities() const {
 	}
 
 	return ret;
+}
+
+void WaylandWindowContext::customDecorated(bool set) {
+	if(set == customDecorated_) {
+		return;
+	}
+
+	dlg_warn("Can't change decoration mode after initialization");
+}
+
+bool WaylandWindowContext::customDecorated() const {
+	return customDecorated_;
 }
 
 void WaylandWindowContext::maximize() {
@@ -505,6 +554,12 @@ xdg_toplevel* WaylandWindowContext::xdgToplevel() const {
 	return nullptr;
 }
 
+zxdg_toplevel_decoration_v1* WaylandWindowContext::xdgDecoration() const {
+	if(role_ == WaylandSurfaceRole::xdgToplevel) {
+		return xdgToplevel_.decoration;
+	}
+	return nullptr;
+}
 
 wl_display& WaylandWindowContext::wlDisplay() const {
 	return appContext().wlDisplay();
@@ -596,17 +651,17 @@ void WaylandWindowContext::handleShellSurfacePopupDone(wl_shell_surface*) {
 void WaylandWindowContext::handleXdgSurfaceV6Configure(zxdg_surface_v6*,
 		uint32_t serial) {
 	xdgToplevelV6_.configured = true;
-	if(!pendingResize_) {
-		pendingResize_ = true;
+	if(pendingResize_ == 0) {
 		appContext().deferred.add([&]{
 			zxdg_surface_v6_ack_configure(xdgSurfaceV6(), serial);
-			pendingResize_ = false;
+			pendingResize_ = 0;
 			SizeEvent se;
 			se.size = size_;
 			listener().resize(se);
 			refresh();
 		}, this);
 	}
+	pendingResize_ = serial;
 }
 
 void WaylandWindowContext::handleXdgToplevelV6Configure(zxdg_toplevel_v6*,
@@ -633,17 +688,17 @@ void WaylandWindowContext::handleXdgToplevelV6Close(zxdg_toplevel_v6*) {
 void WaylandWindowContext::handleXdgSurfaceConfigure(xdg_surface*,
 		uint32_t serial) {
 	xdgToplevel_.configured = true;
-	if(!pendingResize_) {
-		pendingResize_ = true;
+	if(pendingResize_ == 0) {
 		appContext().deferred.add([&]{
-			xdg_surface_ack_configure(xdgSurface(), serial);
-			pendingResize_ = false;
+			xdg_surface_ack_configure(xdgSurface(), pendingResize_);
+			pendingResize_ = 0;
 			SizeEvent se;
 			se.size = size_;
 			listener().resize(se);
 			refresh();
 		}, this);
 	}
+	pendingResize_ = serial;
 }
 
 void WaylandWindowContext::handleXdgToplevelConfigure(xdg_toplevel*,
@@ -665,6 +720,11 @@ void WaylandWindowContext::handleXdgToplevelConfigure(xdg_toplevel*,
 void WaylandWindowContext::handleXdgToplevelClose(xdg_toplevel*) {
 	CloseEvent ce;
 	listener().close(ce);
+}
+
+void WaylandWindowContext::handleXdgDecorationConfigure(
+		zxdg_toplevel_decoration_v1*, uint32_t mode) {
+	customDecorated_ = (mode == ZXDG_TOPLEVEL_DECORATION_V1_MODE_CLIENT_SIDE);
 }
 
 } // namespace ny

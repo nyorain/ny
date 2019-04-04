@@ -161,6 +161,13 @@ public:
 	bool show = true; /// whether to initially show the window
 	Cursor cursor {}; /// initial cursor for the window
 
+	/// Whether to prefer client side decoration
+	/// Some backends may not be able to change this setting later on
+	/// Also note that backends may not support client side or server side
+	/// decoration, always check WaylandWindowContext::customDecorated()
+	/// to make sure whether client side decorations are needed.
+	bool customDecorated = false;
+
 	/// Can be used to specify if and which drawing context should be created
 	/// for the window. See the settings for the different types below.
 	SurfaceType surface = SurfaceType::none;

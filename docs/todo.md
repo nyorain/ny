@@ -5,6 +5,8 @@ for features/improvements.
 
 ## Prio
 
+- update non-wayland backends to respect WindowSettings::customDecorated
+
 - windows: wm_sysdown to capture alt keypress
 - windows: wm_char fix (test with ime)
 - test correct/uniform wheel values on all platforms (1.f per tick)

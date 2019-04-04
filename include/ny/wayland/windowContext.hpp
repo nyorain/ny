@@ -62,8 +62,8 @@ public:
 	void title(const char* name) override;
 	void icon(const Image&) override {}
 
-	void customDecorated(bool) override {}
-	bool customDecorated() const override { return true; }
+	void customDecorated(bool) override;
+	bool customDecorated() const override;
 
 	// - wayland specific -
 	wl_surface& wlSurface() const { return *wlSurface_; };
@@ -80,6 +80,7 @@ public:
 
 	xdg_surface* xdgSurface() const;
 	xdg_toplevel* xdgToplevel() const;
+	zxdg_toplevel_decoration_v1* xdgDecoration() const;
 
 	wl_buffer* wlCursorBuffer() const { return cursorBuffer_; }
 	nytl::Vec2i cursorHotspot() const { return cursorHotspot_; }
@@ -120,6 +121,8 @@ protected:
 	void handleXdgToplevelConfigure(xdg_toplevel*, int32_t, int32_t, wl_array*);
 	void handleXdgToplevelClose(xdg_toplevel*);
 
+	void handleXdgDecorationConfigure(zxdg_toplevel_decoration_v1*, uint32_t);
+
 protected:
 	WaylandAppContext* appContext_ {};
 	wl_surface* wlSurface_ {};
@@ -140,16 +143,17 @@ protected:
 
 	// state for xdgToplevelV6
 	struct XdgToplevelV6 {
-		zxdg_surface_v6* surface;
-		zxdg_toplevel_v6* toplevel;
-		bool configured;
+		zxdg_surface_v6* surface {};
+		zxdg_toplevel_v6* toplevel {};
+		bool configured {};
 	};
 
 	// state for xdgToplevel role
 	struct XdgToplevel {
-		xdg_surface* surface;
-		xdg_toplevel* toplevel;
-		bool configured;
+		xdg_surface* surface {};
+		xdg_toplevel* toplevel {};
+		bool configured {};
+		zxdg_toplevel_decoration_v1* decoration {};
 	};
 
 	// the different surface roles this surface can have.
@@ -171,7 +175,12 @@ protected:
 	nytl::Vec2ui cursorSize_ {};
 
 	// whether there is a pending deferred resize event
-	bool pendingResize_ {};
+	// in case of xdg, will be set to the serial
+	uint32_t pendingResize_ {};
+
+	// whether this surface should be custom decorated
+	// true by default, might be changed via xdg-decoration
+	bool customDecorated_ {true};
 };
 
 } // namespace ny

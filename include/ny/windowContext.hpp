@@ -163,8 +163,6 @@ public:
 	/// whether the window should be custom decorated.
 	/// \note The best way is usually to provide a user setting for custom decoration and
 	/// only follow this setting.
-	/// \return Whether the request was successful.
-	/// \warning Shall have only an effect for toplevel windows.
 	virtual void customDecorated(bool set) = 0;
 
 	/// Returns whether the window should be custom decorated.
@@ -173,7 +171,6 @@ public:
 	/// Can be tried to change using the customDecorated(bool set) function.
 	/// \note The best way is usually to provide a user setting for custom decoration and
 	/// only follow this setting.
-	/// \warning Will only return a valid value for toplevel windows.
 	virtual bool customDecorated() const = 0;
 
 protected:

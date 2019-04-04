@@ -69,6 +69,7 @@ public:
 	zxdg_shell_v6* xdgShellV6() const;
 	xdg_wm_base* xdgWmBase() const;
 	wl_data_device_manager* wlDataManager() const;
+	zxdg_decoration_manager_v1* xdgDecorationManager() const;
 
 	wl_cursor_theme* wlCursorTheme() const;
 	wl_pointer* wlPointer() const;

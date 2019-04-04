@@ -10,6 +10,7 @@
 #include <ny/wayland/dataExchange.hpp>
 #include <ny/wayland/bufferSurface.hpp>
 
+#include <ny/wayland/protocols/xdg-decoration-unstable-v1.h>
 #include <ny/wayland/protocols/xdg-shell-unstable-v6.h>
 #include <ny/wayland/protocols/xdg-shell.h>
 
@@ -106,6 +107,7 @@ struct WaylandAppContext::Impl {
 	wayland::NamedGlobal<wl_seat> wlSeat;
 	wayland::NamedGlobal<zxdg_shell_v6> xdgShellV6;
 	wayland::NamedGlobal<xdg_wm_base> xdgWmBase;
+	wayland::NamedGlobal<zxdg_decoration_manager_v1> xdgDecorationManager;
 
 	// here because ConnectionList is in wayland/util.hpp
 	ConnectionList<ListenerEntry> fdCallbacks;
@@ -231,6 +233,9 @@ WaylandAppContext::~WaylandAppContext() {
 	if(wlDataManager()) wl_data_device_manager_destroy(wlDataManager());
 	if(wlShm()) wl_shm_destroy(wlShm());
 	if(impl_->wlCompositor) wl_compositor_destroy(&wlCompositor());
+	if(impl_->xdgDecorationManager) {
+		zxdg_decoration_manager_v1_destroy(impl_->xdgDecorationManager);
+	}
 
 	impl_.reset();
 
@@ -657,6 +662,11 @@ void WaylandAppContext::handleRegistryAdd(wl_registry*, uint32_t id, const char*
 			usedVersion);
 		impl_->xdgWmBase = {static_cast<xdg_wm_base*>(ptr), id};
 		xdg_wm_base_add_listener(xdgWmBase(), &xdgWmBaseListener, this);
+	} else if(interface == "zxdg_decoration_manager_v1") {
+		auto ptr = wl_registry_bind(&wlRegistry(), id,
+			&zxdg_decoration_manager_v1_interface, 1);
+		impl_->xdgDecorationManager = {
+			static_cast<zxdg_decoration_manager_v1*>(ptr), id};
 	}
 }
 
@@ -743,6 +753,7 @@ wl_seat* WaylandAppContext::wlSeat() const { return impl_->wlSeat; }
 wl_shell* WaylandAppContext::wlShell() const { return impl_->wlShell; }
 zxdg_shell_v6* WaylandAppContext::xdgShellV6() const { return impl_->xdgShellV6; }
 xdg_wm_base* WaylandAppContext::xdgWmBase() const { return impl_->xdgWmBase; }
+zxdg_decoration_manager_v1* WaylandAppContext::xdgDecorationManager() const { return impl_->xdgDecorationManager; }
 wl_data_device_manager* WaylandAppContext::wlDataManager() const { return impl_->wlDataManager; }
 wl_cursor_theme* WaylandAppContext::wlCursorTheme() const { return wlCursorTheme_; }
 

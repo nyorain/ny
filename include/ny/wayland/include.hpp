@@ -22,6 +22,9 @@ struct zxdg_shell_v6;
 struct zxdg_surface_v6;
 struct zxdg_toplevel_v6;
 
+struct zxdg_decoration_manager_v1;
+struct zxdg_toplevel_decoration_v1;
+
 struct wl_display;
 struct wl_interface;
 struct wl_event_queue;
