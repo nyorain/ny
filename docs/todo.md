@@ -175,15 +175,15 @@ x11 backend:
 wayland backend:
 ---------------
 
+- allow client side to set window geometry (especially when custom decorated)
 - support other protocols
-	- stable xdg shell (high prio!)
 	- xdg-decoration
 	- maybe presentation protocol for timing?
-- ShmBuffer shm_pool shared (not one per buffer...)
-- correct capabilites
+- performance: ShmBuffer shm_pool shared (not one per buffer...)
+- check again whether custom show/hide implementation is possible
+	- or re-evaluate whether show/hide is even really needed
+	  what would be a reasonable use case to suddenly hide/show a window?!
 - WaylandErrorCategory: add new protocols!
-- improve xdg shell v6 support (position, better configure events)
-	- min/max size (also implement this for other surface roles)
 - maybe there can be multiple over/focus surfaces
 - multi seat support (needs api addition)
 	- rework whole keyboardContext/mouseContext concept for multi seat

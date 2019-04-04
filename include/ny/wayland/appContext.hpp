@@ -63,11 +63,11 @@ public:
 	wl_registry& wlRegistry() const;
 	wl_compositor& wlCompositor() const;
 
-	wl_subcompositor* wlSubcompositor() const;
 	wl_shm* wlShm() const;
 	wl_seat* wlSeat() const;
 	wl_shell* wlShell() const;
 	zxdg_shell_v6* xdgShellV6() const;
+	xdg_wm_base* xdgWmBase() const;
 	wl_data_device_manager* wlDataManager() const;
 
 	wl_cursor_theme* wlCursorTheme() const;
@@ -107,6 +107,7 @@ protected:
 	void handleShmFormat(wl_shm*, uint32_t format);
 
 	void handleXdgShellV6Ping(zxdg_shell_v6*, uint32_t serial);
+	void handleXdgWmBasePing(xdg_wm_base*, uint32_t serial);
 
 protected:
 	wl_display* wlDisplay_;

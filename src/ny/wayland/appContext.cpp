@@ -100,12 +100,12 @@ struct ListenerEntry {
 // Furthermore may there be additional globals in future versions of this implementation
 struct WaylandAppContext::Impl {
 	wayland::NamedGlobal<wl_compositor> wlCompositor;
-	wayland::NamedGlobal<wl_subcompositor> wlSubcompositor;
 	wayland::NamedGlobal<wl_shell> wlShell;
 	wayland::NamedGlobal<wl_shm> wlShm;
 	wayland::NamedGlobal<wl_data_device_manager> wlDataManager;
 	wayland::NamedGlobal<wl_seat> wlSeat;
 	wayland::NamedGlobal<zxdg_shell_v6> xdgShellV6;
+	wayland::NamedGlobal<xdg_wm_base> xdgWmBase;
 
 	// here because ConnectionList is in wayland/util.hpp
 	ConnectionList<ListenerEntry> fdCallbacks;
@@ -178,7 +178,6 @@ WaylandAppContext::WaylandAppContext() {
 
 	// warn if features are missing
 	if(!wlSeat()) dlg_warn("wl_seat not available, no input events");
-	if(!wlSubcompositor()) dlg_warn("wl_subcompositor not available");
 	if(!wlShm()) dlg_warn("wl_shm not available");
 	if(!wlDataManager()) dlg_warn("wl_data_manager not available");
 	if(!wlShell() && !xdgShellV6()) dlg_warn("no supported shell available");
@@ -231,7 +230,6 @@ WaylandAppContext::~WaylandAppContext() {
 	if(wlSeat()) wl_seat_destroy(wlSeat());
 	if(wlDataManager()) wl_data_device_manager_destroy(wlDataManager());
 	if(wlShm()) wl_shm_destroy(wlShm());
-	if(wlSubcompositor()) wl_subcompositor_destroy(wlSubcompositor());
 	if(impl_->wlCompositor) wl_compositor_destroy(&wlCompositor());
 
 	impl_.reset();
@@ -612,17 +610,19 @@ void WaylandAppContext::handleRegistryAdd(wl_registry*, uint32_t id, const char*
 		memberCallback<&WAC::handleXdgShellV6Ping>
 	};
 
+	constexpr static xdg_wm_base_listener xdgWmBaseListener {
+		memberCallback<&WAC::handleXdgWmBasePing>
+	};
+
 	// the supported interface versions by ny (for stable protocols)
 	// we always select the minimum between version supported by ny and version
 	// supported by the compositor
-	static constexpr auto compositorVersion = 1u;
-	static constexpr auto shellVersion = 1u;
-	static constexpr auto shmVersion = 1u;
-	static constexpr auto subcompositorVersion = 1u;
+	static constexpr auto compositorVersion = 3u;
 	static constexpr auto dataDeviceManagerVersion = 3u;
 	static constexpr auto seatVersion = 5u;
+	static constexpr auto xdgShellVersion = 2u;
 
-	const std::string_view interface = cinterface; // equal comparison using ==
+	const std::string_view interface = cinterface;
 	// debug("ny::WaylandAppContext::handleRegistryAdd: interface ", interface);
 
 	// check for the various supported interfaces/protocols
@@ -631,22 +631,16 @@ void WaylandAppContext::handleRegistryAdd(wl_registry*, uint32_t id, const char*
 		auto ptr = wl_registry_bind(&wlRegistry(), id, &wl_compositor_interface, usedVersion);
 		impl_->wlCompositor = {static_cast<wl_compositor*>(ptr), id};
 	} else if(interface == "wl_shell" && !wlShell()) {
-		auto usedVersion = std::min(version, shellVersion);
-		auto ptr = wl_registry_bind(&wlRegistry(), id, &wl_shell_interface, usedVersion);
+		auto ptr = wl_registry_bind(&wlRegistry(), id, &wl_shell_interface, 1);
 		impl_->wlShell = {static_cast<wl_shell*>(ptr), id};
 	} else if(interface == "wl_shm" && !wlShm()) {
-		auto usedVersion = std::min(version, shmVersion);
-		auto ptr = wl_registry_bind(&wlRegistry(), id, &wl_shm_interface, usedVersion);
+		auto ptr = wl_registry_bind(&wlRegistry(), id, &wl_shm_interface, 1);
 		impl_->wlShm = {static_cast<wl_shm*>(ptr), id};
 		wl_shm_add_listener(wlShm(), &shmListener, this);
-	} else if(interface == "wl_subcompositor" && !impl_->wlSubcompositor) {
-		auto usedVersion = std::min(version, subcompositorVersion);
-		auto ptr = wl_registry_bind(&wlRegistry(), id, &wl_subcompositor_interface, usedVersion);
-		impl_->wlSubcompositor = {static_cast<wl_subcompositor*>(ptr), id};
 	} else if(interface == "wl_data_device_manager" && !impl_->wlDataManager) {
 		auto usedVersion = std::min(version, dataDeviceManagerVersion);
-		auto ptr = wl_registry_bind(&wlRegistry(), id, &wl_data_device_manager_interface,
-			usedVersion);
+		auto ptr = wl_registry_bind(&wlRegistry(), id,
+			&wl_data_device_manager_interface, usedVersion);
 		impl_->wlDataManager = {static_cast<wl_data_device_manager*>(ptr), id};
 	} else if(interface == "wl_seat" && !impl_->wlSeat) {
 		auto usedVersion = std::min(version, seatVersion);
@@ -654,11 +648,15 @@ void WaylandAppContext::handleRegistryAdd(wl_registry*, uint32_t id, const char*
 		impl_->wlSeat = {static_cast<wl_seat*>(ptr), id};
 		wl_seat_add_listener(wlSeat(), &seatListener, this);
 	} else if(interface == "zxdg_shell_v6" && !impl_->xdgShellV6) {
-		if(version != 1) return;
-
 		auto ptr = wl_registry_bind(&wlRegistry(), id, &zxdg_shell_v6_interface, 1);
 		impl_->xdgShellV6 = {static_cast<zxdg_shell_v6*>(ptr), id};
 		zxdg_shell_v6_add_listener(xdgShellV6(), &xdgShellV6Listener, this);
+	} else if(interface == "xdg_wm_base" && !impl_->xdgWmBase) {
+		auto usedVersion = std::min(version, xdgShellVersion);
+		auto ptr = wl_registry_bind(&wlRegistry(), id, &xdg_wm_base_interface,
+			usedVersion);
+		impl_->xdgWmBase = {static_cast<xdg_wm_base*>(ptr), id};
+		xdg_wm_base_add_listener(xdgWmBase(), &xdgWmBaseListener, this);
 	}
 }
 
@@ -707,6 +705,15 @@ void WaylandAppContext::handleXdgShellV6Ping(zxdg_shell_v6*, unsigned int serial
 	zxdg_shell_v6_pong(xdgShellV6(), serial);
 }
 
+void WaylandAppContext::handleXdgWmBasePing(xdg_wm_base*, unsigned int serial) {
+	if(!xdgWmBase()) {
+		dlg_warn("xdg wm base ping but didn't receive global");
+		return;
+	}
+
+	xdg_wm_base_pong(xdgWmBase(), serial);
+}
+
 bool WaylandAppContext::shmFormatSupported(unsigned int wlShmFormat) {
 	for(auto format : shmFormats_) if(format == wlShmFormat) return true;
 	return false;
@@ -731,11 +738,11 @@ wl_keyboard* WaylandAppContext::wlKeyboard() const {
 wl_display& WaylandAppContext::wlDisplay() const { return *wlDisplay_; }
 wl_registry& WaylandAppContext::wlRegistry() const { return *wlRegistry_; }
 wl_compositor& WaylandAppContext::wlCompositor() const { return *impl_->wlCompositor; }
-wl_subcompositor* WaylandAppContext::wlSubcompositor() const{ return impl_->wlSubcompositor; }
 wl_shm* WaylandAppContext::wlShm() const { return impl_->wlShm; }
 wl_seat* WaylandAppContext::wlSeat() const { return impl_->wlSeat; }
 wl_shell* WaylandAppContext::wlShell() const { return impl_->wlShell; }
 zxdg_shell_v6* WaylandAppContext::xdgShellV6() const { return impl_->xdgShellV6; }
+xdg_wm_base* WaylandAppContext::xdgWmBase() const { return impl_->xdgWmBase; }
 wl_data_device_manager* WaylandAppContext::wlDataManager() const { return impl_->wlDataManager; }
 wl_cursor_theme* WaylandAppContext::wlCursorTheme() const { return wlCursorTheme_; }
 

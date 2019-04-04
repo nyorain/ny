@@ -103,7 +103,8 @@ protected:
 
 	// init helpers
 	void createShellSurface(const WaylandWindowSettings& ws);
-	void createXdgSurfaceV6(const WaylandWindowSettings& ws);
+	void createXdgToplevelV6(const WaylandWindowSettings& ws);
+	void createXdgToplevel(const WaylandWindowSettings& ws);
 
 	// listeners
 	void handleFrameCallback(wl_callback*, uint32_t);
@@ -114,6 +115,10 @@ protected:
 	void handleXdgSurfaceV6Configure(zxdg_surface_v6*, uint32_t);
 	void handleXdgToplevelV6Configure(zxdg_toplevel_v6*, int32_t, int32_t, wl_array*);
 	void handleXdgToplevelV6Close(zxdg_toplevel_v6*);
+
+	void handleXdgSurfaceConfigure(xdg_surface*, uint32_t);
+	void handleXdgToplevelConfigure(xdg_toplevel*, int32_t, int32_t, wl_array*);
+	void handleXdgToplevelClose(xdg_toplevel*);
 
 protected:
 	WaylandAppContext* appContext_ {};

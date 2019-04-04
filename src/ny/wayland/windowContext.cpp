@@ -22,8 +22,6 @@
 #include <iostream>
 #include <cstring>
 
-// TODO: polished implementation of stable xdg protocol
-
 namespace ny {
 
 WaylandWindowContext::WaylandWindowContext(WaylandAppContext& ac,
@@ -53,8 +51,10 @@ WaylandWindowContext::WaylandWindowContext(WaylandAppContext& ac,
 	}
 	wl_surface_set_user_data(wlSurface_, this);
 
-	if(ac.xdgShellV6()) {
-		createXdgSurfaceV6(settings);
+	if(ac.xdgWmBase()) {
+		createXdgToplevel(settings);
+	} else if(ac.xdgShellV6()) {
+		createXdgToplevelV6(settings);
 	} else if(ac.wlShell()) {
 		createShellSurface(settings);
 	} else {
@@ -93,6 +93,11 @@ WaylandWindowContext::~WaylandWindowContext() {
 		}
 
 		zxdg_surface_v6_destroy(xdgToplevelV6_.surface);
+	} else if(xdgSurface()) {
+		if(xdgToplevel()) {
+			xdg_toplevel_destroy(xdgToplevel());
+		}
+		xdg_surface_destroy(xdgSurface());
 	}
 
 	if(wlSurface_) {
@@ -110,7 +115,8 @@ void WaylandWindowContext::createShellSurface(const WaylandWindowSettings& ws) {
 
 	wlShellSurface_ = wl_shell_get_shell_surface(appContext().wlShell(), wlSurface_);
 	if(!wlShellSurface_) {
-		throw std::runtime_error("ny::WaylandWindowContext: failed to create wl_shell_surface");
+		throw std::runtime_error("ny::WaylandWindowContext: "
+			"failed to create wl_shell_surface");
 	}
 
 	role_ = WaylandSurfaceRole::shell;
@@ -129,10 +135,49 @@ void WaylandWindowContext::createShellSurface(const WaylandWindowSettings& ws) {
 	}, this);
 }
 
-void WaylandWindowContext::createXdgSurfaceV6(const WaylandWindowSettings& ws) {
+void WaylandWindowContext::createXdgToplevel(const WaylandWindowSettings& ws) {
+	using WWC = WaylandWindowContext;
+	constexpr static xdg_surface_listener xdgSurfaceListener = {
+		memberCallback<&WWC::handleXdgSurfaceConfigure>
+	};
+
+	constexpr static xdg_toplevel_listener xdgToplevelListener = {
+		memberCallback<&WWC::handleXdgToplevelConfigure>,
+		memberCallback<&WWC::handleXdgToplevelClose>
+	};
+
+	// create the xdg surface
+	role_ = WaylandSurfaceRole::xdgToplevel;
+	xdgToplevel_.configured = false;
+	xdgToplevel_.surface = xdg_wm_base_get_xdg_surface(appContext().xdgWmBase(),
+		wlSurface_);
+	if(!xdgSurface()) {
+		throw std::runtime_error("ny::WaylandWindowContext: "
+			"failed to create xdg_surface");
+	}
+
+	// create the xdg toplevel for the surface
+	xdgToplevel_.toplevel = xdg_surface_get_toplevel(xdgSurface());
+	if(!xdgToplevel()) {
+		throw std::runtime_error("ny::WaylandWindowContext: "
+			"failed to create xdg_toplevel");
+	}
+
+	xdg_surface_add_listener(xdgSurface(), &xdgSurfaceListener, this);
+	xdg_toplevel_add_listener(xdgToplevel(), &xdgToplevelListener, this);
+
+	xdg_toplevel_set_title(xdgToplevel(), ws.title.c_str());
+	xdg_toplevel_set_app_id(xdgToplevel(), appContext().appName());
+
+	// commit to apply the role
+	wl_surface_commit(wlSurface_);
+	dlg_trace("xdg toplevel");
+}
+
+void WaylandWindowContext::createXdgToplevelV6(const WaylandWindowSettings& ws) {
 	using WWC = WaylandWindowContext;
 	constexpr static zxdg_surface_v6_listener xdgSurfaceListener = {
-		memberCallback< &WWC::handleXdgSurfaceV6Configure>
+		memberCallback<&WWC::handleXdgSurfaceV6Configure>
 	};
 
 	constexpr static zxdg_toplevel_v6_listener xdgToplevelListener = {
@@ -141,24 +186,27 @@ void WaylandWindowContext::createXdgSurfaceV6(const WaylandWindowSettings& ws) {
 	};
 
 	// create the xdg surface
-	xdgToplevelV6_.surface = zxdg_shell_v6_get_xdg_surface(appContext().xdgShellV6(), wlSurface_);
-	if(!xdgToplevelV6_.surface)
-		throw std::runtime_error("ny::WaylandWindowContext: failed to create xdg_surface v6");
-
-	// create the xdg toplevel for the surface
-	xdgToplevelV6_.toplevel = zxdg_surface_v6_get_toplevel(xdgToplevelV6_.surface);
-	if(!xdgToplevelV6_.toplevel) {
-		throw std::runtime_error("ny::WaylandWindowContext: failed to create xdg_toplevel v6");
-	}
-
 	role_ = WaylandSurfaceRole::xdgToplevelV6;
 	xdgToplevelV6_.configured = false;
+	xdgToplevelV6_.surface = zxdg_shell_v6_get_xdg_surface(
+		appContext().xdgShellV6(), wlSurface_);
+	if(!xdgSurfaceV6()) {
+		throw std::runtime_error("ny::WaylandWindowContext: "
+			"failed to create xdg_surface v6");
+	}
 
-	zxdg_surface_v6_add_listener(xdgToplevelV6_.surface, &xdgSurfaceListener, this);
-	zxdg_toplevel_v6_add_listener(xdgToplevelV6_.toplevel, &xdgToplevelListener, this);
+	// create the xdg toplevel for the surface
+	xdgToplevelV6_.toplevel = zxdg_surface_v6_get_toplevel(xdgSurfaceV6());
+	if(!xdgToplevelV6()) {
+		throw std::runtime_error("ny::WaylandWindowContext: "
+			"failed to create xdg_toplevel v6");
+	}
 
-	zxdg_toplevel_v6_set_title(xdgToplevelV6_.toplevel, ws.title.c_str());
-	zxdg_toplevel_v6_set_app_id(xdgToplevelV6_.toplevel, appContext().appName());
+	zxdg_surface_v6_add_listener(xdgSurfaceV6(), &xdgSurfaceListener, this);
+	zxdg_toplevel_v6_add_listener(xdgToplevelV6(), &xdgToplevelListener, this);
+
+	zxdg_toplevel_v6_set_title(xdgToplevelV6(), ws.title.c_str());
+	zxdg_toplevel_v6_set_app_id(xdgToplevelV6(), appContext().appName());
 
 	// commit to apply the role
 	wl_surface_commit(wlSurface_);
@@ -480,6 +528,7 @@ Surface WaylandWindowContext::surface() {
 	return {};
 }
 
+// works for xdg shell v6 and stable
 void WaylandWindowContext::reparseState(const wl_array& states) {
 	auto newXdgState = ToplevelState::normal;
 	for(auto i = 0u; i < states.size / sizeof(uint32_t); ++i) {
@@ -577,6 +626,43 @@ void WaylandWindowContext::handleXdgToplevelV6Configure(zxdg_toplevel_v6*,
 }
 
 void WaylandWindowContext::handleXdgToplevelV6Close(zxdg_toplevel_v6*) {
+	CloseEvent ce;
+	listener().close(ce);
+}
+
+void WaylandWindowContext::handleXdgSurfaceConfigure(xdg_surface*,
+		uint32_t serial) {
+	xdgToplevel_.configured = true;
+	if(!pendingResize_) {
+		pendingResize_ = true;
+		appContext().deferred.add([&]{
+			xdg_surface_ack_configure(xdgSurface(), serial);
+			pendingResize_ = false;
+			SizeEvent se;
+			se.size = size_;
+			listener().resize(se);
+			refresh();
+		}, this);
+	}
+}
+
+void WaylandWindowContext::handleXdgToplevelConfigure(xdg_toplevel*,
+		int32_t width, int32_t height, wl_array* states) {
+	reparseState(*states);
+	if(!width || !height) {
+		// in this case we simply keep the (copied from WindowSettings)
+		// width and height
+		return;
+	}
+
+	// we store the new size but not yet actually resize/redraw the window
+	// this should/can only be done after we recevie the surfaceConfigure event
+	// we will also then send the size event
+	size_[0] = width;
+	size_[1] = height;
+}
+
+void WaylandWindowContext::handleXdgToplevelClose(xdg_toplevel*) {
 	CloseEvent ce;
 	listener().close(ce);
 }
