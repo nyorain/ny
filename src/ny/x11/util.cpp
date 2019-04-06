@@ -205,7 +205,7 @@ Property readProperty(xcb_connection_t& connection, xcb_atom_t atom, xcb_window_
 		ret.format = reply->format;
 		ret.type = reply->type;
 
-		auto begin = static_cast<uint8_t*>(xcb_get_property_value(reply));
+		auto begin = static_cast<std::byte*>(xcb_get_property_value(reply));
 		ret.data = {begin, begin + xcb_get_property_value_length(reply)};
 		free(reply);
 	} else if(errorPtr) {

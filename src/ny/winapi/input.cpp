@@ -153,6 +153,11 @@ bool WinapiMouseContext::processEvent(const WinapiEventData& eventData, LRESULT&
 	return true;
 }
 
+void WinapiMouseContext::destroyed(const WinapiWindowContext& wc) {
+	if(over_ == &wc) {
+		over_ = {};
+	}
+}
 
 // KeyboardContext
 WinapiKeyboardContext::WinapiKeyboardContext(WinapiAppContext& context) : context_(context)
@@ -253,7 +258,7 @@ bool WinapiKeyboardContext::processEvent(const WinapiEventData& eventData, LRESU
 			}
 
 			break;
-		} 
+		}
 		case WM_KEYDOWN: keyPressed = true; [[fallthrough]];
 		case WM_KEYUP: {
 			KeyEvent ke;
@@ -312,6 +317,12 @@ bool WinapiKeyboardContext::processEvent(const WinapiEventData& eventData, LRESU
 	}
 
 	return true;
+}
+
+void WinapiKeyboardContext::destroyed(const WinapiWindowContext& wc) {
+	if(focus_ == &wc) {
+		focus_ = {};
+	}
 }
 
 } // namespace ny

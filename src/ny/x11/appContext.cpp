@@ -8,6 +8,7 @@
 #include <ny/x11/input.hpp>
 #include <ny/x11/bufferSurface.hpp>
 #include <ny/x11/dataExchange.hpp>
+#include <ny/common/copy.hpp>
 
 #include <ny/common/unix.hpp>
 #include <ny/dataExchange.hpp>
@@ -59,12 +60,12 @@ struct X11AppContext::Impl {
 };
 
 // AppContext
-X11AppContext::X11AppContext()
-{
+X11AppContext::X11AppContext() {
 	// TODO, make this optional, may be needed by some applications
 	// Something like a threadsafe flags in X11AppContextSettings would make sense
-	// we use it only in wakeupWait (if called from other thread)
-	XInitThreads();
+	// we use it only in wakeupWait (if called from other thread), we could
+	// also simply replace that with an eventfd just as in the wayland ac
+	::XInitThreads();
 
 	impl_ = std::make_unique<Impl>();
 
@@ -146,8 +147,11 @@ X11AppContext::X11AppContext()
 	std::vector<xcb_intern_atom_cookie_t> atomCookies;
 	atomCookies.reserve(length);
 
-	for(auto& name : atomNames)
-		atomCookies.push_back(xcb_intern_atom(xConnection_, 0, std::strlen(name.name), name.name));
+	for(auto& name : atomNames) {
+		auto len = std::strlen(name.name);
+		auto atom = xcb_intern_atom(xConnection_, 0, len, name.name);
+		atomCookies.push_back(atom);
+	}
 
 	for(auto i = 0u; i < atomCookies.size(); ++i) {
 		xcb_generic_error_t* error {};
@@ -226,8 +230,7 @@ X11AppContext::X11AppContext()
 	impl_->dataManager = {*this};
 }
 
-X11AppContext::~X11AppContext()
-{
+X11AppContext::~X11AppContext() {
 	if(next_) {
 		free(next_);
 	}
@@ -236,6 +239,7 @@ X11AppContext::~X11AppContext()
 	}
 
 	xcb_ewmh_connection_wipe(&ewmhConnection());
+	impl_->dataManager = {}; // destroy dnd window
 	impl_.reset();
 
 	if(xDummyWindow_) {
@@ -247,8 +251,7 @@ X11AppContext::~X11AppContext()
 	}
 }
 
-WindowContextPtr X11AppContext::createWindowContext(const WindowSettings& settings)
-{
+WindowContextPtr X11AppContext::createWindowContext(const WindowSettings& settings) {
 	X11WindowSettings x11Settings;
 	const auto* ws = dynamic_cast<const X11WindowSettings*>(&settings);
 
@@ -281,22 +284,16 @@ WindowContextPtr X11AppContext::createWindowContext(const WindowSettings& settin
 	return std::make_unique<X11WindowContext>(*this, x11Settings);
 }
 
-MouseContext* X11AppContext::mouseContext()
-{
+MouseContext* X11AppContext::mouseContext() {
 	return mouseContext_.get();
 }
 
-KeyboardContext* X11AppContext::keyboardContext()
-{
+KeyboardContext* X11AppContext::keyboardContext() {
 	return keyboardContext_.get();
 }
 
-bool X11AppContext::pollEvents()
-{
-	if(!checkError()) {
-		return false;
-	}
-
+void X11AppContext::pollEvents() {
+	checkError();
 	deferred.execute();
 	while(true) {
 		xcb_flush(&xConnection());
@@ -315,15 +312,11 @@ bool X11AppContext::pollEvents()
 
 	xcb_flush(&xConnection());
 	deferred.execute();
-	return checkError();
+	checkError();
 }
 
-bool X11AppContext::waitEvents()
-{
-	if(!checkError()) {
-		return false;
-	}
-
+void X11AppContext::waitEvents() {
+	checkError();
 	deferred.execute();
 	xcb_flush(&xConnection());
 
@@ -343,11 +336,10 @@ bool X11AppContext::waitEvents()
 
 	xcb_flush(&xConnection());
 	deferred.execute();
-	return checkError();
+	checkError();
 }
 
-void X11AppContext::wakeupWait()
-{
+void X11AppContext::wakeupWait() {
 	// TODO: only send if currently blocking?
 	// TODO: just use eventfd and custom poll instead?
 	xcb_client_message_event_t dummyEvent {};
@@ -357,23 +349,20 @@ void X11AppContext::wakeupWait()
 	xcb_flush(xConnection_);
 }
 
-bool X11AppContext::clipboard(std::unique_ptr<DataSource>&& dataSource)
-{
+bool X11AppContext::clipboard(std::unique_ptr<DataSource>&& dataSource) {
 	return impl_->dataManager.clipboard(std::move(dataSource));
 }
 
-DataOffer* X11AppContext::clipboard()
-{
+DataOffer* X11AppContext::clipboard() {
 	return impl_->dataManager.clipboard();
 }
 
-bool X11AppContext::startDragDrop(std::unique_ptr<DataSource>&& dataSource)
-{
-	return impl_->dataManager.startDragDrop(std::move(dataSource));
+bool X11AppContext::dragDrop(const EventData* ev,
+		std::unique_ptr<DataSource>&& dataSource) {
+	return impl_->dataManager.startDragDrop(ev, std::move(dataSource));
 }
 
-std::vector<const char*> X11AppContext::vulkanExtensions() const
-{
+std::vector<const char*> X11AppContext::vulkanExtensions() const {
 	#ifdef NY_WithVulkan
 		return {VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_XCB_SURFACE_EXTENSION_NAME};
 	#else
@@ -381,8 +370,7 @@ std::vector<const char*> X11AppContext::vulkanExtensions() const
 	#endif
 }
 
-GlSetup* X11AppContext::glSetup() const
-{
+GlSetup* X11AppContext::glSetup() const {
 	#ifdef NY_WithGl
 		return glxSetup();
 	#else
@@ -390,10 +378,11 @@ GlSetup* X11AppContext::glSetup() const
 	#endif
 }
 
-GlxSetup* X11AppContext::glxSetup() const
-{
+GlxSetup* X11AppContext::glxSetup() const {
 	#ifdef NY_WithGl
-		if(impl_->glxFailed) return nullptr;
+		if(impl_->glxFailed) {
+			return nullptr;
+		}
 
 		if(!impl_->glxSetup.valid()) {
 			try {
@@ -414,56 +403,53 @@ GlxSetup* X11AppContext::glxSetup() const
 	#endif
 }
 
-void X11AppContext::registerContext(xcb_window_t w, X11WindowContext& c)
-{
+void X11AppContext::registerContext(xcb_window_t w, X11WindowContext& c) {
 	contexts_[w] = &c;
 }
 
-void X11AppContext::unregisterContext(xcb_window_t w)
-{
-	contexts_.erase(w);
+void X11AppContext::destroyed(const X11WindowContext& wc) {
+	deferred.remove(&wc);
+	if(auto xwin = wc.xWindow(); xwin) {
+		contexts_.erase(xwin);
+	}
+
+	dataManager().destroyed(wc);
+	keyboardContext_->destroyed(wc);
+	mouseContext_->destroyed(wc);
 }
 
-X11WindowContext* X11AppContext::windowContext(xcb_window_t win)
-{
-	if(contexts_.find(win) != contexts_.end())
+X11WindowContext* X11AppContext::windowContext(xcb_window_t win) {
+	if(contexts_.find(win) != contexts_.end()) {
 		return contexts_[win];
+	}
 
 	return nullptr;
 }
 
-bool X11AppContext::checkError()
-{
-	if(error_) {
-		return false;
-	}
-
+void X11AppContext::checkError() {
 	auto err = xcb_connection_has_error(xConnection_);
-	if(err) {
-		const char* name = "<unknown error>";
-		#define NY_CASE(x) case x: name = #x; break;
-		switch(err) {
-			NY_CASE(XCB_CONN_ERROR);
-			NY_CASE(XCB_CONN_CLOSED_EXT_NOTSUPPORTED);
-			NY_CASE(XCB_CONN_CLOSED_REQ_LEN_EXCEED);
-			NY_CASE(XCB_CONN_CLOSED_PARSE_ERR);
-			NY_CASE(XCB_CONN_CLOSED_INVALID_SCREEN);
-			default: break;
-		}
-		#undef NY_CASE
-
-		auto msg = dlg::format("X11AppContext: xcb_connection has "
-			"critical error:\n\t'{}' (code {})", name, err);
-		dlg_error(msg);
-		error_ = true;
-		return false;
+	if(!err) {
+		return;
 	}
 
-	return true;
+	const char* name = "<unknown error>";
+	#define ERR_CASE(x) case x: name = #x; break;
+	switch(err) {
+		ERR_CASE(XCB_CONN_ERROR);
+		ERR_CASE(XCB_CONN_CLOSED_EXT_NOTSUPPORTED);
+		ERR_CASE(XCB_CONN_CLOSED_REQ_LEN_EXCEED);
+		ERR_CASE(XCB_CONN_CLOSED_PARSE_ERR);
+		ERR_CASE(XCB_CONN_CLOSED_INVALID_SCREEN);
+		default: break;
+	}
+	#undef NY_CASE
+
+	auto msg = dlg::format("X11AppContext: xcb_connection has "
+		"critical error:\n\t'{}' (code {})", name, err);
+	throw BackendError(msg);
 }
 
-xcb_atom_t X11AppContext::atom(const std::string& name)
-{
+xcb_atom_t X11AppContext::atom(const std::string& name) {
 	auto it = additionalAtoms_.find(name);
 	if(it == additionalAtoms_.end()) {
 		auto cookie = xcb_intern_atom(xConnection_, 0, name.size(), name.c_str());
@@ -483,14 +469,12 @@ xcb_atom_t X11AppContext::atom(const std::string& name)
 	return it->second;
 }
 
-void X11AppContext::bell()
-{
-	// TODO: rather random value here. accept (defaulted) parameter?
-	xcb_bell(xConnection_, 100);
+void X11AppContext::bell(unsigned val) {
+	xcb_bell(xConnection_, val);
 }
 
-void X11AppContext::processEvent(const x11::GenericEvent& ev, const x11::GenericEvent* next)
-{
+void X11AppContext::processEvent(const x11::GenericEvent& ev,
+		const x11::GenericEvent* next) {
 	X11EventData eventData {ev};
 
 	// TODO: optimize deferred operations, code duplication atm
@@ -502,7 +486,7 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev, const x11::Generic
 	auto responseType = ev.response_type & ~0x80;
 	switch(responseType) {
 		case XCB_EXPOSE: {
-			auto& expose = reinterpret_cast<const xcb_expose_event_t&>(ev);
+			auto expose = copy<xcb_expose_event_t>(ev);
 			auto wc = windowContext(expose.window);
 			if(wc) {
 				if(!wc->drawEventFlag_) {
@@ -519,7 +503,7 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev, const x11::Generic
 		}
 
 		case XCB_MAP_NOTIFY: {
-			auto& map = reinterpret_cast<const xcb_map_notify_event_t&>(ev);
+			auto map = copy<xcb_map_notify_event_t>(ev);
 			auto wc = windowContext(map.event);
 			if(wc) {
 				if(!wc->drawEventFlag_) {
@@ -536,7 +520,7 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev, const x11::Generic
 		}
 
 		case XCB_REPARENT_NOTIFY: {
-			auto& reparent = reinterpret_cast<const xcb_reparent_notify_event_t&>(ev);
+			auto reparent = copy<xcb_reparent_notify_event_t>(ev);
 			auto wc = windowContext(reparent.window);
 			if(wc) {
 				wc->reparentEvent();
@@ -545,11 +529,9 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev, const x11::Generic
 		}
 
 		case XCB_CONFIGURE_NOTIFY: {
-			auto& configure = reinterpret_cast<const xcb_configure_notify_event_t&>(ev);
-
+			auto configure = copy<xcb_configure_notify_event_t>(ev);
 			auto nsize = nytl::Vec2ui{configure.width, configure.height};
 			auto wc = windowContext(configure.window);
-
 			if(wc && nsize != wc->size()) {
 				wc->updateSize(nsize);
 				wc->reloadStates();
@@ -569,7 +551,7 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev, const x11::Generic
 		}
 
 		case XCB_CLIENT_MESSAGE: {
-			auto& client = reinterpret_cast<const xcb_client_message_event_t&>(ev);
+			auto client = copy<xcb_client_message_event_t>(ev);
 			auto protocol = static_cast<unsigned int>(client.data.data32[0]);
 
 			auto wc = windowContext(client.window);
@@ -586,7 +568,7 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev, const x11::Generic
 		}
 
 	case 0u: {
-			int code = reinterpret_cast<const xcb_generic_error_t&>(ev).error_code;
+			int code = copy<xcb_generic_error_t>(ev).error_code;
 			auto errorMsg = x11::errorMessage(xDisplay(), code);
 			dlg_warn("retrieved error code {}, {}", code, errorMsg);
 
@@ -596,12 +578,14 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev, const x11::Generic
 		default: break;
 	}
 
-	if(impl_->dataManager.processEvent(ev)) return;
-	if(keyboardContext_->processEvent(ev, next)) return;
-	if(mouseContext_->processEvent(ev)) return;
+	if(impl_->dataManager.processEvent(ev) ||
+			keyboardContext_->processEvent(ev, next) ||
+			mouseContext_->processEvent(ev)) {
+		return;
+	}
 
 	// touch events
-	auto& gev = reinterpret_cast<const xcb_ge_generic_event_t&>(ev);
+	auto gev = copy<xcb_ge_generic_event_t>(ev);
 	if(xiOpcode_ && gev.response_type == XCB_GE_GENERIC &&
 			gev.extension == xiOpcode_) {
 
@@ -646,7 +630,8 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev, const x11::Generic
 			xcb_input_group_info_t  group;
 		};
 
-		auto& tev = reinterpret_cast<const xcb_input_touch_begin_event_t&>(gev);
+		auto tev = copy<xcb_input_touch_begin_event_t>(gev);
+		time(tev.time);
 		auto wc = windowContext(tev.event);
 		if(!wc) {
 			return;

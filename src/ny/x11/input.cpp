@@ -6,6 +6,7 @@
 #include <ny/x11/appContext.hpp>
 #include <ny/x11/windowContext.hpp>
 #include <ny/x11/util.hpp>
+#include <ny/common/copy.hpp>
 #include <dlg/dlg.hpp>
 
 #include <nytl/utf.hpp>
@@ -25,17 +26,19 @@
 namespace ny {
 
 // MouseContext
-bool X11MouseContext::processEvent(const x11::GenericEvent& ev)
-{
+bool X11MouseContext::processEvent(const x11::GenericEvent& ev) {
 	X11EventData eventData {ev};
 
 	auto responseType = ev.response_type & ~0x80;
 	switch(responseType) {
 		case XCB_MOTION_NOTIFY: {
-			auto& motion = reinterpret_cast<const xcb_motion_notify_event_t&>(ev);
+			auto motion = copy<xcb_motion_notify_event_t>(ev);
 			auto pos = nytl::Vec2i{motion.event_x, motion.event_y};
+			appContext().time(motion.time);
+			if(pos == lastPosition_) {
+				break;
+			}
 
-			if(pos == lastPosition_) break;
 			auto delta = pos - lastPosition_;
 			onMove(*this, pos, delta);
 			lastPosition_ = pos;
@@ -51,20 +54,23 @@ bool X11MouseContext::processEvent(const x11::GenericEvent& ev)
 			}
 
 			break;
-		}
-
-		case XCB_BUTTON_PRESS: {
-			auto& button = reinterpret_cast<const xcb_button_press_event_t&>(ev);
-
+		} case XCB_BUTTON_PRESS: {
+			auto button = copy<xcb_button_press_event_t>(ev);
 			auto wc = appContext().windowContext(button.event);
 			auto pos = nytl::Vec2i{button.event_x, button.event_y};
+			appContext().time(button.time);
 
 			if(button.detail >= 4 && button.detail <= 7) {
 				nytl::Vec2f scroll {};
-				if(button.detail == 4) scroll = {0, 1};
-				else if(button.detail == 5) scroll = {0, -1};
-				else if(button.detail == 6) scroll = {1, 0};
-				else if(button.detail == 7) scroll = {-1, 0};
+				if(button.detail == 4) {
+					scroll = {0, 1};
+				} else if(button.detail == 5) {
+					scroll = {0, -1};
+				} else if(button.detail == 6) {
+					scroll = {1, 0};
+				} else if(button.detail == 7) {
+					scroll = {-1, 0};
+				}
 
 				MouseWheelEvent mwe;
 				mwe.eventData = &eventData;
@@ -89,11 +95,12 @@ bool X11MouseContext::processEvent(const x11::GenericEvent& ev)
 			}
 
 			break;
-		}
-
-		case XCB_BUTTON_RELEASE: {
-			auto& button = reinterpret_cast<const xcb_button_release_event_t&>(ev);
-			if(button.detail >= 4 && button.detail <= 7) break;
+		} case XCB_BUTTON_RELEASE: {
+			auto button = copy<xcb_button_release_event_t>(ev);
+			appContext().time(button.time);
+			if(button.detail >= 4 && button.detail <= 7) {
+				break;
+			}
 
 			auto nybutton = x11ToButton(button.detail);
 			buttonStates_[static_cast<unsigned int>(nybutton)] = false;
@@ -110,10 +117,9 @@ bool X11MouseContext::processEvent(const x11::GenericEvent& ev)
 				wc->listener().mouseButton(mbe);
 			}
 			break;
-		}
-
-		case XCB_ENTER_NOTIFY: {
-			auto& enter = reinterpret_cast<const xcb_enter_notify_event_t&>(ev);
+		} case XCB_ENTER_NOTIFY: {
+			auto enter = copy<xcb_enter_notify_event_t>(ev);
+			appContext().time(enter.time);
 
 			auto wc = appContext().windowContext(enter.event);
 			if(over_ != wc) {
@@ -131,10 +137,9 @@ bool X11MouseContext::processEvent(const x11::GenericEvent& ev)
 			}
 
 			break;
-		}
-
-		case XCB_LEAVE_NOTIFY: {
-			auto& leave = reinterpret_cast<const xcb_enter_notify_event_t&>(ev);
+		} case XCB_LEAVE_NOTIFY: {
+			auto leave = copy<xcb_enter_notify_event_t>(ev);
+			appContext().time(leave.time);
 
 			auto wc = appContext().windowContext(leave.event);
 			if(over_ == wc) {
@@ -153,16 +158,16 @@ bool X11MouseContext::processEvent(const x11::GenericEvent& ev)
 
 			break;
 		}
-
 		default: return false;
 	}
 
 	return true;
 }
 
-nytl::Vec2i X11MouseContext::position() const
-{
-	if(!over_) return {};
+nytl::Vec2i X11MouseContext::position() const {
+	if(!over_) {
+		return {};
+	}
 
 	xcb_generic_error_t* error {};
 	auto cookie = xcb_query_pointer(&appContext_.xConnection(), over_->xWindow());
@@ -180,20 +185,22 @@ nytl::Vec2i X11MouseContext::position() const
 	return pos;
 }
 
-bool X11MouseContext::pressed(MouseButton button) const
-{
-	// TODO: async checking?
+bool X11MouseContext::pressed(MouseButton button) const {
 	return buttonStates_[static_cast<unsigned int>(button)];
 }
 
-WindowContext* X11MouseContext::over() const
-{
+WindowContext* X11MouseContext::over() const {
 	return over_;
 }
 
+void X11MouseContext::destroyed(const X11WindowContext& wc) {
+	if(over_ == &wc) {
+		over_ = {};
+	}
+}
+
 // Keyboard
-X11KeyboardContext::X11KeyboardContext(X11AppContext& ac) : appContext_(ac)
-{
+X11KeyboardContext::X11KeyboardContext(X11AppContext& ac) : appContext_(ac) {
 	// TODO: possibility for backend without xkb (if extension not supported?)
 	// more error checking required
 	auto& xconn = appContext_.xConnection();
@@ -258,17 +265,17 @@ bool X11KeyboardContext::pressed(Keycode key) const
 {
 	// TODO: XQueryKeymap for async checking
 	auto uint = static_cast<unsigned int>(key);
-	if(uint > 255) return false;
+	if(uint > 255) {
+		return false;
+	}
 	return keyStates_[uint];
 }
 
-WindowContext* X11KeyboardContext::focus() const
-{
+WindowContext* X11KeyboardContext::focus() const {
 	return focus_;
 }
 
-bool X11KeyboardContext::processEvent(const x11::GenericEvent& ev, const x11::GenericEvent* next)
-{
+bool X11KeyboardContext::processEvent(const x11::GenericEvent& ev, const x11::GenericEvent* next) {
 	union XkbEvent {
 		struct {
 			std::uint8_t response_type;
@@ -288,9 +295,8 @@ bool X11KeyboardContext::processEvent(const x11::GenericEvent& ev, const x11::Ge
 	auto responseType = ev.response_type & ~0x80;
 	switch(responseType) {
 		case XCB_FOCUS_IN: {
-			auto& focus = reinterpret_cast<const xcb_focus_in_event_t&>(ev);
+			auto focus = copy<xcb_focus_in_event_t>(ev);
 			auto wc = appContext().windowContext(focus.event);
-
 			if(focus_ != wc) {
 				onFocus(*this, focus_, wc);
 				focus_ = wc;
@@ -304,10 +310,8 @@ bool X11KeyboardContext::processEvent(const x11::GenericEvent& ev, const x11::Ge
 			}
 
 			break;
-		}
-
-		case XCB_FOCUS_OUT: {
-			auto& focus = reinterpret_cast<const xcb_focus_in_event_t&>(ev);
+		} case XCB_FOCUS_OUT: {
+			auto focus = copy<xcb_focus_in_event_t>(ev);
 			auto wc = appContext().windowContext(focus.event);
 
 			if(focus_ == wc) {
@@ -323,11 +327,10 @@ bool X11KeyboardContext::processEvent(const x11::GenericEvent& ev, const x11::Ge
 			}
 
 			break;
-		}
-
-		case XCB_KEY_PRESS: {
-			auto& key = reinterpret_cast<const xcb_key_press_event_t&>(ev);
+		} case XCB_KEY_PRESS: {
+			auto key = copy<xcb_key_press_event_t>(ev);
 			auto wc = appContext().windowContext(key.event);
+			appContext().time(key.time);
 
 			Keycode keycode;
 			std::string utf8;
@@ -354,17 +357,17 @@ bool X11KeyboardContext::processEvent(const x11::GenericEvent& ev, const x11::Ge
 			repeated_ = false;
 			break;
 		}
-
 		case XCB_KEY_RELEASE: {
-			auto& key = reinterpret_cast<const xcb_key_press_event_t&>(ev);
+			auto key = copy<xcb_key_press_event_t>(ev);
 			auto wc = appContext().windowContext(key.event);
+			appContext().time(key.time);
 
 			Keycode keycode;
 			std::string utf8;
 
 			// check for repeat
 			if(next && (next->response_type & ~0x80) == XCB_KEY_PRESS) {
-				auto& kp = reinterpret_cast<const xcb_key_press_event_t&>(*next);
+				auto kp = copy<xcb_key_press_event_t>(*next);
 				if(kp.time == key.time && kp.detail == key.detail) {
 					// just ignore this event
 					repeated_ = true;
@@ -372,7 +375,8 @@ bool X11KeyboardContext::processEvent(const x11::GenericEvent& ev, const x11::Ge
 				}
 			}
 
-			// When the user presses keys that cancel a dead key, we ring the bell.
+			// When the user presses keys that cancel a dead key,
+			// we ring the bell.
 			if(!handleKey(key.detail, false, keycode, utf8)) {
 				appContext().bell();
 			}
@@ -391,11 +395,9 @@ bool X11KeyboardContext::processEvent(const x11::GenericEvent& ev, const x11::Ge
 			}
 
 			break;
-		}
-
-		default: {
+		} default: {
 			if(ev.response_type == xkbEventType()) {
-				auto& xkbev = reinterpret_cast<const XkbEvent&>(ev);
+				auto xkbev = copy<XkbEvent>(ev);
 				switch(xkbev.any.xkbType) {
 					case XCB_XKB_STATE_NOTIFY: {
 						xkb_state_update_mask(xkbState_,
@@ -419,10 +421,10 @@ bool X11KeyboardContext::processEvent(const x11::GenericEvent& ev, const x11::Ge
 	return true;
 }
 
-bool X11KeyboardContext::updateKeymap()
-{
-	// TODO
-	return true;
+void X11KeyboardContext::destroyed(const X11WindowContext& wc) {
+	if(focus_ == &wc) {
+		focus_ = {};
+	}
 }
 
 } // namespace ny

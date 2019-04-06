@@ -29,6 +29,7 @@ public:
 	/// Handles the given event if it is mouse related. Returns false otherwise.
 	/// If it could be handled sets the result value.
 	bool processEvent(const WinapiEventData&, LRESULT& result);
+	void destroyed(const WinapiWindowContext&);
 
 protected:
 	WinapiAppContext& context_;
@@ -54,6 +55,7 @@ public:
 
 	/// Returns whether the given virtual keycode is pressed using GetAsyncKeyState.
 	bool pressed(unsigned int vkcode) const;
+	void destroyed(const WinapiWindowContext&);
 
 protected:
 	WinapiAppContext& context_;

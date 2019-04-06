@@ -80,7 +80,7 @@ WaylandWindowContext::WaylandWindowContext(WaylandAppContext& ac,
 }
 
 WaylandWindowContext::~WaylandWindowContext() {
-	appContext().deferred.remove(this);
+	appContext().destroyed(*this);
 	if(frameCallback_) {
 		wl_callback_destroy(frameCallback_);
 	}
@@ -138,7 +138,7 @@ void WaylandWindowContext::createShellSurface(const WaylandWindowSettings& ws) {
 		listener().draw(de);
 	}, this);
 
-	if(!ws.customDecorated) {
+	if(ws.customDecorated && !*ws.customDecorated) {
 		dlg_warn("can't use server side decorations (using wl_shell)");
 	}
 }
@@ -181,8 +181,10 @@ void WaylandWindowContext::createXdgToplevel(const WaylandWindowSettings& ws) {
 	// commit to apply the role
 	wl_surface_commit(wlSurface_);
 
-	// custom decoration?
-	if(!ws.customDecorated) {
+	// custom decoration
+	// NOTE: when customDecoration is desired we don't explicitly set it
+	// via the protocol. Any advantage in doing so?
+	if(ws.customDecorated && !*ws.customDecorated) {
 		if(!appContext().xdgDecorationManager()) {
 			dlg_warn("compositor doesn't support xdg-decoration, "
 				"having to use client side decorations");
@@ -240,7 +242,7 @@ void WaylandWindowContext::createXdgToplevelV6(const WaylandWindowSettings& ws) 
 	// commit to apply the role
 	wl_surface_commit(wlSurface_);
 
-	if(!ws.customDecorated) {
+	if(ws.customDecorated && !*ws.customDecorated) {
 		dlg_warn("can't use server side decorations (using xdg shell v6)");
 	}
 }
@@ -408,7 +410,9 @@ void WaylandWindowContext::maximize() {
 	if(wlShellSurface()) {
 		wl_shell_surface_set_maximized(wlShellSurface_, nullptr);
 	} else if(xdgToplevelV6()) {
-		zxdg_toplevel_v6_set_maximized(xdgToplevelV6_.toplevel);
+		zxdg_toplevel_v6_set_maximized(xdgToplevelV6());
+	} else if(xdgToplevel()) {
+		xdg_toplevel_unset_maximized(xdgToplevel());
 	} else {
 		dlg_warn("role cannot be maximized");
 	}
@@ -433,6 +437,8 @@ void WaylandWindowContext::fullscreen() {
 void WaylandWindowContext::minimize() {
 	if(xdgToplevelV6()) {
 		zxdg_toplevel_v6_set_minimized(xdgToplevelV6());
+	} else if(xdgToplevel()) {
+		xdg_toplevel_set_minimized(xdgToplevel());
 	} else if(xdgToplevel()) {
 		xdg_toplevel_set_minimized(xdgToplevel());
 	} else {

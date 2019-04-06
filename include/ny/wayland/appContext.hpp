@@ -20,7 +20,7 @@ namespace ny {
 /// Holds the wayland display connection as well as all global resources.
 class WaylandAppContext : public AppContext {
 public:
-	DeferredOperator<void(), WindowContext*> deferred;
+	DeferredOperator<void(), const WindowContext*> deferred;
 
 public:
 	WaylandAppContext();
@@ -76,6 +76,7 @@ public:
 	wl_keyboard* wlKeyboard() const;
 
 	WaylandWindowContext* windowContext(wl_surface& surface) const;
+	void destroyed(const WaylandWindowContext& wc);
 	bool shmFormatSupported(unsigned int wlShmFormat);
 
 	EglSetup* eglSetup() const;

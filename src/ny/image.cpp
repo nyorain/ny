@@ -243,6 +243,22 @@ void convertFormat(const Image& img, ImageFormat to, std::byte& into,
 	}
 }
 
+void convertFormatStride(const Image& img, ImageFormat to, std::byte& into,
+		unsigned int newStride) {
+	if(img.format == to && img.stride == newStride) {
+		std::memcpy(&into, img.data, dataSize(img));
+		return;
+	}
+
+	for(auto y = 0u; y < img.size[1]; ++y) {
+		for(auto x = 0u; x < img.size[0]; ++x) {
+			auto color = readPixel(img, {x, y});
+			auto bit = y * newStride + x * bitSize(to);
+			writePixel(*(&into + bit / 8), to, color, bit % 8);
+		}
+	}
+}
+
 bool alphaComponent(ImageFormat format) {
 	using Format = ImageFormat;
 	switch(format) {

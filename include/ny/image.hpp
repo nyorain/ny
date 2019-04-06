@@ -256,8 +256,12 @@ bool satisfiesRequirements(const Image&, ImageFormat, unsigned int strideAlign =
 /// new (converted) data. Defaulted to 0, in which case the packed size will be used as stride.
 /// \sa BasicImageData
 /// \sa ImageDataFormat
-UniqueImage convertFormat(const Image&, ImageFormat to, unsigned int alignNewStride = 0);
-void convertFormat(const Image&, ImageFormat to, std::byte& into, unsigned int alignNewStride = 0);
+UniqueImage convertFormat(const Image&, ImageFormat to,
+	unsigned int alignNewStride = 0);
+void convertFormat(const Image&, ImageFormat to, std::byte& into,
+	unsigned int alignNewStride = 0);
+void convertFormatStride(const Image&, ImageFormat to, std::byte& into,
+	unsigned int newStride);
 
 /// Returns whether the given format has an alpha component.
 /// Despite the name, this will return false for the a1 and a8 image formats.

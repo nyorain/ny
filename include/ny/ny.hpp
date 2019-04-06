@@ -8,7 +8,6 @@
 #include <ny/config.hpp>
 
 #include <ny/appContext.hpp>
-#include <ny/asyncRequest.hpp>
 #include <ny/backend.hpp>
 #include <ny/bufferSurface.hpp>
 #include <ny/cursor.hpp>

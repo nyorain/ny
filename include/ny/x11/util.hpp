@@ -23,7 +23,6 @@
 
 namespace ny {
 
-// TODO: guaranteed that generic_event can hold other event types?
 /// X11EventData stores the native xcb event for later use.
 /// To see where this might be needed look at the X11WC::beginResize and X11WC::beginMove functions.
 struct X11EventData : public EventData {
@@ -145,11 +144,17 @@ struct Atoms {
 };
 
 /// Represents a Property value of an x11 window for a property atom.
-/// Can be retrieved using readProperty or used to change a property using changeProperty
+/// Can be retrieved via readProperty or used to change a property via
+/// changeProperty
 struct Property {
-	std::vector<uint8_t> data; /// The raw property data. Use data.size() to determine the length
-	int format = 8; /// How the data should be interpreted, i.e. how many bits are grouped together
-	xcb_atom_t type = XCB_ATOM_ANY; /// An atom representing the type of the data
+	/// The raw property data. Use data.size() to determine the length
+	std::vector<std::byte> data;
+
+	/// How the data should be interpreted; how many bits are grouped together
+	int format = 8;
+
+	/// An atom representing the type of the data
+	xcb_atom_t type = XCB_ATOM_ANY;
 };
 
 /// Reads the given x11 atom property for the given window.

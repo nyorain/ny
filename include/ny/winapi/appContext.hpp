@@ -22,7 +22,7 @@ public:
 	static LONG_PTR CALLBACK wndProcCallback(HWND, UINT, WPARAM, LPARAM);
 	static INT_PTR CALLBACK dlgProcCallback(HWND, UINT, WPARAM, LPARAM);
 
-	DeferredOperator<void(), WindowContext*> deferred;
+	DeferredOperator<void(), const WindowContext*> deferred;
 
 public:
 	WinapiAppContext();
@@ -48,6 +48,7 @@ public:
 	WglSetup* wglSetup() const;
 	LONG_PTR eventProc(HWND, UINT, WPARAM, LPARAM);
 	WinapiWindowContext* windowContext(HWND win);
+	void destroyed(const WinapiWindowContext&);
 
 	HINSTANCE hinstance() const { return instance_; };
 

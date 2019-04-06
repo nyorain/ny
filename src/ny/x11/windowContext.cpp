@@ -28,17 +28,15 @@
 namespace ny {
 
 //windowContext
-X11WindowContext::X11WindowContext(X11AppContext& ctx, const X11WindowSettings& settings)
-{
+X11WindowContext::X11WindowContext(X11AppContext& ctx,
+		const X11WindowSettings& settings) {
 	create(ctx, settings);
 }
 
-X11WindowContext::~X11WindowContext()
-{
-	appContext().deferred.remove(this);
+X11WindowContext::~X11WindowContext() {
+	appContext().destroyed(*this);
 
 	if(xWindow_) {
-		appContext().unregisterContext(xWindow_);
 		xcb_destroy_window(&xConnection(), xWindow_);
 	}
 
@@ -53,8 +51,7 @@ X11WindowContext::~X11WindowContext()
 	xcb_flush(&xConnection());
 }
 
-void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& settings)
-{
+void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& settings) {
 	appContext_ = &ctx;
 	settings_ = settings;
 	auto& xconn = xConnection();
@@ -120,12 +117,16 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 		delete[] mask.mask;
 	}
 
+	// custom deco
+	if(settings.customDecorated) {
+		customDecorated(*settings.customDecorated);
+	}
+
 	// make sure windows is mapped and set to correct state
 	xcb_flush(&xconn);
 }
 
-void X11WindowContext::createWindow(const X11WindowSettings& settings)
-{
+void X11WindowContext::createWindow(const X11WindowSettings& settings) {
 	if(!visualID_) {
 		initVisual(settings);
 	}
@@ -177,8 +178,7 @@ void X11WindowContext::createWindow(const X11WindowSettings& settings)
 	}
 }
 
-void X11WindowContext::initVisual(const X11WindowSettings& settings)
-{
+void X11WindowContext::initVisual(const X11WindowSettings& settings) {
 	visualID_ = 0u;
 	auto& screen = appContext().xDefaultScreen();
 
@@ -227,23 +227,19 @@ void X11WindowContext::initVisual(const X11WindowSettings& settings)
 	}
 }
 
-xcb_connection_t& X11WindowContext::xConnection() const
-{
+xcb_connection_t& X11WindowContext::xConnection() const {
 	return appContext().xConnection();
 }
 
-x11::EwmhConnection& X11WindowContext::ewmhConnection() const
-{
+x11::EwmhConnection& X11WindowContext::ewmhConnection() const {
 	return appContext().ewmhConnection();
 }
 
-const X11ErrorCategory& X11WindowContext::errorCategory() const
-{
+const X11ErrorCategory& X11WindowContext::errorCategory() const {
 	return appContext().errorCategory();
 }
 
-void X11WindowContext::refresh()
-{
+void X11WindowContext::refresh() {
 	xcb_expose_event_t ev{};
 
 	ev.response_type = XCB_EXPOSE;
@@ -253,26 +249,22 @@ void X11WindowContext::refresh()
 	xcb_flush(&xConnection());
 }
 
-void X11WindowContext::show()
-{
+void X11WindowContext::show() {
 	xcb_map_window(&xConnection(), xWindow_);
 	refresh();
 }
 
-void X11WindowContext::hide()
-{
+void X11WindowContext::hide() {
 	xcb_unmap_window(&xConnection(), xWindow_);
 }
 
-void X11WindowContext::size(nytl::Vec2ui size)
-{
+void X11WindowContext::size(nytl::Vec2ui size) {
 	xcb_configure_window(&xConnection(), xWindow_,
 		XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT, size.data());
 	refresh();
 }
 
-void X11WindowContext::position(nytl::Vec2i position)
-{
+void X11WindowContext::position(nytl::Vec2i position) {
 	std::uint32_t data[2];
 	data[0] = position[0];
 	data[1] = position[1];
@@ -282,10 +274,11 @@ void X11WindowContext::position(nytl::Vec2i position)
 	xcb_flush(&xConnection());
 }
 
-void X11WindowContext::cursor(const Cursor& curs)
-{
+void X11WindowContext::cursor(const Cursor& curs) {
 	// TODO: make xcursor optinal
 	// use xcb_render instead to create a cursor (no need to use Xlib)?
+	// xcb-cursor is relatively new though and probably not as widely
+	// available/installed as libxcursor
 
 	auto& xdpy = appContext().xDisplay();
 	if(curs.type() != CursorType::image && curs.type() != CursorType::none) {
@@ -296,7 +289,9 @@ void X11WindowContext::cursor(const Cursor& curs)
 			return;
 		}
 
-		if(xCursor_) xcb_free_cursor(&xConnection(), xCursor_);
+		if(xCursor_) {
+			xcb_free_cursor(&xConnection(), xCursor_);
+		}
 		xCursor_ = XcursorLibraryLoadCursor(&xdpy, xname);
 		xcb_change_window_attributes(&xConnection(), xWindow(), XCB_CW_CURSOR, &xCursor_);
 	} else if(curs.type() == CursorType::image) {
@@ -306,9 +301,11 @@ void X11WindowContext::cursor(const Cursor& curs)
 		xcimage->xhot = curs.imageHotspot()[0];
 		xcimage->yhot = curs.imageHotspot()[1];
 
-		auto pixels = reinterpret_cast<std::uint8_t*>(xcimage->pixels);
+		auto pixels = reinterpret_cast<std::byte*>(xcimage->pixels);
 		convertFormat(img, ImageFormat::argb8888, *pixels, 8u);
-		if(xCursor_) xcb_free_cursor(&xConnection(), xCursor_);
+		if(xCursor_) {
+			xcb_free_cursor(&xConnection(), xCursor_);
+		}
 
 		xCursor_ = XcursorImageLoadCursor(&xdpy, xcimage);
 		XcursorImageDestroy(xcimage);
@@ -318,7 +315,9 @@ void X11WindowContext::cursor(const Cursor& curs)
 		auto cursorPixmap = xcb_generate_id(&xconn);
 		xcb_create_pixmap(&xconn, 1, cursorPixmap, xWindow_, 1, 1);
 
-		if(xCursor_) xcb_free_cursor(&xConnection(), xCursor_);
+		if(xCursor_) {
+			xcb_free_cursor(&xConnection(), xCursor_);
+		}
 		xCursor_ = xcb_generate_id(&xconn);
 
 		xcb_create_cursor(&xconn, xCursor_, cursorPixmap, cursorPixmap,
@@ -328,16 +327,14 @@ void X11WindowContext::cursor(const Cursor& curs)
 	}
 }
 
-void X11WindowContext::maximize()
-{
+void X11WindowContext::maximize() {
 	removeStates(ewmhConnection()._NET_WM_STATE_FULLSCREEN);
 	addStates(ewmhConnection()._NET_WM_STATE_MAXIMIZED_VERT,
 			ewmhConnection()._NET_WM_STATE_MAXIMIZED_HORZ);
 	state_ = ToplevelState::maximized;
 }
 
-void X11WindowContext::minimize()
-{
+void X11WindowContext::minimize() {
 	// TODO: use xcb/some modern api here (?)
 
 	// icccm not working on gnome
@@ -358,14 +355,12 @@ void X11WindowContext::minimize()
 	state_ = ToplevelState::minimized;
 }
 
-void X11WindowContext::fullscreen()
-{
+void X11WindowContext::fullscreen() {
 	addStates(ewmhConnection()._NET_WM_STATE_FULLSCREEN);
 	state_ = ToplevelState::fullscreen;
 }
 
-void X11WindowContext::normalState()
-{
+void X11WindowContext::normalState() {
 	// set nomrla wm hints state
 	xcb_icccm_wm_hints_t hints;
 	hints.flags = XCB_ICCCM_WM_HINT_STATE;
@@ -380,8 +375,7 @@ void X11WindowContext::normalState()
 	state_ = ToplevelState::normal;
 }
 
-void X11WindowContext::beginMove(const EventData* ev)
-{
+void X11WindowContext::beginMove(const EventData* ev) {
 	auto index = XCB_BUTTON_INDEX_ANY;
 	auto pos = appContext().mouseContext()->position();
 
@@ -419,8 +413,7 @@ void X11WindowContext::beginMove(const EventData* ev)
 */
 }
 
-void X11WindowContext::beginResize(const EventData* ev, WindowEdges edge)
-{
+void X11WindowContext::beginResize(const EventData* ev, WindowEdges edge) {
 	auto index = XCB_BUTTON_INDEX_ANY;
 	auto pos = appContext().mouseContext()->position();
 
@@ -466,8 +459,7 @@ void X11WindowContext::beginResize(const EventData* ev, WindowEdges edge)
 		XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
 }
 
-void X11WindowContext::icon(const Image& img)
-{
+void X11WindowContext::icon(const Image& img) {
 	if(img.data) {
 		auto reqFormat = ImageFormat::rgba8888;
 		auto neededSize = img.size[0] * img.size[1];
@@ -491,18 +483,15 @@ void X11WindowContext::icon(const Image& img)
 	}
 }
 
-void X11WindowContext::title(const char* title)
-{
+void X11WindowContext::title(const char* title) {
 	xcb_ewmh_set_wm_name(&ewmhConnection(), xWindow(), strlen(title), title);
 }
 
-NativeHandle X11WindowContext::nativeHandle() const
-{
+NativeHandle X11WindowContext::nativeHandle() const {
 	return NativeHandle(xWindow_);
 }
 
-void X11WindowContext::minSize(nytl::Vec2ui size)
-{
+void X11WindowContext::minSize(nytl::Vec2ui size) {
 	xcb_size_hints_t hints {};
 	hints.min_width = size[0];
 	hints.min_height = size[1];
@@ -510,8 +499,7 @@ void X11WindowContext::minSize(nytl::Vec2ui size)
 	xcb_icccm_set_wm_normal_hints(&xConnection(), xWindow(), &hints);
 }
 
-void X11WindowContext::maxSize(nytl::Vec2ui size)
-{
+void X11WindowContext::maxSize(nytl::Vec2ui size) {
 	xcb_size_hints_t hints {};
 	hints.max_width = size[0];
 	hints.max_height = size[1];
@@ -519,13 +507,11 @@ void X11WindowContext::maxSize(nytl::Vec2ui size)
 	xcb_icccm_set_wm_normal_hints(&xConnection(), xWindow(), &hints);
 }
 
-void X11WindowContext::reparentEvent()
-{
+void X11WindowContext::reparentEvent() {
 	position(settings_.position);
 }
 
-void X11WindowContext::customDecorated(bool set)
-{
+void X11WindowContext::customDecorated(bool set) {
 	typedef struct {
 		unsigned long flags;
 		unsigned long functions;
@@ -545,13 +531,11 @@ void X11WindowContext::customDecorated(bool set)
 		reinterpret_cast<unsigned char*>(&motif_hints), sizeof(MotifWmHints)/sizeof(long));
 }
 
-bool X11WindowContext::customDecorated() const
-{
+bool X11WindowContext::customDecorated() const {
 	return customDecorated_;
 }
 
-WindowCapabilities X11WindowContext::capabilities() const
-{
+WindowCapabilities X11WindowContext::capabilities() const {
 	// TODO; query if curstom and server decoration are really supported!
 	// we could also check if ewmh (-> beginMove/beginResize) is supported:
 	// https://chromium.googlesource.com/chromium/src.git/+/master/ui/base/x/x11_util.cc#914
@@ -568,57 +552,48 @@ WindowCapabilities X11WindowContext::capabilities() const
 }
 
 // x11 specific
-void X11WindowContext::raise()
-{
+void X11WindowContext::raise() {
 	const uint32_t values[] = {XCB_STACK_MODE_ABOVE};
 	xcb_configure_window(&xConnection(), xWindow(), XCB_CONFIG_WINDOW_STACK_MODE, values);
 }
 
-void X11WindowContext::lower()
-{
+void X11WindowContext::lower() {
 	const uint32_t values[] = {XCB_STACK_MODE_BELOW};
 	xcb_configure_window(&xConnection(), xWindow(), XCB_CONFIG_WINDOW_STACK_MODE, values);
 }
 
-void X11WindowContext::requestFocus()
-{
+void X11WindowContext::requestFocus() {
 	xcb_ewmh_request_change_active_window(&ewmhConnection(), 0, xWindow(),
 		XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL, XCB_TIME_CURRENT_TIME, XCB_NONE);
 }
-void X11WindowContext::addStates(xcb_atom_t state1, xcb_atom_t state2)
-{
+void X11WindowContext::addStates(xcb_atom_t state1, xcb_atom_t state2) {
 	xcb_ewmh_request_change_wm_state(&ewmhConnection(), 0, xWindow(), XCB_EWMH_WM_STATE_ADD,
 		state1, state2, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
 }
 
-void X11WindowContext::removeStates(xcb_atom_t state1, xcb_atom_t state2)
-{
+void X11WindowContext::removeStates(xcb_atom_t state1, xcb_atom_t state2) {
 	xcb_ewmh_request_change_wm_state(&ewmhConnection(), 0, xWindow(), XCB_EWMH_WM_STATE_REMOVE,
 		state1, state2, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
 }
 
-void X11WindowContext::toggleStates(xcb_atom_t state1, xcb_atom_t state2)
-{
+void X11WindowContext::toggleStates(xcb_atom_t state1, xcb_atom_t state2) {
 	xcb_ewmh_request_change_wm_state(&ewmhConnection(), 0, xWindow(), XCB_EWMH_WM_STATE_TOGGLE,
 		state1, state2, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
 }
 
-void X11WindowContext::addAllowedAction(xcb_atom_t action)
-{
+void X11WindowContext::addAllowedAction(xcb_atom_t action) {
 	std::uint32_t data[] = {1, action, 0};
 	xcb_ewmh_send_client_message(&xConnection(), xWindow(), appContext().xDefaultScreen().root,
 		ewmhConnection()._NET_WM_ALLOWED_ACTIONS, 3, data);
 }
 
-void X11WindowContext::removeAllowedAction(xcb_atom_t action)
-{
+void X11WindowContext::removeAllowedAction(xcb_atom_t action) {
 	std::uint32_t data[] = {0, action, 0};
 	xcb_ewmh_send_client_message(&xConnection(), xWindow(), appContext().xDefaultScreen().root,
 		ewmhConnection()._NET_WM_ALLOWED_ACTIONS, 3, data);
 }
 
-std::vector<xcb_atom_t> X11WindowContext::allowedActions() const
-{
+std::vector<xcb_atom_t> X11WindowContext::allowedActions() const {
 	auto cookie = xcb_ewmh_get_wm_allowed_actions(&ewmhConnection(), xWindow());
 
 	xcb_ewmh_get_atoms_reply_t reply;
@@ -633,26 +608,22 @@ std::vector<xcb_atom_t> X11WindowContext::allowedActions() const
 	return ret;
 }
 
-void X11WindowContext::transientFor(xcb_window_t other)
-{
+void X11WindowContext::transientFor(xcb_window_t other) {
 	xcb_change_property(&xConnection(), XCB_PROP_MODE_REPLACE, xWindow(),
 		XCB_ATOM_WM_TRANSIENT_FOR, XCB_ATOM_WINDOW, 32,	1, &other);
 }
 
-void X11WindowContext::xWindowType(xcb_atom_t type)
-{
+void X11WindowContext::xWindowType(xcb_atom_t type) {
 	// TODO: output warning if not in _NET_SUPPORTED (AppContext)
 	xcb_ewmh_set_wm_window_type(&ewmhConnection(), xWindow(), 1, &type);
 }
 
-void X11WindowContext::overrideRedirect(bool redirect)
-{
+void X11WindowContext::overrideRedirect(bool redirect) {
 	std::uint32_t data = redirect;
 	xcb_change_window_attributes(&xConnection(), xWindow(), XCB_CW_OVERRIDE_REDIRECT, &data);
 }
 
-nytl::Vec2ui X11WindowContext::querySize() const
-{
+nytl::Vec2ui X11WindowContext::querySize() const {
 	auto cookie = xcb_get_geometry(&xConnection(), xWindow());
 	auto geometry = xcb_get_geometry_reply(&xConnection(), cookie, nullptr);
 	auto ret = nytl::Vec2ui{geometry->width, geometry->height};
@@ -660,8 +631,7 @@ nytl::Vec2ui X11WindowContext::querySize() const
 	return ret;
 }
 
-xcb_visualtype_t* X11WindowContext::xVisualType() const
-{
+xcb_visualtype_t* X11WindowContext::xVisualType() const {
 	if(!visualID_) {
 		return nullptr;
 	}
@@ -678,8 +648,7 @@ xcb_visualtype_t* X11WindowContext::xVisualType() const
 	return nullptr;
 }
 
-Surface X11WindowContext::surface()
-{
+Surface X11WindowContext::surface() {
 	return {};
 }
 

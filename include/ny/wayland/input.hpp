@@ -25,18 +25,19 @@ public:
 	WindowContext* over() const override;
 
 	// - wayland specific -
-	WaylandAppContext& appContext() const { return appContext_;}
-
-	wl_pointer* wlPointer() const { return wlPointer_; }
-	unsigned int lastSerial() const { return lastSerial_; }
-
 	/// This function does only actively change the cursor if it is currently over
 	/// an owned surface or grabbed by this application.
-	/// \param buf Defined the cursor content. If nullptr, the cursor is hidden
+	/// \param buf Defines the cursor content. If nullptr, the cursor is hidden
 	/// \param hs The cursor hotspot. {0, 0} would be the top-left corner.
 	/// \param size The cursor size. Only relevant for damaging the surface so should be
 	/// any value equal to or greater than the actual buffer size.
-	void cursorBuffer(wl_buffer* buf, nytl::Vec2i hs = {}, nytl::Vec2ui size = {2048, 2048}) const;
+	void cursorBuffer(wl_buffer* buf, nytl::Vec2i hs = {},
+		nytl::Vec2ui size = {2048, 2048}) const;
+
+	WaylandAppContext& appContext() const { return appContext_;}
+	wl_pointer* wlPointer() const { return wlPointer_; }
+	unsigned int lastSerial() const { return lastSerial_; }
+	void destroyed(const WaylandWindowContext&);
 
 protected:
 	void handleEnter(wl_pointer*, uint32_t serial, wl_surface*, wl_fixed_t x, wl_fixed_t y);
@@ -77,6 +78,7 @@ public:
 
 	wl_keyboard* wlKeyboard() const { return wlKeyboard_; }
 	unsigned int lastSerial() const { return lastSerial_; }
+	void destroyed(const WaylandWindowContext&);
 
 protected:
 	void handleKeymap(wl_keyboard*, uint32_t format, int32_t fd, uint32_t size);

@@ -45,7 +45,7 @@ WinapiWindowContext::WinapiWindowContext(WinapiAppContext& appContext,
 
 WinapiWindowContext::~WinapiWindowContext()
 {
-	appContext().deferred.remove(this);
+	appContext().destroyed(*this);
 	if(dropTarget_) {
 		dropTarget_->Release();
 		dropTarget_ = nullptr;

@@ -297,4 +297,10 @@ WglSetup* WinapiAppContext::wglSetup() const
 	#endif // WithGl
 }
 
+void WinapiAppContext::destroyed(const WinapiWindowContext& wc) {
+	deferred.remove(&wc);
+	keyboardContext()->destroyed(wc);
+	mouseContext()->destroyed(wc);
+}
+
 } // namespace ny

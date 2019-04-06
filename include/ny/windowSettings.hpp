@@ -14,6 +14,7 @@
 
 #include <limits> // std::numeric_limits
 #include <string> // std::string
+#include <optional> // std::optional
 
 namespace ny {
 
@@ -163,10 +164,12 @@ public:
 
 	/// Whether to prefer client side decoration
 	/// Some backends may not be able to change this setting later on
-	/// Also note that backends may not support client side or server side
-	/// decoration, always check WaylandWindowContext::customDecorated()
+	/// Also note that backends may not support both modes of decoration
+	/// always check WaylandWindowContext::customDecorated()
 	/// to make sure whether client side decorations are needed.
-	bool customDecorated = false;
+	/// If not set, the default is used. If set to false, will try to
+	/// force server-side decoration.
+	std::optional<bool> customDecorated {};
 
 	/// Can be used to specify if and which drawing context should be created
 	/// for the window. See the settings for the different types below.

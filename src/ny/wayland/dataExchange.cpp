@@ -7,7 +7,6 @@
 #include <ny/wayland/appContext.hpp>
 #include <ny/wayland/windowContext.hpp>
 #include <ny/wayland/input.hpp>
-#include <ny/asyncRequest.hpp>
 #include <dlg/dlg.hpp>
 
 #include <nytl/scope.hpp>

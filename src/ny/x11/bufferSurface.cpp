@@ -120,11 +120,11 @@ BufferGuard X11BufferSurface::buffer()
 			}
 
 			shmid_ = shmget(IPC_PRIVATE, byteSize_, IPC_CREAT | 0777);
-			data_ = static_cast<uint8_t*>(shmat(shmid_, 0, 0));
+			data_ = static_cast<std::byte*>(shmat(shmid_, 0, 0));
 			shmseg_ = xcb_generate_id(&xConnection());
 			xcb_shm_attach(&xConnection(), shmseg_, shmid_, 0);
 		} else {
-			ownedBuffer_ = std::make_unique<uint8_t[]>(byteSize_);
+			ownedBuffer_ = std::make_unique<std::byte[]>(byteSize_);
 			data_ = ownedBuffer_.get();
 		}
 	}
@@ -157,8 +157,9 @@ void X11BufferSurface::apply(const BufferGuard&) noexcept
 		windowContext().errorCategory().checkWarn(cookie, "ny::X11BufferSurface: shm_put_image");
 	} else {
 		auto length = std::ceil(size_[0] * size_[1] * bitSize(format_) / 8.0);
+		auto data = reinterpret_cast<uint8_t*>(data_);
 		auto cookie = xcb_put_image_checked(&xConnection(), XCB_IMAGE_FORMAT_Z_PIXMAP, window,
-			gc_, size_[0], size_[1], 0, 0, 0, depth, length, data_);
+			gc_, size_[0], size_[1], 0, 0, 0, depth, length, data);
 		windowContext().errorCategory().checkWarn(cookie, "ny::X11BufferSurface: put_image");
 	}
 }

@@ -66,8 +66,8 @@ WindowContext* WaylandMouseContext::over() const {
 	return over_;
 }
 
-void WaylandMouseContext::handleMotion(wl_pointer*, uint32_t time, wl_fixed_t x, wl_fixed_t y)
-{
+void WaylandMouseContext::handleMotion(wl_pointer*, uint32_t time,
+		wl_fixed_t x, wl_fixed_t y) {
 	nytl::unused(time);
 
 	auto oldPos = position_;
@@ -82,9 +82,9 @@ void WaylandMouseContext::handleMotion(wl_pointer*, uint32_t time, wl_fixed_t x,
 		over_->listener().mouseMove(mme);
 	}
 }
-void WaylandMouseContext::handleEnter(wl_pointer*, uint32_t serial, wl_surface* surface,
-	wl_fixed_t x, wl_fixed_t y)
-{
+
+void WaylandMouseContext::handleEnter(wl_pointer*, uint32_t serial,
+		wl_surface* surface, wl_fixed_t x, wl_fixed_t y) {
 	auto pos = nytl::Vec2i {wl_fixed_to_int(x), wl_fixed_to_int(y)};
 
 	lastSerial_ = serial;
@@ -94,8 +94,6 @@ void WaylandMouseContext::handleEnter(wl_pointer*, uint32_t serial, wl_surface* 
 	WaylandEventData eventData(serial);
 
 	if(wc != over_) {
-		onFocus(*this, over_, wc);
-
 		MouseCrossEvent mce;
 		mce.eventData = &eventData;
 		mce.entered = false;
@@ -116,15 +114,15 @@ void WaylandMouseContext::handleEnter(wl_pointer*, uint32_t serial, wl_surface* 
 
 	position_ = pos;
 }
-void WaylandMouseContext::handleLeave(wl_pointer*, uint32_t serial, wl_surface* surface)
-{
+void WaylandMouseContext::handleLeave(wl_pointer*, uint32_t serial,
+		wl_surface* surface) {
 	lastSerial_ = serial;
 	WaylandEventData eventData(serial);
 
 	auto wc = appContext_.windowContext(*surface);
-	if(wc != over_) dlg_warn("'over_' inconsistency");
-
-	if(over_) onFocus(*this, over_, nullptr);
+	if(wc != over_) {
+		dlg_warn("'over_' inconsistency");
+	}
 	if(wc) {
 		MouseCrossEvent mce;
 		mce.eventData = &eventData;
@@ -135,9 +133,8 @@ void WaylandMouseContext::handleLeave(wl_pointer*, uint32_t serial, wl_surface* 
 
 	over_ = nullptr;
 }
-void WaylandMouseContext::handleButton(wl_pointer*, uint32_t serial, uint32_t time, uint32_t button,
-	uint32_t pressed)
-{
+void WaylandMouseContext::handleButton(wl_pointer*, uint32_t serial,
+		uint32_t time, uint32_t button, uint32_t pressed) {
 	nytl::unused(time);
 
 	lastSerial_ = serial;
@@ -156,8 +153,8 @@ void WaylandMouseContext::handleButton(wl_pointer*, uint32_t serial, uint32_t ti
 	}
 }
 
-void WaylandMouseContext::handleAxis(wl_pointer*, uint32_t time, uint32_t axis, wl_fixed_t value)
-{
+void WaylandMouseContext::handleAxis(wl_pointer*, uint32_t time, uint32_t axis,
+		wl_fixed_t value) {
 	nytl::unused(time);
 
 	float nvalue = wl_fixed_to_double(value) / 10.f;
@@ -181,28 +178,26 @@ void WaylandMouseContext::handleAxis(wl_pointer*, uint32_t time, uint32_t axis, 
 }
 
 // Those events could be handled if more complex axis events are supported.
-// Handling the fame event will only become useful when the 3 callbacks below are handled
-void WaylandMouseContext::handleFrame(wl_pointer*)
-{
+// Handling the frame event will only become useful when the 3 callbacks
+// below are handled
+void WaylandMouseContext::handleFrame(wl_pointer*) {
 }
 
-void WaylandMouseContext::handleAxisSource(wl_pointer*, uint32_t source)
-{
+void WaylandMouseContext::handleAxisSource(wl_pointer*, uint32_t source) {
 	nytl::unused(source);
 }
 
-void WaylandMouseContext::handleAxisStop(wl_pointer*, uint32_t time, uint32_t axis)
-{
+void WaylandMouseContext::handleAxisStop(wl_pointer*, uint32_t time, uint32_t axis) {
 	nytl::unused(time, axis);
 }
 
-void WaylandMouseContext::handleAxisDiscrete(wl_pointer*, uint32_t axis, int32_t discrete)
-{
+void WaylandMouseContext::handleAxisDiscrete(wl_pointer*, uint32_t axis,
+		int32_t discrete) {
 	nytl::unused(axis, discrete);
 }
 
-void WaylandMouseContext::cursorBuffer(wl_buffer* buf, nytl::Vec2i hs, nytl::Vec2ui size) const
-{
+void WaylandMouseContext::cursorBuffer(wl_buffer* buf, nytl::Vec2i hs,
+		nytl::Vec2ui size) const {
 	wl_pointer_set_cursor(wlPointer_, cursorSerial_, wlCursorSurface_, hs[0], hs[1]);
 
 	wl_surface_attach(wlCursorSurface_, buf, 0, 0);
@@ -210,10 +205,15 @@ void WaylandMouseContext::cursorBuffer(wl_buffer* buf, nytl::Vec2i hs, nytl::Vec
 	wl_surface_commit(wlCursorSurface_);
 }
 
+void WaylandMouseContext::destroyed(const WaylandWindowContext& wc) {
+	if(over_ == &wc) {
+		over_ = nullptr;
+	}
+}
+
 //keyboard
-WaylandKeyboardContext::WaylandKeyboardContext(WaylandAppContext& ac, wl_seat& seat)
-	: appContext_(ac)
-{
+WaylandKeyboardContext::WaylandKeyboardContext(WaylandAppContext& ac,
+		wl_seat& seat) : appContext_(ac) {
 	using WKC = WaylandKeyboardContext;
 	constexpr static wl_keyboard_listener listener = {
 		memberCallback<&WKC::handleKeymap>,
@@ -238,35 +238,41 @@ WaylandKeyboardContext::WaylandKeyboardContext(WaylandAppContext& ac, wl_seat& s
 	});
 }
 
-WaylandKeyboardContext::~WaylandKeyboardContext()
-{
+WaylandKeyboardContext::~WaylandKeyboardContext() {
 	if(timerfd_) {
 		close(timerfd_);
 	}
 
 	if(wlKeyboard_) {
-		if(wl_keyboard_get_version(wlKeyboard_) >= 3) wl_keyboard_release(wlKeyboard_);
-		else wl_keyboard_destroy(wlKeyboard_);
+		if(wl_keyboard_get_version(wlKeyboard_) >= 3) {
+			wl_keyboard_release(wlKeyboard_);
+		} else {
+			wl_keyboard_destroy(wlKeyboard_);
+		}
 	}
 }
 
-bool WaylandKeyboardContext::pressed(Keycode key) const
-{
+bool WaylandKeyboardContext::pressed(Keycode key) const {
 	auto uint = static_cast<unsigned int>(key);
-	if(uint > 255) return false;
+	if(uint > 255) {
+		return false;
+	}
+
 	return keyStates_[uint];
 }
 
-bool WaylandKeyboardContext::withKeymap()
-{
+bool WaylandKeyboardContext::withKeymap() {
 	return keymap_;
 }
-void WaylandKeyboardContext::handleKeymap(wl_keyboard*, uint32_t format, int32_t fd, uint32_t size)
-{
+
+void WaylandKeyboardContext::handleKeymap(wl_keyboard*, uint32_t format,
+		int32_t fd, uint32_t size) {
 	// always close the give fd
 	auto fdGuard = nytl::ScopeGuard([=]{ if(fd) close(fd); });
 
-	if(format == WL_KEYBOARD_KEYMAP_FORMAT_NO_KEYMAP) return;
+	if(format == WL_KEYBOARD_KEYMAP_FORMAT_NO_KEYMAP) {
+		return;
+	}
 	if(format != WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1) {
 		dlg_warn("invalid keymap format");
 		return;
@@ -283,8 +289,12 @@ void WaylandKeyboardContext::handleKeymap(wl_keyboard*, uint32_t format, int32_t
 
 	keymap_ = true;
 
-	if(xkbState_) xkb_state_unref(xkbState_);
-	if(xkbKeymap_) xkb_keymap_unref(xkbKeymap_);
+	if(xkbState_) {
+		xkb_state_unref(xkbState_);
+	}
+	if(xkbKeymap_) {
+		xkb_keymap_unref(xkbKeymap_);
+	}
 
 	auto data = static_cast<char*>(buf);
 	xkbKeymap_ = xkb_keymap_new_from_buffer(xkbContext_, data, size - 1,
@@ -302,9 +312,8 @@ void WaylandKeyboardContext::handleKeymap(wl_keyboard*, uint32_t format, int32_t
 		return;
 	}
 }
-void WaylandKeyboardContext::handleEnter(wl_keyboard*, uint32_t serial, wl_surface* surface,
-	wl_array* keys)
-{
+void WaylandKeyboardContext::handleEnter(wl_keyboard*, uint32_t serial,
+		wl_surface* surface, wl_array* keys) {
 	lastSerial_ = serial;
 	WaylandEventData eventData(serial);
 
@@ -316,8 +325,6 @@ void WaylandKeyboardContext::handleEnter(wl_keyboard*, uint32_t serial, wl_surfa
 
 	auto* wc = appContext_.windowContext(*surface);
 	if(wc != focus_) {
-		onFocus(*this, focus_, wc);
-
 		FocusEvent fe;
 		fe.gained = false;
 		fe.eventData = &eventData;
@@ -332,16 +339,17 @@ void WaylandKeyboardContext::handleEnter(wl_keyboard*, uint32_t serial, wl_surfa
 	}
 }
 
-void WaylandKeyboardContext::handleLeave(wl_keyboard*, uint32_t serial, wl_surface* surface)
-{
+void WaylandKeyboardContext::handleLeave(wl_keyboard*, uint32_t serial,
+		wl_surface* surface) {
 	lastSerial_ = serial;
 	WaylandEventData eventData(serial);
 
 	auto* wc = appContext_.windowContext(*surface);
-	if(wc != focus_) dlg_warn("'focus_' inconsistency");
+	if(wc != focus_) {
+		dlg_warn("'focus_' inconsistency");
+	}
 
 	if(wc) {
-		onFocus(*this, wc, nullptr);
 		FocusEvent fe;
 		fe.gained = false;
 		fe.eventData = &eventData;
@@ -360,9 +368,8 @@ void WaylandKeyboardContext::handleLeave(wl_keyboard*, uint32_t serial, wl_surfa
 	its.it_value.tv_nsec = 0;
 	timerfd_settime(timerfd_, 0, &its, nullptr);
 }
-void WaylandKeyboardContext::handleKey(wl_keyboard*, uint32_t serial, uint32_t time,
-	uint32_t key, uint32_t pressed)
-{
+void WaylandKeyboardContext::handleKey(wl_keyboard*, uint32_t serial,
+		uint32_t time, uint32_t key, uint32_t pressed) {
 	nytl::unused(time);
 
 	lastSerial_ = serial;
@@ -381,8 +388,6 @@ void WaylandKeyboardContext::handleKey(wl_keyboard*, uint32_t serial, uint32_t t
 		ke.repeat = false;
 		focus_->listener().key(ke);
 	}
-
-	onKey(*this, keycode, utf8, pressed);
 
 	// repeat the key
 	struct itimerspec its;
@@ -403,15 +408,15 @@ void WaylandKeyboardContext::handleKey(wl_keyboard*, uint32_t serial, uint32_t t
 	}
 }
 
-void WaylandKeyboardContext::handleModifiers(wl_keyboard*, uint32_t serial, uint32_t mdepressed,
-	uint32_t mlatched, uint32_t mlocked, uint32_t group)
-{
+void WaylandKeyboardContext::handleModifiers(wl_keyboard*, uint32_t serial,
+		uint32_t mdepressed, uint32_t mlatched, uint32_t mlocked,
+		uint32_t group) {
 	lastSerial_ = serial;
 	XkbKeyboardContext::updateState({mdepressed, mlatched, mlocked}, {group, group, group});
 }
 
-void WaylandKeyboardContext::handleRepeatInfo(wl_keyboard*, int32_t rate, int32_t delay)
-{
+void WaylandKeyboardContext::handleRepeatInfo(wl_keyboard*, int32_t rate,
+		int32_t delay) {
 	repeat_ = {};
 
 	if(rate == 0) { // repeating disabled
@@ -430,8 +435,7 @@ void WaylandKeyboardContext::handleRepeatInfo(wl_keyboard*, int32_t rate, int32_
 	r.delayns = delay * 1000 * 1000;
 }
 
-void WaylandKeyboardContext::repeatKey()
-{
+void WaylandKeyboardContext::repeatKey() {
 	std::uint64_t val;
 	if(read(timerfd_, &val, 8) != 8) {
 		return;
@@ -450,8 +454,12 @@ void WaylandKeyboardContext::repeatKey()
 		ke.repeat = true;
 		focus_->listener().key(ke);
 	}
+}
 
-	onKey(*this, keycode, utf8, true);
+void WaylandKeyboardContext::destroyed(const WaylandWindowContext& wc) {
+	if(focus_ == &wc) {
+		focus_ = nullptr;
+	}
 }
 
 } // namespace ny

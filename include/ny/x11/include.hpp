@@ -16,8 +16,10 @@ using Display = struct _XDisplay;
 using xcb_connection_t = struct xcb_connection_t;
 using xcb_visualtype_t = struct xcb_visualtype_t;
 using xcb_screen_t = struct xcb_screen_t;
-using xcb_window_t = uint32_t;
-using xcb_atom_t = uint32_t;
+using xcb_window_t = std::uint32_t;
+using xcb_atom_t = std::uint32_t;
+using xcb_timestamp_t = std::uint32_t;
+using xcb_cursor_t = std::uint32_t;
 
 namespace ny {
 

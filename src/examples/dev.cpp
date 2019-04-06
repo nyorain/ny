@@ -90,6 +90,10 @@ void handleDataOffer(ny::AppContext& ac, ny::DataOffer& dataOffer) {
 
 	dataOffer.formats(formatHandler);
 	while(wait) {
+		// from the moment this is called for the first time the
+		// dataOffer reference might be dangling and should not
+		// longer be accessed (at least if this was invoked with the
+		// non-owned clipboard data offer, see ny/appContext.hpp)
 		ac.waitEvents();
 	}
 }

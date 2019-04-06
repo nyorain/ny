@@ -5,10 +5,17 @@ for features/improvements.
 
 ## Prio
 
-- update non-wayland backends to respect WindowSettings::customDecorated
+- update backends to respect WindowSettings::customDecorated
+  (done for x11, wayland; needs to be done for winapi)
+- fix aliasing issues for x11 backend. Don't reinterpret_cast
+  (probably best to just revisit all reinterpret_casts)
+- make AppContext::deferred private everywhere
+	- instead add `defer(func)` and `windowContextDestroyed(wc)` functions
+- remove the keyboard and mouse context callbacks. Not needed,
+  often not correctly implemented/called
 
 - windows: wm_sysdown to capture alt keypress
-- windows: wm_char fix (test with ime)
+- windows: wm_char fix (test with ime), document it
 - test correct/uniform wheel values on all platforms (1.f per tick)
 - rework dataExchange
 	- some kind of dnd offer succesful feedback
@@ -21,9 +28,6 @@ for features/improvements.
 		- more mime-specific DataFormats, i.e. represent "text/XXX" mime-types always as string?
 		- e.g. if format uriList is available, it can also always be seen as text
 		- does this make sense?
-	- dataExchange: use std::variant instead of std::any
-		- the possible types are known
-		- further are custom types really bad
 	- DataOffer: methods const? they do not change the state of the object (interface)
 		- may not be threadsafe in implementation; should not be required (should it?)
 		- also: really pass it as unique ptr in WindowListener::drop
@@ -33,7 +37,8 @@ for features/improvements.
 
 ### missing features/design issues
 
-- dynamic casts for EventData bad design
+- allow hotspot/offset for dnd windows (in data source?)
+- dynamic casts for EventData bad design?
 	- rather guarantee that a given backend always uses a fix type and
 	  make the user check on backend (in ny::Backend)
 	- also bad design for WindowContext creation? probably makes more
@@ -85,6 +90,8 @@ for features/improvements.
 
 ### ideas/additions, for later
 
+- DndAction is currently intersection of backends. We could make it
+  union of backends (adding ask/link/private)
 - add android ci (ndk)
 - android: fix/improve input
 	- (-> Touch support), window coords and input coords don't match currently
@@ -177,6 +184,9 @@ x11 backend:
 wayland backend:
 ---------------
 
+- window state events sometimes send wrong
+  test out with examples/basic, it sometimes thinks its minimized/maximized
+  even though it isn't
 - allow client side to set window geometry (especially when custom decorated)
 - support other protocols
 	- xdg-decoration

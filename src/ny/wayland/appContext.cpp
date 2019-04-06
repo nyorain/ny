@@ -490,6 +490,9 @@ bool WaylandAppContext::dispatchDisplay() {
 		return wl_display_dispatch_pending(wlDisplay_);
 	}
 
+	// TODO: not sure if function is correct, re-visit docs.
+	// must be re-entrant!
+
 	// try to flush the display until all data is flushed
 	while(true) {
 		ret = wl_display_flush(wlDisplay_);
@@ -586,7 +589,13 @@ int WaylandAppContext::pollFds(short wlDisplayEvents, int timeout) {
 		}
 
 		if(!it->callback(fds[i].fd, fds[i].revents)) {
-			items.erase(it);
+			// refresh iterator. fdCallbacks.items might have
+			// been changed
+			auto it = std::find_if(items.begin(), items.end(),
+				[&](auto& cb){ return cb.clID_.get() == ids[i].get(); });
+			if(it != items.end()) {
+				items.erase(it);
+			}
 		}
 	}
 
@@ -677,7 +686,7 @@ void WaylandAppContext::handleRegistryRemove(wl_registry*, uint32_t id) {
 	if(id == impl_->wlCompositor.name) {
 		wl_compositor_destroy(&wlCompositor());
 		impl_->wlCompositor = {};
-	}
+	} // ... TODO
 }
 
 void WaylandAppContext::handleSeatCapabilities(wl_seat*, uint32_t caps) {
@@ -725,7 +734,11 @@ void WaylandAppContext::handleXdgWmBasePing(xdg_wm_base*, unsigned int serial) {
 }
 
 bool WaylandAppContext::shmFormatSupported(unsigned int wlShmFormat) {
-	for(auto format : shmFormats_) if(format == wlShmFormat) return true;
+	for(auto format : shmFormats_) {
+		if(format == wlShmFormat) {
+			return true;
+		}
+	}
 	return false;
 }
 
@@ -742,6 +755,17 @@ wl_pointer* WaylandAppContext::wlPointer() const {
 wl_keyboard* WaylandAppContext::wlKeyboard() const {
 	if(!waylandKeyboardContext()) return nullptr;
 	return waylandKeyboardContext()->wlKeyboard();
+}
+
+void WaylandAppContext::destroyed(const WaylandWindowContext& wc) {
+	deferred.remove(&wc);
+	if(waylandKeyboardContext()) {
+		waylandKeyboardContext()->destroyed(wc);
+	}
+
+	if(waylandMouseContext()) {
+		waylandMouseContext()->destroyed(wc);
+	}
 }
 
 // getters

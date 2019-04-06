@@ -44,7 +44,6 @@ enum class DndAction : unsigned int {
 	none,
 	copy,
 	move,
-	link
 };
 
 NYTL_FLAG_OPS(DndAction)

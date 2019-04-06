@@ -45,14 +45,14 @@ protected:
 	bool active_ {};
 	nytl::Vec2ui size_; // size of active
 	unsigned int byteSize_ {}; // the size in bytes of ((shm_) ? shmaddr_ : data_)
-	uint8_t* data_ {}; // the actual data (either shmaddr or points so ownedBuffer)
+	std::byte* data_ {}; // the actual data (either shmaddr or points so ownedBuffer)
 
  	// when using shm
 	unsigned int shmid_ {};
 	uint32_t shmseg_ {};
 
 	// otherwise when using owned buffer because shm not available
-	std::unique_ptr<uint8_t[]> ownedBuffer_;
+	std::unique_ptr<std::byte[]> ownedBuffer_;
 };
 
 /// X11 WindowContext implementation with a drawable buffer surface.

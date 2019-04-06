@@ -1,3 +1,6 @@
+**NOTE: massively outdated, to be rewritten**
+**Best to just look at the ny/dataExchange.hpp header for documentation atm**
+
 DataExchange
 ============
 

@@ -28,6 +28,7 @@ public:
 
 	X11AppContext& appContext() const { return appContext_; }
 	X11WindowContext* x11Over() const { return over_; }
+	void destroyed(const X11WindowContext& wc);
 
 protected:
 	X11AppContext& appContext_;
@@ -58,9 +59,8 @@ public:
 	/// Returns whether the given event was processed.
 	bool processEvent(const x11::GenericEvent& ev, const x11::GenericEvent* next);
 
-	bool updateKeymap();
-
 	X11AppContext& appContext() const { return appContext_; }
+	void destroyed(const X11WindowContext& wc);
 
 protected:
 	X11AppContext& appContext_;
