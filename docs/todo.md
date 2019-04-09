@@ -16,10 +16,14 @@ for features/improvements.
   often not correctly implemented/called
 - make code reentrant, fix next_ in X11AppContext
 	- but also check other appcontexts again
+- cleanup and write documentation
+- ny::Surface: use std::variant
+	- there are probably other unions in ny as well
 
 - windows: wm_sysdown to capture alt keypress
 - windows: wm_char fix (test with ime), document it
 - test correct/uniform wheel values on all platforms (1.f per tick)
+	- currently inverted on wayland...
 - rework dataExchange
 	- some kind of dnd offer succesful feedback
 		- also offer dnd effects (copy/move etc)
@@ -37,9 +41,14 @@ for features/improvements.
 			- why not simply non-const pointer, from this can be moved as well?!
 	- wayland: fix dataExchange, enable only for droppable windows
 		- probably -> dataExchange rework
+- better WindowSettings surface/draw namings
+	- WindowSettings::buffer is a rather bad/unintuitive name
 
 ### missing features/design issues
 
+- animated cursors
+	- in Cursor class (low prio) but we should at least support animated system cursors
+	  e.g. on wayland
 - allow hotspot/offset for dnd windows (in data source?)
 - dynamic casts for EventData bad design?
 	- rather guarantee that a given backend always uses a fix type and
@@ -60,39 +69,44 @@ for features/improvements.
 		- fix initial state/size sending
 		- wayland/x11: top level states (init + on change)
 		- invalid behaviour with maximize (not supported) on e.g. i3 (basic example, thinks it is maximized but it is not)
-- send CloseEvent when WindowContext::close called? define such things somewhere!
-- ime input (see winapi backend)
-	- use wm char/wm ime char and such, don't use ToUnicode
+- document when which events are called, guarantees
+	e.g. no resize events on manual resize, no closeEvent on close
+	but initial resize event if defaultSize was passed in WindowSettings
 - improvements to meson android handling
 	- e.g. offer way to automate building (at least some scripts)
 		- copy libraries using meson (+ script), automatically generate apk
 	- add unit tests where possible
-- general way to query (sync/async?) size from windowContext?
-- x11 dnd window
-- improve WindowCapabilities handling for backends
-	- not static on x11/wayland regarding decorations, position, sizeLimits
+- add general way to query (sync/async?) size from windowContext?
 - improve error specifications everywhere
 - move deferred.hpp to nytl
-- abolish WindowContextPtr, AppContextPtr
 - dataExchange: correctly handle utf-8 mimetype
 	- only pass utf-8 to the application
-- Keyboard/MouseContext use Event in callback?
 - fix/re-add examples
 	- see src/examples/old
 		- provide vulkan example (basic)
 		- provide software rendering example
 			- show how the handle the returned mutable image
-		- cairo/skia examples
-- better WindowSettings surface/draw namings
-	- WindowSettings::buffer is a rather bad/unintuitive name
-- possibility to create popups on wayland per common interface
-	- the interface could also create popups on windows (?)
-	- something like 'popupParentWindowContext' in windowSettings?
-		- problem: on wayland e.g. we might need the parent surface role
-- fix/test meson build configs
+- implement NonOwnedData optimization (less buffer-copies) [dataExchange rework]
+	- for offer/source/both?
+```cpp
+using NonOwnedData = std::variant<
+	std::monostate,
+	std::string_view,
+	Image,
+	nytl::Span<std::string>, // or nytl::Span<std::string_view>?
+	nytl::Span<std::byte>>;
+```
+- better (tested) touch support
+	- maybe offer settings to just translate them into pointer evens?
+	- implement touch support on winapi, wayland
 
-### ideas/additions, for later
+### ideas/additions, for later; things that need discussion
 
+- is there a need for a `TouchContext` class (like Keyboard/MouseContext?)
+- allow to mark WindowContext "urgent"
+	- not sure yet how it's implemented in x11,wayland but there is a common
+	  mechanism that quite some apps use. Probably something like this in winapi
+	  as well
 - DndAction is currently intersection of backends. We could make it
   union of backends (adding ask/link/private)
 - add android ci (ndk)
@@ -105,32 +119,16 @@ for features/improvements.
 - add WindowContext capability 'surfaceEvent' to signal it might send surface destroyed events?
 - WindowContext destroy event? Called in the listener when the windowContext exists no more?
 	- rework destruction/closing of windows?
-- C++17 update:
-	- use extended aggregate initialization for Event class
-		- update for backends (not create explicit structs before calling listener)
-- fix/clean up TODO marks in code
 - bufferSurface: dirtyBounds parameter for buffer function
+	- can be handled e.g. on wayland
 - glsurface::apply: dirtyBound parameter (?) + extension using
-- save (and provide somewhere) the LoopControl idiom
-	- see (last) commit 057bb554339957984f9e593895f2954ffdda7093
 - support for multiple seats (mainly wayland)
+- [extremely low prio, probably bad idea] possibility to create popups/dialogs/subsurfaces
+	- the interface could also create popups on windows (?)
+	- something like 'popupParentWindowContext' in windowSettings?
+	  what about subsurfaces?
 - new image formats, such as hsl, yuv since they might be supported by some backends?
 	- (mainly wayland)
-- MouseContext callbacks delta value might go crazy when changing over (mouseCross)
-	- reorder <Mouse/Keyobard>Context callback parameters/use Event structs as well
-		give them a similiar signature to the WindowListener callbacks
-
-- implement NonOwnedData optimization (less buffer-copies) [dataExchange rework]
-	- for offer/source/both?
-```cpp
-using NonOwnedData = std::variant<
-	std::monostate,
-	std::string_view,
-	Image,
-	nytl::Span<std::string>, // or nytl::Span<std::string_view>?
-	nytl::Span<std::byte>>;
-```
-
 - test image and uri serialize/deserialize
 - AppContext: function for ringing the systems bell (at least x11, winapi)
 	- contra: available pretty much only on those platforms
@@ -139,28 +137,13 @@ using NonOwnedData = std::variant<
 	- most applications want to draw in some way
 	- also default clear the buffer in some way? or set a flag for this with
 		default set to true?
-
-low prio, for later:
-====================
-
-- some common util file/dir for e.g. ConnectionList
 - toy around with additional backends e.g. drm
 	- mainly to make sure it is possible with the current abstraction
-- touch support (TouchContext and touch events)
-	- maybe just translate them into pointer evens?
-	- more general events that cover touch and pointer input,
-		- they are conceptually the same, some backends make little difference
-		- maybe just add more information to pointer events and associated
-			them with a pointer id that allows for multiple pointer handling?
 - BufferSurfaceSettings, things like preferred strideAlign or format
-	- double buffers setting
-	- cairo/skia integration mockups
-	- rewrite/fix cairo/skia examples
+	- double buffering setting
+- BufferSurface: skia integration example
 - noexcept specifications (especially for interfaces!)
 - osx support
-- make position vecs (e.g. for mouseButton, mouseMove) Vec2ui instead of Vec2i
-	- when could it be negative?
-	- not sure if good idea
 
 Backend stuff
 =============
