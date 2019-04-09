@@ -23,6 +23,9 @@
 // the data manager was modeled after the clipboard specification of iccccm
 // https://www.x.org/releases/X11R7.6/doc/xorg-docs/specs/ICCCM/icccm.html#use_of_selection_atoms
 // https://freedesktop.org/wiki/Specifications/XDND/
+//
+// simple (and old) dnd implementation:
+// https://git.blender.org/gitweb/gitweb.cgi/blender.git/blob/HEAD:/extern/xdnd/xdnd.c
 
 // TODO: something about notify event timeout (or leave it to application?)
 //   probably best done using a timerfd and fd callback support in x11appcontext
@@ -270,7 +273,7 @@ bool X11DataOffer::data(nytl::StringParam format, DataListener listener) {
 // but i'm not sure you can even implement these selection things
 // in any solid way
 bool X11DataOffer::notify(const x11::GenericEvent& ev) {
-	auto notify = copy<xcb_selection_notify_event_t>(ev);
+	auto notify = copyu<xcb_selection_notify_event_t>(ev);
 
 	// check the target of the notify
 	// if the target it atoms.target, it notifies us that the selection owner set the
@@ -498,7 +501,7 @@ X11DataSource::X11DataSource(X11AppContext& ac, std::unique_ptr<DataSource> src,
 }
 
 void X11DataSource::answerRequest(const x11::GenericEvent& ev) {
-	auto request = copy<xcb_selection_request_event_t>(ev);
+	auto request = copyu<xcb_selection_request_event_t>(ev);
 
 	// TODO: some parts of icccm not implemented
 	auto property = request.property;
@@ -615,7 +618,7 @@ bool X11DataManager::processEvent(const x11::GenericEvent& ev) {
 		// a selection owner notifies us that it set the request property
 		// we need to query the DataOffer this is associated with and let it handle
 		// the notification
-		auto notify = copy<xcb_selection_notify_event_t>(ev);
+		auto notify = copyu<xcb_selection_notify_event_t>(ev);
 		auto& atoms = appContext().atoms();
 
 		if(notify.requestor != appContext().xDummyWindow()) {
@@ -651,7 +654,7 @@ bool X11DataManager::processEvent(const x11::GenericEvent& ev) {
 		// some other x clients requests us to convert a selection or send
 		// them the supported targets
 		// find the associated data source and let it answer the request
-		auto req = copy<xcb_selection_request_event_t>(ev);
+		auto req = copyu<xcb_selection_request_event_t>(ev);
 
 		X11DataSource* source = nullptr;
 		if(req.selection == atoms().clipboard) {
@@ -685,7 +688,7 @@ bool X11DataManager::processEvent(const x11::GenericEvent& ev) {
 	} case XCB_SELECTION_CLEAR: {
 		// we are notified that we lost ownership over a selection
 		// query the associated data source and unset it
-		auto clear = copy<xcb_selection_clear_event_t>(ev);
+		auto clear = copyu<xcb_selection_clear_event_t>(ev);
 		if(clear.owner != xDummyWindow()) {
 			dlg_info("received selection clear event for invalid window");
 			return true;
@@ -721,7 +724,7 @@ bool X11DataManager::processEvent(const x11::GenericEvent& ev) {
 bool X11DataManager::processClientMessage(const x11::GenericEvent& ev,
 		const EventData& eventData) {
 
-	auto clientm = copy<xcb_client_message_event_t>(ev);
+	auto clientm = copyu<xcb_client_message_event_t>(ev);
 	if(clientm.type == atoms().xdndEnter) {
 		auto* data = clientm.data.data32;
 
@@ -928,7 +931,7 @@ bool X11DataManager::processDndEvent(const x11::GenericEvent& ev) {
 	auto responseType = ev.response_type & ~0x80;
 	switch(responseType) {
 	case XCB_MOTION_NOTIFY: {
-		auto motionEv = copy<xcb_motion_notify_event_t>(ev);
+		auto motionEv = copyu<xcb_motion_notify_event_t>(ev);
 		appContext().time(motionEv.time);
 
 		// move the dnd window. The +1 offset is a hack so that we
@@ -1005,7 +1008,7 @@ bool X11DataManager::processDndEvent(const x11::GenericEvent& ev) {
 
 		return true;
 	} case XCB_BUTTON_RELEASE: {
-		auto buttonEv = copy<xcb_button_release_event_t>(ev);
+		auto buttonEv = copyu<xcb_button_release_event_t>(ev);
 		appContext().time(buttonEv.time);
 
 		if(dndSrc_.targetWindow) {
@@ -1102,15 +1105,15 @@ bool X11DataManager::startDragDrop(const EventData* evdata,
 		// TODO: we could refactor this to X11EventData::timestamp()
 		auto rtype = ev->event.response_type & ~0x80;
 		if(rtype == XCB_BUTTON_PRESS) {
-			time = copy<xcb_button_press_event_t>(ev->event).time;
+			time = copyu<xcb_button_press_event_t>(ev->event).time;
 		} else if(rtype == XCB_BUTTON_RELEASE) {
-			time = copy<xcb_button_release_event_t>(ev->event).time;
+			time = copyu<xcb_button_release_event_t>(ev->event).time;
 		} else if(rtype == XCB_MOTION_NOTIFY) {
-			time = copy<xcb_motion_notify_event_t>(ev->event).time;
+			time = copyu<xcb_motion_notify_event_t>(ev->event).time;
 		} else if(rtype == XCB_KEY_PRESS) {
-			time = copy<xcb_key_press_event_t>(ev->event).time;
+			time = copyu<xcb_key_press_event_t>(ev->event).time;
 		} else if(rtype == XCB_KEY_RELEASE) {
-			time = copy<xcb_key_release_event_t>(ev->event).time;
+			time = copyu<xcb_key_release_event_t>(ev->event).time;
 		}
 	}
 

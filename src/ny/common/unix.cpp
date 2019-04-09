@@ -9,6 +9,9 @@
 #include <dlg/dlg.hpp>
 #include <cstring>
 
+#include <unistd.h>
+#include <sys/eventfd.h>
+
 namespace ny {
 
 // https://www.freedesktop.org/wiki/Specifications/cursor-spec/
@@ -98,6 +101,45 @@ MouseButton linuxToButton(unsigned int buttoncode) {
 		case 0x117: return MouseButton::custom5;
 		default: return MouseButton::unknown;
 	}
+}
+
+EventFD::EventFD() {
+	fd_ = eventfd(0, EFD_NONBLOCK);
+	if(fd_ < 0) {
+		fd_ = {};
+		auto msg = std::string("Creating eventfd failed: ") + std::strerror(errno);
+		throw std::runtime_error(msg);
+	}
+}
+
+EventFD::~EventFD() {
+	if(fd_) {
+		close(fd_);
+	}
+}
+
+void EventFD::signal() {
+	errno = 0;
+	uint64_t val = 1;
+	int ret = write(fd_, &val, 8u);
+	if(ret < 8 && errno != EWOULDBLOCK && errno != EAGAIN) {
+		auto msg = std::string("write(eventfd) failed: ") + std::strerror(errno);
+		throw std::runtime_error(msg);
+	}
+}
+
+bool EventFD::reset() {
+	errno = 0;
+	uint64_t val = 0;
+	int ret = read(fd_, &val, 8u);
+	if(ret == 0 || errno == EWOULDBLOCK || errno == EAGAIN) {
+		return false;
+	} else if(ret < 8) {
+		auto msg = std::string("read(eventfd) failed: ") + std::strerror(errno);
+		throw std::runtime_error(msg);
+	}
+
+	return true;
 }
 
 } // namespace ny

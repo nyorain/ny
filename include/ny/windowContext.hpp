@@ -6,6 +6,7 @@
 
 #include <ny/fwd.hpp>
 #include <ny/windowListener.hpp> // ny::WindowListener
+#include <nytl/nonCopyable.hpp> // nytl::NonMovable
 #include <functional> // std::reference_wrapper
 
 namespace ny {
@@ -15,7 +16,7 @@ namespace ny {
 /// but rather communicate them to the application via event callbacks.
 /// The application can set the WindowListener that will be called when the WindowContext
 /// receives any window or input events and store only the needed information.
-class WindowContext {
+class WindowContext : public nytl::NonMovable {
 public:
 	WindowContext() = default;
 	virtual ~WindowContext() { listener().destroyed(); }

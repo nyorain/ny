@@ -24,4 +24,24 @@ Keycode linuxToKey(unsigned int keycode);
 unsigned int buttonToLinux(MouseButton);
 MouseButton linuxToButton(unsigned int buttoncode);
 
+// NOTE: on OSs where eventfd isn't available we could implement this using pipes
+/// Non-blocking eventfd.
+class EventFD {
+public:
+	EventFD();
+	~EventFD();
+
+	/// Signals the eventfd. After this is called, the fd will become readable
+	/// (POLLIN) and reset() will return true.
+	void signal();
+
+	/// Reads and resets the eventfd. Returns whether it was signaled.
+	bool reset();
+
+	int fd() const { return fd_; }
+
+protected:
+	int fd_ {};
+};
+
 } // namespace ny

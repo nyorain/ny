@@ -32,7 +32,7 @@ bool X11MouseContext::processEvent(const x11::GenericEvent& ev) {
 	auto responseType = ev.response_type & ~0x80;
 	switch(responseType) {
 		case XCB_MOTION_NOTIFY: {
-			auto motion = copy<xcb_motion_notify_event_t>(ev);
+			auto motion = copyu<xcb_motion_notify_event_t>(ev);
 			auto pos = nytl::Vec2i{motion.event_x, motion.event_y};
 			appContext().time(motion.time);
 			if(pos == lastPosition_) {
@@ -55,7 +55,7 @@ bool X11MouseContext::processEvent(const x11::GenericEvent& ev) {
 
 			break;
 		} case XCB_BUTTON_PRESS: {
-			auto button = copy<xcb_button_press_event_t>(ev);
+			auto button = copyu<xcb_button_press_event_t>(ev);
 			auto wc = appContext().windowContext(button.event);
 			auto pos = nytl::Vec2i{button.event_x, button.event_y};
 			appContext().time(button.time);
@@ -96,7 +96,7 @@ bool X11MouseContext::processEvent(const x11::GenericEvent& ev) {
 
 			break;
 		} case XCB_BUTTON_RELEASE: {
-			auto button = copy<xcb_button_release_event_t>(ev);
+			auto button = copyu<xcb_button_release_event_t>(ev);
 			appContext().time(button.time);
 			if(button.detail >= 4 && button.detail <= 7) {
 				break;
@@ -118,7 +118,7 @@ bool X11MouseContext::processEvent(const x11::GenericEvent& ev) {
 			}
 			break;
 		} case XCB_ENTER_NOTIFY: {
-			auto enter = copy<xcb_enter_notify_event_t>(ev);
+			auto enter = copyu<xcb_enter_notify_event_t>(ev);
 			appContext().time(enter.time);
 
 			auto wc = appContext().windowContext(enter.event);
@@ -138,7 +138,7 @@ bool X11MouseContext::processEvent(const x11::GenericEvent& ev) {
 
 			break;
 		} case XCB_LEAVE_NOTIFY: {
-			auto leave = copy<xcb_enter_notify_event_t>(ev);
+			auto leave = copyu<xcb_enter_notify_event_t>(ev);
 			appContext().time(leave.time);
 
 			auto wc = appContext().windowContext(leave.event);
@@ -295,7 +295,7 @@ bool X11KeyboardContext::processEvent(const x11::GenericEvent& ev, const x11::Ge
 	auto responseType = ev.response_type & ~0x80;
 	switch(responseType) {
 		case XCB_FOCUS_IN: {
-			auto focus = copy<xcb_focus_in_event_t>(ev);
+			auto focus = copyu<xcb_focus_in_event_t>(ev);
 			auto wc = appContext().windowContext(focus.event);
 			if(focus_ != wc) {
 				onFocus(*this, focus_, wc);
@@ -311,7 +311,7 @@ bool X11KeyboardContext::processEvent(const x11::GenericEvent& ev, const x11::Ge
 
 			break;
 		} case XCB_FOCUS_OUT: {
-			auto focus = copy<xcb_focus_in_event_t>(ev);
+			auto focus = copyu<xcb_focus_in_event_t>(ev);
 			auto wc = appContext().windowContext(focus.event);
 
 			if(focus_ == wc) {
@@ -328,7 +328,7 @@ bool X11KeyboardContext::processEvent(const x11::GenericEvent& ev, const x11::Ge
 
 			break;
 		} case XCB_KEY_PRESS: {
-			auto key = copy<xcb_key_press_event_t>(ev);
+			auto key = copyu<xcb_key_press_event_t>(ev);
 			auto wc = appContext().windowContext(key.event);
 			appContext().time(key.time);
 
@@ -358,7 +358,7 @@ bool X11KeyboardContext::processEvent(const x11::GenericEvent& ev, const x11::Ge
 			break;
 		}
 		case XCB_KEY_RELEASE: {
-			auto key = copy<xcb_key_press_event_t>(ev);
+			auto key = copyu<xcb_key_press_event_t>(ev);
 			auto wc = appContext().windowContext(key.event);
 			appContext().time(key.time);
 
@@ -367,7 +367,7 @@ bool X11KeyboardContext::processEvent(const x11::GenericEvent& ev, const x11::Ge
 
 			// check for repeat
 			if(next && (next->response_type & ~0x80) == XCB_KEY_PRESS) {
-				auto kp = copy<xcb_key_press_event_t>(*next);
+				auto kp = copyu<xcb_key_press_event_t>(*next);
 				if(kp.time == key.time && kp.detail == key.detail) {
 					// just ignore this event
 					repeated_ = true;
@@ -397,7 +397,7 @@ bool X11KeyboardContext::processEvent(const x11::GenericEvent& ev, const x11::Ge
 			break;
 		} default: {
 			if(ev.response_type == xkbEventType()) {
-				auto xkbev = copy<XkbEvent>(ev);
+				auto xkbev = copyu<XkbEvent>(ev);
 				switch(xkbev.any.xkbType) {
 					case XCB_XKB_STATE_NOTIFY: {
 						xkb_state_update_mask(xkbState_,

@@ -134,48 +134,9 @@ struct MemberCallback<F, f, R(Args...), true> {
 template<auto f, typename S = typename nytl::FunctionTraits<decltype(f)>::Signature, bool L = false>
 constexpr auto memberCallback = &detail::MemberCallback<std::decay_t<decltype(f)>, f, S, L>::call;
 
-// TODO: does not belong here... rather some common util file
-/// Utility template that allows a generic list of connectable objects.
-/// Used by WaylandAppContext for its fd listeners.
-template<typename T>
-class ConnectionList : public nytl::Connectable {
-public:
-	struct Value : public T {
-		using T::T;
-		nytl::ConnectionID clID_;
-	};
-
-	std::vector<Value> items;
-	nytl::ConnectionID highestID;
-
-public:
-	bool disconnect(const nytl::ConnectionID& id) override {
-		for(auto it = items.begin(); it != items.end(); ++it) {
-			if(it->clID_.get() == id.get()) {
-				items.erase(it);
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	nytl::Connection add(const T& value) {
-		items.emplace_back();
-		static_cast<T&>(items.back()) = value;
-		items.back().clID_ = {nextID()};
-		return {*this, items.back().clID_};
-	}
-
-	nytl::ConnectionID nextID() {
-		++highestID.value;
-		return highestID;
-	}
-};
-
-///Used for e.g. move/resize requests where the serial of the trigger can be given
-///All wayland event callbacks that retrieve a serial value should create a WaylandEventData
-///object and pass it to the event handler.
+/// Used for e.g. move/resize requests where the serial of the trigger can be given
+/// All wayland event callbacks that retrieve a serial value should create a WaylandEventData
+/// object and pass it to the event handler.
 class WaylandEventData : public ny::EventData {
 public:
 	WaylandEventData(unsigned int xserial) : serial(xserial) {};

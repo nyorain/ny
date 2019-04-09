@@ -9,6 +9,7 @@
 #include <ny/x11/bufferSurface.hpp>
 #include <ny/x11/dataExchange.hpp>
 #include <ny/common/copy.hpp>
+#include <ny/common/connectionList.hpp>
 
 #include <ny/common/unix.hpp>
 #include <ny/dataExchange.hpp>
@@ -40,18 +41,39 @@
 #include <xcb/xproto.h>
 #include <xcb/xcb_ewmh.h>
 
+#include <poll.h>
+#include <unistd.h>
 #include <cstring>
 #include <mutex>
 #include <atomic>
 #include <queue>
 
 namespace ny {
+namespace {
+
+// Like poll but does not return on signals.
+int noSigPoll(pollfd& fds, nfds_t nfds, int timeout = -1) {
+	while(true) {
+		auto ret = poll(&fds, nfds, timeout);
+		if(ret != -1 || errno != EINTR) return ret;
+	}
+}
+
+// Listener entry to implement custom fd polling callbacks in WaylandAppContext.
+struct ListenerEntry {
+	int fd {};
+	unsigned int events {};
+	std::function<bool(int fd, unsigned int events)> callback;
+};
+
+} // anon namespace
 
 struct X11AppContext::Impl {
 	x11::EwmhConnection ewmhConnection;
 	x11::Atoms atoms;
 	X11ErrorCategory errorCategory;
 	X11DataManager dataManager;
+	ConnectionList<ListenerEntry> fdCallbacks;
 
 #ifdef NY_WithGl
 	GlxSetup glxSetup;
@@ -61,12 +83,9 @@ struct X11AppContext::Impl {
 
 // AppContext
 X11AppContext::X11AppContext() {
-	// TODO, make this optional, may be needed by some applications
-	// Something like a threadsafe flags in X11AppContextSettings would make sense
-	// we use it only in wakeupWait (if called from other thread), we could
-	// also simply replace that with an eventfd just as in the wayland ac
-	::XInitThreads();
-
+	// TODO, make this optional, may be requested by some applications
+	// for additional operations
+	// ::XInitThreads();
 	impl_ = std::make_unique<Impl>();
 
 	xDisplay_ = ::XOpenDisplay(nullptr);
@@ -292,25 +311,110 @@ KeyboardContext* X11AppContext::keyboardContext() {
 	return keyboardContext_.get();
 }
 
+void X11AppContext::poll(bool wait) {
+	eventfd_.reset();
+
+	std::vector<nytl::ConnectionID> ids;
+	std::vector<pollfd> fds;
+	ids.reserve(impl_->fdCallbacks.items.size());
+	fds.reserve(impl_->fdCallbacks.items.size() + 2);
+
+	// custom fds
+	for(auto& fdc : impl_->fdCallbacks.items) {
+		fds.push_back({fdc.fd, static_cast<short>(fdc.events), 0u});
+		ids.push_back({fdc.clID_});
+	}
+
+	// xcb connection
+	fds.emplace_back();
+	fds.back().events = POLLIN;
+	fds.back().fd = xcb_get_file_descriptor(&xConnection());
+
+	// eventfd at last index
+	// only needed when waiting, otherwise we won't ever block at all
+	if(wait) {
+		fds.emplace_back();
+		fds.back().events = POLLIN;
+		fds.back().fd = eventfd_.fd();
+	}
+
+	// poll
+	auto timeout = wait ? -1 : 0;
+	auto ret = noSigPoll(*fds.data(), fds.size(), timeout);
+	if(ret < 0) {
+		dlg_info("poll failed: {}", std::strerror(errno));
+		return;
+	} else if(ret == 0) { // timeout, no events
+		return;
+	}
+
+	// check eventfd
+	if(wait) {
+		if(fds.back().revents & POLLIN) {
+			dlg_assert(eventfd_.reset());
+			return;
+		}
+		fds.pop_back();
+	}
+
+	// deliver events to custom fds
+	// check which fd callbacks have revents, find and trigger them
+	// fds.size() > ids.size() always true
+	for(auto i = 0u; i < ids.size(); ++i) {
+		if(!fds[i].revents) {
+			continue;
+		}
+
+		auto& items = impl_->fdCallbacks.items;
+		auto it = std::find_if(items.begin(), items.end(),
+			[&](auto& cb){ return cb.clID_.get() == ids[i].get(); });
+		if(it == items.end()) {
+			// in this case it was erased by a previous callback
+			continue;
+		}
+
+		if(!it->callback(fds[i].fd, fds[i].revents)) {
+			// refresh iterator. fdCallbacks.items might have
+			// been changed
+			auto it = std::find_if(items.begin(), items.end(),
+				[&](auto& cb){ return cb.clID_.get() == ids[i].get(); });
+			if(it != items.end()) {
+				items.erase(it);
+			}
+			// otherwise returned false was already actively disconnected
+		}
+	}
+
+	// TODO: probably no re-entrant due to next_
+	// copy next_ before using should be enough
+	if(fds.back().revents & POLLIN) {
+		// dispatch all readable events
+		while(true) {
+			xcb_generic_event_t* event {};
+			if(next_) {
+				event = next_;
+				next_ = nullptr;
+			} else if(!(event = xcb_poll_for_event(xConnection_))) {
+				break;
+			}
+
+			next_ = static_cast<x11::GenericEvent*>(xcb_poll_for_event(xConnection_));
+			processEvent(static_cast<x11::GenericEvent&>(*event), next_);
+			free(event);
+			xcb_flush(&xConnection());
+		}
+	}
+}
+
+// TODO: xcb_flush may block until data can be written
+// we could avoid that by polling for POLLOUT and only call
+// xcb_flush in that case... worth it?
+// wayland backend already roughly does it that way
 void X11AppContext::pollEvents() {
 	checkError();
 	deferred.execute();
-	while(true) {
-		xcb_flush(&xConnection());
-		xcb_generic_event_t* event {};
-		if(next_) {
-			event = next_;
-			next_ = nullptr;
-		} else if(!(event = xcb_poll_for_event(xConnection_))) {
-			break;
-		}
-
-		next_ = static_cast<x11::GenericEvent*>(xcb_poll_for_event(xConnection_));
-		processEvent(static_cast<x11::GenericEvent&>(*event), next_);
-		free(event);
-	}
-
 	xcb_flush(&xConnection());
+	poll(false);
 	deferred.execute();
 	checkError();
 }
@@ -319,34 +423,18 @@ void X11AppContext::waitEvents() {
 	checkError();
 	deferred.execute();
 	xcb_flush(&xConnection());
-
-	xcb_generic_event_t* event;
-	if(!(event = xcb_wait_for_event(xConnection_))) {
-		dlg_warn("waitEvents: xcb_wait_for_event: I/O error");
-		return checkError();
-	}
-
-	while(event) {
-		xcb_flush(&xConnection());
-		next_ = static_cast<x11::GenericEvent*>(xcb_poll_for_event(xConnection_));
-		processEvent(static_cast<x11::GenericEvent&>(*event), next_);
-		free(event);
-		event = next_;
-	}
-
-	xcb_flush(&xConnection());
+	poll(true);
 	deferred.execute();
 	checkError();
 }
 
 void X11AppContext::wakeupWait() {
-	// TODO: only send if currently blocking?
-	// TODO: just use eventfd and custom poll instead?
-	xcb_client_message_event_t dummyEvent {};
-	dummyEvent.type = XCB_CLIENT_MESSAGE;
-	auto eventData = reinterpret_cast<const char*>(&dummyEvent);
-	xcb_send_event(xConnection_, 0, xDummyWindow(), 0, eventData);
-	xcb_flush(xConnection_);
+	// xcb_client_message_event_t dummyEvent {};
+	// dummyEvent.type = XCB_CLIENT_MESSAGE;
+	// auto eventData = reinterpret_cast<const char*>(&dummyEvent);
+	// xcb_send_event(xConnection_, 0, xDummyWindow(), 0, eventData);
+	// xcb_flush(xConnection_);
+	eventfd_.signal();
 }
 
 bool X11AppContext::clipboard(std::unique_ptr<DataSource>&& dataSource) {
@@ -386,7 +474,7 @@ GlxSetup* X11AppContext::glxSetup() const {
 
 		if(!impl_->glxSetup.valid()) {
 			try {
-				impl_->glxSetup = {*this};
+				impl_->glxSetup = {*this, unsigned(xDefaultScreenNumber())};
 			} catch(const std::exception& error) {
 				dlg_warn("initialization failed: {}", error.what());
 				impl_->glxFailed = true;
@@ -486,7 +574,7 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev,
 	auto responseType = ev.response_type & ~0x80;
 	switch(responseType) {
 		case XCB_EXPOSE: {
-			auto expose = copy<xcb_expose_event_t>(ev);
+			auto expose = copyu<xcb_expose_event_t>(ev);
 			auto wc = windowContext(expose.window);
 			if(wc) {
 				if(!wc->drawEventFlag_) {
@@ -503,7 +591,7 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev,
 		}
 
 		case XCB_MAP_NOTIFY: {
-			auto map = copy<xcb_map_notify_event_t>(ev);
+			auto map = copyu<xcb_map_notify_event_t>(ev);
 			auto wc = windowContext(map.event);
 			if(wc) {
 				if(!wc->drawEventFlag_) {
@@ -520,7 +608,7 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev,
 		}
 
 		case XCB_REPARENT_NOTIFY: {
-			auto reparent = copy<xcb_reparent_notify_event_t>(ev);
+			auto reparent = copyu<xcb_reparent_notify_event_t>(ev);
 			auto wc = windowContext(reparent.window);
 			if(wc) {
 				wc->reparentEvent();
@@ -529,7 +617,7 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev,
 		}
 
 		case XCB_CONFIGURE_NOTIFY: {
-			auto configure = copy<xcb_configure_notify_event_t>(ev);
+			auto configure = copyu<xcb_configure_notify_event_t>(ev);
 			auto nsize = nytl::Vec2ui{configure.width, configure.height};
 			auto wc = windowContext(configure.window);
 			if(wc && nsize != wc->size()) {
@@ -551,7 +639,7 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev,
 		}
 
 		case XCB_CLIENT_MESSAGE: {
-			auto client = copy<xcb_client_message_event_t>(ev);
+			auto client = copyu<xcb_client_message_event_t>(ev);
 			auto protocol = static_cast<unsigned int>(client.data.data32[0]);
 
 			auto wc = windowContext(client.window);
@@ -568,7 +656,7 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev,
 		}
 
 	case 0u: {
-			int code = copy<xcb_generic_error_t>(ev).error_code;
+			int code = copyu<xcb_generic_error_t>(ev).error_code;
 			auto errorMsg = x11::errorMessage(xDisplay(), code);
 			dlg_warn("retrieved error code {}, {}", code, errorMsg);
 
@@ -585,7 +673,7 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev,
 	}
 
 	// touch events
-	auto gev = copy<xcb_ge_generic_event_t>(ev);
+	auto gev = copyu<xcb_ge_generic_event_t>(ev);
 	if(xiOpcode_ && gev.response_type == XCB_GE_GENERIC &&
 			gev.extension == xiOpcode_) {
 
@@ -630,7 +718,7 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev,
 			xcb_input_group_info_t  group;
 		};
 
-		auto tev = copy<xcb_input_touch_begin_event_t>(gev);
+		auto tev = copyu<xcb_input_touch_begin_event_t>(gev);
 		time(tev.time);
 		auto wc = windowContext(tev.event);
 		if(!wc) {
@@ -653,6 +741,11 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev,
 				return;
 		}
 	}
+}
+
+nytl::Connection X11AppContext::fdCallback(int fd, unsigned int events,
+		FdCallbackFunc func) {
+	return impl_->fdCallbacks.add({fd, events, std::move(func)});
 }
 
 x11::EwmhConnection& X11AppContext::ewmhConnection() const { return impl_->ewmhConnection; }

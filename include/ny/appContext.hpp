@@ -24,7 +24,7 @@ struct BackendError : public std::runtime_error {
 /// Defines the interfaces for different event dispatching functions
 /// that have to be implemented by the different backends.
 /// Multiple AppContext's are allows but usually not useful.
-class AppContext : public nytl::NonCopyable {
+class AppContext : public nytl::NonMovable {
 public:
 	AppContext() = default;
 	virtual ~AppContext() = default;
@@ -50,7 +50,8 @@ public:
 
 	/// Waits until events are avilable to be read and dispatched.
 	/// If there are immediately events available, behaves like pollEvents,
-	/// otherwise waits until at least one event has ben processed.
+	/// otherwise waits until at least one (possibly internal) event
+	/// has been processed.
 	/// Can be called from a handler from within the loop (recursively).
 	/// Use wakeupWait to return from this function.
 	/// Forwards all exceptions that are thrown in called handlers.
@@ -61,13 +62,12 @@ public:
 	/// the display server.
 	virtual void waitEvents() = 0;
 
-	/// Causes `waitEvents` to return even if no events could be dispatched.
+	/// Causes `waitEvents` to return as soon as possible without further blocking.
+	/// Can be called from another sense (only really makes sense to call this from
+	/// another thread).
 	/// If `waitEvents` was called multiple times from within each other,
 	/// will only make the most recent waitEvents call (i.e. the highest
-	/// one on the call stack). Calling this without any currently
-	/// active `waitEvents` call may cause the next call to `waitEvents`
-	/// or `pollEvents` to return immediately (without processing an event)
-	/// but must otherwise have no effect.
+	/// one on the call stack).
 	/// Throws when an error ocurss, but the AppContext can still
 	/// be used.
 	virtual void wakeupWait() = 0;

@@ -6,6 +6,7 @@
 #include <ny/x11/util.hpp>
 #include <ny/x11/defs.hpp>
 #include <ny/x11/appContext.hpp>
+#include <ny/common/copy.hpp>
 
 #include <ny/common/unix.hpp>
 #include <ny/cursor.hpp>
@@ -381,7 +382,7 @@ void X11WindowContext::beginMove(const EventData* ev) {
 
 	auto* xbev = dynamic_cast<const X11EventData*>(ev);
 	if(xbev && (xbev->event.response_type & ~0x80) == XCB_BUTTON_PRESS) {
-		auto& xev = reinterpret_cast<const xcb_button_press_event_t&>(xbev->event);
+		auto xev = copyu<xcb_button_press_event_t>(xbev->event);
 		pos = {xev.root_x, xev.root_y};
 		index = static_cast<xcb_button_index_t>(xev.detail);
 	}
@@ -419,7 +420,7 @@ void X11WindowContext::beginResize(const EventData* ev, WindowEdges edge) {
 
 	auto* xbev = dynamic_cast<const X11EventData*>(ev);
 	if(xbev && (xbev->event.response_type & ~0x80) == XCB_BUTTON_PRESS) {
-		auto& xev = reinterpret_cast<const xcb_button_press_event_t&>(xbev->event);
+		auto xev = copyu<xcb_button_press_event_t>(xbev->event);
 		pos = {xev.root_x, xev.root_y};
 		index = static_cast<xcb_button_index_t>(xev.detail);
 	}
@@ -470,7 +471,7 @@ void X11WindowContext::icon(const Image& img) {
 		ownedData[1] = img.size[1];
 
 		auto size = 2 + neededSize;
-		auto imgData = reinterpret_cast<std::uint8_t*>(ownedData.get() + 2);
+		auto imgData = reinterpret_cast<std::byte*>(ownedData.get() + 2);
 		convertFormat(img, reqFormat, *imgData);
 
 		auto data = ownedData.get();

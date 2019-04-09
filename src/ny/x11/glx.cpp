@@ -29,6 +29,7 @@ bool loadExtensions(Display& dpy)
 	static std::once_flag cof {};
 	static bool valid {};
 
+	// TODO: really only do this once? what about multiple (theoretical) displays
 	std::call_once(cof, [&]{
 		// we call both since they are different on some platforms
 		auto client = ::glXGetClientString(&dpy, GLX_EXTENSIONS);

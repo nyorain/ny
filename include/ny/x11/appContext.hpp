@@ -8,6 +8,7 @@
 #include <ny/appContext.hpp>
 #include <ny/deferred.hpp>
 #include <ny/windowSettings.hpp>
+#include <ny/common/unix.hpp>
 
 #include <map>
 #include <memory>
@@ -41,6 +42,11 @@ public:
 	GlSetup* glSetup() const override;
 
 	// - x11 specific -
+	/// Can be called to register custom listeners for fds that the dispatch loop will
+	/// then poll for. Should return false if it wants to be disconnected.
+	using FdCallbackFunc = std::function<bool(int fd, unsigned int events)>;
+	nytl::Connection fdCallback(int fd, unsigned int events, FdCallbackFunc func);
+
 	void processEvent(const x11::GenericEvent& ev, const x11::GenericEvent* next);
 	X11WindowContext* windowContext(xcb_window_t);
 	void checkError();
@@ -69,19 +75,29 @@ public:
 	void time(xcb_timestamp_t t) { time_ = t; }
 
 protected:
+	/// Polls all internal fds. If wait is true, will block until event arrives.
+	/// Will process all xcb events.
+	void poll(bool wait);
+
+protected:
 	Display* xDisplay_  = nullptr;
 	xcb_connection_t* xConnection_ = nullptr;
 	xcb_window_t xDummyWindow_ = {};
+
+	/// The last timestamp received from the server.
 	xcb_timestamp_t time_ {};
 
 	int xDefaultScreenNumber_ = 0;
 	xcb_screen_t* xDefaultScreen_ = nullptr;
+	EventFD eventfd_; // for wakeup
 
 	std::map<xcb_window_t, X11WindowContext*> contexts_;
 	std::map<std::string, xcb_atom_t> additionalAtoms_;
 
 	std::unique_ptr<X11MouseContext> mouseContext_;
 	std::unique_ptr<X11KeyboardContext> keyboardContext_;
+
+	/// Optionally contains a
 	x11::GenericEvent* next_ {};
 
 	WindowCapabilities ewmhWindowCaps_ {};

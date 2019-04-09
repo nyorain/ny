@@ -71,9 +71,6 @@ class EglSetup;
 class EglSurface;
 class EglContext;
 
-template<typename T> class AsyncRequest;
-template<typename T> class DefaultAsyncRequest;
-
 template<typename T> class BasicImage;
 using Image = BasicImage<const std::byte*>;
 using MutableImage = BasicImage<std::byte*>;

@@ -21,7 +21,7 @@ namespace ny {
 class GlxSetup : public GlSetup {
 public:
 	GlxSetup() = default;
-	GlxSetup(const X11AppContext&, unsigned int screenNumber = 0);
+	GlxSetup(const X11AppContext&, unsigned int screenNumber);
 	~GlxSetup() = default;
 
 	GlxSetup(GlxSetup&&) noexcept;

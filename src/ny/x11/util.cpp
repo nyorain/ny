@@ -45,7 +45,7 @@ unsigned int buttonToX11(MouseButton button)
 namespace {
 
 std::unordered_map<Display*, X11ErrorCategory*> errorCategories;
-std::shared_timed_mutex errorCategoriesMutex; // TODO: C++17
+std::shared_mutex errorCategoriesMutex;
 
 int xlibErrorHandler(Display* display, XErrorEvent* event) {
 	if(!event) {
@@ -74,7 +74,7 @@ X11ErrorCategory::X11ErrorCategory(Display& dpy, xcb_connection_t& conn)
 	// TODO: handle old error handler (?)
 	::XSetErrorHandler(&xlibErrorHandler);
 
-	std::lock_guard<std::shared_timed_mutex> lock(errorCategoriesMutex);
+	std::lock_guard lock(errorCategoriesMutex);
 	errorCategories[&dpy] = this;
 }
 
@@ -88,7 +88,7 @@ X11ErrorCategory::X11ErrorCategory(X11ErrorCategory&& other)
 X11ErrorCategory& X11ErrorCategory::operator=(X11ErrorCategory&& other)
 {
 	if(xDisplay_) {
-		std::lock_guard<std::shared_timed_mutex> lock(errorCategoriesMutex);
+		std::lock_guard lock(errorCategoriesMutex);
 		errorCategories[xDisplay_] = nullptr;
 	}
 
@@ -96,7 +96,7 @@ X11ErrorCategory& X11ErrorCategory::operator=(X11ErrorCategory&& other)
 	xConnection_ = other.xConnection_;
 
 	if(xDisplay_) {
-		std::lock_guard<std::shared_timed_mutex> lock(errorCategoriesMutex);
+		std::lock_guard lock(errorCategoriesMutex);
 		errorCategories[xDisplay_] = this;
 	}
 
@@ -109,7 +109,7 @@ X11ErrorCategory& X11ErrorCategory::operator=(X11ErrorCategory&& other)
 X11ErrorCategory::~X11ErrorCategory()
 {
 	if(xDisplay_) {
-		std::lock_guard<std::shared_timed_mutex> lock(errorCategoriesMutex);
+		std::lock_guard lock(errorCategoriesMutex);
 		errorCategories[xDisplay_] = nullptr;
 	}
 }

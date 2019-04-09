@@ -10,21 +10,25 @@
 
 namespace ny {
 
-/// Casts an event from one type into an event of another type
-/// by using memcpy.
-template<typename To, typename From>
+/// Bytewise casts of an object from one type into an object of another type
+/// by using memcpy. Only works if both types have the same size.
+/// Somewhat comparable to C++20s bit_cast (but not as strict here).
+template<typename To, typename From,
+	typename = std::enable_if_t<sizeof(To) == sizeof(From)>>
 auto copy(const From& val) {
 	To to;
-	std::memcpy(&to, &val, std::min(sizeof(to), sizeof(From)));
+	std::memcpy(&to, &val, sizeof(to));
 	return to;
 }
 
-/// Like copy_cast but only works if both types have the same size
-template<typename To, typename From,
-	typename = std::enable_if_t<sizeof(To) == sizeof(From)>>
-auto copyf(const From& val) {
+/// Unsafe variant of copy.
+/// Performs no size checks and instead *fully* fills the copied object.
+/// This means that the value/buffer referenced by val should be at
+/// least sizeof(To) bytes long.
+template<typename To, typename From>
+auto copyu(const From& val) {
 	To to;
-	std::memcpy(&to, &val, sizeof(to));
+	std::memcpy(&to, &val, sizeof(To));
 	return to;
 }
 

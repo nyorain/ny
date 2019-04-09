@@ -56,7 +56,6 @@ GlCurrentMap& contextCurrentMap(std::shared_mutex*& mutex)
 
 } // anonymous util namespace
 
-// gl version to stirng
 std::uintptr_t& glConfigNumber(GlConfigID& id)
 {
 	return reinterpret_cast<std::uintptr_t&>(id);
@@ -146,7 +145,7 @@ std::error_code make_error_code(GlContextErrc code)
 }
 
 // GlContextError
-GlContextError::GlContextError(std::error_code code, const char* msg) 
+GlContextError::GlContextError(std::error_code code, const char* msg)
 	: logic_error("")
 {
 	std::string whatMsg;

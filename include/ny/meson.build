@@ -15,8 +15,8 @@ conf_data.set('NY_WithXkbcommon', dep_xkbcommon.found())
 conf_data.set('NY_WithAndroid', android)
 
 configure_file(input: 'config.hpp.in',
-	output: 'config.hpp', 
-	install_dir: 'include/ny', 
+	output: 'config.hpp',
+	install_dir: 'include/ny',
 	configuration: conf_data)
 
 # install headers
@@ -24,7 +24,6 @@ configure_file(input: 'config.hpp.in',
 # TODO: use install_subdir
 headers = [
 	'appContext.hpp',
-	'asyncRequest.hpp',
 	'backend.hpp',
 	'bufferSurface.hpp',
 	'cursor.hpp',
@@ -47,6 +46,7 @@ headers += [
 	'common/egl.hpp',
 	'common/gl.hpp',
 	'common/unix.hpp',
+	'common/copy.hpp',
 	'common/xkb.hpp']
 
 install_headers(headers, subdir: 'ny')

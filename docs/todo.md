@@ -9,10 +9,13 @@ for features/improvements.
   (done for x11, wayland; needs to be done for winapi)
 - fix aliasing issues for x11 backend. Don't reinterpret_cast
   (probably best to just revisit all reinterpret_casts)
+  	- also fix them for all vulkan surfaces
 - make AppContext::deferred private everywhere
 	- instead add `defer(func)` and `windowContextDestroyed(wc)` functions
 - remove the keyboard and mouse context callbacks. Not needed,
   often not correctly implemented/called
+- make code reentrant, fix next_ in X11AppContext
+	- but also check other appcontexts again
 
 - windows: wm_sysdown to capture alt keypress
 - windows: wm_char fix (test with ime), document it
@@ -166,20 +169,15 @@ x11 backend:
 ------------
 
 - x11: don't use XInitThreads and send_event for synchronization, but
-  poll with eventfd like wayland app context
-  	- or at least offer settings in something like AppContextSettings
 - selections and xdnd improvements (see x11/dataExchange header/source TODO)
 	- X11DataSource constructor: check for uri list one file -> filename target format
-	- dnd image window
-	- https://git.blender.org/gitweb/gitweb.cgi/blender.git/blob/HEAD:/extern/xdnd/xdnd.c
 - correct error handling (for xlib calls e.g. glx use an error handle in X11AppContext or util)
 	- glx: don't log every error but instead only output error list on total failure?
 - KeyboardContext: correct xkb keymap recreation/ event handling
 - send correct StateEvents (check for change in configure events?)
 - customDecorated: query current de/window manager to guess if they support motif
 	- any other (better) way to query this?
-- glx screen number fix (don't assume it, store the value from the appcontext)
-	- overall correct screen handling
+- overall correct screen (and screen number) handling
 
 wayland backend:
 ---------------

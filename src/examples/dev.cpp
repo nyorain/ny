@@ -1,7 +1,9 @@
 #include <ny/ny.hpp>
 #include <nytl/vecOps.hpp>
 #include <dlg/dlg.hpp>
-#include <any>
+#include <thread>
+#include <future>
+#include <chrono>
 
 // TODO: handle supported actions of data offer
 
@@ -104,6 +106,7 @@ public:
 	ny::WindowContext* wc;
 	ny::BufferSurface* surface {};
 	bool* run;
+	std::future<void> wakeupThread;
 
 public:
 	void close(const ny::CloseEvent&) override {
@@ -190,6 +193,15 @@ public:
 				handleDataOffer(*ac, *dataOffer);
 			}
 		}
+
+		if(ev.keycode == ny::Keycode::w) {
+			wakeupThread = std::async(std::launch::async, [&]{
+				// wait some time then wakeup main loop
+				// test that it works
+				std::this_thread::sleep_for(std::chrono::seconds(1));
+				ac->wakeupWait();
+			});
+		}
 	}
 };
 
@@ -217,6 +229,7 @@ int main() {
 
 	dlg_info("Entering main loop");
 	while(run) {
+		dlg_trace("main loop iteration");
 		ac->waitEvents();
 	}
 }
