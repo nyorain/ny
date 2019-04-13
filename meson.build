@@ -96,7 +96,10 @@ x11_deps = [
 	dependency('xcb-ewmh', required: op_enable_x11),
 	dependency('xcb-icccm', required: op_enable_x11),
 	dependency('xcb-shm', required: op_enable_x11),
+	dependency('xcb-present', required: op_enable_x11),
+	dependency('xcb-xinput', required: op_enable_x11),
 	dependency('xcb-xkb', required: op_enable_x11),
+	dependency('xcb-xfixes', required: op_enable_x11),
 	dependency('xkbcommon-x11', required: op_enable_x11),
 ]
 

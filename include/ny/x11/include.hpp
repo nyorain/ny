@@ -20,6 +20,7 @@ using xcb_window_t = std::uint32_t;
 using xcb_atom_t = std::uint32_t;
 using xcb_timestamp_t = std::uint32_t;
 using xcb_cursor_t = std::uint32_t;
+using xcb_pixmap_t = std::uint32_t;
 
 namespace ny {
 

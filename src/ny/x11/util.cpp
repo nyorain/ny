@@ -156,10 +156,10 @@ bool X11ErrorCategory::checkWarn(xcb_void_cookie_t cookie, std::string_view msg)
 		auto errorMsg = x11::errorMessage(*xDisplay_, e->error_code);
 
 		if(!msg.empty()) {
-			dlg_warn("error code {}, {}: {}",
-				(int) e->error_code, errorMsg, msg);
+			dlg_warn("{}: error code {} ({})",
+				msg, errorMsg, int(e->error_code));
 		} else {
-			dlg_warn("error code {}, {}", (int) e->error_code, errorMsg);
+			dlg_warn("error code {} ({})", errorMsg, int(e->error_code));
 		}
 
 		free(e);

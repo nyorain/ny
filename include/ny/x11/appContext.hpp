@@ -20,6 +20,9 @@ class X11AppContext : public AppContext {
 public:
 	DeferredOperator<void(), const WindowContext*> deferred;
 
+	// TODO
+	std::vector<X11WindowContext*> present_;
+
 public:
 	X11AppContext();
 	~X11AppContext();
@@ -57,6 +60,8 @@ public:
 	int xDefaultScreenNumber() const { return xDefaultScreenNumber_; }
 	xcb_screen_t& xDefaultScreen() const { return *xDefaultScreen_; }
 	xcb_window_t xDummyWindow() const { return xDummyWindow_; }
+	xcb_window_t xDummyPixmap() const { return xDummyPixmap_; }
+	uint32_t xEmptyRegion() const { return xEmptyRegion_; }
 	xcb_timestamp_t time() const { return time_; }
 	X11ErrorCategory& errorCategory() const;
 
@@ -70,19 +75,24 @@ public:
 	xcb_atom_t atom(const std::string& name);
 	const x11::Atoms& atoms() const;
 	auto ewmhWindowCaps() const { return ewmhWindowCaps_; }
-
-	bool xinput() const { return xiOpcode_; }
 	void time(xcb_timestamp_t t) { time_ = t; }
+
+	bool xinputExt() const { return (xinputOpcode_); }
+	bool presentExt() const { return (presentOpcode_); }
+	bool shmExt() const { return shmExt_; }
 
 protected:
 	/// Polls all internal fds. If wait is true, will block until event arrives.
 	/// Will process all xcb events.
 	void poll(bool wait);
+	bool dispatchPending();
 
 protected:
 	Display* xDisplay_  = nullptr;
 	xcb_connection_t* xConnection_ = nullptr;
 	xcb_window_t xDummyWindow_ = {};
+	xcb_pixmap_t xDummyPixmap_ = {};
+	uint32_t xEmptyRegion_ = {};
 
 	/// The last timestamp received from the server.
 	xcb_timestamp_t time_ {};
@@ -101,7 +111,11 @@ protected:
 	x11::GenericEvent* next_ {};
 
 	WindowCapabilities ewmhWindowCaps_ {};
-	int xiOpcode_ {};
+
+	// extensions
+	int xinputOpcode_ {};
+	int presentOpcode_ {};
+	bool shmExt_ {};
 
 	struct Impl;
 	std::unique_ptr<Impl> impl_;

@@ -31,7 +31,6 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/Xlib-xcb.h>
-#include <X11/extensions/XInput2.h>
 
 // undefine the worst Xlib macros
 #undef None
@@ -40,6 +39,9 @@
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 #include <xcb/xcb_ewmh.h>
+#include <xcb/present.h>
+#include <xcb/xinput.h>
+#include <xcb/shm.h>
 
 #include <poll.h>
 #include <unistd.h>
@@ -119,9 +121,31 @@ X11AppContext::X11AppContext() {
 	// This window remains invisible, i.e. it is not begin mapped
 	xDummyWindow_ = xcb_generate_id(xConnection_);
 	auto cookie = xcb_create_window_checked(xConnection_, XCB_COPY_FROM_PARENT, xDummyWindow_,
-		xDefaultScreen_->root, 0, 0, 50, 50, 0, XCB_WINDOW_CLASS_INPUT_ONLY,
+		xDefaultScreen_->root, 0, 0, 1, 1, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT,
 		XCB_COPY_FROM_PARENT, 0, nullptr);
 	errorCategory().checkThrow(cookie, "ny::X11AppContext: create_window for dummy window failed");
+
+	auto presentid = xcb_generate_id(&xConnection());
+	uint32_t presentMask =
+		XCB_PRESENT_EVENT_MASK_CONFIGURE_NOTIFY |
+		XCB_PRESENT_EVENT_MASK_COMPLETE_NOTIFY |
+		XCB_PRESENT_EVENT_MASK_IDLE_NOTIFY;
+	xcb_present_select_input(&xConnection(), presentid,
+		xDummyWindow(), presentMask);
+
+	// dummy pixmap for dummy window
+	xDummyPixmap_ = xcb_generate_id(xConnection_);
+	auto pcookie = xcb_create_pixmap_checked(xConnection_, xDefaultScreen_->root_depth,
+		xDummyPixmap_, xDummyWindow_, 1, 1);
+	errorCategory().checkThrow(pcookie, "ny::X11AppContext: failed to create dummy pixmap");
+
+	// empty region
+	// xcb_rectangle_t rect = {};
+	// rect.width = 1;
+	// rect.height = 1;
+	// xEmptyRegion_ = xcb_generate_id(xConnection_);
+	// auto rcookie = xcb_xfixes_create_region_checked(xConnection_, xEmptyRegion_, 1, &rect);
+	// errorCategory().checkThrow(rcookie, "ny::X11AppContext: failed to create empty region");
 
 	// Load all default required atoms
 	auto& atoms = impl_->atoms;
@@ -225,20 +249,53 @@ X11AppContext::X11AppContext() {
 		}
 	}
 
-	// check for xinput
-	int ev, err, opcode = -1;
-	if(::XQueryExtension(xDisplay_, "XInputExtension", &opcode, &ev, &err)) {
-		int major = 2, minor = 2;
-		auto res = ::XIQueryVersion(xDisplay_, &major, &minor);
-		if(res == BadRequest) {
-			dlg_debug("XI2 version 2.2 not supported");
-		} else if(res != Success) {
-			dlg_warn("Unexpected failure to query XI extensions");
-		} else {
-			xiOpcode_ = opcode;
+	// NOTE: not really sure about those versions, kinda strict atm
+	// since that's what other libraries seem to do. We might be fine
+	// with lower versions of the extensions
+
+	// check for xinput support
+	auto ext = xcb_get_extension_data(&xConnection(), &xcb_input_id);
+	if(ext && ext->present) {
+		xinputOpcode_ = ext->major_opcode;
+		auto cookie = xcb_input_xi_query_version(&xConnection(), 2, 0);
+		auto reply = xcb_input_xi_query_version_reply(&xConnection(),
+			cookie, nullptr);
+		if(!reply || reply->major_version < 2) {
+			dlg_warn("xinput version too low: {}.{}",
+				reply->major_version, reply->minor_version);
+			xinputOpcode_ = {};
 		}
-	} else {
-		dlg_debug("XInput not avilable");
+		free(reply);
+	}
+	if(!xinputOpcode_) {
+		dlg_warn("xinput not available: touch input not supported");
+	}
+
+	// check for present extension support
+	ext = xcb_get_extension_data(&xConnection(), &xcb_present_id);
+	if(ext && ext->present) {
+		presentOpcode_ = ext->major_opcode;
+		auto cookie = xcb_present_query_version(&xConnection(), 1, 2);
+		auto reply = xcb_present_query_version_reply(&xConnection(),
+			cookie, nullptr);
+		if(!reply || reply->major_version < 1 || reply->minor_version < 2) {
+			presentOpcode_ = {};
+			dlg_warn("x11 server does not support present extension");
+		}
+		free(reply);
+	}
+
+	// check for shm extension support
+	{
+		auto cookie = xcb_shm_query_version(&xConnection());
+		auto reply = xcb_shm_query_version_reply(&xConnection(), cookie, nullptr);
+		if(reply && reply->shared_pixmaps && reply->major_version >= 1 &&
+				reply->minor_version >= 2) {
+			shmExt_ = true;
+		} else {
+			dlg_warn("x11 server does not support shm extension");
+		}
+		free(reply);
 	}
 
 	// input
@@ -273,9 +330,11 @@ X11AppContext::~X11AppContext() {
 WindowContextPtr X11AppContext::createWindowContext(const WindowSettings& settings) {
 	X11WindowSettings x11Settings;
 	const auto* ws = dynamic_cast<const X11WindowSettings*>(&settings);
-
-	if(ws) x11Settings = *ws;
-	else x11Settings.WindowSettings::operator=(settings);
+	if(ws) {
+		x11Settings = *ws;
+	} else {
+		x11Settings.WindowSettings::operator=(settings);
+	}
 
 	// type
 	if(settings.surface == SurfaceType::vulkan) {
@@ -311,7 +370,60 @@ KeyboardContext* X11AppContext::keyboardContext() {
 	return keyboardContext_.get();
 }
 
+// TODO: probably no re-entrant due to next_
+// copy next_ before using should be enough
+bool X11AppContext::dispatchPending() {
+	auto ret = false;
+	xcb_generic_event_t* event;
+	while((event = xcb_poll_for_event(xConnection_))) {
+		processEvent(static_cast<x11::GenericEvent&>(*event), nullptr);
+		free(event);
+		ret = true;
+	}
+
+	return ret;
+
+	// dispatch all readable events
+	auto i = 0u;
+	while(true) {
+		xcb_generic_event_t* event;
+		if(next_) {
+			event = next_;
+			next_ = {};
+		} else if(!(event = xcb_poll_for_event(xConnection_))) {
+			break;
+		}
+
+		next_ = static_cast<x11::GenericEvent*>(xcb_poll_for_event(xConnection_));
+		processEvent(static_cast<x11::GenericEvent&>(*event), next_);
+		free(event);
+		++i;
+	}
+
+	return i > 0;
+}
+
 void X11AppContext::poll(bool wait) {
+	// TODO
+
+	{
+		pollfd fd;
+		fd.fd = xcb_get_file_descriptor(xConnection_);
+		fd.events = POLLIN | POLLHUP | POLLERR;
+		auto ret = ::poll(&fd, 1, wait ? -1 : 0);
+		if(ret < 0) {
+			dlg_info("poll failed: {}", std::strerror(errno));
+			return;
+		} else if(ret == 0) { // timeout, no events
+			dlg_debug("no events");
+			return;
+		}
+
+		dispatchPending();
+	}
+
+	return;
+
 	eventfd_.reset();
 
 	std::vector<nytl::ConnectionID> ids;
@@ -385,24 +497,8 @@ void X11AppContext::poll(bool wait) {
 		}
 	}
 
-	// TODO: probably no re-entrant due to next_
-	// copy next_ before using should be enough
 	if(fds.back().revents & POLLIN) {
-		// dispatch all readable events
-		while(true) {
-			xcb_generic_event_t* event {};
-			if(next_) {
-				event = next_;
-				next_ = nullptr;
-			} else if(!(event = xcb_poll_for_event(xConnection_))) {
-				break;
-			}
-
-			next_ = static_cast<x11::GenericEvent*>(xcb_poll_for_event(xConnection_));
-			processEvent(static_cast<x11::GenericEvent&>(*event), next_);
-			free(event);
-			xcb_flush(&xConnection());
-		}
+		dispatchPending();
 	}
 }
 
@@ -414,26 +510,45 @@ void X11AppContext::pollEvents() {
 	checkError();
 	deferred.execute();
 	xcb_flush(&xConnection());
+	dispatchPending();
 	poll(false);
 	deferred.execute();
 	checkError();
 }
 
 void X11AppContext::waitEvents() {
+	dlg_trace("wait");
 	checkError();
 	deferred.execute();
 	xcb_flush(&xConnection());
+
+	dispatchPending();
+	deferred.execute();
 	poll(true);
+	// dispatchPending();
+
+	// if(dispatchPending()) {
+	// 	deferred.execute();
+	// } else {
+	// 	dlg_info("poll");
+	// 	poll(true);
+	// }
+
+	/*
+	xcb_generic_event_t* ev = xcb_wait_for_event(&xConnection());
+	if(!ev) {
+		dlg_error("");
+		return;
+	}
+	processEvent((x11::GenericEvent&)*ev, nullptr);
+	free(ev);
+	*/
+
 	deferred.execute();
 	checkError();
 }
 
 void X11AppContext::wakeupWait() {
-	// xcb_client_message_event_t dummyEvent {};
-	// dummyEvent.type = XCB_CLIENT_MESSAGE;
-	// auto eventData = reinterpret_cast<const char*>(&dummyEvent);
-	// xcb_send_event(xConnection_, 0, xDummyWindow(), 0, eventData);
-	// xcb_flush(xConnection_);
 	eventfd_.signal();
 }
 
@@ -576,14 +691,15 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev,
 		case XCB_EXPOSE: {
 			auto expose = copyu<xcb_expose_event_t>(ev);
 			auto wc = windowContext(expose.window);
+
 			if(wc) {
 				if(!wc->drawEventFlag_) {
 					wc->drawEventFlag_ = true;
 					deferred.add([wc, eventData](){
+						wc->drawEventFlag_ = false;
 						DrawEvent de;
 						de.eventData = &eventData;
 						wc->listener().draw(de);
-						wc->drawEventFlag_ = false;
 					}, wc);
 				}
 			}
@@ -597,10 +713,10 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev,
 				if(!wc->drawEventFlag_) {
 					wc->drawEventFlag_ = true;
 					deferred.add([wc, eventData](){
+						wc->drawEventFlag_ = false;
 						DrawEvent de;
 						de.eventData = &eventData;
 						wc->listener().draw(de);
-						wc->drawEventFlag_ = false;
 					}, wc);
 				}
 			}
@@ -672,52 +788,53 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev,
 		return;
 	}
 
-	// touch events
+	// present event
 	auto gev = copyu<xcb_ge_generic_event_t>(ev);
-	if(xiOpcode_ && gev.response_type == XCB_GE_GENERIC &&
-			gev.extension == xiOpcode_) {
+	if(presentOpcode_ && gev.response_type == XCB_GE_GENERIC &&
+			gev.extension == presentOpcode_) {
+		switch(gev.event_type) {
+			case XCB_PRESENT_COMPLETE_NOTIFY: {
+				dlg_error("present complete notify");
+				auto pev = copyu<xcb_present_complete_notify_event_t>(gev);
+				if(pev.window == xDummyWindow()) {
+					for(auto& wc : present_) {
+						if(!wc->presentPending_) {
+							dlg_info("uff");
+							continue;
+						}
 
-		// Taken from xcb xinput.h
-		struct xcb_input_group_info_t {
-			uint8_t base;
-			uint8_t latched;
-			uint8_t locked;
-			uint8_t effective;
-		};
+						wc->presentPending_ = false;
+						if(wc->presentRefresh_) {
+							wc->presentRefresh_ = false;
+							wc->refresh();
+						}
+					}
 
-		struct xcb_input_modifier_info_t {
-			uint32_t base;
-			uint32_t latched;
-			uint32_t locked;
-			uint32_t effective;
-		};
+					present_.clear();
+				}
 
-		struct xcb_input_touch_begin_event_t {
-			uint8_t response_type;
-			uint8_t extension;
-			uint16_t sequence;
-			uint32_t length;
-			uint16_t event_type;
-			uint16_t deviceid;
-			xcb_timestamp_t time;
-			uint32_t detail;
-			xcb_window_t root;
-			xcb_window_t event;
-			xcb_window_t child;
-			uint32_t full_sequence;
-			int32_t root_x;
-			int32_t root_y;
-			int32_t event_x;
-			int32_t event_y;
-			uint16_t buttons_len;
-			uint16_t valuators_len;
-			int16_t sourceid;
-			uint8_t pad0[2];
-			uint32_t flags;
-			xcb_input_modifier_info_t mods;
-			xcb_input_group_info_t  group;
-		};
+				return;
 
+				auto wc = windowContext(pev.window);
+				wc->presentPending_ = false;
+				if(wc->presentRefresh_) {
+					wc->presentRefresh_ = false;
+					wc->refresh();
+				}
+				return;
+			} case XCB_PRESENT_IDLE_NOTIFY:
+				dlg_info("present idle notify");
+				return;
+			case XCB_PRESENT_CONFIGURE_NOTIFY:
+				dlg_info("present configure notify");
+				return;
+		}
+	}
+
+	// touch events
+	if(xinputOpcode_ && gev.response_type == XCB_GE_GENERIC &&
+			gev.extension == xinputOpcode_) {
+		// no matter the event type, always has the same basic layout
 		auto tev = copyu<xcb_input_touch_begin_event_t>(gev);
 		time(tev.time);
 		auto wc = windowContext(tev.event);
@@ -730,13 +847,13 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev,
 		auto detail = static_cast<unsigned>(tev.detail);
 		auto data = X11EventData {ev};
 		switch(gev.event_type) {
-			case XI_TouchBegin:
+			case XCB_INPUT_TOUCH_BEGIN:
 				wc->listener().touchBegin({&data, pos, detail});
 				return;
-			case XI_TouchUpdate:
+			case XCB_INPUT_TOUCH_UPDATE:
 				wc->listener().touchUpdate({&data, pos, detail});
 				return;
-			case XI_TouchEnd:
+			case XCB_INPUT_TOUCH_END:
 				wc->listener().touchEnd({&data, pos, detail});
 				return;
 		}

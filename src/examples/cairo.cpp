@@ -131,6 +131,9 @@ void MyWindowListener::draw(const ny::DrawEvent&) {
 		return;
 	}
 
+	static int i = 0;
+	dlg_debug("draw {}", ++i);
+
 	auto guard = bufferSurface->buffer();
 	auto image = guard.get();
 
@@ -220,6 +223,10 @@ void MyWindowListener::draw(const ny::DrawEvent&) {
 	cairo_destroy(cr);
 	cairo_surface_flush(surface);
 	cairo_surface_destroy(surface);
+
+	// schedule next frame
+	windowContext->frameCallback();
+	windowContext->refresh();
 }
 
 void MyWindowListener::key(const ny::KeyEvent& keyEvent) {

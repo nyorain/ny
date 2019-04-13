@@ -5,6 +5,17 @@ for features/improvements.
 
 ## Prio
 
+- WindowContext::refresh doesn't work this way, not even on wayland
+  rather call it something like *frameCallback* and require that
+  it's called *prior* to (finishing) drawing
+  	- we can't know about e.g. vulkan presents
+- there are some serious issues with the whole deferred thing
+  recheck (and test!) implementations to make sure that AppContexts
+  (especially wayland,x11) never block when there are events/deferred
+  handlers left.
+- fix cairo example with constant refresh...
+	- doesn't work e.g. on x11 backend
+	- also use present extension on x11 buffer surface or get rid of it
 - update backends to respect WindowSettings::customDecorated
   (done for x11, wayland; needs to be done for winapi)
 - fix aliasing issues for x11 backend. Don't reinterpret_cast
@@ -151,7 +162,8 @@ Backend stuff
 x11 backend:
 ------------
 
-- x11: don't use XInitThreads and send_event for synchronization, but
+- replace x11 ErrorCatgery checkwarn with a macro that preserved original location in code?
+- most of the current xcb_flush calls are probably not needed, bad for performance
 - selections and xdnd improvements (see x11/dataExchange header/source TODO)
 	- X11DataSource constructor: check for uri list one file -> filename target format
 - correct error handling (for xlib calls e.g. glx use an error handle in X11AppContext or util)

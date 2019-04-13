@@ -29,6 +29,7 @@ public:
 
 	// - WindowContext implementation -
 	void refresh() override;
+	void frameCallback() override;
 	void show() override;
 	void hide() override;
 
@@ -156,7 +157,7 @@ protected:
 	void reloadStates();
 
 protected:
-	X11AppContext* appContext_ = nullptr;
+	X11AppContext* appContext_ {};
 	X11WindowSettings settings_ {};
 	uint32_t xWindow_ {};
 	uint32_t xCursor_ {};
@@ -173,6 +174,10 @@ protected:
 	ToplevelState state_ {};
 	bool customDecorated_ {};
 	nytl::Vec2ui size_ {}; // the latest size
+
+	uint32_t presentID_ {}; // for present extension
+	bool presentPending_ {}; // pending frame callback
+	bool presentRefresh_ {}; // refresh on present complete
 
 	// flags
 	friend class X11AppContext; // TODO?

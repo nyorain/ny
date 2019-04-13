@@ -28,8 +28,11 @@ public:
 	X11WindowContext& windowContext() const { return *windowContext_; }
 	xcb_connection_t& xConnection() const { return windowContext().xConnection(); }
 	ImageFormat format() const { return format_; }
-	bool shm() const { return shm_; }
 	bool active() const { return active_; }
+
+	// whether shm/the present extension is used
+	bool shmExt() const;
+	bool presentExt() const;
 
 protected:
 	void apply(const BufferGuard&) noexcept override;
@@ -40,7 +43,6 @@ protected:
 
 	ImageFormat format_ {};
 	uint32_t gc_ {};
-	bool shm_ {};
 
 	bool active_ {};
 	nytl::Vec2ui size_; // size of active
@@ -50,6 +52,9 @@ protected:
  	// when using shm
 	unsigned int shmid_ {};
 	uint32_t shmseg_ {};
+
+	// when using present (only when also using shm)
+	xcb_pixmap_t pixmap_ {};
 
 	// otherwise when using owned buffer because shm not available
 	std::unique_ptr<std::byte[]> ownedBuffer_;

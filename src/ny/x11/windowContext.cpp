@@ -16,6 +16,7 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
 #include <xcb/xcb_image.h>
+#include <xcb/present.h>
 #include <X11/Xcursor/Xcursor.h>
 #include <X11/Xlib.h>
 #include <X11/extensions/XInput2.h>
@@ -103,8 +104,13 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 		fullscreen();
 	}
 
+	// custom deco
+	if(settings.customDecorated) {
+		customDecorated(*settings.customDecorated);
+	}
+
 	// optional xinput
-	if(appContext().xinput()) {
+	if(appContext().xinputExt()) {
 		XIEventMask mask {};
 		mask.deviceid = XIAllMasterDevices;
 		mask.mask_len = XIMaskLen(XI_LASTEVENT);
@@ -118,9 +124,15 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 		delete[] mask.mask;
 	}
 
-	// custom deco
-	if(settings.customDecorated) {
-		customDecorated(*settings.customDecorated);
+	// optional present support
+	if(appContext().presentExt()) {
+		presentID_ = xcb_generate_id(&xConnection());
+		uint32_t presentMask =
+			XCB_PRESENT_EVENT_MASK_CONFIGURE_NOTIFY |
+			XCB_PRESENT_EVENT_MASK_COMPLETE_NOTIFY |
+			XCB_PRESENT_EVENT_MASK_IDLE_NOTIFY;
+		xcb_present_select_input(&xConnection(), presentID_,
+			xWindow(), presentMask);
 	}
 
 	// make sure windows is mapped and set to correct state
@@ -241,13 +253,51 @@ const X11ErrorCategory& X11WindowContext::errorCategory() const {
 }
 
 void X11WindowContext::refresh() {
-	xcb_expose_event_t ev{};
+	if(drawEventFlag_) { // will be drawn later anyway
+		return;
+	}
 
-	ev.response_type = XCB_EXPOSE;
-	ev.window = xWindow();
+	if(appContext().presentExt() && presentPending_) {
+		// when we receive the pending present event, redraw
+		presentRefresh_ = true;
+		return;
+	}
 
-	xcb_send_event(&xConnection(), 0, xWindow(), XCB_EVENT_MASK_EXPOSURE, (const char*)&ev);
-	xcb_flush(&xConnection());
+	// TODO: when there is no redraw throttling via
+	// present events this may lead to permanent redrawing
+	// without event handling (when app calls refresh
+	// from within draw).
+	// Probably better to use expose event (as we did previously)
+
+	// otherwise send a draw event (deferred)
+	drawEventFlag_ = true;
+	appContext().deferred.add([&]() {
+		// draw window for the first time to make it visible
+		drawEventFlag_ = false;
+		DrawEvent de {};
+		listener().draw(de);
+	}, this);
+}
+
+void X11WindowContext::frameCallback() {
+	if(appContext().presentExt()) {
+		dlg_error("frame callback");
+		presentPending_ = true;
+
+		xcb_present_pixmap(&xConnection(),
+			appContext().xDummyWindow(), appContext().xDummyPixmap(), 0, 0, 0, 0, 0,
+			XCB_NONE, XCB_NONE, XCB_NONE, 0, 0, 0, 0, 0, nullptr);
+		appContext().present_.push_back(this);
+
+		// xcb_present_pixmap(&xConnection(),
+		// 	xWindow(), appContext().xDummyPixmap(), 0, appContext().xEmptyRegion(),
+		// 	appContext().xEmptyRegion(), -1, -1,
+		// 	XCB_NONE, XCB_NONE, XCB_NONE, 0, 0, 0, 0, 0, nullptr);
+		// xcb_present_pixmap(&xConnection(),
+		// 	xWindow(), appContext().xDummyPixmap(), 0, XCB_NONE, XCB_NONE, -1, -1,
+		// 	XCB_NONE, XCB_NONE, XCB_NONE, 0, 0, 0, 0, 0, nullptr);
+		xcb_flush(&xConnection());
+	}
 }
 
 void X11WindowContext::show() {

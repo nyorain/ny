@@ -89,7 +89,12 @@ void MyWindowListener::draw(const ny::DrawEvent&) {
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	// Finally, swap the buffers/apply the content
+	windowContext->frameCallback();
 	glSurface->apply();
+
+	// TODO: test
+	windowContext->refresh();
+	dlg_info("draw");
 }
 
 void MyWindowListener::surfaceCreated(const ny::SurfaceCreatedEvent& surfaceEvent) {

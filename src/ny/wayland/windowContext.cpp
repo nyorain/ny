@@ -659,7 +659,7 @@ void WaylandWindowContext::handleXdgSurfaceV6Configure(zxdg_surface_v6*,
 	xdgToplevelV6_.configured = true;
 	if(pendingResize_ == 0) {
 		appContext().deferred.add([&]{
-			zxdg_surface_v6_ack_configure(xdgSurfaceV6(), serial);
+			zxdg_surface_v6_ack_configure(xdgSurfaceV6(), pendingResize_);
 			pendingResize_ = 0;
 			SizeEvent se;
 			se.size = size_;
