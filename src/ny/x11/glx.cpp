@@ -20,6 +20,7 @@
 // TODO: this needs massive error (code) handling improvements (see GlContext implementation)
 // NOTE: For glx GlConfig objects, the id member is the GLX_FB_CONFIG_ID of the associated
 // glx fb config.
+// https://www.khronos.org/registry/OpenGL/extensions/ARB/GLX_ARB_create_context.txt
 
 namespace ny {
 namespace {
@@ -335,23 +336,19 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 		attributes.push_back(GLX_CONTEXT_FLAGS_ARB);
 		attributes.push_back(flags);
 
-		/*
 		// version
 		// will be set later, during the testing loop
-		attributes.push_back(GLX_CONTEXT_MAJOR_VERSION_ARB);
-		attributes.push_back(0);
-		attributes.push_back(GLX_CONTEXT_MINOR_VERSION_ARB);
-		attributes.push_back(0);
-		*/
+		// attributes.push_back(GLX_CONTEXT_MAJOR_VERSION_ARB);
+		// attributes.push_back(0);
+		// attributes.push_back(GLX_CONTEXT_MINOR_VERSION_ARB);
+		// attributes.push_back(0);
 
 		// null-terminated
 		attributes.push_back(0);
 
 		for(const auto& p : versionPairs) {
-			/*
-			attributes[attributes.size() - 4] = p.first;
-			attributes[attributes.size() - 2] = p.second;
-			*/
+			// attributes[attributes.size() - 4] = p.first;
+			// attributes[attributes.size() - 2] = p.second;
 
 			errorCat.resetLastXlibError();
 			glxContext_ = createContextAttribsARB(&xDisplay(), glxConfig, glxShareContext,

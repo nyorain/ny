@@ -74,7 +74,7 @@ Window::Window(ny::AppContext& ac) : ac_(&ac) {
 	glContext_->makeCurrent(*surface_);
 	dlg_info("gl version: {}", glGetString(GL_VERSION));
 
-	int num;
+	int num = 0;
 	glGetIntegerv(GL_NUM_SHADING_LANGUAGE_VERSIONS, &num);
 	for(auto i = 0; i < num; ++i) {
 		auto v = glGetStringi(GL_SHADING_LANGUAGE_VERSION, i);
