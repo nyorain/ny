@@ -373,16 +373,6 @@ KeyboardContext* X11AppContext::keyboardContext() {
 // TODO: probably no re-entrant due to next_
 // copy next_ before using should be enough
 bool X11AppContext::dispatchPending() {
-	auto ret = false;
-	xcb_generic_event_t* event;
-	while((event = xcb_poll_for_event(xConnection_))) {
-		processEvent(static_cast<x11::GenericEvent&>(*event), nullptr);
-		free(event);
-		ret = true;
-	}
-
-	return ret;
-
 	// dispatch all readable events
 	auto i = 0u;
 	while(true) {
@@ -403,27 +393,8 @@ bool X11AppContext::dispatchPending() {
 	return i > 0;
 }
 
-void X11AppContext::poll(bool wait) {
-	// TODO
-
-	{
-		pollfd fd;
-		fd.fd = xcb_get_file_descriptor(xConnection_);
-		fd.events = POLLIN | POLLHUP | POLLERR;
-		auto ret = ::poll(&fd, 1, wait ? -1 : 0);
-		if(ret < 0) {
-			dlg_info("poll failed: {}", std::strerror(errno));
-			return;
-		} else if(ret == 0) { // timeout, no events
-			dlg_debug("no events");
-			return;
-		}
-
-		dispatchPending();
-	}
-
-	return;
-
+bool X11AppContext::poll(bool wait) {
+	auto res = false;
 	eventfd_.reset();
 
 	std::vector<nytl::ConnectionID> ids;
@@ -455,16 +426,16 @@ void X11AppContext::poll(bool wait) {
 	auto ret = noSigPoll(*fds.data(), fds.size(), timeout);
 	if(ret < 0) {
 		dlg_info("poll failed: {}", std::strerror(errno));
-		return;
+		return false;
 	} else if(ret == 0) { // timeout, no events
-		return;
+		return false;
 	}
 
 	// check eventfd
 	if(wait) {
 		if(fds.back().revents & POLLIN) {
 			dlg_assert(eventfd_.reset());
-			return;
+			return true;
 		}
 		fds.pop_back();
 	}
@@ -477,6 +448,7 @@ void X11AppContext::poll(bool wait) {
 			continue;
 		}
 
+		res = true;
 		auto& items = impl_->fdCallbacks.items;
 		auto it = std::find_if(items.begin(), items.end(),
 			[&](auto& cb){ return cb.clID_.get() == ids[i].get(); });
@@ -498,9 +470,15 @@ void X11AppContext::poll(bool wait) {
 	}
 
 	if(fds.back().revents & POLLIN) {
-		dispatchPending();
+		res |= dispatchPending();
 	}
+
+	return res;
 }
+
+// TODO: not sure why dispatchPending is needed before poll...
+// seems like xcb_poll_for_events might even have events
+// when POLLIN doesn't return any events
 
 // TODO: xcb_flush may block until data can be written
 // we could avoid that by polling for POLLOUT and only call
@@ -517,32 +495,16 @@ void X11AppContext::pollEvents() {
 }
 
 void X11AppContext::waitEvents() {
-	dlg_trace("wait");
 	checkError();
+
+	auto execd = !deferred.entries().empty();
 	deferred.execute();
 	xcb_flush(&xConnection());
 
-	dispatchPending();
-	deferred.execute();
-	poll(true);
-	// dispatchPending();
-
-	// if(dispatchPending()) {
-	// 	deferred.execute();
-	// } else {
-	// 	dlg_info("poll");
-	// 	poll(true);
-	// }
-
-	/*
-	xcb_generic_event_t* ev = xcb_wait_for_event(&xConnection());
-	if(!ev) {
-		dlg_error("");
-		return;
+	if(!dispatchPending() && !poll(false) && !execd) {
+		// no pending events processed, wait for one
+		poll(true);
 	}
-	processEvent((x11::GenericEvent&)*ev, nullptr);
-	free(ev);
-	*/
 
 	deferred.execute();
 	checkError();
@@ -794,12 +756,10 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev,
 			gev.extension == presentOpcode_) {
 		switch(gev.event_type) {
 			case XCB_PRESENT_COMPLETE_NOTIFY: {
-				dlg_error("present complete notify");
 				auto pev = copyu<xcb_present_complete_notify_event_t>(gev);
 				if(pev.window == xDummyWindow()) {
 					for(auto& wc : present_) {
 						if(!wc->presentPending_) {
-							dlg_info("uff");
 							continue;
 						}
 
@@ -813,6 +773,7 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev,
 					present_.clear();
 				}
 
+				// TODO
 				return;
 
 				auto wc = windowContext(pev.window);
@@ -823,10 +784,7 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev,
 				}
 				return;
 			} case XCB_PRESENT_IDLE_NOTIFY:
-				dlg_info("present idle notify");
-				return;
 			case XCB_PRESENT_CONFIGURE_NOTIFY:
-				dlg_info("present configure notify");
 				return;
 		}
 	}

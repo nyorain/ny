@@ -53,6 +53,7 @@ protected:
 	unsigned int shmid_ {};
 	uint32_t shmseg_ {};
 
+	// TODO: double buffering required
 	// when using present (only when also using shm)
 	xcb_pixmap_t pixmap_ {};
 

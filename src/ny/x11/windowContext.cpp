@@ -267,11 +267,12 @@ void X11WindowContext::refresh() {
 	// present events this may lead to permanent redrawing
 	// without event handling (when app calls refresh
 	// from within draw).
-	// Probably better to use expose event (as we did previously)
+	// maybe better to use expose event (as we did previously)?
 
 	// otherwise send a draw event (deferred)
 	drawEventFlag_ = true;
 	appContext().deferred.add([&]() {
+
 		// draw window for the first time to make it visible
 		drawEventFlag_ = false;
 		DrawEvent de {};
@@ -281,7 +282,6 @@ void X11WindowContext::refresh() {
 
 void X11WindowContext::frameCallback() {
 	if(appContext().presentExt()) {
-		dlg_error("frame callback");
 		presentPending_ = true;
 
 		xcb_present_pixmap(&xConnection(),

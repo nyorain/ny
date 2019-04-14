@@ -5,14 +5,18 @@ for features/improvements.
 
 ## Prio
 
-- WindowContext::refresh doesn't work this way, not even on wayland
-  rather call it something like *frameCallback* and require that
-  it's called *prior* to (finishing) drawing
-  	- we can't know about e.g. vulkan presents
+- rework opengl context version request
+- x11::BufferSurface: double buffering required
+- fix/implement WindowContext::frameCallback
+	- glsurfaces should call it automatically before swapping buffers
+	- needs to be fixed on waylands, needs improvements on x11
 - there are some serious issues with the whole deferred thing
   recheck (and test!) implementations to make sure that AppContexts
   (especially wayland,x11) never block when there are events/deferred
   handlers left.
+  	- also some problem with that whole re-entrant thing.
+	  probably best to just leave things async where possible without
+	  allowing calling nested dispatches.
 - fix cairo example with constant refresh...
 	- doesn't work e.g. on x11 backend
 	- also use present extension on x11 buffer surface or get rid of it

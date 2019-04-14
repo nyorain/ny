@@ -12,4 +12,6 @@ else
 	if dep_cairo.found()
 		executable('cairo', 'cairo.cpp', dependencies: [ny_dep, dep_cairo])
 	endif
+
+	executable('playground', 'playground.cpp', dependencies: [ny_dep, dep_gl])
 endif

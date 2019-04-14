@@ -3,6 +3,7 @@
 #include <functional>
 #include <utility>
 #include <algorithm>
+#include <dlg/dlg.hpp>
 
 namespace ny {
 
@@ -26,10 +27,12 @@ public:
 public:
 	/// Adds the given function to the list of entries
 	void add(Func func) {
+		dlg_assert(func);
 		entries_.push_back({ID{}, std::move(func)});
 	}
 
 	void add(Func func, ID id) {
+		dlg_assert(func);
 		entries_.push_back({std::move(id), std::move(func)});
 	}
 
@@ -37,31 +40,29 @@ public:
 	/// The called functions may add/remove entries (via
 	/// the add/remove functions).
 	void execute(Args... args) {
-		for(auto i = 0u; i < entries_.size(); ++i) {
-			auto func = std::move(entries_[i].second);
-			entries_[i].first = {}; // so it will not be removed
-			func(std::forward<Args>(args)...);
-		}
-		entries_.clear();
-	}
+		// auto s = entries_.size();
+		// auto i = 0u;
+		// for(i = 0u; i < std::min(s, entries_.size()); ++i) {
+		// 	auto func = std::move(entries_[i].second);
+		// 	entries_[i].first = {}; // so it will not be removed
+		// 	func(std::forward<Args>(args)...);
+		// }
+		// entries_.erase(entries_.begin(), entries_.begin() + i);
 
-	/// Executes all registered entries
-	/// It is not allowed to add or remove entries
-	/// during this iteration. Might be (a little bit)
-	/// faster than execute.
-	void executeUnsafe(Args... args) {
-		for(auto& entry : entries_) {
-			entry(std::forward<Args>(args)...);
+		// TODO...
+		auto entries = std::move(entries_);
+		for(auto& e : entries) {
+			e.second(std::forward<Args>(args)...);
 		}
-		entries_.clear();
 	}
 
 	/// Removes all registered functions with the given id.
 	/// Note that the id must not be empty (i.e. default constructed),
 	/// but a valid value (at least while executing)
 	void remove(const ID& id) {
-		entries_.erase(std::remove_if(entries_.begin(), entries_.end(),
-			[&](const auto& e){ return e.first == id; }), entries_.end());
+		auto end = std::remove_if(entries_.begin(), entries_.end(),
+			[&](const auto& e){ return e.first == id && e.second; });
+		entries_.erase(end, entries_.end());
 	}
 
 	/// Can be used to iterate manually e.g. to handle the

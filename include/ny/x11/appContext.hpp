@@ -84,7 +84,7 @@ public:
 protected:
 	/// Polls all internal fds. If wait is true, will block until event arrives.
 	/// Will process all xcb events.
-	void poll(bool wait);
+	bool poll(bool wait);
 	bool dispatchPending();
 
 protected:

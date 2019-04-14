@@ -199,7 +199,6 @@ bool X11BufferSurface::shmExt() const {
 }
 
 bool X11BufferSurface::presentExt() const {
-	return false;
 	return windowContext().appContext().shmExt() &&
 		windowContext().appContext().presentExt();
 }
