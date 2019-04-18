@@ -26,8 +26,10 @@
 namespace ny {
 
 // MouseContext
-bool X11MouseContext::processEvent(const x11::GenericEvent& ev) {
-	X11EventData eventData {ev};
+bool X11MouseContext::processEvent(const void* pev) {
+	dlg_assert(pev);
+	auto& ev = *static_cast<const xcb_generic_event_t*>(pev);
+	X11EventData eventData(ev);
 
 	auto responseType = ev.response_type & ~0x80;
 	switch(responseType) {
@@ -275,7 +277,11 @@ WindowContext* X11KeyboardContext::focus() const {
 	return focus_;
 }
 
-bool X11KeyboardContext::processEvent(const x11::GenericEvent& ev, const x11::GenericEvent* next) {
+bool X11KeyboardContext::processEvent(const void* pev, const void* pnext) {
+	dlg_assert(pev);
+	auto& ev = *static_cast<const xcb_generic_event_t*>(pev);
+	auto* next = static_cast<const xcb_generic_event_t*>(pnext);
+
 	union XkbEvent {
 		struct {
 			std::uint8_t response_type;

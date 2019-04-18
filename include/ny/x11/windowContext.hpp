@@ -62,7 +62,9 @@ public:
 
 	// - x11-specific -
 	// specific event handlers
-	virtual void reparentEvent();
+	void reparentEvent();
+	void resizeEvent(nytl::Vec2ui size, const X11EventData&);
+	void presentCompleteEvent(uint32_t serial);
 
 	X11AppContext& appContext() const { return *appContext_; } /// The associated AppContext
 	uint32_t xWindow() const { return xWindow_; } /// The underlaying x window handle
@@ -130,9 +132,6 @@ public:
 	/// visual type (since it also counts the alpha bits).
 	unsigned int visualDepth() const { return depth_; }
 
-	/// Updates the stored size
-	void updateSize(nytl::Vec2ui s) { size_ = s; }
-
 protected:
 	/// Default Constructor only for derived classes that later call the create function.
 	X11WindowContext() = default;
@@ -176,13 +175,16 @@ protected:
 	nytl::Vec2ui size_ {}; // the latest size
 
 	uint32_t presentID_ {}; // for present extension
-	bool presentPending_ {}; // pending frame callback
+	uint32_t presentPending_ {}; // serial of pending present call
+	uint32_t presentSerial_ {}; // counter
 	bool presentRefresh_ {}; // refresh on present complete
 
 	// flags
-	friend class X11AppContext; // TODO?
 	bool resizeEventFlag_ {};
 	bool drawEventFlag_ {};
+
+	// TODO
+	xcb_pixmap_t xDummyPixmap_ {};
 };
 
 } // namespace ny

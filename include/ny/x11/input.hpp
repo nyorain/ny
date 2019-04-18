@@ -24,7 +24,7 @@ public:
 	/// Processes the given event, i.e. checks if it is an mouse related event and if so,
 	/// calls out the appropriate listeners and callbacks.
 	/// Returns whether the given event was processed.
-	bool processEvent(const x11::GenericEvent& ev);
+	bool processEvent(const void* xcbEv);
 
 	X11AppContext& appContext() const { return appContext_; }
 	X11WindowContext* x11Over() const { return over_; }
@@ -57,7 +57,7 @@ public:
 	/// calls the appropriate listeners and callbacks.
 	/// Also handles xkb specific events.
 	/// Returns whether the given event was processed.
-	bool processEvent(const x11::GenericEvent& ev, const x11::GenericEvent* next);
+	bool processEvent(const void* xcbEv, const void* next);
 
 	X11AppContext& appContext() const { return appContext_; }
 	void destroyed(const X11WindowContext& wc);

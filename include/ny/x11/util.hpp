@@ -16,15 +16,12 @@
 #include <vector>
 #include <string>
 
-// Needed sice Xlib defines this macro
-#ifdef GenericEvent
-	#undef GenericEvent
-#endif
-
 namespace ny {
 
-/// X11EventData stores the native xcb event for later use.
-/// To see where this might be needed look at the X11WC::beginResize and X11WC::beginMove functions.
+// X11EventData stores the native xcb event for later use.
+// To see where this might be needed look at the X11WC::beginResize and
+// X11WC::beginMove functions. Note that for GE events, xcb_generic_event_t
+// isn't large enough to hold the whole event.
 struct X11EventData : public EventData {
 	X11EventData(const xcb_generic_event_t& e) : event(e) {};
 	xcb_generic_event_t event;
@@ -103,7 +100,6 @@ namespace x11 {
 // Forward declaration dummys, since some xcb types are anonymous typedefs and
 // we don't want to pull all xcb headers everwhere.
 struct EwmhConnection : public xcb_ewmh_connection_t {};
-struct GenericEvent : public xcb_generic_event_t {};
 
 /// All non-predefined atoms that will be used by some backend component.
 /// X11AppContext contains an Atoms object and tries to load each of these atoms in

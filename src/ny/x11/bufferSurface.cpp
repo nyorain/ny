@@ -162,7 +162,7 @@ void X11BufferSurface::apply(const BufferGuard&) noexcept {
 	active_ = false;
 
 	if(presentExt()) {
-		auto serial = 0u; // TODO?
+		auto serial = 0u; // TODO: use own frameCallback mechanism
 		auto cookie = xcb_present_pixmap_checked(&xConnection(),
 			windowContext().xWindow(), pixmap_, serial, 0, 0, 0, 0,
 			XCB_NONE, XCB_NONE, XCB_NONE, 0, 0, 0, 0, 0, nullptr);
@@ -199,6 +199,7 @@ bool X11BufferSurface::shmExt() const {
 }
 
 bool X11BufferSurface::presentExt() const {
+	return false;
 	return windowContext().appContext().shmExt() &&
 		windowContext().appContext().presentExt();
 }

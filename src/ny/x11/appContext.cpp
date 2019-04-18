@@ -378,14 +378,14 @@ bool X11AppContext::dispatchPending() {
 	while(true) {
 		xcb_generic_event_t* event;
 		if(next_) {
-			event = next_;
+			event = static_cast<xcb_generic_event_t*>(next_);
 			next_ = {};
 		} else if(!(event = xcb_poll_for_event(xConnection_))) {
 			break;
 		}
 
-		next_ = static_cast<x11::GenericEvent*>(xcb_poll_for_event(xConnection_));
-		processEvent(static_cast<x11::GenericEvent&>(*event), next_);
+		next_ = xcb_poll_for_event(xConnection_);
+		processEvent(event, next_);
 		free(event);
 		++i;
 	}
@@ -638,115 +638,67 @@ void X11AppContext::bell(unsigned val) {
 	xcb_bell(xConnection_, val);
 }
 
-void X11AppContext::processEvent(const x11::GenericEvent& ev,
-		const x11::GenericEvent* next) {
-	X11EventData eventData {ev};
 
-	// TODO: optimize deferred operations, code duplication atm
-	//  + maybe just use this defered method in X11WindowContext::refresh
-	//  instead of real event
-
-	// TODO: make windowContext handle events to remove friend decl
+void X11AppContext::processEvent(const void* pev, const void* pnext) {
+	dlg_assert(pev);
+	auto& ev = *static_cast<const xcb_generic_event_t*>(pev);
+	X11EventData eventData(ev);
 
 	auto responseType = ev.response_type & ~0x80;
 	switch(responseType) {
-		case XCB_EXPOSE: {
-			auto expose = copyu<xcb_expose_event_t>(ev);
-			auto wc = windowContext(expose.window);
+	case XCB_EXPOSE: {
+		auto expose = copyu<xcb_expose_event_t>(ev);
+		if(auto wc = windowContext(expose.window); wc) {
+			wc->refresh();
+		}
+		break;
+	} case XCB_MAP_NOTIFY: {
+		auto map = copyu<xcb_map_notify_event_t>(ev);
+		if(auto wc = windowContext(map.event); wc) {
+			wc->refresh();
+		}
+		break;
+	} case XCB_REPARENT_NOTIFY: {
+		auto reparent = copyu<xcb_reparent_notify_event_t>(ev);
+		auto wc = windowContext(reparent.window);
+		if(wc) {
+			wc->reparentEvent();
+		}
+		break;
+	} case XCB_CONFIGURE_NOTIFY: {
+		auto configure = copyu<xcb_configure_notify_event_t>(ev);
+		if(auto wc = windowContext(configure.window); wc) {
+			wc->resizeEvent({configure.width, configure.height}, eventData);
+		}
+		break;
+	} case XCB_CLIENT_MESSAGE: {
+		auto client = copyu<xcb_client_message_event_t>(ev);
+		auto protocol = static_cast<unsigned int>(client.data.data32[0]);
 
-			if(wc) {
-				if(!wc->drawEventFlag_) {
-					wc->drawEventFlag_ = true;
-					deferred.add([wc, eventData](){
-						wc->drawEventFlag_ = false;
-						DrawEvent de;
-						de.eventData = &eventData;
-						wc->listener().draw(de);
-					}, wc);
-				}
-			}
-			break;
+		auto wc = windowContext(client.window);
+		if(protocol == atoms().wmDeleteWindow && wc) {
+			CloseEvent ce;
+			ce.eventData = &eventData;
+			wc->listener().close(ce);
+		} else if(protocol == ewmhConnection()._NET_WM_PING) {
+			xcb_ewmh_send_wm_ping(&ewmhConnection(),
+				xDefaultScreen().root, client.data.data32[1]);
 		}
 
-		case XCB_MAP_NOTIFY: {
-			auto map = copyu<xcb_map_notify_event_t>(ev);
-			auto wc = windowContext(map.event);
-			if(wc) {
-				if(!wc->drawEventFlag_) {
-					wc->drawEventFlag_ = true;
-					deferred.add([wc, eventData](){
-						wc->drawEventFlag_ = false;
-						DrawEvent de;
-						de.eventData = &eventData;
-						wc->listener().draw(de);
-					}, wc);
-				}
-			}
-			break;
-		}
+		break;
+	} case 0u: {
+		int code = copyu<xcb_generic_error_t>(ev).error_code;
+		auto errorMsg = x11::errorMessage(xDisplay(), code);
+		dlg_warn("retrieved error code {}, {}", code, errorMsg);
 
-		case XCB_REPARENT_NOTIFY: {
-			auto reparent = copyu<xcb_reparent_notify_event_t>(ev);
-			auto wc = windowContext(reparent.window);
-			if(wc) {
-				wc->reparentEvent();
-			}
-			break;
-		}
-
-		case XCB_CONFIGURE_NOTIFY: {
-			auto configure = copyu<xcb_configure_notify_event_t>(ev);
-			auto nsize = nytl::Vec2ui{configure.width, configure.height};
-			auto wc = windowContext(configure.window);
-			if(wc && nsize != wc->size()) {
-				wc->updateSize(nsize);
-				wc->reloadStates();
-				if(!wc->resizeEventFlag_) {
-					wc->resizeEventFlag_ = true;
-					deferred.add([wc, eventData](){
-						SizeEvent se;
-						se.size = wc->size();
-						se.eventData = &eventData;
-						wc->listener().resize(se);
-						wc->resizeEventFlag_ = false;
-					}, wc);
-				}
-			}
-
-			break;
-		}
-
-		case XCB_CLIENT_MESSAGE: {
-			auto client = copyu<xcb_client_message_event_t>(ev);
-			auto protocol = static_cast<unsigned int>(client.data.data32[0]);
-
-			auto wc = windowContext(client.window);
-			if(protocol == atoms().wmDeleteWindow && wc) {
-				CloseEvent ce;
-				ce.eventData = &eventData;
-				wc->listener().close(ce);
-			} else if(protocol == ewmhConnection()._NET_WM_PING) {
-				xcb_ewmh_send_wm_ping(&ewmhConnection(), xDefaultScreen().root,
-					client.data.data32[1]);
-			}
-
-			break;
-		}
-
-	case 0u: {
-			int code = copyu<xcb_generic_error_t>(ev).error_code;
-			auto errorMsg = x11::errorMessage(xDisplay(), code);
-			dlg_warn("retrieved error code {}, {}", code, errorMsg);
-
-			break;
-		}
-
-		default: break;
+		break;
+	} default:
+		break;
 	}
 
-	if(impl_->dataManager.processEvent(ev) ||
-			keyboardContext_->processEvent(ev, next) ||
-			mouseContext_->processEvent(ev)) {
+	if(impl_->dataManager.processEvent(pev) ||
+			keyboardContext_->processEvent(pev, pnext) ||
+			mouseContext_->processEvent(pev)) {
 		return;
 	}
 
@@ -759,28 +711,14 @@ void X11AppContext::processEvent(const x11::GenericEvent& ev,
 				auto pev = copyu<xcb_present_complete_notify_event_t>(gev);
 				if(pev.window == xDummyWindow()) {
 					for(auto& wc : present_) {
-						if(!wc->presentPending_) {
-							continue;
-						}
-
-						wc->presentPending_ = false;
-						if(wc->presentRefresh_) {
-							wc->presentRefresh_ = false;
-							wc->refresh();
-						}
+						wc->presentCompleteEvent(pev.serial);
 					}
 
 					present_.clear();
-				}
-
-				// TODO
-				return;
-
-				auto wc = windowContext(pev.window);
-				wc->presentPending_ = false;
-				if(wc->presentRefresh_) {
-					wc->presentRefresh_ = false;
-					wc->refresh();
+				} else {
+					if(auto wc = windowContext(pev.window); wc) {
+						wc->presentCompleteEvent(pev.serial);
+					}
 				}
 				return;
 			} case XCB_PRESENT_IDLE_NOTIFY:

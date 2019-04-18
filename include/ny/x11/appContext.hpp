@@ -50,7 +50,7 @@ public:
 	using FdCallbackFunc = std::function<bool(int fd, unsigned int events)>;
 	nytl::Connection fdCallback(int fd, unsigned int events, FdCallbackFunc func);
 
-	void processEvent(const x11::GenericEvent& ev, const x11::GenericEvent* next);
+	void processEvent(const void* ev, const void* next);
 	X11WindowContext* windowContext(xcb_window_t);
 	void checkError();
 
@@ -107,8 +107,10 @@ protected:
 	std::unique_ptr<X11MouseContext> mouseContext_;
 	std::unique_ptr<X11KeyboardContext> keyboardContext_;
 
-	/// Optionally contains a
-	x11::GenericEvent* next_ {};
+	/// Optionally contains the next event ot process.
+	/// Peeked by dispatchPending since the next event is
+	/// sometimes needed.
+	void* next_ {};
 
 	WindowCapabilities ewmhWindowCaps_ {};
 

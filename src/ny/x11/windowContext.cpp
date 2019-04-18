@@ -128,11 +128,21 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 	if(appContext().presentExt()) {
 		presentID_ = xcb_generate_id(&xConnection());
 		uint32_t presentMask =
-			XCB_PRESENT_EVENT_MASK_CONFIGURE_NOTIFY |
 			XCB_PRESENT_EVENT_MASK_COMPLETE_NOTIFY |
 			XCB_PRESENT_EVENT_MASK_IDLE_NOTIFY;
 		xcb_present_select_input(&xConnection(), presentID_,
 			xWindow(), presentMask);
+
+		// TODO
+		// dummy pixmap for visual
+		xDummyPixmap_ = xcb_generate_id(&xConnection());
+		auto pcookie = xcb_create_pixmap_checked(&xConnection(), depth_,
+			xDummyPixmap_, xWindow(), 1, 1);
+		errorCategory().checkThrow(pcookie,
+			"ny::X11WindowContext: failed to create dummy pixmap");
+
+		// slightly random start serial
+		presentSerial_ = (reinterpret_cast<std::uintptr_t>(this) & 0xFFFF) + 1;
 	}
 
 	// make sure windows is mapped and set to correct state
@@ -282,21 +292,29 @@ void X11WindowContext::refresh() {
 
 void X11WindowContext::frameCallback() {
 	if(appContext().presentExt()) {
-		presentPending_ = true;
-
-		xcb_present_pixmap(&xConnection(),
-			appContext().xDummyWindow(), appContext().xDummyPixmap(), 0, 0, 0, 0, 0,
-			XCB_NONE, XCB_NONE, XCB_NONE, 0, 0, 0, 0, 0, nullptr);
-		appContext().present_.push_back(this);
+		if(++presentSerial_ == 0) {
+			++presentSerial_;
+		}
 
 		// xcb_present_pixmap(&xConnection(),
-		// 	xWindow(), appContext().xDummyPixmap(), 0, appContext().xEmptyRegion(),
-		// 	appContext().xEmptyRegion(), -1, -1,
+		// 	appContext().xDummyWindow(), appContext().xDummyPixmap(), 0, 0, 0, 0, 0,
 		// 	XCB_NONE, XCB_NONE, XCB_NONE, 0, 0, 0, 0, 0, nullptr);
+		// appContext().present_.push_back(this);
+
+		// TODO: better solution: always present to the real
+		// window instead of a dummy window to really know when presenting
+		// for that window has finished. Not sure how to without actively
+		// changing the window contents
+		xcb_present_pixmap(&xConnection(),
+			xWindow(), xDummyPixmap_, presentSerial_,
+			appContext().xEmptyRegion(),
+			appContext().xEmptyRegion(), 0, 0,
+			XCB_NONE, XCB_NONE, XCB_NONE, 0, 0, 0, 0, 0, nullptr);
 		// xcb_present_pixmap(&xConnection(),
 		// 	xWindow(), appContext().xDummyPixmap(), 0, XCB_NONE, XCB_NONE, -1, -1,
 		// 	XCB_NONE, XCB_NONE, XCB_NONE, 0, 0, 0, 0, 0, nullptr);
 		xcb_flush(&xConnection());
+		presentPending_ = presentSerial_;
 	}
 }
 
@@ -525,12 +543,12 @@ void X11WindowContext::icon(const Image& img) {
 		convertFormat(img, reqFormat, *imgData);
 
 		auto data = ownedData.get();
-		xcb_ewmh_set_wm_icon(&ewmhConnection(), XCB_PROP_MODE_REPLACE, xWindow(), size, data);
-		xcb_flush(&xConnection());
+		xcb_ewmh_set_wm_icon(&ewmhConnection(), XCB_PROP_MODE_REPLACE,
+			xWindow(), size, data);
 	} else {
 		std::uint32_t buffer[2] = {0};
-		xcb_ewmh_set_wm_icon(&ewmhConnection(), XCB_PROP_MODE_REPLACE, xWindow(), 2, buffer);
-		xcb_flush(&xConnection());
+		xcb_ewmh_set_wm_icon(&ewmhConnection(), XCB_PROP_MODE_REPLACE,
+			xWindow(), 2, buffer);
 	}
 }
 
@@ -562,6 +580,44 @@ void X11WindowContext::reparentEvent() {
 	position(settings_.position);
 }
 
+void X11WindowContext::resizeEvent(nytl::Vec2ui size, const X11EventData& evd) {
+	size_ = size;
+	reloadStates();
+
+	// we only send a resize event after we have finished processing
+	// all events since sometimes we receive multiple resize events
+	// at once and then only forward the last one.
+	if(!resizeEventFlag_) {
+		resizeEventFlag_ = true;
+		appContext().deferred.add([this, evd](){
+			resizeEventFlag_ = false;
+			SizeEvent se;
+			se.size = size_;
+			se.eventData = &evd;
+			listener().resize(se);
+		}, this);
+	}
+
+	// we don't refresh/send a draw event since the x server will notify
+	// us via an expose event
+	// NOTE/optimization: but that expose event might have to wait
+	// on a present complete event then, maybe reset it here/in
+	// the expose event handler?
+}
+
+void X11WindowContext::presentCompleteEvent(uint32_t serial) {
+	// may happen if event was triggered by another/foreign present
+	if(presentPending_ != serial) {
+		return;
+	}
+
+	presentPending_ = 0u;
+	if(presentRefresh_) {
+		presentRefresh_ = false;
+		refresh();
+	}
+}
+
 void X11WindowContext::customDecorated(bool set) {
 	typedef struct {
 		unsigned long flags;
@@ -571,15 +627,17 @@ void X11WindowContext::customDecorated(bool set) {
 		unsigned long status;
 	} MotifWmHints;
 
-	MotifWmHints motif_hints {};
-	motif_hints.flags = 2u;
-	motif_hints.decorations = set ? 0u : 1u;
+	MotifWmHints hints {};
+	hints.flags = 2u;
+	hints.decorations = set ? 0u : 1u;
+
+	auto hintAtom = appContext().atoms().motifWmHints;
+	auto data = static_cast<void*>(&hints);
+	auto len = sizeof(hints) / sizeof(uint32_t);
+	xcb_change_property(&xConnection(), XCB_PROP_MODE_REPLACE,
+		xWindow(), hintAtom, hintAtom, 32, len, data);
 
 	customDecorated_ = set;
-
-	auto hint_atom = appContext().atoms().motifWmHints;
-	XChangeProperty(&appContext().xDisplay(), xWindow(), hint_atom, hint_atom, 32, PropModeReplace,
-		reinterpret_cast<unsigned char*>(&motif_hints), sizeof(MotifWmHints)/sizeof(long));
 }
 
 bool X11WindowContext::customDecorated() const {
@@ -605,12 +663,14 @@ WindowCapabilities X11WindowContext::capabilities() const {
 // x11 specific
 void X11WindowContext::raise() {
 	const uint32_t values[] = {XCB_STACK_MODE_ABOVE};
-	xcb_configure_window(&xConnection(), xWindow(), XCB_CONFIG_WINDOW_STACK_MODE, values);
+	xcb_configure_window(&xConnection(), xWindow(),
+		XCB_CONFIG_WINDOW_STACK_MODE, values);
 }
 
 void X11WindowContext::lower() {
 	const uint32_t values[] = {XCB_STACK_MODE_BELOW};
-	xcb_configure_window(&xConnection(), xWindow(), XCB_CONFIG_WINDOW_STACK_MODE, values);
+	xcb_configure_window(&xConnection(), xWindow(),
+		XCB_CONFIG_WINDOW_STACK_MODE, values);
 }
 
 void X11WindowContext::requestFocus() {
@@ -618,18 +678,21 @@ void X11WindowContext::requestFocus() {
 		XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL, XCB_TIME_CURRENT_TIME, XCB_NONE);
 }
 void X11WindowContext::addStates(xcb_atom_t state1, xcb_atom_t state2) {
-	xcb_ewmh_request_change_wm_state(&ewmhConnection(), 0, xWindow(), XCB_EWMH_WM_STATE_ADD,
-		state1, state2, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
+	xcb_ewmh_request_change_wm_state(&ewmhConnection(), 0, xWindow(),
+		XCB_EWMH_WM_STATE_ADD, state1, state2,
+		XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
 }
 
 void X11WindowContext::removeStates(xcb_atom_t state1, xcb_atom_t state2) {
-	xcb_ewmh_request_change_wm_state(&ewmhConnection(), 0, xWindow(), XCB_EWMH_WM_STATE_REMOVE,
-		state1, state2, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
+	xcb_ewmh_request_change_wm_state(&ewmhConnection(), 0, xWindow(),
+		XCB_EWMH_WM_STATE_REMOVE, state1, state2,
+		XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
 }
 
 void X11WindowContext::toggleStates(xcb_atom_t state1, xcb_atom_t state2) {
-	xcb_ewmh_request_change_wm_state(&ewmhConnection(), 0, xWindow(), XCB_EWMH_WM_STATE_TOGGLE,
-		state1, state2, XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
+	xcb_ewmh_request_change_wm_state(&ewmhConnection(), 0, xWindow(),
+		XCB_EWMH_WM_STATE_TOGGLE, state1, state2,
+		XCB_EWMH_CLIENT_SOURCE_TYPE_NORMAL);
 }
 
 void X11WindowContext::addAllowedAction(xcb_atom_t action) {
@@ -671,7 +734,8 @@ void X11WindowContext::xWindowType(xcb_atom_t type) {
 
 void X11WindowContext::overrideRedirect(bool redirect) {
 	std::uint32_t data = redirect;
-	xcb_change_window_attributes(&xConnection(), xWindow(), XCB_CW_OVERRIDE_REDIRECT, &data);
+	xcb_change_window_attributes(&xConnection(), xWindow(),
+		XCB_CW_OVERRIDE_REDIRECT, &data);
 }
 
 nytl::Vec2ui X11WindowContext::querySize() const {

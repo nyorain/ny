@@ -125,6 +125,10 @@ public:
 		std::memset(buffer.data, 0xCC, size);
 	}
 
+	void mouseCross(const ny::MouseCrossEvent& ev) override {
+		dlg_info("mouse cross: {}", ev.entered);
+	}
+
 	void mouseButton(const ny::MouseButtonEvent& ev) override {
 		if(!ev.pressed) {
 			return;

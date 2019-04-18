@@ -22,6 +22,13 @@ using xcb_timestamp_t = std::uint32_t;
 using xcb_cursor_t = std::uint32_t;
 using xcb_pixmap_t = std::uint32_t;
 
+using xcb_client_message_event_t = struct xcb_client_message_event_t;
+using xcb_selection_notify_event_t = struct xcb_selection_notify_event_t;
+using xcb_selection_request_event_t = struct xcb_selection_request_event_t;
+
+// NOTE: sadly, we cannot forward declare xcb_generic_event_t since it's
+// an anonymous struct typedef in xcb/xcb.h. Using void* instead.
+
 namespace ny {
 
 class X11WindowContext;
@@ -30,6 +37,7 @@ class X11MouseContext;
 class X11KeyboardContext;
 class X11DataManager;
 class X11ErrorCategory;
+struct X11EventData;
 
 class GlxContext;
 class GlxSetup;

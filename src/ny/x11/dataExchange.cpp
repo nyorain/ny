@@ -272,9 +272,7 @@ bool X11DataOffer::data(nytl::StringParam format, DataListener listener) {
 // NOTE: a malicious client can obviously destroy all of our logic
 // but i'm not sure you can even implement these selection things
 // in any solid way
-bool X11DataOffer::notify(const x11::GenericEvent& ev) {
-	auto notify = copyu<xcb_selection_notify_event_t>(ev);
-
+bool X11DataOffer::notify(const xcb_selection_notify_event_t& notify) {
 	// check the target of the notify
 	// if the target it atoms.target, it notifies us that the selection owner set the
 	// property of the dummy window to the list of supported (convertable targets)
@@ -500,9 +498,7 @@ X11DataSource::X11DataSource(X11AppContext& ac, std::unique_ptr<DataSource> src,
 	targets_.erase(std::unique(targets_.begin(), targets_.end()), targets_.end());
 }
 
-void X11DataSource::answerRequest(const x11::GenericEvent& ev) {
-	auto request = copyu<xcb_selection_request_event_t>(ev);
-
+void X11DataSource::answerRequest(const xcb_selection_request_event_t& request) {
 	// TODO: some parts of icccm not implemented
 	auto property = request.property;
 	if(!property) { // icccm specifies that it should be handled like this
@@ -609,8 +605,10 @@ void X11DataManager::initCursors() {
 	cursors_.init = true;
 }
 
-bool X11DataManager::processEvent(const x11::GenericEvent& ev) {
-	X11EventData eventData {ev};
+bool X11DataManager::processEvent(const void* pev) {
+	dlg_assert(pev);
+	auto& ev = *static_cast<const xcb_generic_event_t*>(pev);
+	X11EventData eventData(ev);
 
 	auto responseType = ev.response_type & ~0x80;
 	switch(responseType) {
@@ -627,18 +625,18 @@ bool X11DataManager::processEvent(const x11::GenericEvent& ev) {
 		}
 
 		if(notify.selection == atoms.clipboard) {
-			dlg_assertlm(dlg_level_info, clipboardOffer_->notify(ev),
+			dlg_assertlm(dlg_level_info, clipboardOffer_->notify(notify),
 				"received invalid clipboard selection notify event");
 		} else if(notify.selection == XCB_ATOM_PRIMARY) {
-			dlg_assertlm(dlg_level_info, primaryOffer_->notify(ev),
+			dlg_assertlm(dlg_level_info, primaryOffer_->notify(notify),
 				"received invalid primary selection notify event");
 		} else if(notify.selection == atoms.xdndSelection) {
 			// try current one
-			if(!dndOffer_.offer || !dndOffer_.offer->notify(ev)) {
+			if(!dndOffer_.offer || !dndOffer_.offer->notify(notify)) {
 				// if event wasn't for current one, try old ones
 				bool found = false;
 				for(auto& offer : oldDndOffers_) {
-					if(offer->notify(ev)) {
+					if(offer->notify(notify)) {
 						found = true;
 						break;
 					}
@@ -666,7 +664,7 @@ bool X11DataManager::processEvent(const x11::GenericEvent& ev) {
 		}
 
 		if(source) {
-			source->answerRequest(ev);
+			source->answerRequest(req);
 		} else {
 			// if the request cannot be handled, simply send an event to the
 			// client that notifies them that the request failed.
@@ -703,7 +701,8 @@ bool X11DataManager::processEvent(const x11::GenericEvent& ev) {
 		return true;
 	} case XCB_CLIENT_MESSAGE: {
 		// xdnd events are sent as client messages
-		if(processClientMessage(ev, eventData)) {
+		auto clientm = copyu<xcb_client_message_event_t>(ev);
+		if(processClientMessage(clientm, eventData)) {
 			return true;
 		}
 	} default: {
@@ -713,7 +712,7 @@ bool X11DataManager::processEvent(const x11::GenericEvent& ev) {
 
 	// if we are currently grabbing the pointer because we initiated a dnd session
 	// also handle the pointer events and forward them to dnd handlers.
-	if(dndSrc_.sourceWindow && processDndEvent(ev)) {
+	if(dndSrc_.sourceWindow && processDndEvent(pev)) {
 		return true;
 	}
 
@@ -721,10 +720,9 @@ bool X11DataManager::processEvent(const x11::GenericEvent& ev) {
 	return false;
 }
 
-bool X11DataManager::processClientMessage(const x11::GenericEvent& ev,
+bool X11DataManager::processClientMessage(
+		const xcb_client_message_event_t& clientm,
 		const EventData& eventData) {
-
-	auto clientm = copyu<xcb_client_message_event_t>(ev);
 	if(clientm.type == atoms().xdndEnter) {
 		auto* data = clientm.data.data32;
 
@@ -927,7 +925,10 @@ bool X11DataManager::processClientMessage(const x11::GenericEvent& ev,
 	return true; // we handled the client message
 }
 
-bool X11DataManager::processDndEvent(const x11::GenericEvent& ev) {
+bool X11DataManager::processDndEvent(const void* pev) {
+	dlg_assert(pev);
+	auto& ev = *static_cast<const xcb_generic_event_t*>(pev);
+
 	auto responseType = ev.response_type & ~0x80;
 	switch(responseType) {
 	case XCB_MOTION_NOTIFY: {
@@ -1173,7 +1174,6 @@ bool X11DataManager::startDragDrop(const EventData* evdata,
 	auto img = src->image();
 	if(img.format != ImageFormat::none) {
 		dndSrc_.dndWindow->size(img.size);
-		dndSrc_.dndWindow->updateSize(img.size);
 		dndSrc_.dndWindow->show();
 
 		{

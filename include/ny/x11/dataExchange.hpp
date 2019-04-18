@@ -57,7 +57,7 @@ public:
 	/// Handle a recevied xcb_selection_notify_event for the selection represented
 	/// by this offer. Returns false if the notification is not for
 	/// any pending request by this offer.
-	bool notify(const x11::GenericEvent& notify);
+	bool notify(const xcb_selection_notify_event_t& notify);
 
 	/// Signals the DataOffer that its ownership will be passed to the application and that
 	/// it therefore has to unregister itself from the DataManager on destruction.
@@ -128,7 +128,7 @@ public:
 
 	/// Will answer the received xcb_selection_request_event_t, i.e. by sending all
 	/// supported targets or trying to send the data from the source in the requested format.
-	void answerRequest(const x11::GenericEvent& requestEvent);
+	void answerRequest(const xcb_selection_request_event_t& req);
 
 protected:
 	X11AppContext* appContext_;
@@ -157,7 +157,7 @@ public:
 	const x11::Atoms& atoms() const;
 
 	/// Tries to handle the given event. Return true if it was handled.
-	bool processEvent(const x11::GenericEvent& event);
+	bool processEvent(const void* xcbEv);
 
 	/// Tries to claim clipboard ownership and set it to the given DataSource.
 	/// Returns true on success and false on failure.
@@ -192,11 +192,11 @@ protected:
 
 	/// Tries to handle the given xcb_client_message_event_t
 	/// Returns true if it was handled.
-	bool processClientMessage(const x11::GenericEvent&, const EventData&);
+	bool processClientMessage(const xcb_client_message_event_t&, const EventData&);
 
 	/// Tries to handle the given event if currently implementing a dnd session.
 	/// Returns true if it was handled.
-	bool processDndEvent(const x11::GenericEvent& ev);
+	bool processDndEvent(const void* ev);
 
 	void initCursors();
 	void xdndSendEnter();

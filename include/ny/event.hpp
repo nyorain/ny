@@ -16,35 +16,36 @@
 
 namespace ny {
 
-/// Classes derived from the EventData class are used by backends to put their custom
-/// information (like e.g. native event objects) in Event objects, since every Event stores
-/// an owned EventData pointer.
-/// Has a virtual destructor which makes RTTI possible (i.e. checking for backend-specific types
-/// using a dynamic_cast). EventData objects can be cloned, i.e. they can be duplicated without
-/// having to know their exact (derived, backend-specific) type using nytl::clone.
-/// This may be used later by the backend to retrieve which event triggered a specific call
-/// the application made (event-context sensitive functions like WindowConetxt::beginMove or
-/// AppContext::startDragDrop take a EventData parameter).
+// Classes derived from the EventData class are used by backends to put their
+// custom information (like e.g. native event objects) in Event objects, since
+// every Event stores an owned EventData pointer.  Has a virtual destructor
+// which makes RTTI possible (i.e. checking for backend-specific types using a
+// dynamic_cast). EventData objects can be cloned, i.e. they can be duplicated
+// without having to know their exact (derived, backend-specific) type using
+// nytl::clone.  This may be used later by the backend to retrieve which event
+// triggered a specific call the application made (event-context sensitive
+// functions like WindowConetxt::beginMove or AppContext::startDragDrop take a
+// EventData parameter).
 struct EventData : public nytl::Cloneable<EventData> {};
 
-/// Base Event class that holds an optional EventData pointer.
-/// Note that the eventData pointer is not owned and therefore must be cloned
-/// if a copy if needed (copy the Event struct will simply copy the pointer).
+// Base Event class that holds an optional EventData pointer.  Note that the
+// eventData pointer is not owned and therefore must be cloned if a copy if
+// needed (copy the Event struct will simply copy the pointer).
 struct Event {
-	const EventData* eventData {}; /// Backend specific data associated with an event
+	const EventData* eventData {}; // Backend-specific data
 };
 
-/// Event that is sent when the mouse moves.
+// Event that is sent when the mouse moves.
 struct MouseMoveEvent : public Event {
-	nytl::Vec2i position {}; /// The new mouse position
-	nytl::Vec2i delta {}; /// The delta to the previous position
+	nytl::Vec2i position {}; // The new mouse position
+	nytl::Vec2i delta {}; // The delta to the previous position
 };
 
-/// Event that is sent when a mouse button gets pressed or released.
+// Event that is sent when a mouse button gets pressed or released.
 struct MouseButtonEvent : public Event {
-	nytl::Vec2i position {}; /// The mouse position when the event occurred
-	MouseButton button {}; /// The pressed/released button
-	bool pressed {}; /// True if the button was pressed, false if it was left
+	nytl::Vec2i position {}; // The mouse position when the event occurred
+	MouseButton button {}; // The pressed/released button
+	bool pressed {}; // True if the button was pressed, false if it was left
 };
 
 /// Event that is sent when the mouse wheel gets scrolled.

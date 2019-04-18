@@ -316,17 +316,17 @@ EglContext::EglContext(const EglSetup& setup, const GlContextSettings& settings)
 		}
 
 		// version set later
-		attributes.push_back(EGL_CONTEXT_MAJOR_VERSION);
-		attributes.push_back(0);
-		attributes.push_back(EGL_CONTEXT_MINOR_VERSION);
-		attributes.push_back(0);
+		// attributes.push_back(EGL_CONTEXT_MAJOR_VERSION);
+		// attributes.push_back(0);
+		// attributes.push_back(EGL_CONTEXT_MINOR_VERSION);
+		// attributes.push_back(0);
 
 		attributes.push_back(EGL_NONE);
 
 		::eglGetError();
 		for(const auto p : versionPairs) {
-			attributes[attributes.size() - 4] = p.first;
-			attributes[attributes.size() - 2] = p.second;
+			// attributes[attributes.size() - 4] = p.first;
+			// attributes[attributes.size() - 2] = p.second;
 
 			// unset forward compatible for versions < 3.0
 			if(p.first < 3 && api == GlApi::gl) {
