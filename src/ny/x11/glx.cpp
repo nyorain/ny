@@ -102,7 +102,7 @@ GlxSetup::GlxSetup(const X11AppContext& ac, unsigned int screenNum) : appContext
 	auto highestRating = 0u;
 	auto highestTransparentRating = 0u;
 
-	for(auto& config : nytl::Span<GLXFBConfig>(*fbconfigs, fbcount)) {
+	for(auto& config : nytl::Span<GLXFBConfig>(fbconfigs, fbcount)) {
 		// NOTE: we don't query/handle GLX_TRANSPARENT_TYPE since it is usually
 		// note correctly set
 
@@ -191,7 +191,7 @@ GLXFBConfig GlxSetup::glxConfig(GlConfigID id) const
 	if(!fbconfigs || !fbcount) return nullptr;
 
 	GLXFBConfig ret {};
-	for(auto& config : nytl::Span<GLXFBConfig>(*fbconfigs, fbcount)) {
+	for(auto& config : nytl::Span<GLXFBConfig>(fbconfigs, fbcount)) {
 		int getid {};
 		::glXGetFBConfigAttrib(&xDisplay(), config, GLX_FBCONFIG_ID, &getid);
 		if(getid == static_cast<int>(glConfigNumber(id))) {
