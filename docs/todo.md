@@ -6,6 +6,8 @@ for features/improvements.
 ## Prio
 
 - rework opengl context version request
+- allow to request an srgb framebuffer on opengl context creation
+
 - x11::BufferSurface: double buffering required
 - fix/implement WindowContext::frameCallback
 	- glsurfaces should call it automatically before swapping buffers
@@ -39,7 +41,8 @@ for features/improvements.
 - windows: wm_char fix (test with ime), document it
 - test correct/uniform wheel values on all platforms (1.f per tick)
 	- currently inverted on wayland...
-- rework dataExchange
+- fix windows dataexchange
+- rework dataExchange [note: most of this done]
 	- some kind of dnd offer succesful feedback
 		- also offer dnd effects (copy/move etc)
 		- return something like AsynRequest from AppContext::startDragDrop

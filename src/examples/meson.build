@@ -13,5 +13,11 @@ else
 		executable('cairo', 'cairo.cpp', dependencies: [ny_dep, dep_cairo])
 	endif
 
+	# TODO: blend2d currently has no pkg-config, just try to find the library
+	lib_blend2d = meson.get_compiler('cpp').find_library('blend2d')
+	if lib_blend2d.found()
+		executable('b2d', 'b2d.cpp', dependencies: [ny_dep, lib_blend2d])
+	endif
+
 	executable('playground', 'playground.cpp', dependencies: [ny_dep, dep_gl])
 endif
