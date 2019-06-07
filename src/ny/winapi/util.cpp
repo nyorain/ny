@@ -171,9 +171,13 @@ constexpr struct EdgeConversion {
 	{WindowEdge::bottomRight, 8u},
 };
 
+/*
+// TODO: idc_* triggers gcc c++ errors (goob job microsoft, standards are for
+// losers right?). So instead, we should use OCR_* and LoadImage (which
+// seems to be the new shit anyways)
 constexpr struct CursorConversion {
 	CursorType cursor;
-	const wchar_t* idc;
+	const TCHAR* idc;
 } cursorConversions[] = {
 	{CursorType::leftPtr, IDC_ARROW},
 	{CursorType::load, IDC_WAIT},
@@ -183,7 +187,7 @@ constexpr struct CursorConversion {
 	{CursorType::grab, IDC_HAND},
 	{CursorType::crosshair, IDC_CROSS},
 	{CursorType::help, IDC_HELP},
-	{CursorType::beam, IDC_BEAM},
+	{CursorType::beam, IDC_IBEAM},
 	{CursorType::forbidden, IDC_NO},
 	{CursorType::size, IDC_SIZEALL},
 	{CursorType::sizeLeft, IDC_SIZEWE},
@@ -195,6 +199,7 @@ constexpr struct CursorConversion {
 	{CursorType::sizeTopRight, IDC_SIZENESW},
 	{CursorType::sizeBottomLeft, IDC_SIZENESW},
 };
+*/
 
 Keycode winapiToKeycode(unsigned int code) {
 	for(auto& kc : keycodeConversions) {
@@ -238,6 +243,7 @@ unsigned int buttonToWinapi(MouseButton button) {
 	}
 }
 
+/*
 const wchar_t* cursorToWinapi(CursorType type) {
 	for(auto& cc : cursorConversions) {
 		if(cc.cursor == type) {
@@ -257,6 +263,7 @@ CursorType winapiToCursor(const wchar_t* idc) {
 
 	return CursorType::unknown;
 }
+*/
 
 unsigned int edgesToWinapi(WindowEdges edges) {
 	auto edge = static_cast<WindowEdge>(edges.value());

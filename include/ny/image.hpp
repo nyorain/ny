@@ -115,8 +115,8 @@ template<typename P>
 constexpr auto data(const BasicImage<P>& img) {
 	if constexpr(std::is_convertible_v<P, const uint8_t*>) {
 		return img.data;
-	} else if constexpr(std::is_convertible_v<decltype(&*img.data), const uint8_t*>) {
-		return &*img.data;
+	} else if constexpr(std::is_convertible_v<decltype(img.data.get()), const uint8_t*>) {
+		return img.data.get();
 	} else if constexpr(nytl::templatize<P>(true)) {
 		static_assert("Invalid img data pointer");
 	}

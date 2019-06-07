@@ -42,11 +42,11 @@ using WinapiCursorID = const wchar_t*;
 /// Returns nullptr for unsupported cursor types.
 /// Note that this does not return a string literal, but just a (rather meaningless) id.
 /// Example: cursorToWinapi(CursorType::hand) returns IDC_HAND
-WinapiCursorID cursorToWinapi(CursorType type);
+// WinapiCursorID cursorToWinapi(CursorType type);
 
 /// Returns a CursorType for a winapi cursor id.
 /// Returns CursorType::unknown for unknown/invalid cursor ids.
-CursorType winapiToCursor(WinapiCursorID idc);
+// CursorType winapiToCursor(WinapiCursorID idc);
 
 /// Conerts the gvien WindowEdges to winapi edges as used by SC_SIZE.
 unsigned int edgesToWinapi(WindowEdges edges);

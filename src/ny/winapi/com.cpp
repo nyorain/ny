@@ -65,7 +65,7 @@ WinapiDataOffer::WinapiDataOffer(IDataObject& object) : data_(object)
 		auto ret = enumerator->Next(formatsSize, formats, &count);
 
 		// handle every returned format
-		for(auto format : nytl::Span<FORMATETC>(*formats, count)) {
+		for(auto format : nytl::Span<FORMATETC>(formats, count)) {
 			// check mappings for standard formats
 			// if we don't know how to handle the medium, ignore it
 			bool found {};

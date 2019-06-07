@@ -306,6 +306,9 @@ void WinapiWindowContext::cursor(const Cursor& cursor)
 		cursor_ = nullptr;
 		ownedCursor_ = false;
 	} else {
+		dlg_error("native cursors currently not suported on winapi");
+		return;
+		/*
 		auto cursorName = cursorToWinapi(cursor.type());
 		if(!cursorName) {
 			dlg_warn("invalid native cursor type '{}'", name(cursor.type()));
@@ -319,6 +322,7 @@ void WinapiWindowContext::cursor(const Cursor& cursor)
 			dlg_warn(errorMessage("LoadCursor"));
 			return;
 		}
+		*/
 	}
 
 	// Some better method for doing this?
