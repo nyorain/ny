@@ -12,17 +12,18 @@
 
 #include <map>
 #include <memory>
+#include <deque>
 
 namespace ny {
 
 /// X11 AppContext implementation.
 class X11AppContext : public AppContext {
 public:
-	DeferredOperator<void(), const WindowContext*> deferred;
+	// DeferredOperator<void(), const WindowContext*> deferred;
 
 	// TODO
 	std::vector<X11WindowContext*> present_;
-
+	using DeferFunc = void(*)(X11WindowContext&);
 public:
 	X11AppContext();
 	~X11AppContext();
@@ -68,6 +69,7 @@ public:
 	GlxSetup* glxSetup() const;
 	X11DataManager& dataManager() const;
 
+	void defer(X11WindowContext&, DeferFunc);
 	void registerContext(xcb_window_t xWindow, X11WindowContext& context);
 	void destroyed(const X11WindowContext& win);
 	void bell(unsigned val = 100);
@@ -86,6 +88,7 @@ protected:
 	/// Will process all xcb events.
 	bool poll(bool wait);
 	bool dispatchPending();
+	unsigned execDeferred();
 
 protected:
 	Display* xDisplay_  = nullptr;
@@ -121,6 +124,13 @@ protected:
 
 	struct Impl;
 	std::unique_ptr<Impl> impl_;
+
+	struct Defer {
+		DeferFunc func;
+		X11WindowContext* wc;
+	};
+
+	std::deque<Defer> defer_;
 };
 
 } // namespace ny

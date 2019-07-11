@@ -14,7 +14,7 @@ else
 	endif
 
 	# TODO: blend2d currently has no pkg-config, just try to find the library
-	lib_blend2d = meson.get_compiler('cpp').find_library('blend2d')
+	lib_blend2d = meson.get_compiler('cpp').find_library('blend2d', required: false)
 	if lib_blend2d.found()
 		executable('b2d', 'b2d.cpp', dependencies: [ny_dep, lib_blend2d])
 	endif

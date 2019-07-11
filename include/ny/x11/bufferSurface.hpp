@@ -29,14 +29,32 @@ public:
 	xcb_connection_t& xConnection() const { return windowContext().xConnection(); }
 	ImageFormat format() const { return format_; }
 	bool active() const { return active_; }
-
-	// whether shm/the present extension is used
-	bool shmExt() const;
-	bool presentExt() const;
+	void release(uint32_t serial);
 
 protected:
+	enum class Mode {
+		dumb, // simple local buffer
+		shm, // shared memory, using xcb_image_put
+		presentShm, // shared memory, used with present extension
+	};
+
+	struct Shm {
+		unsigned int id {};
+		uint32_t seg {};
+		std::byte* data {};
+	};
+
+	struct Pixmap {
+		Shm shm {};
+		xcb_pixmap_t pixmap {};
+		uint32_t serial {};
+		nytl::Vec2ui size {};
+	};
+
 	void apply(const BufferGuard&) noexcept override;
 	void resize(nytl::Vec2ui size);
+	void destroyShm(const Shm& shm);
+	void createShm(Shm& shm, std::size_t size);
 
 protected:
 	X11WindowContext* windowContext_ {};
@@ -44,21 +62,17 @@ protected:
 	ImageFormat format_ {};
 	uint32_t gc_ {};
 
-	bool active_ {};
+	bool active_ {}; // whether currently active
+	Pixmap* activePixmap_ {}; // for presentShm mode: active pixmap
 	nytl::Vec2ui size_; // size of active
-	unsigned int byteSize_ {}; // the size in bytes of ((shm_) ? shmaddr_ : data_)
-	std::byte* data_ {}; // the actual data (either shmaddr or points so ownedBuffer)
+	Mode mode_;
 
- 	// when using shm
-	unsigned int shmid_ {};
-	uint32_t shmseg_ {};
-
-	// TODO: double buffering required
-	// when using present (only when also using shm)
-	xcb_pixmap_t pixmap_ {};
+	Shm shm_; // when using shm
+	std::vector<Pixmap> pixmaps_; // when using present shm pixmaps
 
 	// otherwise when using owned buffer because shm not available
 	std::unique_ptr<std::byte[]> ownedBuffer_;
+	unsigned int byteSize_ {}; // for shm or dumb mode
 };
 
 /// X11 WindowContext implementation with a drawable buffer surface.
@@ -68,6 +82,7 @@ public:
 	~X11BufferWindowContext() = default;
 
 	Surface surface() override;
+	void presentCompleteEvent(uint32_t serial) override;
 
 protected:
 	X11BufferSurface bufferSurface_;

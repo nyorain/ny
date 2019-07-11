@@ -486,27 +486,26 @@ bool X11AppContext::poll(bool wait) {
 // wayland backend already roughly does it that way
 void X11AppContext::pollEvents() {
 	checkError();
-	deferred.execute();
+	// execDeferred();
 	xcb_flush(&xConnection());
 	dispatchPending();
 	poll(false);
-	deferred.execute();
+	execDeferred();
 	checkError();
 }
 
 void X11AppContext::waitEvents() {
 	checkError();
 
-	auto execd = !deferred.entries().empty();
-	deferred.execute();
+	// execDeferred();
 	xcb_flush(&xConnection());
 
-	if(!dispatchPending() && !poll(false) && !execd) {
+	if(!dispatchPending() && !poll(false) && defer_.empty()) {
 		// no pending events processed, wait for one
 		poll(true);
 	}
 
-	deferred.execute();
+	execDeferred();
 	checkError();
 }
 
@@ -568,12 +567,30 @@ GlxSetup* X11AppContext::glxSetup() const {
 	#endif
 }
 
+unsigned X11AppContext::execDeferred() {
+	auto count = 0u;
+	while(!defer_.empty()) {
+		auto current = defer_.front();
+		defer_.pop_front();
+		current.func(*current.wc);
+		++count;
+	}
+
+	return count;
+}
+
+void X11AppContext::defer(X11WindowContext& wc, DeferFunc f) {
+	defer_.push_back({f, &wc});
+}
+
 void X11AppContext::registerContext(xcb_window_t w, X11WindowContext& c) {
 	contexts_[w] = &c;
 }
 
 void X11AppContext::destroyed(const X11WindowContext& wc) {
-	deferred.remove(&wc);
+	defer_.erase(std::remove_if(defer_.begin(), defer_.end(),
+		[&](auto& o){ return &wc == o.wc; }), defer_.end());
+
 	if(auto xwin = wc.xWindow(); xwin) {
 		contexts_.erase(xwin);
 	}
@@ -649,13 +666,13 @@ void X11AppContext::processEvent(const void* pev, const void* pnext) {
 	case XCB_EXPOSE: {
 		auto expose = copyu<xcb_expose_event_t>(ev);
 		if(auto wc = windowContext(expose.window); wc) {
-			wc->refresh();
+			wc->scheduleRedraw();
 		}
 		break;
 	} case XCB_MAP_NOTIFY: {
 		auto map = copyu<xcb_map_notify_event_t>(ev);
 		if(auto wc = windowContext(map.event); wc) {
-			wc->refresh();
+			wc->scheduleRedraw();
 		}
 		break;
 	} case XCB_REPARENT_NOTIFY: {

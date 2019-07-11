@@ -133,8 +133,9 @@ void X11WindowContext::create(X11AppContext& ctx, const X11WindowSettings& setti
 		xcb_present_select_input(&xConnection(), presentID_,
 			xWindow(), presentMask);
 
-		// TODO
 		// dummy pixmap for visual
+		// TODO: should be possible to not give each window context its own
+		// pixmap... somewhat wasteful
 		xDummyPixmap_ = xcb_generate_id(&xConnection());
 		auto pcookie = xcb_create_pixmap_checked(&xConnection(), depth_,
 			xDummyPixmap_, xWindow(), 1, 1);
@@ -280,21 +281,36 @@ void X11WindowContext::refresh() {
 	// maybe better to use expose event (as we did previously)?
 
 	// otherwise send a draw event (deferred)
+	/*
 	drawEventFlag_ = true;
-	appContext().deferred.add([&]() {
-
-		// draw window for the first time to make it visible
-		drawEventFlag_ = false;
+	appContext().defer(*this, [](X11WindowContext& wc) {
+		wc.drawEventFlag_ = false;
 		DrawEvent de {};
-		listener().draw(de);
-	}, this);
+		wc.listener().draw(de);
+	});
+	*/
+
+	xcb_expose_event_t ev{};
+
+	ev.response_type = XCB_EXPOSE;
+	ev.window = xWindow();
+
+	xcb_send_event(&xConnection(), 0, xWindow(), XCB_EVENT_MASK_EXPOSURE, (const char*)&ev);
+	xcb_flush(&xConnection());
+}
+
+uint32_t X11WindowContext::presentSerial() {
+	if(++presentSerial_ == 0) {
+		++presentSerial_;
+	}
+
+	presentPending_ = presentSerial_;
+	return presentSerial_;
 }
 
 void X11WindowContext::frameCallback() {
 	if(appContext().presentExt()) {
-		if(++presentSerial_ == 0) {
-			++presentSerial_;
-		}
+		auto serial = presentSerial();
 
 		// xcb_present_pixmap(&xConnection(),
 		// 	appContext().xDummyWindow(), appContext().xDummyPixmap(), 0, 0, 0, 0, 0,
@@ -304,9 +320,9 @@ void X11WindowContext::frameCallback() {
 		// TODO: better solution: always present to the real
 		// window instead of a dummy window to really know when presenting
 		// for that window has finished. Not sure how to without actively
-		// changing the window contents
+		// changing the window contents. does it work like this?
 		xcb_present_pixmap(&xConnection(),
-			xWindow(), xDummyPixmap_, presentSerial_,
+			xWindow(), xDummyPixmap_, serial,
 			appContext().xEmptyRegion(),
 			appContext().xEmptyRegion(), 0, 0,
 			XCB_NONE, XCB_NONE, XCB_NONE, 0, 0, 0, 0, 0, nullptr);
@@ -314,13 +330,12 @@ void X11WindowContext::frameCallback() {
 		// 	xWindow(), appContext().xDummyPixmap(), 0, XCB_NONE, XCB_NONE, -1, -1,
 		// 	XCB_NONE, XCB_NONE, XCB_NONE, 0, 0, 0, 0, 0, nullptr);
 		xcb_flush(&xConnection());
-		presentPending_ = presentSerial_;
 	}
 }
 
 void X11WindowContext::show() {
 	xcb_map_window(&xConnection(), xWindow_);
-	refresh();
+	// refresh();
 }
 
 void X11WindowContext::hide() {
@@ -330,7 +345,7 @@ void X11WindowContext::hide() {
 void X11WindowContext::size(nytl::Vec2ui size) {
 	xcb_configure_window(&xConnection(), xWindow_,
 		XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT, size.data());
-	refresh();
+	// refresh();
 }
 
 void X11WindowContext::position(nytl::Vec2i position) {
@@ -580,7 +595,7 @@ void X11WindowContext::reparentEvent() {
 	position(settings_.position);
 }
 
-void X11WindowContext::resizeEvent(nytl::Vec2ui size, const X11EventData& evd) {
+void X11WindowContext::resizeEvent(nytl::Vec2ui size, const X11EventData&) {
 	size_ = size;
 	reloadStates();
 
@@ -589,13 +604,12 @@ void X11WindowContext::resizeEvent(nytl::Vec2ui size, const X11EventData& evd) {
 	// at once and then only forward the last one.
 	if(!resizeEventFlag_) {
 		resizeEventFlag_ = true;
-		appContext().deferred.add([this, evd](){
-			resizeEventFlag_ = false;
+		appContext().defer(*this, [](X11WindowContext& wc) {
+			wc.resizeEventFlag_ = false;
 			SizeEvent se;
-			se.size = size_;
-			se.eventData = &evd;
-			listener().resize(se);
-		}, this);
+			se.size = wc.size_;
+			wc.listener().resize(se);
+		});
 	}
 
 	// we don't refresh/send a draw event since the x server will notify
@@ -607,14 +621,30 @@ void X11WindowContext::resizeEvent(nytl::Vec2ui size, const X11EventData& evd) {
 
 void X11WindowContext::presentCompleteEvent(uint32_t serial) {
 	// may happen if event was triggered by another/foreign present
+	// or there were multiple redraws e.g. when the window is resized
+	// (or just manually requested)
 	if(presentPending_ != serial) {
+		// dlg_trace("invalid present serial ({}, expected {})",
+		// 	serial, presentPending_);
 		return;
 	}
 
 	presentPending_ = 0u;
 	if(presentRefresh_) {
 		presentRefresh_ = false;
-		refresh();
+		// refresh();
+		scheduleRedraw();
+	}
+}
+
+void X11WindowContext::scheduleRedraw() {
+	if(!drawEventFlag_) {
+		drawEventFlag_ = true;
+		appContext().defer(*this, [](X11WindowContext& wc) {
+			wc.drawEventFlag_ = false;
+			DrawEvent de {};
+			wc.listener().draw(de);
+		});
 	}
 }
 

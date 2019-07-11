@@ -68,6 +68,7 @@ int main(int, char**) {
 	ws.surface = ny::SurfaceType::buffer;
 	ws.buffer.storeSurface = &bufferSurface;
 	ws.initState = listener.toplevelState;
+	ws.transparent = true;
 	auto wc = ac->createWindowContext(ws);
 
 	auto run = true;
@@ -134,6 +135,7 @@ void MyWindowListener::draw(const ny::DrawEvent&) {
 	static int i = 0;
 	dlg_debug("draw {}", ++i);
 
+{
 	auto guard = bufferSurface->buffer();
 	auto image = guard.get();
 
@@ -218,14 +220,98 @@ void MyWindowListener::draw(const ny::DrawEvent&) {
 		cairo_set_source_rgb (cr, 0.0, 0.0, 0.0);
 		cairo_stroke_preserve (cr);
 		cairo_restore (cr);
+	} else if(drawMode == 3) {
+		auto w = float(windowSize.x / 6);
+		auto h = windowSize.y;
+
+		cairo_set_source_rgba(cr, 1.0, 0.0, 0.0, 1.0);
+		cairo_rectangle(cr, 0 * w, 0, 1 * w, h);
+		cairo_fill(cr);
+
+		cairo_set_source_rgba(cr, 1.0, 1.0, 0.0, 1.0);
+		cairo_rectangle(cr, 1 * w, 0, 2 * w, h);
+		cairo_fill(cr);
+
+		cairo_set_source_rgba(cr, 0.0, 1.0, 0.0, 1.0);
+		cairo_rectangle(cr, 2 * w, 0, 3 * w, h);
+		cairo_fill(cr);
+
+		cairo_set_source_rgba(cr, 0.0, 1.0, 1.0, 1.0);
+		cairo_rectangle(cr, 3 * w, 0, 4 * w, h);
+		cairo_fill(cr);
+
+		cairo_set_source_rgba(cr, 0.0, 0.0, 1.0, 1.0);
+		cairo_rectangle(cr, 4 * w, 0, 5 * w, h);
+		cairo_fill(cr);
+
+		cairo_set_source_rgba(cr, 1.0, 0.0, 1.0, 1.0);
+		cairo_rectangle(cr, 5 * w, 0, 6 * w, h);
+		cairo_fill(cr);
+	} else if(drawMode == 4) {
+		auto offx = 20.f;
+		auto offy = 20.f;
+		auto y = offy;
+
+		cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.0);
+		cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+		cairo_paint(cr);
+
+		cairo_set_source_rgba(cr, 1.0, 0.0, 0.0, 0.5);
+		cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+		cairo_set_line_width(cr, 10.f);
+		cairo_move_to(cr, offx, y);
+		cairo_line_to(cr, offx + windowSize.x - offx, y);
+		cairo_stroke(cr);
+		y += 10 + offy;
+
+		cairo_set_source_rgba(cr, 1.0, 1.0, 0.0, 0.5);
+		cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+		cairo_set_line_width(cr, 10.f);
+		cairo_move_to(cr, offx, y);
+		cairo_line_to(cr, offx + windowSize.x - offx, y);
+		cairo_stroke(cr);
+		y += 10 + offy;
+
+		cairo_set_source_rgba(cr, 0.0, 1.0, 0.0, 0.5);
+		cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+		cairo_set_line_width(cr, 10.f);
+		cairo_move_to(cr, offx, y);
+		cairo_line_to(cr, offx + windowSize.x - offx, y);
+		cairo_stroke(cr);
+		y += 10 + offy;
+
+		cairo_set_source_rgba(cr, 0.0, 1.0, 1.0, 0.5);
+		cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+		cairo_set_line_width(cr, 10.f);
+		cairo_move_to(cr, offx, y);
+		cairo_line_to(cr, offx + windowSize.x - offx, y);
+		cairo_stroke(cr);
+		y += 10 + offy;
+
+		cairo_set_source_rgba(cr, 0.0, 0.0, 1.0, 0.5);
+		cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+		cairo_set_line_width(cr, 10.f);
+		cairo_move_to(cr, offx, y);
+		cairo_line_to(cr, offx + windowSize.x - offx, y);
+		cairo_stroke(cr);
+		y += 10 + offy;
+
+		cairo_set_source_rgba(cr, 1.0, 0.0, 1.0, 0.5);
+		cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+		cairo_set_line_width(cr, 10.f);
+		cairo_move_to(cr, offx, y);
+		cairo_line_to(cr, offx + windowSize.x - offx, y);
+		cairo_stroke(cr);
+		y += 10 + offy;
 	}
 
 	cairo_destroy(cr);
 	cairo_surface_flush(surface);
 	cairo_surface_destroy(surface);
+}
 
 	// schedule next frame
-	windowContext->frameCallback();
+	// windowContext->frameCallback();
 	windowContext->refresh();
 }
 
@@ -290,6 +376,14 @@ void MyWindowListener::key(const ny::KeyEvent& keyEvent) {
 		} else if(keycode == ny::Keycode::k2) {
 			dlg_info("DrawMode 2");
 			drawMode = 2;
+			windowContext->refresh();
+		} else if(keycode == ny::Keycode::k3) {
+			dlg_info("DrawMode 3");
+			drawMode = 3;
+			windowContext->refresh();
+		} else if(keycode == ny::Keycode::k4) {
+			dlg_info("DrawMode 4");
+			drawMode = 4;
 			windowContext->refresh();
 		}
 	}

@@ -104,7 +104,12 @@ public:
 	// application wishes to synchronize refresh draws with the window system.
 	// Should not be called if the window is drawn via a GlSurface or
 	// a BufferSurface.
-	virtual void frameCallback() {}; // TODO: make pure virtual
+	// NOTE: the wayland backend can't detect this information automatically,
+	// so if you draw to the surface via vulkan (or something else entirely) and
+	// don't call this, refresh might not work as expected.
+	// Other backends like X11 could work around this not being called
+	// but don't for consistency and simpler implementations.
+	virtual void frameCallback() {}
 
 	// Returns a Surface object that holds some type of surface object that was
 	// created for the WindowContext. If the WindowContext was created without

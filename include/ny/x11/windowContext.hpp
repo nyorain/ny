@@ -62,9 +62,9 @@ public:
 
 	// - x11-specific -
 	// specific event handlers
-	void reparentEvent();
-	void resizeEvent(nytl::Vec2ui size, const X11EventData&);
-	void presentCompleteEvent(uint32_t serial);
+	virtual void reparentEvent();
+	virtual void resizeEvent(nytl::Vec2ui size, const X11EventData&);
+	virtual void presentCompleteEvent(uint32_t serial);
 
 	X11AppContext& appContext() const { return *appContext_; } /// The associated AppContext
 	uint32_t xWindow() const { return xWindow_; } /// The underlaying x window handle
@@ -131,6 +131,9 @@ public:
 	/// Notice that this might somehow differ from the bits_per_rgb member of the
 	/// visual type (since it also counts the alpha bits).
 	unsigned int visualDepth() const { return depth_; }
+
+	void scheduleRedraw();
+	uint32_t presentSerial();
 
 protected:
 	/// Default Constructor only for derived classes that later call the create function.

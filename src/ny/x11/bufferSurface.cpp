@@ -17,7 +17,7 @@
 
 #include <cstring>
 
-// sources:
+// sources (not including any present protocol stuff, see keithp blog for that):
 // https://github.com/freedesktop-unofficial-mirror/xcb__util-image/blob/master/image/xcb_image.c#L158
 // http://xcb.pdx.freedesktop.narkive.com/0u3XxxGY/xcb-put-image
 // https://github.com/freedesktop-unofficial-mirror/xcb__util-image/blob/master/image/xcb_image.h
@@ -76,20 +76,59 @@ X11BufferSurface::X11BufferSurface(X11WindowContext& wc) : windowContext_(&wc) {
 		auto msg = "ny::X11BufferSurface: couldn't parse visual format";
 		throw std::runtime_error(msg);
 	}
+
+	if(windowContext().appContext().shmExt()) {
+		if(windowContext().appContext().presentExt()) {
+			mode_ = Mode::presentShm;
+		} else {
+			mode_ = Mode::shm;
+		}
+	} else {
+		mode_ = Mode::dumb;
+	}
+
+	mode_ = Mode::dumb;
 }
 
 X11BufferSurface::~X11BufferSurface() {
 	if(active_) {
 		dlg_warn("there is still an active BufferGuard");
 	}
+
+	destroyShm(shm_);
+	for(auto& pix : pixmaps_) {
+		destroyShm(pix.shm);
+		if(pix.pixmap) {
+			xcb_free_pixmap(&xConnection(), pix.pixmap);
+		}
+	}
+
 	if(gc_) {
 		xcb_free_gc(&xConnection(), gc_);
 	}
+}
 
-	if(shmseg_) {
-		xcb_shm_detach(&xConnection(), shmseg_);
-		shmdt(data_);
-		shmctl(shmid_, IPC_RMID, 0);
+void X11BufferSurface::destroyShm(const Shm& shm) {
+	if(shm.seg) {
+		xcb_shm_detach(&xConnection(), shm.seg);
+		shmdt(shm.data);
+		shmctl(shm.id, IPC_RMID, 0);
+	}
+}
+
+void X11BufferSurface::createShm(Shm& shm, std::size_t size) {
+	shm.seg = xcb_generate_id(&xConnection());
+	shm.id = shmget(IPC_PRIVATE, size, IPC_CREAT | 0777);
+	shm.data = static_cast<std::byte*>(shmat(shm.id, 0, 0));
+	xcb_shm_attach(&xConnection(), shm.seg, shm.id, 0);
+}
+
+void X11BufferSurface::release(uint32_t serial) {
+	for(auto& p : pixmaps_) {
+		if(p.serial == serial) {
+			p.serial = {};
+			break;
+		}
 	}
 }
 
@@ -100,57 +139,69 @@ BufferGuard X11BufferSurface::buffer() {
 	}
 
 	// check if resize is needed
-	// TODO: querySize() might be better here so that the buffer fits the
+	// NOTE: querySize() might be better here so that the buffer fits the
 	// window better. But that might return an Image with a different
 	// size than the known size of the application.
 	auto size = windowContext().size();
 	auto newBytes = std::ceil(size[0] * size[1] * bitSize(format_) / 8.0);
-	if(newBytes > byteSize_) {
+	std::byte* data {};
+
+	if(mode_ == Mode::presentShm) {
+		// search for free buffer
+		Pixmap* found {};
+		for(auto& p : pixmaps_) {
+			if(!p.serial) {
+				found = &p;
+				break;
+			}
+		}
+
+		if(!found) {
+			pixmaps_.emplace_back();
+			found = &pixmaps_.back();
+		}
+
+		if(found->size.x != size.x || found->size.y != size.y) {
+			if(found->pixmap) {
+				xcb_free_pixmap(&xConnection(), found->pixmap);
+			} else {
+				found->pixmap = xcb_generate_id(&xConnection());
+			}
+
+			found->size = size;
+			createShm(found->shm, newBytes);
+			auto cookie = xcb_shm_create_pixmap_checked(&xConnection(),
+				found->pixmap, windowContext().xWindow(), size.x, size.y,
+				windowContext().visualDepth(), found->shm.seg, 0);
+			windowContext().errorCategory().checkWarn(cookie,
+				"ny::X11BufferSurface: shm_create_pixmap");
+		}
+
+		data = found->shm.data;
+		activePixmap_ = found;
+	} else if(newBytes > byteSize_) {
 		// we alloc more than is really needed because this will speed up
 		// (especially the shm version) resizes. We don't have to reallocated
 		// every time the window is resized and redrawn for the cost of higher
 		// memory consumption
 		byteSize_ = newBytes * 4;
-
-		if(shmExt()) {
-			if(shmseg_) {
-				xcb_shm_detach(&xConnection(), shmseg_);
-				shmdt(data_);
-				shmctl(shmid_, IPC_RMID, 0);
-			} else {
-				shmseg_ = xcb_generate_id(&xConnection());
-			}
-
-			shmid_ = shmget(IPC_PRIVATE, byteSize_, IPC_CREAT | 0777);
-			data_ = static_cast<std::byte*>(shmat(shmid_, 0, 0));
-			shmseg_ = xcb_generate_id(&xConnection());
-			xcb_shm_attach(&xConnection(), shmseg_, shmid_, 0);
+		if(mode_ == Mode::shm) {
+			destroyShm(shm_);
+			createShm(shm_, byteSize_);
+			data = shm_.data;
 		} else {
 			ownedBuffer_ = std::make_unique<std::byte[]>(byteSize_);
-			data_ = ownedBuffer_.get();
+			data = ownedBuffer_.get();
 		}
-	}
-
-	// recreate pixmap if we have the present extension
-	if(presentExt() && (!pixmap_ || size_.x != size.x || size_.y != size.y)) {
-		if(pixmap_) {
-			xcb_free_pixmap(&xConnection(), pixmap_);
-		} else {
-			pixmap_ = xcb_generate_id(&xConnection());
-		}
-
-		auto cookie = xcb_shm_create_pixmap_checked(&xConnection(),
-			pixmap_, windowContext().xWindow(), size.x, size.y,
-			windowContext().visualDepth(), shmseg_, 0);
-		windowContext().errorCategory().checkWarn(cookie,
-			"ny::X11BufferSurface: shm_create_pixmap");
+	} else {
+		data = mode_ == Mode::shm ? shm_.data : ownedBuffer_.get();
 	}
 
 	size_ = size;
 	active_ = true;
 
 	auto stride = size_[0] * bitSize(format_);
-	return {*this, {data_, {size_[0], size_[1]}, format_, stride}};
+	return {*this, {data, {size_[0], size_[1]}, format_, stride}};
 }
 
 void X11BufferSurface::apply(const BufferGuard&) noexcept {
@@ -160,14 +211,15 @@ void X11BufferSurface::apply(const BufferGuard&) noexcept {
 	}
 
 	active_ = false;
-
-	if(presentExt()) {
-		auto serial = 0u; // TODO: use own frameCallback mechanism
+	if(mode_ == Mode::presentShm) {
+		auto serial = windowContext().presentSerial();
+		activePixmap_->serial = serial;
 		auto cookie = xcb_present_pixmap_checked(&xConnection(),
-			windowContext().xWindow(), pixmap_, serial, 0, 0, 0, 0,
+			windowContext().xWindow(), activePixmap_->pixmap, serial, 0, 0, 0, 0,
 			XCB_NONE, XCB_NONE, XCB_NONE, 0, 0, 0, 0, 0, nullptr);
 		windowContext().errorCategory().checkWarn(cookie,
 			"ny::X11BufferSurface: present_pixmap");
+		activePixmap_ = nullptr;
 		return;
 	}
 
@@ -177,31 +229,21 @@ void X11BufferSurface::apply(const BufferGuard&) noexcept {
 	// tested enough?
 	auto depth = windowContext().visualDepth();
 	auto window = windowContext().xWindow();
-	if(shmExt()) {
+	if(mode_ == Mode::shm) {
 		auto cookie = xcb_shm_put_image_checked(&xConnection(), window, gc_,
 			size_[0], size_[1], 0, 0, size_[0], size_[1], 0, 0, depth,
-			XCB_IMAGE_FORMAT_Z_PIXMAP, 0, shmseg_, 0);
+			XCB_IMAGE_FORMAT_Z_PIXMAP, 0, shm_.seg, 0);
 		windowContext().errorCategory().checkWarn(cookie,
 			"ny::X11BufferSurface: shm_put_image");
 	} else {
 		auto length = std::ceil(size_[0] * size_[1] * bitSize(format_) / 8.0);
-		auto data = reinterpret_cast<uint8_t*>(data_);
+		auto data = reinterpret_cast<uint8_t*>(ownedBuffer_.get());
 		auto cookie = xcb_put_image_checked(&xConnection(),
 			XCB_IMAGE_FORMAT_Z_PIXMAP, window, gc_, size_[0], size_[1], 0, 0, 0,
 			depth, length, data);
 		windowContext().errorCategory().checkWarn(cookie,
 			"ny::X11BufferSurface: put_image");
 	}
-}
-
-bool X11BufferSurface::shmExt() const {
-	return windowContext().appContext().shmExt();
-}
-
-bool X11BufferSurface::presentExt() const {
-	return false;
-	return windowContext().appContext().shmExt() &&
-		windowContext().appContext().presentExt();
 }
 
 // X11BufferWindowContext
@@ -217,6 +259,11 @@ X11BufferWindowContext::X11BufferWindowContext(X11AppContext& ac,
 
 Surface X11BufferWindowContext::surface() {
 	return {bufferSurface_};
+}
+
+void X11BufferWindowContext::presentCompleteEvent(uint32_t serial) {
+	X11WindowContext::presentCompleteEvent(serial);
+	bufferSurface_.release(serial);
 }
 
 } // namespace ny
