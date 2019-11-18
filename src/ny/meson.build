@@ -120,6 +120,11 @@ endif
 
 if android
 	add_project_arguments('-fexceptions', language: 'c')
+
+	# shared_module is needed since we reference and call 'main'
+	# without defining it. It will be defined by the executable.
+	# Note that this isn't guaranteed to work. Meson reference
+	# says executables should set 'export_dynamic' to true
 	ny_lib = shared_module('ny',
 		sources: ny_src,
 		dependencies: deps,

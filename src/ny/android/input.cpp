@@ -355,9 +355,10 @@ bool AndroidMouseContext::process(const AInputEvent& event)
 
 	// switch the actions
 	auto action = AMotionEvent_getAction(&event);
-	switch(action) {
+	switch(action & AMOTION_EVENT_ACTION_MASK) {
 		case AMOTION_EVENT_ACTION_DOWN: {
 			auto count = AMotionEvent_getPointerCount(&event);
+			dlg_assert(count == 1); // not sure what do to otherwise tbh
 			for(auto i = 0u; i < count; ++i) {
 				unsigned id = AMotionEvent_getPointerId(&event, i);
 				nytl::Vec2f pos;
@@ -370,6 +371,7 @@ bool AndroidMouseContext::process(const AInputEvent& event)
 		} case AMOTION_EVENT_ACTION_UP: {
 			touchPoints_.clear();
 			auto count = AMotionEvent_getPointerCount(&event);
+			dlg_assert(count == 1); // not sure what to do otherwise tbh
 			for(auto i = 0u; i < count; ++i) {
 				unsigned id = AMotionEvent_getPointerId(&event, i);
 				nytl::Vec2f pos;
@@ -388,6 +390,7 @@ bool AndroidMouseContext::process(const AInputEvent& event)
 
 				auto it = touchPoints_.find(id);
 				if(it == touchPoints_.end()) {
+					dlg_info("implicit touch begin");
 					touchPoints_.insert({id, pos});
 					wc.listener().touchBegin({&eventData, pos, id});
 				} else {
@@ -396,6 +399,9 @@ bool AndroidMouseContext::process(const AInputEvent& event)
 				}
 			}
 
+			/*
+			// not sure, maybe an action_move doesn't have to contain
+			// updates for all touch points
 			auto& tp = touchPoints_;
 			for(auto it = tp.begin(); it != tp.end();) {
 				bool found = false;
@@ -408,35 +414,48 @@ bool AndroidMouseContext::process(const AInputEvent& event)
 				}
 
 				if(!found) {
+					dlg_warn("implicit touch end?");
 					wc.listener().touchEnd({&eventData, it->second, it->first});
 					it = touchPoints_.erase(it);
 				} else {
 					++it;
 				}
 			}
+			*/
+
 			break;
 		} case AMOTION_EVENT_ACTION_CANCEL: {
 			wc.listener().touchCancel({&eventData});
 			touchPoints_.clear();
 			break;
-		/*
+		// weirdly named imo. Those events are generated for secondary touch
+		// points
 		} case AMOTION_EVENT_ACTION_POINTER_DOWN: {
-			MouseButtonEvent mbe;
-			mbe.position = pos;
-			mbe.eventData = &eventData;
-			mbe.button = MouseButton::left; // TODO
-			mbe.pressed = pressed_ = true;
-			wc.listener().mouseButton(mbe);
+			int32_t idx = (action & AMOTION_EVENT_ACTION_POINTER_INDEX_MASK)
+                >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
+			unsigned id = AMotionEvent_getPointerId(&event, idx);
+			nytl::Vec2f pos;
+			pos[0] = AMotionEvent_getX(&event, idx);
+			pos[1] = AMotionEvent_getY(&event, idx);
+			wc.listener().touchBegin({&eventData, pos, id});
+			touchPoints_.insert({id, pos});
 			break;
 		} case AMOTION_EVENT_ACTION_POINTER_UP: {
-			MouseButtonEvent mbe;
-			mbe.position = pos;
-			mbe.eventData = &eventData;
-			mbe.button = MouseButton::left;
-			mbe.pressed = pressed_ = false;
-			wc.listener().mouseButton(mbe);
+			int32_t idx = (action & AMOTION_EVENT_ACTION_POINTER_INDEX_MASK)
+                >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
+			unsigned id = AMotionEvent_getPointerId(&event, idx);
+			auto it = touchPoints_.find(id);
+			if(it == touchPoints_.end()) {
+				dlg_warn("Invalid touch point");
+				break;
+			}
+
+			touchPoints_.erase(id);
+			nytl::Vec2f pos;
+			pos[0] = AMotionEvent_getX(&event, idx);
+			pos[1] = AMotionEvent_getY(&event, idx);
+			wc.listener().touchEnd({&eventData, pos, id});
 			break;
-		*/
 		} case AMOTION_EVENT_ACTION_HOVER_MOVE: {
 			MouseMoveEvent mme;
 			mme.position = pos;
@@ -464,6 +483,7 @@ bool AndroidMouseContext::process(const AInputEvent& event)
 			break;
 		} default:
 			return false;
+		// TODO: AMOTION_EVENT_ACTION_BUTTON_PRESS etc
 	}
 
 	return true;

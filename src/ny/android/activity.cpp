@@ -54,19 +54,19 @@ void output_handler(const dlg_origin& origin, const char* str)
 		case dlg_level_trace: [[fallthrough]];
 		case dlg_level_debug:
 			prio = ANDROID_LOG_DEBUG;
-			break;	
+			break;
 		case dlg_level_info:
 			prio = ANDROID_LOG_INFO;
-			break;	
-		case dlg_level_warn: 
-			prio = ANDROID_LOG_WARN; 
-			break;	
+			break;
+		case dlg_level_warn:
+			prio = ANDROID_LOG_WARN;
+			break;
 		case dlg_level_error:
 			prio = ANDROID_LOG_ERROR;
-			break;	
+			break;
 		case dlg_level_fatal:
 			prio = ANDROID_LOG_FATAL;
-			break;	
+			break;
 		default:
 			break;
 	}
@@ -265,6 +265,7 @@ Activity::Activity(ANativeActivity& nativeActivity, void* state, std::size_t sta
 
 	// set the default dlg handler
 	dlg::set_handler(output_handler);
+	dlg_trace("ANativeActivity_onCreate");
 
 	// set all needed callbacks
 	activity_ = &nativeActivity;

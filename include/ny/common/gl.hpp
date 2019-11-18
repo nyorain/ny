@@ -15,6 +15,7 @@
 #include <vector>
 #include <memory>
 #include <thread>
+#include <system_error>
 
 namespace ny {
 
