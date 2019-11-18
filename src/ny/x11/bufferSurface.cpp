@@ -115,8 +115,6 @@ BufferGuard X11BufferSurface::buffer()
 				xcb_shm_detach(&xConnection(), shmseg_);
 				shmdt(data_);
 				shmctl(shmid_, IPC_RMID, 0);
-			} else {
-				shmseg_ = xcb_generate_id(&xConnection());
 			}
 
 			shmid_ = shmget(IPC_PRIVATE, byteSize_, IPC_CREAT | 0777);
