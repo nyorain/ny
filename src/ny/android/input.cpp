@@ -16,6 +16,7 @@
 #include <jni.h>
 #include <android/keycodes.h>
 #include <android/input.h>
+#include <android/native_activity.h>
 
 namespace ny {
 namespace {
@@ -74,7 +75,8 @@ constexpr struct {
 	// ...
 
 	{AKEYCODE_ENTER, Keycode::enter},
-	{AKEYCODE_DEL, Keycode::del},
+	{AKEYCODE_DEL, Keycode::backspace},
+	{AKEYCODE_FORWARD_DEL, Keycode::del},
 	{AKEYCODE_GRAVE, Keycode::grave},
 	{AKEYCODE_MINUS, Keycode::minus},
 	{AKEYCODE_EQUALS, Keycode::equals},
@@ -195,15 +197,29 @@ unsigned int modifiersToAndroid(KeyboardModifiers mask)
 // KeyboardContext
 AndroidKeyboardContext::AndroidKeyboardContext(AndroidAppContext& ac) : appContext_(ac)
 {
+	/*
 	if(!ac.jniEnv()) {
 		dlg_warn("no AppContext jniEnv");
 		return;
 	}
 
-	auto& jniEnv = *ac.jniEnv();
-	jniKeyEvent_ = jniEnv.FindClass("android/view/KeyEvent");
-	jniGetUnicodeChar_ = jniEnv.GetMethodID(jniKeyEvent_, "getUnicodeChar", "(I)I");
-	jniKeyEventConstructor_ = jniEnv.GetMethodID(jniKeyEvent_, "<init>", "(II)V");
+    jint lResult;
+    JavaVMAttachArgs lJavaVMAttachArgs;
+    lJavaVMAttachArgs.version = JNI_VERSION_1_6;
+    lJavaVMAttachArgs.name = "NativeThread";
+    lJavaVMAttachArgs.group = NULL;
+
+	JNIEnv* env = ac.jniEnv();
+    lResult = appContext_.nativeActivity()->vm->AttachCurrentThread(&env, &lJavaVMAttachArgs);
+    if (lResult == JNI_ERR) {
+		dlg_error("AttachCurrentThread failed");
+        return;
+    }
+
+	// auto& jniEnv = *ac.jniEnv();
+	jniKeyEvent_ = env->FindClass("android/view/KeyEvent");
+	jniGetUnicodeChar_ = env->GetMethodID(jniKeyEvent_, "getUnicodeChar", "(I)I");
+	jniKeyEventConstructor_ = env->GetMethodID(jniKeyEvent_, "<init>", "(II)V");
 
 	if(!jniKeyEvent_ || !jniGetUnicodeChar_ || !jniKeyEventConstructor_) {
 		dlg_warn("could not load all jni symbols");
@@ -211,6 +227,9 @@ AndroidKeyboardContext::AndroidKeyboardContext(AndroidAppContext& ac) : appConte
 		jniGetUnicodeChar_ = nullptr;
 		jniKeyEventConstructor_ = nullptr;
 	}
+
+    appContext_.nativeActivity()->vm->DetachCurrentThread();
+	*/
 }
 
 bool AndroidKeyboardContext::pressed(Keycode key) const
@@ -239,17 +258,51 @@ std::string AndroidKeyboardContext::utf8(Keycode keycode) const
 
 std::string AndroidKeyboardContext::utf8(unsigned int aKeycode, unsigned int aMetaState) const
 {
+	jclass jniKeyEvent_ {};
+	jmethodID jniKeyEventConstructor_ {};
+	jmethodID jniGetUnicodeChar_ {};
+
 	auto jniEnv = appContext().jniEnv();
-	if(!jniKeyEvent_ || !jniEnv) {
+	// if(!jniKeyEvent_ || !jniEnv) {
+	if(!jniEnv) {
 		dlg_warn("android utf8 query: jni not initialized");
+		return "";
+	}
+
+    jint lResult;
+    JavaVMAttachArgs lJavaVMAttachArgs;
+    lJavaVMAttachArgs.version = JNI_VERSION_1_6;
+    lJavaVMAttachArgs.name = "NativeThread";
+    lJavaVMAttachArgs.group = NULL;
+
+    lResult = appContext_.nativeActivity()->vm->AttachCurrentThread(&jniEnv, &lJavaVMAttachArgs);
+    if (lResult == JNI_ERR) {
+		dlg_error("AttachCurrentThread failed");
+        return "";
+    }
+
+	jniKeyEvent_ = jniEnv->FindClass("android/view/KeyEvent");
+	if(aMetaState) {
+		jniGetUnicodeChar_ = jniEnv->GetMethodID(jniKeyEvent_, "getUnicodeChar", "(I)I");
+	} else {
+ 		jniGetUnicodeChar_ = jniEnv->GetMethodID(jniKeyEvent_, "getUnicodeChar", "()I");
+	}
+	jniKeyEventConstructor_ = jniEnv->GetMethodID(jniKeyEvent_, "<init>", "(II)V");
+
+	if(!jniKeyEvent_ || !jniGetUnicodeChar_ || !jniKeyEventConstructor_) {
+    	appContext_.nativeActivity()->vm->DetachCurrentThread();
+		dlg_warn("could not load all jni symbols");
 		return "";
 	}
 
 	auto eventObj = jniEnv->NewObject(jniKeyEvent_,
 		jniKeyEventConstructor_, AKEY_EVENT_ACTION_DOWN, aKeycode);
 	auto unicode = jniEnv->CallIntMethod(eventObj, jniGetUnicodeChar_, aMetaState);
-	auto unicodeChar = static_cast<char32_t>(unicode);
-	return nytl::toUtf8(&unicodeChar);
+	char32_t str[] = {static_cast<char32_t>(unicode), 0};
+
+    appContext_.nativeActivity()->vm->DetachCurrentThread();
+
+	return nytl::toUtf8(str);
 }
 
 bool AndroidKeyboardContext::process(const AInputEvent& event)
@@ -286,7 +339,10 @@ bool AndroidKeyboardContext::process(const AInputEvent& event)
 			return false;
 		}
 
-		std::string utf8 = this->utf8(akeycode, metaState);
+		std::string utf8;
+		if(action == AKEY_EVENT_ACTION_DOWN) {
+			utf8 = this->utf8(akeycode, metaState);
+		}
 
 		if(wc) {
 			KeyEvent keyEvent;

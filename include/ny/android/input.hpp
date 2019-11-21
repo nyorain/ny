@@ -41,9 +41,9 @@ protected:
 	std::bitset<255> keyStates_;
 	KeyboardModifiers modifiers_;
 
-	jclass jniKeyEvent_ {};
-	jmethodID jniKeyEventConstructor_ {};
-	jmethodID jniGetUnicodeChar_ {};
+	// jclass jniKeyEvent_ {};
+	// jmethodID jniKeyEventConstructor_ {};
+	// jmethodID jniGetUnicodeChar_ {};
 };
 
 /// Android MouseContext implementation.
