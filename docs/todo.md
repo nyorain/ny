@@ -7,8 +7,9 @@ for features/improvements.
 
 - rework opengl context version request
 - allow to request an srgb framebuffer on opengl context creation
+- fix android, windows backends
 
-- x11::BufferSurface: double buffering required
+- remove WaylandAppContext::roundtrip if no one needs it
 - fix/implement WindowContext::frameCallback
 	- glsurfaces should call it automatically before swapping buffers
 	- needs to be fixed on waylands, needs improvements on x11
@@ -169,7 +170,9 @@ Backend stuff
 x11 backend:
 ------------
 
-- replace x11 ErrorCatgery checkwarn with a macro that preserved original location in code?
+- abolish X11AppContext::next_, see comment in dispatchPending
+  instead add manual xcb_poll_for_event to x11/input.cpp
+- replace x11 ErrorCatgery checkwarn with a macro that preserves original location in code?
 - most of the current xcb_flush calls are probably not needed, bad for performance
 - selections and xdnd improvements (see x11/dataExchange header/source TODO)
 	- X11DataSource constructor: check for uri list one file -> filename target format
@@ -180,6 +183,7 @@ x11 backend:
 - customDecorated: query current de/window manager to guess if they support motif
 	- any other (better) way to query this?
 - overall correct screen (and screen number) handling
+  e.g. in AppContext and glx
 
 wayland backend:
 ---------------

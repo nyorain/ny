@@ -34,11 +34,11 @@ WaylandWindowContext::WaylandWindowContext(WaylandAppContext& ac,
 		size_ = fallbackSize;
 
 		// send initial size since that isn't known yet to app
-		appContext().deferred.add([&]{
+		appContext().defer(*this, [](WaylandWindowContext& wc) {
 			SizeEvent se {};
-			se.size = size_;
-			listener().resize(se);
-		}, this);
+			se.size = wc.size_;
+			wc.listener().resize(se);
+		});
 	}
 
 	if(settings.listener) {
@@ -133,10 +133,10 @@ void WaylandWindowContext::createShellSurface(const WaylandWindowSettings& ws) {
 	wl_shell_surface_set_toplevel(wlShellSurface_);
 
 	// draw window for the first time in main loop to make it visible
-	appContext().deferred.add([&]{
+	appContext().defer(*this, [](WaylandWindowContext& wc) {
 		DrawEvent de {};
-		listener().draw(de);
-	}, this);
+		wc.listener().draw(de);
+	});
 
 	if(ws.customDecorated && !*ws.customDecorated) {
 		dlg_warn("can't use server side decorations (using wl_shell)");
@@ -261,12 +261,12 @@ void WaylandWindowContext::refresh() {
 
 	// otherwise send a draw event (deferred)
 	refreshPending_ = true;
-	appContext().deferred.add([&]() {
+	appContext().defer(*this, [](WaylandWindowContext& wc) {
 		// draw window for the first time to make it visible
-		refreshPending_ = false;
+		wc.refreshPending_ = false;
 		DrawEvent de {};
-		listener().draw(de);
-	}, this);
+		wc.listener().draw(de);
+	});
 }
 
 void WaylandWindowContext::show() {
@@ -640,13 +640,17 @@ void WaylandWindowContext::handleShellSurfaceConfigure(wl_shell_surface*,
 
 	if(!pendingResize_) {
 		pendingResize_ = true;
-		appContext().deferred.add([&]{
-			pendingResize_ = false;
+		appContext().defer(*this, [](WaylandWindowContext& wc) {
+			wc.pendingResize_ = false;
 			SizeEvent se;
-			se.size = size_;
-			listener().resize(se);
-			refresh();
-		}, this);
+			se.size = wc.size_;
+			wc.listener().resize(se);
+
+			// NOTE: rather send a draw event?
+			// this way a redraw will wait until the previous frame
+			// was used
+			wc.refresh();
+		});
 	}
 }
 
@@ -658,14 +662,14 @@ void WaylandWindowContext::handleXdgSurfaceV6Configure(zxdg_surface_v6*,
 		uint32_t serial) {
 	xdgToplevelV6_.configured = true;
 	if(pendingResize_ == 0) {
-		appContext().deferred.add([&]{
-			zxdg_surface_v6_ack_configure(xdgSurfaceV6(), pendingResize_);
-			pendingResize_ = 0;
+		appContext().defer(*this, [](WaylandWindowContext& wc) {
+			zxdg_surface_v6_ack_configure(wc.xdgSurfaceV6(), wc.pendingResize_);
+			wc.pendingResize_ = 0;
 			SizeEvent se;
-			se.size = size_;
-			listener().resize(se);
-			refresh();
-		}, this);
+			se.size = wc.size_;
+			wc.listener().resize(se);
+			wc.refresh();
+		});
 	}
 	pendingResize_ = serial;
 }
@@ -695,14 +699,14 @@ void WaylandWindowContext::handleXdgSurfaceConfigure(xdg_surface*,
 		uint32_t serial) {
 	xdgToplevel_.configured = true;
 	if(pendingResize_ == 0) {
-		appContext().deferred.add([&]{
-			xdg_surface_ack_configure(xdgSurface(), pendingResize_);
-			pendingResize_ = 0;
+		appContext().defer(*this, [](WaylandWindowContext& wc) {
+			xdg_surface_ack_configure(wc.xdgSurface(), wc.pendingResize_);
+			wc.pendingResize_ = 0;
 			SizeEvent se;
-			se.size = size_;
-			listener().resize(se);
-			refresh();
-		}, this);
+			se.size = wc.size_;
+			wc.listener().resize(se);
+			wc.refresh();
+		});
 	}
 	pendingResize_ = serial;
 }

@@ -370,8 +370,6 @@ KeyboardContext* X11AppContext::keyboardContext() {
 	return keyboardContext_.get();
 }
 
-// TODO: probably no re-entrant due to next_
-// copy next_ before using should be enough
 bool X11AppContext::dispatchPending() {
 	// dispatch all readable events
 	auto i = 0u;
@@ -384,6 +382,18 @@ bool X11AppContext::dispatchPending() {
 			break;
 		}
 
+		// NOTE: only re-entrant under the assumption that next_ won't
+		// be used by processEvent (or anything it calls) *after* it
+		// gives control to a callback outside ny, since that might
+		// call something ending up here again, eventually freeing next_.
+		// A solution would be to copy next_ locally before passing it
+		// to processEvent but we can't copy generic events since we don't
+		// know their full size.
+		// TODO: Alternatively we could abolish the whole next_ mechanism, it's
+		// only needed (at the time of writing) in x11/input.cpp to
+		// check whether a key press is repeated; we could simply add
+		// a xcb_poll_for_event there to check but that feels hacky as well
+		// (but probably still better than this!)
 		next_ = xcb_poll_for_event(xConnection_);
 		processEvent(event, next_);
 		free(event);
@@ -726,16 +736,8 @@ void X11AppContext::processEvent(const void* pev, const void* pnext) {
 		switch(gev.event_type) {
 			case XCB_PRESENT_COMPLETE_NOTIFY: {
 				auto pev = copyu<xcb_present_complete_notify_event_t>(gev);
-				if(pev.window == xDummyWindow()) {
-					for(auto& wc : present_) {
-						wc->presentCompleteEvent(pev.serial);
-					}
-
-					present_.clear();
-				} else {
-					if(auto wc = windowContext(pev.window); wc) {
-						wc->presentCompleteEvent(pev.serial);
-					}
+				if(auto wc = windowContext(pev.window); wc) {
+					wc->presentCompleteEvent(pev.serial);
 				}
 				return;
 			} case XCB_PRESENT_IDLE_NOTIFY:

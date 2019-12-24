@@ -88,7 +88,7 @@ EglSetup::EglSetup(void* nativeDisplay)
 	configs_.reserve(configSize);
 	auto bestRating = 0u;
 
-	for(auto& config : nytl::Span<EGLConfig>(*configs, configSize)) {
+	for(auto& config : nytl::Span<EGLConfig>(configs, configSize)) {
 		GlConfig glconf;
 		int r, g, b, a, id, depth, stencil, sampleBuffers, samples;
 

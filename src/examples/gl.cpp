@@ -16,12 +16,14 @@ public:
 	std::unique_ptr<ny::GlContext> glContext;
 	ny::WindowContext* windowContext;
 	ny::AppContext* appContext;
+	nytl::Vec2ui size;
 	bool* run;
 
 	void draw(const ny::DrawEvent&) override;
 	void close(const ny::CloseEvent&) override;
 	void surfaceCreated(const ny::SurfaceCreatedEvent&) override;
 	void surfaceDestroyed(const ny::SurfaceDestroyedEvent&) override;
+	void resize(const ny::SizeEvent&) override;
 };
 
 int main() {
@@ -68,7 +70,6 @@ int main() {
 void MyWindowListener::close(const ny::CloseEvent&) {
 	dlg_info("Window closed from server side. Exiting.");
 	*run = false;
-	appContext->wakeupWait();
 }
 
 void MyWindowListener::draw(const ny::DrawEvent&) {
@@ -82,6 +83,7 @@ void MyWindowListener::draw(const ny::DrawEvent&) {
 	// This call does automatically detect if the context is already current and then
 	// does not have to call the gl context api.
 	glContext->makeCurrent(*glSurface);
+	glViewport(0, 0, size.x, size.y);
 
 	// note that you usually would have to set the viewport correctly
 	// but since we only clear here, it does not matter.
@@ -89,12 +91,12 @@ void MyWindowListener::draw(const ny::DrawEvent&) {
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	// Finally, swap the buffers/apply the content
-	windowContext->frameCallback();
 	glSurface->apply();
 
-	// TODO: test
 	windowContext->refresh();
-	dlg_info("draw");
+
+	static int i = 0u;
+	dlg_info("draw {}", ++i);
 }
 
 void MyWindowListener::surfaceCreated(const ny::SurfaceCreatedEvent& surfaceEvent) {
@@ -105,6 +107,10 @@ void MyWindowListener::surfaceCreated(const ny::SurfaceCreatedEvent& surfaceEven
 	}
 
 	windowContext->refresh();
+}
+
+void MyWindowListener::resize(const ny::SizeEvent& ev) {
+	size = ev.size;
 }
 
 void MyWindowListener::surfaceDestroyed(const ny::SurfaceDestroyedEvent&) {

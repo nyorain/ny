@@ -8,31 +8,26 @@
 
 namespace ny {
 
-void X11Backend::initialize()
-{
+void X11Backend::initialize() {
 	static X11Backend instance_;
 }
 
-bool X11Backend::available() const
-{
+bool X11Backend::available() const {
 	auto connection = xcb_connect(nullptr, nullptr);
 	bool ret = xcb_connection_has_error(connection);
 	xcb_disconnect(connection);
 	return !ret;
 }
 
-std::unique_ptr<AppContext> X11Backend::createAppContext()
-{
+std::unique_ptr<AppContext> X11Backend::createAppContext() {
 	return std::make_unique<X11AppContext>();
 }
 
-bool X11Backend::gl() const
-{
+bool X11Backend::gl() const {
 	return builtWithGl();
 }
 
-bool X11Backend::vulkan() const
-{
+bool X11Backend::vulkan() const {
 	return builtWithVulkan();
 }
 

@@ -6,7 +6,6 @@
 
 #include <ny/wayland/include.hpp>
 #include <ny/appContext.hpp> // ny::AppContext
-#include <ny/deferred.hpp>
 #include <ny/common/unix.hpp>
 #include <nytl/connection.hpp> // nytl::Connection
 
@@ -14,15 +13,13 @@
 #include <string> // std::string
 #include <memory> // std::unique_ptr
 #include <functional> // std::function
+#include <deque>
 
 namespace ny {
 
 /// Wayland AppContext implementation.
 /// Holds the wayland display connection as well as all global resources.
 class WaylandAppContext : public AppContext {
-public:
-	DeferredOperator<void(), const WindowContext*> deferred;
-
 public:
 	WaylandAppContext();
 	virtual ~WaylandAppContext();
@@ -76,6 +73,9 @@ public:
 	wl_pointer* wlPointer() const;
 	wl_keyboard* wlKeyboard() const;
 
+	using DeferFunc = void(*)(WaylandWindowContext&);
+	void defer(WaylandWindowContext&, DeferFunc);
+
 	WaylandWindowContext* windowContext(wl_surface& surface) const;
 	void destroyed(const WaylandWindowContext& wc);
 	bool shmFormatSupported(unsigned int wlShmFormat);
@@ -100,6 +100,7 @@ protected:
 	/// Returns [the value poll returned, whether wakeupWait was called]
 	/// Will not stop on a signal.
 	std::tuple<int, bool> poll(short wlDisplayEvents, bool wait);
+	unsigned execDeferred();
 
 	// callback handlers
 	void handleRegistryAdd(wl_registry*, uint32_t id, const char* cinterface, uint32_t version);
@@ -131,6 +132,13 @@ protected:
 
 	struct Impl;
 	std::unique_ptr<Impl> impl_;
+
+	struct Defer {
+		DeferFunc func;
+		WaylandWindowContext* wc;
+	};
+
+	std::deque<Defer> defer_;
 };
 
 } // namespace ny

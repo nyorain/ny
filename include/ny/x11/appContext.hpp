@@ -6,11 +6,10 @@
 
 #include <ny/x11/include.hpp>
 #include <ny/appContext.hpp>
-#include <ny/deferred.hpp>
 #include <ny/windowSettings.hpp>
 #include <ny/common/unix.hpp>
 
-#include <map>
+#include <unordered_map>
 #include <memory>
 #include <deque>
 
@@ -18,12 +17,6 @@ namespace ny {
 
 /// X11 AppContext implementation.
 class X11AppContext : public AppContext {
-public:
-	// DeferredOperator<void(), const WindowContext*> deferred;
-
-	// TODO
-	std::vector<X11WindowContext*> present_;
-	using DeferFunc = void(*)(X11WindowContext&);
 public:
 	X11AppContext();
 	~X11AppContext();
@@ -69,6 +62,7 @@ public:
 	GlxSetup* glxSetup() const;
 	X11DataManager& dataManager() const;
 
+	using DeferFunc = void(*)(X11WindowContext&);
 	void defer(X11WindowContext&, DeferFunc);
 	void registerContext(xcb_window_t xWindow, X11WindowContext& context);
 	void destroyed(const X11WindowContext& win);
@@ -104,15 +98,15 @@ protected:
 	xcb_screen_t* xDefaultScreen_ = nullptr;
 	EventFD eventfd_; // for wakeup
 
-	std::map<xcb_window_t, X11WindowContext*> contexts_;
-	std::map<std::string, xcb_atom_t> additionalAtoms_;
+	std::unordered_map<xcb_window_t, X11WindowContext*> contexts_;
+	std::unordered_map<std::string, xcb_atom_t> additionalAtoms_;
 
 	std::unique_ptr<X11MouseContext> mouseContext_;
 	std::unique_ptr<X11KeyboardContext> keyboardContext_;
 
 	/// Optionally contains the next event ot process.
 	/// Peeked by dispatchPending since the next event is
-	/// sometimes needed.
+	/// sometimes needed (e.g. checking for repeated key press)
 	void* next_ {};
 
 	WindowCapabilities ewmhWindowCaps_ {};

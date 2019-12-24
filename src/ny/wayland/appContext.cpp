@@ -232,7 +232,7 @@ WaylandAppContext::~WaylandAppContext() {
 
 void WaylandAppContext::pollEvents() {
 	checkError();
-	deferred.execute();
+	execDeferred();
 
 	// read all registered file descriptors without any blocking and without
 	// polling for the display file descriptor, since we dispatch everything
@@ -257,19 +257,20 @@ void WaylandAppContext::pollEvents() {
 
 	// process all events we can get without blocking
 	if(wl_display_read_events(wlDisplay_) == -1) {
-		dlg_warn("wl_display_read_events: {} ({})", std::strerror(errno), errno);
+		auto msg = std::strerror(errno);
+		dlg_warn("wl_display_read_events: {} ({})", msg, errno);
 	}
 	wl_display_dispatch_pending(wlDisplay_);
 
-	deferred.execute();
+	execDeferred();
 	checkError();
 }
 
 void WaylandAppContext::waitEvents() {
 	checkError();
-	deferred.execute();
+	execDeferred();
 	dispatchDisplay();
-	deferred.execute();
+	execDeferred();
 	checkError();
 }
 
@@ -283,6 +284,22 @@ KeyboardContext* WaylandAppContext::keyboardContext() {
 
 MouseContext* WaylandAppContext::mouseContext() {
 	return waylandMouseContext();
+}
+
+unsigned WaylandAppContext::execDeferred() {
+	auto count = 0u;
+	while(!defer_.empty()) {
+		auto current = defer_.front();
+		defer_.pop_front();
+		current.func(*current.wc);
+		++count;
+	}
+
+	return count;
+}
+
+void WaylandAppContext::defer(WaylandWindowContext& wc, DeferFunc f) {
+	defer_.push_back({f, &wc});
 }
 
 WindowContextPtr WaylandAppContext::createWindowContext(const WindowSettings& settings) {
@@ -754,7 +771,9 @@ wl_keyboard* WaylandAppContext::wlKeyboard() const {
 }
 
 void WaylandAppContext::destroyed(const WaylandWindowContext& wc) {
-	deferred.remove(&wc);
+	defer_.erase(std::remove_if(defer_.begin(), defer_.end(),
+		[&](auto& o){ return &wc == o.wc; }), defer_.end());
+
 	if(waylandKeyboardContext()) {
 		waylandKeyboardContext()->destroyed(wc);
 	}

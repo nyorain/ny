@@ -25,8 +25,7 @@
 namespace ny {
 namespace {
 
-bool loadExtensions(Display& dpy)
-{
+bool loadExtensions(Display& dpy) {
 	static std::once_flag cof {};
 	static bool valid {};
 
@@ -70,7 +69,9 @@ bool loadExtensions(Display& dpy)
 
 		for(const auto& f : funcs) {
 			auto data = reinterpret_cast<const unsigned char*>(f.name);
-			f.func = f.load ? reinterpret_cast<PfnVoid>(::glXGetProcAddress(data)) : nullptr;
+			f.func = f.load ?
+				reinterpret_cast<PfnVoid>(::glXGetProcAddress(data)) :
+				nullptr;
 		}
 
 		valid = true;
@@ -82,31 +83,35 @@ bool loadExtensions(Display& dpy)
 } // namespace glx
 
 // GlxSetup
-GlxSetup::GlxSetup(const X11AppContext& ac, unsigned int screenNum) : appContext_(&ac)
-{
+GlxSetup::GlxSetup(const X11AppContext& ac, unsigned int screenNum)
+		: appContext_(&ac) {
+
 	// query version
 	// we need at least glx 1.3 for fb configs
 	// should be supported on almost all machines
 	int major, minor;
 	::glXQueryVersion(&xDisplay(), &major, &minor);
-	if(major < 1 || (major == 1 && minor < 3))
+	if(major < 1 || (major == 1 && minor < 3)) {
 		throw std::runtime_error("ny::GlxSetup: glx 1.3 not supported");
+	}
 
-	if(!loadExtensions(xDisplay()))
+	if(!loadExtensions(xDisplay())) {
 		throw std::runtime_error("ny::GlxSetup: failed to load extensions");
+	}
 
 	int fbcount = 0;
 	GLXFBConfig* fbconfigs = ::glXGetFBConfigs(&xDisplay(), screenNum, &fbcount);
-	if(!fbconfigs || !fbcount)
+	if(!fbconfigs || !fbcount) {
 		throw std::runtime_error("ny::GlxSetup: could not retrieve any fb configs");
+	}
 
 	configs_.reserve(fbcount);
 	auto highestRating = 0u;
 	auto highestTransparentRating = 0u;
 
-	for(auto& config : nytl::Span<GLXFBConfig>(*fbconfigs, fbcount)) {
-		// NOTE: we don't query/handle GLX_TRANSPARENT_TYPE since it is usually
-		// note correctly set
+	for(auto& config : nytl::Span<GLXFBConfig>(fbconfigs, fbcount)) {
+		// NOTE: we don't query/handle GLX_TRANSPARENT_TYPE since it is not
+		// always correctly set
 
 		GlConfig glconf;
 		int r, g, b, a, id, depth, stencil, doubleBuffer, visual;
@@ -150,8 +155,7 @@ GlxSetup::GlxSetup(const X11AppContext& ac, unsigned int screenNum) : appContext
 	::XFree(fbconfigs);
 }
 
-GlxSetup::GlxSetup(GlxSetup&& other) noexcept
-{
+GlxSetup::GlxSetup(GlxSetup&& other) noexcept {
 	appContext_ = other.appContext_;
 	defaultConfig_ = other.defaultConfig_;
 	defaultTransparentConfig_ = other.defaultTransparentConfig_;
@@ -161,8 +165,7 @@ GlxSetup::GlxSetup(GlxSetup&& other) noexcept
 	other.defaultConfig_ = {};
 }
 
-GlxSetup& GlxSetup::operator=(GlxSetup&& other) noexcept
-{
+GlxSetup& GlxSetup::operator=(GlxSetup&& other) noexcept {
 	appContext_ = other.appContext_;
 	defaultConfig_ = other.defaultConfig_;
 	defaultTransparentConfig_ = other.defaultTransparentConfig_;
@@ -174,26 +177,24 @@ GlxSetup& GlxSetup::operator=(GlxSetup&& other) noexcept
 	return *this;
 }
 
-std::unique_ptr<GlContext> GlxSetup::createContext(const GlContextSettings& settings) const
-{
+std::unique_ptr<GlContext> GlxSetup::createContext(
+		const GlContextSettings& settings) const {
 	return std::make_unique<GlxContext>(*this, settings);
 }
 
-void* GlxSetup::procAddr(const char* name) const
-{
+void* GlxSetup::procAddr(const char* name) const {
 	auto data = reinterpret_cast<const unsigned char*>(name);
 	auto ret = reinterpret_cast<void*>(::glXGetProcAddress(data));
 	return ret;
 }
 
-GLXFBConfig GlxSetup::glxConfig(GlConfigID id) const
-{
+GLXFBConfig GlxSetup::glxConfig(GlConfigID id) const {
 	int fbcount {};
 	auto* fbconfigs = ::glXGetFBConfigs(&xDisplay(), 0, &fbcount);
 	if(!fbconfigs || !fbcount) return nullptr;
 
 	GLXFBConfig ret {};
-	for(auto& config : nytl::Span<GLXFBConfig>(*fbconfigs, fbcount)) {
+	for(auto& config : nytl::Span<GLXFBConfig>(fbconfigs, fbcount)) {
 		int getid {};
 		::glXGetFBConfigAttrib(&xDisplay(), config, GLX_FBCONFIG_ID, &getid);
 		if(getid == static_cast<int>(glConfigNumber(id))) {
@@ -206,8 +207,7 @@ GLXFBConfig GlxSetup::glxConfig(GlConfigID id) const
 	return ret;
 }
 
-unsigned int GlxSetup::visualID(GlConfigID id) const
-{
+unsigned int GlxSetup::visualID(GlConfigID id) const {
 	auto glxfbc = glxConfig(id);
 	if(!glxfbc) {
 		dlg_warn("GlxSetup: invalid gl config id given");
@@ -220,19 +220,22 @@ unsigned int GlxSetup::visualID(GlConfigID id) const
 	return visualid;
 }
 
-Display& GlxSetup::xDisplay() const
-{
+Display& GlxSetup::xDisplay() const {
 	return appContext().xDisplay();
 }
 
 // GlxSurface
-GlxSurface::GlxSurface(const GlxSetup& setup, unsigned int xDrawable, const GlConfig& config)
-	: setup_(setup), xDrawable_(xDrawable), config_(config)
-{
+GlxSurface::GlxSurface(const GlxSetup& setup, unsigned int xDrawable,
+		const GlConfig& config)
+	: setup_(setup), xDrawable_(xDrawable), config_(config) {
 }
 
-GlxSurface::~GlxSurface()
-{
+GlxSurface::GlxSurface(const GlxSetup& setup, X11WindowContext& wc,
+		const GlConfig& config)
+	: setup_(setup), xDrawable_(wc.xWindow()), config_(config), wc_(&wc) {
+}
+
+GlxSurface::~GlxSurface() {
 	GlContext* context;
 	if(isCurrent(&context)) {
 		std::error_code ec;
@@ -244,11 +247,14 @@ GlxSurface::~GlxSurface()
 		dlg_error("~GlxSurface: still current in another thread");
 }
 
-bool GlxSurface::apply(std::error_code& ec) const
-{
+bool GlxSurface::apply(std::error_code& ec) const {
 	ec.clear();
 	auto& errorCat = appContext().errorCategory();
 	errorCat.resetLastXlibError();
+
+	if(wc_) {
+		wc_->frameCallback();
+	}
 
 	::glXSwapBuffers(&xDisplay(), xDrawable_);
 	if(errorCat.lastXlibError()) {
@@ -260,15 +266,13 @@ bool GlxSurface::apply(std::error_code& ec) const
 }
 
 // GlxContext
-GlxContext::GlxContext(const GlxSetup& setup, GLXContext context, const GlConfig& config)
-: setup_(setup), glxContext_(context)
-{
+GlxContext::GlxContext(const GlxSetup& setup, GLXContext context,
+		const GlConfig& config) : setup_(setup), glxContext_(context) {
 	GlContext::initContext(GlApi::gl, config);
 }
 
 GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
-	: setup_(setup)
-{
+		: setup_(setup) {
 	// test config
 	auto api = settings.api;
 	if(api == GlApi::gles && !hasProfileES) {
@@ -276,8 +280,9 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 		throw GlContextError(GlContextErrc::invalidApi, msg);
 	}
 
-	if(api == GlApi::none)
+	if(api == GlApi::none) {
 		api = GlApi::gl;
+	}
 
 	// config
 	GlConfig glConfig;
@@ -291,15 +296,17 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 		glxConfig = setup.glxConfig(glConfig.id);
 	}
 
-	if(!glxConfig)
+	if(!glxConfig) {
 		throw GlContextError(GlContextErrc::invalidConfig, "ny::GlxContext");
+	}
 
 	// shared
 	GLXContext glxShareContext = nullptr;
 	if(settings.share) {
 		auto shareCtx = dynamic_cast<GlxContext*>(settings.share);
-		if(!shareCtx)
+		if(!shareCtx) {
 			throw GlContextError(GlContextErrc::invalidSharedContext, "ny::GlxContext");
+		}
 
 		glxShareContext = shareCtx->glxContext();
 	}
@@ -308,59 +315,52 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 	auto& errorCat = appContext().errorCategory();
 
 	if(createContextAttribsARB) {
-		std::vector<std::pair<unsigned int, unsigned int>> versionPairs;
 		std::vector<int> attributes;
 		attributes.reserve(16);
-
-		// switch default versions and checked version pairs
-		if(api == GlApi::gles) versionPairs = {{3, 2}, {3, 1}, {3, 0}, {2, 0}, {1, 1}, {1, 0}};
-		else versionPairs = {{4, 5}, {3, 3}, {3, 2}, {3, 1}, {3, 0}, {1, 2}, {1, 0}};
 
 		// profile
 		if(hasProfile) {
 			attributes.push_back(GLX_CONTEXT_PROFILE_MASK_ARB);
 
-			if(hasProfileES && api == GlApi::gles)
+			if(hasProfileES && api == GlApi::gles) {
 				attributes.push_back(GLX_CONTEXT_ES2_PROFILE_BIT_EXT);
-			else if(settings.compatibility)
+			} else if(settings.compatibility) {
 				attributes.push_back(GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB);
-			else
+			} else {
 				attributes.push_back(GLX_CONTEXT_CORE_PROFILE_BIT_ARB);
+			}
 		}
 
 		// forward compatible, debug
 		auto flags = 0u;
-		if(settings.forwardCompatible) flags |= GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB;
-		if(settings.debug) flags |= GLX_CONTEXT_DEBUG_BIT_ARB;
+		if(settings.forwardCompatible) {
+			flags |= GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB;
+		} if(settings.debug) {
+			flags |= GLX_CONTEXT_DEBUG_BIT_ARB;
+		}
 
 		attributes.push_back(GLX_CONTEXT_FLAGS_ARB);
 		attributes.push_back(flags);
 
 		// version
 		// will be set later, during the testing loop
-		// attributes.push_back(GLX_CONTEXT_MAJOR_VERSION_ARB);
-		// attributes.push_back(0);
-		// attributes.push_back(GLX_CONTEXT_MINOR_VERSION_ARB);
-		// attributes.push_back(0);
+		attributes.push_back(GLX_CONTEXT_MAJOR_VERSION_ARB);
+		attributes.push_back(settings.version.major);
+		attributes.push_back(GLX_CONTEXT_MINOR_VERSION_ARB);
+		attributes.push_back(settings.version.minor);
 
 		// null-terminated
 		attributes.push_back(0);
 
-		for(const auto& p : versionPairs) {
-			// attributes[attributes.size() - 4] = p.first;
-			// attributes[attributes.size() - 2] = p.second;
+		errorCat.resetLastXlibError();
+		glxContext_ = createContextAttribsARB(&xDisplay(), glxConfig, glxShareContext,
+			true, attributes.data());
 
-			errorCat.resetLastXlibError();
-			glxContext_ = createContextAttribsARB(&xDisplay(), glxConfig, glxShareContext,
-				true, attributes.data());
-
-			auto errorCode = errorCat.lastXlibError();
-			if(errorCode && errorCode.message() != "GLXBadFBConfig")
-				dlg_warn("unexpected error: {}", errorCode.message());
-
-			if(glxContext_)
-				break;
+		auto errorCode = errorCat.lastXlibError();
+		if(errorCode && errorCode.message() != "GLXBadFBConfig") {
+			dlg_warn("unexpected error: {}", errorCode.message());
 		}
+
 	}
 
 	// try legacy version
@@ -371,13 +371,15 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 		glxContext_ = ::glXCreateNewContext(&xDisplay(), glxConfig, GLX_RGBA_TYPE,
 			glxShareContext, true);
 
-		if(!glxContext_)
+		if(!glxContext_) {
 			dlg_warn("glxCreateNewContext: {}", errorCat.lastXlibError().message());
+		}
 	}
 
 	// indirect
 	if(!glxContext_) {
 		errorCat.resetLastXlibError();
+		dlg_info("trying to create indirect gl context as last fallback");
 		glxContext_ = ::glXCreateNewContext(&xDisplay(), glxConfig, GLX_RGBA_TYPE,
 			glxShareContext, false);
 
@@ -399,8 +401,7 @@ GlxContext::GlxContext(const GlxSetup& setup, const GlContextSettings& settings)
 	GlContext::initContext(GlApi::gl, glConfig);
 }
 
-GlxContext::~GlxContext()
-{
+GlxContext::~GlxContext() {
 	if(glxContext_) {
 		std::error_code ec;
 		if(!makeNotCurrent(ec)) {
@@ -415,24 +416,27 @@ GlxContext::~GlxContext()
 	}
 }
 
-bool GlxContext::compatible(const GlSurface& surface) const
-{
-	if(!GlContext::compatible(surface)) return false;
+bool GlxContext::compatible(const GlSurface& surface) const {
+	if(!GlContext::compatible(surface)) {
+		return false;
+	}
 
 	auto glxSurface = dynamic_cast<const GlxSurface*>(&surface);
 	return (glxSurface);
 }
 
-GlContextExtensions GlxContext::contextExtensions() const
-{
+GlContextExtensions GlxContext::contextExtensions() const {
 	GlContextExtensions ret;
-	if(swapIntervalEXT) ret |= GlContextExtension::swapControl;
-	if(hasSwapControlTear) ret |= GlContextExtension::swapControlTear;
+	if(swapIntervalEXT) {
+		ret |= GlContextExtension::swapControl;
+	} if(hasSwapControlTear) {
+		ret |= GlContextExtension::swapControlTear;
+	}
+
 	return ret;
 }
 
-bool GlxContext::swapInterval(int interval, std::error_code& ec) const
-{
+bool GlxContext::swapInterval(int interval, std::error_code& ec) const {
 	ec.clear();
 
 	if(!swapIntervalEXT) {
@@ -467,8 +471,7 @@ bool GlxContext::swapInterval(int interval, std::error_code& ec) const
 	return true;
 }
 
-bool GlxContext::makeCurrentImpl(const GlSurface& surface, std::error_code& ec)
-{
+bool GlxContext::makeCurrentImpl(const GlSurface& surface, std::error_code& ec) {
 	ec.clear();
 	auto& errorCat = appContext().errorCategory();
 	errorCat.resetLastXlibError();
@@ -482,8 +485,7 @@ bool GlxContext::makeCurrentImpl(const GlSurface& surface, std::error_code& ec)
 	return true;
 }
 
-bool GlxContext::makeNotCurrentImpl(std::error_code& ec)
-{
+bool GlxContext::makeNotCurrentImpl(std::error_code& ec) {
 	ec.clear();
 	auto& errorCat = appContext().errorCategory();
 	errorCat.resetLastXlibError();
@@ -498,8 +500,7 @@ bool GlxContext::makeNotCurrentImpl(std::error_code& ec)
 
 // GlxWindowContext
 GlxWindowContext::GlxWindowContext(X11AppContext& ac, const GlxSetup& setup,
-	const X11WindowSettings& settings)
-{
+		const X11WindowSettings& settings) {
 	appContext_ = &ac;
 
 	auto configid = settings.gl.config;
@@ -519,15 +520,17 @@ GlxWindowContext::GlxWindowContext(X11AppContext& ac, const GlxSetup& setup,
 
 	X11WindowContext::create(ac, settings);
 	auto glxSetup = appContext().glxSetup();
-	if(!glxSetup)
+	if(!glxSetup) {
 		throw std::runtime_error("ny::GlxWindowContext: failed to init glx");
+	}
 
-	surface_ = std::make_unique<GlxSurface>(*glxSetup, xWindow(), config);
-	if(settings.gl.storeSurface) *settings.gl.storeSurface = surface_.get();
+	surface_ = std::make_unique<GlxSurface>(*glxSetup, *this, config);
+	if(settings.gl.storeSurface) {
+		*settings.gl.storeSurface = surface_.get();
+	}
 }
 
-Surface GlxWindowContext::surface()
-{
+Surface GlxWindowContext::surface() {
 	return {*surface_};
 }
 

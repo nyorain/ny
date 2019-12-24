@@ -295,7 +295,8 @@ void X11WindowContext::refresh() {
 	ev.response_type = XCB_EXPOSE;
 	ev.window = xWindow();
 
-	xcb_send_event(&xConnection(), 0, xWindow(), XCB_EVENT_MASK_EXPOSURE, (const char*)&ev);
+	xcb_send_event(&xConnection(), 0, xWindow(),
+		XCB_EVENT_MASK_EXPOSURE, (const char*)&ev);
 	xcb_flush(&xConnection());
 }
 
@@ -321,10 +322,16 @@ void X11WindowContext::frameCallback() {
 		// window instead of a dummy window to really know when presenting
 		// for that window has finished. Not sure how to without actively
 		// changing the window contents. does it work like this?
+		// TODO: doing it like this seems to cause issues as well, e.g.
+		// for the gl demo when running with dri_prime=1
+		// xcb_present_pixmap(&xConnection(),
+		// 	xWindow(), xDummyPixmap_, serial,
+		// 	appContext().xEmptyRegion(),
+		// 	appContext().xEmptyRegion(), 0, 0,
+		// 	XCB_NONE, XCB_NONE, XCB_NONE, 0, 0, 0, 0, 0, nullptr);
 		xcb_present_pixmap(&xConnection(),
 			xWindow(), xDummyPixmap_, serial,
-			appContext().xEmptyRegion(),
-			appContext().xEmptyRegion(), 0, 0,
+			0, 0, 0, 0,
 			XCB_NONE, XCB_NONE, XCB_NONE, 0, 0, 0, 0, 0, nullptr);
 		// xcb_present_pixmap(&xConnection(),
 		// 	xWindow(), appContext().xDummyPixmap(), 0, XCB_NONE, XCB_NONE, -1, -1,
@@ -623,7 +630,7 @@ void X11WindowContext::presentCompleteEvent(uint32_t serial) {
 	// may happen if event was triggered by another/foreign present
 	// or there were multiple redraws e.g. when the window is resized
 	// (or just manually requested)
-	if(presentPending_ != serial) {
+	if(!presentPending_ || presentPending_ != serial) {
 		// dlg_trace("invalid present serial ({}, expected {})",
 		// 	serial, presentPending_);
 		return;

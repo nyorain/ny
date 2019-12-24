@@ -15,8 +15,6 @@ typedef struct __GLXFBConfigRec* GLXFBConfig;
 
 namespace ny {
 
-//TODO: correct screen number everywhere
-
 /// Glx GlSetup implementation.
 class GlxSetup : public GlSetup {
 public:
@@ -54,6 +52,7 @@ protected:
 /// Glx GlSurface implementation
 class GlxSurface : public GlSurface {
 public:
+	GlxSurface(const GlxSetup&, X11WindowContext& ctx, const GlConfig&);
 	GlxSurface(const GlxSetup&, unsigned int xDrawable, const GlConfig&);
 	~GlxSurface();
 
@@ -71,6 +70,7 @@ protected:
 	const GlxSetup& setup_;
 	unsigned int xDrawable_ {};
 	GlConfig config_ {};
+	X11WindowContext* wc_ {};
 };
 
 /// Glx GlContext implementation

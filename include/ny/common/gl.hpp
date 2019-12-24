@@ -53,6 +53,11 @@ unsigned int rate(const GlConfig& config);
 /// whitespace contains the given extensions.
 bool glExtensionStringContains(const char* extString, const char* extension);
 
+struct GlVersion {
+	unsigned major;
+	unsigned minor;
+};
+
 /// Describes the settings for a created gl context.
 /// The shared GlContext must be set to nullptr or a GlContext that was created from the
 /// same setup implementation. The returned context will be shared with the given
@@ -65,8 +70,8 @@ struct GlContextSettings {
 	bool compatibility {};
 	bool forwardCompatible {};
 	bool debug {};
-	GlApi api {};
-
+	GlApi api {GlApi::gl};
+	GlVersion version {3, 3};
 	GlContext* share {};
 };
 
